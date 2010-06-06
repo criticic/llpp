@@ -1,5 +1,5 @@
 open Format;;
-external init : Unix.file_descr -> GlTex.texture_id -> unit = "ml_init";;
+external init : Unix.file_descr -> unit = "ml_init";;
 external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
 external preload : string -> unit = "ml_preload";;
 (* external layout : int -> unit = "ml_layout";; *)
@@ -10,13 +10,13 @@ type ('a, 'b, 'c) g =
     ; mutable w : int
     ; mutable h : int
     ; mutable y : int
-    ; mutable s : float
     ; mutable maxy : int
-    ; mutable texs : GlTex.texture_id array
     ; mutable layout : (int * int * int * int * int * int * int) list
-    ; pixcache : ((int * int * int), (string * bool)) Hashtbl.t
+    ; pixcache : ((int * int * int), string) Hashtbl.t
     ; mutable pages : 'a list
     ; mutable pagecount : int
+    ; lru : string array
+    ; mutable lruidx : int
     }
 ;;
 
@@ -26,13 +26,13 @@ let state =
   ; w = 0
   ; h = 0
   ; y = 0
-  ; s = 1.0
-  ; texs = [||]
   ; layout = []
   ; maxy = max_int
   ; pixcache = Hashtbl.create 10
   ; pages = []
   ; pagecount = 0
+  ; lru = Array.create 12 ""
+  ; lruidx = 0
   }
 ;;
 
@@ -125,7 +125,7 @@ let layout y sh =
   in
   let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages [] in
   (* log ""; *)
-  accu
+  List.rev accu
 ;;
 
 let reshape ~w ~h =
@@ -164,7 +164,22 @@ let act cmd =
         Scanf.sscanf cmd "r %d %d %d %s"
           (fun n w h p -> (n, w, h, p))
       in
-      Hashtbl.add state.pixcache (n, w, h) (p, false);
+      Hashtbl.replace state.pixcache (n, w, h) p;
+      let idx = state.lruidx mod (Array.length state.lru) in
+      let s = state.lru.(idx) in
+      if String.length s != 0
+      then begin
+        log "free %s" s;
+        wcmd "free" [`s s];
+        let l = Hashtbl.fold (fun k s' a ->
+          if s = s' then k :: a else a) state.pixcache []
+        in
+        List.iter (fun k ->
+          let n,w,h = k in
+          Hashtbl.remove state.pixcache k) l;
+      end;
+      state.lru.(idx) <- p;
+      state.lruidx <- state.lruidx + 1;
       Glut.postRedisplay ();
 
   | 'm' ->
@@ -173,8 +188,8 @@ let act cmd =
 
   | 'u' ->
       let n = Scanf.sscanf cmd "u %d" (fun n -> n) in
-      let (s, _) = Hashtbl.find state.pixcache (n, state.w, state.h) in
-      Hashtbl.replace state.pixcache (n, state.w, state.h) (s, true)
+      let s = Hashtbl.find state.pixcache (n, state.w, state.h) in
+      Hashtbl.replace state.pixcache (n, state.w, state.h) s
 
   | 'l' ->
       let (n, w, h) as pagelayout =
@@ -192,16 +207,17 @@ let preload
     ((pageno, pindex, pagewidth, pageheight, screeny, pageyoffset, screenheight) as page) =
   let key = (pageno + 1, state.w, state.h) in
   begin try
-      let pixmap, texready = Hashtbl.find state.pixcache key in
+      let pixmap = Hashtbl.find state.pixcache key in
       if
         String.length pixmap = 0
       then
         ()
       else (
-        preload pixmap
+        (* preload pixmap *)
       );
     with Not_found ->
-      Hashtbl.add state.pixcache key ("", false);
+      log "preload render %d" pageno;
+      Hashtbl.add state.pixcache key "";
       wcmd "render" [`i (pageno + 1)
                     ;`i pindex
                     ;`i pagewidth
@@ -214,9 +230,9 @@ let idle () =
 
   begin match r with
   | [] ->
-      begin
+      if false then begin
         let h = state.h in
-        let pages = layout state.y (state.h * 5) in
+        let pages = layout (state.y + state.h) h in
         List.iter preload pages;
       end
 
@@ -240,7 +256,7 @@ let keyboard ~key ~x ~y =
       begin match List.rev state.layout with
       | [] -> ()
       | (_, _, _, h, _, pyo, sh) :: _ ->
-          log"%d %d" h pyo;
+          log "%d %d" h pyo;
           clamp (h-pyo);
           let pages = layout state.y state.h in
           state.layout <- pages;
@@ -299,7 +315,7 @@ let colors =
 
 let drawplaceholder (pageno, pindex, pagewidth, pageheight,
                     screeny, pageyoffset, screenheight) =
-  GlDraw.color (0.7, 0.7, 0.7);
+  GlDraw.color (0.0, 0.0, 0.0);
   GlDraw.begins `quads;
   GlDraw.vertex2 (0.0, float screeny);
   GlDraw.vertex2 (float pagewidth, float screeny);
@@ -308,29 +324,30 @@ let drawplaceholder (pageno, pindex, pagewidth, pageheight,
   GlDraw.ends ();
 ;;
 
+let now () = Unix.gettimeofday ();;
+
 let drawpage i
     ((pageno, pindex, pagewidth, pageheight, screeny, pageyoffset, screenheight) as page) =
   let key = (pageno + 1, state.w, state.h) in
   begin try
-      let pixmap, texready = Hashtbl.find state.pixcache key in
+      let pixmap = Hashtbl.find state.pixcache key in
       if
-        (* true || *)
         String.length pixmap = 0
       then
         drawplaceholder page
       else (
         GlDraw.color (1.0, 1.0, 1.0);
-        if texready || true
-        then (
-          draw screeny pagewidth screenheight pageyoffset pixmap;
-        )
-        else (
-          drawplaceholder page;
-          wcmd "upload" [`i pageno; `s pixmap];
-        );
+        let a = now () in
+        draw screeny pagewidth screenheight pageyoffset pixmap;
+        let b = now () in
+        let d = b-.a in
+        if d > 0.000405
+        then
+          log "draw %f sec" d
+        ;
       );
     with Not_found ->
-      Hashtbl.add state.pixcache key ("", false);
+      Hashtbl.add state.pixcache key "";
       drawplaceholder page;
       wcmd "render" [`i (pageno + 1)
                     ;`i pindex
@@ -342,9 +359,10 @@ let drawpage i
 
 let display () =
   GlClear.color (0.5, 0.5, 0.5) ~alpha:0.0;
-  (* GlClear.clear [`color]; *)
+  GlClear.clear [`color];
   GlDraw.color (0.0, 0.0, 0.0);
-  ignore (List.fold_left drawpage 0 (List.rev state.layout));
+  ignore (List.fold_left drawpage 0 (state.layout));
+  Gl.finish ();
   Glut.swapBuffers ();
 ;;
 
@@ -362,8 +380,7 @@ let () =
   let _ = Glut.createWindow "lpdf (press 'h' to get help)" in
 
   let csock, ssock = Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-  state.texs <- GlTex.gen_textures 1;
-  init ssock state.texs.(0);
+  init ssock;
   state.w <- w;
   state.h <- h;
   state.csock <- csock;

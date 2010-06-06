@@ -65,7 +65,7 @@ let bso name objs =
   let so = name ^ ".so" in
   let mupdf_libs =
     " -L" ^ mupdflibpath ^
-      " -lmupdf -lfitz -lfonts -lfitzdraw  -lcmaps -ljpeg -lz -lfreetype"
+      " -lmupdf -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype"
   in
   let o = List.map (fun s -> s ^ ".o") objs in
   ocaml'

@@ -23,10 +23,14 @@ if ! md5sum --status -c $d; then
 fi
 
 mupdf=/home/malc/x/bld/mupdf
+mupdf=/home/malc/x/rcs/darcs/mupdf/mupdf/
 cc=gcc
 ccopt="-Wall -Werror -I$mupdf -Wno-unused-function -Wno-unused"
-targets="lpdf test testgl"
+targets="lpdf" #test testgl
+
+lpath=$mupdf/build/linux-ppc-release/
+lpath=/home/malc/x/rcs/darcs/mupdf/mupdf/build/release
 
 ./b -O src:$h -r -O ccopt:"$ccopt" -O cc:"$cc" \
--O mupdflibpath:"$mupdf/build/linux-ppc-release/" \
+-O "mupdflibpath:$lpath" \
 $* $targets
