@@ -2,7 +2,6 @@ open Format;;
 external init : Unix.file_descr -> unit = "ml_init";;
 external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
 external preload : string -> unit = "ml_preload";;
-(* external layout : int -> unit = "ml_layout";; *)
 
 type ('a, 'b, 'c) g =
     { mutable csock : Unix.file_descr
@@ -36,7 +35,9 @@ let state =
   }
 ;;
 
-let aincr = 20;;
+let aincr = 15;;
+let scrollw = 10;;
+let scrollh = 12;;
 let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
@@ -91,6 +92,20 @@ let wcmd s l =
   writecmd state.csock s;
 ;;
 
+let calcheight () =
+  let rec f pn ph fh l =
+    match l with
+    | (n, _, h) :: rest ->
+        let fh = fh + (n - pn) * ph + h in
+        f (n+1) h fh rest
+
+    | [] ->
+        fh + (ph * (state.pagecount - pn - 1)) - state.h
+  in
+  let fh = f 0 0 0 state.pages in
+  fh;
+;;
+
 let layout y sh =
   let rec f pagenum pindex prev vy py dy l accu =
     if pagenum = state.pagecount
@@ -99,7 +114,6 @@ let layout y sh =
       let ((_, w, h) as curr), rest, pindex =
         match l with
         | ((pagenum', _, _) as curr) :: rest when pagenum' = pagenum ->
-            (* log "pagenum=%d(%d) index=%d" pagenum pagenum' pindex; *)
             curr, rest, pindex + 1
         | _ ->
             prev, l, pindex
@@ -113,18 +127,16 @@ let layout y sh =
         then
           let vh = sh - dy in
           let e = pagenum, pindex, w, h, dy, py', vh in
-          (* log "lay1[%d,%d] %dx%d" pagenum pindex w h; *)
           e :: accu
         else
           let e = pagenum, pindex, w, h, dy, py', vh in
           let accu = e :: accu in
-          (* log "lay2[%d,%d] %dx%d" pagenum pindex w h; *)
-          f pagenum' pindex curr (vy + vh) (py + h) (dy + vh) rest accu
+          f pagenum' pindex curr (vy + vh) (py + h) (dy + vh + 2) rest accu
       else
         f pagenum' pindex curr vy (py + h) dy rest accu
   in
   let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages [] in
-  (* log ""; *)
+  state.maxy <- calcheight ();
   List.rev accu
 ;;
 
@@ -138,13 +150,12 @@ let reshape ~w ~h =
   GlMat.load_identity ();
   GlMat.rotate ~x:1.0 ~angle:180.0 ();
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
-  GlMat.scale3 (2.0 /. float state.w, 2.0 /. float state.h, 1.0);
+  GlMat.scale3 (2.0 /. float w, 2.0 /. float state.h, 1.0);
   state.pages <- [];
-  wcmd "geometry" [`i w; `i h];
+  wcmd "geometry" [`i (state.w - scrollw); `i h];
   let pages = layout state.y state.h in
   state.layout <- pages;
   Glut.postRedisplay ();
-  log "reshape %dx%d" w h;
 ;;
 
 let act cmd =
@@ -169,7 +180,6 @@ let act cmd =
       let s = state.lru.(idx) in
       if String.length s != 0
       then begin
-        log "free %s" s;
         wcmd "free" [`s s];
         let l = Hashtbl.fold (fun k s' a ->
           if s = s' then k :: a else a) state.pixcache []
@@ -184,19 +194,13 @@ let act cmd =
 
   | 'm' ->
       let n = Scanf.sscanf cmd "m %d" (fun n -> n) in
-      state.maxy <- n
-
-  | 'u' ->
-      let n = Scanf.sscanf cmd "u %d" (fun n -> n) in
-      let s = Hashtbl.find state.pixcache (n, state.w, state.h) in
-      Hashtbl.replace state.pixcache (n, state.w, state.h) s
+      (* state.maxy <- n; *)
+      ()
 
   | 'l' ->
       let (n, w, h) as pagelayout =
         Scanf.sscanf cmd "l %d %d %d" (fun n w h -> n, w, h)
       in
-(*       if n = 0 *)
-(*       then state.pages <- []; *)
       state.pages <- pagelayout :: state.pages
 
   | _ ->
@@ -216,7 +220,6 @@ let preload
         (* preload pixmap *)
       );
     with Not_found ->
-      log "preload render %d" pageno;
       Hashtbl.add state.pixcache key "";
       wcmd "render" [`i (pageno + 1)
                     ;`i pindex
@@ -230,9 +233,10 @@ let idle () =
 
   begin match r with
   | [] ->
-      if false then begin
+      if true then begin
         let h = state.h in
-        let pages = layout (state.y + state.h) h in
+        let y = if state.y < state.h then 0 else state.y - state.h in
+        let pages = layout y (h*3) in
         List.iter preload pages;
       end
 
@@ -256,7 +260,6 @@ let keyboard ~key ~x ~y =
       begin match List.rev state.layout with
       | [] -> ()
       | (_, _, _, h, _, pyo, sh) :: _ ->
-          log "%d %d" h pyo;
           clamp (h-pyo);
           let pages = layout state.y state.h in
           state.layout <- pages;
@@ -293,7 +296,7 @@ let special ~key ~x ~y =
   | Glut.KEY_PAGE_UP   -> clamp (-state.h)
   | Glut.KEY_PAGE_DOWN -> clamp state.h
   | Glut.KEY_HOME -> state.y <- 0
-  | Glut.KEY_END -> state.y <- state.maxy - state.h
+  | Glut.KEY_END -> state.y <- state.maxy (* - state.h *)
   | _ -> ()
   end;
   let pages = layout state.y state.h in
@@ -301,34 +304,37 @@ let special ~key ~x ~y =
   Glut.postRedisplay ();
 ;;
 
-let colors =
-  [| (1.0, 0.0, 0.0)
-  ;  (0.0, 1.0, 0.0)
-  ;  (0.0, 0.0, 1.0)
-  ;  (0.0, 0.0, 0.0)
-  ;  (1.0, 1.0, 1.0)
-  ;  (1.0, 1.0, 0.0)
-  ;  (1.0, 0.0, 1.0)
-  ;  (0.0, 1.0, 1.0)
-  |]
-;;
-
 let drawplaceholder (pageno, pindex, pagewidth, pageheight,
                     screeny, pageyoffset, screenheight) =
-  GlDraw.color (0.0, 0.0, 0.0);
-  GlDraw.begins `quads;
-  GlDraw.vertex2 (0.0, float screeny);
-  GlDraw.vertex2 (float pagewidth, float screeny);
-  GlDraw.vertex2 (float pagewidth, float (screeny + screenheight));
-  GlDraw.vertex2 (0.0, float (screeny + screenheight));
-  GlDraw.ends ();
+  if true
+  then (
+    GlDraw.color (0.2, 0.2, 0.2);
+    GlDraw.rect
+      (0.0, float screeny)
+      (float pagewidth, float (screeny + screenheight))
+    ;
+    let x = 0.0
+    and y = float (screeny + screenheight) in
+    let font = Glut.BITMAP_8_BY_13 in (* BITMAP_HELVETICA_18 in *)
+    GlDraw.color (1.2, 1.2, 1.2);
+    GlPix.raster_pos ~x ~y ();
+    String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c))
+      ("LOADING " ^ string_of_int pageno)
+
+(*     GlDraw.begins `quads; *)
+(*     GlDraw.vertex2 (0.0, float screeny); *)
+(*     GlDraw.vertex2 (float pagewidth, float screeny); *)
+(*     GlDraw.vertex2 (float pagewidth, float (screeny + screenheight)); *)
+(*     GlDraw.vertex2 (0.0, float (screeny + screenheight)); *)
+(*     GlDraw.ends (); *)
+  )
 ;;
 
 let now () = Unix.gettimeofday ();;
 
 let drawpage i
     ((pageno, pindex, pagewidth, pageheight, screeny, pageyoffset, screenheight) as page) =
-  let key = (pageno + 1, state.w, state.h) in
+  let key = (pageno + 1, state.w - scrollw, state.h) in
   begin try
       let pixmap = Hashtbl.find state.pixcache key in
       if
@@ -354,24 +360,52 @@ let drawpage i
                     ;`i pagewidth
                     ;`i pageheight];
   end;
-  succ i;
+  GlDraw.color (0.5, 0.5, 0.5);
+  GlDraw.rect
+    (0., float i)
+    (float (state.w - scrollw), float (i + (screeny - i)))
+  ;
+  screeny + screenheight;
+;;
+
+let scrollindicator () =
+  GlDraw.color (0.64 , 0.64, 0.64);
+  GlDraw.rect
+    (float (state.w - scrollw), 0.)
+    (float state.w, float state.h)
+  ;
+  GlDraw.color (0.0, 0.0, 0.0);
+  let sh = (float (state.maxy + state.h) /. float state.h)  in
+  let sh = float state.h /. sh in
+  let sh = max sh (float scrollh) in
+
+  let percent = float state.y /. (float state.maxy) in
+  let position = (float state.h -. sh) *. percent in
+  (* log "position %f" position; *)
+  (* let position = sh *. percent in *)
+
+  let position =
+    if position +. sh > float state.h
+    then
+      float state.h -. sh
+    else
+      position
+  in
+  GlDraw.rect
+    (float (state.w - scrollw), position)
+    (float state.w, position +. sh)
+  ;
 ;;
 
 let display () =
-  GlClear.color (0.5, 0.5, 0.5) ~alpha:0.0;
-  GlClear.clear [`color];
-  GlDraw.color (0.0, 0.0, 0.0);
+  (* GlClear.color (0.5, 0.5, 0.5) ~alpha:0.0; *)
+  (* GlClear.clear [`color]; *)
   ignore (List.fold_left drawpage 0 (state.layout));
-  Gl.finish ();
+  scrollindicator ();
   Glut.swapBuffers ();
 ;;
 
 let () =
-  let w = 704
-  and h = 576 in
-  let w = 1448 in
-(*   let w = 612 *)
-(*   and h = 792 in *)
   let w = 800
   and h = 900 in
   let _ = Glut.init Sys.argv in

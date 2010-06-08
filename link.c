@@ -28,12 +28,18 @@
 
 static long pagesize;
 
+struct tex {
+    int index;
+    int h;
+};
+
 struct page {
     int pagenum;
     fz_pixmap *pixmap;
     GLuint texid;
     struct page2 *page2;
     struct page *prev;
+    struct tex texs[];
 };
 
 struct page2 {
@@ -45,27 +51,24 @@ struct page2 {
 
 struct {
     int sock;
-    int texid;
     pthread_t thread;
-    pthread_cond_t cond;
-    pthread_mutex_t mutex;
     struct page *pages;
     struct page2 *pages2;
     int page;
     int pagecount;
     pdf_xref *xref;
-    /* pdf_page *drawpage; */
     fz_glyphcache *cache;
-    size_t mapsize;
-    void *map;
     int w, h;
     Display *dpy;
     GLXContext ctx;
     GLXDrawable drawable;
-} state = {
-    .cond = PTHREAD_COND_INITIALIZER,
-    .mutex = PTHREAD_MUTEX_INITIALIZER
-};
+
+    int texid;
+    int texcount;
+    int slicecount;
+    GLuint *texids;
+    struct tex **texowners;
+} state;
 
 static double now (void)
 {
@@ -150,46 +153,6 @@ static void createmmap (struct page *page)
     }
 }
 
-static void lock (void)
-{
-    int ret;
-
-    ret = pthread_mutex_lock (&state.mutex);
-    if (ret) {
-        errx (1, "pthread_mutex_lock: %s\n", strerror (ret));
-    }
-}
-static void unlock (void)
-{
-    int ret;
-
-    ret = pthread_mutex_unlock (&state.mutex);
-    if (ret) {
-        errx (1, "pthread_mutex_unlock: %s\n", strerror (ret));
-    }
-}
-
-static void condsignal (void)
-{
-    int ret;
-
-    ret = pthread_cond_signal (&state.cond);
-    if (ret) {
-        errx (1, "pthread_cond_signal: %s\n", strerror (ret));
-    }
-}
-
-static void condwait (void)
-{
-    int ret;
-
-    ret = pthread_cond_wait (&state.cond, &state.mutex);
-    if (ret) {
-        errx (1, "pthread_cond_wait: %s\n", strerror (ret));
-    }
-}
-
-
 static void die(fz_error error)
 {
     fz_catch(error, "aborting");
@@ -265,6 +228,7 @@ static int readlen (int fd)
 
 static void freepage (struct page *page)
 {
+    int i;
     struct page *p;
 
     fz_droppixmap (page->pixmap);
@@ -274,7 +238,33 @@ static void freepage (struct page *page)
             break;
         }
     }
+    for (i = 0; i < state.slicecount; ++i) {
+        struct tex *t = &p->texs[i];
+        state.texowners[t->index] = NULL;
+    }
     free (page);
+}
+
+static void subdivide (struct page *p)
+{
+    int i;
+    int h = p->pixmap->h;
+
+    if (state.slicecount == 1) {
+        struct tex *t = &p->texs[0];
+        t->index = -1;
+        t->h = h;
+    }
+    else {
+        int th = h / (state.slicecount - 1);
+
+        for (i = 0; i < state.slicecount; ++i) {
+            struct tex *t = &p->texs[i];
+            t->index = -1;
+            t->h = MIN (th, h);
+            h -= th;
+        }
+    }
 }
 
 static void *render (int pagenum, int pindex)
@@ -291,7 +281,7 @@ static void *render (int pagenum, int pindex)
 
     printf ("render %d %d\n", pagenum, pindex);
     pdf_flushxref (state.xref, 0);
-    page = calloc (sizeof (*page), 1);
+    page = calloc (sizeof (*page) + (state.slicecount * sizeof (struct tex)), 1);
     if (!page) {
         err (1, "malloc page %d\n", pagenum);
     }
@@ -342,6 +332,7 @@ static void *render (int pagenum, int pindex)
     pdf_droppage (drawpage);
     page->page2 = page2;
     page->pagenum = pagenum;
+    subdivide (page);
     return page;
 }
 
@@ -351,13 +342,12 @@ static void layout1 (void)
     double a, b;
     int prevrotate;
     fz_rect prevbox;
-    int i, pindex, h;
+    int i, pindex;
     asize_t size;
     int64 mapsize;
     struct page2 *p;
 
     size = 0;
-    h = 0;
     pindex = 0;
     mapsize = 0;
     a = now ();
@@ -395,7 +385,6 @@ static void layout1 (void)
         if (pagenum != 1
             && (prevrotate == rotate
                 && !memcmp (&prevbox, &box, sizeof (box)))) {
-            h += p->pixmap.h;
             continue;
         }
 
@@ -433,7 +422,6 @@ static void layout1 (void)
         p->pixmap.w = bbox.x1 - bbox.x0;
         p->pixmap.h = bbox.y1 - bbox.y0;
         p->pixmap.n = 4;
-        h += p->pixmap.h;
     }
 
     for (i = pindex - 1; i >= 0; --i) {
@@ -442,11 +430,9 @@ static void layout1 (void)
                 p->pagenum, p->pixmap.w, p->pixmap.h);
     }
 
-    state.mapsize = mapsize;
     b = now ();
     printf ("layout1 took %f sec\n", b - a);
     printd (state.sock, "C %d", state.pagecount);
-    printd (state.sock, "m %d", h);
 }
 
 static void *mainloop (void *unused)
@@ -531,64 +517,64 @@ static void *mainloop (void *unused)
     return NULL;
 }
 
-static void upload (struct page *page, const char *cap)
+static void upload2 (struct page *page, int texnum, const char *cap)
 {
-    int w, h, subimage = 0;
+    int i;
+    int w, h;
     double start, end;
+    struct tex *tex = &page->texs[texnum];
 
-    w = page->page2->bbox.x1 - page->page2->bbox.x0;
+    w = page->pixmap->w;
+    h = page->pixmap->h;
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, w);
 
-    if (page->texid) {
-        GLboolean v = 0;
-
-        glAreTexturesResident (1, &page->texid, &v);
-        printf ("resident %d %d\n", page->pagenum, v);
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, page->texid);
+    if (tex->index != -1 && state.texowners[tex->index] == tex) {
+        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[tex->index]);
     }
     else  {
-        struct page *p;
-        int texid = (state.texid++ % 10) + 1;
+        int subimage;
+        int index = (state.texid++ % state.texcount);
+        size_t offset = 0;
 
-        h = page->page2->bbox.y1 - page->page2->bbox.y0;
-
-        for (p = state.pages; p; p = p->prev) {
-            if (p->texid == texid) {
-                int w1, h1;
-                p->texid = 0;
-                w1 = page->page2->bbox.x1 - page->page2->bbox.x0;
-                h1 = page->page2->bbox.y1 - page->page2->bbox.y0;
-                if (w == w1 && h == h1) {
-                    subimage = 0;
-                }
-                break;
-            }
+        for (i = 0; i < texnum; ++i) {
+            offset += w * page->texs[i].h * 4;
         }
-        page->texid = texid;
+        subimage = 0 || state.texowners[index]
+            ? state.texowners[index]->h == tex->h
+            : 0
+            ;
 
-        /* glGenTextures (1, &page->texid); */
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, page->texid);
+        state.texowners[index] = tex;
+        tex->index = index;
+
+        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[tex->index]);
 
         start = now ();
-        if (subimage)
+        if (subimage) {
             glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB,
                              0,
                              0,
                              0,
                              w,
-                             h,
+                             tex->h,
+#ifndef _ARCH_PPC
+                             GL_BGRA_EXT,
+                             GL_UNSIGNED_INT_8_8_8_8,
+#else
                              GL_ABGR_EXT,
-                             GL_UNSIGNED_BYTE,
-                             page->pixmap->samples
+                             GL_UNSIGNED_BYTE, /* INT_8_8_8_8, */
+#endif
+                             page->pixmap->samples + offset
                 );
-        else
+        }
+        else {
             glTexImage2D (GL_TEXTURE_RECTANGLE_ARB,
                           0,
                           GL_RGBA8,
                           w,
-                          h,
+                          tex->h,
                           0,
 #ifndef _ARCH_PPC
                           GL_BGRA_EXT,
@@ -597,18 +583,20 @@ static void upload (struct page *page, const char *cap)
                           GL_ABGR_EXT,
                           GL_UNSIGNED_BYTE, /* INT_8_8_8_8, */
 #endif
-                          page->pixmap->samples
+                          page->pixmap->samples + offset
                 );
+        }
 
         end = now ();
-        printf ("%s(%s) %d took %f sec\n", cap,
+        printf ("%s(%s) %d(%d) took %f sec\n", cap,
                 subimage ? "sub" : "img",
-                page->pagenum, end - start);
+                page->pagenum, texnum, end - start);
     }
 }
 
 CAMLprim value ml_preload (value ptr_v)
 {
+    int i;
     int ret;
     void *ptr;
     CAMLparam1 (ptr_v);
@@ -618,9 +606,16 @@ CAMLprim value ml_preload (value ptr_v)
     if (ret != 1) {
         errx (1, "cannot parse pointer `%s'", s);
     }
-    upload (ptr, "preload");
+    for (i = 0; i < state.slicecount; ++i)
+        upload2 (ptr, i, "preload");
     CAMLreturn (Val_unit);
 }
+
+#if 0
+#define lprintf printf
+#else
+#define lprintf(...)
+#endif
 
 CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
                         value py_v, value ptr_v)
@@ -635,6 +630,7 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     const char *r;
     void *ptr;
     struct page *page;
+    int texnum = 0;
 
     ret = sscanf (s, "%p", &ptr);
     if (ret != 1) {
@@ -642,37 +638,62 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     }
     page = ptr;
 
-    if (0)
-        printf ("draw[%d=%dx%d] dispy=%d w=%d h=%d py=%d ptr=%p\n",
-                page->pagenum,
-                page->page2->bbox.x1 - page->page2->bbox.x0,
-                page->page2->bbox.y1 - page->page2->bbox.y0,
-                dispy,
-                w,
-                h,
-                py,
-                ptr);
+    w = page->pixmap->w;
+    printf ("draw[%d] %dx%d %dx%d\n",
+            page->pagenum,
+            page->pixmap->w,
+            page->pixmap->h,
+            w,
+            h);
 
-    upload (page, "upload");
     glEnable (GL_TEXTURE_RECTANGLE_ARB);
 #ifdef _ARCH_PPC
     glEnable (GL_FRAGMENT_SHADER_ATI);
 #endif
-    glBegin (GL_QUADS);
-    {
-        glTexCoord2i (0, py);
-        glVertex2i (0, dispy);
 
-        glTexCoord2i (w, py);
-        glVertex2i (w, dispy);
-
-        glTexCoord2i (w, py+h);
-        glVertex2i (w, dispy + h);
-
-        glTexCoord2i (0, py+h);
-        glVertex2i (0, dispy + h);
+    for (texnum = 0; texnum != state.slicecount; ++texnum) {
+        struct tex *tex = &page->texs[texnum];
+        if (tex->h > py) {
+            break;
+        }
+        py -= tex->h;
     }
-    glEnd ();
+
+    while (h) {
+        int th;
+        struct tex *tex = &page->texs[texnum];
+
+        if (texnum >= state.slicecount) {
+            abort ();
+        }
+        th = MIN (h, tex->h - py);
+        lprintf ("draw[%d, %d], h=%d th=%d py=%d dispy=%d\n",
+                 page->pagenum, texnum, h, th, py, dispy);
+
+        upload2 (page, texnum, "upload");
+
+        glBegin (GL_QUADS);
+        {
+            glTexCoord2i (0, py);
+            glVertex2i (0, dispy);
+
+            glTexCoord2i (w, py);
+            glVertex2i (w, dispy);
+
+            glTexCoord2i (w, py+th);
+            glVertex2i (w, dispy + th);
+
+            glTexCoord2i (0, py+th);
+            glVertex2i (0, dispy + th);
+        }
+        glEnd ();
+
+        h -= th;
+        py = 0;
+        dispy += th;
+        texnum += 1;
+    }
+
     glDisable (GL_TEXTURE_RECTANGLE_ARB);
 #ifdef _ARCH_PPC
     glDisable (GL_FRAGMENT_SHADER_ATI);
@@ -727,6 +748,22 @@ CAMLprim value ml_init (value sock_v)
     if (pagesize == -1) {
         err (1, "sysconf");
     }
+
+    state.texcount = 32;
+    state.slicecount = 16;
+
+    state.texids = calloc (state.texcount * sizeof (*state.texids), 1);
+    if (!state.texids) {
+        err (1, "calloc texids %zu", state.texcount * sizeof (*state.texids));
+    }
+
+    state.texowners = calloc (state.texcount * sizeof (*state.texowners), 1);
+    if (!state.texowners) {
+        err (1, "calloc texowners %zu",
+             state.texcount * sizeof (*state.texowners));
+    }
+
+    glGenTextures (state.texcount, state.texids);
 
     state.sock = Int_val (sock_v);
     initgl ();
