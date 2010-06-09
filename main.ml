@@ -11,11 +11,14 @@ type ('a, 'b, 'c) g =
     ; mutable y : int
     ; mutable maxy : int
     ; mutable layout : (int * int * int * int * int * int * int) list
-    ; pixcache : ((int * int * int), string) Hashtbl.t
+    ; pixcache : ((int * int), string) Hashtbl.t
     ; mutable pages : 'a list
     ; mutable pagecount : int
     ; lru : string array
     ; mutable lruidx : int
+    ; mutable scrollw : int
+    ; mutable inflight : int
+    ; mutable safe : int
     }
 ;;
 
@@ -30,13 +33,16 @@ let state =
   ; pixcache = Hashtbl.create 10
   ; pages = []
   ; pagecount = 0
-  ; lru = Array.create 12 ""
+  ; lru = Array.create 10 ""
   ; lruidx = 0
+  ; scrollw = 12
+  ; inflight = 0
+  ; safe = 0
   }
 ;;
 
-let aincr = 15;;
-let scrollw = 10;;
+let aincr = 17;;
+let aincr = 21;;
 let scrollh = 12;;
 let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
@@ -100,7 +106,7 @@ let calcheight () =
         f (n+1) h fh rest
 
     | [] ->
-        fh + (ph * (state.pagecount - pn - 1)) - state.h
+        max 0 (fh + (ph * (state.pagecount - pn)) - state.h)
   in
   let fh = f 0 0 0 state.pages in
   fh;
@@ -126,8 +132,12 @@ let layout y sh =
         if dy + vh > sh
         then
           let vh = sh - dy in
-          let e = pagenum, pindex, w, h, dy, py', vh in
-          e :: accu
+          if vh <= 0
+          then
+            accu
+          else
+            let e = pagenum, pindex, w, h, dy, py', vh in
+            e :: accu
         else
           let e = pagenum, pindex, w, h, dy, py', vh in
           let accu = e :: accu in
@@ -152,10 +162,7 @@ let reshape ~w ~h =
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
   GlMat.scale3 (2.0 /. float w, 2.0 /. float state.h, 1.0);
   state.pages <- [];
-  wcmd "geometry" [`i (state.w - scrollw); `i h];
-  let pages = layout state.y state.h in
-  state.layout <- pages;
-  Glut.postRedisplay ();
+  wcmd "geometry" [`i (state.w - state.scrollw); `i h];
 ;;
 
 let act cmd =
@@ -163,39 +170,42 @@ let act cmd =
   | 'C' ->
       let n = Scanf.sscanf cmd "C %d" (fun n -> n) in
       state.pagecount <- n;
+      let rely = float state.y /. float state.maxy in
+      let maxy = calcheight () in
+      state.y <- truncate (float maxy *. rely);
       let pages = layout state.y state.h in
       state.layout <- pages;
       Glut.postRedisplay ();
 
-  | 'c' ->
-      state.layout <- []
+  | 'f' ->
+      state.safe <- state.safe - 1;
+      if state.safe = 0
+      then
+        Glut.postRedisplay ()
+      ;
 
   | 'r' ->
       let n, w, h, p =
         Scanf.sscanf cmd "r %d %d %d %s"
           (fun n w h p -> (n, w, h, p))
       in
-      Hashtbl.replace state.pixcache (n, w, h) p;
+      Hashtbl.replace state.pixcache (n, w) p;
       let idx = state.lruidx mod (Array.length state.lru) in
       let s = state.lru.(idx) in
       if String.length s != 0
       then begin
+        state.safe <- state.safe + 1;
         wcmd "free" [`s s];
         let l = Hashtbl.fold (fun k s' a ->
           if s = s' then k :: a else a) state.pixcache []
         in
-        List.iter (fun k ->
-          let n,w,h = k in
-          Hashtbl.remove state.pixcache k) l;
+        List.iter (fun k -> Hashtbl.remove state.pixcache k) l;
       end;
       state.lru.(idx) <- p;
       state.lruidx <- state.lruidx + 1;
-      Glut.postRedisplay ();
-
-  | 'm' ->
-      let n = Scanf.sscanf cmd "m %d" (fun n -> n) in
-      (* state.maxy <- n; *)
-      ()
+      state.inflight <- pred state.inflight;
+      log "done render %d" n;
+      Glut.postRedisplay ()
 
   | 'l' ->
       let (n, w, h) as pagelayout =
@@ -209,22 +219,29 @@ let act cmd =
 
 let preload
     ((pageno, pindex, pagewidth, pageheight, screeny, pageyoffset, screenheight) as page) =
-  let key = (pageno + 1, state.w, state.h) in
+  let key = (pageno + 1, state.w - state.scrollw) in
   begin try
       let pixmap = Hashtbl.find state.pixcache key in
       if
         String.length pixmap = 0
-      then
-        ()
+      then (
+        (* log "empty %d %d %d" (pageno+1) pagewidth pageheight; *)
+        ();
+      )
       else (
-        (* preload pixmap *)
+        preload pixmap
       );
     with Not_found ->
-      Hashtbl.add state.pixcache key "";
-      wcmd "render" [`i (pageno + 1)
-                    ;`i pindex
-                    ;`i pagewidth
-                    ;`i pageheight];
+      if state.inflight < Array.length state.lru
+      then (
+        state.inflight <- succ state.inflight;
+        Hashtbl.add state.pixcache key "";
+        log "render req %d" (pageno+1);
+        wcmd "render" [`i (pageno + 1)
+                      ;`i pindex
+                      ;`i pagewidth
+                      ;`i pageheight];
+      )
   end;
 ;;
 
@@ -233,7 +250,7 @@ let idle () =
 
   begin match r with
   | [] ->
-      if true then begin
+      if false then begin
         let h = state.h in
         let y = if state.y < state.h then 0 else state.y - state.h in
         let pages = layout y (h*3) in
@@ -256,6 +273,10 @@ let clamp incr =
 let keyboard ~key ~x ~y =
   begin match Char.chr key with
   | '\027' | 'q' -> exit 0
+  | 'b' ->
+      state.scrollw <- if state.scrollw > 0 then 0 else 12;
+      reshape state.w state.h
+
   | 'n' ->
       begin match List.rev state.layout with
       | [] -> ()
@@ -270,7 +291,7 @@ let keyboard ~key ~x ~y =
       begin match state.layout with
       | [] -> ()
       | (_, _, w, h, _, _, _) :: _ ->
-          Glut.reshapeWindow w h
+          Glut.reshapeWindow (w + state.scrollw) h
       end
 
   | 'p' ->
@@ -309,6 +330,7 @@ let drawplaceholder (pageno, pindex, pagewidth, pageheight,
   if true
   then (
     GlDraw.color (0.2, 0.2, 0.2);
+    GlDraw.color (1.0, 1.0, 1.0);
     GlDraw.rect
       (0.0, float screeny)
       (float pagewidth, float (screeny + screenheight))
@@ -316,17 +338,18 @@ let drawplaceholder (pageno, pindex, pagewidth, pageheight,
     let x = 0.0
     and y = float (screeny + screenheight) in
     let font = Glut.BITMAP_8_BY_13 in (* BITMAP_HELVETICA_18 in *)
-    GlDraw.color (1.2, 1.2, 1.2);
+    GlDraw.color (0.0, 0.0, 0.0);
     GlPix.raster_pos ~x ~y ();
     String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c))
-      ("LOADING " ^ string_of_int pageno)
-
-(*     GlDraw.begins `quads; *)
-(*     GlDraw.vertex2 (0.0, float screeny); *)
-(*     GlDraw.vertex2 (float pagewidth, float screeny); *)
-(*     GlDraw.vertex2 (float pagewidth, float (screeny + screenheight)); *)
-(*     GlDraw.vertex2 (0.0, float (screeny + screenheight)); *)
-(*     GlDraw.ends (); *)
+      ("Loading " ^ string_of_int pageno ^ " ...");
+  )
+  else (
+    GlDraw.begins `quads;
+    GlDraw.vertex2 (0.0, float screeny);
+    GlDraw.vertex2 (float pagewidth, float screeny);
+    GlDraw.vertex2 (float pagewidth, float (screeny + screenheight));
+    GlDraw.vertex2 (0.0, float (screeny + screenheight));
+    GlDraw.ends ();
   )
 ;;
 
@@ -334,44 +357,56 @@ let now () = Unix.gettimeofday ();;
 
 let drawpage i
     ((pageno, pindex, pagewidth, pageheight, screeny, pageyoffset, screenheight) as page) =
-  let key = (pageno + 1, state.w - scrollw, state.h) in
+  let key = (pageno + 1, state.w - state.scrollw) in
   begin try
       let pixmap = Hashtbl.find state.pixcache key in
       if
         String.length pixmap = 0
-      then
-        drawplaceholder page
+      then (
+        drawplaceholder page;
+      )
       else (
         GlDraw.color (1.0, 1.0, 1.0);
         let a = now () in
-        draw screeny pagewidth screenheight pageyoffset pixmap;
+        if state.safe = 0
+        then
+          draw screeny pagewidth screenheight pageyoffset pixmap
+        ;
         let b = now () in
         let d = b-.a in
-        if d > 0.000405
+        if d > 0.0 (* 0.000405 *)
         then
-          log "draw %f sec" d
+          log "draw %f sec safe %d" d state.safe
         ;
       );
     with Not_found ->
-      Hashtbl.add state.pixcache key "";
       drawplaceholder page;
-      wcmd "render" [`i (pageno + 1)
-                    ;`i pindex
-                    ;`i pagewidth
-                    ;`i pageheight];
+      if state.inflight < Array.length state.lru
+      then (
+        Hashtbl.add state.pixcache key "";
+        state.inflight <- succ state.inflight;
+        wcmd "render" [`i (pageno + 1)
+                      ;`i pindex
+                      ;`i pagewidth
+                      ;`i pageheight];
+      )
+      else (
+        log "inflight %d" state.inflight;
+      );
   end;
   GlDraw.color (0.5, 0.5, 0.5);
   GlDraw.rect
     (0., float i)
-    (float (state.w - scrollw), float (i + (screeny - i)))
+    (float (state.w - state.scrollw), float (i + (screeny - i)))
   ;
+            Gl.finish ();
   screeny + screenheight;
 ;;
 
 let scrollindicator () =
   GlDraw.color (0.64 , 0.64, 0.64);
   GlDraw.rect
-    (float (state.w - scrollw), 0.)
+    (float (state.w - state.scrollw), 0.)
     (float state.w, float state.h)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
@@ -392,7 +427,7 @@ let scrollindicator () =
       position
   in
   GlDraw.rect
-    (float (state.w - scrollw), position)
+    (float (state.w - state.scrollw), position)
     (float state.w, position +. sh)
   ;
 ;;
@@ -406,8 +441,10 @@ let display () =
 ;;
 
 let () =
-  let w = 800
-  and h = 900 in
+  let w = 750 (* + state.scrollw *)
+  and h = 956 in
+  let w = 1080 in
+  let h = 1920 in
   let _ = Glut.init Sys.argv in
   let () = Glut.initDisplayMode ~depth:false ~double_buffer:true () in
   let () = Glut.initWindowSize w h in
