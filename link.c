@@ -431,7 +431,7 @@ static void layout (void)
     }
 
     b = now ();
-    printd (state.sock, "T \"Processed %d pages in %f secons\"",
+    printd (state.sock, "T \"Processed %d pages in %f seconds\"",
             state.pagecount, b - a);
     printd (state.sock, "C %d", state.pagecount);
 }
