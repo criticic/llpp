@@ -177,7 +177,8 @@ static void __attribute__ ((format (printf, 2, 3)))
 static void die (fz_error error)
 {
     fz_catch (error, "aborting");
-    pdf_closexref (state.xref);
+    if (state.xref)
+       pdf_closexref (state.xref);
     exit (1);
 }
 
