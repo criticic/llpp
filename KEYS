@@ -1,0 +1,25 @@
+up/down arrow           - scroll up/down
+mouse buttons 3/4       - ..............
+primary mouse button[1] - click on link or select text[2]
+escape/q                - quit
+backspace               - go back after jumping (clicking link and suchlike)
+u                       - dehighlight
+/,?                     - enter text to search for (/ - forward, ? backward)
++                       - set page bias
+-                       - set some tunables (i - toggle case sensetivity of
+                                             searches ...)
+0..9                    - enter page number to jump to
+b                       - toggle scroll bar
+f                       - toggle fullscreen
+n                       - repeat last search (forward)
+p                       - .................. (backward)
+t                       - align top of the screen with the top of the page
+space, N                - go to the next page
+delete, P               - go to the previous page
+=                       - show current position
+w                       - change height to encompass all of the page
+
+[1] i'm somewhat mouse button confused, since i use "left handed" mouse
+    while not being lefthanded
+
+[2] selecting text is not really implemented right now
