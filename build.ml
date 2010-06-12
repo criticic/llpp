@@ -97,7 +97,7 @@ let () =
     cmopp ~flags:"-g -w y -I +lablGL -thread" ~dirname:srcdir "main";
     "main.cmo"
   in
-  prog "lpdf" [so; main];
+  prog "llpp" [so; main];
 ;;
 
 let () =

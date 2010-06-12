@@ -24,12 +24,13 @@ fi
 
 mupdf=/home/malc/x/bld/mupdf
 mupdf=/home/malc/x/rcs/darcs/mupdf/mupdf/
+mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
 cc=gcc
-ccopt="-Wall -Werror -I$mupdf -Wno-unused-function -Wno-unused"
-targets="lpdf" #test testgl
+ccopt="-Wall -Werror -I$mupdf" # -Wno-unused-function -Wno-unused"
+targets="llpp" #test testgl
 
 lpath=$mupdf/build/linux-ppc-release/
-lpath=/home/malc/x/rcs/darcs/mupdf/mupdf/build/release
+lpath=$mupdf/build/release
 
 ./b -O src:$h -r -O ccopt:"$ccopt" -O cc:"$cc" \
 -O "mupdflibpath:$lpath" \

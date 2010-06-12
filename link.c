@@ -1,20 +1,25 @@
+/* lot's of code c&p-ed directly from mupdf */
+
 #define _GNU_SOURCE
-#define GL_GLEXT_PROTOTYPES
 #include <err.h>
+#include <regex.h>
 #include <errno.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <pthread.h>
-#include <sys/mman.h>
 #include <sys/poll.h>
-#include <byteswap.h>
+#include <sys/time.h>
+
+/* fugly as hell and GCC specific but... */
+#ifdef _BIG_ENDIAN
+#define GL_GLEXT_PROTOTYPES
+#endif
 
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <GL/glx.h>
 
 #include <caml/fail.h>
 #include <caml/alloc.h>
@@ -24,53 +29,96 @@
 #include "fitz/fitz.h"
 #include "mupdf/mupdf.h"
 
-#include <sys/time.h>
+#if 0
+#define lprintf printf
+#else
+#define lprintf(...)
+#endif
 
-static long pagesize;
+#define ARSERT(cond) for (;;) {                         \
+    if (!(cond)) {                                      \
+        errx (1, "%s:%d " #cond, __FILE__, __LINE__);   \
+    }                                                   \
+    break;                                              \
+}
 
 struct slice {
     int texindex;
-    int h;
+    int w, h;
 };
 
 struct page {
-    int pagenum;
+    int pageno;
+    int slicecount;
+    fz_textspan *text;
     fz_pixmap *pixmap;
-    struct page2 *page2;
+    pdf_page *drawpage;
+    struct pagedim *pagedim;
     struct page *prev;
     struct slice slices[];
 };
 
-struct page2 {
+struct pagedim {
+    int pageno;
     fz_bbox bbox;
     fz_matrix ctm;
-    fz_pixmap pixmap;
-    int pagenum;
 };
 
 struct {
     int sock;
+    int sliceheight;
     pthread_t thread;
     struct page *pages;
-    struct page2 *pages2;
-    int page;
+    struct pagedim *pagedims;
     int pagecount;
+    int pagedimcount;
     pdf_xref *xref;
     fz_glyphcache *cache;
     int w, h;
-    Display *dpy;
-    GLXContext ctx;
-    GLXDrawable drawable;
+
+    int useatifs;
 
     int texindex;
     int texcount;
-    int slicecount;
     GLuint *texids;
+
+    GLenum texform;
+    GLenum texty;
+
     struct {
-        int h;
+        int w, h;
         struct slice *slice;
     } *texowners;
 } state;
+
+static void *parse_pointer (const char *cap, const char *s)
+{
+    int ret;
+    void *ptr;
+
+    ret = sscanf (s, "%p", &ptr);
+    if (ret != 1) {
+        errx (1, "%s: cannot parse pointer in `%s'", cap, s);
+    }
+    return ptr;
+}
+
+static int hasdata (int sock)
+{
+    int ret;
+    struct pollfd pfd;
+
+    pfd.fd = sock;
+    pfd.events = POLLIN;
+    ret = poll (&pfd, 1, 0);
+    if (ret == 0) {
+        return 0;
+    }
+    if (ret != 1) {
+        err (1, "poll");
+    }
+    return pfd.revents & POLLIN;
+}
 
 static double now (void)
 {
@@ -126,92 +174,32 @@ static void __attribute__ ((format (printf, 2, 3)))
     writedata (fd, buf, len);
 }
 
-static void closexref (void);
-
-static void createmmap (struct page *page)
+static void die (fz_error error)
 {
-    int fd, ret;
-    size_t size;
-
-    size = page->pixmap->w * page->pixmap->h * 4;
-
-    fd = open ("pdfmap", O_CREAT|O_TRUNC|O_RDWR);
-    if (fd == -1) {
-        err (1, "open");
-    }
-    ret = unlink ("pdfmap");
-    if (ret) {
-        err (1, "unlink");
-    }
-    size = (size + pagesize - 1) & ~(pagesize - 1);
-    ret = ftruncate (fd, size);
-    if (ret) {
-        err (1, "ftruncate");
-    }
-    page->pixmap->samples = mmap (NULL, size, PROT_READ|PROT_WRITE,
-                                  MAP_PRIVATE, fd, 0);
-    if (page->pixmap->samples == MAP_FAILED) {
-        err (1, "mmap");
-    }
+    fz_catch (error, "aborting");
+    pdf_closexref (state.xref);
+    exit (1);
 }
 
-static void die(fz_error error)
+void openxref (char *filename)
 {
-    fz_catch(error, "aborting");
-    closexref();
-    exit(1);
-}
-
-void openxref(char *filename, char *password, int dieonbadpass)
-{
-    fz_stream *file;
-    int okay;
     int fd;
-    char *basename;
+    fz_stream *file;
 
-    basename = strrchr(filename, '/');
-    if (!basename)
-        basename = filename;
-    else
-        basename++;
-
-    fd = open(filename, O_BINARY | O_RDONLY, 0666);
+    fd = open (filename, O_BINARY | O_RDONLY, 0666);
     if (fd < 0)
-        die(fz_throw("cannot open file '%s'", filename));
+        die (fz_throw ("cannot open file '%s'", filename));
 
-    file = fz_openfile(fd);
-    state.xref = pdf_openxref(file);
+    file = fz_openfile (fd);
+    state.xref = pdf_openxref (file);
     if (!state.xref)
-        die(fz_throw("cannot open PDF file '%s'", basename));
-    fz_dropstream(file);
+        die (fz_throw ("cannot open PDF file '%s'", filename));
+    fz_dropstream (file);
 
-    if (pdf_needspassword(state.xref))
-    {
-        okay = pdf_authenticatepassword(state.xref, password);
-        if (!okay && !dieonbadpass)
-            fz_warn("invalid password, attempting to continue.");
-        else if (!okay && dieonbadpass)
-            die(fz_throw("invalid password"));
+    if (pdf_needspassword (state.xref)) {
+        die (fz_throw ("password protected"));
     }
-
-    state.pagecount = pdf_getpagecount(state.xref);
-}
-
-static void flushxref(void)
-{
-    if (state.xref)
-    {
-        pdf_flushxref(state.xref, 0);
-    }
-}
-
-static void closexref(void)
-{
-    if (state.xref)
-    {
-        pdf_closexref(state.xref);
-        state.xref = nil;
-    }
+    state.pagecount = pdf_getpagecount (state.xref);
 }
 
 static int readlen (int fd)
@@ -239,10 +227,21 @@ static void freepage (struct page *page)
             break;
         }
     }
-    for (i = 0; i < state.slicecount; ++i) {
-        struct slice *s = &p->slices[i];
-        state.texowners[s->texindex].slice = NULL;
-        state.texowners[s->texindex].h  = s->h;
+    for (i = 0; i < page->slicecount; ++i) {
+        struct slice *s = &page->slices[i];
+        if (s->texindex != -1) {
+            if (state.texowners[s->texindex].slice == s) {
+                state.texowners[s->texindex].slice = NULL;
+                ARSERT (state.texowners[s->texindex].w == s->w);
+                ARSERT (state.texowners[s->texindex].h >= s->h);
+            }
+        }
+    }
+    if (page->text) {
+        fz_freetextspan (page->text);
+    }
+    if (page->drawpage) {
+        pdf_droppage (page->drawpage);
     }
     free (page);
 }
@@ -251,101 +250,107 @@ static void subdivide (struct page *p)
 {
     int i;
     int h = p->pixmap->h;
-    int th = (h + state.slicecount - 1) / state.slicecount;
+    int th = MIN (h, state.sliceheight);
 
-    for (i = 0; i < state.slicecount; ++i) {
+    for (i = 0; i < p->slicecount; ++i) {
         struct slice *s = &p->slices[i];
         s->texindex = -1;
         s->h = MIN (th, h);
+        s->w = p->pixmap->w;
         h -= th;
     }
 }
 
-static void *render (int pagenum, int pindex)
+static void *render (int pageno, int pindex)
 {
     fz_error error;
+    int slicecount;
     fz_obj *pageobj;
-    int w, h;
-    float zoom;
     struct page *page;
-    struct page2 *page2;
-    fz_device *idev, *tdev, *mdev;
-    fz_displaylist *list;
+    double start, end;
     pdf_page *drawpage;
+    fz_displaylist *list;
+    fz_device *idev, *mdev;
+    struct pagedim *pagedim;
 
+    start = now ();
+    /* printd (state.sock, "T \"rendering %d\"", pageno); */
     pdf_flushxref (state.xref, 0);
+    pagedim = &state.pagedims[pindex];
+    slicecount = (pagedim->bbox.y1 - pagedim->bbox.y0
+                  + state.sliceheight - 1) / state.sliceheight;
+    slicecount += slicecount == 0;
+
     page = calloc (sizeof (*page)
-                   + (state.slicecount * sizeof (struct slice)), 1);
+                   + (slicecount * sizeof (struct slice)), 1);
     if (!page) {
-        err (1, "malloc page %d\n", pagenum);
+        err (1, "calloc page %d\n", pageno);
     }
+    page->slicecount = slicecount;
     page->prev = state.pages;
     state.pages = page;
 
-    page2 = &state.pages2[pindex];
-
-    pageobj = pdf_getpageobject(state.xref, pagenum);
+    pageobj = pdf_getpageobject (state.xref, pageno);
     if (!pageobj)
-        die (fz_throw ("cannot retrieve info from page %d", pagenum));
+        die (fz_throw ("cannot retrieve info from page %d", pageno));
 
-    error = pdf_loadpage(&drawpage, state.xref, pageobj);
-    if (error)
-        die(error);
-
-    page->pixmap = fz_newpixmapwithrect (pdf_devicergb, page2->bbox);
+    error = pdf_loadpage (&drawpage, state.xref, pageobj);
     if (error)
         die (error);
-#if 0
-    fz_free (page->pixmap->samples);
-    createmmap (page);
-#endif
-    fz_clearpixmap(page->pixmap, 0xFF);
+
+    page->pixmap = fz_newpixmapwithrect (pdf_devicergb, pagedim->bbox);
+    if (error)
+        die (error);
+    fz_clearpixmap (page->pixmap, 0xFF);
 
     list = fz_newdisplaylist ();
     if (!list)
         die (fz_throw ("fz_newdisplaylist failed"));
 
-    mdev = fz_newlistdevice(list);
-    error = pdf_runcontentstream(mdev, fz_identity(), state.xref,
-                                 drawpage->resources,
-                                 drawpage->contents);
+    mdev = fz_newlistdevice (list);
+    error = pdf_runcontentstream (mdev, fz_identity (), state.xref,
+                                  drawpage->resources,
+                                  drawpage->contents);
     if (error)
         die (error);
-
-    fz_freedevice(mdev);
+    fz_freedevice (mdev);
 
     idev = fz_newdrawdevice (state.cache, page->pixmap);
     if (!idev)
         die (fz_throw ("fz_newdrawdevice failed"));
+    fz_executedisplaylist (list, idev, pagedim->ctm);
+    fz_freedevice (idev);
 
-    fz_executedisplaylist(list, idev, page2->ctm);
-    fz_freedevice(idev);
-    fz_freedisplaylist(list);
+    fz_freedisplaylist (list);
 
-    /* fz_debugpixmap (page->pixmap, "haha"); */
-    pdf_droppage (drawpage);
-    page->page2 = page2;
-    page->pagenum = pagenum;
+    page->drawpage = drawpage;
+    page->pagedim = pagedim;
+    page->pageno = pageno;
     subdivide (page);
+    end = now ();
+
+    /* printd (state.sock, "T \"rendering %d took %f sec\"", pageno, end - start); */
     return page;
 }
 
-static void layout1 (void)
+static void layout (void)
 {
-    int pagenum;
-    double a, b;
+    int pageno;
+    double a, b, c, d;
     int prevrotate;
     fz_rect prevbox;
     int i, pindex;
     asize_t size;
     int64 mapsize;
-    struct page2 *p;
+    struct pagedim *p;
 
     size = 0;
     pindex = 0;
     mapsize = 0;
     a = now ();
-    for (pagenum = 1; pagenum <= state.pagecount; ++pagenum) {
+    c = 0.0;
+    printd (state.sock, "c");
+    for (pageno = 1; pageno <= state.pagecount; ++pageno) {
         float w;
         float zoom;
         int rotate;
@@ -354,29 +359,35 @@ static void layout1 (void)
         fz_rect box2;
         fz_matrix ctm;
         fz_bbox bbox;
-        fz_error error;
         fz_obj *pageobj;
 
-        pageobj = pdf_getpageobject (state.xref, pagenum);
+        if (!(pageno & 31)) {
+            if (!c) {
+                c = a;
+            }
+            d = now ();
+            printd (state.sock, "T \"processing page %d %f\"", pageno, d - c);
+            c = d;
+        }
+        pageobj = pdf_getpageobject (state.xref, pageno);
         if (!pageobj)
-            die (fz_throw ("cannot retrieve info from page %d", pagenum));
+            die (fz_throw ("cannot retrieve info from page %d", pageno));
 
         obj = fz_dictgets (pageobj, "CropBox");
-        if (!fz_isarray(obj)) {
+        if (!fz_isarray (obj)) {
             obj = fz_dictgets (pageobj, "MediaBox");
             if (!fz_isarray (obj))
                 die (fz_throw ("cannot find page bounds %d (%d R)",
                                fz_tonum (obj), fz_togen (obj)));
         }
         box = pdf_torect (obj);
-
         obj = fz_dictgets (pageobj, "Rotate");
         if (fz_isint (obj))
             rotate = fz_toint (obj);
         else
             rotate = 0;
 
-        if (pagenum != 1
+        if (pageno != 1
             && (prevrotate == rotate
                 && !memcmp (&prevbox, &box, sizeof (box)))) {
             continue;
@@ -403,29 +414,172 @@ static void layout1 (void)
         ctm = fz_concat (ctm, fz_rotate (rotate));
         bbox = fz_roundrect (fz_transformrect (ctm, box));
 
-        size += sizeof (*state.pages2);
-        state.pages2 = caml_stat_resize (state.pages2, size);
+        size += sizeof (*state.pagedims);
+        state.pagedims = caml_stat_resize (state.pagedims, size);
 
-        p = &state.pages2[pindex++];
+        p = &state.pagedims[pindex++];
         memcpy (&p->bbox, &bbox, sizeof (bbox));
         memcpy (&p->ctm, &ctm, sizeof (ctm));
 
-        p->pagenum = pagenum - 1;
-        p->pixmap.x = bbox.x0;
-        p->pixmap.y = bbox.y0;
-        p->pixmap.w = bbox.x1 - bbox.x0;
-        p->pixmap.h = bbox.y1 - bbox.y0;
-        p->pixmap.n = 4;
+        p->pageno = pageno - 1;
     }
 
+    state.pagedimcount = pindex;
     for (i = pindex - 1; i >= 0; --i) {
-        p = &state.pages2[i];
+        p = &state.pagedims[i];
         printd (state.sock, "l %d %d %d",
-                p->pagenum, p->pixmap.w, p->pixmap.h);
+                p->pageno, p->bbox.x1 - p->bbox.x0, p->bbox.y1 - p->bbox.y0);
     }
 
     b = now ();
+    printd (state.sock, "T \"Processed %d pages in %f secons\"",
+            state.pagecount, b - a);
     printd (state.sock, "C %d", state.pagecount);
+}
+
+/* wishful thinking function */
+static void search (regex_t *re, int pageno, int y, int forward)
+{
+    int i;
+    int ret;
+    char *p;
+    char buf[256];
+    fz_error error;
+    fz_obj *pageobj;
+    fz_device *tdev;
+    pdf_page *drawpage;
+    fz_textspan *text, *span;
+    struct pagedim *pdim, *pdimprev;
+    int stop = 0;
+    int niters = 0;
+    double start, end;
+
+    start = now ();
+    while (pageno >= 0 && pageno < state.pagecount && !stop) {
+        if (niters++ == 5) {
+            niters = 0;
+            if (hasdata (state.sock)) {
+                printd (state.sock, "T \"attention requested aborting search at %d\"",
+                        pageno);
+                stop = 1;
+            }
+            else {
+                printd (state.sock, "T \"searching in page %d\"", pageno);
+            }
+        }
+        pdimprev = NULL;
+        for (i = 0; i < state.pagedimcount; ++i) {
+            pdim = &state.pagedims[i];
+            if (pdim->pageno == pageno)  {
+                goto found;
+            }
+            if (pdim->pageno > pageno) {
+                pdim = pdimprev;
+                goto found;
+            }
+            pdimprev = pdim;
+        }
+        pdim = pdimprev;
+    found:
+
+        pageobj = pdf_getpageobject (state.xref, pageno + 1);
+        if (!pageobj)
+            die (fz_throw ("cannot retrieve info from page %d", pageno));
+
+        error = pdf_loadpage (&drawpage, state.xref, pageobj);
+        if (error)
+            die (error);
+
+        text = fz_newtextspan ();
+        tdev = fz_newtextdevice (text);
+        error = pdf_runcontentstream (tdev, pdim->ctm, state.xref,
+                                      drawpage->resources,
+                                      drawpage->contents);
+        if (error) die (error);
+        fz_freedevice (tdev);
+
+        for (span = text; span; span = span->next) {
+            regmatch_t rm;
+
+            p = buf;
+            /* XXX: spans are not sorted "visually" */
+            for (i = 0; i < MIN (span->len, sizeof (buf) - 1); ++i) {
+                if (forward) {
+                    if (span->text[i].bbox.y0 < y + 1) {
+                        continue;
+                    }
+                }
+                else {
+                    if (span->text[i].bbox.y0 > y - 1) {
+                        continue;
+                    }
+                }
+                if (span->text[i].c < 256) {
+                    *p++ = span->text[i].c;
+                }
+                else  {
+                    *p++ = '?';
+                }
+            }
+            if (p == buf) {
+                continue;
+            }
+            *p++ = 0;
+
+            ret = regexec (re, buf, 1, &rm, 0);
+            if (ret)  {
+                if (ret != REG_NOMATCH) {
+                    size_t size;
+                    char errbuf[80];
+                    size = regerror (ret, re, errbuf, sizeof (errbuf));
+                    printd (state.sock,
+                            "T \"regexec error `%.*s'\"",
+                            (int) size, errbuf);
+                }
+            }
+            else  {
+                fz_rect r;
+
+                r.x0 = span->text[rm.rm_so].bbox.x0 - pdim->bbox.x0;
+                r.y0 = span->text[rm.rm_so].bbox.y0;
+                r.x1 = span->text[rm.rm_eo - 1].bbox.x1 - pdim->bbox.x0;
+                r.y1 = span->text[rm.rm_eo - 1].bbox.y1;
+
+                if (!stop) {
+                    printd (state.sock, "F %d %d %f %f %f %f",
+                            pageno, 1,
+                            r.x0, r.y0,
+                            r.x1, r.y1);
+                }
+                else  {
+                    printd (state.sock, "R %d %d %f %f %f %f",
+                            pageno, 2,
+                            r.x0, r.y0,
+                            r.x1, r.y1);
+                }
+                printd (state.sock, "T \"found at %d `%.*s' %f in %f sec\"",
+                        pageno, rm.rm_eo - rm.rm_so, &buf[rm.rm_so],
+                        span->text[0].bbox.y0 - drawpage->mediabox.y0,
+                        now () - start);
+                stop = 1;
+            }
+        }
+        if (forward) {
+            pageno += 1;
+            y = 0;
+        }
+        else {
+            pageno -= 1;
+            y = INT_MAX;
+        }
+        fz_freetextspan (text);
+        pdf_droppage (drawpage);
+    }
+    end = now ();
+    if (!stop)  {
+        printd (state.sock, "T \"no matches %f sec\"", end - start);
+    }
+    printd (state.sock, "d");
 }
 
 static void *mainloop (void *unused)
@@ -452,26 +606,46 @@ static void *mainloop (void *unused)
         if (!strncmp ("open", p, 4)) {
             char *filename = p + 5;
 
-            openxref (filename, NULL, 1);
+            openxref (filename);
         }
         else if (!strncmp ("free", p, 4)) {
             void *ptr;
 
-            ret = sscanf(p + 4, " %p", &ptr);
+            ret = sscanf (p + 4, " %p", &ptr);
+            if (ret != 1) {
+                errx (1, "malformed free `%.*s' ret=%d", len, p, ret);
+            }
             freepage (ptr);
             printd (state.sock, "f");
         }
-        else if (!strncmp ("layout", p, 6)) {
-            int y;
+        else if (!strncmp ("search", p, 6)) {
+            int icase, pageno, y, ret, len2, forward;
+            char *pattern;
+            regex_t re;
 
-            ret = sscanf (p + 6, " %d", &y);
-            if (ret != 1) {
-                errx (1, "malformed layout `%.*s' ret=%d", len, p, ret);
+            ret = sscanf (p + 6, " %d %d %d %d %n",
+                          &icase, &pageno, &y, &forward, &len2);
+            if (ret != 4) {
+                errx (1, "malformed search `%s' ret=%d", p, ret);
+            }
+
+            pattern = p + 6 + len2;
+            ret = regcomp (&re, pattern,
+                           REG_EXTENDED | (icase ? REG_ICASE : 0));
+            if (ret) {
+                char errbuf[80];
+                size_t size;
+
+                size = regerror (ret, &re, errbuf, sizeof (errbuf));
+                printd (state.sock, "T \"regcomp failed `%.*s'\"", (int) size, errbuf);
+            }
+            else  {
+                search (&re, pageno, y, forward);
+                regfree (&re);
             }
         }
         else if (!strncmp ("geometry", p, 8)) {
             int w, h;
-            struct page *page;
 
             ret = sscanf (p + 8, " %d %d", &w, &h);
             if (ret != 2) {
@@ -479,37 +653,26 @@ static void *mainloop (void *unused)
             }
             state.h = h;
             if (w != state.w) {
+                int i;
                 state.w = w;
-                for (page = state.pages; page; page = page->prev) {
-                    int i;
-                    for (i = 0; i < state.slicecount; ++i) {
-                        int index;
-
-                        index = page->slices[i].texindex;
-                        if (index != -1)  {
-                            state.texowners[index].h = 0;
-                            state.texowners[index].slice = NULL;
-                        }
-                        page->slices[i].texindex = -1;
-                    }
+                for (i = 0; i < state.texcount; ++i)  {
+                    state.texowners[i].slice = NULL;
                 }
             }
-            layout1 ();
+            layout ();
         }
         else if (!strncmp ("render", p, 6)) {
-            int pagenum, pindex, w, h, ret;
+            int pageno, pindex, w, h, ret;
             struct page *page;
-            unsigned char *pix;
 
-            ret = sscanf (p + 6, " %d %d %d %d", &pagenum, &pindex, &w, &h);
-
+            ret = sscanf (p + 6, " %d %d %d %d", &pageno, &pindex, &w, &h);
             if (ret != 4) {
                 errx (1, "bad render line `%.*s' ret=%d", len, p, ret);
             }
 
-            page = render (pagenum, pindex);
+            page = render (pageno, pindex);
             printd (state.sock, "r %d %d %d %p\n",
-                    pagenum,
+                    pageno,
                     state.w,
                     state.h,
                     page);
@@ -531,16 +694,13 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
     w = page->pixmap->w;
     h = page->pixmap->h;
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, w);
-
+    ARSERT (w == slice->w);
     if (slice->texindex != -1
         && state.texowners[slice->texindex].slice == slice) {
-        printf ("bind %d %d\n", page->pagenum, slicenum);
         glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[slice->texindex]);
     }
     else  {
-        int subimage;
+        int subimage = 0;
         int index = (state.texindex++ % state.texcount);
         size_t offset = 0;
 
@@ -548,35 +708,49 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
             offset += w * page->slices[i].h * 4;
         }
 
-        if (state.texowners[index].h >= slice->h ) {
-            subimage = 1;
+        if (state.texowners[index].w == slice->w) {
+            if (state.texowners[index].h >= slice->h ) {
+                subimage = 1;
+            }
+            else {
+                state.texowners[index].h = slice->h;
+            }
         }
-        else {
+        else  {
             state.texowners[index].h = slice->h;
-            subimage = 0;
         }
+
         state.texowners[index].slice = slice;
+        state.texowners[index].w = slice->w;
         slice->texindex = index;
 
         glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[slice->texindex]);
-        /* glFinish (); */
         start = now ();
         if (subimage) {
+            {
+                GLenum err = glGetError ();
+                if (err != GL_NO_ERROR) {
+                    printf ("\e[0;31mERROR1 %d %d %#x\e[0m\n", w, slice->h, err);
+                    abort ();
+                }
+            }
             glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB,
                              0,
                              0,
                              0,
                              w,
                              slice->h,
-#ifndef _ARCH_PPC
-                             GL_BGRA_EXT,
-                             GL_UNSIGNED_INT_8_8_8_8,
-#else
-                             GL_ABGR_EXT,
-                             GL_UNSIGNED_BYTE, /* INT_8_8_8_8, */
-#endif
+                             state.texform,
+                             state.texty,
                              page->pixmap->samples + offset
                 );
+            {
+                GLenum err = glGetError ();
+                if (err != GL_NO_ERROR) {
+                    printf ("\e[0;31mERROR %d %d %#x\e[0m\n", w, slice->h, err);
+                    abort ();
+                }
+            }
         }
         else {
             glTexImage2D (GL_TEXTURE_RECTANGLE_ARB,
@@ -585,22 +759,19 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
                           w,
                           slice->h,
                           0,
-#ifndef _ARCH_PPC
-                          GL_BGRA_EXT,
-                          GL_UNSIGNED_INT_8_8_8_8,
-#else
-                          GL_ABGR_EXT,
-                          GL_UNSIGNED_BYTE, /* INT_8_8_8_8, */
-#endif
+                          state.texform,
+                          state.texty,
                           page->pixmap->samples + offset
                 );
         }
 
         end = now ();
-        printf ("upload(%s) %d %d %f sec\n",
-                subimage ? "sub" : "img",
-                page->pagenum, slicenum,
-                end - start);
+        lprintf ("%s[%d] slice=%d(%d,%d) texid=%d %f sec\n",
+                 subimage ? "sub" : "img",
+                 page->pageno, slicenum,
+                 slice->w, slice->h,
+                 state.texids[slice->texindex],
+                 end - start);
     }
 }
 
@@ -611,21 +782,20 @@ CAMLprim value ml_preload (value ptr_v)
     void *ptr;
     CAMLparam1 (ptr_v);
     char *s = String_val (ptr_v);
+    struct page *page;
 
     ret = sscanf (s, "%p", &ptr);
     if (ret != 1) {
         errx (1, "cannot parse pointer `%s'", s);
     }
-    for (i = 0; i < state.slicecount; ++i)
+
+    page = ptr;
+    for (i = 0; i < page->slicecount; ++i) {
         upload2 (ptr, i, "preload");
+    }
+
     CAMLreturn (Val_unit);
 }
-
-#if 0
-#define lprintf printf
-#else
-#define lprintf(...)
-#endif
 
 CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
                         value py_v, value ptr_v)
@@ -637,7 +807,6 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     int py = Int_val (py_v);
     char *s = String_val (ptr_v);
     int ret;
-    const char *r;
     void *ptr;
     struct page *page;
     int slicenum = 0;
@@ -650,14 +819,14 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
 
     w = page->pixmap->w;
 
-    assert (h < 0 || "ml_draw wrong h");
+    ARSERT (h >= 0 && "ml_draw wrong h");
 
     glEnable (GL_TEXTURE_RECTANGLE_ARB);
-#ifdef _ARCH_PPC
-    glEnable (GL_FRAGMENT_SHADER_ATI);
-#endif
+    if (state.useatifs) {
+        glEnable (GL_FRAGMENT_SHADER_ATI);
+    }
 
-    for (slicenum = 0; slicenum != state.slicecount; ++slicenum) {
+    for (slicenum = 0; slicenum < page->slicecount; ++slicenum) {
         struct slice *slice = &page->slices[slicenum];
         if (slice->h > py) {
             break;
@@ -665,13 +834,13 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
         py -= slice->h;
     }
 
+    h = MIN (state.h, h);
     while (h) {
         int th;
         struct slice *slice = &page->slices[slicenum];
 
-        if (slicenum >= state.slicecount) {
-            abort ();
-        }
+        ARSERT (slicenum < page->slicecount && "ml_draw wrong slicenum");
+
         th = MIN (h, slice->h - py);
         upload2 (page, slicenum, "upload");
 
@@ -698,62 +867,220 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     }
 
     glDisable (GL_TEXTURE_RECTANGLE_ARB);
-#ifdef _ARCH_PPC
-    glDisable (GL_FRAGMENT_SHADER_ATI);
-#endif
+    if (state.useatifs) {
+        glDisable (GL_FRAGMENT_SHADER_ATI);
+    }
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
+{
+    CAMLparam3 (ptr_v, x_v, y_v);
+    fz_point p;
+    fz_matrix ctm;
+    pdf_link *link;
+    int pageno = -1;
+    struct page *page;
+    char *s = String_val (ptr_v);
+
+    p.x = Int_val (x_v);
+    p.y = Int_val (y_v);
+
+    page = parse_pointer ("ml_checklink", s);
+
+    ctm = fz_invertmatrix (page->pagedim->ctm);
+    p = fz_transformpoint (ctm, p);
+
+    for (link = page->drawpage->links; link; link = link->next) {
+        if (p.x >= link->rect.x0 && p.x <= link->rect.x1)
+            if (p.y >= link->rect.y0 && p.y <= link->rect.y1) {
+                if (link->kind == PDF_LGOTO) {
+                    pageno = pdf_findpageobject (state.xref,
+                                                 fz_arrayget (link->dest, 0)) - 1;
+                                                 /* link->dest); */
+                }
+                break;
+            }
+    }
+
+    CAMLreturn (Val_int (pageno));
+}
+
+CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_v)
+{
+    CAMLparam4 (ptr_v, rect_v, oy_v, rect_v);
+    fz_matrix ctm;
+    fz_point p1, p2;
+    struct page *page;
+    fz_textspan *span;
+    char *s = String_val (ptr_v);
+    int rectsel = Bool_val (rectsel_v);
+    int i, bx0, bx1, by0, by1, x0, x1, y0, y1, oy;
+
+    /* stop GCC from complaining about uninitialized variables */
+    int rx0 = rx0, rx1 = rx1, ry0 = ry0, ry1 = ry1;
+
+    page = parse_pointer ("ml_gettext", s);
+
+    oy = Int_val (oy_v);
+    p1.x = Int_val (Field (rect_v, 0));
+    p1.y = Int_val (Field (rect_v, 1));
+    p2.x = Int_val (Field (rect_v, 2));
+    p2.y = Int_val (Field (rect_v, 3));
+
+    if (0) {
+        glEnable (GL_BLEND);
+        glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
+        glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
+        glColor4f (0, 0, 0, 0.2);
+        glRecti (p1.x, p1.y, p2.x, p2.y);
+        glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+        glDisable (GL_BLEND);
+    }
+
+    ctm = page->pagedim->ctm;
+    if (!page->text) {
+        fz_error error;
+        fz_device *tdev;
+
+        page->text = fz_newtextspan ();
+        tdev = fz_newtextdevice (page->text);
+        error = pdf_runcontentstream (tdev, page->pagedim->ctm, state.xref,
+                                      page->drawpage->resources,
+                                      page->drawpage->contents);
+        if (error) die (error);
+        fz_freedevice (tdev);
+    }
+
+    printf ("\ec");
+
+    printf ("BBox %f %f %f %f\n", p1.x, p1.y, p2.x, p2.y);
+    p1.x += page->pixmap->x;
+    p1.y += page->pixmap->y;
+    p2.x += page->pixmap->x;
+    p2.y += page->pixmap->y;
+    x0 = p1.x;
+    y0 = p1.y;
+    x1 = p2.x;
+    y1 = p2.y;
+    printf ("BBox %d %d %d %d %d %d\n", x0, y0, x1, y1, oy, page->pageno);
+
+    for (span = page->text; span; span = span->next) {
+        int seen = 0;
+
+        /* fz_debugtextspanxml (span); */
+        for (i = 0; i < span->len; ++i) {
+            long c;
+
+            bx0 = span->text[i].bbox.x0;
+            bx1 = span->text[i].bbox.x1;
+            by0 = span->text[i].bbox.y0 + oy;
+            by1 = span->text[i].bbox.y1 + oy;
+
+            if ((bx1 >= x0 && bx0 <= x1 && by1 >= y0 && by0 <= y1)) {
+                if (!seen) {
+                    rx0 = bx0 - page->pixmap->x;
+                    rx1 = bx1 - page->pixmap->x;
+                    ry0 = by0;
+                    ry1 = by1;
+                }
+
+                seen = 1;
+                c = span->text[i].c;
+                if (c < 256) {
+                    if ((isprint (c) && !isspace (c))) {
+                        if (!rectsel) {
+                            bx0 -= page->pixmap->x;
+                            bx1 -= page->pixmap->x;
+                            glEnable (GL_BLEND);
+                            glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+                            glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
+                            glColor4f (0.5, 0.5, 0.0, 0.6);
+                            glRecti (bx0, by0, bx1, by1);
+                            glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+                            glDisable (GL_BLEND);
+                        }
+                        if (isprint (c) || c ==' ') {
+                            rx1 = bx1;
+                            ry1 = by1;
+                        }
+                    }
+                    putc (c, stdout);
+                }
+                else  {
+                    putc ('?', stdout);
+                }
+            }
+        }
+
+        if (rectsel) {
+            if (seen) {
+                glEnable (GL_BLEND);
+                glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+                glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
+                glColor4f (0.5, 0.5, 0.0, 0.6);
+                glRecti (rx0, ry0, rx1, ry1);
+                glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+                glDisable (GL_BLEND);
+            }
+        }
+
+        if (seen && span->eol) {
+            x0 = page->pixmap->x;
+            putc ('\n', stdout);
+        }
+    }
+
     CAMLreturn (Val_unit);
 }
 
 static void initgl (void)
 {
-    state.dpy = glXGetCurrentDisplay ();
-    if (!state.dpy) {
-        die (fz_throw ("glXGetCurrentDisplay"));
-    }
-    state.ctx = glXGetCurrentContext ();
-    if (!state.ctx) {
-        die (fz_throw ("glXGetCurrentContext"));
-    }
-    state.drawable = glXGetCurrentDrawable ();
-    if (!state.drawable) {
-        die (fz_throw ("glXGetCurrentDrawable"));
-    }
+#ifdef _BIG_ENDIAN
+    if (strstr ((char *) glGetString (GL_EXTENSIONS),
+                "GL_ATI_fragment_shader")) {
+        /* Here, with MESA, rv280, powerpc32: BGRA(rev) is slow while
+           ABGR is fast, so fix things in the shader */
+        state.texform = GL_ABGR_EXT;
+        state.texty = GL_UNSIGNED_INT_8_8_8_8;
 
-#ifdef _ARCH_PPC
-    glBindFragmentShaderATI (1);
-    glBeginFragmentShaderATI ();
-    {
-        glSampleMapATI (GL_REG_0_ATI, GL_TEXTURE0_ARB, GL_SWIZZLE_STR_ATI);
+        glBindFragmentShaderATI (1);
+        glBeginFragmentShaderATI ();
+        {
+            glSampleMapATI (GL_REG_0_ATI, GL_TEXTURE0_ARB, GL_SWIZZLE_STR_ATI);
 
-        glColorFragmentOp1ATI (GL_MOV_ATI,
-                               GL_REG_1_ATI, GL_RED_BIT_ATI, GL_NONE,
-                               GL_REG_0_ATI, GL_BLUE, GL_NONE);
-        glColorFragmentOp1ATI (GL_MOV_ATI,
-                               GL_REG_1_ATI, GL_BLUE_BIT_ATI, GL_NONE,
-                               GL_REG_0_ATI, GL_RED, GL_NONE);
-        glColorFragmentOp1ATI (
-            GL_MOV_ATI,
-            GL_REG_0_ATI, GL_RED_BIT_ATI | GL_BLUE_BIT_ATI, GL_NONE,
-            GL_REG_1_ATI, GL_NONE, GL_NONE
-            );
+            glColorFragmentOp1ATI (GL_MOV_ATI,
+                                   GL_REG_1_ATI, GL_RED_BIT_ATI, GL_NONE,
+                                   GL_REG_0_ATI, GL_BLUE, GL_NONE);
+            glColorFragmentOp1ATI (GL_MOV_ATI,
+                                   GL_REG_1_ATI, GL_BLUE_BIT_ATI, GL_NONE,
+                                   GL_REG_0_ATI, GL_RED, GL_NONE);
+            glColorFragmentOp1ATI (
+                GL_MOV_ATI,
+                GL_REG_0_ATI, GL_RED_BIT_ATI | GL_BLUE_BIT_ATI, GL_NONE,
+                GL_REG_1_ATI, GL_NONE, GL_NONE
+                );
+        }
+        glEndFragmentShaderATI ();
+        state.useatifs = 1;
     }
-    glEndFragmentShaderATI ();
+    else {
+        state.texform = GL_BGRA_EXT;
+        state.texty = GL_UNSIGNED_INT_8_8_8_8_REV;
+    }
+#else
+    state.texform = GL_BGRA_EXT;
+    state.texty = GL_UNSIGNED_INT_8_8_8_8;
 #endif
 }
 
 CAMLprim value ml_init (value sock_v)
 {
     int ret;
-    fz_error error;
     CAMLparam1 (sock_v);
 
-    pagesize = sysconf (_SC_PAGESIZE);
-    if (pagesize == -1) {
-        err (1, "sysconf");
-    }
-
-    state.texcount = 64;
-    state.slicecount = 32;
+    state.texcount = 128;
+    state.sliceheight = 64;
 
     state.texids = calloc (state.texcount * sizeof (*state.texids), 1);
     if (!state.texids) {
@@ -772,6 +1099,9 @@ CAMLprim value ml_init (value sock_v)
     initgl ();
 
     state.cache = fz_newglyphcache ();
+    if (!state.cache) {
+        errx (1, "fz_newglyphcache failed");
+    }
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
