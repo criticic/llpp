@@ -2,7 +2,7 @@ At the time of this writing[1] vanilla MuPDF[2] does not work (text
 spans are somewhat fucked up), the (patched) version from
 SumatraPDF[3]'s SVN repository[4] however works nicely (SumatraPDF's
 SVN repository also contains all the other prerequisites (such as
-openjpeg, jbig2dec, etc)
+openjpeg, jbig2dec, etc))
 
 llpp also depends on OCaml[5] and lablGL[6], having a C compiler
 wouldn't hurt either.
