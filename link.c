@@ -342,12 +342,10 @@ static void layout (void)
     fz_rect prevbox;
     int i, pindex;
     asize_t size;
-    int64 mapsize;
     struct pagedim *p;
 
     size = 0;
     pindex = 0;
-    mapsize = 0;
     a = now ();
     c = 0.0;
     printd (state.sock, "c");
