@@ -85,6 +85,8 @@ struct {
     GLenum texform;
     GLenum texty;
 
+    int lotsamemory;
+
     struct {
         int w, h;
         struct slice *slice;
@@ -244,6 +246,7 @@ static void freepage (struct page *page)
     if (page->drawpage) {
         pdf_droppage (page->drawpage);
     }
+
     free (page);
 }
 
@@ -277,6 +280,7 @@ static void *render (int pageno, int pindex)
     start = now ();
     /* printd (state.sock, "T \"rendering %d\"", pageno); */
     pdf_flushxref (state.xref, 0);
+
     pagedim = &state.pagedims[pindex];
     slicecount = (pagedim->bbox.y1 - pagedim->bbox.y0
                   + state.sliceheight - 1) / state.sliceheight;
@@ -329,6 +333,11 @@ static void *render (int pageno, int pindex)
     page->pageno = pageno;
     subdivide (page);
     end = now ();
+
+    if (!state.lotsamemory) {
+        pdf_agestoreditems (state.xref->store);
+        pdf_evictageditems (state.xref->store);
+    }
 
     /* printd (state.sock, "T \"rendering %d took %f sec\"", pageno, end - start); */
     return page;
