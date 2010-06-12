@@ -26,8 +26,8 @@
 #include <caml/memory.h>
 #include <caml/unixsupport.h>
 
-#include "fitz/fitz.h"
-#include "mupdf/mupdf.h"
+#include <fitz.h>
+#include <mupdf.h>
 
 #if 0
 #define lprintf printf

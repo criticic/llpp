@@ -26,8 +26,8 @@ mupdf=/home/malc/x/bld/mupdf
 mupdf=/home/malc/x/rcs/darcs/mupdf/mupdf/
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
 cc=gcc
-ccopt="-Wall -Werror -I$mupdf" # -Wno-unused-function -Wno-unused"
-targets="llpp" #test testgl
+ccopt="-Wall -Werror -I$mupdf/fitz -I$mupdf/mupdf"
+targets="llpp"
 
 lpath=$mupdf/build/linux-ppc-release/
 lpath=$mupdf/build/release
