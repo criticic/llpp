@@ -76,6 +76,7 @@ type layout =
 
 type conf =
     { mutable scrollw : int
+    ; mutable scrollh : int
     ; mutable rectsel : bool
     ; mutable icase : bool
     ; mutable preload : bool
@@ -83,6 +84,7 @@ type conf =
     ; mutable pagebias : int
     ; mutable redispimm : bool
     ; mutable verbose : bool
+    ; mutable scrollincr : int
     }
 ;;
 
@@ -114,6 +116,7 @@ type state =
 
 let conf =
   { scrollw = 5
+  ; scrollh = 12
   ; icase = true
   ; rectsel = true
   ; preload = false
@@ -121,6 +124,7 @@ let conf =
   ; pagebias = 0
   ; redispimm = false
   ; verbose = false
+  ; scrollincr = 18
   }
 ;;
 
@@ -148,9 +152,6 @@ let state =
   ; searchpattern = ""
   }
 ;;
-
-let aincr = 18;;
-let scrollh = 12;;
 
 let vlog fmt =
   if conf.verbose
@@ -791,8 +792,8 @@ let special ~key ~x ~y =
   let y =
     match key with
     | Glut.KEY_F3        -> search state.searchpattern true; state.y
-    | Glut.KEY_UP        -> clamp ~-aincr
-    | Glut.KEY_DOWN      -> clamp aincr
+    | Glut.KEY_UP        -> clamp (-conf.scrollincr)
+    | Glut.KEY_DOWN      -> clamp conf.scrollincr
     | Glut.KEY_PAGE_UP   -> clamp (-state.h)
     | Glut.KEY_PAGE_DOWN -> clamp state.h
     | Glut.KEY_HOME -> addnav (); 0
@@ -875,7 +876,7 @@ let scrollindicator () =
   GlDraw.color (0.0, 0.0, 0.0);
   let sh = (float (state.maxy + state.h) /. float state.h)  in
   let sh = float state.h /. sh in
-  let sh = max sh (float scrollh) in
+  let sh = max sh (float conf.scrollh) in
 
   let percent = yratio state.y in
   let position = (float state.h -. sh) *. percent in
@@ -998,9 +999,9 @@ let mouse ~button ~bstate ~x ~y =
       let incr =
         if n = 3
         then
-          -aincr
+          -conf.scrollincr
         else
-          aincr
+          conf.scrollincr
       in
       let incr = incr * 2 in
       let y = clamp incr in
