@@ -249,8 +249,8 @@ let getpagey pageno =
 ;;
 
 let layout y sh =
-  let rec f pageno pdimno prev vy py dy l accu =
-    if pageno = state.pagecount
+  let rec f pageno pdimno prev vy py dy l cacheleft accu =
+    if pageno = state.pagecount || cacheleft = 0
     then accu
     else
       let ((_, w, h) as curr), rest, pdimno =
@@ -295,11 +295,13 @@ let layout y sh =
             }
           in
           let accu = e :: accu in
-          f pageno' pdimno curr (vy + vh) (py + h) (dy + vh + 2) rest accu
+          f pageno' pdimno curr
+            (vy + vh) (py + h) (dy + vh + 2) rest
+            (pred cacheleft) accu
       else
-        f pageno' pdimno curr vy (py + h) dy rest accu
+        f pageno' pdimno curr vy (py + h) dy rest cacheleft accu
   in
-  let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages [] in
+  let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages (cblen state.pagecache) [] in
   state.maxy <- calcheight ();
   List.rev accu
 ;;
