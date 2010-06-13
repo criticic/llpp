@@ -8,7 +8,8 @@ external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
 external preload : string -> unit = "ml_preload";;
 external gettext : string -> (int * int * int * int) -> int -> bool -> unit =
     "ml_gettext";;
-external checklink : string -> int -> int -> int = "ml_checklink";;
+external checklink : string -> int -> int -> bool = "ml_checklink";;
+external getlink : string -> int -> int -> (int * int) option = "ml_getlink";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
 
@@ -952,27 +953,44 @@ let getlink x y =
             if y > 0
             then
               let y = l.pagey + y in
-              let destpage = checklink opaque x y in
-              if destpage < 0
-              then
-                f rest
-              else
-                destpage
+              match getlink opaque x y with
+              | None -> f rest
+              | some -> some
             else
               f rest
         | _ ->
             f rest
         end
-    | [] -> -1
+    | [] -> None
   in
   f state.layout
 ;;
 
-let gotopage n =
+let checklink x y =
+  let rec f = function
+    | l :: rest ->
+        begin match getopaque l.pageno with
+        | Some opaque when validopaque opaque ->
+            let y = y - l.pagedispy in
+            if y > 0
+            then
+              let y = l.pagey + y in
+              if checklink opaque x y then true else f rest
+            else
+              f rest
+        | _ ->
+            f rest
+        end
+    | [] -> false
+  in
+  f state.layout
+;;
+
+let gotopage n top =
   let y = getpagey n in
   addnav ();
-  state.y <- y;
-  gotoy y;
+  state.y <- y + top;
+  gotoy state.y;
 ;;
 
 let mouse ~button ~bstate ~x ~y =
@@ -990,22 +1008,23 @@ let mouse ~button ~bstate ~x ~y =
       gotoy y
 
   | Glut.LEFT_BUTTON ->
-      let destpage = if bstate = Glut.DOWN then getlink x y else - 1 in
-      if destpage >= 0
-      then
-        gotopage destpage
-      else (
-        if bstate = Glut.DOWN
-        then (
-          Glut.setCursor Glut.CURSOR_CROSSHAIR;
-          state.mstate <- Msel ((x, y), (x, y));
-          Glut.postRedisplay ()
-        )
-        else (
-          Glut.setCursor Glut.CURSOR_RIGHT_ARROW;
-          state.mstate <- Mnone;
-        )
-      )
+      let dest = if bstate = Glut.DOWN then getlink x y else None in
+      begin match dest with
+      | Some (pageno, top) ->
+          gotopage pageno top
+
+      | None ->
+          if bstate = Glut.DOWN
+          then (
+            Glut.setCursor Glut.CURSOR_CROSSHAIR;
+            state.mstate <- Msel ((x, y), (x, y));
+            Glut.postRedisplay ()
+          )
+          else (
+            Glut.setCursor Glut.CURSOR_RIGHT_ARROW;
+            state.mstate <- Mnone;
+          )
+      end
 
   | _ ->
       ()
@@ -1022,13 +1041,11 @@ let motion ~x ~y =
 
 let pmotion ~x ~y =
   match state.mstate with
+  | Mnone when (checklink x y) ->
+      Glut.setCursor Glut.CURSOR_INFO
+
   | Mnone ->
-      let pageno = getlink x y in
-      if pageno = -1
-      then
-        Glut.setCursor Glut.CURSOR_RIGHT_ARROW
-      else
-        Glut.setCursor Glut.CURSOR_INFO
+      Glut.setCursor Glut.CURSOR_RIGHT_ARROW
 
   | Msel (a, _) ->
       ()

@@ -881,37 +881,72 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     CAMLreturn (Val_unit);
 }
 
-CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
+static pdf_link *getlink (struct page *page, int x, int y)
 {
-    CAMLparam3 (ptr_v, x_v, y_v);
     fz_point p;
     fz_matrix ctm;
     pdf_link *link;
-    int pageno = -1;
-    struct page *page;
-    char *s = String_val (ptr_v);
 
-    p.x = Int_val (x_v);
-    p.y = Int_val (y_v);
-
-    page = parse_pointer ("ml_checklink", s);
+    p.x = x;
+    p.y = y;
 
     ctm = fz_invertmatrix (page->pagedim->ctm);
     p = fz_transformpoint (ctm, p);
 
     for (link = page->drawpage->links; link; link = link->next) {
-        if (p.x >= link->rect.x0 && p.x <= link->rect.x1)
+        if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
             if (p.y >= link->rect.y0 && p.y <= link->rect.y1) {
                 if (link->kind == PDF_LGOTO) {
-                    pageno = pdf_findpageobject (state.xref,
-                                                 fz_arrayget (link->dest, 0)) - 1;
-                                                 /* link->dest); */
+                    return link;
                 }
-                break;
             }
+        }
+    }
+    return NULL;
+}
+
+CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
+{
+    CAMLparam3 (ptr_v, x_v, y_v);
+    char *s = String_val (ptr_v);
+
+    CAMLreturn (Val_bool (NULL != getlink (parse_pointer ("ml_checklink", s),
+                                           Int_val (x_v), Int_val (y_v))));
+}
+
+CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
+{
+    CAMLparam3 (ptr_v, x_v, y_v);
+    CAMLlocal2 (ret_v, tup_v);
+    pdf_link *link;
+    struct page *page;
+    char *s = String_val (ptr_v);
+
+    page = parse_pointer ("ml_getlink", s);
+
+    link = getlink (page, Int_val (x_v), Int_val (y_v));
+    if (link) {
+        int pageno;
+        fz_point p;
+
+        pageno = pdf_findpageobject (state.xref,
+                                     fz_arrayget (link->dest, 0)) - 1;
+
+        p.x = fz_toint (fz_arrayget (link->dest, 2));
+        p.y = fz_toint (fz_arrayget (link->dest, 3));
+        p = fz_transformpoint (page->pagedim->ctm, p);
+
+        tup_v = caml_alloc_tuple (2);
+        ret_v = caml_alloc_small (1, 1);
+        Field (tup_v, 0) = Val_int (pageno);
+        Field (tup_v, 1) = Val_int (p.y);
+        Field (ret_v, 0) = tup_v;
+    }
+    else {
+        ret_v = Val_int (0);
     }
 
-    CAMLreturn (Val_int (pageno));
+    CAMLreturn (ret_v);
 }
 
 CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_v)
