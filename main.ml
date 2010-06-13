@@ -148,9 +148,7 @@ let state =
   }
 ;;
 
-let aincr = 17;;
-let aincr = 21;;
-(* let aincr = 40;; *)
+let aincr = 18;;
 let scrollh = 12;;
 
 let vlog fmt =
