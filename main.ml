@@ -747,18 +747,17 @@ let keyboard ~key ~x ~y =
           vlog "huh? %d %c" key (Char.chr key);
       end
 
-  | Some (c, text, onkey, ondone) when  c = '\008' ->
+  | Some (c, text, onkey, ondone) when key = 8 ->
       let len = String.length text in
-      let te =
-        if len = 0 || len = 1
-        then
-          None
-        else (
-          let s = String.sub text 0 (len - 1) in
-          Some (c, s, onkey, ondone)
-        )
-      in
-      enttext te
+      if len = 0 || len = 1
+      then (
+        state.textentry <- None;
+        Glut.postRedisplay ();
+      )
+      else (
+        let s = String.sub text 0 (len - 1) in
+        enttext (Some (c, s, onkey, ondone))
+      )
 
   | Some (c, text, onkey, ondone) ->
       begin match Char.unsafe_chr key with
