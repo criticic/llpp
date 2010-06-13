@@ -383,6 +383,23 @@ let showtext c s =
     Glut.setWindowTitle ~title:dst
 ;;
 
+let enttext () =
+  let len = String.length state.text in
+  match state.textentry with
+  | None ->
+      if len > 0 then showtext ' ' state.text
+
+  | Some (c, text, _, _) ->
+      let s =
+        if len > 0
+        then
+          text ^ " [" ^ state.text ^ "]"
+        else
+          text
+      in
+      showtext c s;
+;;
+
 let act cmd =
   match cmd.[0] with
   | 'c' ->
@@ -586,6 +603,12 @@ let optentry text key =
 ;;
 
 let keyboard ~key ~x ~y =
+  let enttext te =
+    state.textentry <- te;
+    state.text <- "";
+    enttext ();
+    Glut.swapBuffers ()
+  in
   match state.textentry with
   | None ->
       let c = Char.chr key in
@@ -607,9 +630,7 @@ let keyboard ~key ~x ~y =
             state.searchpattern <- s;
             search s isforw
           in
-          state.textentry <- Some (c, "", textentry, ondone (c ='/'));
-          state.text <- "";
-          Glut.postRedisplay ()
+          enttext (Some (c, "", textentry, ondone (c ='/')))
 
       | '+' ->
           let ondone s =
@@ -625,19 +646,13 @@ let keyboard ~key ~x ~y =
               state.text <- "page bias is now " ^ string_of_int n;
             )
           in
-          state.textentry <- Some ('+', "", intentry, ondone);
-          state.text <- "";
-          Glut.postRedisplay ()
-
+          enttext (Some ('+', "", intentry, ondone))
 
       | '-' ->
-          let ondone text =
-            state.text <- text;
-            Glut.postRedisplay ();
+          let ondone msg =
+            state.text <- msg;
           in
-          state.textentry <- Some ('-', "", optentry, ondone);
-          state.text <- "";
-          Glut.postRedisplay ()
+          enttext (Some ('-', "", optentry, ondone))
 
       | '0' .. '9' ->
           let ondone s =
@@ -657,9 +672,7 @@ let keyboard ~key ~x ~y =
             | _ -> intentry text key
           in
           let text = "x" in text.[0] <- c;
-          state.textentry <- Some (':', text, pageentry, ondone);
-          state.text <- "";
-          Glut.postRedisplay ()
+          enttext (Some (':', text, pageentry, ondone))
 
       | 'b' ->
           conf.scrollw <- if conf.scrollw > 0 then 0 else 5;
@@ -744,43 +757,34 @@ let keyboard ~key ~x ~y =
           Some (c, s, onkey, ondone)
         )
       in
-      state.textentry <- te;
-      Glut.postRedisplay ()
+      enttext te
 
   | Some (c, text, onkey, ondone) ->
       begin match Char.unsafe_chr key with
       | '\r' | '\n' ->
-          state.textentry <- None;
           ondone text;
-
-      | '\008' ->
-          let len = String.length text in
-          if len < 2
-          then (
-            state.textentry <- None
-          )
-          else (
-            let text = String.sub text 0 (len - 1) in
-            state.textentry <- Some (c, text, onkey, ondone)
-          )
+          state.textentry <- None;
+          Glut.postRedisplay ()
 
       | '\027' ->
-          state.textentry <- None
+          state.textentry <- None;
+          Glut.postRedisplay ()
 
       | _ ->
           begin match onkey text key with
           | TEdone text ->
               state.textentry <- None;
               ondone text;
+              Glut.postRedisplay ()
 
           | TEcont text ->
-              state.textentry <- Some (c, text, onkey, ondone);
+              enttext (Some (c, text, onkey, ondone));
 
           | TEstop ->
               state.textentry <- None;
+              Glut.postRedisplay ()
           end;
       end;
-      Glut.postRedisplay ()
 ;;
 
 let special ~key ~x ~y =
@@ -935,21 +939,7 @@ let display () =
   showrects ();
   scrollindicator ();
   showsel ();
-  let len = String.length state.text in
-  begin match state.textentry with
-    | None ->
-        if len> 0 then showtext ' ' state.text
-
-    | Some (c, text, _, _) ->
-        let s =
-          if len > 0
-          then
-            text ^ " [" ^ state.text ^ "]"
-          else
-            text
-        in
-        showtext c s
-  end;
+  enttext ();
   Glut.swapBuffers ();
 ;;
 
