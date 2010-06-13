@@ -665,8 +665,11 @@ let keyboard ~key ~x ~y =
                 -1
             in
             if n >= 0
-            then
+            then (
+              addnav ();
+              state.y <- y;
               gotoy (getpagey (n + conf.pagebias - 1))
+            )
           in
           let pageentry text key =
             match Char.unsafe_chr key with
