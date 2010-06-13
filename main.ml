@@ -85,6 +85,7 @@ type conf =
     ; mutable redispimm : bool
     ; mutable verbose : bool
     ; mutable scrollincr : int
+    ; mutable maxhfit : bool
     }
 ;;
 
@@ -125,6 +126,7 @@ let conf =
   ; redispimm = false
   ; verbose = false
   ; scrollincr = 18
+  ; maxhfit = true
   }
 ;;
 
@@ -227,7 +229,7 @@ let calcheight () =
 
     | [] ->
         let fh = fh + (ph * (state.pagecount - pn)) in
-        max 0 (fh - state.h)
+        max 0 (fh - (if conf.maxhfit then state.h else 0))
   in
   let fh = f 0 0 0 state.pages in
   fh;
@@ -599,6 +601,11 @@ let optentry text key =
       conf.verbose <- not conf.verbose;
       TEdone ("verbose " ^ (btos conf.verbose))
 
+  | 'h' ->
+      conf.maxhfit <- not conf.maxhfit;
+      state.maxy <- state.maxy + (if conf.maxhfit then -state.h else state.h);
+      TEdone ("maxhfit " ^ (btos conf.maxhfit))
+
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
       TEstop
@@ -800,7 +807,9 @@ let special ~key ~x ~y =
     | Glut.KEY_PAGE_UP   -> clamp (-state.h)
     | Glut.KEY_PAGE_DOWN -> clamp state.h
     | Glut.KEY_HOME -> addnav (); 0
-    | Glut.KEY_END -> addnav (); state.maxy (* - state.h *)
+    | Glut.KEY_END ->
+        addnav ();
+        state.maxy - (if conf.maxhfit then 0 else state.h)
     | _ -> state.y
   in
   state.text <- "";
@@ -939,7 +948,12 @@ let showrects () =
 ;;
 
 let display () =
-  ignore (List.fold_left drawpage 0 (state.layout));
+  let lasty = List.fold_left drawpage 0 (state.layout) in
+  GlDraw.color (0.5, 0.5, 0.5);
+  GlDraw.rect
+    (0., float lasty)
+    (float (state.w - conf.scrollw), float state.h)
+  ;
   showrects ();
   scrollindicator ();
   showsel ();
