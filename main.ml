@@ -1087,5 +1087,13 @@ let () =
   let () = Glut.mouseFunc mouse in
   let () = Glut.motionFunc motion in
   let () = Glut.passiveMotionFunc pmotion in
-  Glut.mainLoop ();
+  let rec handlelablglutbug () =
+    try
+      Glut.mainLoop ();
+    with Glut.BadEnum "key in special_of_int" ->
+      showtext '!' " LablGlut bug: special key not recognized";
+      Glut.swapBuffers ();
+      handlelablglutbug ()
+  in
+  handlelablglutbug ()
 ;;
