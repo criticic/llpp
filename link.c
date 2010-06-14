@@ -377,8 +377,16 @@ static void *render (int pageno, int pindex)
 }
 
 /* almost verbatim copy of pdf_getpagecountimp */
+struct stuff
+{
+    fz_obj *resources;
+    fz_obj *mediabox;
+    fz_obj *cropbox;
+    fz_obj *rotate;
+};
+
 static void
-recurse_page (fz_obj *node, int bias, int *pagesp)
+recurse_page (fz_obj *node, int bias, int *pagesp, struct stuff inherit)
 {
     fz_obj *type;
     fz_obj *kids;
@@ -424,17 +432,22 @@ recurse_page (fz_obj *node, int bias, int *pagesp)
         int pageno = *pagesp;
 
         state.pagetbl[pageno + bias] = fz_tonum (node);
+
         obj = fz_dictgets (node, "CropBox");
+        if (!obj) obj = inherit.cropbox;
         if (!fz_isarray (obj)) {
             obj = fz_dictgets (node, "MediaBox");
+            if (!obj) obj = inherit.mediabox;
+
             if (!fz_isarray (obj)) {
-                die (fz_throw ("cannot find page bounds %d (%d R)",
+                die (fz_throw ("cannot find page bounds %d (%d Rd)",
                                fz_tonum (node), fz_togen (node)));
             }
         }
         box = pdf_torect (obj);
 
         obj = fz_dictgets (node, "Rotate");
+        if (!obj) obj = inherit.rotate;
         if (fz_isint (obj)) {
             rotate = fz_toint (obj);
         }
@@ -462,10 +475,24 @@ recurse_page (fz_obj *node, int bias, int *pagesp)
     }
     else if (!strcmp(typestr, "Pages"))
     {
+        fz_obj *inh;
+
         if (!fz_isarray(kids))
             fz_warn("page tree node contains no pages");
 
         pdf_logpage("subtree (%d %d R) {\n", fz_tonum(node), fz_togen(node));
+
+        inh = fz_dictgets(node, "Resources");
+        if (inh) inherit.resources = inh;
+
+        inh = fz_dictgets(node, "MediaBox");
+        if (inh) inherit.mediabox = inh;
+
+        inh = fz_dictgets(node, "CropBox");
+        if (inh) inherit.cropbox = inh;
+
+        inh = fz_dictgets(node, "Rotate");
+        if (inh) inherit.rotate = inh;
 
         for (i = 0; i < fz_arraylen(kids); i++)
         {
@@ -478,7 +505,7 @@ recurse_page (fz_obj *node, int bias, int *pagesp)
                 return;
             }
 
-            recurse_page (obj, *pagesp + bias, &pages);
+            recurse_page (obj, *pagesp + bias, &pages, inherit);
         }
 
         if (pages != fz_toint(count))
@@ -503,13 +530,19 @@ static void initpdims (void)
     fz_obj *pages;
     int count;
     double start, end;
+    struct stuff inherit;
 
     start = now ();
     catalog = fz_dictgets (state.xref->trailer, "Root");
     pages = fz_dictgets (catalog, "Pages");
 
+    inherit.resources = nil;
+    inherit.mediabox = nil;
+    inherit.cropbox = nil;
+    inherit.rotate = nil;
+
     count = 0;
-    recurse_page (pages, 0, &count);
+    recurse_page (pages, 0, &count, inherit);
     end = now ();
     printd (state.sock, "T Processed %d pages in %f seconds",
             count, end - start);
