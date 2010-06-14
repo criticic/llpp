@@ -924,10 +924,10 @@ let outlinekeyboard ~key ~x ~y (active, first, outlines, qsearch) =
 
   | _ when key >= 32 && key <= 127 ->
       let pattern = addchar qsearch (Char.chr key) in
-      let active, first =
+      let pattern, active, first =
         match search active pattern 1 with
-        | None -> active, first
-        | Some af -> af
+        | None -> qsearch, active, first
+        | Some (active, first) -> (pattern, active, first)
       in
       state.text <- pattern;
       state.outline <- Some (active, first, outlines, pattern);
