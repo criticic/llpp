@@ -1056,17 +1056,22 @@ let drawpage i l =
 ;;
 
 let scrollindicator () =
+  let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
   GlDraw.color (0.64 , 0.64, 0.64);
   GlDraw.rect
     (float (state.w - conf.scrollw), 0.)
     (float state.w, float state.h)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
-  let sh = (float (state.maxy + state.h) /. float state.h)  in
+  let sh = (float (maxy + state.h) /. float state.h)  in
   let sh = float state.h /. sh in
   let sh = max sh (float conf.scrollh) in
 
-  let percent = yratio state.y in
+  let percent =
+    if state.y = state.maxy
+    then 1.0
+    else float state.y /. float maxy
+  in
   let position = (float state.h -. sh) *. percent in
 
   let position =
