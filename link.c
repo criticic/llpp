@@ -928,13 +928,26 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
     if (link) {
         int pageno;
         fz_point p;
+        fz_obj *obj;
 
-        pageno = pdf_findpageobject (state.xref,
-                                     fz_arrayget (link->dest, 0)) - 1;
+        pageno = -1;
+        obj = fz_arrayget (link->dest, 0);
+        if (fz_isindirect (obj)) {
+            pageno = pdf_findpageobject (state.xref, obj) - 1;
+        }
+        else if (fz_isint (obj)) {
+            pageno = fz_toint (obj);
+        }
 
-        p.x = fz_toint (fz_arrayget (link->dest, 2));
-        p.y = fz_toint (fz_arrayget (link->dest, 3));
-        p = fz_transformpoint (page->pagedim->ctm, p);
+        if (fz_arraylen (link->dest) > 3) {
+            p.x = fz_toint (fz_arrayget (link->dest, 2));
+            p.y = fz_toint (fz_arrayget (link->dest, 3));
+            p = fz_transformpoint (page->pagedim->ctm, p);
+        }
+        else  {
+            p.x = 0.0;
+            p.y = 0.0;
+        }
 
         tup_v = caml_alloc_tuple (2);
         ret_v = caml_alloc_small (1, 1);
