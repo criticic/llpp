@@ -15,7 +15,7 @@ ocamlc -c -o main.cmo -I +lablGL $srcpath/main.ml
 
 ocamlc -custom -o llpp \
 -I +lablGL \
-unix.cma lablgl.cma lablglut.cma \
+str.cma unix.cma lablgl.cma lablglut.cma \
 link.o \
 -cclib "$cclib" \
 main.cmo
