@@ -798,7 +798,8 @@ let viewkeyboard ~key ~x ~y =
           in
           let fn, ln = List.fold_left f (-1, -1) state.layout in
           let s =
-            let percent = (100. *. yratio state.y) in
+            let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
+            let percent = (100. *. (float state.y /. float maxy)) in
             if fn = ln
             then
               Printf.sprintf "Page %d of %d %.2f%%"
