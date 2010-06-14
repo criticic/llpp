@@ -234,7 +234,7 @@ let calcheight () =
 
     | [] ->
         let fh = fh + (ph * (state.pagecount - pn)) in
-        max 0 (fh - (if conf.maxhfit then state.h else 0))
+        max 0 fh
   in
   let fh = f 0 0 0 state.pages in
   fh;
@@ -318,7 +318,7 @@ let layout y sh =
 let clamp incr =
   let y = state.y + incr in
   let y = max 0 y in
-  let y = min y state.maxy in
+  let y = min y (state.maxy - (if conf.maxhfit then state.h else 0)) in
   y;
 ;;
 
@@ -955,7 +955,7 @@ let special ~key ~x ~y =
         | Glut.KEY_HOME -> addnav (); 0
         | Glut.KEY_END ->
             addnav ();
-            state.maxy - (if conf.maxhfit then 0 else state.h)
+            state.maxy - (if conf.maxhfit then state.h else 0)
         | _ -> state.y
       in
       state.text <- "";
