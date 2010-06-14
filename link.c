@@ -622,10 +622,18 @@ static void process_outline (void)
     }
 }
 
+static int comparespans (const void *l, const void *r)
+{
+    fz_textspan *const*ls = l;
+    fz_textspan *const*rs = r;
+
+    return (*ls)->text->bbox.y0 - (*rs)->text->bbox.y0;
+}
+
 /* wishful thinking function */
 static void search (regex_t *re, int pageno, int y, int forward)
 {
-    int i;
+    int i, j;
     int ret;
     char *p;
     char buf[256];
@@ -633,10 +641,11 @@ static void search (regex_t *re, int pageno, int y, int forward)
     fz_obj *pageobj;
     fz_device *tdev;
     pdf_page *drawpage;
-    fz_textspan *text, *span;
+    fz_textspan *text, *span, **pspan;
     struct pagedim *pdim, *pdimprev;
     int stop = 0;
     int niters = 0;
+    int nspans;
     double start, end;
 
     start = now ();
@@ -683,9 +692,25 @@ static void search (regex_t *re, int pageno, int y, int forward)
         if (error) die (error);
         fz_freedevice (tdev);
 
+        nspans = 0;
         for (span = text; span; span = span->next) {
+            nspans++;
+        }
+        pspan = malloc (sizeof (void *) * nspans);
+        if (!pspan) {
+            err (1, "malloc span pointers %zu", sizeof (void *) * nspans);
+        }
+        for (i = 0, span = text; span; span = span->next, ++i) {
+            pspan[i] = span;
+        }
+        qsort (pspan, nspans, sizeof (fz_textspan *), comparespans);
+
+        j = forward ? 0 : nspans - 1;
+        while (nspans--) {
             regmatch_t rm;
 
+            span = pspan[j];
+            j += forward ? 1 : -1;
             p = buf;
             /* XXX: spans are not sorted "visually" */
             for (i = 0; i < MIN (span->len, sizeof (buf) - 1); ++i) {
@@ -759,6 +784,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         }
         fz_freetextspan (text);
         pdf_droppage (drawpage);
+        free (pspan);
     }
     end = now ();
     if (!stop)  {
