@@ -435,7 +435,9 @@ let act cmd =
       Glut.postRedisplay ();
 
   | 'T' ->
-      let s = Scanf.sscanf cmd "T %S" (fun s -> s) in
+      let s = Scanf.sscanf cmd "T %n"
+        (fun n -> String.sub cmd n (String.length cmd - n))
+      in
       state.text <- s;
       showtext ' ' s;
       Glut.swapBuffers ();

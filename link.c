@@ -311,7 +311,7 @@ static void *render (int pageno, int pindex)
     struct pagedim *pagedim;
 
     start = now ();
-    /* printd (state.sock, "T \"rendering %d\"", pageno); */
+    /* printd (state.sock, "T rendering %d", pageno); */
     pdf_flushxref (state.xref, 0);
 
     pagedim = &state.pagedims[pindex];
@@ -372,7 +372,7 @@ static void *render (int pageno, int pindex)
         pdf_evictageditems (state.xref->store);
     }
 
-    /* printd (state.sock, "T \"rendering %d took %f sec\"", pageno, end - start); */
+    /* printd (state.sock, "T rendering %d took %f sec", pageno, end - start); */
     return page;
 }
 
@@ -511,7 +511,7 @@ static void initpdims (void)
     count = 0;
     recurse_page (state.xref, pages, &count);
     end = now ();
-    printd (state.sock, "T \"Processed %d pages in %f seconds\"",
+    printd (state.sock, "T Processed %d pages in %f seconds",
             count, end - start);
 }
 
@@ -653,12 +653,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
         if (niters++ == 5) {
             niters = 0;
             if (hasdata (state.sock)) {
-                printd (state.sock, "T \"attention requested aborting search at %d\"",
+                printd (state.sock, "T attention requested aborting search at %d",
                         pageno);
                 stop = 1;
             }
             else {
-                printd (state.sock, "T \"searching in page %d\"", pageno);
+                printd (state.sock, "T searching in page %d", pageno);
             }
         }
         pdimprev = NULL;
@@ -743,7 +743,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                     char errbuf[80];
                     size = regerror (ret, re, errbuf, sizeof (errbuf));
                     printd (state.sock,
-                            "T \"regexec error `%.*s'\"",
+                            "T regexec error `%.*s'",
                             (int) size, errbuf);
                 }
             }
@@ -767,7 +767,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                             r.x0, r.y0,
                             r.x1, r.y1);
                 }
-                printd (state.sock, "T \"found at %d `%.*s' %f in %f sec\"",
+                printd (state.sock, "T found at %d `%.*s' %f in %f sec",
                         pageno, rm.rm_eo - rm.rm_so, &buf[rm.rm_so],
                         span->text[0].bbox.y0 - drawpage->mediabox.y0,
                         now () - start);
@@ -788,7 +788,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     }
     end = now ();
     if (!stop)  {
-        printd (state.sock, "T \"no matches %f sec\"", end - start);
+        printd (state.sock, "T no matches %f sec", end - start);
     }
     printd (state.sock, "d");
 }
@@ -851,7 +851,8 @@ static void *mainloop (void *unused)
                 size_t size;
 
                 size = regerror (ret, &re, errbuf, sizeof (errbuf));
-                printd (state.sock, "T \"regcomp failed `%.*s'\"", (int) size, errbuf);
+                printd (state.sock, "T regcomp failed `%.*s'",
+                        (int) size, errbuf);
             }
             else  {
                 search (&re, pageno, y, forward);
