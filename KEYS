@@ -18,6 +18,7 @@ space, N                - go to the next page
 delete, P               - go to the previous page
 =                       - show current position
 w                       - change height to encompass all of the page
+o                       - goto outline mode
 
 [1] i'm somewhat mouse button confused, since i use "left handed" mouse
     while not being lefthanded

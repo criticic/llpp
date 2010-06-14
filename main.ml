@@ -89,6 +89,9 @@ type conf =
     }
 ;;
 
+type outline = string * int * int * int;;
+type outlines = Oarray of outline array | Olist of outline list;;
+
 type state =
     { mutable csock : Unix.file_descr
     ; mutable ssock : Unix.file_descr
@@ -112,6 +115,8 @@ type state =
     ; mutable fullscreen : (int * int) option
     ; mutable textentry :
         (char * string * (string -> int -> te) * (string -> unit)) option
+    ; mutable outlines : outlines
+    ; mutable outline : (int * int * outline array * string) option
     }
 ;;
 
@@ -152,6 +157,8 @@ let state =
   ; fullscreen = None
   ; textentry = None
   ; searchpattern = ""
+  ; outlines = Olist []
+  ; outline = None
   }
 ;;
 
@@ -339,6 +346,13 @@ let getnav () =
   truncate (y *. float state.maxy)
 ;;
 
+let gotopage n top =
+  let y = getpagey n in
+  addnav ();
+  state.y <- y + top;
+  gotoy state.y;
+;;
+
 let reshape ~w ~h =
   state.w <- w;
   state.h <- h;
@@ -479,6 +493,17 @@ let act cmd =
       in
       state.pages <- pagelayout :: state.pages
 
+  | 'o' ->
+      let (s, l, n, t) as outline =
+        Scanf.sscanf cmd "o %S %d %d %d" (fun s l n t -> s, l, n, t)
+      in
+      let outlines =
+        match state.outlines with
+        | Olist outlines -> Olist (outline :: outlines)
+        | Oarray _ -> Olist [outline]
+      in
+      state.outlines <- outlines
+
   | _ ->
       log "unknown cmd `%S'" cmd
 ;;
@@ -560,12 +585,18 @@ let intentry text key =
       TEcont text
 ;;
 
+let addchar s c =
+  let b = Buffer.create (String.length s + 1) in
+  Buffer.add_string b s;
+  Buffer.add_char b c;
+  Buffer.contents b;
+;;
+
 let textentry text key =
   let c = Char.unsafe_chr key in
   match c with
   | _ when key >= 32 && key <= 127 ->
-      let s = "x" in s.[0] <- c;
-      let text = text ^ s in
+      let text = addchar text c in
       TEcont text
 
   | _ ->
@@ -611,7 +642,38 @@ let optentry text key =
       TEstop
 ;;
 
-let keyboard ~key ~x ~y =
+let maxoutlinerows () = (state.h - 31) / 16;;
+
+let enteroutlinemode () =
+  let pageno =
+    match state.layout with
+    | [] -> -1
+    | {pageno=pageno} :: rest -> pageno
+  in
+  let outlines =
+    match state.outlines with
+    | Oarray a -> a
+    | Olist l ->
+        let a = Array.of_list (List.rev l) in
+        state.outlines <- Oarray a;
+        a
+  in
+  let active =
+    let rec loop n =
+      if n = Array.length outlines
+      then 0
+      else
+        let (_, _, outlinepageno, _) = outlines.(n) in
+        if outlinepageno >= pageno then n else loop (n+1)
+    in
+    loop 0
+  in
+  state.outline <-
+    Some (active, max 0 (active - maxoutlinerows ()), outlines, "");
+  Glut.postRedisplay ();
+;;
+
+let viewkeyboard ~key ~x ~y =
   let enttext te =
     state.textentry <- te;
     state.text <- "";
@@ -628,6 +690,9 @@ let keyboard ~key ~x ~y =
       | '\008' ->
           let y = getnav () in
           gotoy y
+
+      | 'o' ->
+          enteroutlinemode ()
 
       | 'u' ->
           state.rects <- [];
@@ -798,22 +863,144 @@ let keyboard ~key ~x ~y =
       end;
 ;;
 
-let special ~key ~x ~y =
-  let y =
-    match key with
-    | Glut.KEY_F3        -> search state.searchpattern true; state.y
-    | Glut.KEY_UP        -> clamp (-conf.scrollincr)
-    | Glut.KEY_DOWN      -> clamp conf.scrollincr
-    | Glut.KEY_PAGE_UP   -> clamp (-state.h)
-    | Glut.KEY_PAGE_DOWN -> clamp state.h
-    | Glut.KEY_HOME -> addnav (); 0
-    | Glut.KEY_END ->
-        addnav ();
-        state.maxy - (if conf.maxhfit then 0 else state.h)
-    | _ -> state.y
+let outlinekeyboard ~key ~x ~y (active, first, outlines, qsearch) =
+  let search active pattern incr =
+    let re = Str.regexp_case_fold pattern in
+    let rec loop n =
+      if n = Array.length outlines || n = -1 then None else
+        let (s, _, _, _) = outlines.(n) in
+        if
+          (try ignore (Str.search_forward re s 0); true
+            with Not_found -> false)
+        then (
+          let maxrows = maxoutlinerows () in
+          if first > n
+          then Some (n, max 0 (n - maxrows))
+          else Some (n, max first (n - maxrows))
+        )
+        else loop (n + incr)
+    in
+    loop active
   in
-  state.text <- "";
-  gotoy y
+  match key with
+  | 27 ->
+      if String.length qsearch = 0
+      then (
+        state.text <- "";
+        state.outline <- None;
+        Glut.postRedisplay ();
+      )
+      else (
+          state.text <- "";
+          state.outline <- Some (active, first, outlines, "");
+          Glut.postRedisplay ();
+      )
+
+  | 18 | 19 ->
+      let incr = if key = 18 then -1 else 1 in
+      let active, first =
+        match search (active + incr) qsearch incr with
+        | None -> active, first
+        | Some af -> af
+      in
+      state.outline <- Some (active, first, outlines, qsearch);
+      Glut.postRedisplay ();
+
+  | 8 ->
+      let len = String.length qsearch in
+      if len = 0
+      then ()
+      else (
+        if len = 1
+        then (
+          state.text <- "";
+          state.outline <- Some (active, first, outlines, "");
+        )
+        else
+          let qsearch = String.sub qsearch 0 (len - 1) in
+          state.text <- qsearch;
+          state.outline <- Some (active, first, outlines, qsearch);
+      );
+      Glut.postRedisplay ()
+
+  | 13 ->
+      let (_, _, n, t) = outlines.(active) in
+      gotopage n t;
+      state.text <- "";
+      state.outline <- None;
+      Glut.postRedisplay ();
+
+  | _ when key >= 32 && key <= 127 ->
+      let pattern = addchar qsearch (Char.chr key) in
+      let active, first =
+        match search active pattern 1 with
+        | None -> active, first
+        | Some af -> af
+      in
+      state.text <- pattern;
+      state.outline <- Some (active, first, outlines, pattern);
+      Glut.postRedisplay ()
+
+  | _ -> log "unknown key %d" key
+;;
+
+let keyboard ~key ~x ~y =
+  match state.outline with
+  | None -> viewkeyboard ~key ~x ~y
+  | Some outline -> outlinekeyboard ~key ~x ~y outline
+;;
+
+let special ~key ~x ~y =
+  match state.outline with
+  | None ->
+      let y =
+        match key with
+        | Glut.KEY_F3        -> search state.searchpattern true; state.y
+        | Glut.KEY_UP        -> clamp (-conf.scrollincr)
+        | Glut.KEY_DOWN      -> clamp conf.scrollincr
+        | Glut.KEY_PAGE_UP   -> clamp (-state.h)
+        | Glut.KEY_PAGE_DOWN -> clamp state.h
+        | Glut.KEY_HOME -> addnav (); 0
+        | Glut.KEY_END ->
+            addnav ();
+            state.maxy - (if conf.maxhfit then 0 else state.h)
+        | _ -> state.y
+      in
+      state.text <- "";
+      gotoy y
+
+  | Some (active, first, outlines, qsearch) ->
+      let maxrows = maxoutlinerows () in
+      let navigate incr =
+        let active = active + incr in
+        let active = max 0 (min active (Array.length outlines - 1)) in
+        let first =
+          if active > first
+          then
+            let rows = active - first in
+            if rows > maxrows then first + incr else first
+          else active
+        in
+        state.outline <- Some (active, first, outlines, qsearch);
+        Glut.postRedisplay ()
+      in
+      match key with
+      | Glut.KEY_UP        -> navigate ~-1
+      | Glut.KEY_DOWN      -> navigate   1
+      | Glut.KEY_PAGE_UP   -> navigate ~-maxrows
+      | Glut.KEY_PAGE_DOWN -> navigate   maxrows
+
+      | Glut.KEY_HOME ->
+          state.outline <- Some (0, 0, outlines, qsearch);
+          Glut.postRedisplay ()
+
+      | Glut.KEY_END ->
+          let active = Array.length outlines - 1 in
+          let first = max 0 (active - maxrows) in
+          state.outline <- Some (active, first, outlines, qsearch);
+          Glut.postRedisplay ()
+
+      | _ -> ()
 ;;
 
 let drawplaceholder l =
@@ -947,6 +1134,47 @@ let showrects () =
   Gl.disable `blend;
 ;;
 
+let showoutline = function
+  | None -> ()
+  | Some (active, first, outlines, qsearch) ->
+      Gl.enable `blend;
+      GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+      GlDraw.color (0., 0., 0.) ~alpha:0.85;
+      GlDraw.rect (0., 0.) (float state.w, float state.h);
+      Gl.disable `blend;
+
+      GlDraw.color (1., 1., 1.);
+      let font = Glut.BITMAP_9_BY_15 in
+      let draw_string x y s =
+        GlPix.raster_pos ~x ~y ();
+        String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
+      in
+      let rec loop row =
+        if row = Array.length outlines || (row - first) * 16 > state.h
+        then ()
+        else (
+          let (s, l, _, _) = outlines.(row) in
+          let y = (row - first) * 16 in
+          let x = 5 + 5*l in
+          if row = active
+          then (
+            Gl.enable `blend;
+            GlDraw.polygon_mode `both `line;
+            GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+            GlDraw.color (1., 1., 1.) ~alpha:0.9;
+            GlDraw.rect (0., float (y + 1))
+              (float (state.w - conf.scrollw - 1), float (y + 18));
+            GlDraw.polygon_mode `both `fill;
+            Gl.disable `blend;
+            GlDraw.color (1., 1., 1.);
+          );
+          draw_string (float x) (float (y + 16)) s;
+          loop (row+1)
+        )
+      in
+      loop first
+;;
+
 let display () =
   let lasty = List.fold_left drawpage 0 (state.layout) in
   GlDraw.color (0.5, 0.5, 0.5);
@@ -957,6 +1185,7 @@ let display () =
   showrects ();
   scrollindicator ();
   showsel ();
+  showoutline state.outline;
   enttext ();
   Glut.swapBuffers ();
 ;;
@@ -1003,13 +1232,6 @@ let checklink x y =
   f state.layout
 ;;
 
-let gotopage n top =
-  let y = getpagey n in
-  addnav ();
-  state.y <- y + top;
-  gotoy state.y;
-;;
-
 let mouse ~button ~bstate ~x ~y =
   match button with
   | Glut.OTHER_BUTTON n when n == 3 || n == 4 && bstate = Glut.UP ->
@@ -1024,7 +1246,7 @@ let mouse ~button ~bstate ~x ~y =
       let y = clamp incr in
       gotoy y
 
-  | Glut.LEFT_BUTTON ->
+  | Glut.LEFT_BUTTON when state.outline = None ->
       let dest = if bstate = Glut.DOWN then getlink x y else None in
       begin match dest with
       | Some (pageno, top) ->
@@ -1049,23 +1271,27 @@ let mouse ~button ~bstate ~x ~y =
 let mouse ~button ~state ~x ~y = mouse button state x y;;
 
 let motion ~x ~y =
-  match state.mstate with
-  | Mnone -> ()
-  | Msel (a, _) ->
-      state.mstate <- Msel (a, (x, y));
-      Glut.postRedisplay ()
+  if state.outline = None
+  then
+    match state.mstate with
+    | Mnone -> ()
+    | Msel (a, _) ->
+        state.mstate <- Msel (a, (x, y));
+        Glut.postRedisplay ()
 ;;
 
 let pmotion ~x ~y =
-  match state.mstate with
-  | Mnone when (checklink x y) ->
-      Glut.setCursor Glut.CURSOR_INFO
+  if state.outline = None
+  then
+    match state.mstate with
+    | Mnone when (checklink x y) ->
+        Glut.setCursor Glut.CURSOR_INFO
 
-  | Mnone ->
-      Glut.setCursor Glut.CURSOR_RIGHT_ARROW
+    | Mnone ->
+        Glut.setCursor Glut.CURSOR_RIGHT_ARROW
 
-  | Msel (a, _) ->
-      ()
+    | Msel (a, _) ->
+        ()
 ;;
 
 let () =

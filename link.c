@@ -87,6 +87,7 @@ struct {
 
     int lotsamemory;
 
+    int *pagetbl;
     struct {
         int w, h;
         struct slice *slice;
@@ -202,7 +203,9 @@ void openxref (char *filename)
     if (pdf_needspassword (state.xref)) {
         die (fz_throw ("password protected"));
     }
+
     state.pagecount = pdf_getpagecount (state.xref);
+    state.pagetbl = stat_alloc (state.pagecount * sizeof (*state.pagetbl));
 }
 
 static int readlen (int fd)
@@ -381,6 +384,7 @@ static void layout (void)
         if (!pageobj)
             die (fz_throw ("cannot retrieve info from page %d", pageno));
 
+        state.pagetbl[pageno - 1] = fz_tonum (pageobj);
         obj = fz_dictgets (pageobj, "CropBox");
         if (!fz_isarray (obj)) {
             obj = fz_dictgets (pageobj, "MediaBox");
@@ -443,6 +447,62 @@ static void layout (void)
     printd (state.sock, "T \"Processed %d pages in %f seconds\"",
             state.pagecount, b - a);
     printd (state.sock, "C %d", state.pagecount);
+}
+
+static void recurse_outline (pdf_outline *outline, int level)
+{
+    while (outline) {
+        fz_obj *obj;
+        int top = 0;
+        int pageno = -1;
+
+        obj = outline->link->dest;
+        if (fz_isarray (obj)) {
+            int i;
+            int num = fz_tonum (fz_arrayget (obj, 0));
+
+            for (i = 0; i < state.pagecount; ++i)  {
+                if (state.pagetbl[i] == num) {
+                    int j;
+                    struct pagedim *pagedim = state.pagedims;
+
+                    pageno = i;
+                    for (j = 0; j < state.pagedimcount; ++j) {
+                        if (state.pagedims[j].pageno > pageno)
+                            break;
+                        pagedim = &state.pagedims[j];
+                    }
+                    if (fz_arraylen (obj) > 3) {
+                        fz_point p;
+
+                        p.x = fz_toint (fz_arrayget (obj, 2));
+                        p.y = fz_toint (fz_arrayget (obj, 3));
+                        p = fz_transformpoint (pagedim->ctm, p);
+                        top = p.y;
+                    }
+                }
+            }
+        }
+        lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
+        printd (state.sock, "o \"%s\" %d %d %d",
+                outline->title, level, pageno, top);
+
+        if (outline->child) {
+            recurse_outline (outline->child, level + 1);
+        }
+        outline = outline->next;
+    }
+}
+
+static void process_outline (void)
+{
+    pdf_outline *outline;
+
+    outline = pdf_loadoutline (state.xref);
+    if (outline) {
+        recurse_outline (outline, 0);
+        pdf_dropoutline (outline);
+    }
 }
 
 /* wishful thinking function */
@@ -668,6 +728,7 @@ static void *mainloop (void *unused)
                 }
             }
             layout ();
+            process_outline ();
         }
         else if (!strncmp ("render", p, 6)) {
             int pageno, pindex, w, h, ret;

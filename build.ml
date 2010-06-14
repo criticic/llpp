@@ -86,7 +86,7 @@ let () =
   let prog name cmos =
     ocaml
       "ocamlc.opt"
-      ("-g -I +lablGL lablgl.cma lablglut.cma unix.cma -dllpath "
+      ("-g -I +lablGL lablgl.cma lablglut.cma str.cma unix.cma -dllpath "
         ^ Sys.getcwd ())
       name
       (StrSet.singleton name)
