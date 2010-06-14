@@ -378,7 +378,7 @@ static void *render (int pageno, int pindex)
 
 /* almost verbatim copy of pdf_getpagecountimp */
 static void
-recurse_page (pdf_xref *xref, fz_obj *node, int *pagesp)
+recurse_page (fz_obj *node, int bias, int *pagesp)
 {
     fz_obj *type;
     fz_obj *kids;
@@ -423,7 +423,7 @@ recurse_page (pdf_xref *xref, fz_obj *node, int *pagesp)
         struct pagedim *p;
         int pageno = *pagesp;
 
-        state.pagetbl[pageno] = fz_tonum (node);
+        state.pagetbl[pageno + bias] = fz_tonum (node);
         obj = fz_dictgets (node, "CropBox");
         if (!fz_isarray (obj)) {
             obj = fz_dictgets (node, "MediaBox");
@@ -456,7 +456,7 @@ recurse_page (pdf_xref *xref, fz_obj *node, int *pagesp)
             p = &state.pagedims[state.pagedimcount++];
             p->rotate = rotate;
             p->box = box;
-            p->pageno = *pagesp;
+            p->pageno = pageno + bias;
         }
         (*pagesp)++;
     }
@@ -478,7 +478,7 @@ recurse_page (pdf_xref *xref, fz_obj *node, int *pagesp)
                 return;
             }
 
-            recurse_page (xref, obj, &pages);
+            recurse_page (obj, *pagesp + bias, &pages);
         }
 
         if (pages != fz_toint(count))
@@ -509,7 +509,7 @@ static void initpdims (void)
     pages = fz_dictgets (catalog, "Pages");
 
     count = 0;
-    recurse_page (state.xref, pages, &count);
+    recurse_page (pages, 0, &count);
     end = now ();
     printd (state.sock, "T Processed %d pages in %f seconds",
             count, end - start);
