@@ -215,7 +215,7 @@ static void die (fz_error error)
     exit (1);
 }
 
-void openxref (char *filename)
+static void openxref (char *filename)
 {
     int fd;
     fz_stream *file;
