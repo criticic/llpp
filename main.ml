@@ -652,19 +652,25 @@ let enteroutlinemode () =
         state.outlines <- Oarray a;
         a
   in
-  let active =
-    let rec loop n =
-      if n = Array.length outlines
-      then 0
-      else
-        let (_, _, outlinepageno, _) = outlines.(n) in
-        if outlinepageno >= pageno then n else loop (n+1)
+  if Array.length outlines = 0
+  then (
+    showtext ' ' "Document has no outline";
+    Glut.swapBuffers ()
+  )
+  else
+    let active =
+      let rec loop n =
+        if n = Array.length outlines
+        then 0
+        else
+          let (_, _, outlinepageno, _) = outlines.(n) in
+          if outlinepageno >= pageno then n else loop (n+1)
+      in
+      loop 0
     in
-    loop 0
-  in
-  state.outline <-
-    Some (active, max 0 (active - maxoutlinerows ()), outlines, "");
-  Glut.postRedisplay ();
+    state.outline <-
+      Some (active, max 0 (active - maxoutlinerows ()), outlines, "");
+    Glut.postRedisplay ();
 ;;
 
 let viewkeyboard ~key ~x ~y =
