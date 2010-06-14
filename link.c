@@ -461,30 +461,40 @@ static void recurse_outline (pdf_outline *outline, int level)
         obj = outline->link->dest;
         if (fz_isarray (obj)) {
             int i;
-            int num = fz_tonum (fz_arrayget (obj, 0));
+            int num;
+            fz_obj *obj2;
+            struct pagedim *pagedim = state.pagedims;
 
-            for (i = 0; i < state.pagecount; ++i)  {
-                if (state.pagetbl[i] == num) {
-                    int j;
-                    struct pagedim *pagedim = state.pagedims;
-
-                    pageno = i;
-                    for (j = 0; j < state.pagedimcount; ++j) {
-                        if (state.pagedims[j].pageno > pageno)
-                            break;
-                        pagedim = &state.pagedims[j];
-                    }
-                    if (fz_arraylen (obj) > 3) {
-                        fz_point p;
-
-                        p.x = fz_toint (fz_arrayget (obj, 2));
-                        p.y = fz_toint (fz_arrayget (obj, 3));
-                        p = fz_transformpoint (pagedim->ctm, p);
-                        top = p.y;
+            obj2 = fz_arrayget (obj, 0);
+            if (fz_isint (obj2)) {
+                pageno = fz_toint (obj2);
+            }
+            else {
+                num = fz_tonum (obj2);
+                for (i = 0; i < state.pagecount; ++i)  {
+                    if (state.pagetbl[i] == num) {
+                        pageno = i;
+                        break;
                     }
                 }
             }
+
+            for (i = 0; i < state.pagedimcount; ++i) {
+                if (state.pagedims[i].pageno > pageno)
+                    break;
+                pagedim = &state.pagedims[i];
+            }
+
+            if (fz_arraylen (obj) > 3) {
+                fz_point p;
+
+                p.x = fz_toint (fz_arrayget (obj, 2));
+                p.y = fz_toint (fz_arrayget (obj, 3));
+                p = fz_transformpoint (pagedim->ctm, p);
+                top = p.y;
+            }
         }
+
         lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
         printd (state.sock, "o %d %d %d %s",
                 level, pageno, top, outline->title);
