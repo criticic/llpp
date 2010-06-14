@@ -94,6 +94,34 @@ struct {
     } *texowners;
 } state;
 
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void lock (const char *cap)
+{
+    int ret = pthread_mutex_lock (&mutex);
+    if (ret) {
+        errx (1, "%s: pthread_mutex_lock: %s", cap, strerror (ret));
+    }
+}
+
+static void unlock (const char *cap)
+{
+    int ret = pthread_mutex_unlock (&mutex);
+    if (ret) {
+        errx (1, "%s: pthread_mutex_unlock: %s", cap, strerror (ret));
+    }
+}
+
+static int trylock (const char *cap)
+{
+    int ret = pthread_mutex_trylock (&mutex);
+
+    if (ret && ret != EBUSY) {
+        errx (1, "%s: pthread_mutex_trylock: %s", cap, strerror (ret));
+    }
+    return ret == EBUSY;
+}
+
 static void *parse_pointer (const char *cap, const char *s)
 {
     int ret;
@@ -695,8 +723,10 @@ static void *mainloop (void *unused)
             if (ret != 1) {
                 errx (1, "malformed free `%.*s' ret=%d", len, p, ret);
             }
+            lock ("free");
             freepage (ptr);
-            printd (state.sock, "f");
+            unlock ("free");
+            printd (state.sock, "d");
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;
@@ -739,8 +769,11 @@ static void *mainloop (void *unused)
                     state.texowners[i].slice = NULL;
                 }
             }
+            lock ("geometry");
             layout ();
             process_outline ();
+            unlock ("geometry");
+            printd (state.sock, "d");
         }
         else if (!strncmp ("render", p, 6)) {
             int pageno, pindex, w, h, ret;
@@ -865,6 +898,9 @@ CAMLprim value ml_preload (value ptr_v)
     char *s = String_val (ptr_v);
     struct page *page;
 
+    if (trylock ("ml_preload")) {
+        goto done;
+    }
     ret = sscanf (s, "%p", &ptr);
     if (ret != 1) {
         errx (1, "cannot parse pointer `%s'", s);
@@ -875,6 +911,8 @@ CAMLprim value ml_preload (value ptr_v)
         upload2 (ptr, i, "preload");
     }
 
+    unlock ("ml_preload");
+ done:
     CAMLreturn (Val_unit);
 }
 
@@ -891,6 +929,10 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     void *ptr;
     struct page *page;
     int slicenum = 0;
+
+    if (trylock ("ml_draw")) {
+        goto done;
+    }
 
     ret = sscanf (s, "%p", &ptr);
     if (ret != 1) {
@@ -951,6 +993,9 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     if (state.useatifs) {
         glDisable (GL_FRAGMENT_SHADER_ATI);
     }
+
+    unlock ("ml_draw");
+ done:
     CAMLreturn (Val_unit);
 }
 
@@ -982,9 +1027,17 @@ CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     char *s = String_val (ptr_v);
+    int ret;
 
-    CAMLreturn (Val_bool (NULL != getlink (parse_pointer ("ml_checklink", s),
-                                           Int_val (x_v), Int_val (y_v))));
+    if (trylock ("ml_checklink")) {
+        ret = 0;
+    }
+    else {
+        ret = NULL != getlink (parse_pointer ("ml_checklink", s),
+                               Int_val (x_v), Int_val (y_v));
+        unlock ("ml_checklink");
+    }
+    CAMLreturn (Val_bool (ret));
 }
 
 CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
@@ -994,6 +1047,11 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
     pdf_link *link;
     struct page *page;
     char *s = String_val (ptr_v);
+
+    if (trylock ("ml_gettext")) {
+        ret_v = Val_int (0);
+        goto done;
+    }
 
     page = parse_pointer ("ml_getlink", s);
 
@@ -1031,7 +1089,9 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
     else {
         ret_v = Val_int (0);
     }
+    unlock ("ml_getlink");
 
+ done:
     CAMLreturn (ret_v);
 }
 
@@ -1048,6 +1108,10 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
 
     /* stop GCC from complaining about uninitialized variables */
     int rx0 = rx0, rx1 = rx1, ry0 = ry0, ry1 = ry1;
+
+    if (trylock ("ml_gettext")) {
+        goto done;
+    }
 
     page = parse_pointer ("ml_gettext", s);
 
@@ -1159,7 +1223,9 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
             putc ('\n', stdout);
         }
     }
+    unlock ("ml_gettext");
 
+ done:
     CAMLreturn (Val_unit);
 }
 

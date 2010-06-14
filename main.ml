@@ -107,7 +107,6 @@ type state =
     ; pagecache : string circbuf
     ; navhist : float circbuf
     ; mutable inflight : int
-    ; mutable safe : int
     ; mutable mstate : mstate
     ; mutable searchpattern : string
     ; mutable rects : (int * int * Gl.point2 * Gl.point2) list
@@ -149,7 +148,6 @@ let state =
   ; pages = []
   ; pagecount = 0
   ; inflight = 0
-  ; safe = 0
   ; mstate = Mnone
   ; navhist = cbnew 100 0.0
   ; rects = []
@@ -436,13 +434,6 @@ let act cmd =
       state.layout <- pages;
       Glut.postRedisplay ();
 
-  | 'f' ->
-      state.safe <- state.safe - 1;
-      if state.safe = 0
-      then
-        Glut.postRedisplay ()
-      ;
-
   | 'T' ->
       let s = Scanf.sscanf cmd "T %S" (fun s -> s) in
       state.text <- s;
@@ -476,7 +467,6 @@ let act cmd =
       let evicted = cbpeekw state.pagecache in
       if String.length evicted > 0
       then begin
-        state.safe <- state.safe + 1;
         wcmd "free" [`s evicted];
         let l = Hashtbl.fold (fun k p a ->
           if evicted = p then k :: a else a) state.pagemap []
@@ -1039,13 +1029,10 @@ let drawpage i l =
   | Some opaque when validopaque opaque ->
       GlDraw.color (1.0, 1.0, 1.0);
       let a = now () in
-      if state.safe = 0
-      then
-        draw l.pagedispy l.pagew l.pagevh l.pagey opaque
-      ;
+      draw l.pagedispy l.pagew l.pagevh l.pagey opaque;
       let b = now () in
       let d = b-.a in
-      vlog "draw %f sec safe %d" d state.safe;
+      vlog "draw %f sec" d;
 
   | Some _ ->
       drawplaceholder l
