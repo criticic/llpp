@@ -376,78 +376,143 @@ static void *render (int pageno, int pindex)
     return page;
 }
 
-static void initpdims (void)
+/* almost verbatim copy of pdf_getpagecountimp */
+static void
+recurse_page (pdf_xref *xref, fz_obj *node, int *pagesp)
 {
-    int pageno;
-    int pindex;
-    size_t size;
-    struct pagedim *p;
-    double a, b, c, d;
+    fz_obj *type;
+    fz_obj *kids;
+    fz_obj *count;
+    char *typestr;
+    int pages = 0;
+    int i;
 
-    size = 0;
-    pindex = 0;
-    a = now ();
-    c = 0.0;
-    for (pageno = 1; pageno <= state.pagecount; ++pageno) {
+    if (!fz_isdict(node))
+    {
+        fz_warn("pagetree node is missing, igoring missing pages...");
+        return;
+    }
+
+    type = fz_dictgets(node, "Type");
+    kids = fz_dictgets(node, "Kids");
+    count = fz_dictgets(node, "Count");
+
+    if (fz_isname(type))
+        typestr = fz_toname(type);
+    else
+    {
+        fz_warn("pagetree node (%d %d R) lacks required type", fz_tonum(node), fz_togen(node));
+
+        kids = fz_dictgets(node, "Kids");
+        if (kids)
+        {
+            fz_warn("guessing it may be a pagetree node, continuing...");
+            typestr = "Pages";
+        }
+        else
+        {
+            fz_warn("guessing it may be a page, continuing...");
+            typestr = "Page";
+        }
+    }
+
+    if (!strcmp(typestr, "Page")) {
         int rotate;
         fz_obj *obj;
         fz_rect box;
-        fz_obj *pageobj;
+        struct pagedim *p;
+        int pageno = *pagesp;
 
-        if (!(pageno & 31)) {
-            if (!c) {
-                c = a;
-            }
-            d = now ();
-            printd (state.sock, "T \"processing page %d %f\"", pageno, d - c);
-            c = d;
-        }
-
-        pageobj = pdf_getpageobject (state.xref, pageno);
-        if (!pageobj) {
-            die (fz_throw ("cannot retrieve info from page %d", pageno));
-        }
-
-        state.pagetbl[pageno - 1] = fz_tonum (pageobj);
-        obj = fz_dictgets (pageobj, "CropBox");
+        state.pagetbl[pageno] = fz_tonum (node);
+        obj = fz_dictgets (node, "CropBox");
         if (!fz_isarray (obj)) {
-            obj = fz_dictgets (pageobj, "MediaBox");
+            obj = fz_dictgets (node, "MediaBox");
             if (!fz_isarray (obj)) {
                 die (fz_throw ("cannot find page bounds %d (%d R)",
-                               fz_tonum (obj), fz_togen (obj)));
+                               fz_tonum (node), fz_togen (node)));
             }
         }
-
         box = pdf_torect (obj);
-        obj = fz_dictgets (pageobj, "Rotate");
-        if (fz_isint (obj))
+
+        obj = fz_dictgets (node, "Rotate");
+        if (fz_isint (obj)) {
             rotate = fz_toint (obj);
-        else
+        }
+        else  {
             rotate = 0;
-
-        if (pageno != 1
-            && (p->rotate == rotate
-                && !memcmp (&p->box, &box, sizeof (box)))) {
-            continue;
         }
 
-        size += sizeof (*state.pagedims);
-        state.pagedims = realloc (state.pagedims, size);
-        if (!state.pagedims)  {
-            err (1, "realloc pagedims %zu", size);
+        p = &state.pagedims[state.pagedimcount - 1];
+        if ((state.pagedimcount == 0)
+            || (p->rotate != rotate || memcmp (&p->box, &box, sizeof (box)))) {
+            size_t size;
+
+            size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
+            state.pagedims = realloc (state.pagedims, size);
+            if (!state.pagedims) {
+                err (1, "realloc pagedims to %zu (%d elems)",
+                     size, state.pagedimcount + 1);
+            }
+            p = &state.pagedims[state.pagedimcount++];
+            p->rotate = rotate;
+            p->box = box;
+            p->pageno = *pagesp;
         }
-
-        p = &state.pagedims[pindex++];
-        memcpy (&p->box, &box, sizeof (box));
-        p->rotate = rotate;
-
-        p->pageno = pageno - 1;
+        (*pagesp)++;
     }
+    else if (!strcmp(typestr, "Pages"))
+    {
+        if (!fz_isarray(kids))
+            fz_warn("page tree node contains no pages");
 
-    state.pagedimcount = pindex;
-    b = now ();
+        pdf_logpage("subtree (%d %d R) {\n", fz_tonum(node), fz_togen(node));
+
+        for (i = 0; i < fz_arraylen(kids); i++)
+        {
+            fz_obj *obj = fz_arrayget(kids, i);
+
+            /* prevent infinite recursion possible in maliciously crafted PDFs */
+            if (obj == node)
+            {
+                fz_warn("cyclic page tree");
+                return;
+            }
+
+            recurse_page (xref, obj, &pages);
+        }
+
+        if (pages != fz_toint(count))
+        {
+            fz_warn("page tree node contains incorrect number of pages, continuing...");
+            count = fz_newint(pages);
+            fz_dictputs(node, "Count", count);
+            fz_dropobj(count);
+        }
+
+        pdf_logpage("%d pages\n", pages);
+
+        (*pagesp) += pages;
+
+        pdf_logpage("}\n");
+    }
+}
+
+static void initpdims (void)
+{
+    fz_obj *catalog;
+    fz_obj *pages;
+    int count;
+    double start, end;
+
+    start = now ();
+    catalog = fz_dictgets (state.xref->trailer, "Root");
+    pages = fz_dictgets (catalog, "Pages");
+
+    count = 0;
+    recurse_page (state.xref, pages, &count);
+    end = now ();
     printd (state.sock, "T \"Processed %d pages in %f seconds\"",
-            state.pagecount, b - a);
+            count, end - start);
 }
 
 static void layout (void)
