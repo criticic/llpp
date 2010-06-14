@@ -774,14 +774,14 @@ let viewkeyboard ~key ~x ~y =
           begin match List.rev state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (state.y + l.pageh - l.pagey)
+              gotoy (clamp (l.pageh - l.pagey))
           end
 
       | '\127' | 'P' ->
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (state.y-l.pageh);
+              gotoy (clamp (-l.pageh));
           end
 
       | '=' ->
