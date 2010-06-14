@@ -1300,7 +1300,7 @@ CAMLprim value ml_init (value sock_v)
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
-        unix_error (ret, "pthread_create", Nothing);
+        errx (1, "pthread_create: %s", strerror (errno));
     }
 
     CAMLreturn (Val_unit);
