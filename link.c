@@ -60,6 +60,8 @@ struct page {
 
 struct pagedim {
     int pageno;
+    int rotate;
+    fz_rect box;
     fz_bbox bbox;
     fz_matrix ctm;
 };
@@ -374,30 +376,22 @@ static void *render (int pageno, int pindex)
     return page;
 }
 
-static void layout (void)
+static void initpdims (void)
 {
     int pageno;
-    double a, b, c, d;
-    int prevrotate;
-    fz_rect prevbox;
-    int i, pindex;
-    asize_t size;
+    int pindex;
+    size_t size;
     struct pagedim *p;
+    double a, b, c, d;
 
     size = 0;
     pindex = 0;
     a = now ();
     c = 0.0;
-    printd (state.sock, "c");
     for (pageno = 1; pageno <= state.pagecount; ++pageno) {
-        float w;
-        float zoom;
         int rotate;
         fz_obj *obj;
         fz_rect box;
-        fz_rect box2;
-        fz_matrix ctm;
-        fz_bbox bbox;
         fz_obj *pageobj;
 
         if (!(pageno & 31)) {
@@ -408,18 +402,22 @@ static void layout (void)
             printd (state.sock, "T \"processing page %d %f\"", pageno, d - c);
             c = d;
         }
+
         pageobj = pdf_getpageobject (state.xref, pageno);
-        if (!pageobj)
+        if (!pageobj) {
             die (fz_throw ("cannot retrieve info from page %d", pageno));
+        }
 
         state.pagetbl[pageno - 1] = fz_tonum (pageobj);
         obj = fz_dictgets (pageobj, "CropBox");
         if (!fz_isarray (obj)) {
             obj = fz_dictgets (pageobj, "MediaBox");
-            if (!fz_isarray (obj))
+            if (!fz_isarray (obj)) {
                 die (fz_throw ("cannot find page bounds %d (%d R)",
                                fz_tonum (obj), fz_togen (obj)));
+            }
         }
+
         box = pdf_torect (obj);
         obj = fz_dictgets (pageobj, "Rotate");
         if (fz_isint (obj))
@@ -428,22 +426,49 @@ static void layout (void)
             rotate = 0;
 
         if (pageno != 1
-            && (prevrotate == rotate
-                && !memcmp (&prevbox, &box, sizeof (box)))) {
+            && (p->rotate == rotate
+                && !memcmp (&p->box, &box, sizeof (box)))) {
             continue;
         }
 
-        memcpy (&prevbox, &box, sizeof (box));
-        prevrotate = rotate;
+        size += sizeof (*state.pagedims);
+        state.pagedims = realloc (state.pagedims, size);
+        if (!state.pagedims)  {
+            err (1, "realloc pagedims %zu", size);
+        }
 
-        box.x0 = MIN (prevbox.x0, prevbox.x1);
-        box.y0 = MIN (prevbox.y0, prevbox.y1);
-        box.x1 = MAX (prevbox.x0, prevbox.x1);
-        box.y1 = MAX (prevbox.y0, prevbox.y1);
+        p = &state.pagedims[pindex++];
+        memcpy (&p->box, &box, sizeof (box));
+        p->rotate = rotate;
+
+        p->pageno = pageno - 1;
+    }
+
+    state.pagedimcount = pindex;
+    b = now ();
+    printd (state.sock, "T \"Processed %d pages in %f seconds\"",
+            state.pagecount, b - a);
+}
+
+static void layout (void)
+{
+    int pindex;
+    fz_matrix ctm;
+    fz_rect box, box2;
+    double zoom, w;
+    struct pagedim *p = state.pagedims;
+
+    pindex = 0;
+    printd (state.sock, "c");
+    for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
+        box.x0 = MIN (p->box.x0, p->box.x1);
+        box.y0 = MIN (p->box.y0, p->box.y1);
+        box.x1 = MAX (p->box.x0, p->box.x1);
+        box.y1 = MAX (p->box.y0, p->box.y1);
 
         ctm = fz_identity ();
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
-        ctm = fz_concat (ctm, fz_rotate (rotate));
+        ctm = fz_concat (ctm, fz_rotate (p->rotate));
         box2 = fz_transformrect (ctm, box);
         w = box2.x1 - box2.x0;
 
@@ -451,29 +476,16 @@ static void layout (void)
         ctm = fz_identity ();
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
         ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
-        ctm = fz_concat (ctm, fz_rotate (rotate));
-        bbox = fz_roundrect (fz_transformrect (ctm, box));
-
-        size += sizeof (*state.pagedims);
-        state.pagedims = caml_stat_resize (state.pagedims, size);
-
-        p = &state.pagedims[pindex++];
-        memcpy (&p->bbox, &bbox, sizeof (bbox));
+        ctm = fz_concat (ctm, fz_rotate (p->rotate));
+        p->bbox = fz_roundrect (fz_transformrect (ctm, box));
         memcpy (&p->ctm, &ctm, sizeof (ctm));
-
-        p->pageno = pageno - 1;
     }
 
-    state.pagedimcount = pindex;
-    for (i = pindex - 1; i >= 0; --i) {
-        p = &state.pagedims[i];
+    while (p-- != state.pagedims)  {
         printd (state.sock, "l %d %d %d",
                 p->pageno, p->bbox.x1 - p->bbox.x0, p->bbox.y1 - p->bbox.y0);
     }
 
-    b = now ();
-    printd (state.sock, "T \"Processed %d pages in %f seconds\"",
-            state.pagecount, b - a);
     printd (state.sock, "C %d", state.pagecount);
 }
 
@@ -715,6 +727,7 @@ static void *mainloop (void *unused)
             char *filename = p + 5;
 
             openxref (filename);
+            initpdims ();
         }
         else if (!strncmp ("free", p, 4)) {
             void *ptr;
