@@ -456,6 +456,8 @@ static void recurse_outline (pdf_outline *outline, int level)
         int top = 0;
         int pageno = -1;
 
+        if (!outline->link) goto next;
+
         obj = outline->link->dest;
         if (fz_isarray (obj)) {
             int i;
@@ -484,9 +486,9 @@ static void recurse_outline (pdf_outline *outline, int level)
             }
         }
         lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
-        printd (state.sock, "o \"%s\" %d %d %d",
-                outline->title, level, pageno, top);
-
+        printd (state.sock, "o %d %d %d %s",
+                level, pageno, top, outline->title);
+    next:
         if (outline->child) {
             recurse_outline (outline->child, level + 1);
         }

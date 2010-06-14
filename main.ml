@@ -494,9 +494,11 @@ let act cmd =
       state.pages <- pagelayout :: state.pages
 
   | 'o' ->
-      let (s, l, n, t) as outline =
-        Scanf.sscanf cmd "o %S %d %d %d" (fun s l n t -> s, l, n, t)
+      let (l, n, t, pos) =
+        Scanf.sscanf cmd "o %d %d %d %n" (fun l n t pos -> l, n, t, pos)
       in
+      let s = String.sub cmd pos (String.length cmd - pos) in
+      let outline = (s, l, n, t) in
       let outlines =
         match state.outlines with
         | Olist outlines -> Olist (outline :: outlines)
