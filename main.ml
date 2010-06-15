@@ -1390,7 +1390,8 @@ let () =
       state.w <- statew;
       state.h <- stateh;
       state.bookmarks <- statebookmarks;
-    with exn ->
+    with Not_found -> ()
+    | exn ->
       prerr_endline ("Error setting state " ^ Printexc.to_string exn)
   in
 
