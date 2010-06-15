@@ -115,7 +115,7 @@ type state =
     ; mutable textentry :
         (char * string * (string -> int -> te) * (string -> unit)) option
     ; mutable outlines : outlines
-    ; mutable outline : (int * int * outline array * string) option
+    ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
     ; mutable path : string
     }
@@ -611,7 +611,7 @@ let addchar s c =
 let textentry text key =
   let c = Char.unsafe_chr key in
   match c with
-  | _ when key >= 32 && key <= 127 ->
+  | _ when key >= 32 && key < 127 ->
       let text = addchar text c in
       TEcont text
 
@@ -660,7 +660,7 @@ let optentry text key =
 
 let maxoutlinerows () = (state.h - 31) / 16;;
 
-let enterselector outlines errmsg =
+let enterselector allowdel outlines errmsg =
   if Array.length outlines = 0
   then (
     showtext ' ' errmsg;
@@ -683,7 +683,7 @@ let enterselector outlines errmsg =
       loop 0
     in
     state.outline <-
-      Some (active, max 0 (active - maxoutlinerows ()), outlines, "");
+      Some (allowdel, active, max 0 (active - maxoutlinerows ()), outlines, "");
     Glut.postRedisplay ();
 ;;
 
@@ -696,12 +696,12 @@ let enteroutlinemode () =
         state.outlines <- Oarray a;
         a
   in
-  enterselector outlines "Documents has no outline";
+  enterselector false outlines "Documents has no outline";
 ;;
 
 let enterbookmarkmode () =
   let bookmarks = Array.of_list state.bookmarks in
-  enterselector bookmarks "Documents has no bookmarks (yet)";
+  enterselector true bookmarks "Documents has no bookmarks (yet)";
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -920,7 +920,7 @@ let viewkeyboard ~key ~x ~y =
       end;
 ;;
 
-let outlinekeyboard ~key ~x ~y (active, first, outlines, qsearch) =
+let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
   let search active pattern incr =
     let re = Str.regexp_case_fold pattern in
     let rec loop n =
@@ -949,7 +949,7 @@ let outlinekeyboard ~key ~x ~y (active, first, outlines, qsearch) =
       )
       else (
           state.text <- "";
-          state.outline <- Some (active, first, outlines, "");
+          state.outline <- Some (allowdel, active, first, outlines, "");
           Glut.postRedisplay ();
       )
 
@@ -960,7 +960,7 @@ let outlinekeyboard ~key ~x ~y (active, first, outlines, qsearch) =
         | None -> active, first
         | Some af -> af
       in
-      state.outline <- Some (active, first, outlines, qsearch);
+      state.outline <- Some (allowdel, active, first, outlines, qsearch);
       Glut.postRedisplay ();
 
   | 8 ->
@@ -971,23 +971,27 @@ let outlinekeyboard ~key ~x ~y (active, first, outlines, qsearch) =
         if len = 1
         then (
           state.text <- "";
-          state.outline <- Some (active, first, outlines, "");
+          state.outline <- Some (allowdel, active, first, outlines, "");
         )
         else
           let qsearch = String.sub qsearch 0 (len - 1) in
           state.text <- qsearch;
-          state.outline <- Some (active, first, outlines, qsearch);
+          state.outline <- Some (allowdel, active, first, outlines, qsearch);
       );
       Glut.postRedisplay ()
 
   | 13 ->
-      let (_, _, n, t) = outlines.(active) in
-      gotopage n t;
+      if active < Array.length outlines
+      then (
+        let (_, _, n, t) = outlines.(active) in
+        gotopage n t;
+      );
       state.text <- "";
+      if allowdel then state.bookmarks <- Array.to_list outlines;
       state.outline <- None;
       Glut.postRedisplay ();
 
-  | _ when key >= 32 && key <= 127 ->
+  | _ when key >= 32 && key < 127 ->
       let pattern = addchar qsearch (Char.chr key) in
       let pattern, active, first =
         match search active pattern 1 with
@@ -995,7 +999,17 @@ let outlinekeyboard ~key ~x ~y (active, first, outlines, qsearch) =
         | Some (active, first) -> (pattern, active, first)
       in
       state.text <- pattern;
-      state.outline <- Some (active, first, outlines, pattern);
+      state.outline <- Some (allowdel, active, first, outlines, pattern);
+      Glut.postRedisplay ()
+
+  | 127 when allowdel ->
+      let bookmarks = Array.init (Array.length outlines - 1)
+        (fun i ->
+          let i = if i >= active then i + 1 else i in
+          outlines.(i)
+        )
+      in
+      state.outline <- Some (allowdel, active, first, bookmarks, qsearch);
       Glut.postRedisplay ()
 
   | _ -> log "unknown key %d" key
@@ -1026,7 +1040,7 @@ let special ~key ~x ~y =
       state.text <- "";
       gotoy y
 
-  | Some (active, first, outlines, qsearch) ->
+  | Some (allowdel, active, first, outlines, qsearch) ->
       let maxrows = maxoutlinerows () in
       let navigate incr =
         let active = active + incr in
@@ -1038,7 +1052,7 @@ let special ~key ~x ~y =
             if rows > maxrows then first + incr else first
           else active
         in
-        state.outline <- Some (active, first, outlines, qsearch);
+        state.outline <- Some (allowdel, active, first, outlines, qsearch);
         Glut.postRedisplay ()
       in
       match key with
@@ -1048,13 +1062,13 @@ let special ~key ~x ~y =
       | Glut.KEY_PAGE_DOWN -> navigate   maxrows
 
       | Glut.KEY_HOME ->
-          state.outline <- Some (0, 0, outlines, qsearch);
+          state.outline <- Some (allowdel, 0, 0, outlines, qsearch);
           Glut.postRedisplay ()
 
       | Glut.KEY_END ->
           let active = Array.length outlines - 1 in
           let first = max 0 (active - maxrows) in
-          state.outline <- Some (active, first, outlines, qsearch);
+          state.outline <- Some (allowdel, active, first, outlines, qsearch);
           Glut.postRedisplay ()
 
       | _ -> ()
@@ -1195,7 +1209,7 @@ let showrects () =
 
 let showoutline = function
   | None -> ()
-  | Some (active, first, outlines, qsearch) ->
+  | Some (allowdel, active, first, outlines, qsearch) ->
       Gl.enable `blend;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
       GlDraw.color (0., 0., 0.) ~alpha:0.85;
