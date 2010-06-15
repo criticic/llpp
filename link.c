@@ -684,6 +684,10 @@ static void search (regex_t *re, int pageno, int y, int forward)
     start = now ();
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
         if (niters++ == 5) {
+            if (!state.lotsamemory) {
+                pdf_agestoreditems (state.xref->store);
+                pdf_evictageditems (state.xref->store);
+            }
             niters = 0;
             if (hasdata (state.sock)) {
                 printd (state.sock, "T attention requested aborting search at %d",
