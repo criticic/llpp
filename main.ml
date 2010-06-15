@@ -110,6 +110,7 @@ type state =
     ; mutable mstate : mstate
     ; mutable searchpattern : string
     ; mutable rects : (int * int * Gl.point2 * Gl.point2) list
+    ; mutable rects1 : (int * int * Gl.point2 * Gl.point2) list
     ; mutable text : string
     ; mutable fullscreen : (int * int) option
     ; mutable textentry :
@@ -153,6 +154,7 @@ let state =
   ; mstate = Mnone
   ; navhist = cbnew 100 0.0
   ; rects = []
+  ; rects1 = []
   ; text = ""
   ; fullscreen = None
   ; textentry = None
@@ -436,6 +438,7 @@ let act cmd =
       state.pages <- []
 
   | 'd' ->
+      state.rects <- state.rects1;
       Glut.postRedisplay ()
 
   | 'C' ->
@@ -465,14 +468,14 @@ let act cmd =
       let y = (getpagey pageno) + truncate y0 in
       addnav ();
       gotoy y;
-      state.rects <- [pageno, c, (x0, y0), (x1, y1)]
+      state.rects1 <- [pageno, c, (x0, y0), (x1, y1)]
 
   | 'R' ->
       let pageno, c, x0, y0, x1, y1 =
         Scanf.sscanf cmd "R %d %d %f %f %f %f"
           (fun pageno c x0 y0 x1 y1 -> (pageno, c, x0, y0, x1, y1))
       in
-      state.rects <- (pageno, c, (x0, y0), (x1, y1)) :: state.rects
+      state.rects1 <- (pageno, c, (x0, y0), (x1, y1)) :: state.rects1
 
   | 'r' ->
       let n, w, h, p =
