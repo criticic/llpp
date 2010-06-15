@@ -870,7 +870,7 @@ static void *mainloop (void *unused)
             char *pattern;
             regex_t re;
 
-            ret = sscanf (p + 6, " %d %d %d %d %n",
+            ret = sscanf (p + 6, " %d %d %d %d,%n",
                           &icase, &pageno, &y, &forward, &len2);
             if (ret != 4) {
                 errx (1, "malformed search `%s' ret=%d", p, ret);

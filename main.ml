@@ -203,11 +203,11 @@ let yratio y =
   else float y /. float state.maxy
 ;;
 
-let wcmd s l =
+let makecmd s l =
   let b = Buffer.create 10 in
   Buffer.add_string b s;
   let rec combine = function
-    | [] -> Buffer.contents b
+    | [] -> b
     | x :: xs ->
         Buffer.add_char b ' ';
         let s =
@@ -221,8 +221,12 @@ let wcmd s l =
         Buffer.add_string b s;
         combine xs;
   in
-  let s = combine l in
-  writecmd state.csock s;
+  combine l;
+;;
+
+let wcmd s l =
+  let cmd = Buffer.contents (makecmd s l) in
+  writecmd state.csock cmd;
 ;;
 
 let calcheight () =
@@ -562,8 +566,16 @@ let search pattern forward =
       | l :: _ ->
           l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
     in
-    wcmd "search" [`b conf.icase; `i pn; `i py; `i (if forward then 1 else 0)
-                  ; `s (pattern ^ "\000")]
+    let cmd =
+      let b = makecmd "search"
+        [`b conf.icase; `i pn; `i py; `i (if forward then 1 else 0)]
+      in
+      Buffer.add_char b ',';
+      Buffer.add_string b pattern;
+      Buffer.add_char b '\000';
+      Buffer.contents b;
+    in
+    writecmd state.csock cmd;
 ;;
 
 let intentry text key =
