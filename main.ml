@@ -116,6 +116,7 @@ type state =
         (char * string * (string -> int -> te) * (string -> unit)) option
     ; mutable outlines : outlines
     ; mutable outline : (int * int * outline array * string) option
+    ; mutable bookmarks : outline list
     }
 ;;
 
@@ -157,6 +158,7 @@ let state =
   ; searchpattern = ""
   ; outlines = Olist []
   ; outline = None
+  ; bookmarks = []
   }
 ;;
 
@@ -650,26 +652,18 @@ let optentry text key =
 
 let maxoutlinerows () = (state.h - 31) / 16;;
 
-let enteroutlinemode () =
-  let pageno =
-    match state.layout with
-    | [] -> -1
-    | {pageno=pageno} :: rest -> pageno
-  in
-  let outlines =
-    match state.outlines with
-    | Oarray a -> a
-    | Olist l ->
-        let a = Array.of_list (List.rev l) in
-        state.outlines <- Oarray a;
-        a
-  in
+let enterselector outlines errmsg =
   if Array.length outlines = 0
   then (
-    showtext ' ' "Document has no outline";
+    showtext ' ' errmsg;
     Glut.swapBuffers ()
   )
   else
+    let pageno =
+      match state.layout with
+      | [] -> -1
+      | {pageno=pageno} :: rest -> pageno
+    in
     let active =
       let rec loop n =
         if n = Array.length outlines
@@ -683,6 +677,23 @@ let enteroutlinemode () =
     state.outline <-
       Some (active, max 0 (active - maxoutlinerows ()), outlines, "");
     Glut.postRedisplay ();
+;;
+
+let enteroutlinemode () =
+  let outlines =
+    match state.outlines with
+    | Oarray a -> a
+    | Olist l ->
+        let a = Array.of_list (List.rev l) in
+        state.outlines <- Oarray a;
+        a
+  in
+  enterselector outlines "Documents has no outline";
+;;
+
+let enterbookmarkmode () =
+  let bookmarks = Array.of_list state.bookmarks in
+  enterselector bookmarks "Documents has no bookmarks (yet)";
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -831,6 +842,18 @@ let viewkeyboard ~key ~x ~y =
               Glut.reshapeWindow (l.pagew + conf.scrollw) l.pageh;
               Glut.postRedisplay ();
           end
+
+      | '\'' ->
+          enterbookmarkmode ()
+
+      | 'm' ->
+          let ondone s =
+            match state.layout with
+            | l :: _ ->
+                state.bookmarks <- (s, 0, l.pageno, l.pagey) :: state.bookmarks
+            | _ -> ()
+          in
+          enttext (Some ('~', "", textentry, ondone))
 
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);
