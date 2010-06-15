@@ -1070,7 +1070,7 @@ let drawplaceholder l =
       (float l.pagew, float (l.pagedispy + l.pagevh))
     ;
     let x = 0.0
-    and y = float (l.pagedispy + l.pagevh - 5) in
+    and y = float (l.pagedispy + 13) in
     let font = Glut.BITMAP_8_BY_13 in
     GlDraw.color (0.0, 0.0, 0.0);
     GlPix.raster_pos ~x ~y ();
@@ -1103,12 +1103,12 @@ let drawpage i l =
       drawplaceholder l
 
   | None ->
+      drawplaceholder l;
       if state.inflight < cblen state.pagecache
       then (
         List.iter preload state.layout;
       )
       else (
-        drawplaceholder l;
         vlog "inflight %d" state.inflight;
       );
   end;
