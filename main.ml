@@ -10,6 +10,7 @@ external gettext : string -> (int * int * int * int) -> int -> bool -> unit =
     "ml_gettext";;
 external checklink : string -> int -> int -> bool = "ml_checklink";;
 external getlink : string -> int -> int -> (int * int) option = "ml_getlink";;
+external getpagewh : int -> float array = "ml_getpagewh";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
 
@@ -861,6 +862,19 @@ let viewkeyboard ~key ~x ~y =
             | _ -> ()
           in
           enttext (Some ('~', "", textentry, ondone))
+
+
+      | 'z' ->
+          begin match state.layout with
+          | l :: _ ->
+              let a = getpagewh l.pagedimno in
+              let w = truncate (a.(1) -. a.(0))
+              and h = truncate (a.(3) -. a.(0)) in
+              Glut.reshapeWindow (w + conf.scrollw) h;
+              Glut.postRedisplay ();
+
+          | [] -> ()
+          end
 
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);

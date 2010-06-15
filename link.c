@@ -1367,6 +1367,20 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
     CAMLreturn (Val_unit);
 }
 
+CAMLprim value ml_getpagewh (value pagedimno_v)
+{
+    CAMLparam1 (pagedimno_v);
+    CAMLlocal1 (ret_v);
+    int pagedimno = Int_val (pagedimno_v);
+
+    ret_v = caml_alloc_small (4 * Double_wosize, Double_array_tag);
+    Store_double_field (ret_v, 0, state.pagedims[pagedimno].box.x0);
+    Store_double_field (ret_v, 1, state.pagedims[pagedimno].box.x1);
+    Store_double_field (ret_v, 2, state.pagedims[pagedimno].box.y0);
+    Store_double_field (ret_v, 3, state.pagedims[pagedimno].box.y1);
+    CAMLreturn (ret_v);
+}
+
 static void initgl (void)
 {
 #ifdef _BIG_ENDIAN
