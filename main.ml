@@ -1370,7 +1370,12 @@ let () =
   in
   let savestate () =
     try
-      Hashtbl.replace pstate state.path (state.bookmarks, state.w, state.h);
+      let w, h =
+        match state.fullscreen with
+        | None -> state.w, state.h
+        | Some wh -> wh
+      in
+      Hashtbl.replace pstate state.path (state.bookmarks, w, h);
       let oc = open_out_bin statepath in
       output_value oc pstate
     with exn ->
