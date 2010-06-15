@@ -116,6 +116,7 @@ type state =
     ; mutable outlines : outlines
     ; mutable outline : (int * int * outline array * string) option
     ; mutable bookmarks : outline list
+    ; mutable path : string
     }
 ;;
 
@@ -158,6 +159,7 @@ let state =
   ; outlines = Olist []
   ; outline = None
   ; bookmarks = []
+  ; path = ""
   }
 ;;
 
@@ -1332,12 +1334,45 @@ let pmotion ~x ~y =
 ;;
 
 let () =
-  let name = ref "" in
-  Arg.parse [] (fun s -> name := s) "options:";
+  let statepath = (Sys.getenv "HOME") ^ "/.config/llpp" in
+  let pstate =
+    try
+      let ic = open_in_bin statepath in
+      let hash = input_value ic in
+      close_in ic;
+      hash
+    with exn ->
+      if false
+      then
+        prerr_endline ("Error loading state " ^ Printexc.to_string exn)
+      ;
+      Hashtbl.create 1
+  in
+  let savestate () =
+    try
+      Hashtbl.replace pstate state.path (state.bookmarks, state.w, state.h);
+      let oc = open_out_bin statepath in
+      output_value oc pstate
+    with exn ->
+      if false
+      then
+        prerr_endline ("Error saving state " ^ Printexc.to_string exn)
+      ;
+  in
+  let setstate () =
+    try
+      let statebookmarks, statew, stateh = Hashtbl.find pstate state.path in
+      state.bookmarks <- statebookmarks;
+      Glut.reshapeWindow statew stateh
+    with exn ->
+      prerr_endline ("Error setting state " ^ Printexc.to_string exn)
+  in
+
+  Arg.parse [] (fun s -> state.path <- s) "options:";
   let name =
-    if String.length !name = 0
+    if String.length state.path = 0
     then (prerr_endline "filename missing"; exit 1)
-    else !name
+    else state.path
   in
 
   let w = 900 in
@@ -1364,6 +1399,10 @@ let () =
   let () = Glut.mouseFunc mouse in
   let () = Glut.motionFunc motion in
   let () = Glut.passiveMotionFunc pmotion in
+
+  at_exit savestate;
+  setstate ();
+
   let rec handlelablglutbug () =
     try
       Glut.mainLoop ();
