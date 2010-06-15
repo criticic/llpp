@@ -19,6 +19,9 @@ delete, P               - go to the previous page
 =                       - show current position
 w                       - change height to encompass all of the page
 o                       - switch to outline mode
+'                       - switch to bookmark mode
+m                       - bookmark position
+z                       - crop
 
 [1] i'm somewhat mouse button confused, since i use "left handed" mouse
     while not being lefthanded
