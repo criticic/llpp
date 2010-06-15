@@ -437,6 +437,10 @@ let act cmd =
   | 'c' ->
       state.pages <- []
 
+  | 'D' ->
+      state.rects <- state.rects1;
+      Glut.postRedisplay ()
+
   | 'd' ->
       state.rects <- state.rects1;
       Glut.postRedisplay ()

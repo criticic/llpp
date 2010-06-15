@@ -823,7 +823,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     if (!stop)  {
         printd (state.sock, "T no matches %f sec", end - start);
     }
-    printd (state.sock, "d");
+    printd (state.sock, "D");
 }
 
 static void *mainloop (void *unused)
