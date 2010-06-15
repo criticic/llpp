@@ -138,8 +138,8 @@ let conf =
 let state =
   { csock = Unix.stdin
   ; ssock = Unix.stdin
-  ; w = 0
-  ; h = 0
+  ; w = 900
+  ; h = 900
   ; y = 0
   ; prevy = 0
   ; layout = []
@@ -1371,7 +1371,6 @@ let () =
       state.w <- statew;
       state.h <- stateh;
       state.bookmarks <- statebookmarks;
-      Glut.reshapeWindow statew stateh
     with exn ->
       prerr_endline ("Error setting state " ^ Printexc.to_string exn)
   in
@@ -1383,18 +1382,15 @@ let () =
     else state.path
   in
 
-  let w = 900 in
-  let h = 900 in
+  setstate ();
   let _ = Glut.init Sys.argv in
   let () = Glut.initDisplayMode ~depth:false ~double_buffer:true () in
-  let () = Glut.initWindowSize w h in
+  let () = Glut.initWindowSize state.w state.h in
   let _ = Glut.createWindow ("llpp " ^ Filename.basename name) in
 
   let csock, ssock = Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 in
 
   init ssock;
-  state.w <- w;
-  state.h <- h;
   state.csock <- csock;
   state.ssock <- ssock;
   writecmd csock ("open " ^ name ^ "\000");
@@ -1409,7 +1405,6 @@ let () =
   let () = Glut.passiveMotionFunc pmotion in
 
   at_exit savestate;
-  setstate ();
 
   let rec handlelablglutbug () =
     try
