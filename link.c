@@ -1035,33 +1035,6 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
     }
 }
 
-CAMLprim value ml_preload (value ptr_v)
-{
-    int i;
-    int ret;
-    void *ptr;
-    CAMLparam1 (ptr_v);
-    char *s = String_val (ptr_v);
-    struct page *page;
-
-    if (trylock ("ml_preload")) {
-        goto done;
-    }
-    ret = sscanf (s, "%p", &ptr);
-    if (ret != 1) {
-        errx (1, "cannot parse pointer `%s'", s);
-    }
-
-    page = ptr;
-    for (i = 0; i < page->slicecount; ++i) {
-        upload2 (ptr, i, "preload");
-    }
-
-    unlock ("ml_preload");
- done:
-    CAMLreturn (Val_unit);
-}
-
 CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
                         value py_v, value ptr_v)
 {

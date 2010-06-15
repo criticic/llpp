@@ -5,7 +5,6 @@ let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
 external init : Unix.file_descr -> unit = "ml_init";;
 external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
-external preload : string -> unit = "ml_preload";;
 external gettext : string -> (int * int * int * int) -> int -> bool -> unit =
     "ml_gettext";;
 external checklink : string -> int -> int -> bool = "ml_checklink";;
@@ -536,9 +535,6 @@ let validopaque opaque = String.length opaque > 0;;
 
 let preload l =
   match getopaque l.pageno with
-  | Some opaque when validopaque opaque ->
-      preload opaque
-
   | None when state.inflight < 2+0*(cblen state.pagecache) ->
       state.inflight <- succ state.inflight;
       cache l.pageno "";
