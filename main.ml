@@ -13,7 +13,6 @@ external getlink : string -> int -> int -> (int * int) option = "ml_getlink";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
 
-
 type te =
     | TEstop
     | TEdone of string
@@ -1373,5 +1372,5 @@ let () =
       Glut.swapBuffers ();
       handlelablglutbug ()
   in
-  handlelablglutbug ()
+  handlelablglutbug ();
 ;;
