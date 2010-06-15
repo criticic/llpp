@@ -782,6 +782,10 @@ static void search (regex_t *re, int pageno, int y, int forward)
                     printd (state.sock,
                             "T regexec error `%.*s'",
                             (int) size, errbuf);
+                    fz_freetextspan (text);
+                    pdf_droppage (drawpage);
+                    free (pspan);
+                    return;
                 }
             }
             else  {
