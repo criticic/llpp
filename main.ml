@@ -359,6 +359,12 @@ let gotopage n top =
 ;;
 
 let reshape ~w ~h =
+  let ratio = float w /. float state.w in
+  let fixbookmark (s, l, pageno, pagey) =
+    let pagey = truncate (float pagey *. ratio) in
+    (s, l, pageno, pagey)
+  in
+  state.bookmarks <- List.map fixbookmark state.bookmarks;
   state.w <- w;
   state.h <- h;
   GlDraw.viewport 0 0 w h;
@@ -1362,6 +1368,8 @@ let () =
   let setstate () =
     try
       let statebookmarks, statew, stateh = Hashtbl.find pstate state.path in
+      state.w <- statew;
+      state.h <- stateh;
       state.bookmarks <- statebookmarks;
       Glut.reshapeWindow statew stateh
     with exn ->
