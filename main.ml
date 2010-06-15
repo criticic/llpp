@@ -1003,13 +1003,26 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       Glut.postRedisplay ()
 
   | 127 when allowdel ->
-      let bookmarks = Array.init (Array.length outlines - 1)
-        (fun i ->
-          let i = if i >= active then i + 1 else i in
-          outlines.(i)
-        )
-      in
-      state.outline <- Some (allowdel, active, first, bookmarks, qsearch);
+      let len = Array.length outlines - 1 in
+      if len = 0
+      then (
+        state.outline <- None;
+        state.bookmarks <- [];
+      )
+      else (
+        let bookmarks = Array.init len
+          (fun i ->
+            let i = if i >= active then i + 1 else i in
+            outlines.(i)
+          )
+        in
+        state.outline <-
+          Some (allowdel,
+               min active (len-1),
+               min first (len-1),
+               bookmarks, qsearch)
+        ;
+      );
       Glut.postRedisplay ()
 
   | _ -> log "unknown key %d" key
