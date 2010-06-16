@@ -85,6 +85,7 @@ type conf =
     ; mutable verbose : bool
     ; mutable scrollincr : int
     ; mutable maxhfit : bool
+    ; mutable markonquit : bool
     }
 ;;
 
@@ -133,6 +134,7 @@ let conf =
   ; verbose = false
   ; scrollincr = 18
   ; maxhfit = true
+  ; markonquit = false
   }
 ;;
 
@@ -656,6 +658,10 @@ let optentry text key =
       state.maxy <- state.maxy + (if conf.maxhfit then -state.h else state.h);
       TEdone ("maxhfit " ^ (btos conf.maxhfit))
 
+  | 'q' ->
+      conf.markonquit <- not conf.markonquit;
+      TEdone ("bookmark on quit " ^ btos conf.markonquit)
+
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
       TEstop
@@ -705,6 +711,29 @@ let enteroutlinemode () =
 let enterbookmarkmode () =
   let bookmarks = Array.of_list state.bookmarks in
   enterselector true bookmarks "Documents has no bookmarks (yet)";
+;;
+
+
+let quickbookmark ?title () =
+  match state.layout with
+  | [] -> ()
+  | l :: _ ->
+      let title =
+        match title with
+        | None ->
+            let sec = Unix.gettimeofday () in
+            let tm = Unix.localtime sec in
+            Printf.sprintf "Quick %d visited (%d/%d/%d %d:%d)"
+              l.pageno
+              tm.Unix.tm_mday
+              tm.Unix.tm_mon
+              (tm.Unix.tm_year + 1900)
+              tm.Unix.tm_hour
+              tm.Unix.tm_min
+        | Some title -> title
+      in
+      state.bookmarks <-
+        (title, 0, l.pageno, l.pagey) :: state.bookmarks
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -866,6 +895,10 @@ let viewkeyboard ~key ~x ~y =
           in
           enttext (Some ('~', "", textentry, ondone))
 
+      | '~' ->
+          quickbookmark ();
+          showtext ' ' "Quick bookmark added";
+          Glut.swapBuffers ()
 
       | 'z' ->
           begin match state.layout with
@@ -1405,6 +1438,7 @@ let () =
         | None -> state.w, state.h
         | Some wh -> wh
       in
+      if conf.markonquit then quickbookmark ();
       Hashtbl.replace pstate state.path (state.bookmarks, w, h);
       let oc = open_out_bin statepath in
       output_value oc pstate
