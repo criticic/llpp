@@ -1382,7 +1382,7 @@ let mouse ~button ~bstate ~x ~y =
             Glut.postRedisplay ()
           )
           else (
-            Glut.setCursor Glut.CURSOR_RIGHT_ARROW;
+            Glut.setCursor Glut.CURSOR_INHERIT;
             state.mstate <- Mnone;
           )
       end
@@ -1410,7 +1410,7 @@ let pmotion ~x ~y =
         Glut.setCursor Glut.CURSOR_INFO
 
     | Mnone ->
-        Glut.setCursor Glut.CURSOR_RIGHT_ARROW
+        Glut.setCursor Glut.CURSOR_INHERIT
 
     | Msel (a, _) ->
         ()
