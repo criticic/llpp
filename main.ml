@@ -454,6 +454,7 @@ let act cmd =
       state.y <- truncate (float maxy *. rely);
       let pages = layout state.y state.h in
       state.layout <- pages;
+      state.outlines <- Olist [];
       Glut.postRedisplay ();
 
   | 'T' ->
