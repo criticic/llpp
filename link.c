@@ -1176,7 +1176,7 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
     struct page *page;
     char *s = String_val (ptr_v);
 
-    if (trylock ("ml_gettext")) {
+    if (trylock ("ml_getlink")) {
         ret_v = Val_int (0);
         goto done;
     }
