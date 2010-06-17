@@ -862,10 +862,19 @@ static void *mainloop (void *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
+            fz_obj *obj;
             char *filename = p + 5;
 
             openxref (filename);
             initpdims ();
+
+            obj = fz_dictgets (state.xref->trailer, "Info");
+            if (obj) {
+                obj = fz_dictgets (obj, "Title");
+                if (obj) {
+                    printd (state.sock, "t %s", pdf_toutf8 (obj));
+                }
+            }
         }
         else if (!strncmp ("free", p, 4)) {
             void *ptr;
@@ -1367,30 +1376,6 @@ CAMLprim value ml_getpagewh (value pagedimno_v)
     Store_double_field (ret_v, 2, state.pagedims[pagedimno].box.y0);
     Store_double_field (ret_v, 3, state.pagedims[pagedimno].box.y1);
     CAMLreturn (ret_v);
-}
-
-CAMLprim value ml_gettitle (value unit_v)
-{
-    CAMLparam1 (unit_v);
-    CAMLlocal1 (title_v);
-    fz_obj *obj;
-
-    title_v = Val_int (0);
-    if (!trylock ("ml_getttile")) {
-        obj = fz_dictgets (state.xref->trailer, "Info");
-        if (obj) {
-            obj = fz_dictgets (obj, "Title");
-            if (obj) {
-                char *utf8 = pdf_toutf8 (obj);
-                if (*utf8) {
-                    title_v = caml_alloc_small (1, 1);
-                    Store_field (title_v, 0, caml_copy_string (utf8));
-                }
-            }
-        }
-        unlock ("ml_getttile");
-    }
-    CAMLreturn (title_v);
 }
 
 static void initgl (void)
