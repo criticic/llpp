@@ -590,6 +590,7 @@ static void layout (void)
 static void recurse_outline (pdf_outline *outline, int level)
 {
     while (outline) {
+        int i, num;
         fz_obj *obj;
         int top = 0;
         int pageno = -1;
@@ -597,11 +598,18 @@ static void recurse_outline (pdf_outline *outline, int level)
         if (!outline->link) goto next;
 
         obj = outline->link->dest;
-        if (fz_isarray (obj)) {
-            int i;
-            int num;
+        if (fz_isindirect (obj)) {
+            num = fz_tonum (obj);
+
+            for (i = 0; i < state.pagecount; ++i)  {
+                if (state.pagetbl[i] == num) {
+                    pageno = i;
+                    break;
+                }
+            }
+        }
+        else if (fz_isarray (obj)) {
             fz_obj *obj2;
-            struct pagedim *pagedim = state.pagedims;
 
             obj2 = fz_arrayget (obj, 0);
             if (fz_isint (obj2)) {
@@ -617,14 +625,15 @@ static void recurse_outline (pdf_outline *outline, int level)
                 }
             }
 
-            for (i = 0; i < state.pagedimcount; ++i) {
-                if (state.pagedims[i].pageno > pageno)
-                    break;
-                pagedim = &state.pagedims[i];
-            }
-
             if (fz_arraylen (obj) > 3) {
                 fz_point p;
+                struct pagedim *pagedim = state.pagedims;
+
+                for (i = 0; i < state.pagedimcount; ++i) {
+                    if (state.pagedims[i].pageno > pageno)
+                        break;
+                    pagedim = &state.pagedims[i];
+                }
 
                 p.x = fz_toint (fz_arrayget (obj, 2));
                 p.y = fz_toint (fz_arrayget (obj, 3));
