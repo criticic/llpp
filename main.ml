@@ -10,6 +10,7 @@ external gettext : string -> (int * int * int * int) -> int -> bool -> unit =
 external checklink : string -> int -> int -> bool = "ml_checklink";;
 external getlink : string -> int -> int -> (int * int) option = "ml_getlink";;
 external getpagewh : int -> float array = "ml_getpagewh";;
+external gettitle : unit -> string option = "ml_gettitle";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
 
@@ -455,6 +456,10 @@ let act cmd =
       let pages = layout state.y state.h in
       state.layout <- pages;
       state.outlines <- Olist [];
+      begin match gettitle () with
+      | Some title -> Glut.setWindowTitle title
+      | None -> ()
+      end;
       Glut.postRedisplay ();
 
   | 'T' ->

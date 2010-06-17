@@ -1371,6 +1371,27 @@ CAMLprim value ml_getpagewh (value pagedimno_v)
     CAMLreturn (ret_v);
 }
 
+CAMLprim value ml_gettitle (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    CAMLlocal1 (title_v);
+    fz_obj *obj;
+
+    obj = fz_dictgets (state.xref->trailer, "Info");
+    title_v = Val_int (0);
+    if (obj) {
+        obj = fz_dictgets (obj, "Title");
+        if (obj) {
+            char *utf8 = pdf_toutf8 (obj);
+            if (*utf8) {
+                title_v = caml_alloc_small (1, 1);
+                Store_field (title_v, 0, caml_copy_string (utf8));
+            }
+        }
+    }
+    CAMLreturn (title_v);
+}
+
 static void initgl (void)
 {
 #ifdef _BIG_ENDIAN
