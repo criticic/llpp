@@ -557,7 +557,6 @@ static void layout (void)
     struct pagedim *p = state.pagedims;
 
     pindex = 0;
-    printd (state.sock, "c");
     for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
         box.x0 = MIN (p->box.x0, p->box.x1);
         box.y0 = MIN (p->box.y0, p->box.y1);
@@ -583,8 +582,6 @@ static void layout (void)
         printd (state.sock, "l %d %d %d",
                 p->pageno, p->bbox.x1 - p->bbox.x0, p->bbox.y1 - p->bbox.y0);
     }
-
-    printd (state.sock, "C %d", state.pagecount);
 }
 
 static void recurse_outline (pdf_outline *outline, int level)
@@ -912,6 +909,7 @@ static void *mainloop (void *unused)
         else if (!strncmp ("geometry", p, 8)) {
             int w, h;
 
+            printd (state.sock, "c");
             ret = sscanf (p + 8, " %d %d", &w, &h);
             if (ret != 2) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
@@ -928,7 +926,7 @@ static void *mainloop (void *unused)
             layout ();
             process_outline ();
             unlock ("geometry");
-            printd (state.sock, "d");
+            printd (state.sock, "C %d", state.pagecount);
         }
         else if (!strncmp ("render", p, 6)) {
             int pageno, pindex, w, h, ret;
@@ -1377,17 +1375,20 @@ CAMLprim value ml_gettitle (value unit_v)
     CAMLlocal1 (title_v);
     fz_obj *obj;
 
-    obj = fz_dictgets (state.xref->trailer, "Info");
     title_v = Val_int (0);
-    if (obj) {
-        obj = fz_dictgets (obj, "Title");
+    if (!trylock ("ml_getttile")) {
+        obj = fz_dictgets (state.xref->trailer, "Info");
         if (obj) {
-            char *utf8 = pdf_toutf8 (obj);
-            if (*utf8) {
-                title_v = caml_alloc_small (1, 1);
-                Store_field (title_v, 0, caml_copy_string (utf8));
+            obj = fz_dictgets (obj, "Title");
+            if (obj) {
+                char *utf8 = pdf_toutf8 (obj);
+                if (*utf8) {
+                    title_v = caml_alloc_small (1, 1);
+                    Store_field (title_v, 0, caml_copy_string (utf8));
+                }
             }
         }
+        unlock ("ml_getttile");
     }
     CAMLreturn (title_v);
 }

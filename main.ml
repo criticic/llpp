@@ -437,7 +437,8 @@ let enttext () =
 let act cmd =
   match cmd.[0] with
   | 'c' ->
-      state.pages <- []
+      state.pages <- [];
+      state.outlines <- Olist []
 
   | 'D' ->
       state.rects <- state.rects1;
@@ -455,7 +456,6 @@ let act cmd =
       state.y <- truncate (float maxy *. rely);
       let pages = layout state.y state.h in
       state.layout <- pages;
-      state.outlines <- Olist [];
       begin match gettitle () with
       | Some title -> Glut.setWindowTitle title
       | None -> ()
