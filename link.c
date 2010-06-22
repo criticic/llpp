@@ -414,6 +414,7 @@ static void initpdims (void)
             rotate = 0;
         }
 
+        state.pagetbl[pageno] = fz_tonum (state.xref->pagerefs[pageno]);
         p = &state.pagedims[state.pagedimcount - 1];
         if ((state.pagedimcount == 0)
             || (p->rotate != rotate || memcmp (&p->box, &box, sizeof (box)))) {
