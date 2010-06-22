@@ -16,9 +16,9 @@ If everything goes fine llpp binary will appear, it can be used like so:
 
 $ ./llpp /path/to/some.pdf
 
-[1] 12-06-10
+[1] 22-06-10
 [2] http://www.mupdf.com
 [3] http://blog.kowalczyk.info/software/sumatrapdf/index.html
-[4] http://sumatrapdf.googlecode.com/svn/trunk/mupdf [Revision: 1948]
+[4] http://sumatrapdf.googlecode.com/svn/trunk/mupdf [Revision: 1973]
 [5] http://caml.inria.fr/
 [6] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html

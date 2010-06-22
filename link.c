@@ -218,6 +218,7 @@ static void die (fz_error error)
 static void openxref (char *filename)
 {
     int fd;
+    fz_error error;
     fz_stream *file;
 
     fd = open (filename, O_BINARY | O_RDONLY, 0666);
@@ -232,6 +233,11 @@ static void openxref (char *filename)
 
     if (pdf_needspassword (state.xref)) {
         die (fz_throw ("password protected"));
+    }
+
+    error = pdf_loadpagetree (state.xref);
+    if (error) {
+        die (fz_throw ("cannot load page tree"));
     }
 
     state.pagecount = pdf_getpagecount (state.xref);
@@ -277,7 +283,7 @@ static void freepage (struct page *page)
         fz_freetextspan (page->text);
     }
     if (page->drawpage) {
-        pdf_droppage (page->drawpage);
+        pdf_freepage (page->drawpage);
     }
 
     free (page);
@@ -376,78 +382,31 @@ static void *render (int pageno, int pindex)
     return page;
 }
 
-/* almost verbatim copy of pdf_getpagecountimp */
-struct stuff
+static void initpdims (void)
 {
-    fz_obj *resources;
-    fz_obj *mediabox;
-    fz_obj *cropbox;
-    fz_obj *rotate;
-};
+    int pageno;
+    double start, end;
 
-static void
-recurse_page (fz_obj *node, int bias, int *pagesp, struct stuff inherit)
-{
-    fz_obj *type;
-    fz_obj *kids;
-    fz_obj *count;
-    char *typestr;
-    int pages = 0;
-    int i;
-
-    if (!fz_isdict(node))
-    {
-        fz_warn("pagetree node is missing, igoring missing pages...");
-        return;
-    }
-
-    type = fz_dictgets(node, "Type");
-    kids = fz_dictgets(node, "Kids");
-    count = fz_dictgets(node, "Count");
-
-    if (fz_isname(type))
-        typestr = fz_toname(type);
-    else
-    {
-        fz_warn("pagetree node (%d %d R) lacks required type", fz_tonum(node), fz_togen(node));
-
-        kids = fz_dictgets(node, "Kids");
-        if (kids)
-        {
-            fz_warn("guessing it may be a pagetree node, continuing...");
-            typestr = "Pages";
-        }
-        else
-        {
-            fz_warn("guessing it may be a page, continuing...");
-            typestr = "Page";
-        }
-    }
-
-    if (!strcmp(typestr, "Page")) {
+    start = now ();
+    for (pageno = 0; pageno < state.pagecount; ++pageno) {
         int rotate;
-        fz_obj *obj;
         fz_rect box;
         struct pagedim *p;
-        int pageno = *pagesp;
+        fz_obj *obj, *pageobj;
 
-        state.pagetbl[pageno + bias] = fz_tonum (node);
+        pageobj = pdf_getpageobject (state.xref, pageno + 1);
 
-        obj = fz_dictgets (node, "CropBox");
-        if (!obj) obj = inherit.cropbox;
+        obj = fz_dictgets (pageobj, "CropBox");
         if (!fz_isarray (obj)) {
-            obj = fz_dictgets (node, "MediaBox");
-            if (!obj) obj = inherit.mediabox;
-
+            obj = fz_dictgets (pageobj, "MediaBox");
             if (!fz_isarray (obj)) {
                 die (fz_throw ("cannot find page bounds %d (%d Rd)",
-                               fz_tonum (node), fz_togen (node)));
+                               fz_tonum (pageobj), fz_togen (pageobj)));
             }
         }
         box = pdf_torect (obj);
 
-        obj = fz_dictgets (node, "Rotate");
-        if (!obj) obj = inherit.rotate;
+        obj = fz_dictgets (pageobj, "Rotate");
         if (fz_isint (obj)) {
             rotate = fz_toint (obj);
         }
@@ -469,83 +428,12 @@ recurse_page (fz_obj *node, int bias, int *pagesp, struct stuff inherit)
             p = &state.pagedims[state.pagedimcount++];
             p->rotate = rotate;
             p->box = box;
-            p->pageno = pageno + bias;
+            p->pageno = pageno;
         }
-        (*pagesp)++;
     }
-    else if (!strcmp(typestr, "Pages"))
-    {
-        fz_obj *inh;
-
-        if (!fz_isarray(kids))
-            fz_warn("page tree node contains no pages");
-
-        pdf_logpage("subtree (%d %d R) {\n", fz_tonum(node), fz_togen(node));
-
-        inh = fz_dictgets(node, "Resources");
-        if (inh) inherit.resources = inh;
-
-        inh = fz_dictgets(node, "MediaBox");
-        if (inh) inherit.mediabox = inh;
-
-        inh = fz_dictgets(node, "CropBox");
-        if (inh) inherit.cropbox = inh;
-
-        inh = fz_dictgets(node, "Rotate");
-        if (inh) inherit.rotate = inh;
-
-        for (i = 0; i < fz_arraylen(kids); i++)
-        {
-            fz_obj *obj = fz_arrayget(kids, i);
-
-            /* prevent infinite recursion possible in maliciously crafted PDFs */
-            if (obj == node)
-            {
-                fz_warn("cyclic page tree");
-                return;
-            }
-
-            recurse_page (obj, *pagesp + bias, &pages, inherit);
-        }
-
-        if (pages != fz_toint(count))
-        {
-            fz_warn("page tree node contains incorrect number of pages, continuing...");
-            count = fz_newint(pages);
-            fz_dictputs(node, "Count", count);
-            fz_dropobj(count);
-        }
-
-        pdf_logpage("%d pages\n", pages);
-
-        (*pagesp) += pages;
-
-        pdf_logpage("}\n");
-    }
-}
-
-static void initpdims (void)
-{
-    fz_obj *catalog;
-    fz_obj *pages;
-    int count;
-    double start, end;
-    struct stuff inherit;
-
-    start = now ();
-    catalog = fz_dictgets (state.xref->trailer, "Root");
-    pages = fz_dictgets (catalog, "Pages");
-
-    inherit.resources = nil;
-    inherit.mediabox = nil;
-    inherit.cropbox = nil;
-    inherit.rotate = nil;
-
-    count = 0;
-    recurse_page (pages, 0, &count, inherit);
     end = now ();
     printd (state.sock, "T Processed %d pages in %f seconds",
-            count, end - start);
+            state.pagecount, end - start);
 }
 
 static void layout (void)
@@ -657,7 +545,7 @@ static void process_outline (void)
     outline = pdf_loadoutline (state.xref);
     if (outline) {
         recurse_outline (outline, 0);
-        pdf_dropoutline (outline);
+        pdf_freeoutline (outline);
     }
 }
 
@@ -789,7 +677,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                             "T regexec error `%.*s'",
                             (int) size, errbuf);
                     fz_freetextspan (text);
-                    pdf_droppage (drawpage);
+                    pdf_freepage (drawpage);
                     free (pspan);
                     return;
                 }
@@ -830,7 +718,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
             y = INT_MAX;
         }
         fz_freetextspan (text);
-        pdf_droppage (drawpage);
+        pdf_freepage (drawpage);
         free (pspan);
     }
     end = now ();
