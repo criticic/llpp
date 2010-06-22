@@ -1311,8 +1311,8 @@ CAMLprim value ml_init (value sock_v)
     int ret;
     CAMLparam1 (sock_v);
 
-    state.texcount = 128;
-    state.sliceheight = 64;
+    state.texcount = 256;
+    state.sliceheight = 16;
 
     state.texids = calloc (state.texcount * sizeof (*state.texids), 1);
     if (!state.texids) {
