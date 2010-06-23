@@ -312,8 +312,7 @@ static void *render (int pageno, int pindex)
     struct page *page;
     double start, end;
     pdf_page *drawpage;
-    fz_displaylist *list;
-    fz_device *idev, *mdev;
+    fz_device *idev;
     struct pagedim *pagedim;
 
     start = now ();
@@ -347,25 +346,13 @@ static void *render (int pageno, int pindex)
         die (error);
     fz_clearpixmap (page->pixmap, 0xFF);
 
-    list = fz_newdisplaylist ();
-    if (!list)
-        die (fz_throw ("fz_newdisplaylist failed"));
-
-    mdev = fz_newlistdevice (list);
-    error = pdf_runcontentstream (mdev, fz_identity (), state.xref,
-                                  drawpage->resources,
-                                  drawpage->contents);
-    if (error)
-        die (error);
-    fz_freedevice (mdev);
-
     idev = fz_newdrawdevice (state.cache, page->pixmap);
     if (!idev)
         die (fz_throw ("fz_newdrawdevice failed"));
-    fz_executedisplaylist (list, idev, pagedim->ctm);
+    error = pdf_runcontentstream (idev, pagedim->ctm, state.xref,
+                                  drawpage->resources,
+                                  drawpage->contents);
     fz_freedevice (idev);
-
-    fz_freedisplaylist (list);
 
     page->drawpage = drawpage;
     page->pagedim = pagedim;
@@ -378,7 +365,7 @@ static void *render (int pageno, int pindex)
         pdf_evictageditems (state.xref->store);
     }
 
-    /* printd (state.sock, "T rendering %d took %f sec", pageno, end - start); */
+    printd (state.sock, "T rendering %d took %f sec", pageno, end - start);
     return page;
 }
 
