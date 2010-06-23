@@ -316,7 +316,7 @@ static void *render (int pageno, int pindex)
     struct pagedim *pagedim;
 
     start = now ();
-    /* printd (state.sock, "T rendering %d", pageno); */
+    printd (state.sock, "V rendering %d", pageno);
     pdf_flushxref (state.xref, 0);
 
     pagedim = &state.pagedims[pindex];
@@ -365,7 +365,7 @@ static void *render (int pageno, int pindex)
         pdf_evictageditems (state.xref->store);
     }
 
-    printd (state.sock, "T rendering %d took %f sec", pageno, end - start);
+    printd (state.sock, "V rendering %d took %f sec", pageno, end - start);
     return page;
 }
 

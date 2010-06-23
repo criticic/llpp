@@ -472,7 +472,16 @@ let act cmd =
       state.text <- s;
       showtext ' ' s;
       Glut.swapBuffers ();
-      (* Glut.postRedisplay () *)
+
+  | 'V' ->
+      if conf.verbose
+      then
+        let s = Scanf.sscanf cmd "V %n"
+          (fun n -> String.sub cmd n (String.length cmd - n))
+        in
+        state.text <- s;
+        showtext ' ' s;
+        Glut.swapBuffers ();
 
   | 'F' ->
       let pageno, c, x0, y0, x1, y1 =
