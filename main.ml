@@ -132,7 +132,7 @@ let conf =
   ; pagebias = 0
   ; redispimm = false
   ; verbose = false
-  ; scrollincr = 18
+  ; scrollincr = 24
   ; maxhfit = true
   ; markonquit = false
   }
