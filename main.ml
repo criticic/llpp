@@ -986,8 +986,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
           (try ignore (Str.search_forward re s 0); true
             with Not_found -> false)
         then (
-          let maxrows = maxoutlinerows () in
+          let maxrows = (min (Array.length outlines) (maxoutlinerows ())) / 2 in
           if first > n
+
           then Some (n, max 0 (n - maxrows))
           else Some (n, max first (n - maxrows))
         )
