@@ -978,23 +978,29 @@ let viewkeyboard ~key ~x ~y =
 
 let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
   let search active pattern incr =
-    let re = Str.regexp_case_fold pattern in
-    let rec loop n =
-      if n = Array.length outlines || n = -1 then None else
-        let (s, _, _, _) = outlines.(n) in
-        if
-          (try ignore (Str.search_forward re s 0); true
-            with Not_found -> false)
-        then (
-          let maxrows = (min (Array.length outlines) (maxoutlinerows ())) / 2 in
-          if first > n
-
-          then Some (n, max 0 (n - maxrows))
-          else Some (n, max first (n - maxrows))
-        )
-        else loop (n + incr)
+    let dosearch re =
+      let rec loop n =
+        if n = Array.length outlines || n = -1 then None else
+          let (s, _, _, _) = outlines.(n) in
+          if
+            (try ignore (Str.search_forward re s 0); true
+              with Not_found -> false)
+          then (
+            let maxrows = (min (Array.length outlines) (maxoutlinerows ())) / 2 in
+            if first > n
+            then Some (n, max 0 (n - maxrows))
+            else Some (n, max first (n - maxrows))
+          )
+          else loop (n + incr)
+      in
+      loop active
     in
-    loop active
+    try
+      let re = Str.regexp_case_fold pattern in
+      dosearch re
+    with Failure s ->
+      state.text <- s;
+      None
   in
   match key with
   | 27 ->
@@ -1005,9 +1011,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
         Glut.postRedisplay ();
       )
       else (
-          state.text <- "";
-          state.outline <- Some (allowdel, active, first, outlines, "");
-          Glut.postRedisplay ();
+        state.text <- "";
+        state.outline <- Some (allowdel, active, first, outlines, "");
+        Glut.postRedisplay ();
       )
 
   | 18 | 19 ->
