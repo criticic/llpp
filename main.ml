@@ -1014,8 +1014,12 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       let incr = if key = 18 then -1 else 1 in
       let active, first =
         match search (active + incr) qsearch incr with
-        | None -> active, first
-        | Some af -> af
+        | None ->
+            state.text <- qsearch ^ " [not found]";
+            active, first
+        | Some af ->
+            state.text <- qsearch;
+            af
       in
       state.outline <- Some (allowdel, active, first, outlines, qsearch);
       Glut.postRedisplay ();
@@ -1050,12 +1054,15 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
 
   | _ when key >= 32 && key < 127 ->
       let pattern = addchar qsearch (Char.chr key) in
-      let pattern, active, first =
+      let active, first =
         match search active pattern 1 with
-        | None -> qsearch, active, first
-        | Some (active, first) -> (pattern, active, first)
+        | None ->
+            state.text <- pattern ^ " [not found]";
+            active, first
+        | Some (active, first) ->
+            state.text <- pattern;
+            active, first
       in
-      state.text <- pattern;
       state.outline <- Some (allowdel, active, first, outlines, pattern);
       Glut.postRedisplay ()
 
