@@ -86,6 +86,7 @@ type conf =
     ; mutable scrollincr : int
     ; mutable maxhfit : bool
     ; mutable markonquit : bool
+    ; mutable crophack : bool
     }
 ;;
 
@@ -135,6 +136,7 @@ let conf =
   ; scrollincr = 24
   ; maxhfit = true
   ; markonquit = false
+  ; crophack = false
   }
 ;;
 
@@ -669,6 +671,10 @@ let optentry text key =
       conf.markonquit <- not conf.markonquit;
       TEdone ("bookmark on quit " ^ btos conf.markonquit)
 
+  | 'c' ->
+      conf.crophack <- not conf.crophack;
+      TEdone ("crophack " ^ btos conf.crophack)
+
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
       TEstop
@@ -911,8 +917,15 @@ let viewkeyboard ~key ~x ~y =
           begin match state.layout with
           | l :: _ ->
               let a = getpagewh l.pagedimno in
-              let w = truncate (a.(1) -. a.(0))
-              and h = truncate (a.(3) -. a.(0)) in
+              let w, h =
+                if conf.crophack
+                then
+                  (truncate (1.8 *. (a.(1) -. a.(0))),
+                  truncate (1.4 *. (a.(3) -. a.(0))))
+                else
+                  (truncate (a.(1) -. a.(0)),
+                  truncate (a.(3) -. a.(0)))
+              in
               Glut.reshapeWindow (w + conf.scrollw) h;
               Glut.postRedisplay ();
 
