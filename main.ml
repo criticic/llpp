@@ -1515,12 +1515,29 @@ let () =
   let () = Glut.initWindowSize state.w state.h in
   let _ = Glut.createWindow ("llpp " ^ Filename.basename name) in
 
-  let csock, ssock = Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-
-  init ssock;
-  state.csock <- csock;
-  state.ssock <- ssock;
-  writecmd csock ("open " ^ name ^ "\000");
+  let csock, ssock =
+    if Sys.os_type = "Unix"
+    then
+      Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0
+    else
+      let addr = Unix.ADDR_INET (Unix.inet_addr_loopback, 1337) in
+      let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+      Unix.setsockopt sock Unix.SO_REUSEADDR true;
+      Unix.bind sock addr;
+      Unix.listen sock 1;
+      let csock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+      Unix.connect csock addr;
+      let ssock, _ = Unix.accept sock in
+      Unix.close sock;
+      let opts sock =
+        Unix.setsockopt sock Unix.TCP_NODELAY true;
+        Unix.setsockopt_optint sock Unix.SO_LINGER None;
+      in
+      opts ssock;
+      opts csock;
+      at_exit (fun () -> Unix.shutdown ssock Unix.SHUTDOWN_ALL);
+      ssock, csock
+  in
 
   let () = Glut.displayFunc display in
   let () = Glut.reshapeFunc reshape in
@@ -1530,6 +1547,11 @@ let () =
   let () = Glut.mouseFunc mouse in
   let () = Glut.motionFunc motion in
   let () = Glut.passiveMotionFunc pmotion in
+
+  init ssock;
+  state.csock <- csock;
+  state.ssock <- ssock;
+  writecmd csock ("open " ^ name ^ "\000");
 
   at_exit savestate;
 

@@ -1,7 +1,46 @@
 /* lot's of code c&p-ed directly from mupdf */
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#define ssize_t int
+#pragma warning (disable:4244)
+#pragma warning (disable:4996)
+#pragma warning (disable:4995)
+#endif
 
+#ifdef _MSC_VER
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+static void __declspec (noreturn) err (int exitcode, const char *fmt, ...)
+{
+    va_list ap;
+    int errcode;
+
+    errcode = errno;
+    va_start (ap, fmt);
+    vfprintf (stderr, fmt, ap);
+    va_end (ap);
+    fprintf (stderr, ": %s\n", strerror (errno));
+    exit (exitcode);
+}
+static void __declspec (noreturn) errx (int exitcode, const char *fmt, ...)
+{
+    va_list ap;
+    int errcode;
+
+    errcode = errno;
+    va_start (ap, fmt);
+    vfprintf (stderr, fmt, ap);
+    va_end (ap);
+    fputc ('\n', stderr);
+    exit (exitcode);
+}
+#else
 #define _GNU_SOURCE
 #include <err.h>
+#endif
 #include <regex.h>
 #include <errno.h>
 #include <ctype.h>
@@ -9,9 +48,13 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <pthread.h>
 #include <sys/poll.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#endif
 
 /* fugly as hell and GCC specific but... */
 #ifdef _BIG_ENDIAN
@@ -19,7 +62,13 @@
 #endif
 
 #include <GL/gl.h>
+#ifndef _WIN32
 #include <GL/glext.h>
+#else
+#define GL_TEXTURE_RECTANGLE_ARB          0x84F5
+#define GL_FRAGMENT_SHADER_ATI            0x8920
+#define GL_UNSIGNED_INT_8_8_8_8           0x8035
+#endif
 
 #include <caml/fail.h>
 #include <caml/alloc.h>
@@ -69,7 +118,6 @@ struct pagedim {
 struct {
     int sock;
     int sliceheight;
-    pthread_t thread;
     struct page *pages;
     struct pagedim *pagedims;
     int pagecount;
@@ -94,8 +142,34 @@ struct {
         int w, h;
         struct slice *slice;
     } *texowners;
+
+#ifdef _WIN32
+    HANDLE thread;
+#else
+    pthread_t thread;
+#endif
 } state;
 
+#ifdef _WIN32
+static CRITICAL_SECTION critsec;
+
+static void lock (void *unused)
+{
+    (void) unused;
+    EnterCriticalSection (&critsec);
+}
+
+static void unlock (void *unused)
+{
+    (void) unused;
+    LeaveCriticalSection (&critsec);
+}
+
+static int trylock (void *unused)
+{
+    return TryEnterCriticalSection (&critsec) == 0;
+}
+#else
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void lock (const char *cap)
@@ -123,6 +197,7 @@ static int trylock (const char *cap)
     }
     return ret == EBUSY;
 }
+#endif
 
 static void *parse_pointer (const char *cap, const char *s)
 {
@@ -136,6 +211,12 @@ static void *parse_pointer (const char *cap, const char *s)
     return ptr;
 }
 
+#ifdef _WIN32
+static int hasdata (int sock)
+{
+    return 0;
+}
+#else
 static int hasdata (int sock)
 {
     int ret;
@@ -152,6 +233,7 @@ static int hasdata (int sock)
     }
     return pfd.revents & POLLIN;
 }
+#endif
 
 static double now (void)
 {
@@ -167,9 +249,10 @@ static void readdata (int fd, char *p, int size)
 {
     ssize_t n;
 
-    n = read (fd, p, size);
+    n = recv (fd, p, size, 0);
     if (n - size) {
-        err (1, "read (req %d, ret %zd)", size, n);
+        if (!n) errx (1, "EOF while reading");
+        err (1, "recv (req %d, ret %zd)", size, n);
     }
 }
 
@@ -183,18 +266,23 @@ static void writedata (int fd, char *p, int size)
     buf[2] = (size >>  8) & 0xff;
     buf[3] = (size >>  0) & 0xff;
 
-    n = write (fd, buf, 4);
+    n = send (fd, buf, 4, 0);
     if (n != 4) {
-        err (1, "write %zd", n);
+        if (!n) errx (1, "EOF while writing length");
+        err (1, "send %zd", n);
     }
 
-    n = write (fd, p, size);
+    n = send (fd, p, size, 0);
     if (n - size) {
-        err (1, "write (req %d, ret %zd)", size, n);
+        if (!n) errx (1, "EOF while writing data");
+        err (1, "send (req %d, ret %zd)", size, n);
     }
 }
 
-static void __attribute__ ((format (printf, 2, 3)))
+static void
+#ifdef __GNUC__
+__attribute__ ((format (printf, 2, 3)))
+#endif
     printd (int fd, const char *fmt, ...)
 {
     int len;
@@ -249,8 +337,9 @@ static int readlen (int fd)
     ssize_t n;
     char p[4];
 
-    n = read (fd, p, 4);
+    n = recv (fd, p, 4, 0);
     if (n != 4) {
+        if (!n) errx (1, "EOF while reading length");
         err (1, "read %zd", n);
     }
 
@@ -539,9 +628,13 @@ static void process_outline (void)
 
 static int comparespans (const void *l, const void *r)
 {
+#ifdef _MSC_VER
+    fz_textspan const**ls = l;
+    fz_textspan const**rs = r;
+#else
     fz_textspan *const*ls = l;
     fz_textspan *const*rs = r;
-
+#endif
     return (*ls)->text->bbox.y0 - (*rs)->text->bbox.y0;
 }
 
@@ -716,7 +809,13 @@ static void search (regex_t *re, int pageno, int y, int forward)
     printd (state.sock, "D");
 }
 
-static void *mainloop (void *unused)
+static
+#ifdef _WIN32
+DWORD _stdcall
+#else
+void *
+#endif
+mainloop (void *unused)
 {
     char *p = NULL;
     int len, ret, oldlen = 0;
@@ -833,7 +932,7 @@ static void *mainloop (void *unused)
             errx (1, "unknown command %.*s", len, p);
         }
     }
-    return NULL;
+    return 0;
 }
 
 static void upload2 (struct page *page, int slicenum, const char *cap)
@@ -882,7 +981,7 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
             {
                 GLenum err = glGetError ();
                 if (err != GL_NO_ERROR) {
-                    printf ("\e[0;31mERROR1 %d %d %#x\e[0m\n", w, slice->h, err);
+                    printf ("\033[0;31mERROR1 %d %d %#x\033[0m\n", w, slice->h, err);
                     abort ();
                 }
             }
@@ -899,7 +998,7 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
             {
                 GLenum err = glGetError ();
                 if (err != GL_NO_ERROR) {
-                    printf ("\e[0;31mERROR %d %d %#x\e[0m\n", w, slice->h, err);
+                    printf ("\033[0;31mERROR %d %d %#x\033[0m\n", w, slice->h, err);
                     abort ();
                 }
             }
@@ -1118,7 +1217,11 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
     int i, bx0, bx1, by0, by1, x0, x1, y0, y1, oy;
 
     /* stop GCC from complaining about uninitialized variables */
+#ifdef __GNUC__
     int rx0 = rx0, rx1 = rx1, ry0 = ry0, ry1 = ry1;
+#else
+    int rx0, rx1, ry0, ry1;
+#endif
 
     if (trylock ("ml_gettext")) {
         goto done;
@@ -1156,7 +1259,7 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
         fz_freedevice (tdev);
     }
 
-    printf ("\ec");
+    printf ("\033c");
 
     printf ("BBox %f %f %f %f\n", p1.x, p1.y, p2.x, p2.y);
     p1.x += page->pixmap->x;
@@ -1315,7 +1418,11 @@ CAMLprim value ml_init (value sock_v)
 
     glGenTextures (state.texcount, state.texids);
 
+#ifdef _WIN32
+    state.sock = Socket_val (sock_v);
+#else
     state.sock = Int_val (sock_v);
+#endif
     initgl ();
 
     state.cache = fz_newglyphcache ();
@@ -1323,10 +1430,18 @@ CAMLprim value ml_init (value sock_v)
         errx (1, "fz_newglyphcache failed");
     }
 
+#ifdef _WIN32
+    InitializeCriticalSection (&critsec);
+    state.thread = CreateThread (NULL, 0, mainloop, NULL, 0, NULL);
+    if (state.thread == INVALID_HANDLE_VALUE) {
+        errx (1, "CreateThread failed: %lx", GetLastError ());
+    }
+#else
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
         errx (1, "pthread_create: %s", strerror (errno));
     }
+#endif
 
     CAMLreturn (Val_unit);
 }
