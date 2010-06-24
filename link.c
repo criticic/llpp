@@ -2,6 +2,7 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <winsock2.h>
 #define ssize_t int
 #pragma warning (disable:4244)
 #pragma warning (disable:4996)
@@ -37,9 +38,22 @@ static void __declspec (noreturn) errx (int exitcode, const char *fmt, ...)
     fputc ('\n', stderr);
     exit (exitcode);
 }
+static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
+{
+    va_list ap;
+    int errcode;
+
+    errcode = errno;
+    va_start (ap, fmt);
+    vfprintf (stderr, fmt, ap);
+    va_end (ap);
+    fprintf (stderr, ": wsaerror %lx\n", WSAGetLastError ());
+    exit (exitcode);
+}
 #else
 #define _GNU_SOURCE
 #include <err.h>
+#define sockerr err
 #endif
 #include <regex.h>
 #include <errno.h>
@@ -252,7 +266,7 @@ static void readdata (int fd, char *p, int size)
     n = recv (fd, p, size, 0);
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        err (1, "recv (req %d, ret %zd)", size, n);
+        sockerr (1, "recv (req %d, ret %zd)", size, n);
     }
 }
 
@@ -269,13 +283,13 @@ static void writedata (int fd, char *p, int size)
     n = send (fd, buf, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while writing length");
-        err (1, "send %zd", n);
+        sockerr (1, "send %zd", n);
     }
 
     n = send (fd, p, size, 0);
     if (n - size) {
         if (!n) errx (1, "EOF while writing data");
-        err (1, "send (req %d, ret %zd)", size, n);
+        sockerr (1, "send (req %d, ret %zd)", size, n);
     }
 }
 
@@ -340,7 +354,7 @@ static int readlen (int fd)
     n = recv (fd, p, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while reading length");
-        err (1, "read %zd", n);
+        sockerr (1, "read %zd", n);
     }
 
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
