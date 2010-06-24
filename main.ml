@@ -573,7 +573,7 @@ let idle () =
     Glut.postRedisplay ();
   )
   else
-    let r, _, _ = Unix.select [state.csock] [] [] 0.0001 in
+    let r, _, _ = Unix.select [state.csock] [] [] 0.001 in
 
     begin match r with
     | [] ->
