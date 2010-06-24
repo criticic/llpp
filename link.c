@@ -730,7 +730,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
             j += forward ? 1 : -1;
             p = buf;
             /* XXX: spans are not sorted "visually" */
-            for (i = 0; i < MIN (span->len, sizeof (buf) - 1); ++i) {
+            for (i = 0; i < MIN (span->len, (int) sizeof (buf) - 1); ++i) {
                 if (forward) {
                     if (span->text[i].bbox.y0 < y + 1) {
                         continue;
@@ -1244,7 +1244,7 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
         glEnable (GL_BLEND);
         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
         glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
-        glColor4f (0, 0, 0, 0.2);
+        glColor4f (0.0f, 0.0f, 0.0f, 0.2f);
         glRecti (p1.x, p1.y, p2.x, p2.y);
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
         glDisable (GL_BLEND);
@@ -1307,7 +1307,7 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
                             glEnable (GL_BLEND);
                             glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
                             glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
-                            glColor4f (0.5, 0.5, 0.0, 0.6);
+                            glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
                             glRecti (bx0, by0, bx1, by1);
                             glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
                             glDisable (GL_BLEND);
@@ -1330,7 +1330,7 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
                 glEnable (GL_BLEND);
                 glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
                 glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
-                glColor4f (0.5, 0.5, 0.0, 0.6);
+                glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
                 glRecti (rx0, ry0, rx1, ry1);
                 glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
                 glDisable (GL_BLEND);
@@ -1404,7 +1404,9 @@ static void initgl (void)
 
 CAMLprim value ml_init (value sock_v)
 {
+#ifndef _WIN32
     int ret;
+#endif
     CAMLparam1 (sock_v);
 
     state.texcount = 256;
