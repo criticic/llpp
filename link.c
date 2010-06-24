@@ -64,10 +64,10 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #include <string.h>
 #ifndef _WIN32
 #include <pthread.h>
-#include <sys/poll.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #endif
 
 /* fugly as hell and GCC specific but... */
@@ -225,29 +225,20 @@ static void *parse_pointer (const char *cap, const char *s)
     return ptr;
 }
 
-#ifdef _WIN32
 static int hasdata (int sock)
 {
-    return 0;
+    int n;
+    fd_set s;
+    struct timeval tv;
+    FD_ZERO (&s);
+    FD_SET (sock, &s);
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    n = select (sock + 1, &s, NULL, NULL, &tv);
+    if (n == 0) return 0;
+    if (n == 1) return 1;
+    sockerr (1, "hasdata: select error ret=%d", n);
 }
-#else
-static int hasdata (int sock)
-{
-    int ret;
-    struct pollfd pfd;
-
-    pfd.fd = sock;
-    pfd.events = POLLIN;
-    ret = poll (&pfd, 1, 0);
-    if (ret == 0) {
-        return 0;
-    }
-    if (ret != 1) {
-        err (1, "poll");
-    }
-    return pfd.revents & POLLIN;
-}
-#endif
 
 static double now (void)
 {
