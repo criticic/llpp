@@ -1460,7 +1460,16 @@ let pmotion ~x ~y =
 ;;
 
 let () =
-  let statepath = (Sys.getenv "HOME") ^ "/.config/llpp" in
+  let statepath =
+    let home =
+      if Sys.os_type = "Win32"
+      then
+        try Sys.getenv "HOMEPATH" with Not_found -> ""
+      else
+        try Filename.concat (Sys.getenv "HOME") ".config" with Not_found -> ""
+    in
+    Filename.concat home "llpp"
+  in
   let pstate =
     try
       let ic = open_in_bin statepath in
