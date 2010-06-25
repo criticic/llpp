@@ -1,5 +1,3 @@
-open Format;;
-
 let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
