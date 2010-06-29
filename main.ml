@@ -77,13 +77,11 @@ type conf =
     ; mutable rectsel : bool
     ; mutable icase : bool
     ; mutable preload : bool
-    ; mutable titletext : bool
     ; mutable pagebias : int
     ; mutable redispimm : bool
     ; mutable verbose : bool
     ; mutable scrollincr : int
     ; mutable maxhfit : bool
-    ; mutable markonquit : bool
     ; mutable crophack : bool
     }
 ;;
@@ -127,13 +125,11 @@ let conf =
   ; icase = true
   ; rectsel = true
   ; preload = false
-  ; titletext = false
   ; pagebias = 0
   ; redispimm = false
   ; verbose = false
   ; scrollincr = 24
   ; maxhfit = true
-  ; markonquit = false
   ; crophack = false
   }
 ;;
@@ -389,31 +385,16 @@ let reshape ~w ~h =
 ;;
 
 let showtext c s =
-  if not conf.titletext
-  then (
-    GlDraw.color (0.0, 0.0, 0.0);
-    GlDraw.rect
-      (0.0, float (state.h - 18))
-      (float (state.w - conf.scrollw - 1), float state.h)
-    ;
-    let font = Glut.BITMAP_8_BY_13 in
-    GlDraw.color (1.0, 1.0, 1.0);
-    GlPix.raster_pos ~x:0.0 ~y:(float (state.h - 5)) ();
-    Glut.bitmapCharacter ~font ~c:(Char.code c);
-    String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
-  )
-  else
-    let len = String.length s in
-    let dst = String.create (len + 1) in
-    dst.[0] <- c;
-    StringLabels.blit
-      ~src:s
-      ~dst
-      ~src_pos:0
-      ~dst_pos:1
-      ~len
-    ;
-    Glut.setWindowTitle ~title:dst
+  GlDraw.color (0.0, 0.0, 0.0);
+  GlDraw.rect
+    (0.0, float (state.h - 18))
+    (float (state.w - conf.scrollw - 1), float state.h)
+  ;
+  let font = Glut.BITMAP_8_BY_13 in
+  GlDraw.color (1.0, 1.0, 1.0);
+  GlPix.raster_pos ~x:0.0 ~y:(float (state.h - 5)) ();
+  Glut.bitmapCharacter ~font ~c:(Char.code c);
+  String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s;
 ;;
 
 let enttext () =
@@ -657,10 +638,6 @@ let optentry text key =
       conf.preload <- not conf.preload;
       TEdone ("preload " ^ (btos conf.preload))
 
-  | 't' ->
-      conf.titletext <- not conf.titletext;
-      TEdone ("titletext " ^ (btos conf.titletext))
-
   | 'd' ->
       conf.redispimm <- not conf.redispimm;
       TEdone ("immediate redisplay " ^ (btos conf.redispimm))
@@ -673,10 +650,6 @@ let optentry text key =
       conf.maxhfit <- not conf.maxhfit;
       state.maxy <- state.maxy + (if conf.maxhfit then -state.h else state.h);
       TEdone ("maxhfit " ^ (btos conf.maxhfit))
-
-  | 'q' ->
-      conf.markonquit <- not conf.markonquit;
-      TEdone ("bookmark on quit " ^ btos conf.markonquit)
 
   | 'c' ->
       conf.crophack <- not conf.crophack;
@@ -1488,7 +1461,6 @@ let () =
         | None -> state.w, state.h
         | Some wh -> wh
       in
-      if conf.markonquit then quickbookmark ();
       Hashtbl.replace pstate state.path (state.bookmarks, w, h);
       let oc = open_out_bin statepath in
       output_value oc pstate
