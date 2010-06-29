@@ -7,6 +7,12 @@ openjpeg, jbig2dec, etc))
 llpp also depends on OCaml[5] and lablGL[6], having a C compiler
 wouldn't hurt either.
 
+To build llpp "the easy way" one can invoke `sh buildall.sh' which
+will first attempt to fetch openjpeg, jbig2dec and SumatraPDF's
+version of mupdf and build them then, if everything goes fine it will
+proceed building llpp itself. Note that OCaml and LablGL should still
+be installed separately.
+
 To build llpp, provided that all prereqs are already built, one should
 invoke `sh build.sh' from the top of llpp's directory, prior to that it's
 advisable to review build.sh so that it matches local mupdf installation
