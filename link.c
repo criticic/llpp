@@ -729,7 +729,6 @@ static void search (regex_t *re, int pageno, int y, int forward)
             span = pspan[j];
             j += forward ? 1 : -1;
             p = buf;
-            /* XXX: spans are not sorted "visually" */
             for (i = 0; i < MIN (span->len, (int) sizeof (buf) - 1); ++i) {
                 if (forward) {
                     if (span->text[i].bbox.y0 < y + 1) {
