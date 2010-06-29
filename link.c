@@ -633,13 +633,8 @@ static void process_outline (void)
 
 static int comparespans (const void *l, const void *r)
 {
-#ifdef _MSC_VER
-    fz_textspan const**ls = l;
-    fz_textspan const**rs = r;
-#else
-    fz_textspan *const*ls = l;
-    fz_textspan *const*rs = r;
-#endif
+    fz_textspan const *const*ls = l;
+    fz_textspan const *const*rs = r;
     return (*ls)->text->bbox.y0 - (*rs)->text->bbox.y0;
 }
 
