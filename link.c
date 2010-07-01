@@ -9,10 +9,6 @@
 #pragma warning (disable:4995)
 #endif
 
-#ifndef GL_TEXTURE_RECTANGLE_ARB
-#define GL_TEXTURE_RECTANGLE_ARB          0x84F5
-#endif
-
 #ifdef _MSC_VER
 #include <errno.h>
 #include <stdio.h>
@@ -75,6 +71,10 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #endif
 
 #include <GL/gl.h>
+
+#ifndef GL_TEXTURE_RECTANGLE_ARB
+#define GL_TEXTURE_RECTANGLE_ARB          0x84F5
+#endif
 
 #include <caml/fail.h>
 #include <caml/alloc.h>
