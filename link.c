@@ -9,6 +9,10 @@
 #pragma warning (disable:4995)
 #endif
 
+#ifndef GL_TEXTURE_RECTANGLE_ARB
+#define GL_TEXTURE_RECTANGLE_ARB          0x84F5
+#endif
+
 #ifdef _MSC_VER
 #include <errno.h>
 #include <stdio.h>
@@ -70,19 +74,7 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #include <sys/select.h>
 #endif
 
-/* fugly as hell and GCC specific but... */
-#ifdef _BIG_ENDIAN
-#define GL_GLEXT_PROTOTYPES
-#endif
-
 #include <GL/gl.h>
-#ifndef _WIN32
-#include <GL/glext.h>
-#else
-#define GL_TEXTURE_RECTANGLE_ARB          0x84F5
-#define GL_FRAGMENT_SHADER_ATI            0x8920
-#define GL_UNSIGNED_INT_8_8_8_8           0x8035
-#endif
 
 #include <caml/fail.h>
 #include <caml/alloc.h>
@@ -139,8 +131,6 @@ struct {
     pdf_xref *xref;
     fz_glyphcache *cache;
     int w, h;
-
-    int useatifs;
 
     int texindex;
     int texcount;
@@ -1054,9 +1044,6 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     ARSERT (h >= 0 && "ml_draw wrong h");
 
     glEnable (GL_TEXTURE_RECTANGLE_ARB);
-    if (state.useatifs) {
-        glEnable (GL_FRAGMENT_SHADER_ATI);
-    }
 
     for (slicenum = 0; slicenum < page->slicecount; ++slicenum) {
         struct slice *slice = &page->slices[slicenum];
@@ -1099,9 +1086,6 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     }
 
     glDisable (GL_TEXTURE_RECTANGLE_ARB);
-    if (state.useatifs) {
-        glDisable (GL_FRAGMENT_SHADER_ATI);
-    }
 
     unlock ("ml_draw");
  done:
@@ -1356,46 +1340,6 @@ CAMLprim value ml_getpagewh (value pagedimno_v)
     CAMLreturn (ret_v);
 }
 
-static void initgl (void)
-{
-#ifdef _BIG_ENDIAN
-    if (strstr ((char *) glGetString (GL_EXTENSIONS),
-                "GL_ATI_fragment_shader")) {
-        /* Here, with MESA, rv280, powerpc32: BGRA(rev) is slow while
-           ABGR is fast, so fix things in the shader */
-        state.texform = GL_ABGR_EXT;
-        state.texty = GL_UNSIGNED_INT_8_8_8_8;
-
-        glBindFragmentShaderATI (1);
-        glBeginFragmentShaderATI ();
-        {
-            glSampleMapATI (GL_REG_0_ATI, GL_TEXTURE0_ARB, GL_SWIZZLE_STR_ATI);
-
-            glColorFragmentOp1ATI (GL_MOV_ATI,
-                                   GL_REG_1_ATI, GL_RED_BIT_ATI, GL_NONE,
-                                   GL_REG_0_ATI, GL_BLUE, GL_NONE);
-            glColorFragmentOp1ATI (GL_MOV_ATI,
-                                   GL_REG_1_ATI, GL_BLUE_BIT_ATI, GL_NONE,
-                                   GL_REG_0_ATI, GL_RED, GL_NONE);
-            glColorFragmentOp1ATI (
-                GL_MOV_ATI,
-                GL_REG_0_ATI, GL_RED_BIT_ATI | GL_BLUE_BIT_ATI, GL_NONE,
-                GL_REG_1_ATI, GL_NONE, GL_NONE
-                );
-        }
-        glEndFragmentShaderATI ();
-        state.useatifs = 1;
-    }
-    else {
-        state.texform = GL_BGRA_EXT;
-        state.texty = GL_UNSIGNED_INT_8_8_8_8_REV;
-    }
-#else
-    state.texform = GL_BGRA_EXT;
-    state.texty = GL_UNSIGNED_INT_8_8_8_8;
-#endif
-}
-
 CAMLprim value ml_init (value sock_v)
 {
 #ifndef _WIN32
@@ -1405,6 +1349,8 @@ CAMLprim value ml_init (value sock_v)
 
     state.texcount = 256;
     state.sliceheight = 24;
+    state.texform = GL_RGBA;
+    state.texty = GL_UNSIGNED_BYTE;
 
     state.texids = calloc (state.texcount * sizeof (*state.texids), 1);
     if (!state.texids) {
@@ -1424,7 +1370,6 @@ CAMLprim value ml_init (value sock_v)
 #else
     state.sock = Int_val (sock_v);
 #endif
-    initgl ();
 
     state.cache = fz_newglyphcache ();
     if (!state.cache) {
