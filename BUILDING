@@ -1,30 +1,27 @@
-At the time of this writing[1] vanilla MuPDF[2] does not work (text
-spans are somewhat fucked up), the (patched) version from
-SumatraPDF[3]'s SVN repository[4] however works nicely (SumatraPDF's
-SVN repository also contains all the other prerequisites (such as
-openjpeg, jbig2dec, etc))
+MuPDF[1] rendering library is used to do the actual work, so it needs
+to be built and installed to use llpp, MuPDF's README[2] describes how
+to build it and lists its dependencies. Snapshots of MuPDF itself can
+be found here[3]
 
-llpp also depends on OCaml[5] and lablGL[6], having a C compiler
+llpp also depends on OCaml[4] and lablGL[5], having a C compiler
 wouldn't hurt either.
 
 To build llpp "the easy way" one can invoke `sh buildall.sh' which
-will first attempt to fetch openjpeg, jbig2dec and SumatraPDF's
-version of mupdf and build them then, if everything goes fine it will
-proceed building llpp itself. Note that OCaml should still be
-installed separately.
+will first attempt to automatically fetch openjpeg, jbig2dec, mupdf
+and build them then, if everything goes fine it will proceed building
+llpp itself. Note that OCaml should still be installed separately.
 
-To build llpp, provided that all prereqs are already built, one should
-invoke `sh build.sh' from the top of llpp's directory, prior to that it's
-advisable to review build.sh so that it matches local mupdf installation
-(or lack thereof)
+Otherwise, provided that all prereqs are already built, one should
+invoke `sh build.sh' from the top of llpp's directory, prior to that
+it's advisable to review build.sh so that it matches local mupdf
+installation (or lack thereof)
 
 If everything goes fine llpp binary will appear, it can be used like so:
 
 $ ./llpp /path/to/some.pdf
 
-[1] 22-06-10
-[2] http://www.mupdf.com
-[3] http://blog.kowalczyk.info/software/sumatrapdf/index.html
-[4] http://sumatrapdf.googlecode.com/svn/trunk/mupdf [Revision: 1973]
-[5] http://caml.inria.fr/
-[6] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
+[1] http://www.mupdf.com
+[2] http://mupdf.com/repos/mupdf/README
+[3] http://mupdf.com/download/snapshots/
+[4] http://caml.inria.fr/
+[5] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
