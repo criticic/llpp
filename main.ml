@@ -85,6 +85,7 @@ type conf =
     ; mutable scrollincr : int
     ; mutable maxhfit : bool
     ; mutable crophack : bool
+    ; mutable autoscroll : bool
     }
 ;;
 
@@ -132,6 +133,7 @@ let conf =
   ; scrollincr = 24
   ; maxhfit = true
   ; crophack = false
+  ; autoscroll = false
   }
 ;;
 
@@ -563,6 +565,14 @@ let idle () =
           let pages = layout y (h*3) in
           List.iter preload pages;
         end;
+        if conf.autoscroll then begin
+          let y = state.y + conf.scrollincr in
+          let y = if y = state.maxy then 0 else y in
+          gotoy y;
+          state.text <- "";
+          state.prevy <- state.y;
+          Glut.postRedisplay ();
+        end;
 
     | _ ->
         let cmd = readcmd state.csock in
@@ -663,6 +673,10 @@ let optentry text key =
   | 'c' ->
       conf.crophack <- not conf.crophack;
       TEdone ("crophack " ^ btos conf.crophack)
+
+  | 'a' ->
+      conf.autoscroll <- not conf.autoscroll;
+      TEdone ("autoscroll " ^ btos conf.autoscroll)
 
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
