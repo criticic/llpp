@@ -743,7 +743,7 @@ let viewkeyboard ~key ~x ~y =
     state.textentry <- te;
     state.text <- "";
     enttext ();
-    Glut.swapBuffers ()
+    Glut.postRedisplay ()
   in
   match state.textentry with
   | None ->
@@ -1185,7 +1185,9 @@ let now () = Unix.gettimeofday ();;
 let drawpage i l =
   begin match getopaque l.pageno with
   | Some opaque when validopaque opaque ->
-      GlDraw.color (1.0, 1.0, 1.0);
+      if state.textentry = None
+      then GlDraw.color (1.0, 1.0, 1.0)
+      else GlDraw.color (0.4, 0.4, 0.4);
       let a = now () in
       draw l.pagedispy l.pagew l.pagevh l.pagey opaque;
       let b = now () in
