@@ -674,10 +674,6 @@ let optentry text key =
       conf.crophack <- not conf.crophack;
       TEdone ("crophack " ^ btos conf.crophack)
 
-  | 'a' ->
-      conf.autoscroll <- not conf.autoscroll;
-      TEdone ("autoscroll " ^ btos conf.autoscroll)
-
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
       TEstop
@@ -833,6 +829,9 @@ let viewkeyboard ~key ~x ~y =
       | 'b' ->
           conf.scrollw <- if conf.scrollw > 0 then 0 else 5;
           reshape state.w state.h;
+
+      | 'a' ->
+          conf.autoscroll <- not conf.autoscroll
 
       | 'f' ->
           begin match state.fullscreen with
