@@ -70,7 +70,11 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #include <sys/select.h>
 #endif
 
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 
 #ifndef GL_TEXTURE_RECTANGLE_ARB
 #define GL_TEXTURE_RECTANGLE_ARB          0x84F5
