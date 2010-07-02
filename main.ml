@@ -567,7 +567,7 @@ let idle () =
         end;
         if conf.autoscroll then begin
           let y = state.y + conf.scrollincr in
-          let y = if y = state.maxy then 0 else y in
+          let y = if y >= state.maxy then 0 else y in
           gotoy y;
           state.text <- "";
           state.prevy <- state.y;
