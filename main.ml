@@ -11,10 +11,12 @@ external getpagewh : int -> float array = "ml_getpagewh";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
 
-type te =
+type textentry = char * string * (string -> int -> te) * (string -> unit)
+and te =
     | TEstop
     | TEdone of string
     | TEcont of string
+    | TEswitch of textentry
 ;;
 
 type 'a circbuf =
@@ -110,8 +112,7 @@ type state =
     ; mutable rects1 : (int * int * Gl.point2 * Gl.point2) list
     ; mutable text : string
     ; mutable fullscreen : (int * int) option
-    ; mutable textentry :
-        (char * string * (string -> int -> te) * (string -> unit)) option
+    ; mutable textentry : textentry option
     ; mutable outlines : outlines
     ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
@@ -630,6 +631,14 @@ let optentry text key =
       conf.rectsel <- not conf.rectsel;
       TEdone ("rectsel " ^ (btos conf.rectsel))
 
+  | 's' ->
+      let ondone s =
+        try conf.scrollincr <- int_of_string s with exc ->
+          state.text <- Printf.sprintf "bad integer `%s': %s"
+            s (Printexc.to_string exc)
+      in
+      TEswitch ('#', "", intentry, ondone)
+
   | 'i' ->
       conf.icase <- not conf.icase;
       TEdone ("case insensitive search " ^ (btos conf.icase))
@@ -954,6 +963,10 @@ let viewkeyboard ~key ~x ~y =
 
           | TEstop ->
               state.textentry <- None;
+              Glut.postRedisplay ()
+
+          | TEswitch te ->
+              state.textentry <- Some te;
               Glut.postRedisplay ()
           end;
       end;
