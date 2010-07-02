@@ -1,6 +1,8 @@
 # builds "hard" prerequisites and llpp
 set -e
 
+use_sumatrapdf_patched_mupdf=true
+
 mkdir -p 3rdp
 cd 3rdp
 
@@ -10,11 +12,27 @@ openjpeg=http://openjpeg.googlecode.com/svn/trunk/
 jbig2dec=git://git.ghostscript.com/jbig2dec.git
 lablgl=:pserver:anoncvs@camlcvs.inria.fr:/caml
 mupdf=http://mupdf.com/download/snapshots/mupdf-r1300.tar.gz
+sumatrapdf=http://sumatrapdf.googlecode.com/svn/trunk
 
 test -d openjpeg || svn checkout $openjpeg openjpeg
 test -d jbig2dec || git clone $jbig2dec jbig2dec
-test -d mupdf    || (wget $mupdf && tar xf $(basename $mupdf))
 test -d lablgl   || cvs -d $lablgl co -d lablgl bazar-ocaml/lablGL
+
+if ! test -d mupdf; then
+    if $use_sumatrapdf_patched_mupdf; then
+        svn checkout $sumatrapdf/mupdf mupdf && grep
+        case $(uname -m) in
+            ppc*|sparc*|arm*)
+            mv mupdf/Makerules aaa && grep -vi "x86" aaa > mupdf/Makerules
+            rm aaa
+            ;;
+            *)
+            ;;
+        esac
+    else
+        wget $mupdf && tar xf $(basename $mupdf)
+    fi
+fi
 
 mkdir -p $root/bin
 mkdir -p $root/lib
