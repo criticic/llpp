@@ -41,7 +41,7 @@ let cbput b v =
   let len = cblen b in
   b.store.(b.wc) <- v;
   b.wc <- (b.wc + 1) mod len;
-  b.len <- max (b.len + 1) len;
+  b.len <- min (b.len + 1) len;
 ;;
 
 let cbpeekw b = b.store.(b.wc);;
