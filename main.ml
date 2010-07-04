@@ -97,11 +97,12 @@ type state =
     ; mutable ssock : Unix.file_descr
     ; mutable w : int
     ; mutable h : int
+    ; mutable rotate : int
     ; mutable y : int
     ; mutable prevy : int
     ; mutable maxy : int
     ; mutable layout : layout list
-    ; pagemap : ((int * int), string) Hashtbl.t
+    ; pagemap : ((int * int * int), string) Hashtbl.t
     ; mutable pages : (int * int * int) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
@@ -142,6 +143,7 @@ let state =
   ; ssock = Unix.stdin
   ; w = 900
   ; h = 900
+  ; rotate = 0
   ; y = 0
   ; prevy = 0
   ; layout = []
@@ -483,11 +485,11 @@ let act cmd =
       state.rects1 <- (pageno, c, (x0, y0), (x1, y1)) :: state.rects1
 
   | 'r' ->
-      let n, w, h, p =
-        Scanf.sscanf cmd "r %d %d %d %s"
-          (fun n w h p -> (n, w, h, p))
+      let n, w, h, r, p =
+        Scanf.sscanf cmd "r %d %d %d %d %s"
+          (fun n w h r p -> (n, w, h, r, p))
       in
-      Hashtbl.replace state.pagemap (n, w) p;
+      Hashtbl.replace state.pagemap (n, w, r) p;
       let evicted = cbpeekw state.pagecache in
       if String.length evicted > 0
       then begin
@@ -525,12 +527,14 @@ let act cmd =
 ;;
 
 let getopaque pageno =
-  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w - conf.scrollw))
+  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w - conf.scrollw,
+                                       state.rotate))
   with Not_found -> None
 ;;
 
 let cache pageno opaque =
-  Hashtbl.replace state.pagemap (pageno + 1, state.w - conf.scrollw) opaque
+  Hashtbl.replace state.pagemap (pageno + 1, state.w - conf.scrollw,
+                                state.rotate) opaque
 ;;
 
 let validopaque opaque = String.length opaque > 0;;
@@ -648,6 +652,17 @@ let optentry text key =
             s (Printexc.to_string exc)
       in
       TEswitch ('#', "", intentry, ondone)
+
+  | 'R' ->
+      let ondone s =
+        try
+          state.rotate <- int_of_string s;
+          wcmd "rotate" [`i state.rotate]
+        with exc ->
+          state.text <- Printf.sprintf "bad integer `%s': %s"
+            s (Printexc.to_string exc)
+      in
+      TEswitch ('^', "", intentry, ondone)
 
   | 'i' ->
       conf.icase <- not conf.icase;
@@ -936,6 +951,10 @@ let viewkeyboard ~key ~x ~y =
 
           | [] -> ()
           end
+
+      | '<' | '>' ->
+          state.rotate <- state.rotate + (if c = '>' then 30 else -30);
+          wcmd "rotate" [`i state.rotate]
 
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);

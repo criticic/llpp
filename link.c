@@ -151,6 +151,8 @@ struct {
         struct slice *slice;
     } *texowners;
 
+    int rotate;
+
 #ifdef _WIN32
     HANDLE thread;
 #else
@@ -488,6 +490,7 @@ static void initpdims (void)
         else  {
             rotate = 0;
         }
+        rotate += state.rotate;
 
         state.pagetbl[pageno] = fz_tonum (state.xref->pagerefs[pageno]);
         p = &state.pagedims[state.pagedimcount - 1];
@@ -905,6 +908,25 @@ mainloop (void *unused)
             unlock ("geometry");
             printd (state.sock, "C %d", state.pagecount);
         }
+        else if (!strncmp ("rotate", p, 6)) {
+            float rotate;
+
+            printd (state.sock, "c");
+            ret = sscanf (p + 6, " %f", &rotate);
+            if (ret != 1) {
+                errx (1, "bad rotate line `%.*s' ret=%d", len, p, ret);
+            }
+            state.rotate = rotate;
+            lock ("rotate");
+            state.pagedimcount = 0;
+            free (state.pagedims);
+            state.pagedims = NULL;
+            initpdims ();
+            layout ();
+            process_outline ();
+            unlock ("rotate");
+            printd (state.sock, "C %d", state.pagecount);
+        }
         else if (!strncmp ("render", p, 6)) {
             int pageno, pindex, w, h, ret;
             struct page *page;
@@ -915,10 +937,11 @@ mainloop (void *unused)
             }
 
             page = render (pageno, pindex);
-            printd (state.sock, "r %d %d %d %p\n",
+            printd (state.sock, "r %d %d %d %d %p\n",
                     pageno,
                     state.w,
                     state.h,
+                    state.rotate,
                     page);
         }
         else {
@@ -1102,8 +1125,8 @@ static pdf_link *getlink (struct page *page, int x, int y)
     fz_matrix ctm;
     pdf_link *link;
 
-    p.x = x;
-    p.y = y;
+    p.x = x + page->pixmap->x;
+    p.y = y + page->pixmap->y;
 
     ctm = fz_invertmatrix (page->pagedim->ctm);
     p = fz_transformpoint (ctm, p);
