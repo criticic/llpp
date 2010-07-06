@@ -20,6 +20,7 @@ let srcdir = get "src" "no source dir";;
 let cc = getdef "cc" "cc";;
 let ccopt = getdef "ccopt" "";;
 let mupdflibpath = get "mupdflibpath" "no mupdf libpath";;
+let libs = getdef "libs" "";;
 
 let boc flags src =
   let o = src ^ ".o" in
@@ -30,7 +31,7 @@ let boc flags src =
     o
     (StrSet.singleton o)
     [Filename.concat srcdir c]
-    (StrSet.empty)
+    StrSet.empty
   ;
 ;;
 
@@ -64,8 +65,7 @@ let ocaml' prog flags1 flags2 mainoutput outputs inputs deps =
 let bso name objs =
   let so = name ^ ".so" in
   let mupdf_libs =
-    " -L" ^ mupdflibpath ^
-      " -lmupdf -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype"
+    " -L" ^ mupdflibpath ^ " " ^ libs
   in
   let o = List.map (fun s -> s ^ ".o") objs in
   ocaml'
@@ -75,7 +75,7 @@ let bso name objs =
     so
     (StrSet.singleton so)
     o
-    StrSet.empty
+    (StrSet.singleton (Filename.concat mupdflibpath "libmupdf.a"))
   ;
   so
 ;;

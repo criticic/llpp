@@ -22,16 +22,17 @@ if ! md5sum --status -c $d; then
     mv $d.tmp $d
 fi
 
-mupdf=/home/malc/x/bld/mupdf
-mupdf=/home/malc/x/rcs/darcs/mupdf/mupdf/
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
+#mupdf=$h/mupdf
 cc=gcc
 ccopt="-std=c89 -Dinline=__inline__ -Wall -Werror -I$mupdf/fitz -I$mupdf/mupdf"
 targets="llpp"
+libs="-lmupdf -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig"
 
 lpath=$mupdf/build/linux-ppc-release/
 lpath=$mupdf/build/release
 
 ./b -O src:$h -r -O ccopt:"$ccopt" -O cc:"$cc" \
 -O "mupdflibpath:$lpath" \
+-O "libs:$libs" \
 $* $targets
