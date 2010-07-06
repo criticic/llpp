@@ -962,7 +962,7 @@ let viewkeyboard ~key ~x ~y =
 
   | Some (c, text, onkey, ondone) when key = 8 ->
       let len = String.length text in
-      if len = 0 || len = 1
+      if len = 0
       then (
         state.textentry <- None;
         Glut.postRedisplay ();
