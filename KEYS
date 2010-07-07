@@ -6,22 +6,36 @@ backspace               - go back after jumping (clicking link and suchlike)
 u                       - dehighlight
 /,?                     - enter text to search for (/ - forward, ? backward)
 +                       - set page bias
--                       - set some tunables (i - toggle case sensetivity of
-                                             searches ...)
+-                       - toggle/set tunable
 0..9                    - enter page number to jump to
 b                       - toggle scroll bar
 f                       - toggle fullscreen
 n                       - repeat last search (forward)
-p                       - .................. (backward)
+p, N                    - .................. (backward)
+g                       - goto first page
 t                       - align top of the screen with the top of the page
-space, N                - go to the next page
-delete, P               - go to the previous page
+space                   - go to the next page
+delete                  - go to the previous page
 =                       - show current position
 w                       - change height to encompass all of the page
 o                       - switch to outline mode
 '                       - switch to bookmark mode
 m                       - bookmark position
 z                       - crop
+a                       - autoscroll
+<,>                     - rotate
+
+tuanbles
+-i                      - toggle case sensitivity of searches
+-s<number>              - scroll increment
+-c                      - toggle crop hack
+-a                      - toggle throttled scrolling
+-r                      - selection style
+-R<number>              - rotate
+-p                      - toggle preloading
+-v                      - toggle verbosity
+-d                      - toggle immediate redisplay
+-h                      - toggle maxfit
 
 [1] i'm somewhat mouse button confused, since i use "left handed" mouse
     while not being lefthanded
