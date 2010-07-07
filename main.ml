@@ -1186,30 +1186,18 @@ let special ~key ~x ~y =
 ;;
 
 let drawplaceholder l =
-  if true
-  then (
-    GlDraw.color (0.2, 0.2, 0.2);
-    GlDraw.color (1.0, 1.0, 1.0);
-    GlDraw.rect
-      (0.0, float l.pagedispy)
-      (float l.pagew, float (l.pagedispy + l.pagevh))
-    ;
-    let x = 0.0
-    and y = float (l.pagedispy + 13) in
-    let font = Glut.BITMAP_8_BY_13 in
-    GlDraw.color (0.0, 0.0, 0.0);
-    GlPix.raster_pos ~x ~y ();
-    String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c))
-      ("Loading " ^ string_of_int l.pageno);
-  )
-  else (
-    GlDraw.begins `quads;
-    GlDraw.vertex2 (0.0, float l.pagedispy);
-    GlDraw.vertex2 (float l.pagew, float l.pagedispy);
-    GlDraw.vertex2 (float l.pagew, float (l.pagedispy + l.pagevh));
-    GlDraw.vertex2 (0.0, float (l.pagedispy + l.pagevh));
-    GlDraw.ends ();
-  )
+  GlDraw.color (1.0, 1.0, 1.0);
+  GlDraw.rect
+    (0.0, float l.pagedispy)
+    (float l.pagew, float (l.pagedispy + l.pagevh))
+  ;
+  let x = 0.0
+  and y = float (l.pagedispy + 13) in
+  let font = Glut.BITMAP_8_BY_13 in
+  GlDraw.color (0.0, 0.0, 0.0);
+  GlPix.raster_pos ~x ~y ();
+  String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c))
+    ("Loading " ^ string_of_int l.pageno);
 ;;
 
 let now () = Unix.gettimeofday ();;
