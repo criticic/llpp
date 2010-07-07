@@ -86,6 +86,7 @@ type conf =
     ; mutable maxhfit : bool
     ; mutable crophack : bool
     ; mutable autoscroll : bool
+    ; mutable showall : bool
     }
 ;;
 
@@ -99,6 +100,7 @@ type state =
     ; mutable h : int
     ; mutable rotate : int
     ; mutable y : int
+    ; mutable ty : int
     ; mutable prevy : int
     ; mutable maxy : int
     ; mutable layout : layout list
@@ -135,6 +137,7 @@ let conf =
   ; maxhfit = true
   ; crophack = false
   ; autoscroll = false
+  ; showall = false
   }
 ;;
 
@@ -145,6 +148,7 @@ let state =
   ; h = 900
   ; rotate = 0
   ; y = 0
+  ; ty = 0
   ; prevy = 0
   ; layout = []
   ; maxy = max_int
@@ -334,12 +338,50 @@ let clamp incr =
   y;
 ;;
 
+let getopaque pageno =
+  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w - conf.scrollw,
+                                       state.rotate))
+  with Not_found -> None
+;;
+
+let cache pageno opaque =
+  Hashtbl.replace state.pagemap (pageno + 1, state.w - conf.scrollw,
+                                state.rotate) opaque
+;;
+
+let validopaque opaque = String.length opaque > 0;;
+
+let preload l =
+  match getopaque l.pageno with
+  | None when state.inflight < 2+0*(cblen state.pagecache) ->
+      state.inflight <- succ state.inflight;
+      cache l.pageno "";
+      wcmd "render" [`i (l.pageno + 1)
+                    ;`i l.pagedimno
+                    ;`i l.pagew
+                    ;`i l.pageh];
+
+  | _ -> ()
+;;
+
 let gotoy y =
   let y = max 0 y in
   let y = min state.maxy y in
   let pages = layout y state.h in
-  state.y <- y;
-  state.layout <- pages;
+  let rec f all = function
+    | l :: ls ->
+        begin match getopaque l.pageno with
+        | None -> preload l; f false ls
+        | Some opaque -> f (all && validopaque opaque) ls
+        end
+    | [] -> all
+  in
+  if not conf.showall || f true pages
+  then (
+    state.y <- y;
+    state.layout <- pages;
+  );
+  state.ty <- y;
   if conf.redispimm
   then
     Glut.postRedisplay ()
@@ -501,6 +543,7 @@ let act cmd =
       end;
       cbput state.pagecache p;
       state.inflight <- pred state.inflight;
+      if conf.showall then gotoy state.ty;
       Glut.postRedisplay ()
 
   | 'l' ->
@@ -524,32 +567,6 @@ let act cmd =
 
   | _ ->
       log "unknown cmd `%S'" cmd
-;;
-
-let getopaque pageno =
-  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w - conf.scrollw,
-                                       state.rotate))
-  with Not_found -> None
-;;
-
-let cache pageno opaque =
-  Hashtbl.replace state.pagemap (pageno + 1, state.w - conf.scrollw,
-                                state.rotate) opaque
-;;
-
-let validopaque opaque = String.length opaque > 0;;
-
-let preload l =
-  match getopaque l.pageno with
-  | None when state.inflight < 2+0*(cblen state.pagecache) ->
-      state.inflight <- succ state.inflight;
-      cache l.pageno "";
-      wcmd "render" [`i (l.pageno + 1)
-                    ;`i l.pagedimno
-                    ;`i l.pagew
-                    ;`i l.pageh];
-
-  | _ -> ()
 ;;
 
 let idle () =
@@ -688,6 +705,10 @@ let optentry text key =
   | 'c' ->
       conf.crophack <- not conf.crophack;
       TEdone ("crophack " ^ btos conf.crophack)
+
+  | 'a' ->
+      conf.showall <- not conf.showall;
+      TEdone ("showall " ^ btos conf.showall)
 
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
