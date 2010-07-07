@@ -879,10 +879,13 @@ let viewkeyboard ~key ~x ~y =
               Glut.reshapeWindow ~w ~h
           end
 
+      | 'g' ->
+          gotoy 0
+
       | 'n' ->
           search state.searchpattern true
 
-      | 'p' ->
+      | 'p' | 'N' ->
           search state.searchpattern false
 
       | 't' ->
@@ -892,14 +895,14 @@ let viewkeyboard ~key ~x ~y =
               gotoy (state.y - l.pagey);
           end
 
-      | ' ' | 'N' ->
+      | ' ' ->
           begin match List.rev state.layout with
           | [] -> ()
           | l :: _ ->
               gotoy (clamp (l.pageh - l.pagey))
           end
 
-      | '\127' | 'P' ->
+      | '\127' ->
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
