@@ -1094,7 +1094,15 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
         )
         else
           let qsearch = String.sub qsearch 0 (len - 1) in
-          state.text <- qsearch;
+          let active, first =
+            match search active qsearch ~-1 with
+            | None ->
+                state.text <- qsearch ^ " [not found]";
+                active, first
+            | Some af ->
+                state.text <- qsearch;
+                af
+          in
           state.outline <- Some (allowdel, active, first, outlines, qsearch);
       );
       Glut.postRedisplay ()
