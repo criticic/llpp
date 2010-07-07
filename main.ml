@@ -91,7 +91,11 @@ type conf =
 ;;
 
 type outline = string * int * int * int;;
-type outlines = Oarray of outline array | Olist of outline list;;
+type outlines =
+    | Oarray of outline array
+    | Olist of outline list
+    | Onarrow of outline array * outline array
+;;
 
 type state =
     { mutable csock : Unix.file_descr
@@ -562,6 +566,7 @@ let act cmd =
         match state.outlines with
         | Olist outlines -> Olist (outline :: outlines)
         | Oarray _ -> Olist [outline]
+        | Onarrow _ -> Olist [outline]
       in
       state.outlines <- outlines
 
@@ -752,6 +757,7 @@ let enteroutlinemode () =
         let a = Array.of_list (List.rev l) in
         state.outlines <- Oarray a;
         a
+    | Onarrow (a, b) -> a
   in
   enterselector false outlines "Documents has no outline";
 ;;
@@ -1028,6 +1034,26 @@ let viewkeyboard ~key ~x ~y =
       end;
 ;;
 
+let narrow outlines pattern =
+  let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
+  match reopt with
+  | None -> None
+  | Some re ->
+      let rec fold accu n =
+        if n = -1 then accu else
+          let (s, _, _, _) as o = outlines.(n) in
+          let accu =
+            if (try ignore (Str.search_forward re s 0); true
+              with Not_found -> false)
+            then (o :: accu)
+            else accu
+          in
+          fold accu (n-1)
+      in
+      let matched = fold [] (Array.length outlines - 1) in
+      if matched = [] then None else Some (Array.of_list matched)
+;;
+
 let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
   let search active pattern incr =
     let dosearch re =
@@ -1130,6 +1156,32 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             active, first
       in
       state.outline <- Some (allowdel, active, first, outlines, pattern);
+      Glut.postRedisplay ()
+
+  | 14 ->
+      let optoutlines = narrow outlines qsearch in
+      begin match optoutlines with
+      | None -> state.text <- "can't narrow"
+      | Some outlines ->
+          state.outline <- Some (allowdel, 0, 0, outlines, qsearch);
+          match state.outlines with
+          | Olist l -> ()
+          | Oarray a -> state.outlines <- Onarrow (outlines, a)
+          | Onarrow (a, b) -> state.outlines <- Onarrow (outlines, b)
+      end;
+      Glut.postRedisplay ()
+
+  | 21 ->
+      let outline =
+        match state.outlines with
+        | Oarray a -> a
+        | Olist l ->
+            let a = Array.of_list (List.rev l) in
+            state.outlines <- Oarray a;
+            a
+        | Onarrow (a, b) -> b
+      in
+      state.outline <- Some (allowdel, 0, 0, outline, qsearch);
       Glut.postRedisplay ()
 
   | 127 when allowdel ->
