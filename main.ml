@@ -23,7 +23,7 @@ type textentry = (char * string * onhist option * onkey * ondone)
 and onkey = string -> int -> te
 and ondone = string -> unit
 and onhist = histcmd -> string
-and histcmd = HCnext | HCprev
+and histcmd = HCnext | HCprev | HCfirst | HClast
 and te =
     | TEstop
     | TEdone of string
@@ -624,8 +624,10 @@ let idle () =
 ;;
 
 let onhist cb = function
-  | HCprev -> cbget cb ~-1
-  | HCnext -> cbget cb 1
+  | HCprev  -> cbget cb ~-1
+  | HCnext  -> cbget cb 1
+  | HCfirst -> cbget cb ~-(cb.rc)
+  | HClast  -> cbget cb (cb.len - 1 - cb.rc)
 ;;
 
 let search pattern forward =
@@ -1273,6 +1275,8 @@ let special ~key ~x ~y =
             match key with
             | Glut.KEY_UP    -> onhist HCprev
             | Glut.KEY_DOWN  -> onhist HCnext
+            | Glut.KEY_HOME  -> onhist HCfirst
+            | Glut.KEY_END   -> onhist HClast
             | _ -> state.text
           in
           state.textentry <- Some (c, s, Some onhist, onkey, ondone);
