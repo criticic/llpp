@@ -509,9 +509,16 @@ let act cmd =
       let s = Scanf.sscanf cmd "T %n"
         (fun n -> String.sub cmd n (String.length cmd - n))
       in
-      state.text <- s;
-      showtext ' ' s;
-      Glut.swapBuffers ();
+      if state.textentry = None
+      then (
+        state.text <- s;
+        showtext ' ' s;
+        Glut.swapBuffers ();
+      )
+      else (
+        state.text <- s;
+        Glut.postRedisplay ();
+      )
 
   | 'V' ->
       if conf.verbose
