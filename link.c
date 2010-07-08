@@ -944,6 +944,9 @@ mainloop (void *unused)
                     state.rotate,
                     page);
         }
+        else if (!strncmp ("interrupt", p, 8)) {
+            printd (state.sock, "V interrupted");
+        }
         else {
             errx (1, "unknown command %.*s", len, p);
         }
