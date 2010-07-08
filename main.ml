@@ -405,8 +405,7 @@ let getnav () =
 let gotopage n top =
   let y = getpagey n in
   addnav ();
-  state.y <- y + top;
-  gotoy state.y;
+  gotoy (y + top);
 ;;
 
 let reshape ~w ~h =
@@ -485,6 +484,7 @@ let act cmd =
       let rely = yratio state.y in
       let maxy = calcheight () in
       state.y <- truncate (float maxy *. rely);
+      state.ty <- state.y;
       let pages = layout state.y state.h in
       state.layout <- pages;
       Glut.postRedisplay ();
@@ -856,7 +856,6 @@ let viewkeyboard ~key ~x ~y =
             if n >= 0
             then (
               addnav ();
-              state.y <- y;
               gotoy (getpagey (n + conf.pagebias - 1))
             )
           in
