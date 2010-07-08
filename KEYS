@@ -24,6 +24,7 @@ m                       - bookmark position
 z                       - crop
 a                       - autoscroll
 <,>                     - rotate
+Ctrl-g                  - interrupt search
 
 tuanbles
 -i                      - toggle case sensitivity of searches
@@ -48,6 +49,9 @@ bookmark mode
 alpha-numeric           - quick search
 Ctrl-s                  - repeat search (forward)
 Ctrl-r                  - repeat search (backward)
+
+when entering search pattern/page number
+up/down arrow           - previous/next entered text
 
 [1] i'm somewhat mouse button confused, since i use "left handed" mouse
     while not being lefthanded
