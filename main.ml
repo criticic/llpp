@@ -1238,9 +1238,13 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
 ;;
 
 let keyboard ~key ~x ~y =
-  match state.outline with
-  | None -> viewkeyboard ~key ~x ~y
-  | Some outline -> outlinekeyboard ~key ~x ~y outline
+  if key = 7
+  then
+    wcmd "interrupt" []
+  else
+    match state.outline with
+    | None -> viewkeyboard ~key ~x ~y
+    | Some outline -> outlinekeyboard ~key ~x ~y outline
 ;;
 
 let special ~key ~x ~y =
