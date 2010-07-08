@@ -11,20 +11,24 @@ external getpagewh : int -> float array = "ml_getpagewh";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
 
-type textentry = char * string * (string -> int -> te) * (string -> unit)
-and te =
-    | TEstop
-    | TEdone of string
-    | TEcont of string
-    | TEswitch of textentry
-;;
-
 type 'a circbuf =
     { store : 'a array
     ; mutable rc : int
     ; mutable wc : int
     ; mutable len : int
     }
+;;
+
+type textentry = (char * string * onhist option * onkey * ondone)
+and onkey = string -> int -> te
+and ondone = string -> unit
+and onhist = histcmd -> string
+and histcmd = HCnext | HCprev
+and te =
+    | TEstop
+    | TEdone of string
+    | TEcont of string
+    | TEswitch of textentry
 ;;
 
 let cbnew n v =
@@ -46,20 +50,17 @@ let cbput b v =
 
 let cbpeekw b = b.store.(b.wc);;
 
-let cbget b =
-  let v = b.store.(b.rc) in
-  if b.len = 0
-  then
-    v
-  else (
-    let rc = if b.rc = 0 then b.len - 1 else b.rc - 1 in
-    b.rc <- rc;
-    v
-  )
+let cbget b dir =
+  if b.len = 0 then b.store.(0) else
+  let rc = b.rc + dir in
+  let rc = if rc = -1 then b.len - 1 else rc in
+  let rc = if rc = b.len then 0 else rc in
+  b.rc <- rc;
+  b.store.(rc);
 ;;
 
 let cbrfollowlen b =
-  b.rc <- b.len - 1;
+  b.rc <- b.len;
 ;;
 
 type layout =
@@ -112,7 +113,6 @@ type state =
     ; mutable pages : (int * int * int) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
-    ; navhist : float circbuf
     ; mutable inflight : int
     ; mutable mstate : mstate
     ; mutable searchpattern : string
@@ -125,6 +125,12 @@ type state =
     ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
     ; mutable path : string
+    ; hists : hists
+    }
+and hists =
+    { pat : string circbuf
+    ; pag : string circbuf
+    ; nav : float circbuf
     }
 ;;
 
@@ -162,7 +168,6 @@ let state =
   ; pagecount = 0
   ; inflight = 0
   ; mstate = Mnone
-  ; navhist = cbnew 100 0.0
   ; rects = []
   ; rects1 = []
   ; text = ""
@@ -173,6 +178,11 @@ let state =
   ; outline = None
   ; bookmarks = []
   ; path = ""
+  ; hists =
+      { nav = cbnew 100 0.0
+      ; pat = cbnew 20 ""
+      ; pag = cbnew 10 ""
+      }
   }
 ;;
 
@@ -393,12 +403,12 @@ let gotoy y =
 ;;
 
 let addnav () =
-  cbput state.navhist (yratio state.y);
-  cbrfollowlen state.navhist;
+  cbput state.hists.nav (yratio state.y);
+  cbrfollowlen state.hists.nav;
 ;;
 
 let getnav () =
-  let y = cbget state.navhist in
+  let y = cbget state.hists.nav ~-1 in
   truncate (y *. float state.maxy)
 ;;
 
@@ -453,7 +463,7 @@ let enttext () =
   | None ->
       if len > 0 then showtext ' ' state.text
 
-  | Some (c, text, _, _) ->
+  | Some (c, text, _, _, _) ->
       let s =
         if len > 0
         then
@@ -606,6 +616,11 @@ let idle () =
     end;
 ;;
 
+let onhist cb = function
+  | HCprev -> cbget cb ~-1
+  | HCnext -> cbget cb 1
+;;
+
 let search pattern forward =
   if String.length pattern > 0
   then
@@ -673,7 +688,7 @@ let optentry text key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ('#', "", intentry, ondone)
+      TEswitch ('#', "", None, intentry, ondone)
 
   | 'R' ->
       let ondone s =
@@ -684,7 +699,7 @@ let optentry text key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ('^', "", intentry, ondone)
+      TEswitch ('^', "", None, intentry, ondone)
 
   | 'i' ->
       conf.icase <- not conf.icase;
@@ -818,10 +833,13 @@ let viewkeyboard ~key ~x ~y =
 
       | '/' | '?' ->
           let ondone isforw s =
+            cbput state.hists.pat s;
+            cbrfollowlen state.hists.pat;
             state.searchpattern <- s;
             search s isforw
           in
-          enttext (Some (c, "", textentry, ondone (c ='/')))
+          enttext (Some (c, "", Some (onhist state.hists.pat),
+                        textentry, ondone (c ='/')))
 
       | '+' ->
           let ondone s =
@@ -837,13 +855,13 @@ let viewkeyboard ~key ~x ~y =
               state.text <- "page bias is now " ^ string_of_int n;
             )
           in
-          enttext (Some ('+', "", intentry, ondone))
+          enttext (Some ('+', "", None, intentry, ondone))
 
       | '-' ->
           let ondone msg =
             state.text <- msg;
           in
-          enttext (Some ('-', "", optentry, ondone))
+          enttext (Some ('-', "", None, optentry, ondone))
 
       | '0' .. '9' ->
           let ondone s =
@@ -856,6 +874,8 @@ let viewkeyboard ~key ~x ~y =
             if n >= 0
             then (
               addnav ();
+              cbput state.hists.pag (string_of_int n);
+              cbrfollowlen state.hists.pag;
               gotoy (getpagey (n + conf.pagebias - 1))
             )
           in
@@ -865,7 +885,8 @@ let viewkeyboard ~key ~x ~y =
             | _ -> intentry text key
           in
           let text = "x" in text.[0] <- c;
-          enttext (Some (':', text, pageentry, ondone))
+          enttext (Some (':', text, Some (onhist state.hists.pag),
+                        pageentry, ondone))
 
       | 'b' ->
           conf.scrollw <- if conf.scrollw > 0 then 0 else 5;
@@ -955,7 +976,7 @@ let viewkeyboard ~key ~x ~y =
                 state.bookmarks <- (s, 0, l.pageno, l.pagey) :: state.bookmarks
             | _ -> ()
           in
-          enttext (Some ('~', "", textentry, ondone))
+          enttext (Some ('~', "", None, textentry, ondone))
 
       | '~' ->
           quickbookmark ();
@@ -989,7 +1010,7 @@ let viewkeyboard ~key ~x ~y =
           vlog "huh? %d %c" key (Char.chr key);
       end
 
-  | Some (c, text, onkey, ondone) when key = 8 ->
+  | Some (c, text, onhist, onkey, ondone) when key = 8 ->
       let len = String.length text in
       if len = 0
       then (
@@ -998,10 +1019,10 @@ let viewkeyboard ~key ~x ~y =
       )
       else (
         let s = String.sub text 0 (len - 1) in
-        enttext (Some (c, s, onkey, ondone))
+        enttext (Some (c, s, onhist, onkey, ondone))
       )
 
-  | Some (c, text, onkey, ondone) ->
+  | Some (c, text, onhist, onkey, ondone) ->
       begin match Char.unsafe_chr key with
       | '\r' | '\n' ->
           ondone text;
@@ -1020,7 +1041,7 @@ let viewkeyboard ~key ~x ~y =
               Glut.postRedisplay ()
 
           | TEcont text ->
-              enttext (Some (c, text, onkey, ondone));
+              enttext (Some (c, text, onhist, onkey, ondone));
 
           | TEstop ->
               state.textentry <- None;
@@ -1218,21 +1239,36 @@ let keyboard ~key ~x ~y =
 let special ~key ~x ~y =
   match state.outline with
   | None ->
-      let y =
-        match key with
-        | Glut.KEY_F3        -> search state.searchpattern true; state.y
-        | Glut.KEY_UP        -> clamp (-conf.scrollincr)
-        | Glut.KEY_DOWN      -> clamp conf.scrollincr
-        | Glut.KEY_PAGE_UP   -> clamp (-state.h)
-        | Glut.KEY_PAGE_DOWN -> clamp state.h
-        | Glut.KEY_HOME -> addnav (); 0
-        | Glut.KEY_END ->
-            addnav ();
-            state.maxy - (if conf.maxhfit then state.h else 0)
-        | _ -> state.y
-      in
-      state.text <- "";
-      gotoy y
+      begin match state.textentry with
+      | None ->
+          let y =
+            match key with
+            | Glut.KEY_F3        -> search state.searchpattern true; state.y
+            | Glut.KEY_UP        -> clamp (-conf.scrollincr)
+            | Glut.KEY_DOWN      -> clamp conf.scrollincr
+            | Glut.KEY_PAGE_UP   -> clamp (-state.h)
+            | Glut.KEY_PAGE_DOWN -> clamp state.h
+            | Glut.KEY_HOME -> addnav (); 0
+            | Glut.KEY_END ->
+                addnav ();
+                state.maxy - (if conf.maxhfit then state.h else 0)
+            | _ -> state.y
+          in
+          state.text <- "";
+          gotoy y
+
+      | Some (c, s, Some onhist, onkey, ondone) ->
+          let s =
+            match key with
+            | Glut.KEY_UP    -> onhist HCprev
+            | Glut.KEY_DOWN  -> onhist HCnext
+            | _ -> state.text
+          in
+          state.textentry <- Some (c, s, Some onhist, onkey, ondone);
+          Glut.postRedisplay ()
+
+      | _ -> ()
+      end
 
   | Some (allowdel, active, first, outlines, qsearch) ->
       let maxrows = maxoutlinerows () in
