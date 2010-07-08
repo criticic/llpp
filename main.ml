@@ -1208,7 +1208,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             let a = Array.of_list (List.rev l) in
             state.outlines <- Oarray a;
             a
-        | Onarrow (a, b) -> b
+        | Onarrow (a, b) ->
+            state.outlines <- Oarray b;
+            b
       in
       state.outline <- Some (allowdel, 0, 0, outline, qsearch);
       Glut.postRedisplay ()
