@@ -1158,7 +1158,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       state.outline <- Some (allowdel, active, first, outlines, pattern);
       Glut.postRedisplay ()
 
-  | 14 ->
+  | 14 when not allowdel ->
       let optoutlines = narrow outlines qsearch in
       begin match optoutlines with
       | None -> state.text <- "can't narrow"
@@ -1171,7 +1171,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       end;
       Glut.postRedisplay ()
 
-  | 21 ->
+  | 21 when not allowdel ->
       let outline =
         match state.outlines with
         | Oarray a -> a
