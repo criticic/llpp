@@ -341,7 +341,7 @@ static int readlen (int fd)
     n = recv (fd, p, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while reading length");
-        sockerr (1, "read %zd", n);
+        sockerr (1, "recv %zd", n);
     }
 
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
