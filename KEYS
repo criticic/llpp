@@ -9,6 +9,7 @@ u                       - dehighlight
 -                       - toggle/set tunable
 0..9                    - enter page number to jump to
 b                       - toggle scroll bar
+l                       - toggle links highlighting
 f                       - toggle fullscreen
 n                       - repeat last search (forward)
 p, N                    - .................. (backward)

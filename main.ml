@@ -7,6 +7,7 @@ external gettext : string -> (int * int * int * int) -> int -> bool -> unit =
     "ml_gettext";;
 external checklink : string -> int -> int -> bool = "ml_checklink";;
 external getlink : string -> int -> int -> (int * int) option = "ml_getlink";;
+external highlightlinks : string -> int -> unit = "ml_highlightlinks";;
 external getpagewh : int -> float array = "ml_getpagewh";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
@@ -88,6 +89,7 @@ type conf =
     ; mutable crophack : bool
     ; mutable autoscroll : bool
     ; mutable showall : bool
+    ; mutable hlinks : bool
     }
 ;;
 
@@ -148,6 +150,7 @@ let conf =
   ; crophack = false
   ; autoscroll = false
   ; showall = false
+  ; hlinks = false
   }
 ;;
 
@@ -901,6 +904,11 @@ let viewkeyboard ~key ~x ~y =
           conf.scrollw <- if conf.scrollw > 0 then 0 else 5;
           reshape state.w state.h;
 
+      | 'l' ->
+          conf.hlinks <- not conf.hlinks;
+          state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
+          Glut.postRedisplay ()
+
       | 'a' ->
           conf.autoscroll <- not conf.autoscroll
 
@@ -1349,6 +1357,7 @@ let drawpage i l =
       draw l.pagedispy l.pagew l.pagevh l.pagey opaque;
       let b = now () in
       let d = b-.a in
+      if conf.hlinks then highlightlinks opaque (l.pagedispy - l.pagey);
       vlog "draw %f sec" d;
 
   | Some _ ->

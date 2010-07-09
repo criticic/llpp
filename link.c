@@ -1144,6 +1144,67 @@ static pdf_link *getlink (struct page *page, int x, int y)
     return NULL;
 }
 
+CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
+{
+    CAMLparam2 (ptr_v, yoff_v);
+    pdf_link *link;
+    struct page *page;
+    int xoff, yoff = Int_val (yoff_v);
+    const char *s = String_val (ptr_v);
+
+    if (trylock ("ml_highlightlinks")) {
+        goto done;
+    }
+
+    page = parse_pointer ("ml_highlightlinks", s);
+
+    glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
+    glEnable (GL_LINE_STIPPLE);
+    glLineStipple (0.5, 0xcccc);
+    glColor3ub (255, 0, 0);
+
+    xoff = -page->pixmap->x;
+    yoff -= page->pixmap->y;
+
+    glBegin (GL_QUADS);
+    for (link = page->drawpage->links; link; link = link->next) {
+        if (link->kind == PDF_LGOTO) {
+            fz_point p1, p2, p3, p4;
+            fz_matrix ctm = page->pagedim->ctm;
+
+            p1.x = link->rect.x0;
+            p1.y = link->rect.y0;
+
+            p2.x = link->rect.x1;
+            p2.y = link->rect.y0;
+
+            p3.x = link->rect.x1;
+            p3.y = link->rect.y1;
+
+            p4.x = link->rect.x0;
+            p4.y = link->rect.y1;
+
+            p1 = fz_transformpoint (ctm, p1);
+            p2 = fz_transformpoint (ctm, p2);
+            p3 = fz_transformpoint (ctm, p3);
+            p4 = fz_transformpoint (ctm, p4);
+
+            glVertex2f (p1.x + xoff, p1.y + yoff);
+            glVertex2f (p2.x + xoff, p2.y + yoff);
+            glVertex2f (p3.x + xoff, p3.y + yoff);
+            glVertex2f (p4.x + xoff, p4.y + yoff);
+        }
+    }
+    glEnd ();
+
+    glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+    glDisable (GL_LINE_STIPPLE);
+    unlock ("ml_highlightlinks");
+
+ done:
+    CAMLreturn (Val_unit);
+}
+
 CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
