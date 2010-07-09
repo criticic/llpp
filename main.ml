@@ -686,6 +686,13 @@ let textentry text key =
       TEcont text
 ;;
 
+let rotate angle =
+  state.rects <- [];
+  state.rects1 <- [];
+  state.rotate <- angle;
+  wcmd "rotate" [`i angle];
+;;
+
 let optentry text key =
   let btos b = if b then "on" else "off" in
   let c = Char.unsafe_chr key in
@@ -704,12 +711,15 @@ let optentry text key =
 
   | 'R' ->
       let ondone s =
-        try
-          state.rotate <- int_of_string s;
-          wcmd "rotate" [`i state.rotate]
-        with exc ->
-          state.text <- Printf.sprintf "bad integer `%s': %s"
-            s (Printexc.to_string exc)
+        match try
+            Some (int_of_string s)
+          with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc);
+            None
+        with
+        | Some angle -> rotate angle
+        | None -> ()
       in
       TEswitch ('^', "", None, intentry, ondone)
 
@@ -1020,8 +1030,7 @@ let viewkeyboard ~key ~x ~y =
           end
 
       | '<' | '>' ->
-          state.rotate <- state.rotate + (if c = '>' then 30 else -30);
-          wcmd "rotate" [`i state.rotate]
+          rotate (state.rotate + (if c = '>' then 30 else -30));
 
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);
