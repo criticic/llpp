@@ -432,8 +432,6 @@ static void *render (int pageno, int pindex)
         die (error);
 
     page->pixmap = fz_newpixmapwithrect (pdf_devicergb, pagedim->bbox);
-    if (error)
-        die (error);
     fz_clearpixmap (page->pixmap, 0xFF);
 
     idev = fz_newdrawdevice (state.cache, page->pixmap);
