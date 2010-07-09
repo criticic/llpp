@@ -122,7 +122,7 @@ struct pagedim {
     int rotate;
     fz_rect box;
     fz_bbox bbox;
-    fz_matrix ctm;
+    fz_matrix ctm, ctm1;
 };
 
 struct {
@@ -538,6 +538,7 @@ static void layout (void)
         ctm = fz_identity ();
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
         ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
+        memcpy (&p->ctm1, &ctm, sizeof (ctm));
         ctm = fz_concat (ctm, fz_rotate (p->rotate));
         p->bbox = fz_roundrect (fz_transformrect (ctm, box));
         memcpy (&p->ctm, &ctm, sizeof (ctm));
@@ -640,6 +641,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     int ret;
     char *p;
     char buf[256];
+    fz_matrix ctm;
     fz_error error;
     fz_obj *pageobj;
     fz_device *tdev;
@@ -691,9 +693,11 @@ static void search (regex_t *re, int pageno, int y, int forward)
         if (error)
             die (error);
 
+        ctm = fz_rotate (pdim->rotate);
+
         text = fz_newtextspan ();
         tdev = fz_newtextdevice (text);
-        error = pdf_runcontentstream (tdev, pdim->ctm, state.xref,
+        error = pdf_runcontentstream (tdev, pdim->ctm1, state.xref,
                                       drawpage->resources,
                                       drawpage->contents);
         if (error) die (error);
@@ -758,29 +762,49 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 }
             }
             else  {
-                fz_rect r;
+                int xoff, yoff;
+                fz_bbox *sb, *eb;
+                fz_point p1, p2, p3, p4;
 
-                r.x0 = span->text[rm.rm_so].bbox.x0 - pdim->bbox.x0;
-                r.y0 = span->text[rm.rm_so].bbox.y0;
-                r.x1 = span->text[rm.rm_eo - 1].bbox.x1 - pdim->bbox.x0;
-                r.y1 = span->text[rm.rm_eo - 1].bbox.y1;
+                xoff = -pdim->bbox.x0;
+                yoff = -pdim->bbox.y0;
+
+                sb = &span->text[rm.rm_so].bbox;
+                eb = &span->text[rm.rm_eo - 1].bbox;
+
+                p1.x = sb->x0;
+                p1.y = sb->y0;
+                p2.x = eb->x1;
+                p2.y = sb->y0;
+                p3.x = eb->x1;
+                p3.y = eb->y1;
+                p4.x = sb->x0;
+                p4.y = eb->y1;
+
+                p1 = fz_transformpoint (ctm, p1);
+                p2 = fz_transformpoint (ctm, p2);
+                p3 = fz_transformpoint (ctm, p3);
+                p4 = fz_transformpoint (ctm, p4);
 
                 if (!stop) {
-                    printd (state.sock, "F %d %d %f %f %f %f",
+                    printd (state.sock, "F %d %d %f %f %f %f %f %f %f %f",
                             pageno, 1,
-                            r.x0, r.y0,
-                            r.x1, r.y1);
+                            p1.x + xoff, p1.y + yoff,
+                            p2.x + xoff, p2.y + yoff,
+                            p3.x + xoff, p3.y + yoff,
+                            p4.x + xoff, p4.y + yoff);
 
-                    printd (state.sock, "T found at %d `%.*s' %f in %f sec",
+                    printd (state.sock, "T found at %d `%.*s' in %f sec",
                             pageno, rm.rm_eo - rm.rm_so, &buf[rm.rm_so],
-                            span->text[0].bbox.y0 - drawpage->mediabox.y0,
                             now () - start);
                 }
                 else  {
-                    printd (state.sock, "R %d %d %f %f %f %f",
+                    printd (state.sock, "R %d %d %f %f %f %f %f %f %f %f",
                             pageno, 2,
-                            r.x0, r.y0,
-                            r.x1, r.y1);
+                            p1.x + xoff, p1.y + yoff,
+                            p2.x + xoff, p2.y + yoff,
+                            p3.x + xoff, p3.y + yoff,
+                            p4.x + xoff, p4.y + yoff);
                 }
                 stop = 1;
             }

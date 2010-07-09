@@ -100,6 +100,8 @@ type outlines =
     | Onarrow of outline array * outline array
 ;;
 
+type rect = (float * float * float * float * float * float * float * float);;
+
 type state =
     { mutable csock : Unix.file_descr
     ; mutable ssock : Unix.file_descr
@@ -118,8 +120,8 @@ type state =
     ; mutable inflight : int
     ; mutable mstate : mstate
     ; mutable searchpattern : string
-    ; mutable rects : (int * int * Gl.point2 * Gl.point2) list
-    ; mutable rects1 : (int * int * Gl.point2 * Gl.point2) list
+    ; mutable rects : (int * int * rect) list
+    ; mutable rects1 : (int * int * rect) list
     ; mutable text : string
     ; mutable fullscreen : (int * int) option
     ; mutable textentry : textentry option
@@ -127,6 +129,7 @@ type state =
     ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
     ; mutable path : string
+    ; mutable sconty : float
     ; hists : hists
     }
 and hists =
@@ -181,6 +184,7 @@ let state =
   ; outline = None
   ; bookmarks = []
   ; path = ""
+  ; sconty = 0.0
   ; hists =
       { nav = cbnew 100 0.0
       ; pat = cbnew 20 ""
@@ -534,21 +538,24 @@ let act cmd =
         Glut.swapBuffers ();
 
   | 'F' ->
-      let pageno, c, x0, y0, x1, y1 =
-        Scanf.sscanf cmd "F %d %d %f %f %f %f"
-          (fun p c x0 y0 x1 y1 -> (p, c, x0, y0, x1, y1))
+      let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
+        Scanf.sscanf cmd "F %d %d %f %f %f %f %f %f %f %f"
+          (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
+            (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
       let y = (getpagey pageno) + truncate y0 in
       addnav ();
       gotoy y;
-      state.rects1 <- [pageno, c, (x0, y0), (x1, y1)]
+      state.rects1 <- [pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)]
 
   | 'R' ->
-      let pageno, c, x0, y0, x1, y1 =
-        Scanf.sscanf cmd "R %d %d %f %f %f %f"
-          (fun pageno c x0 y0 x1 y1 -> (pageno, c, x0, y0, x1, y1))
+      let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
+        Scanf.sscanf cmd "R %d %d %f %f %f %f %f %f %f %f"
+          (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
+            (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
-      state.rects1 <- (pageno, c, (x0, y0), (x1, y1)) :: state.rects1
+      state.rects1 <-
+        (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | 'r' ->
       let n, w, h, r, p =
@@ -1449,13 +1456,21 @@ let showrects () =
   GlDraw.color (0.0, 0.0, 1.0) ~alpha:0.5;
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   List.iter
-    (fun (pageno, c, (x0, y0), (x1, y1)) ->
+    (fun (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) ->
       List.iter (fun l ->
         if l.pageno = pageno
         then (
           let d = float (l.pagedispy - l.pagey) in
           GlDraw.color (0.0, 0.0, 1.0 /. float c) ~alpha:0.5;
-          GlDraw.rect (x0, y0 +. d) (x1, y1 +. d)
+          GlDraw.begins `quads;
+          (
+            GlDraw.vertex2 (x0, y0+.d);
+            GlDraw.vertex2 (x1, y1+.d);
+            GlDraw.vertex2 (x2, y2+.d);
+            GlDraw.vertex2 (x3, y3+.d);
+          );
+          GlDraw.ends ();
+          (* GlDraw.rect (x0, y0 +. d) (x1, y1 +. d) *)
         )
       ) state.layout
     ) state.rects
