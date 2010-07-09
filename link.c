@@ -770,6 +770,11 @@ static void search (regex_t *re, int pageno, int y, int forward)
                             pageno, 1,
                             r.x0, r.y0,
                             r.x1, r.y1);
+
+                    printd (state.sock, "T found at %d `%.*s' %f in %f sec",
+                            pageno, rm.rm_eo - rm.rm_so, &buf[rm.rm_so],
+                            span->text[0].bbox.y0 - drawpage->mediabox.y0,
+                            now () - start);
                 }
                 else  {
                     printd (state.sock, "R %d %d %f %f %f %f",
@@ -777,10 +782,6 @@ static void search (regex_t *re, int pageno, int y, int forward)
                             r.x0, r.y0,
                             r.x1, r.y1);
                 }
-                printd (state.sock, "T found at %d `%.*s' %f in %f sec",
-                        pageno, rm.rm_eo - rm.rm_so, &buf[rm.rm_so],
-                        span->text[0].bbox.y0 - drawpage->mediabox.y0,
-                        now () - start);
                 stop = 1;
             }
         }
