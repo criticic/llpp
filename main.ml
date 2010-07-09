@@ -1092,12 +1092,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
           if
             (try ignore (Str.search_forward re s 0); true
               with Not_found -> false)
-          then (
-            let maxrows = (min (Array.length outlines) (maxoutlinerows ())) / 2 in
-            if first > n
-            then Some (n, max 0 (n - maxrows))
-            else Some (n, max first (n - maxrows))
-          )
+          then Some n
           else loop (n + incr)
       in
       loop active
@@ -1109,6 +1104,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       state.text <- s;
       None
   in
+  let firstof active = max 0 (active - maxoutlinerows () / 2) in
   match key with
   | 27 ->
       if String.length qsearch = 0
@@ -1130,9 +1126,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
         | None ->
             state.text <- qsearch ^ " [not found]";
             active, first
-        | Some af ->
+        | Some active ->
             state.text <- qsearch;
-            af
+            active, firstof active
       in
       state.outline <- Some (allowdel, active, first, outlines, qsearch);
       Glut.postRedisplay ();
@@ -1154,9 +1150,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             | None ->
                 state.text <- qsearch ^ " [not found]";
                 active, first
-            | Some af ->
+            | Some active ->
                 state.text <- qsearch;
-                af
+                active, firstof active
           in
           state.outline <- Some (allowdel, active, first, outlines, qsearch);
       );
@@ -1180,9 +1176,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
         | None ->
             state.text <- pattern ^ " [not found]";
             active, first
-        | Some (active, first) ->
+        | Some active ->
             state.text <- pattern;
-            active, first
+            active, firstof active
       in
       state.outline <- Some (allowdel, active, first, outlines, pattern);
       Glut.postRedisplay ()
@@ -1213,6 +1209,11 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             b
       in
       state.outline <- Some (allowdel, 0, 0, outline, qsearch);
+      Glut.postRedisplay ()
+
+  | 12 ->
+      state.outline <-
+        Some (allowdel, active, firstof active, outlines, qsearch);
       Glut.postRedisplay ()
 
   | 127 when allowdel ->

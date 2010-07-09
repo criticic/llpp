@@ -44,11 +44,13 @@ Ctrl-s                  - repeat search (forward)
 Ctrl-r                  - repeat search (backward)
 Ctrl-n                  - narrow to search pattern
 Ctrl-u                  - undo narrowing
+Ctrl-l                  - center on current item
 
 bookmark mode
 alpha-numeric           - quick search
 Ctrl-s                  - repeat search (forward)
 Ctrl-r                  - repeat search (backward)
+Ctrl-l                  - center on current item
 
 when entering search pattern/page number
 up/down arrow           - previous/next entered text
