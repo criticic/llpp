@@ -62,6 +62,7 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #ifndef _WIN32
 #include <pthread.h>
 #include <sys/time.h>
@@ -528,14 +529,14 @@ static void layout (void)
         box.x1 = MAX (p->box.x0, p->box.x1);
         box.y1 = MAX (p->box.y0, p->box.y1);
 
-        ctm = fz_identity ();
+        ctm = fz_identity;
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
         ctm = fz_concat (ctm, fz_rotate (p->rotate));
         box2 = fz_transformrect (ctm, box);
         w = box2.x1 - box2.x0;
 
         zoom = (state.w / w);
-        ctm = fz_identity ();
+        ctm = fz_identity;
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
         ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
         memcpy (&p->ctm1, &ctm, sizeof (ctm));
