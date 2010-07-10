@@ -1467,6 +1467,7 @@ CAMLprim value ml_init (value sock_v)
     state.texform = GL_RGBA;
     state.texty = GL_UNSIGNED_BYTE;
 
+    fz_accelerate ();
     state.texids = calloc (state.texcount * sizeof (*state.texids), 1);
     if (!state.texids) {
         err (1, "calloc texids %zu", state.texcount * sizeof (*state.texids));
