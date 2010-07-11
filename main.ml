@@ -129,7 +129,6 @@ type state =
     ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
     ; mutable path : string
-    ; mutable sconty : float
     ; hists : hists
     }
 and hists =
@@ -184,7 +183,6 @@ let state =
   ; outline = None
   ; bookmarks = []
   ; path = ""
-  ; sconty = 0.0
   ; hists =
       { nav = cbnew 100 0.0
       ; pat = cbnew 20 ""
