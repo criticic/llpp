@@ -787,7 +787,8 @@ let enterselector allowdel outlines errmsg =
       loop 0
     in
     state.outline <-
-      Some (allowdel, active, max 0 (active - maxoutlinerows ()), outlines, "");
+      Some (allowdel, active,
+           max 0 ((active - maxoutlinerows () / 2)), outlines, "");
     Glut.postRedisplay ();
 ;;
 
