@@ -1498,7 +1498,7 @@ let showoutline = function
         else (
           let (s, l, _, _) = outlines.(row) in
           let y = (row - first) * 16 in
-          let x = 5 + 5*l in
+          let x = 5 + 15*l in
           if row = active
           then (
             Gl.enable `blend;
@@ -1593,7 +1593,9 @@ let mouse ~button ~bstate ~x ~y =
       let dest = if bstate = Glut.DOWN then getlink x y else None in
       begin match dest with
       | Some (pageno, top) ->
-          gotopage pageno top
+          if pageno >= 0
+          then
+            gotopage pageno top
 
       | None ->
           if bstate = Glut.DOWN

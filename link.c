@@ -1161,9 +1161,7 @@ static pdf_link *getlink (struct page *page, int x, int y)
     for (link = page->drawpage->links; link; link = link->next) {
         if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
             if (p.y >= link->rect.y0 && p.y <= link->rect.y1) {
-                if (link->kind == PDF_LGOTO) {
-                    return link;
-                }
+                return link;
             }
         }
     }
@@ -1187,39 +1185,42 @@ CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
     glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
     glEnable (GL_LINE_STIPPLE);
     glLineStipple (0.5, 0xcccc);
-    glColor3ub (255, 0, 0);
 
     xoff = -page->pixmap->x;
     yoff -= page->pixmap->y;
 
     glBegin (GL_QUADS);
     for (link = page->drawpage->links; link; link = link->next) {
-        if (link->kind == PDF_LGOTO) {
-            fz_point p1, p2, p3, p4;
-            fz_matrix ctm = page->pagedim->ctm;
+        fz_point p1, p2, p3, p4;
+        fz_matrix ctm = page->pagedim->ctm;
 
-            p1.x = link->rect.x0;
-            p1.y = link->rect.y0;
+        p1.x = link->rect.x0;
+        p1.y = link->rect.y0;
 
-            p2.x = link->rect.x1;
-            p2.y = link->rect.y0;
+        p2.x = link->rect.x1;
+        p2.y = link->rect.y0;
 
-            p3.x = link->rect.x1;
-            p3.y = link->rect.y1;
+        p3.x = link->rect.x1;
+        p3.y = link->rect.y1;
 
-            p4.x = link->rect.x0;
-            p4.y = link->rect.y1;
+        p4.x = link->rect.x0;
+        p4.y = link->rect.y1;
 
-            p1 = fz_transformpoint (ctm, p1);
-            p2 = fz_transformpoint (ctm, p2);
-            p3 = fz_transformpoint (ctm, p3);
-            p4 = fz_transformpoint (ctm, p4);
+        p1 = fz_transformpoint (ctm, p1);
+        p2 = fz_transformpoint (ctm, p2);
+        p3 = fz_transformpoint (ctm, p3);
+        p4 = fz_transformpoint (ctm, p4);
 
-            glVertex2f (p1.x + xoff, p1.y + yoff);
-            glVertex2f (p2.x + xoff, p2.y + yoff);
-            glVertex2f (p3.x + xoff, p3.y + yoff);
-            glVertex2f (p4.x + xoff, p4.y + yoff);
+        switch (link->kind) {
+        case PDF_LGOTO: glColor3ub (255, 0, 0); break;
+        case PDF_LURI: glColor3ub (0, 0, 255); break;
+        default: glColor3ub (0, 0, 0); break;
         }
+
+        glVertex2f (p1.x + xoff, p1.y + yoff);
+        glVertex2f (p2.x + xoff, p2.y + yoff);
+        glVertex2f (p3.x + xoff, p3.y + yoff);
+        glVertex2f (p4.x + xoff, p4.y + yoff);
     }
     glEnd ();
 
@@ -1241,8 +1242,19 @@ CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
         ret = 0;
     }
     else {
-        ret = NULL != getlink (parse_pointer ("ml_checklink", s),
-                               Int_val (x_v), Int_val (y_v));
+        pdf_link *link;
+
+        link = getlink (parse_pointer ("ml_checklink", s),
+                        Int_val (x_v), Int_val (y_v));
+
+        if (link == NULL) {
+            ret = 0;
+        }
+        else  {
+            if (link->kind == PDF_LURI) {
+                printd (state.sock, "T %s", fz_tostrbuf (link->dest));
+            }
+        }
         unlock ("ml_checklink");
     }
     CAMLreturn (Val_bool (ret));
@@ -1256,6 +1268,7 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
     struct page *page;
     char *s = String_val (ptr_v);
 
+    ret_v = Val_int (0);
     if (trylock ("ml_getlink")) {
         ret_v = Val_int (0);
         goto done;
@@ -1265,37 +1278,53 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
 
     link = getlink (page, Int_val (x_v), Int_val (y_v));
     if (link) {
-        int pageno;
-        fz_point p;
-        fz_obj *obj;
+        switch (link->kind) {
+        case PDF_LGOTO:
+            {
+                int pageno;
+                fz_point p;
+                fz_obj *obj;
 
-        pageno = -1;
-        obj = fz_arrayget (link->dest, 0);
-        if (fz_isindirect (obj)) {
-            pageno = pdf_findpageobject (state.xref, obj) - 1;
-        }
-        else if (fz_isint (obj)) {
-            pageno = fz_toint (obj);
-        }
+                pageno = -1;
+                obj = fz_arrayget (link->dest, 0);
+                if (fz_isindirect (obj)) {
+                    pageno = pdf_findpageobject (state.xref, obj) - 1;
+                }
+                else if (fz_isint (obj)) {
+                    pageno = fz_toint (obj);
+                }
 
-        if (fz_arraylen (link->dest) > 3) {
-            p.x = fz_toint (fz_arrayget (link->dest, 2));
-            p.y = fz_toint (fz_arrayget (link->dest, 3));
-            p = fz_transformpoint (page->pagedim->ctm, p);
-        }
-        else  {
-            p.x = 0.0;
-            p.y = 0.0;
-        }
+                if (fz_arraylen (link->dest) > 3) {
+                    p.x = fz_toint (fz_arrayget (link->dest, 2));
+                    p.y = fz_toint (fz_arrayget (link->dest, 3));
+                    p = fz_transformpoint (page->pagedim->ctm, p);
+                }
+                else  {
+                    p.x = 0.0;
+                    p.y = 0.0;
+                }
 
-        tup_v = caml_alloc_tuple (2);
-        ret_v = caml_alloc_small (1, 1);
-        Field (tup_v, 0) = Val_int (pageno);
-        Field (tup_v, 1) = Val_int (p.y);
-        Field (ret_v, 0) = tup_v;
-    }
-    else {
-        ret_v = Val_int (0);
+                tup_v = caml_alloc_tuple (2);
+                ret_v = caml_alloc_small (1, 1);
+                Field (tup_v, 0) = Val_int (pageno);
+                Field (tup_v, 1) = Val_int (p.y);
+                Field (ret_v, 0) = tup_v;
+            }
+            break;
+
+        case PDF_LURI:
+            printf ("%s\n", fz_tostrbuf (link->dest));
+            tup_v = caml_alloc_tuple (2);
+            ret_v = caml_alloc_small (1, 1);
+            Field (tup_v, 0) = Val_int (-1);
+            Field (tup_v, 1) = Val_int (0);
+            Field (ret_v, 0) = tup_v;
+            break;
+
+        default:
+            printd (state.sock, "unhandled link kind %d\n", link->kind);
+            break;
+        }
     }
     unlock ("ml_getlink");
 
