@@ -1322,7 +1322,7 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
             break;
 
         default:
-            printd (state.sock, "unhandled link kind %d\n", link->kind);
+            printd (state.sock, "T unhandled link kind %d\n", link->kind);
             break;
         }
     }
