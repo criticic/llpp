@@ -21,14 +21,6 @@ test -d lablgl   || cvs -d $lablgl co -d lablgl bazar-ocaml/lablGL
 if ! test -d mupdf; then
     if $use_sumatrapdf_patched_mupdf; then
         svn checkout $sumatrapdf/mupdf mupdf && grep
-        case $(uname -m) in
-            ppc*|sparc*|arm*)
-            mv mupdf/Makerules aaa && grep -vi "x86" aaa > mupdf/Makerules
-            rm aaa
-            ;;
-            *)
-            ;;
-        esac
     else
         wget $mupdf && tar xf $(basename $mupdf)
     fi
