@@ -1024,7 +1024,7 @@ let viewkeyboard ~key ~x ~y =
                 if conf.crophack
                 then
                   (truncate (1.8 *. (a.(1) -. a.(0))),
-                  truncate (1.4 *. (a.(3) -. a.(0))))
+                  truncate (1.2 *. (a.(3) -. a.(0))))
                 else
                   (truncate (a.(1) -. a.(0)),
                   truncate (a.(3) -. a.(0)))
