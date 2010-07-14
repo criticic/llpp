@@ -1320,7 +1320,7 @@ let special ~key ~x ~y =
           if active > first
           then
             let rows = active - first in
-            if rows > maxrows then first + incr else first
+            if rows > maxrows then active - maxrows else first
           else active
         in
         state.outline <- Some (allowdel, active, first, outlines, qsearch);
