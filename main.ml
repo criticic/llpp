@@ -129,6 +129,7 @@ type state =
     ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
     ; mutable path : string
+    ; mutable ready : bool
     ; hists : hists
     }
 and hists =
@@ -183,6 +184,7 @@ let state =
   ; outline = None
   ; bookmarks = []
   ; path = ""
+  ; ready = false
   ; hists =
       { nav = cbnew 100 0.0
       ; pat = cbnew 20 ""
@@ -345,9 +347,13 @@ let layout y sh =
       else
         f pageno' pdimno curr vy (py + h) dy rest cacheleft accu
   in
-  let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages (cblen state.pagecache) [] in
-  state.maxy <- calcheight ();
-  List.rev accu
+  if state.ready
+  then
+    let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages (cblen state.pagecache) [] in
+    state.maxy <- calcheight ();
+    List.rev accu
+  else
+    []
 ;;
 
 let clamp incr =
@@ -445,6 +451,7 @@ let reshape ~w ~h =
   state.layout <- [];
   state.pages <- [];
   state.rects <- [];
+  state.ready <- false;
   state.text <- "";
   wcmd "geometry" [`i (state.w - conf.scrollw); `i h];
 ;;
@@ -500,6 +507,7 @@ let act cmd =
       let maxy = calcheight () in
       state.y <- truncate (float maxy *. rely);
       state.ty <- state.y;
+      state.ready <- true;
       let pages = layout state.y state.h in
       state.layout <- pages;
       Glut.postRedisplay ();
@@ -695,6 +703,9 @@ let rotate angle =
   state.rects <- [];
   state.rects1 <- [];
   state.rotate <- angle;
+  state.ready <- false;
+  state.layout <- [];
+  state.pages <- [];
   wcmd "rotate" [`i angle];
 ;;
 

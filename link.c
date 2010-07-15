@@ -1096,6 +1096,7 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     w = page->pixmap->w;
 
     ARSERT (h >= 0 && "ml_draw wrong h");
+    ARSERT (py <= page->pixmap->h && "ml_draw wrong py");
 
     glEnable (GL_TEXTURE_RECTANGLE_ARB);
 
