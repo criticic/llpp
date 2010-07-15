@@ -129,7 +129,7 @@ type state =
     ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
     ; mutable path : string
-    ; mutable ready : bool
+    ; mutable invalidated : int
     ; hists : hists
     }
 and hists =
@@ -184,7 +184,7 @@ let state =
   ; outline = None
   ; bookmarks = []
   ; path = ""
-  ; ready = false
+  ; invalidated = 0
   ; hists =
       { nav = cbnew 100 0.0
       ; pat = cbnew 20 ""
@@ -347,7 +347,7 @@ let layout y sh =
       else
         f pageno' pdimno curr vy (py + h) dy rest cacheleft accu
   in
-  if state.ready
+  if state.invalidated = 0
   then
     let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages (cblen state.pagecache) [] in
     state.maxy <- calcheight ();
@@ -429,6 +429,14 @@ let gotopage n top =
   gotoy (y + top);
 ;;
 
+let invalidate () =
+  state.layout <- [];
+  state.pages <- [];
+  state.rects <- [];
+  state.rects1 <- [];
+  state.invalidated <- state.invalidated + 1;
+;;
+
 let reshape ~w ~h =
   let ratio = float w /. float state.w in
   let fixbookmark (s, l, pageno, pagey) =
@@ -448,11 +456,7 @@ let reshape ~w ~h =
   GlMat.scale3 (2.0 /. float w, 2.0 /. float state.h, 1.0);
   GlClear.color (1., 1., 1.);
   GlClear.clear [`color];
-  state.layout <- [];
-  state.pages <- [];
-  state.rects <- [];
-  state.ready <- false;
-  state.text <- "";
+  invalidate ();
   wcmd "geometry" [`i (state.w - conf.scrollw); `i h];
 ;;
 
@@ -503,14 +507,17 @@ let act cmd =
   | 'C' ->
       let n = Scanf.sscanf cmd "C %d" (fun n -> n) in
       state.pagecount <- n;
-      let rely = yratio state.y in
-      let maxy = calcheight () in
-      state.y <- truncate (float maxy *. rely);
-      state.ty <- state.y;
-      state.ready <- true;
-      let pages = layout state.y state.h in
-      state.layout <- pages;
-      Glut.postRedisplay ();
+      state.invalidated <- state.invalidated - 1;
+      if state.invalidated = 0
+      then (
+        let rely = yratio state.y in
+        let maxy = calcheight () in
+        state.y <- truncate (float maxy *. rely);
+        state.ty <- state.y;
+        let pages = layout state.y state.h in
+        state.layout <- pages;
+        Glut.postRedisplay ();
+      )
 
   | 't' ->
       let s = Scanf.sscanf cmd "t %n"
@@ -700,12 +707,8 @@ let textentry text key =
 ;;
 
 let rotate angle =
-  state.rects <- [];
-  state.rects1 <- [];
   state.rotate <- angle;
-  state.ready <- false;
-  state.layout <- [];
-  state.pages <- [];
+  invalidate ();
   wcmd "rotate" [`i angle];
 ;;
 
