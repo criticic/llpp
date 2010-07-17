@@ -301,7 +301,7 @@ static void die (fz_error error)
 {
     fz_catch (error, "aborting");
     if (state.xref)
-       pdf_closexref (state.xref);
+       pdf_freexref (state.xref);
     exit (1);
 }
 
@@ -316,9 +316,9 @@ static void openxref (char *filename)
         die (fz_throw ("cannot open file '%s'", filename));
 
     file = fz_openfile (fd);
-    state.xref = pdf_openxref (file);
-    if (!state.xref)
-        die (fz_throw ("cannot open PDF file '%s'", filename));
+    error = pdf_openxrefwithstream (&state.xref, file, NULL);
+    if (error)
+        die (fz_rethrow(error, "cannot open document '%s'", filename));
     fz_dropstream (file);
 
     if (pdf_needspassword (state.xref)) {
@@ -408,7 +408,6 @@ static void *render (int pageno, int pindex)
 
     start = now ();
     printd (state.sock, "V rendering %d", pageno);
-    pdf_flushxref (state.xref, 0);
 
     pagedim = &state.pagedims[pindex];
     slicecount = (pagedim->bbox.y1 - pagedim->bbox.y0
@@ -438,9 +437,7 @@ static void *render (int pageno, int pindex)
     idev = fz_newdrawdevice (state.cache, page->pixmap);
     if (!idev)
         die (fz_throw ("fz_newdrawdevice failed"));
-    error = pdf_runcontentstream (idev, pagedim->ctm, state.xref,
-                                  drawpage->resources,
-                                  drawpage->contents);
+    error = pdf_runpage (state.xref, drawpage, idev, pagedim->ctm);
     fz_freedevice (idev);
 
     page->drawpage = drawpage;
@@ -450,8 +447,7 @@ static void *render (int pageno, int pindex)
     end = now ();
 
     if (!state.lotsamemory) {
-        pdf_agestoreditems (state.xref->store);
-        pdf_evictageditems (state.xref->store);
+        pdf_agestore(state.xref->store, 3);
     }
 
     printd (state.sock, "V rendering %d took %f sec", pageno, end - start);
@@ -658,8 +654,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
         if (niters++ == 5) {
             if (!state.lotsamemory) {
-                pdf_agestoreditems (state.xref->store);
-                pdf_evictageditems (state.xref->store);
+                pdf_agestore(state.xref->store, 3);
             }
             niters = 0;
             if (hasdata (state.sock)) {
@@ -698,9 +693,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
 
         text = fz_newtextspan ();
         tdev = fz_newtextdevice (text);
-        error = pdf_runcontentstream (tdev, pdim->ctm1, state.xref,
-                                      drawpage->resources,
-                                      drawpage->contents);
+        error = pdf_runpage (state.xref, drawpage, tdev, pdim->ctm1);
         if (error) die (error);
         fz_freedevice (tdev);
 
@@ -1380,9 +1373,8 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
 
         page->text = fz_newtextspan ();
         tdev = fz_newtextdevice (page->text);
-        error = pdf_runcontentstream (tdev, page->pagedim->ctm, state.xref,
-                                      page->drawpage->resources,
-                                      page->drawpage->contents);
+        error = pdf_runpage (state.xref, page->drawpage, tdev,
+                             page->pagedim->ctm);
         if (error) die (error);
         fz_freedevice (tdev);
     }
