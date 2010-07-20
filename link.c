@@ -487,7 +487,7 @@ static void initpdims (void)
         }
         rotate += state.rotate;
 
-        state.pagetbl[pageno] = fz_tonum (state.xref->pagerefs[pageno]);
+        state.pagetbl[pageno] = fz_tonum (pdf_getpageref (state.xref, pageno));
         p = &state.pagedims[state.pagedimcount - 1];
         if ((state.pagedimcount == 0)
             || (p->rotate != rotate || memcmp (&p->box, &box, sizeof (box)))) {
