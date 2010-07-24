@@ -1232,21 +1232,15 @@ CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     char *s = String_val (ptr_v);
-    int ret;
+    int ret = 0;
 
-    if (trylock ("ml_checklink")) {
-        ret = 0;
-    }
-    else {
+    if (!trylock ("ml_checklink")) {
         pdf_link *link;
 
         link = getlink (parse_pointer ("ml_checklink", s),
                         Int_val (x_v), Int_val (y_v));
-
-        if (link == NULL) {
-            ret = 0;
-        }
-        else  {
+        if (link) {
+            ret = 1;
             if (link->kind == PDF_LURI) {
                 printd (state.sock, "T %s", fz_tostrbuf (link->dest));
             }
