@@ -82,7 +82,6 @@ type conf =
     ; mutable icase : bool
     ; mutable preload : bool
     ; mutable pagebias : int
-    ; mutable redispimm : bool
     ; mutable verbose : bool
     ; mutable scrollincr : int
     ; mutable maxhfit : bool
@@ -146,7 +145,6 @@ let conf =
   ; rectsel = true
   ; preload = false
   ; pagebias = 0
-  ; redispimm = false
   ; verbose = false
   ; scrollincr = 24
   ; maxhfit = true
@@ -413,10 +411,6 @@ let gotoy y =
     let pages = layout y (h*3) in
     List.iter preload pages;
   end;
-  if conf.redispimm
-  then
-    Glut.postRedisplay ()
-  ;
 ;;
 
 let addnav () =
@@ -621,7 +615,7 @@ let act cmd =
 ;;
 
 let idle () =
-  if not conf.redispimm && state.y != state.prevy
+  if state.y != state.prevy
   then (
     state.prevy <- state.y;
     Glut.postRedisplay ();
@@ -749,10 +743,6 @@ let optentry text key =
   | 'p' ->
       conf.preload <- not conf.preload;
       TEdone ("preload " ^ (btos conf.preload))
-
-  | 'd' ->
-      conf.redispimm <- not conf.redispimm;
-      TEdone ("immediate redisplay " ^ (btos conf.redispimm))
 
   | 'v' ->
       conf.verbose <- not conf.verbose;

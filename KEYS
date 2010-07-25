@@ -36,7 +36,6 @@ tuanbles
 -R<number>              - rotate
 -p                      - toggle preloading
 -v                      - toggle verbosity
--d                      - toggle immediate redisplay
 -h                      - toggle maxfit
 
 outline mode
