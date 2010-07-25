@@ -407,6 +407,12 @@ let gotoy y =
     state.layout <- pages;
   );
   state.ty <- y;
+  if conf.preload then begin
+    let h = state.h in
+    let y = if state.y < state.h then 0 else state.y - state.h in
+    let pages = layout y (h*3) in
+    List.iter preload pages;
+  end;
   if conf.redispimm
   then
     Glut.postRedisplay ()
@@ -625,12 +631,6 @@ let idle () =
 
     begin match r with
     | [] ->
-        if conf.preload then begin
-          let h = state.h in
-          let y = if state.y < state.h then 0 else state.y - state.h in
-          let pages = layout y (h*3) in
-          List.iter preload pages;
-        end;
         if conf.autoscroll then begin
           let y = state.y + conf.scrollincr in
           let y = if y >= state.maxy then 0 else y in
