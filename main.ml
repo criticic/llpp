@@ -742,6 +742,7 @@ let optentry text key =
 
   | 'p' ->
       conf.preload <- not conf.preload;
+      gotoy state.y;
       TEdone ("preload " ^ (btos conf.preload))
 
   | 'v' ->
