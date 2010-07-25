@@ -36,9 +36,7 @@ mkdir -p $root/include
     && cp dist/*.a $root/lib/)
 
 (cd jbig2dec \
-    && (test -f Makefile || (test -f configure || sh autogen.sh --prefix=$root \
-                             && ./configure --prefix=$root)) \
-    && make install && rm -f $root/lib/*.so*)
+    && make -f Makefile.unix install && rm -f $root/lib/*.so*)
 
 (cd lablgl \
     && cat Makefile.config.linux.mdk > Makefile.config \
