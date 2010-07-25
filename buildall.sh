@@ -36,7 +36,7 @@ mkdir -p $root/include
     && cp dist/*.a $root/lib/)
 
 (cd jbig2dec \
-    && make -f Makefile.unix install && rm -f $root/lib/*.so*)
+    && make -f Makefile.unix install prefix=$root && rm -f $root/lib/*.so*)
 
 (cd lablgl \
     && cat Makefile.config.linux.mdk > Makefile.config \
