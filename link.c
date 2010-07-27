@@ -4,6 +4,12 @@
 #include <windows.h>
 #include <winsock2.h>
 #define ssize_t int
+#define FMT_ss "%d"
+#ifdef _WIN64
+#define FMT_s "%i64u"
+#else
+#define FMT_s "%u"
+#endif
 #pragma warning (disable:4244)
 #pragma warning (disable:4996)
 #pragma warning (disable:4995)
@@ -51,6 +57,8 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
     exit (exitcode);
 }
 #else
+#define FMT_ss "%zd"
+#define FMT_s "%zu"
 #define _GNU_SOURCE
 #include <err.h>
 #define sockerr err
@@ -254,7 +262,7 @@ static void readdata (int fd, char *p, int size)
     n = recv (fd, p, size, 0);
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        sockerr (1, "recv (req %d, ret %zd)", size, n);
+        sockerr (1, "recv (req %d, ret " FMT_ss ")", size, n);
     }
 }
 
@@ -271,13 +279,13 @@ static void writedata (int fd, char *p, int size)
     n = send (fd, buf, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while writing length");
-        sockerr (1, "send %zd", n);
+        sockerr (1, "send " FMT_ss, n);
     }
 
     n = send (fd, p, size, 0);
     if (n - size) {
         if (!n) errx (1, "EOF while writing data");
-        sockerr (1, "send (req %d, ret %zd)", size, n);
+        sockerr (1, "send (req %d, ret " FMT_ss ")", size, n);
     }
 }
 
@@ -342,7 +350,7 @@ static int readlen (int fd)
     n = recv (fd, p, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while reading length");
-        sockerr (1, "recv %zd", n);
+        sockerr (1, "recv " FMT_ss, n);
     }
 
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
@@ -498,7 +506,7 @@ static void initpdims (void)
             size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
             state.pagedims = realloc (state.pagedims, size);
             if (!state.pagedims) {
-                err (1, "realloc pagedims to %zu (%d elems)",
+                err (1, "realloc pagedims to " FMT_s " (%d elems)",
                      size, state.pagedimcount + 1);
             }
             p = &state.pagedims[state.pagedimcount++];
@@ -705,7 +713,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         }
         pspan = malloc (sizeof (void *) * nspans);
         if (!pspan) {
-            err (1, "malloc span pointers %zu", sizeof (void *) * nspans);
+            err (1, "malloc span pointers " FMT_s, sizeof (void *) * nspans);
         }
         for (i = 0, span = text; span; span = span->next, ++i) {
             pspan[i] = span;
@@ -1488,12 +1496,13 @@ CAMLprim value ml_init (value sock_v)
     fz_accelerate ();
     state.texids = calloc (state.texcount * sizeof (*state.texids), 1);
     if (!state.texids) {
-        err (1, "calloc texids %zu", state.texcount * sizeof (*state.texids));
+        err (1, "calloc texids " FMT_s,
+             state.texcount * sizeof (*state.texids));
     }
 
     state.texowners = calloc (state.texcount * sizeof (*state.texowners), 1);
     if (!state.texowners) {
-        err (1, "calloc texowners %zu",
+        err (1, "calloc texowners " FMT_s,
              state.texcount * sizeof (*state.texowners));
     }
 
