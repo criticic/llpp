@@ -1,3 +1,5 @@
+type link = | LNone | LUri of string | LGoto of (int * int);;
+
 let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
@@ -5,8 +7,7 @@ external init : Unix.file_descr -> unit = "ml_init";;
 external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
 external gettext : string -> (int * int * int * int) -> int -> bool -> unit =
     "ml_gettext";;
-external checklink : string -> int -> int -> bool = "ml_checklink";;
-external getlink : string -> int -> int -> (int * int) option = "ml_getlink";;
+external getlink : string -> int -> int -> link = "ml_getlink";;
 external highlightlinks : string -> int -> unit = "ml_highlightlinks";;
 external getpagewh : int -> float array = "ml_getpagewh";;
 
@@ -1547,35 +1548,21 @@ let getlink x y =
             if y > 0
             then
               let y = l.pagey + y in
-              match getlink opaque x y with
-              | None -> f rest
-              | some -> some
+              let link = getlink opaque x y in
+              match link with
+              | LNone -> f rest
+              | LUri text ->
+                  state.text <- text;
+                  link
+              | LGoto (pageno, y) ->
+                  state.text <- Printf.sprintf "Page %d (y %d)" pageno y;
+                  link
             else
               f rest
         | _ ->
             f rest
         end
-    | [] -> None
-  in
-  f state.layout
-;;
-
-let checklink x y =
-  let rec f = function
-    | l :: rest ->
-        begin match getopaque l.pageno with
-        | Some opaque when validopaque opaque ->
-            let y = y - l.pagedispy in
-            if y > 0
-            then
-              let y = l.pagey + y in
-              if checklink opaque x y then true else f rest
-            else
-              f rest
-        | _ ->
-            f rest
-        end
-    | [] -> false
+    | [] -> LNone
   in
   f state.layout
 ;;
@@ -1595,14 +1582,17 @@ let mouse ~button ~bstate ~x ~y =
       gotoy y
 
   | Glut.LEFT_BUTTON when state.outline = None ->
-      let dest = if bstate = Glut.DOWN then getlink x y else None in
+      let dest = if bstate = Glut.DOWN then getlink x y else LNone in
       begin match dest with
-      | Some (pageno, top) ->
+      | LGoto (pageno, top) ->
           if pageno >= 0
           then
             gotopage pageno top
 
-      | None ->
+      | LUri s ->
+          print_endline s
+
+      | LNone ->
           if bstate = Glut.DOWN
           then (
             Glut.setCursor Glut.CURSOR_CROSSHAIR;
@@ -1634,11 +1624,11 @@ let pmotion ~x ~y =
   if state.outline = None
   then
     match state.mstate with
-    | Mnone when (checklink x y) ->
-        Glut.setCursor Glut.CURSOR_INFO
-
     | Mnone ->
-        Glut.setCursor Glut.CURSOR_INHERIT
+        if getlink x y != LNone
+        then Glut.setCursor Glut.CURSOR_INFO
+        else (state.text <- ""; Glut.setCursor Glut.CURSOR_INHERIT);
+        Glut.postRedisplay ()
 
     | Msel (a, _) ->
         ()

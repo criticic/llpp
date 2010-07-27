@@ -1236,28 +1236,6 @@ CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
     CAMLreturn (Val_unit);
 }
 
-CAMLprim value ml_checklink (value ptr_v, value x_v, value y_v)
-{
-    CAMLparam3 (ptr_v, x_v, y_v);
-    char *s = String_val (ptr_v);
-    int ret = 0;
-
-    if (!trylock ("ml_checklink")) {
-        pdf_link *link;
-
-        link = getlink (parse_pointer ("ml_checklink", s),
-                        Int_val (x_v), Int_val (y_v));
-        if (link) {
-            ret = 1;
-            if (link->kind == PDF_LURI) {
-                printd (state.sock, "T %s", fz_tostrbuf (link->dest));
-            }
-        }
-        unlock ("ml_checklink");
-    }
-    CAMLreturn (Val_bool (ret));
-}
-
 CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
@@ -1311,12 +1289,8 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
             break;
 
         case PDF_LURI:
-            printf ("%s\n", fz_tostrbuf (link->dest));
-            tup_v = caml_alloc_tuple (2);
-            ret_v = caml_alloc_small (1, 1);
-            Field (tup_v, 0) = Val_int (-1);
-            Field (tup_v, 1) = Val_int (0);
-            Field (ret_v, 0) = tup_v;
+            ret_v = caml_alloc_small (1, 0);
+            Field (ret_v, 0) = caml_copy_string (fz_tostrbuf (link->dest));
             break;
 
         default:
