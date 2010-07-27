@@ -1548,15 +1548,9 @@ let getlink x y =
             if y > 0
             then
               let y = l.pagey + y in
-              let link = getlink opaque x y in
-              match link with
+              match getlink opaque x y with
               | LNone -> f rest
-              | LUri text ->
-                  state.text <- text;
-                  link
-              | LGoto (pageno, y) ->
-                  state.text <- Printf.sprintf "Page %d (y %d)" pageno y;
-                  link
+              | link -> link
             else
               f rest
         | _ ->
@@ -1627,8 +1621,7 @@ let pmotion ~x ~y =
     | Mnone ->
         if getlink x y != LNone
         then Glut.setCursor Glut.CURSOR_INFO
-        else (state.text <- ""; Glut.setCursor Glut.CURSOR_INHERIT);
-        Glut.postRedisplay ()
+        else Glut.setCursor Glut.CURSOR_INHERIT
 
     | Msel (a, _) ->
         ()
