@@ -49,7 +49,7 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
     va_start (ap, fmt);
     vfprintf (stderr, fmt, ap);
     va_end (ap);
-    fprintf (stderr, ": wsaerror %lx\n", WSAGetLastError ());
+    fprintf (stderr, ": wsaerror 0x%x\n", WSAGetLastError ());
     exit (exitcode);
 }
 #else
