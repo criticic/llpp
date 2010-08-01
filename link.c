@@ -35,9 +35,7 @@ static void __declspec (noreturn) err (int exitcode, const char *fmt, ...)
 static void __declspec (noreturn) errx (int exitcode, const char *fmt, ...)
 {
     va_list ap;
-    int errcode;
 
-    errcode = errno;
     va_start (ap, fmt);
     vfprintf (stderr, fmt, ap);
     va_end (ap);
@@ -47,9 +45,7 @@ static void __declspec (noreturn) errx (int exitcode, const char *fmt, ...)
 static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 {
     va_list ap;
-    int errcode;
 
-    errcode = errno;
     va_start (ap, fmt);
     vfprintf (stderr, fmt, ap);
     va_end (ap);
