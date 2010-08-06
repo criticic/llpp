@@ -323,7 +323,7 @@ static void openxref (char *filename)
     error = pdf_openxrefwithstream (&state.xref, file, NULL);
     if (error)
         die (fz_rethrow(error, "cannot open document '%s'", filename));
-    fz_dropstream (file);
+    fz_close (file);
 
     if (pdf_needspassword (state.xref)) {
         die (fz_throw ("password protected"));
