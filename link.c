@@ -1248,14 +1248,18 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
                     pageno = fz_toint (obj);
                 }
 
+                p.x = 0.0;
+                p.y = 0.0;
                 if (fz_arraylen (link->dest) > 3) {
-                    p.x = fz_toint (fz_arrayget (link->dest, 2));
-                    p.y = fz_toint (fz_arrayget (link->dest, 3));
-                    p = fz_transformpoint (page->pagedim->ctm, p);
-                }
-                else  {
-                    p.x = 0.0;
-                    p.y = 0.0;
+                    fz_obj *xo, *yo;
+
+                    xo = fz_arrayget (link->dest, 2);
+                    yo = fz_arrayget (link->dest, 3);
+                    if (!fz_isnull (xo) && !fz_isnull (yo)) {
+                        p.x = fz_toint (xo);
+                        p.y = fz_toint (xo);
+                        p = fz_transformpoint (page->pagedim->ctm, p);
+                    }
                 }
 
                 tup_v = caml_alloc_tuple (2);
