@@ -150,7 +150,6 @@ struct {
 
     int lotsamemory;
 
-    int *pagetbl;
     struct {
         int w, h;
         struct slice *slice;
@@ -335,7 +334,6 @@ static void openxref (char *filename)
     }
 
     state.pagecount = pdf_getpagecount (state.xref);
-    state.pagetbl = stat_alloc (state.pagecount * sizeof (*state.pagetbl));
 }
 
 static int readlen (int fd)
@@ -491,9 +489,6 @@ static void initpdims (void)
         }
         rotate += state.rotate;
 
-        state.pagetbl[pageno] =
-            fz_tonum (pdf_getpageref (state.xref, pageno + 1));
-
         p = &state.pagedims[state.pagedimcount - 1];
         if ((state.pagedimcount == 0)
             || (p->rotate != rotate || memcmp (&p->box, &box, sizeof (box)))) {
@@ -556,7 +551,7 @@ static void layout (void)
 static void recurse_outline (pdf_outline *outline, int level)
 {
     while (outline) {
-        int i, num;
+        int i;
         fz_obj *obj;
         int top = 0;
         int pageno = -1;
@@ -565,16 +560,9 @@ static void recurse_outline (pdf_outline *outline, int level)
 
         obj = outline->link->dest;
         if (fz_isindirect (obj)) {
-            num = fz_tonum (obj);
-
-            for (i = 0; i < state.pagecount; ++i)  {
-                if (state.pagetbl[i] == num) {
-                    pageno = i;
-                    break;
-                }
-            }
+            obj = fz_resolveindirect (obj);
         }
-        else if (fz_isarray (obj)) {
+        if (fz_isarray (obj)) {
             fz_obj *obj2;
 
             obj2 = fz_arrayget (obj, 0);
@@ -582,13 +570,7 @@ static void recurse_outline (pdf_outline *outline, int level)
                 pageno = fz_toint (obj2);
             }
             else {
-                num = fz_tonum (obj2);
-                for (i = 0; i < state.pagecount; ++i)  {
-                    if (state.pagetbl[i] == num) {
-                        pageno = i;
-                        break;
-                    }
-                }
+                pageno = pdf_findpageobject (state.xref, obj2) - 1;
             }
 
             if (fz_arraylen (obj) > 3) {
