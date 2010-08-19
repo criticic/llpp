@@ -1257,7 +1257,7 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
                     yo = fz_arrayget (link->dest, 3);
                     if (!fz_isnull (xo) && !fz_isnull (yo)) {
                         p.x = fz_toint (xo);
-                        p.y = fz_toint (xo);
+                        p.y = fz_toint (yo);
                         p = fz_transformpoint (page->pagedim->ctm, p);
                     }
                 }
