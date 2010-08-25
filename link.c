@@ -984,6 +984,8 @@ static void showsel (struct page *page, int oy)
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
     glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
 
+    ox = -page->pixmap->x;
+    oy = -page->pixmap->y + oy;
     for (span = first.span; span; span = span->next) {
         int i, j, k;
 
@@ -1006,8 +1008,6 @@ static void showsel (struct page *page, int oy)
         for (i = j; i <= k; ++i) {
             bbox = fz_unionbbox (bbox, span->text[i].bbox);
         }
-        oy += page->pixmap->y;
-        ox = -page->pixmap->x;
         lprintf ("%d %d %d %d oy=%d ox=%d\n",
                  bbox.x0,
                  bbox.y0,
