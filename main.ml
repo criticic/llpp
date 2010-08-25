@@ -5,8 +5,9 @@ let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
 external init : Unix.file_descr -> unit = "ml_init";;
 external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
-external gettext : string -> (int * int * int * int) -> int -> bool -> unit =
-    "ml_gettext";;
+external seltext : string -> (int * int * int * int) -> int -> unit =
+  "ml_seltext";;
+external copysel : string ->  unit = "ml_copysel";;
 external getlink : string -> int -> int -> link = "ml_getlink";;
 external highlightlinks : string -> int -> unit = "ml_highlightlinks";;
 external getpagewh : int -> float array = "ml_getpagewh";;
@@ -79,7 +80,6 @@ type layout =
 type conf =
     { mutable scrollw : int
     ; mutable scrollh : int
-    ; mutable rectsel : bool
     ; mutable icase : bool
     ; mutable preload : bool
     ; mutable pagebias : int
@@ -143,7 +143,6 @@ let conf =
   { scrollw = 5
   ; scrollh = 12
   ; icase = true
-  ; rectsel = true
   ; preload = false
   ; pagebias = 0
   ; verbose = false
@@ -711,10 +710,6 @@ let optentry text key =
   let btos b = if b then "on" else "off" in
   let c = Char.unsafe_chr key in
   match c with
-  | 'r' ->
-      conf.rectsel <- not conf.rectsel;
-      TEdone ("rectsel " ^ (btos conf.rectsel))
-
   | 's' ->
       let ondone s =
         try conf.scrollincr <- int_of_string s with exc ->
@@ -1440,17 +1435,14 @@ let showsel () =
       ()
 
   | Msel ((x0, y0), (x1, y1)) ->
-      let y0' = min y0 y1
-      and y1 = max y0 y1 in
-      let y0 = y0' in
       let f l =
         if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
-          || ((y1 >= l.pagedispy))  (* && y1 <= (dy + vh))) *)
+          || ((y1 >= l.pagedispy))
         then
           match getopaque l.pageno with
           | Some opaque when validopaque opaque ->
               let oy = -l.pagey + l.pagedispy in
-              gettext opaque (min x0 x1, y0, max x1 x0, y1) oy conf.rectsel
+              seltext opaque (x0, y0, x1, y1) oy
           | _ -> ()
       in
       List.iter f state.layout
@@ -1475,7 +1467,6 @@ let showrects () =
             GlDraw.vertex2 (x3, y3+.d);
           );
           GlDraw.ends ();
-          (* GlDraw.rect (x0, y0 +. d) (x1, y1 +. d) *)
         )
       ) state.layout
     ) state.rects
@@ -1589,13 +1580,29 @@ let mouse ~button ~bstate ~x ~y =
       | LNone ->
           if bstate = Glut.DOWN
           then (
-            Glut.setCursor Glut.CURSOR_CROSSHAIR;
-            state.mstate <- Msel ((x, y), (x, y));
-            Glut.postRedisplay ()
+            if state.rotate mod 360 = 0 then (
+              Glut.setCursor Glut.CURSOR_TEXT;
+              state.mstate <- Msel ((x, y), (x, y));
+              Glut.postRedisplay ()
+            )
           )
           else (
-            Glut.setCursor Glut.CURSOR_INHERIT;
-            state.mstate <- Mnone;
+            match state.mstate with
+            | Mnone -> ()
+            | Msel ((x0, y0), (x1, y1)) ->
+                let f l =
+                  if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
+                    || ((y1 >= l.pagedispy))
+                  then
+                      match getopaque l.pageno with
+                      | Some opaque when validopaque opaque ->
+                          copysel opaque
+                      | _ -> ()
+                in
+                List.iter f state.layout;
+                copysel "";             (* ugly *)
+                Glut.setCursor Glut.CURSOR_INHERIT;
+                state.mstate <- Mnone;
           )
       end
 

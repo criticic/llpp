@@ -119,6 +119,10 @@ struct page {
     pdf_page *drawpage;
     struct pagedim *pagedim;
     struct page *prev;
+    struct mark {
+        int i;
+        fz_textspan *span;
+    } fmark, lmark;
     struct slice slices[];
 };
 
@@ -129,6 +133,10 @@ struct pagedim {
     fz_bbox bbox;
     fz_matrix ctm, ctm1;
 };
+
+#if !defined _WIN32 && !defined __APPLE__
+#define USE_XSEL
+#endif
 
 struct {
     int sock;
@@ -162,6 +170,7 @@ struct {
 #else
     pthread_t thread;
 #endif
+    FILE *xselpipe;
 } state;
 
 #ifdef _WIN32
@@ -959,6 +968,60 @@ mainloop (void *unused)
     return 0;
 }
 
+static void showsel (struct page *page, int oy)
+{
+    int ox;
+    fz_bbox bbox;
+    fz_textspan *span;
+    struct mark first, last;
+
+    first = page->fmark;
+    last = page->lmark;
+
+    if (!first.span || !last.span) return;
+
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
+    glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
+
+    for (span = first.span; span; span = span->next) {
+        int i, j, k;
+
+        bbox.x0 = bbox.y0 = bbox.x1 = bbox.y1 = 0;
+
+        j = 0;
+        k = span->len - 1;
+
+        if (span == page->fmark.span && span == page->lmark.span) {
+            j = MIN (first.i, last.i);
+            k = MAX (first.i, last.i);
+        }
+        else if (span == first.span) {
+            j = first.i;
+        }
+        else if (span == last.span) {
+            k = last.i;
+        }
+
+        for (i = j; i <= k; ++i) {
+            bbox = fz_unionbbox (bbox, span->text[i].bbox);
+        }
+        oy += page->pixmap->y;
+        ox = -page->pixmap->x;
+        lprintf ("%d %d %d %d oy=%d ox=%d\n",
+                 bbox.x0,
+                 bbox.y0,
+                 bbox.x1,
+                 bbox.y1,
+                 oy, ox);
+
+        glRecti (bbox.x0 + ox, bbox.y0 + oy, bbox.x1 + ox, bbox.y1 + oy);
+
+        if (span == last.span) break;
+    }
+    glDisable (GL_BLEND);
+}
+
 static void upload2 (struct page *page, int slicenum, const char *cap)
 {
     int i;
@@ -1121,6 +1184,7 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
         slicenum += 1;
     }
 
+    showsel (page, Int_val (dispy_v) - Int_val (py_v));
     glDisable (GL_TEXTURE_RECTANGLE_ARB);
 
     unlock ("ml_draw");
@@ -1286,47 +1350,35 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_v)
+CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
 {
     CAMLparam4 (ptr_v, rect_v, oy_v, rect_v);
-    fz_matrix ctm;
-    fz_point p1, p2;
+    fz_bbox *b;
     struct page *page;
     fz_textspan *span;
+    struct mark first, last;
+    int i, x0, x1, y0, y1, oy;
     char *s = String_val (ptr_v);
-    int rectsel = Bool_val (rectsel_v);
-    int i, bx0, bx1, by0, by1, x0, x1, y0, y1, oy;
 
-    /* stop GCC from complaining about uninitialized variables */
-#ifdef __GNUC__
-    int rx0 = rx0, rx1 = rx1, ry0 = ry0, ry1 = ry1;
-#else
-    int rx0, rx1, ry0, ry1;
-#endif
-
-    if (trylock ("ml_gettext")) {
+    if (trylock ("ml_seltext")) {
         goto done;
     }
 
-    page = parse_pointer ("ml_gettext", s);
+    page = parse_pointer ("ml_seltext", s);
 
     oy = Int_val (oy_v);
-    p1.x = Int_val (Field (rect_v, 0));
-    p1.y = Int_val (Field (rect_v, 1));
-    p2.x = Int_val (Field (rect_v, 2));
-    p2.y = Int_val (Field (rect_v, 3));
+    x0 = Int_val (Field (rect_v, 0));
+    y0 = Int_val (Field (rect_v, 1));
+    x1 = Int_val (Field (rect_v, 2));
+    y1 = Int_val (Field (rect_v, 3));
 
     if (0) {
-        glEnable (GL_BLEND);
         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-        glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
-        glColor4f (0.0f, 0.0f, 0.0f, 0.2f);
-        glRecti (p1.x, p1.y, p2.x, p2.y);
+        glColor3ub (128, 128, 128);
+        glRecti (x0, y0, x1, y1);
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-        glDisable (GL_BLEND);
     }
 
-    ctm = page->pagedim->ctm;
     if (!page->text) {
         fz_error error;
         fz_device *tdev;
@@ -1339,85 +1391,157 @@ CAMLprim value ml_gettext (value ptr_v, value rect_v, value oy_v, value rectsel_
         fz_freedevice (tdev);
     }
 
-    printf ("\033c");
+    x0 += page->pixmap->x;
+    y0 += page->pixmap->y - oy;
+    x1 += page->pixmap->x;
+    y1 += page->pixmap->y - oy;
 
-    printf ("BBox %f %f %f %f\n", p1.x, p1.y, p2.x, p2.y);
-    p1.x += page->pixmap->x;
-    p1.y += page->pixmap->y;
-    p2.x += page->pixmap->x;
-    p2.y += page->pixmap->y;
-    x0 = p1.x;
-    y0 = p1.y;
-    x1 = p2.x;
-    y1 = p2.y;
-    printf ("BBox %d %d %d %d %d %d\n", x0, y0, x1, y1, oy, page->pageno);
+    first.span = NULL;
+    last.span = NULL;
 
+    first.i = 0;
+    first.span = page->text;
     for (span = page->text; span; span = span->next) {
-        int seen = 0;
-
-        /* fz_debugtextspanxml (span); */
         for (i = 0; i < span->len; ++i) {
-            long c;
-
-            bx0 = span->text[i].bbox.x0;
-            bx1 = span->text[i].bbox.x1;
-            by0 = span->text[i].bbox.y0 + oy;
-            by1 = span->text[i].bbox.y1 + oy;
-
-            if ((bx1 >= x0 && bx0 <= x1 && by1 >= y0 && by0 <= y1)) {
-                if (!seen) {
-                    rx0 = bx0 - page->pixmap->x;
-                    rx1 = bx1 - page->pixmap->x;
-                    ry0 = by0;
-                    ry1 = by1;
-                }
-
-                seen = 1;
-                c = span->text[i].c;
-                if (c < 256) {
-                    if ((isprint (c) && !isspace (c))) {
-                        if (!rectsel) {
-                            bx0 -= page->pixmap->x;
-                            bx1 -= page->pixmap->x;
-                            glEnable (GL_BLEND);
-                            glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-                            glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
-                            glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
-                            glRecti (bx0, by0, bx1, by1);
-                            glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-                            glDisable (GL_BLEND);
-                        }
-                        if (isprint (c) || c ==' ') {
-                            rx1 = bx1;
-                            ry1 = by1;
-                        }
-                    }
-                    putc (c, stdout);
-                }
-                else  {
-                    putc ('?', stdout);
-                }
+            b = &span->text[i].bbox;
+            if (x0 >= b->x0 && x0 <= b->x1 && y0 >= b->y0 && y0 <= b->y1) {
+                first.i = i;
+                first.span = span;
             }
-        }
-
-        if (rectsel) {
-            if (seen) {
-                glEnable (GL_BLEND);
-                glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-                glBlendFunc (GL_DST_ALPHA, GL_SRC_ALPHA);
-                glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
-                glRecti (rx0, ry0, rx1, ry1);
-                glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-                glDisable (GL_BLEND);
+            if (x1 >= b->x0 && x1 <= b->x1 && y1 >= b->y0 && y1 <= b->y1) {
+                last.i = i;
+                last.span = span;
             }
-        }
-
-        if (seen && span->eol) {
-            x0 = page->pixmap->x;
-            putc ('\n', stdout);
         }
     }
-    unlock ("ml_gettext");
+
+    if (y1 < y0 || x1 < x0) {
+        int swap = 0;
+
+        if (first.span == last.span)  {
+            swap = 1;
+        }
+        else {
+            if (y1 < y0) {
+                for (span = first.span; span && span != last.span;
+                     span = span->next) {
+                    if (span->eol) {
+                        swap = 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (swap) {
+            i = first.i;
+            span = first.span;
+            first.i = last.i;
+            first.span = last.span;
+            last.i = i;
+            last.span = span;
+        }
+    }
+
+    page->fmark = first;
+    page->lmark = last;
+
+    unlock ("ml_seltext");
+
+ done:
+    CAMLreturn (Val_unit);
+}
+
+static int pipespan (FILE *f, fz_textspan *span, int a, int b)
+{
+    char buf[4];
+    int i, len, ret;
+
+    for (i = a; i <= b; ++i) {
+        len = runetochar (buf, &span->text[i].c);
+        ret = fwrite (buf, len, 1, f);
+
+        if (ret != 1) {
+            printd (state.sock, "T failed to write %d bytes ret=%d: %s",
+                    len, ret, strerror (errno));
+            return -1;
+        }
+    }
+    return 0;
+}
+
+CAMLprim value ml_copysel (value ptr_v)
+{
+    CAMLparam1 (ptr_v);
+    FILE *f;
+    struct page *page;
+    char *s = String_val (ptr_v);
+
+    if (trylock ("ml_copysel")) {
+        goto done;
+    }
+
+    if (!*s)  {
+    close:
+#ifdef USE_XSEL
+        if (state.xselpipe) {
+            int ret = pclose (state.xselpipe);
+            if (ret)  {
+                printd (state.sock, "T failed to close xsel pipe `%s'",
+                        strerror (errno));
+            }
+            state.xselpipe = NULL;
+        }
+#else
+        printf ("========================================\n");
+#endif
+    }
+    else {
+        fz_textspan *span;
+
+        page = parse_pointer ("ml_sopysel", s);
+
+        if (!page->fmark.span || !page->lmark.span) {
+            printd (state.sock, "T nothing to copy");
+            goto unlock;
+        }
+
+        f = stdout;
+#ifdef USE_XSEL
+        if (!state.xselpipe) {
+            state.xselpipe = popen ("xsel -i", "w");
+            if (!state.xselpipe) {
+                printd (state.sock, "T failed to open xsel pipe `%s'",
+                        strerror (errno));
+            }
+            else {
+                f = state.xselpipe;
+            }
+        }
+#endif
+
+        for (span = page->fmark.span;
+             span && span != page->lmark.span->next;
+             span = span->next) {
+            int a = span == page->fmark.span ? page->fmark.i : 0;
+            int b = span == page->lmark.span ? page->lmark.i : span->len - 1;
+            if (pipespan (f, span, a, b))  {
+                goto close;
+            }
+            if (span->eol)  {
+                if (putc ('\n', f) == EOF) {
+                    printd (state.sock, "T failed break line on xsel pipe `%s'",
+                            strerror (errno));
+                    goto close;
+                }
+            }
+        }
+        page->lmark.span = NULL;
+        page->fmark.span = NULL;
+    }
+
+ unlock:
+    unlock ("ml_copysel");
 
  done:
     CAMLreturn (Val_unit);

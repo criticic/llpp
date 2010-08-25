@@ -32,7 +32,6 @@ tuanbles
 -s<number>              - scroll increment
 -c                      - toggle crop hack
 -a                      - toggle throttled scrolling
--r                      - selection style
 -R<number>              - rotate
 -p                      - toggle preloading
 -v                      - toggle verbosity
@@ -58,4 +57,6 @@ up/down arrow           - previous/next entered text
 [1] i'm somewhat mouse button confused, since i use "left handed" mouse
     while not being lefthanded
 
-[2] selecting text is not really implemented right now
+[2] text selection requires xsel
+    http://www.vergenet.net/~conrad/software/xsel/
+    On OSX and Windows selected text will be dumped to the terminal
