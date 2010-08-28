@@ -4,7 +4,7 @@ primary mouse button[1] - click on link or select text[2]
 escape/q                - quit
 backspace               - go back after jumping (clicking link and suchlike)
 u                       - dehighlight
-/,?                     - enter text to search for (/ - forward, ? backward)
+/,?                     - enter text to search for (/ - forward, ? - backward)
 +                       - set page bias
 -                       - toggle/set tunable
 0..9                    - enter page number to jump to
@@ -21,7 +21,8 @@ delete                  - go to the previous page
 w                       - change height to encompass all of the page
 o                       - switch to outline mode
 '                       - switch to bookmark mode
-m                       - bookmark position
+m                       - create named bookmark
+~                       - create quick bookmark
 z                       - crop
 a                       - autoscroll
 <,>                     - rotate
