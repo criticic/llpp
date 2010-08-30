@@ -803,12 +803,12 @@ let enteroutlinemode () =
         a
     | Onarrow (a, b) -> a
   in
-  enterselector false outlines "Documents has no outline";
+  enterselector false outlines "Document has no outline";
 ;;
 
 let enterbookmarkmode () =
   let bookmarks = Array.of_list state.bookmarks in
-  enterselector true bookmarks "Documents has no bookmarks (yet)";
+  enterselector true bookmarks "Document has no bookmarks (yet)";
 ;;
 
 
