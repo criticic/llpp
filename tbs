@@ -25,7 +25,7 @@ fi
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
 #mupdf=$h/mupdf
 cc=gcc
-ccopt="-std=c89 -Dinline=__inline__ -Wall -Werror -I$mupdf/fitz -I$mupdf/mupdf"
+ccopt="-std=c89 -Wall -Werror -I$mupdf/fitz -I$mupdf/mupdf"
 targets="llpp"
 libs="-lmupdf -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig"
 
