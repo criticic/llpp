@@ -23,7 +23,7 @@ if ! md5sum --status -c $d; then
 fi
 
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
-#mupdf=$h/mupdf
+#mupdf=/home/malc/x/rcs/git/mupdf
 cc=gcc
 ccopt="-std=c89 -Wall -Werror -I$mupdf/fitz -I$mupdf/mupdf"
 targets="llpp"
