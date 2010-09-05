@@ -109,8 +109,7 @@ type state =
     ; mutable h : int
     ; mutable rotate : int
     ; mutable y : int
-    ; mutable ty : int
-    ; mutable prevy : int
+    ; mutable ty : float
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : ((int * int * int), string) Hashtbl.t
@@ -162,8 +161,7 @@ let state =
   ; h = 900
   ; rotate = 0
   ; y = 0
-  ; ty = 0
-  ; prevy = 0
+  ; ty = 0.0
   ; layout = []
   ; maxy = max_int
   ; pagemap = Hashtbl.create 10
@@ -387,10 +385,7 @@ let preload l =
   | _ -> ()
 ;;
 
-let gotoy y =
-  let y = max 0 y in
-  let y = min state.maxy y in
-  let pages = layout y state.h in
+let preloadlayout layout =
   let rec f all = function
     | l :: ls ->
         begin match getopaque l.pageno with
@@ -399,16 +394,30 @@ let gotoy y =
         end
     | [] -> all
   in
-  if not conf.showall || f true pages
-  then (
-    state.y <- y;
+  f (layout <> []) layout;
+;;
+
+let gotoy y =
+  let y = max 0 y in
+  let y = min state.maxy y in
+  let pages = layout y state.h in
+  let ready = preloadlayout pages in
+  state.ty <- yratio y;
+  if conf.showall then (
+    if ready then (
+      state.layout <- pages;
+      state.y <- y;
+      Glut.postRedisplay ();
+    )
+  )
+  else (
     state.layout <- pages;
+    state.y <- y;
+    Glut.postRedisplay ();
   );
-  state.ty <- y;
   if conf.preload then begin
-    let h = state.h in
     let y = if state.y < state.h then 0 else state.y - state.h in
-    let pages = layout y (h*3) in
+    let pages = layout y (state.h*3) in
     List.iter preload pages;
   end;
 ;;
@@ -500,10 +509,6 @@ let act cmd =
       state.rects <- state.rects1;
       Glut.postRedisplay ()
 
-  | 'd' ->
-      state.rects <- state.rects1;
-      Glut.postRedisplay ()
-
   | 'C' ->
       let n = Scanf.sscanf cmd "C %d" (fun n -> n) in
       state.pagecount <- n;
@@ -513,7 +518,6 @@ let act cmd =
         let rely = yratio state.y in
         let maxy = calcheight () in
         state.y <- truncate (float maxy *. rely);
-        state.ty <- state.y;
         let pages = layout state.y state.h in
         state.layout <- pages;
         Glut.postRedisplay ();
@@ -587,8 +591,19 @@ let act cmd =
       end;
       cbput state.pagecache p;
       state.inflight <- pred state.inflight;
-      if conf.showall then gotoy state.ty;
-      Glut.postRedisplay ()
+      if conf.showall then (
+        let y = truncate (ceil (state.ty *. float state.maxy)) in
+        let layout = layout y state.h in
+        if preloadlayout layout
+        then (
+          state.y <- y;
+          state.layout <- layout;
+          Glut.postRedisplay ();
+        );
+      )
+      else (
+        Glut.postRedisplay ();
+      )
 
   | 'l' ->
       let (n, w, h) as pagelayout =
@@ -614,30 +629,23 @@ let act cmd =
       log "unknown cmd `%S'" cmd
 ;;
 
+let now = Unix.gettimeofday;;
+
 let idle () =
-  if state.y != state.prevy
-  then (
-    state.prevy <- state.y;
-    Glut.postRedisplay ();
-  )
-  else
-    let r, _, _ = Unix.select [state.csock] [] [] 0.001 in
+  let r, _, _ = Unix.select [state.csock] [] [] 0.001 in
+  begin match r with
+  | [] ->
+      if conf.autoscroll then begin
+        let y = state.y + conf.scrollincr in
+        let y = if y >= state.maxy then 0 else y in
+        gotoy y;
+        state.text <- "";
+      end;
 
-    begin match r with
-    | [] ->
-        if conf.autoscroll then begin
-          let y = state.y + conf.scrollincr in
-          let y = if y >= state.maxy then 0 else y in
-          gotoy y;
-          state.text <- "";
-          state.prevy <- state.y;
-          Glut.postRedisplay ();
-        end;
-
-    | _ ->
-        let cmd = readcmd state.csock in
-        act cmd;
-    end;
+  | _ ->
+      let cmd = readcmd state.csock in
+      act cmd;
+  end;
 ;;
 
 let onhist cb = function

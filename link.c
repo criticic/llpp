@@ -871,7 +871,6 @@ mainloop (void *unused)
             lock ("free");
             freepage (ptr);
             unlock ("free");
-            printd (state.sock, "d");
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;
