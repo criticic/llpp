@@ -129,6 +129,7 @@ type state =
     ; mutable bookmarks : outline list
     ; mutable path : string
     ; mutable invalidated : int
+    ; mutable colorscale : float
     ; hists : hists
     }
 and hists =
@@ -186,6 +187,7 @@ let state =
       ; pat = cbnew 20 ""
       ; pag = cbnew 10 ""
       }
+  ; colorscale = 1.0
   }
 ;;
 
@@ -446,6 +448,11 @@ let invalidate () =
   state.invalidated <- state.invalidated + 1;
 ;;
 
+let scalecolor c =
+  let c = c *. state.colorscale in
+  (c, c, c);
+;;
+
 let reshape ~w ~h =
   let ratio = float w /. float state.w in
   let fixbookmark (s, l, pageno, pagey) =
@@ -463,8 +470,9 @@ let reshape ~w ~h =
   GlMat.rotate ~x:1.0 ~angle:180.0 ();
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
   GlMat.scale3 (2.0 /. float w, 2.0 /. float state.h, 1.0);
-  GlClear.color (1., 1., 1.);
+  GlClear.color (scalecolor 1.0);
   GlClear.clear [`color];
+
   invalidate ();
   wcmd "geometry" [`i (state.w - conf.scrollw); `i h];
 ;;
@@ -1047,6 +1055,12 @@ let viewkeyboard ~key ~x ~y =
       | '<' | '>' ->
           rotate (state.rotate + (if c = '>' then 30 else -30));
 
+      | '[' | ']' ->
+          state.colorscale <-
+            max 0.0
+            (min (state.colorscale +. (if c = ']' then 0.1 else -0.1)) 1.0);
+          Glut.postRedisplay ()
+
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);
       end
@@ -1355,7 +1369,7 @@ let special ~key ~x ~y =
 ;;
 
 let drawplaceholder l =
-  GlDraw.color (1.0, 1.0, 1.0);
+  GlDraw.color (scalecolor 1.0);
   GlDraw.rect
     (0.0, float l.pagedispy)
     (float l.pagew, float (l.pagedispy + l.pagevh))
@@ -1375,8 +1389,8 @@ let drawpage i l =
   begin match getopaque l.pageno with
   | Some opaque when validopaque opaque ->
       if state.textentry = None
-      then GlDraw.color (1.0, 1.0, 1.0)
-      else GlDraw.color (0.4, 0.4, 0.4);
+      then GlDraw.color (scalecolor 1.0)
+      else GlDraw.color (scalecolor 0.4);
       let a = now () in
       draw l.pagedispy l.pagew l.pagevh l.pagey opaque;
       let b = now () in
@@ -1525,7 +1539,7 @@ let showoutline = function
 
 let display () =
   let lasty = List.fold_left drawpage 0 (state.layout) in
-  GlDraw.color (0.5, 0.5, 0.5);
+  GlDraw.color (scalecolor 0.5);
   GlDraw.rect
     (0., float lasty)
     (float (state.w - conf.scrollw), float state.h)
@@ -1742,6 +1756,7 @@ let () =
   init ssock;
   state.csock <- csock;
   state.ssock <- ssock;
+  state.text <- "Opening " ^ name;
   writecmd csock ("open " ^ name ^ "\000");
 
   at_exit savestate;
