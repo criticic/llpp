@@ -116,7 +116,7 @@ type state =
     ; mutable pages : (int * int * int) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
-    ; mutable inflight : int
+    ; mutable rendering : bool
     ; mutable mstate : mstate
     ; mutable searchpattern : string
     ; mutable rects : (int * int * rect) list
@@ -169,7 +169,7 @@ let state =
   ; pagecache = cbnew 10 ""
   ; pages = []
   ; pagecount = 0
-  ; inflight = 0
+  ; rendering = false
   ; mstate = Mnone
   ; rects = []
   ; rects1 = []
@@ -374,10 +374,10 @@ let cache pageno opaque =
 
 let validopaque opaque = String.length opaque > 0;;
 
-let preload l =
+let render l =
   match getopaque l.pageno with
-  | None when state.inflight < 2+0*(cblen state.pagecache) ->
-      state.inflight <- succ state.inflight;
+  | None when not state.rendering ->
+      state.rendering <- true;
       cache l.pageno "";
       wcmd "render" [`i (l.pageno + 1)
                     ;`i l.pagedimno
@@ -387,11 +387,11 @@ let preload l =
   | _ -> ()
 ;;
 
-let preloadlayout layout =
+let loadlayout layout =
   let rec f all = function
     | l :: ls ->
         begin match getopaque l.pageno with
-        | None -> preload l; f false ls
+        | None -> render l; f false ls
         | Some opaque -> f (all && validopaque opaque) ls
         end
     | [] -> all
@@ -403,7 +403,7 @@ let gotoy y =
   let y = max 0 y in
   let y = min state.maxy y in
   let pages = layout y state.h in
-  let ready = preloadlayout pages in
+  let ready = loadlayout pages in
   state.ty <- yratio y;
   if conf.showall then (
     if ready then (
@@ -420,7 +420,7 @@ let gotoy y =
   if conf.preload then begin
     let y = if state.y < state.h then 0 else state.y - state.h in
     let pages = layout y (state.h*3) in
-    List.iter preload pages;
+    List.iter render pages;
   end;
 ;;
 
@@ -524,11 +524,8 @@ let act cmd =
       if state.invalidated = 0
       then (
         let rely = yratio state.y in
-        let maxy = calcheight () in
-        state.y <- truncate (float maxy *. rely);
-        let pages = layout state.y state.h in
-        state.layout <- pages;
-        Glut.postRedisplay ();
+        state.maxy <- calcheight ();
+        gotoy (truncate (float state.maxy *. rely));
       )
 
   | 't' ->
@@ -588,30 +585,22 @@ let act cmd =
           (fun n w h r p -> (n, w, h, r, p))
       in
       Hashtbl.replace state.pagemap (n, w, r) p;
-      let evicted = cbpeekw state.pagecache in
-      if String.length evicted > 0
-      then begin
-        wcmd "free" [`s evicted];
-        let l = Hashtbl.fold (fun k p a ->
-          if evicted = p then k :: a else a) state.pagemap []
+      let opaque = cbpeekw state.pagecache in
+      if validopaque opaque
+      then (
+        let k =
+          Hashtbl.fold
+            (fun k v a -> if v = opaque then k else a)
+            state.pagemap (-1, -1, -1)
         in
-        List.iter (fun k -> Hashtbl.remove state.pagemap k) l;
-      end;
+        wcmd "free" [`s opaque];
+        Hashtbl.remove state.pagemap k
+      );
       cbput state.pagecache p;
-      state.inflight <- pred state.inflight;
-      if conf.showall then (
-        let y = truncate (ceil (state.ty *. float state.maxy)) in
-        let layout = layout y state.h in
-        if preloadlayout layout
-        then (
-          state.y <- y;
-          state.layout <- layout;
-          Glut.postRedisplay ();
-        );
-      )
-      else (
-        Glut.postRedisplay ();
-      )
+      state.rendering <- false;
+      if conf.showall
+      then gotoy (truncate (ceil (state.ty *. float state.maxy)))
+      else gotoy state.y
 
   | 'l' ->
       let (n, w, h) as pagelayout =
@@ -1398,18 +1387,8 @@ let drawpage i l =
       if conf.hlinks then highlightlinks opaque (l.pagedispy - l.pagey);
       vlog "draw %f sec" d;
 
-  | Some _ ->
+  | _ ->
       drawplaceholder l
-
-  | None ->
-      drawplaceholder l;
-      if state.inflight < cblen state.pagecache
-      then (
-        List.iter preload state.layout;
-      )
-      else (
-        vlog "inflight %d" state.inflight;
-      );
   end;
   GlDraw.color (0.5, 0.5, 0.5);
   GlDraw.rect
