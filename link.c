@@ -907,6 +907,8 @@ mainloop (void *unused)
             if (ret != 2) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
             }
+
+            lock ("geometry");
             state.h = h;
             if (w != state.w) {
                 int i;
@@ -915,7 +917,6 @@ mainloop (void *unused)
                     state.texowners[i].slice = NULL;
                 }
             }
-            lock ("geometry");
             layout ();
             process_outline ();
             unlock ("geometry");
@@ -929,8 +930,8 @@ mainloop (void *unused)
             if (ret != 1) {
                 errx (1, "bad rotate line `%.*s' ret=%d", len, p, ret);
             }
-            state.rotate = rotate;
             lock ("rotate");
+            state.rotate = rotate;
             state.pagedimcount = 0;
             free (state.pagedims);
             state.pagedims = NULL;
