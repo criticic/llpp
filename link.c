@@ -950,7 +950,10 @@ mainloop (void *unused)
                 errx (1, "bad render line `%.*s' ret=%d", len, p, ret);
             }
 
+            lock ("render");
             page = render (pageno, pindex);
+            unlock ("render");
+
             printd (state.sock, "r %d %d %d %d %p\n",
                     pageno,
                     state.w,
@@ -1127,10 +1130,6 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     struct page *page;
     int slicenum = 0;
 
-    if (trylock ("ml_draw")) {
-        goto done;
-    }
-
     ret = sscanf (s, "%p", &ptr);
     if (ret != 1) {
         errx (1, "cannot parse pointer `%s'", s);
@@ -1187,8 +1186,6 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
     showsel (page, Int_val (dispy_v) - Int_val (py_v));
     glDisable (GL_TEXTURE_RECTANGLE_ARB);
 
-    unlock ("ml_draw");
- done:
     CAMLreturn (Val_unit);
 }
 
