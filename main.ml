@@ -507,6 +507,19 @@ let enttext () =
       showtext c s;
 ;;
 
+let showtext c s =
+  if true
+  then (
+    state.text <- Printf.sprintf "%c%s" c s;
+    Glut.postRedisplay ();
+  )
+  else (
+    showtext c s;
+    Glut.swapBuffers ();
+  )
+;;
+
+
 let act cmd =
   match cmd.[0] with
   | 'c' ->
@@ -542,7 +555,6 @@ let act cmd =
       then (
         state.text <- s;
         showtext ' ' s;
-        Glut.swapBuffers ();
       )
       else (
         state.text <- s;
@@ -557,7 +569,6 @@ let act cmd =
         in
         state.text <- s;
         showtext ' ' s;
-        Glut.swapBuffers ();
 
   | 'F' ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
@@ -774,7 +785,6 @@ let enterselector allowdel outlines errmsg =
   if Array.length outlines = 0
   then (
     showtext ' ' errmsg;
-    Glut.swapBuffers ()
   )
   else
     let pageno =
@@ -995,7 +1005,6 @@ let viewkeyboard ~key ~x ~y =
                 (fn+1) (ln+1) state.pagecount percent
           in
           showtext ' ' s;
-          Glut.swapBuffers ()
 
       | 'w' ->
           begin match state.layout with
@@ -1020,7 +1029,6 @@ let viewkeyboard ~key ~x ~y =
       | '~' ->
           quickbookmark ();
           showtext ' ' "Quick bookmark added";
-          Glut.swapBuffers ()
 
       | 'z' ->
           begin match state.layout with
@@ -1388,7 +1396,7 @@ let drawpage i l =
       vlog "draw %f sec" d;
 
   | _ ->
-      drawplaceholder l
+      drawplaceholder l;
   end;
   GlDraw.color (0.5, 0.5, 0.5);
   GlDraw.rect
@@ -1745,7 +1753,6 @@ let () =
       Glut.mainLoop ();
     with Glut.BadEnum "key in special_of_int" ->
       showtext '!' " LablGlut bug: special key not recognized";
-      Glut.swapBuffers ();
       handlelablglutbug ()
   in
   handlelablglutbug ();
