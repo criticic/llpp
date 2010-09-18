@@ -449,6 +449,8 @@ static void *render (int pageno, int pindex)
     if (!idev)
         die (fz_throw ("fz_newdrawdevice failed"));
     error = pdf_runpage (state.xref, drawpage, idev, pagedim->ctm);
+    if (error)
+        die (fz_rethrow (error, "pdf_runpage failed"));
     fz_freedevice (idev);
 
     page->drawpage = drawpage;
