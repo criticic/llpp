@@ -1398,7 +1398,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     first.span = NULL;
     last.span = NULL;
 
-    first.i = 0;
+    last.i = first.i = 0;
     first.span = page->text;
     for (span = page->text; span; span = span->next) {
         for (i = 0; i < span->len; ++i) {
