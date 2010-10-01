@@ -1444,17 +1444,21 @@ let showsel () =
       ()
 
   | Msel ((x0, y0), (x1, y1)) ->
-      let f l =
-        if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
-          || ((y1 >= l.pagedispy))
-        then
-          match getopaque l.pageno with
-          | Some opaque when validopaque opaque ->
-              let oy = -l.pagey + l.pagedispy in
-              seltext opaque (x0, y0, x1, y1) oy
-          | _ -> ()
+      let rec loop = function
+        | l :: ls ->
+            if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
+              || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
+            then
+              match getopaque l.pageno with
+              | Some opaque when validopaque opaque ->
+                  let oy = -l.pagey + l.pagedispy in
+                  seltext opaque (x0, y0, x1, y1) oy;
+                  ()
+              | _ -> ()
+            else loop ls
+        | [] -> ()
       in
-      List.iter f state.layout
+      loop state.layout
 ;;
 
 let showrects () =
@@ -1601,7 +1605,7 @@ let mouse ~button ~bstate ~x ~y =
             | Msel ((x0, y0), (x1, y1)) ->
                 let f l =
                   if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
-                    || ((y1 >= l.pagedispy))
+                    || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
                   then
                       match getopaque l.pageno with
                       | Some opaque when validopaque opaque ->
