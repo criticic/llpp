@@ -1517,6 +1517,9 @@ CAMLprim value ml_copysel (value ptr_v)
                 f = state.xselpipe;
             }
         }
+        else  {
+            f = state.xselpipe;
+        }
 #endif
 
         for (span = page->fmark.span;
