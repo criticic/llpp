@@ -13,7 +13,7 @@ l                       - toggle links highlighting
 f                       - toggle fullscreen
 n                       - repeat last search (forward)
 p, N                    - .................. (backward)
-g                       - goto first page
+g                       - go to first page
 t                       - align top of the screen with the top of the page
 space                   - go to the next page
 delete                  - go to the previous page
@@ -28,6 +28,9 @@ a                       - autoscroll
 <,>                     - rotate
 [,]                     - decrease/increase page brightness
 Ctrl-g                  - interrupt search
+home/end                - go to first/last page
+pageup/pagedown         - go forward/backward one screen-full
+ctrl pageup/pagedown    - align top of the screen with first/last visible page
 
 tuanbles
 -i                      - toggle case sensitivity of searches

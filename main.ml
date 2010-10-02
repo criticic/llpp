@@ -1316,8 +1316,22 @@ let special ~key ~x ~y =
             | Glut.KEY_F3        -> search state.searchpattern true; state.y
             | Glut.KEY_UP        -> clamp (-conf.scrollincr)
             | Glut.KEY_DOWN      -> clamp conf.scrollincr
-            | Glut.KEY_PAGE_UP   -> clamp (-state.h)
-            | Glut.KEY_PAGE_DOWN -> clamp state.h
+            | Glut.KEY_PAGE_UP   ->
+                if Glut.getModifiers () land Glut.active_ctrl != 0
+                then
+                  match state.layout with
+                  | [] -> state.y
+                  | l :: _ -> state.y - l.pagey
+                else
+                  clamp (-state.h)
+            | Glut.KEY_PAGE_DOWN ->
+                if Glut.getModifiers () land Glut.active_ctrl != 0
+                then
+                  match List.rev state.layout with
+                  | [] -> state.y
+                  | l :: _ -> getpagey l.pageno
+                else
+                  clamp state.h
             | Glut.KEY_HOME -> addnav (); 0
             | Glut.KEY_END ->
                 addnav ();
