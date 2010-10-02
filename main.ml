@@ -409,7 +409,7 @@ let loadlayout layout =
 let preload () =
   if conf.preload then begin
     let y = if state.y < state.h then 0 else state.y - state.h in
-    let pages = layout y (state.h*30000) in
+    let pages = layout y (state.h*3) in
     List.iter render pages;
   end;
 ;;
