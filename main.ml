@@ -618,7 +618,11 @@ let act cmd =
       state.rendering <- false;
       if conf.showall
       then gotoy (truncate (ceil (state.ty *. float state.maxy)))
-      else gotoy state.y
+      else (
+        let visible = List.exists (fun l -> l.pageno + 1 = n) state.layout in
+        if visible then gotoy state.y
+        else ignore (loadlayout state.layout)
+      )
 
   | 'l' ->
       let (n, w, h) as pagelayout =
