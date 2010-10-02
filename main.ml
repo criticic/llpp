@@ -1669,7 +1669,12 @@ let pmotion ~x ~y =
     | Mnone ->
         begin match getunder x y with
         | Unone -> Glut.setCursor Glut.CURSOR_INHERIT
-        | Ulinkuri _ | Ulinkgoto _ -> Glut.setCursor Glut.CURSOR_INFO
+        | Ulinkuri uri ->
+            if conf.underinfo then showtext 'u' ("ri: " ^ uri);
+            Glut.setCursor Glut.CURSOR_INFO
+        | Ulinkgoto (page, y) ->
+            if conf.underinfo then showtext 'p' ("age: " ^ string_of_int page);
+            Glut.setCursor Glut.CURSOR_INFO
         | Utext s ->
             if conf.underinfo then showtext 'f' ("ont: " ^ s);
             Glut.setCursor Glut.CURSOR_TEXT
