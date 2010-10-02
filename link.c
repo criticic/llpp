@@ -1295,7 +1295,7 @@ static void ensuretext (struct page *page)
 CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
-    CAMLlocal2 (ret_v, tup_v);
+    CAMLlocal3 (ret_v, tup_v, str_v);
     pdf_link *link;
     struct page *page;
     char *s = String_val (ptr_v);
@@ -1347,8 +1347,9 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             break;
 
         case PDF_LURI:
+            str_v = caml_copy_string (fz_tostrbuf (link->dest));
             ret_v = caml_alloc_small (1, 0);
-            Field (ret_v, 0) = caml_copy_string (fz_tostrbuf (link->dest));
+            Field (ret_v, 0) = str_v;
             break;
 
         default:
@@ -1368,9 +1369,10 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             for (i = 0; i < span->len; ++i) {
                 fz_bbox *b;
                 b = &span->text[i].bbox;
-                if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                if ((x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1)) {
+                    str_v = caml_copy_string (span->font->name);
                     ret_v = caml_alloc_small (1, 2);
-                    Field (ret_v, 0) = caml_copy_string (span->font->name);
+                    Field (ret_v, 0) = str_v;
                     goto unlock;
                 }
             }
