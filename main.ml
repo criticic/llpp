@@ -406,6 +406,14 @@ let loadlayout layout =
   f (layout <> []) layout;
 ;;
 
+let preload () =
+  if conf.preload then begin
+    let y = if state.y < state.h then 0 else state.y - state.h in
+    let pages = layout y (state.h*30000) in
+    List.iter render pages;
+  end;
+;;
+
 let gotoy y =
   let y = max 0 y in
   let y = min state.maxy y in
@@ -424,11 +432,7 @@ let gotoy y =
     state.y <- y;
     Glut.postRedisplay ();
   );
-  if conf.preload then begin
-    let y = if state.y < state.h then 0 else state.y - state.h in
-    let pages = layout y (state.h*3) in
-    List.iter render pages;
-  end;
+  preload ();
 ;;
 
 let addnav () =
@@ -621,7 +625,7 @@ let act cmd =
       else (
         let visible = List.exists (fun l -> l.pageno + 1 = n) state.layout in
         if visible then gotoy state.y
-        else ignore (loadlayout state.layout)
+        else (ignore (loadlayout state.layout); preload ())
       )
 
   | 'l' ->
