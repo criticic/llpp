@@ -1302,7 +1302,6 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
     ret_v = Val_int (0);
     if (trylock ("ml_whatsunder")) {
-        ret_v = Val_int (0);
         goto done;
     }
 
@@ -1372,13 +1371,12 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                 if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
                     ret_v = caml_alloc_small (1, 2);
                     Field (ret_v, 0) = caml_copy_string (span->font->name);
-                    goto exit;
+                    goto unlock;
                 }
             }
         }
-
-    exit: (void) 0;
     }
+ unlock:
     unlock ("ml_whatsunder");
 
  done:
