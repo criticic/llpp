@@ -38,6 +38,8 @@ tuanbles
 -p                      - toggle preloading
 -v                      - toggle verbosity
 -h                      - toggle maxfit
+-f                      - toggle whats under cursor identification
+                          (only font name currently)
 
 outline mode
 alpha-numeric           - quick search

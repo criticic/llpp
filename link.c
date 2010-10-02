@@ -1277,7 +1277,22 @@ CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
     CAMLreturn (Val_unit);
 }
 
-CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
+static void ensuretext (struct page *page)
+{
+    if (!page->text) {
+        fz_error error;
+        fz_device *tdev;
+
+        page->text = fz_newtextspan ();
+        tdev = fz_newtextdevice (page->text);
+        error = pdf_runpage (state.xref, page->drawpage, tdev,
+                             page->pagedim->ctm);
+        if (error) die (error);
+        fz_freedevice (tdev);
+    }
+}
+
+CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal2 (ret_v, tup_v);
@@ -1286,13 +1301,12 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
     char *s = String_val (ptr_v);
 
     ret_v = Val_int (0);
-    if (trylock ("ml_getlink")) {
+    if (trylock ("ml_whatsunder")) {
         ret_v = Val_int (0);
         goto done;
     }
 
-    page = parse_pointer ("ml_getlink", s);
-
+    page = parse_pointer ("ml_whatsunder", s);
     link = getlink (page, Int_val (x_v), Int_val (y_v));
     if (link) {
         switch (link->kind) {
@@ -1343,7 +1357,29 @@ CAMLprim value ml_getlink (value ptr_v, value x_v, value y_v)
             break;
         }
     }
-    unlock ("ml_getlink");
+    else {
+        int i, x, y;
+        fz_textspan *span;
+
+        ensuretext (page);
+        x = Int_val (x_v) + page->pixmap->x;
+        y = Int_val (y_v) + page->pixmap->y;
+
+        for (span = page->text; span; span = span->next) {
+            for (i = 0; i < span->len; ++i) {
+                fz_bbox *b;
+                b = &span->text[i].bbox;
+                if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                    ret_v = caml_alloc_small (1, 2);
+                    Field (ret_v, 0) = caml_copy_string (span->font->name);
+                    goto exit;
+                }
+            }
+        }
+
+    exit: (void) 0;
+    }
+    unlock ("ml_whatsunder");
 
  done:
     CAMLreturn (ret_v);
@@ -1364,6 +1400,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     }
 
     page = parse_pointer ("ml_seltext", s);
+    ensuretext (page);
 
     oy = Int_val (oy_v);
     x0 = Int_val (Field (rect_v, 0));
@@ -1376,18 +1413,6 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
         glColor3ub (128, 128, 128);
         glRecti (x0, y0, x1, y1);
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-    }
-
-    if (!page->text) {
-        fz_error error;
-        fz_device *tdev;
-
-        page->text = fz_newtextspan ();
-        tdev = fz_newtextdevice (page->text);
-        error = pdf_runpage (state.xref, page->drawpage, tdev,
-                             page->pagedim->ctm);
-        if (error) die (error);
-        fz_freedevice (tdev);
     }
 
     x0 += page->pixmap->x;

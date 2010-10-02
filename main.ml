@@ -1,4 +1,9 @@
-type link = | LNone | LUri of string | LGoto of (int * int);;
+type under =
+    | Unone
+    | Ulinkuri of string
+    | Ulinkgoto of (int * int)
+    | Utext of facename
+and facename = string;;
 
 let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
@@ -8,9 +13,9 @@ external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
 external seltext : string -> (int * int * int * int) -> int -> unit =
   "ml_seltext";;
 external copysel : string ->  unit = "ml_copysel";;
-external getlink : string -> int -> int -> link = "ml_getlink";;
 external highlightlinks : string -> int -> unit = "ml_highlightlinks";;
 external getpagewh : int -> float array = "ml_getpagewh";;
+external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 
 type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
 
@@ -90,6 +95,7 @@ type conf =
     ; mutable autoscroll : bool
     ; mutable showall : bool
     ; mutable hlinks : bool
+    ; mutable underinfo : bool
     }
 ;;
 
@@ -152,6 +158,7 @@ let conf =
   ; autoscroll = false
   ; showall = false
   ; hlinks = false
+  ; underinfo = false
   }
 ;;
 
@@ -773,6 +780,10 @@ let optentry text key =
   | 'a' ->
       conf.showall <- not conf.showall;
       TEdone ("showall " ^ btos conf.showall)
+
+  | 'f' ->
+      conf.underinfo <- not conf.underinfo;
+      TEdone ("underinfo " ^ btos conf.underinfo)
 
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
@@ -1543,7 +1554,7 @@ let display () =
   Glut.swapBuffers ();
 ;;
 
-let getlink x y =
+let getunder x y =
   let rec f = function
     | l :: rest ->
         begin match getopaque l.pageno with
@@ -1552,15 +1563,15 @@ let getlink x y =
             if y > 0
             then
               let y = l.pagey + y in
-              match getlink opaque x y with
-              | LNone -> f rest
-              | link -> link
+              match whatsunder opaque x y with
+              | Unone -> f rest
+              | under -> under
             else
               f rest
         | _ ->
             f rest
         end
-    | [] -> LNone
+    | [] -> Unone
   in
   f state.layout
 ;;
@@ -1580,21 +1591,24 @@ let mouse ~button ~bstate ~x ~y =
       gotoy y
 
   | Glut.LEFT_BUTTON when state.outline = None ->
-      let dest = if bstate = Glut.DOWN then getlink x y else LNone in
+      let dest = if bstate = Glut.DOWN then getunder x y else Unone in
       begin match dest with
-      | LGoto (pageno, top) ->
+      | Ulinkgoto (pageno, top) ->
           if pageno >= 0
           then
             gotopage pageno top
 
-      | LUri s ->
+      | Ulinkuri s ->
           print_endline s
 
-      | LNone ->
+      | Unone when bstate = Glut.DOWN ->
+          Glut.setCursor Glut.CURSOR_INHERIT;
+          state.mstate <- Mnone
+
+      | Unone | Utext _ ->
           if bstate = Glut.DOWN
           then (
             if state.rotate mod 360 = 0 then (
-              Glut.setCursor Glut.CURSOR_TEXT;
               state.mstate <- Msel ((x, y), (x, y));
               Glut.postRedisplay ()
             )
@@ -1639,9 +1653,13 @@ let pmotion ~x ~y =
   then
     match state.mstate with
     | Mnone ->
-        if getlink x y != LNone
-        then Glut.setCursor Glut.CURSOR_INFO
-        else Glut.setCursor Glut.CURSOR_INHERIT
+        begin match getunder x y with
+        | Unone -> Glut.setCursor Glut.CURSOR_INHERIT
+        | Ulinkuri _ | Ulinkgoto _ -> Glut.setCursor Glut.CURSOR_INFO
+        | Utext s ->
+            if conf.underinfo then showtext 'f' ("ont: " ^ s);
+            Glut.setCursor Glut.CURSOR_TEXT
+        end
 
     | Msel (a, _) ->
         ()
