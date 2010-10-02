@@ -111,27 +111,27 @@ struct slice {
     int w, h;
 };
 
-struct page {
-    int pageno;
-    int slicecount;
-    fz_textspan *text;
-    fz_pixmap *pixmap;
-    pdf_page *drawpage;
-    struct pagedim *pagedim;
-    struct page *prev;
-    struct mark {
-        int i;
-        fz_textspan *span;
-    } fmark, lmark;
-    struct slice slices[];
-};
-
 struct pagedim {
     int pageno;
     int rotate;
     fz_rect box;
     fz_bbox bbox;
     fz_matrix ctm, ctm1;
+};
+
+struct page {
+    int pageno;
+    int slicecount;
+    fz_textspan *text;
+    fz_pixmap *pixmap;
+    pdf_page *drawpage;
+    struct pagedim pagedim;
+    struct page *prev;
+    struct mark {
+        int i;
+        fz_textspan *span;
+    } fmark, lmark;
+    struct slice slices[];
 };
 
 #if !defined _WIN32 && !defined __APPLE__
@@ -141,7 +141,7 @@ struct pagedim {
 struct {
     int sock;
     int sliceheight;
-    struct page *pages;
+    struct page *pages, *pig;
     struct pagedim *pagedims;
     int pagecount;
     int pagedimcount;
@@ -359,12 +359,11 @@ static int readlen (int fd)
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
 }
 
-static void freepage (struct page *page)
+static void unlinkpage (struct page *page)
 {
     int i;
     struct page *p;
 
-    fz_droppixmap (page->pixmap);
     for (p = state.pages; p; p = p->prev) {
         if (p->prev == page) {
             p->prev = page->prev;
@@ -381,6 +380,14 @@ static void freepage (struct page *page)
             }
         }
     }
+}
+
+static void freepage (struct page *page)
+{
+    fz_droppixmap (page->pixmap);
+
+    unlinkpage (page);
+
     if (page->text) {
         fz_freetextspan (page->text);
     }
@@ -406,12 +413,19 @@ static void subdivide (struct page *p)
     }
 }
 
+int compatpdims (struct pagedim *p1, struct pagedim *p2)
+{
+    return p1->rotate == p2->rotate
+        && !memcmp (&p1->bbox, &p2->bbox, sizeof (p1->bbox))
+        && !memcmp (&p1->ctm, &p2->ctm, sizeof (p1->ctm));
+}
+
 static void *render (int pageno, int pindex)
 {
     fz_error error;
     int slicecount;
     fz_obj *pageobj;
-    struct page *page;
+    struct page *page = NULL;
     double start, end;
     pdf_page *drawpage;
     fz_device *idev;
@@ -425,11 +439,29 @@ static void *render (int pageno, int pindex)
                   + state.sliceheight - 1) / state.sliceheight;
     slicecount += slicecount == 0;
 
-    page = calloc (sizeof (*page)
-                   + (slicecount * sizeof (struct slice)), 1);
-    if (!page) {
-        err (1, "calloc page %d\n", pageno);
+    if (state.pig) {
+        if (compatpdims (&state.pig->pagedim, pagedim)) {
+            page = state.pig;
+            if (page->text) {
+                fz_freetextspan (page->text);
+            }
+            if (page->drawpage) {
+                pdf_freepage (page->drawpage);
+            }
+        }
+        else {
+            freepage (state.pig);
+        }
     }
+    if (!page) {
+        page = calloc (sizeof (*page)
+                       + (slicecount * sizeof (struct slice)), 1);
+        if (!page) {
+            err (1, "calloc page %d\n", pageno);
+        }
+        page->pixmap = fz_newpixmapwithrect (fz_devicergb, pagedim->bbox);
+    }
+
     page->slicecount = slicecount;
     page->prev = state.pages;
     state.pages = page;
@@ -442,7 +474,6 @@ static void *render (int pageno, int pindex)
     if (error)
         die (error);
 
-    page->pixmap = fz_newpixmapwithrect (fz_devicergb, pagedim->bbox);
     fz_clearpixmap (page->pixmap, 0xFF);
 
     idev = fz_newdrawdevice (state.cache, page->pixmap);
@@ -454,7 +485,7 @@ static void *render (int pageno, int pindex)
     fz_freedevice (idev);
 
     page->drawpage = drawpage;
-    page->pagedim = pagedim;
+    page->pagedim = *pagedim;
     page->pageno = pageno;
     subdivide (page);
     end = now ();
@@ -464,6 +495,7 @@ static void *render (int pageno, int pindex)
     }
 
     printd (state.sock, "V rendering %d took %f sec", pageno, end - start);
+    state.pig = NULL;
     return page;
 }
 
@@ -870,9 +902,8 @@ mainloop (void *unused)
             if (ret != 1) {
                 errx (1, "malformed free `%.*s' ret=%d", len, p, ret);
             }
-            lock ("free");
-            freepage (ptr);
-            unlock ("free");
+            unlinkpage (ptr);
+            state.pig = ptr;
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;
@@ -940,6 +971,10 @@ mainloop (void *unused)
             initpdims ();
             layout ();
             process_outline ();
+            if (state.pig) {
+                freepage (state.pig);
+                state.pig = NULL;
+            }
             unlock ("rotate");
             printd (state.sock, "C %d", state.pagecount);
         }
@@ -1200,7 +1235,7 @@ static pdf_link *getlink (struct page *page, int x, int y)
     p.x = x + page->pixmap->x;
     p.y = y + page->pixmap->y;
 
-    ctm = fz_invertmatrix (page->pagedim->ctm);
+    ctm = fz_invertmatrix (page->pagedim.ctm);
     p = fz_transformpoint (ctm, p);
 
     for (link = page->drawpage->links; link; link = link->next) {
@@ -1237,7 +1272,7 @@ CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
     glBegin (GL_QUADS);
     for (link = page->drawpage->links; link; link = link->next) {
         fz_point p1, p2, p3, p4;
-        fz_matrix ctm = page->pagedim->ctm;
+        fz_matrix ctm = page->pagedim.ctm;
 
         p1.x = link->rect.x0;
         p1.y = link->rect.y0;
@@ -1286,7 +1321,7 @@ static void ensuretext (struct page *page)
         page->text = fz_newtextspan ();
         tdev = fz_newtextdevice (page->text);
         error = pdf_runpage (state.xref, page->drawpage, tdev,
-                             page->pagedim->ctm);
+                             page->pagedim.ctm);
         if (error) die (error);
         fz_freedevice (tdev);
     }
@@ -1334,7 +1369,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                     if (!fz_isnull (xo) && !fz_isnull (yo)) {
                         p.x = fz_toint (xo);
                         p.y = fz_toint (yo);
-                        p = fz_transformpoint (page->pagedim->ctm, p);
+                        p = fz_transformpoint (page->pagedim.ctm, p);
                     }
                 }
 
