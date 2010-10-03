@@ -653,6 +653,7 @@ let act cmd =
 ;;
 
 let now = Unix.gettimeofday;;
+let prev = ref 0.0;;
 
 let idle () =
   let r, _, _ = Unix.select [state.csock] [] [] 0.001 in
@@ -868,6 +869,11 @@ let quickbookmark ?title () =
         (title, 0, l.pageno, l.pagey) :: state.bookmarks
 ;;
 
+let doreshape w h =
+  state.fullscreen <- None;
+  Glut.reshapeWindow w h;
+;;
+
 let viewkeyboard ~key ~x ~y =
   let enttext te =
     state.textentry <- te;
@@ -970,7 +976,7 @@ let viewkeyboard ~key ~x ~y =
               Glut.fullScreen ()
           | Some (w, h) ->
               state.fullscreen <- None;
-              Glut.reshapeWindow ~w ~h
+              doreshape w h
           end
 
       | 'g' ->
@@ -1029,7 +1035,7 @@ let viewkeyboard ~key ~x ~y =
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              Glut.reshapeWindow (l.pagew + conf.scrollw) l.pageh;
+              doreshape (l.pagew + conf.scrollw) l.pageh;
               Glut.postRedisplay ();
           end
 
@@ -1062,7 +1068,7 @@ let viewkeyboard ~key ~x ~y =
                   (truncate (a.(1) -. a.(0)),
                   truncate (a.(3) -. a.(0)))
               in
-              Glut.reshapeWindow (w + conf.scrollw) h;
+              doreshape (w + conf.scrollw) h;
               Glut.postRedisplay ();
 
           | [] -> ()
