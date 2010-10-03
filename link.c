@@ -444,9 +444,11 @@ static void *render (int pageno, int pindex)
             page = state.pig;
             if (page->text) {
                 fz_freetextspan (page->text);
+                page->text = NULL;
             }
             if (page->drawpage) {
                 pdf_freepage (page->drawpage);
+                page->drawpage = NULL;
             }
         }
         else {
