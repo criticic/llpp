@@ -149,7 +149,7 @@ let conf =
   { scrollw = 5
   ; scrollh = 12
   ; icase = true
-  ; preload = false
+  ; preload = true
   ; pagebias = 0
   ; verbose = false
   ; scrollincr = 24
@@ -407,7 +407,7 @@ let loadlayout layout =
 ;;
 
 let preload () =
-  if conf.preload then begin
+  if conf.preload && List.length state.layout < cblen state.pagecache then begin
     let y = if state.y < state.h then 0 else state.y - state.h in
     let pages = layout y (state.h*3) in
     List.iter render pages;
