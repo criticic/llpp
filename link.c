@@ -99,6 +99,10 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #define lprintf(...)
 #endif
 
+#ifdef FT_FREETYPE_H
+#include FT_FREETYPE_H
+#endif
+
 #define ARSERT(cond) for (;;) {                         \
     if (!(cond)) {                                      \
         errx (1, "%s:%d " #cond, __FILE__, __LINE__);   \
@@ -1407,7 +1411,32 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                 fz_bbox *b;
                 b = &span->text[i].bbox;
                 if ((x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1)) {
+#ifdef FT_FREETYPE_H
+                    FT_FaceRec *face = span->font->ftface;
+                    if (face) {
+                        char *s;
+                        char *n1 = face->family_name;
+                        char *n2 = span->font->name;
+                        size_t l1 = strlen (n1);
+                        size_t l2 = strlen (n2);
+
+                        if (l1 != l2 || memcmp (n1, n2, l1)) {
+                            s = malloc (l1 + l2 + 2);
+                            if (s) {
+                                memcpy (s, n2, l2);
+                                s[l2] = '=';
+                                memcpy (s + l2 + 1, n1, l1 + 1);
+                                str_v = caml_copy_string (s);
+                                free (s);
+                            }
+                        }
+                    }
+                    if (str_v == 0) {
+                        str_v = caml_copy_string (span->font->name);
+                    }
+#else
                     str_v = caml_copy_string (span->font->name);
+#endif
                     ret_v = caml_alloc_small (1, 2);
                     Field (ret_v, 0) = str_v;
                     goto unlock;

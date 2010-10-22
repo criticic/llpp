@@ -23,9 +23,10 @@ if ! md5sum --status -c $d; then
 fi
 
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
-#mupdf=/home/malc/x/rcs/git/mupdf
+mupdf=/home/malc/x/rcs/git/mupdf
 cc=gcc
 ccopt="-std=c89 -Wall -Werror -I$mupdf/fitz -I$mupdf/mupdf"
+ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"
 libs="-lmupdf -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig"
 
