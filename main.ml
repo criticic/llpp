@@ -656,20 +656,23 @@ let now = Unix.gettimeofday;;
 let prev = ref 0.0;;
 
 let idle () =
-  let r, _, _ = Unix.select [state.csock] [] [] 0.001 in
-  begin match r with
-  | [] ->
-      if conf.autoscroll then begin
-        let y = state.y + conf.scrollincr in
-        let y = if y >= state.maxy then 0 else y in
-        gotoy y;
-        state.text <- "";
-      end;
+  let rec loop delay =
+    let r, _, _ = Unix.select [state.csock] [] [] delay in
+    begin match r with
+    | [] ->
+        if conf.autoscroll then begin
+          let y = state.y + conf.scrollincr in
+          let y = if y >= state.maxy then 0 else y in
+          gotoy y;
+          state.text <- "";
+        end;
 
-  | _ ->
-      let cmd = readcmd state.csock in
-      act cmd;
-  end;
+    | _ ->
+        let cmd = readcmd state.csock in
+        act cmd;
+        loop 0.0
+    end;
+  in loop 0.001
 ;;
 
 let onhist cb = function
