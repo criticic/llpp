@@ -653,7 +653,6 @@ let act cmd =
 ;;
 
 let now = Unix.gettimeofday;;
-let prev = ref 0.0;;
 
 let idle () =
   let rec loop delay =
