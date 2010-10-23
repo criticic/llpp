@@ -160,8 +160,6 @@ struct {
     GLenum texform;
     GLenum texty;
 
-    int lotsamemory;
-
     struct {
         int w, h;
         struct slice *slice;
@@ -496,9 +494,7 @@ static void *render (int pageno, int pindex)
     subdivide (page);
     end = now ();
 
-    if (!state.lotsamemory) {
-        pdf_agestore(state.xref->store, 3);
-    }
+    pdf_agestore(state.xref->store, 3);
 
     printd (state.sock, "V rendering %d took %f sec", pageno, end - start);
     state.pig = NULL;
@@ -690,9 +686,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     start = now ();
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
         if (niters++ == 5) {
-            if (!state.lotsamemory) {
-                pdf_agestore(state.xref->store, 3);
-            }
+            pdf_agestore(state.xref->store, 3);
             niters = 0;
             if (hasdata (state.sock)) {
                 printd (state.sock, "T attention requested aborting search at %d",
@@ -1094,7 +1088,7 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
 
         if (state.texowners[index].w == slice->w) {
             if (state.texowners[index].h >= slice->h ) {
-                subimage = 1;
+                subimage = 0;
             }
             else {
                 state.texowners[index].h = slice->h;
