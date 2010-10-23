@@ -1004,7 +1004,7 @@ mainloop (void *unused)
                     state.rotate,
                     page);
         }
-        else if (!strncmp ("interrupt", p, 8)) {
+        else if (!strncmp ("interrupt", p, 9)) {
             printd (state.sock, "V interrupted");
         }
         else {
