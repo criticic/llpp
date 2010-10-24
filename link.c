@@ -634,6 +634,10 @@ static void recurse_outline (pdf_outline *outline, int level)
                 top = p.y;
             }
         }
+        else {
+            pageno = pdf_findpageobject (state.xref, outline->link->dest) - 1;
+            top = 0;
+        }
 
         lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
         printd (state.sock, "o %d %d %d %s",
