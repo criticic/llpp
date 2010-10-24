@@ -1733,7 +1733,11 @@ let () =
         | None -> state.w, state.h
         | Some wh -> wh
       in
-      Hashtbl.replace pstate state.path (state.bookmarks, w, h);
+      let bookmarks = List.map (fun (t, l, n, y) ->
+        let y = float y *. float state.w in
+        (t, l, n, truncate y)) state.bookmarks
+      in
+      Hashtbl.replace pstate state.path (bookmarks, w, h);
       let oc = open_out_bin statepath in
       output_value oc pstate
     with exn ->
@@ -1745,9 +1749,13 @@ let () =
   let setstate () =
     try
       let statebookmarks, statew, stateh = Hashtbl.find pstate state.path in
+      let bookmarks = List.map (fun (t, l, n, y) ->
+        let y = float y /. float statew in
+        (t, l, n, truncate y)) statebookmarks
+      in
       state.w <- statew;
       state.h <- stateh;
-      state.bookmarks <- statebookmarks;
+      state.bookmarks <- bookmarks;
     with Not_found -> ()
     | exn ->
       prerr_endline ("Error setting state " ^ Printexc.to_string exn)
