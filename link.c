@@ -1351,28 +1351,33 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                 fz_obj *obj;
 
                 pageno = -1;
-                obj = fz_arrayget (link->dest, 0);
-                if (fz_isindirect (obj)) {
-                    pageno = pdf_findpageobject (state.xref, obj) - 1;
-                }
-                else if (fz_isint (obj)) {
-                    pageno = fz_toint (obj);
-                }
+                p.x = 0;
+                p.y = 0;
 
-                p.x = 0.0;
-                p.y = 0.0;
-                if (fz_arraylen (link->dest) > 3) {
-                    fz_obj *xo, *yo;
+                if (fz_isarray (link->dest)) {
+                    obj = fz_arrayget (link->dest, 0);
+                    if (fz_isindirect (obj)) {
+                        pageno = pdf_findpageobject (state.xref, obj) - 1;
+                    }
+                    else if (fz_isint (obj)) {
+                        pageno = fz_toint (obj);
+                    }
 
-                    xo = fz_arrayget (link->dest, 2);
-                    yo = fz_arrayget (link->dest, 3);
-                    if (!fz_isnull (xo) && !fz_isnull (yo)) {
-                        p.x = fz_toint (xo);
-                        p.y = fz_toint (yo);
-                        p = fz_transformpoint (page->pagedim.ctm, p);
+                    if (fz_arraylen (link->dest) > 3) {
+                        fz_obj *xo, *yo;
+
+                        xo = fz_arrayget (link->dest, 2);
+                        yo = fz_arrayget (link->dest, 3);
+                        if (!fz_isnull (xo) && !fz_isnull (yo)) {
+                            p.x = fz_toint (xo);
+                            p.y = fz_toint (yo);
+                            p = fz_transformpoint (page->pagedim.ctm, p);
+                        }
                     }
                 }
-
+                else {
+                    pageno = pdf_findpageobject (state.xref, link->dest) - 1;
+                }
                 tup_v = caml_alloc_tuple (2);
                 ret_v = caml_alloc_small (1, 1);
                 Field (tup_v, 0) = Val_int (pageno);
