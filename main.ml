@@ -808,7 +808,8 @@ let enterselector allowdel outlines errmsg =
   then (
     showtext ' ' errmsg;
   )
-  else
+  else (
+    Glut.setCursor Glut.CURSOR_INHERIT;
     let pageno =
       match state.layout with
       | [] -> -1
@@ -828,6 +829,7 @@ let enterselector allowdel outlines errmsg =
       Some (allowdel, active,
            max 0 ((active - maxoutlinerows () / 2)), outlines, "");
     Glut.postRedisplay ();
+  )
 ;;
 
 let enteroutlinemode () =
