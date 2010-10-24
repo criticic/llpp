@@ -1092,7 +1092,7 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
 
         if (state.texowners[index].w == slice->w) {
             if (state.texowners[index].h >= slice->h ) {
-                subimage = 0;
+                subimage = 1;
             }
             else {
                 state.texowners[index].h = slice->h;
