@@ -14,7 +14,7 @@ lablgl=:pserver:anoncvs@camlcvs.inria.fr:/caml
 mupdf=http://mupdf.com/download/snapshots/mupdf-r1300.tar.gz
 sumatrapdf=http://sumatrapdf.googlecode.com/svn/trunk
 
-test -d openjpeg || svn checkout $openjpeg openjpeg
+test -d openjpeg || svn -r r608 checkout $openjpeg openjpeg
 test -d jbig2dec || git clone $jbig2dec jbig2dec
 test -d lablgl   || cvs -d $lablgl co -d lablgl bazar-ocaml/lablGL
 
