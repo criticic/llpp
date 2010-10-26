@@ -1087,6 +1087,9 @@ let viewkeyboard ~key ~x ~y =
             (min (state.colorscale +. (if c = ']' then 0.1 else -0.1)) 1.0);
           Glut.postRedisplay ()
 
+      | 'k' -> gotoy (clamp (-conf.scrollincr))
+      | 'j' -> gotoy (clamp conf.scrollincr)
+
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);
       end
