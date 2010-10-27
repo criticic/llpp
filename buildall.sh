@@ -56,13 +56,26 @@ cd ..
 
 srcpath=$(dirname $0)
 
-cclib="-lmupdf -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
-ocamlc -c -o link.o -ccopt -O $srcpath/link.c
-ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
+if test "$1" == "opt"; then
+    cclib="-lmupdf -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
+    ocamlopt -c -o link.o -ccopt -O $srcpath/link.c
+    ocamlopt -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
-ocamlc -custom -o llpp \
--I $root/lib/ocaml/lablGL \
-str.cma unix.cma lablgl.cma lablglut.cma \
-link.o \
--cclib "$cclib" \
-main.cmo
+    ocamlopt -o llpp \
+    -I $root/lib/ocaml/lablGL \
+    str.cmxa unix.cmxa lablgl.cmxa lablglut.cmxa \
+    link.o \
+    -cclib "$cclib" \
+    main.cmx
+else
+    cclib="-lmupdf -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+    ocamlc -c -o link.o -ccopt -O $srcpath/link.c
+    ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
+
+    ocamlc -custom -o llpp \
+        -I $root/lib/ocaml/lablGL \
+        str.cma unix.cma lablgl.cma lablglut.cma \
+        link.o \
+        -cclib "$cclib" \
+        main.cmo
+fi
