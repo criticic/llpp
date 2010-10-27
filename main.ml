@@ -473,7 +473,6 @@ let scalecolor c =
 ;;
 
 let reshape ~w ~h =
-  let ratio = float w /. float state.w in
   state.w <- w;
   state.h <- h;
   GlDraw.viewport 0 0 w h;
