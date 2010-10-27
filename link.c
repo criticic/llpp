@@ -166,6 +166,7 @@ struct {
     } *texowners;
 
     int rotate;
+    int needoutline;
 
 #ifdef _WIN32
     HANDLE thread;
@@ -598,8 +599,8 @@ static void recurse_outline (pdf_outline *outline, int level)
     while (outline) {
         int i;
         fz_obj *obj;
-        int top = 0;
         int pageno = -1;
+        int top = 0, h = 0;
 
         if (!outline->link) goto next;
 
@@ -632,16 +633,16 @@ static void recurse_outline (pdf_outline *outline, int level)
                 p.y = fz_toint (fz_arrayget (obj, 3));
                 p = fz_transformpoint (pagedim->ctm, p);
                 top = p.y;
+                h = pagedim->bbox.y1 - pagedim->bbox.y0;
             }
         }
         else {
             pageno = pdf_findpageobject (state.xref, outline->link->dest) - 1;
-            top = 0;
         }
 
         lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
-        printd (state.sock, "o %d %d %d %s",
-                level, pageno, top, outline->title);
+        printd (state.sock, "o %d %d %d %d %s",
+                level, pageno, top, h, outline->title);
     next:
         if (outline->child) {
             recurse_outline (outline->child, level + 1);
@@ -654,6 +655,9 @@ static void process_outline (void)
 {
     pdf_outline *outline;
 
+    if (!state.needoutline) return;
+
+    state.needoutline = 0;
     outline = pdf_loadoutline (state.xref);
     if (outline) {
         recurse_outline (outline, 0);
@@ -898,6 +902,7 @@ mainloop (void *unused)
                     printd (state.sock, "t %s", pdf_toutf8 (obj));
                 }
             }
+            state.needoutline = 1;
         }
         else if (!strncmp ("free", p, 4)) {
             void *ptr;

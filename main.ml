@@ -99,7 +99,7 @@ type conf =
     }
 ;;
 
-type outline = string * int * int * int;;
+type outline = string * int * int * float;;
 type outlines =
     | Oarray of outline array
     | Olist of outline list
@@ -282,22 +282,24 @@ let calcheight () =
   fh;
 ;;
 
-let getpagey pageno =
+let getpageyh pageno =
   let rec f pn ph y l =
     match l with
     | (n, _, h) :: rest ->
         if n >= pageno
         then
-          y + (pageno - pn) * ph
+          y + (pageno - pn) * ph, h
         else
           let y = y + (n - pn) * ph in
           f n h y rest
 
     | [] ->
-        y + (pageno - pn) * ph
+        y + (pageno - pn) * ph, ph
   in
   f 0 0 0 state.pages;
 ;;
+
+let getpagey pageno = fst (getpageyh pageno);;
 
 let layout y sh =
   let rec f pageno pdimno prev vy py dy l cacheleft accu =
@@ -446,6 +448,12 @@ let getnav () =
 ;;
 
 let gotopage n top =
+  let y, h = getpageyh n in
+  addnav ();
+  gotoy (y + (truncate (top *. float h)));
+;;
+
+let gotopage1 n top =
   let y = getpagey n in
   addnav ();
   gotoy (y + top);
@@ -466,11 +474,6 @@ let scalecolor c =
 
 let reshape ~w ~h =
   let ratio = float w /. float state.w in
-  let fixbookmark (s, l, pageno, pagey) =
-    let pagey = truncate (float pagey *. ratio) in
-    (s, l, pageno, pagey)
-  in
-  state.bookmarks <- List.map fixbookmark state.bookmarks;
   state.w <- w;
   state.h <- h;
   GlDraw.viewport 0 0 w h;
@@ -535,7 +538,6 @@ let act cmd =
   match cmd.[0] with
   | 'c' ->
       state.pages <- [];
-      state.outlines <- Olist []
 
   | 'D' ->
       state.rects <- state.rects1;
@@ -635,11 +637,11 @@ let act cmd =
       state.pages <- pagelayout :: state.pages
 
   | 'o' ->
-      let (l, n, t, pos) =
-        Scanf.sscanf cmd "o %d %d %d %n" (fun l n t pos -> l, n, t, pos)
+      let (l, n, t, h, pos) =
+        Scanf.sscanf cmd "o %d %d %d %d %n" (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub cmd pos (String.length cmd - pos) in
-      let outline = (s, l, n, t) in
+      let outline = (s, l, n, float t /. float h) in
       let outlines =
         match state.outlines with
         | Olist outlines -> Olist (outline :: outlines)
@@ -870,7 +872,7 @@ let quickbookmark ?title () =
         | Some title -> title
       in
       state.bookmarks <-
-        (title, 0, l.pageno, l.pagey) :: state.bookmarks
+        (title, 0, l.pageno, float l.pagey /. float l.pageh) :: state.bookmarks
 ;;
 
 let doreshape w h =
@@ -1050,7 +1052,9 @@ let viewkeyboard ~key ~x ~y =
           let ondone s =
             match state.layout with
             | l :: _ ->
-                state.bookmarks <- (s, 0, l.pageno, l.pagey) :: state.bookmarks
+                state.bookmarks <-
+                  (s, 0, l.pageno, float l.pagey /. float l.pageh)
+                :: state.bookmarks
             | _ -> ()
           in
           enttext (Some ('~', "", None, textentry, ondone))
@@ -1631,7 +1635,7 @@ let mouse ~button ~bstate ~x ~y =
       | Ulinkgoto (pageno, top) ->
           if pageno >= 0
           then
-            gotopage pageno top
+            gotopage1 pageno top
 
       | Ulinkuri s ->
           print_endline s
@@ -1736,11 +1740,7 @@ let () =
         | None -> state.w, state.h
         | Some wh -> wh
       in
-      let bookmarks = List.map (fun (t, l, n, y) ->
-        let y = float y *. float state.w in
-        (t, l, n, truncate y)) state.bookmarks
-      in
-      Hashtbl.replace pstate state.path (bookmarks, w, h);
+      Hashtbl.replace pstate state.path (state.bookmarks, w, h);
       let oc = open_out_bin statepath in
       output_value oc pstate
     with exn ->
@@ -1752,13 +1752,9 @@ let () =
   let setstate () =
     try
       let statebookmarks, statew, stateh = Hashtbl.find pstate state.path in
-      let bookmarks = List.map (fun (t, l, n, y) ->
-        let y = float y /. float statew in
-        (t, l, n, truncate y)) statebookmarks
-      in
       state.w <- statew;
       state.h <- stateh;
-      state.bookmarks <- bookmarks;
+      state.bookmarks <- statebookmarks;
     with Not_found -> ()
     | exn ->
       prerr_endline ("Error setting state " ^ Printexc.to_string exn)
