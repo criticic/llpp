@@ -423,6 +423,54 @@ int compatpdims (struct pagedim *p1, struct pagedim *p2)
         && !memcmp (&p1->ctm, &p2->ctm, sizeof (p1->ctm));
 }
 
+#ifdef __ALTIVEC__
+#include <altivec.h>
+
+static int cacheline32bytes;
+
+static void __attribute__ ((constructor)) clcheck (void)
+{
+    char **envp = environ;
+    unsigned long *auxv;
+
+    while (*envp++);
+
+    for (auxv = (unsigned long *) envp; *auxv != 0; auxv += 2) {
+        if (*auxv == 19) {
+            cacheline32bytes = auxv[1] == 32;
+            return;
+        }
+    }
+}
+
+static void __attribute__ ((optimize ("O"))) clearpixmap (fz_pixmap *pixmap)
+{
+    if (cacheline32bytes) {
+        intptr_t a1, a2, diff;
+        size_t sizea, i, size = pixmap->w * pixmap->h * pixmap->n;
+        vector unsigned char v = vec_splat_u8 (-1);
+        vector unsigned char *p;
+
+        a1 = a2 = (intptr_t) pixmap->samples;
+        a2 = (a1 + 31) & ~31;
+        diff = a2 - a1;
+        sizea = size - diff;
+        p = (void *) a2;
+
+        while (a1 != a2) *(char *) a1++ = 0xff;
+        for (i = 0; i < (sizea - 31); i += 32)  {
+            __asm volatile ("dcbz %0, %1"::"b"(a2),"r"(i));
+            vec_st (v, i, p);
+            vec_st (v, i + 16, p);
+        }
+        while (i++ < sizea) *((char *) a1 + i) = 0xff;
+    }
+    else fz_clearpixmap (pixmap, 0xff);
+}
+#else
+#define clearpixmap(p) fz_clearpixmap (p, 0xff)
+#endif
+
 static void *render (int pageno, int pindex)
 {
     fz_error error;
@@ -479,7 +527,7 @@ static void *render (int pageno, int pindex)
     if (error)
         die (error);
 
-    fz_clearpixmap (page->pixmap, 0xFF);
+    clearpixmap (page->pixmap);
 
     idev = fz_newdrawdevice (state.cache, page->pixmap);
     if (!idev)
