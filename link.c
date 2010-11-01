@@ -1313,10 +1313,6 @@ CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
     int xoff, yoff = Int_val (yoff_v);
     const char *s = String_val (ptr_v);
 
-    if (trylock ("ml_highlightlinks")) {
-        goto done;
-    }
-
     page = parse_pointer ("ml_highlightlinks", s);
 
     glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
@@ -1363,9 +1359,7 @@ CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
 
     glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
     glDisable (GL_LINE_STIPPLE);
-    unlock ("ml_highlightlinks");
 
- done:
     CAMLreturn (Val_unit);
 }
 
