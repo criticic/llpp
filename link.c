@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
+#define fionread_arg long
 #define ssize_t int
 #define FMT_ss "%d"
 #ifdef _WIN64
@@ -55,6 +56,8 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #else
 #define FMT_ss "%zd"
 #define FMT_s "%zu"
+#define fionread_arg int
+#define ioctlsocket ioctl
 #define _GNU_SOURCE
 #include <err.h>
 #define sockerr err
@@ -72,7 +75,7 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/select.h>
+#include <sys/ioctl.h>
 #endif
 
 #ifdef __APPLE__
@@ -239,17 +242,11 @@ static void *parse_pointer (const char *cap, const char *s)
 
 static int hasdata (int sock)
 {
-    int n;
-    fd_set s;
-    struct timeval tv;
-    FD_ZERO (&s);
-    FD_SET (sock, &s);
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
-    n = select (sock + 1, &s, NULL, NULL, &tv);
-    if (n == 0) return 0;
-    if (n == 1) return 1;
-    sockerr (1, "hasdata: select error ret=%d", n);
+    int ret;
+    fionread_arg avail;
+    ret = ioctlsocket (sock, FIONREAD, &avail);
+    if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
+    return avail > 0;
 }
 
 static double now (void)
