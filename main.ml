@@ -9,11 +9,10 @@ let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
 external init : Unix.file_descr -> unit = "ml_init";;
-external draw : int -> int -> int -> int -> string  -> unit = "ml_draw";;
+external draw : (int * int * int * int * bool) -> string  -> unit = "ml_draw";;
 external seltext : string -> (int * int * int * int) -> int -> unit =
   "ml_seltext";;
 external copysel : string ->  unit = "ml_copysel";;
-external highlightlinks : string -> int -> unit = "ml_highlightlinks";;
 external getpagewh : int -> float array = "ml_getpagewh";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 
@@ -1438,10 +1437,9 @@ let drawpage i l =
       then GlDraw.color (scalecolor 1.0)
       else GlDraw.color (scalecolor 0.4);
       let a = now () in
-      draw l.pagedispy l.pagew l.pagevh l.pagey opaque;
+      draw (l.pagedispy, l.pagew, l.pagevh, l.pagey, conf.hlinks) opaque;
       let b = now () in
       let d = b-.a in
-      if conf.hlinks then highlightlinks opaque (l.pagedispy - l.pagey);
       vlog "draw %f sec" d;
 
   | _ ->

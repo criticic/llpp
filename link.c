@@ -1116,6 +1116,57 @@ static void showsel (struct page *page, int oy)
     glDisable (GL_BLEND);
 }
 
+static void highlightlinks (struct page *page, int yoff)
+{
+    pdf_link *link;
+    int xoff;
+
+    glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
+    glEnable (GL_LINE_STIPPLE);
+    glLineStipple (0.5, 0xcccc);
+
+    xoff = -page->pixmap->x;
+    yoff -= page->pixmap->y;
+
+    glBegin (GL_QUADS);
+    for (link = page->drawpage->links; link; link = link->next) {
+        fz_point p1, p2, p3, p4;
+        fz_matrix ctm = page->pagedim.ctm;
+
+        p1.x = link->rect.x0;
+        p1.y = link->rect.y0;
+
+        p2.x = link->rect.x1;
+        p2.y = link->rect.y0;
+
+        p3.x = link->rect.x1;
+        p3.y = link->rect.y1;
+
+        p4.x = link->rect.x0;
+        p4.y = link->rect.y1;
+
+        p1 = fz_transformpoint (ctm, p1);
+        p2 = fz_transformpoint (ctm, p2);
+        p3 = fz_transformpoint (ctm, p3);
+        p4 = fz_transformpoint (ctm, p4);
+
+        switch (link->kind) {
+        case PDF_LGOTO: glColor3ub (255, 0, 0); break;
+        case PDF_LURI: glColor3ub (0, 0, 255); break;
+        default: glColor3ub (0, 0, 0); break;
+        }
+
+        glVertex2f (p1.x + xoff, p1.y + yoff);
+        glVertex2f (p2.x + xoff, p2.y + yoff);
+        glVertex2f (p3.x + xoff, p3.y + yoff);
+        glVertex2f (p4.x + xoff, p4.y + yoff);
+    }
+    glEnd ();
+
+    glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+    glDisable (GL_LINE_STIPPLE);
+}
+
 static void upload2 (struct page *page, int slicenum, const char *cap)
 {
     int i;
@@ -1207,19 +1258,20 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
     }
 }
 
-CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
-                        value py_v, value ptr_v)
+CAMLprim value ml_draw (value args_v, value ptr_v)
 {
-    CAMLparam5 (dispy_v, w_v, h_v, py_v, ptr_v);
-    int dispy = Int_val (dispy_v);
-    int w = Int_val (w_v);
-    int h = Int_val (h_v);
-    int py = Int_val (py_v);
+    CAMLparam2 (args_v, ptr_v);
+    int dispy = Int_val (Field (args_v, 0));
+    int w = Int_val (Field (args_v, 1));
+    int h = Int_val (Field (args_v, 2));
+    int py = Int_val (Field (args_v, 3));
+    int hlinks = Bool_val (Field (args_v, 4));
     char *s = String_val (ptr_v);
     int ret;
     void *ptr;
     struct page *page;
     int slicenum = 0;
+    int yoff = dispy - py;
 
     ret = sscanf (s, "%p", &ptr);
     if (ret != 1) {
@@ -1274,7 +1326,8 @@ CAMLprim value ml_draw (value dispy_v, value w_v, value h_v,
         slicenum += 1;
     }
 
-    showsel (page, Int_val (dispy_v) - Int_val (py_v));
+    showsel (page, yoff);
+    if (hlinks) highlightlinks (page, yoff);
     glDisable (GL_TEXTURE_RECTANGLE_ARB);
 
     CAMLreturn (Val_unit);
@@ -1300,64 +1353,6 @@ static pdf_link *getlink (struct page *page, int x, int y)
         }
     }
     return NULL;
-}
-
-CAMLprim value ml_highlightlinks (value ptr_v, value yoff_v)
-{
-    CAMLparam2 (ptr_v, yoff_v);
-    pdf_link *link;
-    struct page *page;
-    int xoff, yoff = Int_val (yoff_v);
-    const char *s = String_val (ptr_v);
-
-    page = parse_pointer ("ml_highlightlinks", s);
-
-    glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-    glEnable (GL_LINE_STIPPLE);
-    glLineStipple (0.5, 0xcccc);
-
-    xoff = -page->pixmap->x;
-    yoff -= page->pixmap->y;
-
-    glBegin (GL_QUADS);
-    for (link = page->drawpage->links; link; link = link->next) {
-        fz_point p1, p2, p3, p4;
-        fz_matrix ctm = page->pagedim.ctm;
-
-        p1.x = link->rect.x0;
-        p1.y = link->rect.y0;
-
-        p2.x = link->rect.x1;
-        p2.y = link->rect.y0;
-
-        p3.x = link->rect.x1;
-        p3.y = link->rect.y1;
-
-        p4.x = link->rect.x0;
-        p4.y = link->rect.y1;
-
-        p1 = fz_transformpoint (ctm, p1);
-        p2 = fz_transformpoint (ctm, p2);
-        p3 = fz_transformpoint (ctm, p3);
-        p4 = fz_transformpoint (ctm, p4);
-
-        switch (link->kind) {
-        case PDF_LGOTO: glColor3ub (255, 0, 0); break;
-        case PDF_LURI: glColor3ub (0, 0, 255); break;
-        default: glColor3ub (0, 0, 0); break;
-        }
-
-        glVertex2f (p1.x + xoff, p1.y + yoff);
-        glVertex2f (p2.x + xoff, p2.y + yoff);
-        glVertex2f (p3.x + xoff, p3.y + yoff);
-        glVertex2f (p4.x + xoff, p4.y + yoff);
-    }
-    glEnd ();
-
-    glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-    glDisable (GL_LINE_STIPPLE);
-
-    CAMLreturn (Val_unit);
 }
 
 static void ensuretext (struct page *page)
