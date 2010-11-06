@@ -455,12 +455,12 @@ static void __attribute__ ((optimize ("O"))) clearpixmap (fz_pixmap *pixmap)
         p = (void *) a2;
 
         while (a1 != a2) *(char *) a1++ = 0xff;
-        for (i = 0; i < (sizea - 31); i += 32)  {
+        for (i = 0; i < (sizea & ~31); i += 32)  {
             __asm volatile ("dcbz %0, %1"::"b"(a2),"r"(i));
             vec_st (v, i, p);
             vec_st (v, i + 16, p);
         }
-        while (i++ < sizea) *((char *) a1 + i) = 0xff;
+        while (i < sizea) *((char *) a1 + i++) = 0xff;
     }
     else fz_clearpixmap (pixmap, 0xff);
 }
