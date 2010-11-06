@@ -408,11 +408,20 @@ let loadlayout layout =
 ;;
 
 let preload () =
-  if conf.preload && List.length state.layout < cblen state.pagecache then begin
-    let y = if state.y < state.h then 0 else state.y - state.h in
-    let pages = layout y (state.h*3) in
-    List.iter render pages;
-  end;
+  if conf.preload then
+    let evictedvisible =
+      let evictedopaque = cbpeekw state.pagecache in
+      List.exists (fun l ->
+        match getopaque l.pageno with
+        | Some opaque when validopaque opaque ->
+            evictedopaque = opaque
+        | otherwise -> false
+      ) state.layout
+    in
+    if not evictedvisible then
+      let y = if state.y < state.h then 0 else state.y - state.h in
+      let pages = layout y (state.h*3) in
+      List.iter render pages;
 ;;
 
 let gotoy y =
