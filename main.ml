@@ -540,7 +540,6 @@ let showtext c s =
   )
 ;;
 
-
 let act cmd =
   match cmd.[0] with
   | 'c' ->
