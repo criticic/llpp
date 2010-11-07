@@ -33,7 +33,7 @@ home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
 ctrl pageup/pagedown    - align top of the screen with first/last visible page
 
-tuanbles
+tunables
 -i                      - toggle case sensitivity of searches
 -s<number>              - scroll increment
 -c                      - toggle crop hack
