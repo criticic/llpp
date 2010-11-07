@@ -413,7 +413,7 @@ static void subdivide (struct page *p)
     }
 }
 
-int compatpdims (struct pagedim *p1, struct pagedim *p2)
+static int compatpdims (struct pagedim *p1, struct pagedim *p2)
 {
     return p1->rotate == p2->rotate
         && !memcmp (&p1->bbox, &p2->bbox, sizeof (p1->bbox))
