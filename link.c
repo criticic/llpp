@@ -1453,12 +1453,16 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                 fz_bbox *b;
                 b = &span->text[i].bbox;
                 if ((x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1)) {
+                    const char *n2 =
+                        span->font && span->font->name
+                        ? span->font->name
+                        : "Span has no font name"
+                        ;
 #ifdef FT_FREETYPE_H
                     FT_FaceRec *face = span->font->ftface;
-                    if (face) {
+                    if (face && face->family_name) {
                         char *s;
                         char *n1 = face->family_name;
-                        char *n2 = span->font->name;
                         size_t l1 = strlen (n1);
                         size_t l2 = strlen (n2);
 
@@ -1474,10 +1478,10 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                         }
                     }
                     if (str_v == 0) {
-                        str_v = caml_copy_string (span->font->name);
+                        str_v = caml_copy_string (n2);
                     }
 #else
-                    str_v = caml_copy_string (span->font->name);
+                    str_v = caml_copy_string (n2);
 #endif
                     ret_v = caml_alloc_small (1, 2);
                     Field (ret_v, 0) = str_v;
