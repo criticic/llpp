@@ -666,19 +666,24 @@ static void recurse_outline (pdf_outline *outline, int level)
 
             if (fz_arraylen (obj) > 3) {
                 fz_point p;
-                struct pagedim *pagedim = state.pagedims;
+                fz_obj *xo, *yo;
 
-                for (i = 0; i < state.pagedimcount; ++i) {
-                    if (state.pagedims[i].pageno > pageno)
-                        break;
-                    pagedim = &state.pagedims[i];
+                xo = fz_arrayget (obj, 2);
+                yo = fz_arrayget (obj, 3);
+                if (!fz_isnull (xo) && !fz_isnull (yo)) {
+                    struct pagedim *pagedim = state.pagedims;
+
+                    for (i = 0; i < state.pagedimcount; ++i) {
+                        if (state.pagedims[i].pageno > pageno)
+                            break;
+                        pagedim = &state.pagedims[i];
+                    }
+                    p.x = fz_toint (xo);
+                    p.y = fz_toint (yo);
+                    p = fz_transformpoint (pagedim->ctm, p);
+                    h = pagedim->bbox.y1 - pagedim->bbox.y0;
+                    top = p.y;
                 }
-
-                p.x = fz_toint (fz_arrayget (obj, 2));
-                p.y = fz_toint (fz_arrayget (obj, 3));
-                p = fz_transformpoint (pagedim->ctm, p);
-                top = p.y;
-                h = pagedim->bbox.y1 - pagedim->bbox.y0;
             }
         }
         else {
