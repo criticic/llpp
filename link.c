@@ -947,10 +947,14 @@ mainloop (void *unused)
 
             obj = fz_dictgets (state.xref->trailer, "Info");
             if (obj) {
+                char *s;
+
                 obj = fz_dictgets (obj, "Title");
-                if (obj) {
-                    printd (state.sock, "t %s", pdf_toutf8 (obj));
+                s = pdf_toutf8 (obj);
+                if (*s) {
+                    printd (state.sock, "t %s", s);
                 }
+                fz_free (s);
             }
             state.needoutline = 1;
         }
