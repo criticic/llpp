@@ -623,7 +623,7 @@ let act cmd =
             (fun k v a -> if v = opaque then k else a)
             state.pagemap (-1, -1, -1)
         in
-        wcmd "free" [`s opaque];
+        wcmd "free" [`s opaque; `i 0];
         Hashtbl.remove state.pagemap k
       );
       cbput state.pagecache p;
@@ -886,6 +886,22 @@ let doreshape w h =
   Glut.reshapeWindow w h;
 ;;
 
+let opendoc path =
+  invalidate ();
+  state.path <- path;
+  for i = 0 to cblen state.pagecache - 1 do
+    let opaque = cbget state.pagecache 1 in
+    cbput state.pagecache "";
+    if validopaque opaque
+    then wcmd "free" [`s opaque; `i 1];
+  done;
+  Hashtbl.clear state.pagemap;
+
+  writecmd state.csock ("open " ^ path ^ "\000");
+  Glut.setWindowTitle ("llpp " ^ Filename.basename path);
+  wcmd "geometry" [`i (state.w - conf.scrollw); `i state.h];
+;;
+
 let viewkeyboard ~key ~x ~y =
   let enttext te =
     state.textentry <- te;
@@ -1099,6 +1115,9 @@ let viewkeyboard ~key ~x ~y =
 
       | 'k' -> gotoy (clamp (-conf.scrollincr))
       | 'j' -> gotoy (clamp conf.scrollincr)
+
+      | 'r' -> opendoc state.path
+      | 'R' -> opendoc "article.pdf"
 
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);

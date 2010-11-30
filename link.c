@@ -322,6 +322,17 @@ static void openxref (char *filename)
     fz_error error;
     fz_stream *file;
 
+    state.pig = NULL;
+    if (state.xref) {
+        pdf_freexref (state.xref);
+        state.xref = NULL;
+    }
+    if (state.pagedims) {
+        free (state.pagedims);
+        state.pagedims = NULL;
+    }
+    state.pagedimcount = 0;
+
     fd = open (filename, O_BINARY | O_RDONLY, 0666);
     if (fd < 0)
         die (fz_throw ("cannot open file '%s'", filename));
@@ -950,13 +961,17 @@ mainloop (void *unused)
         }
         else if (!strncmp ("free", p, 4)) {
             void *ptr;
+            int remove;
 
-            ret = sscanf (p + 4, " %p", &ptr);
-            if (ret != 1) {
+            ret = sscanf (p + 4, " %p %d", &ptr, &remove);
+            if (ret != 2) {
                 errx (1, "malformed free `%.*s' ret=%d", len, p, ret);
             }
             unlinkpage (ptr);
             state.pig = ptr;
+            if (remove)  {
+                freepage (ptr);
+            }
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;

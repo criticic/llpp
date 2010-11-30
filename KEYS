@@ -25,6 +25,7 @@ o                       - switch to outline mode
 m                       - create named bookmark
 ~                       - create quick bookmark
 z                       - crop
+r                       - reload document
 a                       - autoscroll
 <,>                     - rotate
 [,]                     - decrease/increase page brightness
