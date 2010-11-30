@@ -623,7 +623,7 @@ let act cmd =
             (fun k v a -> if v = opaque then k else a)
             state.pagemap (-1, -1, -1)
         in
-        wcmd "free" [`s opaque; `i 0];
+        wcmd "free" [`s opaque];
         Hashtbl.remove state.pagemap k
       );
       cbput state.pagecache p;
@@ -889,12 +889,6 @@ let doreshape w h =
 let opendoc path =
   invalidate ();
   state.path <- path;
-  for i = 0 to cblen state.pagecache - 1 do
-    let opaque = cbget state.pagecache 1 in
-    cbput state.pagecache "";
-    if validopaque opaque
-    then wcmd "free" [`s opaque; `i 1];
-  done;
   Hashtbl.clear state.pagemap;
 
   writecmd state.csock ("open " ^ path ^ "\000");

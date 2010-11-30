@@ -961,17 +961,13 @@ mainloop (void *unused)
         }
         else if (!strncmp ("free", p, 4)) {
             void *ptr;
-            int remove;
 
-            ret = sscanf (p + 4, " %p %d", &ptr, &remove);
-            if (ret != 2) {
+            ret = sscanf (p + 4, " %p", &ptr);
+            if (ret != 1) {
                 errx (1, "malformed free `%.*s' ret=%d", len, p, ret);
             }
             unlinkpage (ptr);
             state.pig = ptr;
-            if (remove)  {
-                freepage (ptr);
-            }
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;
