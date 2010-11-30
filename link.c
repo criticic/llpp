@@ -133,7 +133,6 @@ struct page {
     fz_pixmap *pixmap;
     pdf_page *drawpage;
     struct pagedim pagedim;
-    struct page *prev;
     struct mark {
         int i;
         fz_textspan *span;
@@ -148,7 +147,7 @@ struct page {
 struct {
     int sock;
     int sliceheight;
-    struct page *pages, *pig;
+    struct page *pig;
     struct pagedim *pagedims;
     int pagecount;
     int pagedimcount;
@@ -362,14 +361,7 @@ static int readlen (int fd)
 static void unlinkpage (struct page *page)
 {
     int i;
-    struct page *p;
 
-    for (p = state.pages; p; p = p->prev) {
-        if (p->prev == page) {
-            p->prev = page->prev;
-            break;
-        }
-    }
     for (i = 0; i < page->slicecount; ++i) {
         struct slice *s = &page->slices[i];
         if (s->texindex != -1) {
@@ -513,8 +505,6 @@ static void *render (int pageno, int pindex)
     }
 
     page->slicecount = slicecount;
-    page->prev = state.pages;
-    state.pages = page;
 
     pageobj = pdf_getpageobject (state.xref, pageno);
     if (!pageobj)
