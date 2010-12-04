@@ -465,10 +465,10 @@ static void __attribute__ ((optimize ("O"))) clearpixmap (fz_pixmap *pixmap)
         }
         while (i < sizea) *((char *) a1 + i++) = 0xff;
     }
-    else fz_clearpixmap (pixmap, 0xff);
+    else fz_clearpixmapwithcolor (pixmap, 0xff);
 }
 #else
-#define clearpixmap(p) fz_clearpixmap (p, 0xff)
+#define clearpixmap(p) fz_clearpixmapwithcolor (p, 0xff)
 #endif
 
 static void *render (int pageno, int pindex)
