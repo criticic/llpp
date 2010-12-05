@@ -1111,7 +1111,6 @@ let viewkeyboard ~key ~x ~y =
       | 'j' -> gotoy (clamp conf.scrollincr)
 
       | 'r' -> opendoc state.path
-      | 'R' -> opendoc "article.pdf"
 
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);
