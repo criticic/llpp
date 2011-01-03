@@ -56,7 +56,7 @@ cd ..
 
 srcpath=$(dirname $0)
 
-if test "$1" == "opt"; then
+if test "$1" = "opt"; then
     cclib="-lmupdf -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
     ocamlopt -c -o link.o -ccopt -O $srcpath/link.c
     ocamlopt -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
