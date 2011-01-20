@@ -1,7 +1,7 @@
 # builds "hard" prerequisites and llpp
 set -e
 
-use_sumatrapdf_patched_mupdf=true
+use_sumatrapdf_patched_mupdf=false
 
 mkdir -p 3rdp
 cd 3rdp
@@ -11,7 +11,7 @@ root=$(pwd)
 openjpeg=http://openjpeg.googlecode.com/svn/trunk/
 jbig2dec=git://git.ghostscript.com/jbig2dec.git
 lablgl=:pserver:anoncvs@camlcvs.inria.fr:/caml
-mupdf=http://mupdf.com/download/snapshots/mupdf-r1300.tar.gz
+mupdf=http://mupdf.com/repos/mupdf.git
 sumatrapdf=http://sumatrapdf.googlecode.com/svn/trunk
 
 test -d openjpeg || svn -r r608 checkout $openjpeg openjpeg
@@ -22,7 +22,7 @@ if ! test -d mupdf; then
     if $use_sumatrapdf_patched_mupdf; then
         svn checkout $sumatrapdf/mupdf mupdf
     else
-        wget $mupdf && tar xf $(basename $mupdf)
+        git clone $mupdf
     fi
 fi
 
