@@ -244,7 +244,7 @@ static int hasdata (int sock)
     int ret;
     fionread_arg avail;
     ret = ioctlsocket (sock, FIONREAD, &avail);
-    if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
+    if (ret) sockerr (1, "hasdata: FIONREAD error ret=%d", ret);
     return avail > 0;
 }
 
