@@ -1634,7 +1634,8 @@ let getunder x y =
 
 let mouse ~button ~bstate ~x ~y =
   match button with
-  | Glut.OTHER_BUTTON n when n == 3 || n == 4 && bstate = Glut.UP ->
+  | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
+      log "we are here n = %d" n;
       let incr =
         if n = 3
         then
