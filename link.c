@@ -298,14 +298,32 @@ __attribute__ ((format (printf, 2, 3)))
 #endif
     printd (int fd, const char *fmt, ...)
 {
-    int len;
+    int size = 200, len;
     va_list ap;
-    char buf[200];
+    char *buf;
 
     va_start (ap, fmt);
-    len = vsnprintf (buf, sizeof (buf), fmt, ap);
+    buf = malloc (size);
+    for (;;) {
+        if (!buf) err (errno, "malloc for temp buf (%d bytes) failed", size);
+
+        len = vsnprintf (buf, size, fmt, ap);
+
+        if (len > -1 && len < size) {
+            writedata (fd, buf, len);
+            break;
+        }
+
+        if (len > -1) {
+            size = len + 1;
+        }
+        else  {
+            size *= 2;
+        }
+        buf = realloc (buf, size);
+    }
     va_end (ap);
-    writedata (fd, buf, len);
+    free (buf);
 }
 
 static void die (fz_error error)
