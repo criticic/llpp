@@ -376,7 +376,7 @@ static void openxref (char *filename)
 static int readlen (int fd)
 {
     ssize_t n;
-    char p[4];
+    unsigned char p[4];
 
     n = recv (fd, p, 4, 0);
     if (n != 4) {
