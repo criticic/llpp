@@ -647,6 +647,25 @@ let act cmd =
         Scanf.sscanf cmd "o %d %d %d %d %n" (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub cmd pos (String.length cmd - pos) in
+      let s =
+        let l = String.length s in
+        let b = Buffer.create (String.length s) in
+        let rec loop pc2 i =
+          if i = l then () else
+            let pc2 =
+              match s.[i] with
+              | '\xa0' when pc2 -> Buffer.add_char b ' '; false
+              | '\xc2' -> true
+              | c ->
+                  let c = if Char.code c land 0x80 = 0 then c else '?' in
+                  Buffer.add_char b c;
+                  false
+            in
+            loop pc2 (i+1)
+        in
+        loop false 0;
+        Buffer.contents b
+      in
       let outline = (s, l, n, float t /. float h) in
       let outlines =
         match state.outlines with
