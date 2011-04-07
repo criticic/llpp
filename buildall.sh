@@ -47,7 +47,7 @@ mkdir -p $root/include
             DLLDIR=$root/lib/ocaml/stublibs \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-export CPATH=$CPATH:$root/include:$root/mupdf/mupdf:$root/mupdf/fitz
+export CPATH=$CPATH:$root/include:$root/mupdf/pdf:$root/mupdf/fitz
 export LIBRARY_PATH=$LIBRARY_PATH:$root/lib:$root/mupdf/build/release
 
 (cd mupdf && make build=release)

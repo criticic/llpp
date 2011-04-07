@@ -481,7 +481,7 @@ static void __attribute__ ((optimize ("O"))) clearpixmap (fz_pixmap *pixmap)
     else fz_clear_pixmap_with_color (pixmap, 0xff);
 }
 #else
-#define clearpixmap(p) fz_clearpixmapwithcolor (p, 0xff)
+#define clearpixmap(p) fz_clear_pixmap_with_color (p, 0xff)
 #endif
 
 static void *render (int pageno, int pindex)
