@@ -670,7 +670,7 @@ static void recurse_outline (pdf_outline *outline, int level)
                 pageno = fz_to_int (obj2);
             }
             else {
-                pageno = pdf_find_page_number (state.xref, obj2) - 1;
+                pageno = pdf_find_page_number (state.xref, obj2);
             }
 
             if (fz_array_len (obj) > 3) {
@@ -696,7 +696,7 @@ static void recurse_outline (pdf_outline *outline, int level)
             }
         }
         else {
-            pageno = pdf_find_page_number (state.xref, outline->link->dest) - 1;
+            pageno = pdf_find_page_number (state.xref, outline->link->dest);
         }
 
         lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
@@ -1413,7 +1413,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                 if (fz_is_array (link->dest)) {
                     obj = fz_array_get (link->dest, 0);
                     if (fz_is_indirect (obj)) {
-                        pageno = pdf_find_page_number (state.xref, obj) - 1;
+                        pageno = pdf_find_page_number (state.xref, obj);
                     }
                     else if (fz_is_int (obj)) {
                         pageno = fz_to_int (obj);
@@ -1432,7 +1432,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                     }
                 }
                 else {
-                    pageno = pdf_find_page_number (state.xref, link->dest) - 1;
+                    pageno = pdf_find_page_number (state.xref, link->dest);
                 }
                 tup_v = caml_alloc_tuple (2);
                 ret_v = caml_alloc_small (1, 1);
