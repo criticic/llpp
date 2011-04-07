@@ -129,13 +129,13 @@ struct pagedim {
 struct page {
     int pageno;
     int slicecount;
-    fz_textspan *text;
+    fz_text_span *text;
     fz_pixmap *pixmap;
     pdf_page *drawpage;
     struct pagedim pagedim;
     struct mark {
         int i;
-        fz_textspan *span;
+        fz_text_span *span;
     } fmark, lmark;
     struct slice slices[];
 };
@@ -152,7 +152,7 @@ struct {
     int pagecount;
     int pagedimcount;
     pdf_xref *xref;
-    fz_glyphcache *cache;
+    fz_glyph_cache *cache;
     int w, h;
 
     int texindex;
@@ -330,19 +330,18 @@ static void die (fz_error error)
 {
     fz_catch (error, "aborting");
     if (state.xref)
-       pdf_freexref (state.xref);
+       pdf_free_xref (state.xref);
     exit (1);
 }
 
 static void openxref (char *filename)
 {
-    int fd;
     fz_error error;
     fz_stream *file;
 
     state.pig = NULL;
     if (state.xref) {
-        pdf_freexref (state.xref);
+        pdf_free_xref (state.xref);
         state.xref = NULL;
     }
     if (state.pagedims) {
@@ -351,26 +350,22 @@ static void openxref (char *filename)
     }
     state.pagedimcount = 0;
 
-    fd = open (filename, O_BINARY | O_RDONLY, 0666);
-    if (fd < 0)
-        die (fz_throw ("cannot open file '%s'", filename));
-
-    file = fz_openfile (fd);
-    error = pdf_openxrefwithstream (&state.xref, file, NULL);
+    file = fz_open_file (filename);
+    error = pdf_open_xref_with_stream (&state.xref, file, NULL);
     if (error)
         die (fz_rethrow(error, "cannot open document '%s'", filename));
     fz_close (file);
 
-    if (pdf_needspassword (state.xref)) {
+    if (pdf_needs_password (state.xref)) {
         die (fz_throw ("password protected"));
     }
 
-    error = pdf_loadpagetree (state.xref);
+    error = pdf_load_page_tree (state.xref);
     if (error) {
         die (fz_throw ("cannot load page tree"));
     }
 
-    state.pagecount = pdf_getpagecount (state.xref);
+    state.pagecount = pdf_count_pages (state.xref);
 }
 
 static int readlen (int fd)
@@ -405,15 +400,15 @@ static void unlinkpage (struct page *page)
 
 static void freepage (struct page *page)
 {
-    fz_droppixmap (page->pixmap);
+    fz_drop_pixmap (page->pixmap);
 
     unlinkpage (page);
 
     if (page->text) {
-        fz_freetextspan (page->text);
+        fz_free_text_span (page->text);
     }
     if (page->drawpage) {
-        pdf_freepage (page->drawpage);
+        pdf_free_page (page->drawpage);
     }
 
     free (page);
@@ -483,7 +478,7 @@ static void __attribute__ ((optimize ("O"))) clearpixmap (fz_pixmap *pixmap)
         }
         while (i < sizea) *((char *) a1 + i++) = 0xff;
     }
-    else fz_clearpixmapwithcolor (pixmap, 0xff);
+    else fz_clear_pixmap_with_color (pixmap, 0xff);
 }
 #else
 #define clearpixmap(p) fz_clearpixmapwithcolor (p, 0xff)
@@ -493,7 +488,6 @@ static void *render (int pageno, int pindex)
 {
     fz_error error;
     int slicecount;
-    fz_obj *pageobj;
     struct page *page = NULL;
     double start, end;
     pdf_page *drawpage;
@@ -512,11 +506,11 @@ static void *render (int pageno, int pindex)
         if (compatpdims (&state.pig->pagedim, pagedim)) {
             page = state.pig;
             if (page->text) {
-                fz_freetextspan (page->text);
+                fz_free_text_span (page->text);
                 page->text = NULL;
             }
             if (page->drawpage) {
-                pdf_freepage (page->drawpage);
+                pdf_free_page (page->drawpage);
                 page->drawpage = NULL;
             }
         }
@@ -530,28 +524,24 @@ static void *render (int pageno, int pindex)
         if (!page) {
             err (1, "calloc page %d\n", pageno);
         }
-        page->pixmap = fz_newpixmapwithrect (fz_devicergb, pagedim->bbox);
+        page->pixmap = fz_new_pixmap_with_rect (fz_device_rgb, pagedim->bbox);
     }
 
     page->slicecount = slicecount;
 
-    pageobj = pdf_getpageobject (state.xref, pageno);
-    if (!pageobj)
-        die (fz_throw ("cannot retrieve info from page %d", pageno));
-
-    error = pdf_loadpage (&drawpage, state.xref, pageobj);
+    error = pdf_load_page (&drawpage, state.xref, pageno - 1);
     if (error)
         die (error);
 
     clearpixmap (page->pixmap);
 
-    idev = fz_newdrawdevice (state.cache, page->pixmap);
+    idev = fz_new_draw_device (state.cache, page->pixmap);
     if (!idev)
         die (fz_throw ("fz_newdrawdevice failed"));
-    error = pdf_runpage (state.xref, drawpage, idev, pagedim->ctm);
+    error = pdf_run_page (state.xref, drawpage, idev, pagedim->ctm);
     if (error)
         die (fz_rethrow (error, "pdf_runpage failed"));
-    fz_freedevice (idev);
+    fz_free_device (idev);
 
     page->drawpage = drawpage;
     page->pagedim = *pagedim;
@@ -559,7 +549,7 @@ static void *render (int pageno, int pindex)
     subdivide (page);
     end = now ();
 
-    pdf_agestore(state.xref->store, 3);
+    pdf_age_store(state.xref->store, 3);
 
     printd (state.sock, "V rendering %d took %f sec", pageno, end - start);
     state.pig = NULL;
@@ -578,21 +568,21 @@ static void initpdims (void)
         struct pagedim *p;
         fz_obj *obj, *pageobj;
 
-        pageobj = pdf_getpageobject (state.xref, pageno + 1);
+        pageobj = state.xref->page_objs[pageno];
 
-        obj = fz_dictgets (pageobj, "CropBox");
-        if (!fz_isarray (obj)) {
-            obj = fz_dictgets (pageobj, "MediaBox");
-            if (!fz_isarray (obj)) {
+        obj = fz_dict_gets (pageobj, "CropBox");
+        if (!fz_is_array (obj)) {
+            obj = fz_dict_gets (pageobj, "MediaBox");
+            if (!fz_is_array (obj)) {
                 die (fz_throw ("cannot find page bounds %d (%d Rd)",
-                               fz_tonum (pageobj), fz_togen (pageobj)));
+                               fz_to_num (pageobj), fz_to_gen (pageobj)));
             }
         }
-        box = pdf_torect (obj);
+        box = pdf_to_rect (obj);
 
-        obj = fz_dictgets (pageobj, "Rotate");
-        if (fz_isint (obj)) {
-            rotate = fz_toint (obj);
+        obj = fz_dict_gets (pageobj, "Rotate");
+        if (fz_is_int (obj)) {
+            rotate = fz_to_int (obj);
         }
         else  {
             rotate = 0;
@@ -639,7 +629,7 @@ static void layout (void)
         ctm = fz_identity;
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
         ctm = fz_concat (ctm, fz_rotate (p->rotate));
-        box2 = fz_transformrect (ctm, box);
+        box2 = fz_transform_rect (ctm, box);
         w = box2.x1 - box2.x0;
 
         zoom = (state.w / w);
@@ -648,7 +638,7 @@ static void layout (void)
         ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
         memcpy (&p->ctm1, &ctm, sizeof (ctm));
         ctm = fz_concat (ctm, fz_rotate (p->rotate));
-        p->bbox = fz_roundrect (fz_transformrect (ctm, box));
+        p->bbox = fz_round_rect (fz_transform_rect (ctm, box));
         memcpy (&p->ctm, &ctm, sizeof (ctm));
     }
 
@@ -669,27 +659,27 @@ static void recurse_outline (pdf_outline *outline, int level)
         if (!outline->link) goto next;
 
         obj = outline->link->dest;
-        if (fz_isindirect (obj)) {
-            obj = fz_resolveindirect (obj);
+        if (fz_is_indirect (obj)) {
+            obj = fz_resolve_indirect (obj);
         }
-        if (fz_isarray (obj)) {
+        if (fz_is_array (obj)) {
             fz_obj *obj2;
 
-            obj2 = fz_arrayget (obj, 0);
-            if (fz_isint (obj2)) {
-                pageno = fz_toint (obj2);
+            obj2 = fz_array_get (obj, 0);
+            if (fz_is_int (obj2)) {
+                pageno = fz_to_int (obj2);
             }
             else {
-                pageno = pdf_findpageobject (state.xref, obj2) - 1;
+                pageno = pdf_find_page_number (state.xref, obj2) - 1;
             }
 
-            if (fz_arraylen (obj) > 3) {
+            if (fz_array_len (obj) > 3) {
                 fz_point p;
                 fz_obj *xo, *yo;
 
-                xo = fz_arrayget (obj, 2);
-                yo = fz_arrayget (obj, 3);
-                if (!fz_isnull (xo) && !fz_isnull (yo)) {
+                xo = fz_array_get (obj, 2);
+                yo = fz_array_get (obj, 3);
+                if (!fz_is_null (xo) && !fz_is_null (yo)) {
                     struct pagedim *pagedim = state.pagedims;
 
                     for (i = 0; i < state.pagedimcount; ++i) {
@@ -697,16 +687,16 @@ static void recurse_outline (pdf_outline *outline, int level)
                             break;
                         pagedim = &state.pagedims[i];
                     }
-                    p.x = fz_toint (xo);
-                    p.y = fz_toint (yo);
-                    p = fz_transformpoint (pagedim->ctm, p);
+                    p.x = fz_to_int (xo);
+                    p.y = fz_to_int (yo);
+                    p = fz_transform_point (pagedim->ctm, p);
                     h = pagedim->bbox.y1 - pagedim->bbox.y0;
                     top = p.y;
                 }
             }
         }
         else {
-            pageno = pdf_findpageobject (state.xref, outline->link->dest) - 1;
+            pageno = pdf_find_page_number (state.xref, outline->link->dest) - 1;
         }
 
         lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
@@ -727,17 +717,17 @@ static void process_outline (void)
     if (!state.needoutline) return;
 
     state.needoutline = 0;
-    outline = pdf_loadoutline (state.xref);
+    outline = pdf_load_outline (state.xref);
     if (outline) {
         recurse_outline (outline, 0);
-        pdf_freeoutline (outline);
+        pdf_free_outline (outline);
     }
 }
 
 static int comparespans (const void *l, const void *r)
 {
-    fz_textspan const *const*ls = l;
-    fz_textspan const *const*rs = r;
+    fz_text_span const *const*ls = l;
+    fz_text_span const *const*rs = r;
     return (*ls)->text->bbox.y0 - (*rs)->text->bbox.y0;
 }
 
@@ -750,10 +740,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
     char buf[256];
     fz_matrix ctm;
     fz_error error;
-    fz_obj *pageobj;
     fz_device *tdev;
     pdf_page *drawpage;
-    fz_textspan *text, *span, **pspan;
+    fz_text_span *text, *span, **pspan;
     struct pagedim *pdim, *pdimprev;
     int stop = 0;
     int niters = 0;
@@ -763,7 +752,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     start = now ();
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
         if (niters++ == 5) {
-            pdf_agestore(state.xref->store, 3);
+            pdf_age_store(state.xref->store, 3);
             niters = 0;
             if (hasdata (state.sock)) {
                 printd (state.sock, "T attention requested aborting search at %d",
@@ -789,21 +778,17 @@ static void search (regex_t *re, int pageno, int y, int forward)
         pdim = pdimprev;
     found:
 
-        pageobj = pdf_getpageobject (state.xref, pageno + 1);
-        if (!pageobj)
-            die (fz_throw ("cannot retrieve info from page %d", pageno));
-
-        error = pdf_loadpage (&drawpage, state.xref, pageobj);
+        error = pdf_load_page (&drawpage, state.xref, pageno);
         if (error)
             die (error);
 
         ctm = fz_rotate (pdim->rotate);
 
-        text = fz_newtextspan ();
-        tdev = fz_newtextdevice (text);
-        error = pdf_runpage (state.xref, drawpage, tdev, pdim->ctm1);
+        text = fz_new_text_span ();
+        tdev = fz_new_text_device (text);
+        error = pdf_run_page (state.xref, drawpage, tdev, pdim->ctm1);
         if (error) die (error);
-        fz_freedevice (tdev);
+        fz_free_device (tdev);
 
         nspans = 0;
         for (span = text; span; span = span->next) {
@@ -816,7 +801,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         for (i = 0, span = text; span; span = span->next, ++i) {
             pspan[i] = span;
         }
-        qsort (pspan, nspans, sizeof (fz_textspan *), comparespans);
+        qsort (pspan, nspans, sizeof (fz_text_span *), comparespans);
 
         j = forward ? 0 : nspans - 1;
         while (nspans--) {
@@ -857,8 +842,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
                     printd (state.sock,
                             "T regexec error `%.*s'",
                             (int) size, errbuf);
-                    fz_freetextspan (text);
-                    pdf_freepage (drawpage);
+                    fz_free_text_span (text);
+                    pdf_free_page (drawpage);
                     free (pspan);
                     return;
                 }
@@ -883,10 +868,10 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 p4.x = sb->x0;
                 p4.y = eb->y1;
 
-                p1 = fz_transformpoint (ctm, p1);
-                p2 = fz_transformpoint (ctm, p2);
-                p3 = fz_transformpoint (ctm, p3);
-                p4 = fz_transformpoint (ctm, p4);
+                p1 = fz_transform_point (ctm, p1);
+                p2 = fz_transform_point (ctm, p2);
+                p3 = fz_transform_point (ctm, p3);
+                p4 = fz_transform_point (ctm, p4);
 
                 if (!stop) {
                     printd (state.sock, "F %d %d %f %f %f %f %f %f %f %f",
@@ -919,8 +904,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
             pageno -= 1;
             y = INT_MAX;
         }
-        fz_freetextspan (text);
-        pdf_freepage (drawpage);
+        fz_free_text_span (text);
+        pdf_free_page (drawpage);
         free (pspan);
     }
     end = now ();
@@ -964,12 +949,12 @@ mainloop (void *unused)
             openxref (filename);
             initpdims ();
 
-            obj = fz_dictgets (state.xref->trailer, "Info");
+            obj = fz_dict_gets (state.xref->trailer, "Info");
             if (obj) {
                 char *s;
 
-                obj = fz_dictgets (obj, "Title");
-                s = pdf_toutf8 (obj);
+                obj = fz_dict_gets (obj, "Title");
+                s = pdf_to_utf8 (obj);
                 if (*s) {
                     printd (state.sock, "t %s", s);
                 }
@@ -1094,7 +1079,7 @@ static void showsel (struct page *page, int oy)
 {
     int ox;
     fz_bbox bbox;
-    fz_textspan *span;
+    fz_text_span *span;
     struct mark first, last;
 
     first = page->fmark;
@@ -1128,7 +1113,7 @@ static void showsel (struct page *page, int oy)
         }
 
         for (i = j; i <= k; ++i) {
-            bbox = fz_unionbbox (bbox, span->text[i].bbox);
+            bbox = fz_union_bbox (bbox, span->text[i].bbox);
         }
         lprintf ("%d %d %d %d oy=%d ox=%d\n",
                  bbox.x0,
@@ -1173,14 +1158,14 @@ static void highlightlinks (struct page *page, int yoff)
         p4.x = link->rect.x0;
         p4.y = link->rect.y1;
 
-        p1 = fz_transformpoint (ctm, p1);
-        p2 = fz_transformpoint (ctm, p2);
-        p3 = fz_transformpoint (ctm, p3);
-        p4 = fz_transformpoint (ctm, p4);
+        p1 = fz_transform_point (ctm, p1);
+        p2 = fz_transform_point (ctm, p2);
+        p3 = fz_transform_point (ctm, p3);
+        p4 = fz_transform_point (ctm, p4);
 
         switch (link->kind) {
-        case PDF_LGOTO: glColor3ub (255, 0, 0); break;
-        case PDF_LURI: glColor3ub (0, 0, 255); break;
+        case PDF_LINK_GOTO: glColor3ub (255, 0, 0); break;
+        case PDF_LINK_URI: glColor3ub (0, 0, 255); break;
         default: glColor3ub (0, 0, 0); break;
         }
 
@@ -1370,8 +1355,8 @@ static pdf_link *getlink (struct page *page, int x, int y)
     p.x = x + page->pixmap->x;
     p.y = y + page->pixmap->y;
 
-    ctm = fz_invertmatrix (page->pagedim.ctm);
-    p = fz_transformpoint (ctm, p);
+    ctm = fz_invert_matrix (page->pagedim.ctm);
+    p = fz_transform_point (ctm, p);
 
     for (link = page->drawpage->links; link; link = link->next) {
         if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
@@ -1389,12 +1374,12 @@ static void ensuretext (struct page *page)
         fz_error error;
         fz_device *tdev;
 
-        page->text = fz_newtextspan ();
-        tdev = fz_newtextdevice (page->text);
-        error = pdf_runpage (state.xref, page->drawpage, tdev,
+        page->text = fz_new_text_span ();
+        tdev = fz_new_text_device (page->text);
+        error = pdf_run_page (state.xref, page->drawpage, tdev,
                              page->pagedim.ctm);
         if (error) die (error);
-        fz_freedevice (tdev);
+        fz_free_device (tdev);
     }
 }
 
@@ -1415,7 +1400,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     link = getlink (page, Int_val (x_v), Int_val (y_v));
     if (link) {
         switch (link->kind) {
-        case PDF_LGOTO:
+        case PDF_LINK_GOTO:
             {
                 int pageno;
                 fz_point p;
@@ -1425,29 +1410,29 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                 p.x = 0;
                 p.y = 0;
 
-                if (fz_isarray (link->dest)) {
-                    obj = fz_arrayget (link->dest, 0);
-                    if (fz_isindirect (obj)) {
-                        pageno = pdf_findpageobject (state.xref, obj) - 1;
+                if (fz_is_array (link->dest)) {
+                    obj = fz_array_get (link->dest, 0);
+                    if (fz_is_indirect (obj)) {
+                        pageno = pdf_find_page_number (state.xref, obj) - 1;
                     }
-                    else if (fz_isint (obj)) {
-                        pageno = fz_toint (obj);
+                    else if (fz_is_int (obj)) {
+                        pageno = fz_to_int (obj);
                     }
 
-                    if (fz_arraylen (link->dest) > 3) {
+                    if (fz_array_len (link->dest) > 3) {
                         fz_obj *xo, *yo;
 
-                        xo = fz_arrayget (link->dest, 2);
-                        yo = fz_arrayget (link->dest, 3);
-                        if (!fz_isnull (xo) && !fz_isnull (yo)) {
-                            p.x = fz_toint (xo);
-                            p.y = fz_toint (yo);
-                            p = fz_transformpoint (page->pagedim.ctm, p);
+                        xo = fz_array_get (link->dest, 2);
+                        yo = fz_array_get (link->dest, 3);
+                        if (!fz_is_null (xo) && !fz_is_null (yo)) {
+                            p.x = fz_to_int (xo);
+                            p.y = fz_to_int (yo);
+                            p = fz_transform_point (page->pagedim.ctm, p);
                         }
                     }
                 }
                 else {
-                    pageno = pdf_findpageobject (state.xref, link->dest) - 1;
+                    pageno = pdf_find_page_number (state.xref, link->dest) - 1;
                 }
                 tup_v = caml_alloc_tuple (2);
                 ret_v = caml_alloc_small (1, 1);
@@ -1457,8 +1442,8 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             }
             break;
 
-        case PDF_LURI:
-            str_v = caml_copy_string (fz_tostrbuf (link->dest));
+        case PDF_LINK_URI:
+            str_v = caml_copy_string (fz_to_str_buf (link->dest));
             ret_v = caml_alloc_small (1, 0);
             Field (ret_v, 0) = str_v;
             break;
@@ -1470,7 +1455,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     }
     else {
         int i, x, y;
-        fz_textspan *span;
+        fz_text_span *span;
 
         ensuretext (page);
         x = Int_val (x_v) + page->pixmap->x;
@@ -1487,7 +1472,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                         : "Span has no font name"
                         ;
 #ifdef FT_FREETYPE_H
-                    FT_FaceRec *face = span->font->ftface;
+                    FT_FaceRec *face = span->font->ft_face;
                     if (face && face->family_name) {
                         char *s;
                         char *n1 = face->family_name;
@@ -1530,7 +1515,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     CAMLparam4 (ptr_v, rect_v, oy_v, rect_v);
     fz_bbox *b;
     struct page *page;
-    fz_textspan *span;
+    fz_text_span *span;
     struct mark first, last;
     int i, x0, x1, y0, y1, oy;
     char *s = String_val (ptr_v);
@@ -1616,7 +1601,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     CAMLreturn (Val_unit);
 }
 
-static int pipespan (FILE *f, fz_textspan *span, int a, int b)
+static int pipespan (FILE *f, fz_text_span *span, int a, int b)
 {
     char buf[4];
     int i, len, ret;
@@ -1661,7 +1646,7 @@ CAMLprim value ml_copysel (value ptr_v)
 #endif
     }
     else {
-        fz_textspan *span;
+        fz_text_span *span;
 
         page = parse_pointer ("ml_sopysel", s);
 
@@ -1761,9 +1746,9 @@ CAMLprim value ml_init (value sock_v)
     state.sock = Int_val (sock_v);
 #endif
 
-    state.cache = fz_newglyphcache ();
+    state.cache = fz_new_glyph_cache ();
     if (!state.cache) {
-        errx (1, "fz_newglyphcache failed");
+        errx (1, "fz_newglyph_cache failed");
     }
 
 #ifdef _WIN32

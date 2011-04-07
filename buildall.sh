@@ -11,7 +11,7 @@ root=$(pwd)
 openjpeg=http://openjpeg.googlecode.com/svn/trunk/
 jbig2dec=git://git.ghostscript.com/jbig2dec.git
 lablgl=:pserver:anoncvs@camlcvs.inria.fr:/caml
-mupdf=http://mupdf.com/repos/mupdf.git
+mupdf=git://git.ghostscript.com/mupdf.git
 sumatrapdf=http://sumatrapdf.googlecode.com/svn/trunk
 
 test -d openjpeg || svn -r r608 checkout $openjpeg openjpeg
@@ -57,7 +57,7 @@ cd ..
 srcpath=$(dirname $0)
 
 if test "$1" = "opt"; then
-    cclib="-lmupdf -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
+    cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
     ocamlopt -c -o link.o -ccopt -O $srcpath/link.c
     ocamlopt -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
@@ -68,7 +68,7 @@ if test "$1" = "opt"; then
     -cclib "$cclib" \
     main.cmx
 else
-    cclib="-lmupdf -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+    cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
     ocamlc -c -o link.o -ccopt -O $srcpath/link.c
     ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 

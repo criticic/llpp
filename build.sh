@@ -3,9 +3,9 @@ srcpath=$(dirname $0)
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
 
 mupdflibpath=$mupdf/build/release
-mupdfincpath=$mupdf/fitz:$mupdf/mupdf
+mupdfincpath=$mupdf/fitz:$mupdf/pdf
 
-cclib="-lmupdf -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
 
 export LIBRARY_PATH=$LIBRARY_PATH:$mupdflibpath
 export CPATH=$CPATH:$mupdfincpath
