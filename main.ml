@@ -1400,7 +1400,7 @@ let special ~key ~x ~y =
                 state.maxy - (if conf.maxhfit then state.h else 0)
             | _ -> state.y
           in
-          state.text <- "";
+          if not conf.verbose then state.text <- "";
           gotoy y
 
       | Some (c, s, Some onhist, onkey, ondone) ->
