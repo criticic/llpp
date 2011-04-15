@@ -351,6 +351,9 @@ static void openxref (char *filename)
     state.pagedimcount = 0;
 
     file = fz_open_file (filename);
+    if (!file)
+        die (fz_throw ("can not open '%s'", filename));
+
     error = pdf_open_xref_with_stream (&state.xref, file, NULL);
     if (error)
         die (fz_rethrow(error, "cannot open document '%s'", filename));
