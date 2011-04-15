@@ -70,6 +70,11 @@ let cbrfollowlen b =
   b.rc <- b.len;
 ;;
 
+let cbclear b v =
+  b.len <- 0;
+  Array.fill b.store 0 (Array.length b.store) v;
+;;
+
 type layout =
     { pageno : int
     ; pagedimno : int
@@ -908,7 +913,10 @@ let doreshape w h =
 let opendoc path =
   invalidate ();
   state.path <- path;
+  Hashtbl.iter
+    (fun k v -> if validopaque v then wcmd "drop" [`s v]) state.pagemap;
   Hashtbl.clear state.pagemap;
+  cbclear state.pagecache "";
 
   writecmd state.csock ("open " ^ path ^ "\000");
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);

@@ -336,13 +336,33 @@ static void die (fz_error error)
 
 static void openxref (char *filename)
 {
+    int i;
     fz_error error;
 
     state.pig = NULL;
-    if (state.xref) {
+
+    for (i = 0; i < state.texcount; ++i)  {
+        state.texowners[i].slice = NULL;
+    }
+
+    if (state.cache) {
+        fz_free_glyph_cache (state.cache);
+    }
+
+    state.cache = fz_new_glyph_cache ();
+    if (!state.cache) {
+        errx (1, "fz_newglyph_cache failed");
+    }
+
+   if (state.xref) {
+        if (state.xref->store) {
+            pdf_free_store (state.xref->store);
+            state.xref->store = NULL;
+        }
         pdf_free_xref (state.xref);
         state.xref = NULL;
     }
+
     if (state.pagedims) {
         free (state.pagedims);
         state.pagedims = NULL;
@@ -965,6 +985,15 @@ mainloop (void *unused)
             }
             unlinkpage (ptr);
             state.pig = ptr;
+        }
+        else if (!strncmp ("drop", p, 4)) {
+            void *ptr;
+
+            ret = sscanf (p + 4, " %p", &ptr);
+            if (ret != 1) {
+                errx (1, "malformed drop `%.*s' ret=%d", len, p, ret);
+            }
+            freepage (ptr);
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;
@@ -1739,11 +1768,6 @@ CAMLprim value ml_init (value sock_v)
 #else
     state.sock = Int_val (sock_v);
 #endif
-
-    state.cache = fz_new_glyph_cache ();
-    if (!state.cache) {
-        errx (1, "fz_newglyph_cache failed");
-    }
 
 #ifdef _WIN32
     InitializeCriticalSection (&critsec);
