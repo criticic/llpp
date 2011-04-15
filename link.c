@@ -337,7 +337,6 @@ static void die (fz_error error)
 static void openxref (char *filename)
 {
     fz_error error;
-    fz_stream *file;
 
     state.pig = NULL;
     if (state.xref) {
@@ -350,22 +349,14 @@ static void openxref (char *filename)
     }
     state.pagedimcount = 0;
 
-    file = fz_open_file (filename);
-    if (!file)
-        die (fz_throw ("can not open '%s'", filename));
-
-    error = pdf_open_xref_with_stream (&state.xref, file, NULL);
-    if (error)
-        die (fz_rethrow(error, "cannot open document '%s'", filename));
-    fz_close (file);
-
-    if (pdf_needs_password (state.xref)) {
-        die (fz_throw ("password protected"));
+    error = pdf_open_xref (&state.xref, filename, NULL);
+    if (error) {
+        die (error);
     }
 
     error = pdf_load_page_tree (state.xref);
     if (error) {
-        die (fz_throw ("cannot load page tree"));
+        die (error);
     }
 
     state.pagecount = pdf_count_pages (state.xref);
