@@ -302,12 +302,13 @@ __attribute__ ((format (printf, 2, 3)))
     va_list ap;
     char *buf;
 
-    va_start (ap, fmt);
     buf = malloc (size);
     for (;;) {
         if (!buf) err (errno, "malloc for temp buf (%d bytes) failed", size);
 
+        va_start (ap, fmt);
         len = vsnprintf (buf, size, fmt, ap);
+        va_end (ap);
 
         if (len > -1 && len < size) {
             writedata (fd, buf, len);
@@ -322,7 +323,6 @@ __attribute__ ((format (printf, 2, 3)))
         }
         buf = realloc (buf, size);
     }
-    va_end (ap);
     free (buf);
 }
 
