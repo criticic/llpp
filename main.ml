@@ -58,12 +58,14 @@ let cbput b v =
 let cbpeekw b = b.store.(b.wc);;
 
 let cbget b dir =
-  if b.len = 0 then b.store.(0) else
-  let rc = b.rc + dir in
-  let rc = if rc = -1 then b.len - 1 else rc in
-  let rc = if rc = b.len then 0 else rc in
-  b.rc <- rc;
-  b.store.(rc);
+  if b.len = 0
+  then b.store.(0)
+  else
+    let rc = b.rc + dir in
+    let rc = if rc = -1 then b.len - 1 else rc in
+    let rc = if rc = b.len then 0 else rc in
+    b.rc <- rc;
+    b.store.(rc);
 ;;
 
 let cbrfollowlen b =
@@ -241,7 +243,8 @@ let readcmd fd =
 ;;
 
 let yratio y =
-  if y = state.maxy then 1.0
+  if y = state.maxy
+  then 1.0
   else float y /. float state.maxy
 ;;
 
@@ -413,7 +416,8 @@ let loadlayout layout =
 ;;
 
 let preload () =
-  if conf.preload then
+  if conf.preload
+  then
     let evictedvisible =
       let evictedopaque = cbpeekw state.pagecache in
       List.exists (fun l ->
@@ -423,7 +427,8 @@ let preload () =
         | otherwise -> false
       ) state.layout
     in
-    if not evictedvisible then
+    if not evictedvisible
+    then
       let y = if state.y < state.h then 0 else state.y - state.h in
       let pages = layout y (state.h*3) in
       List.iter render pages;
@@ -435,8 +440,10 @@ let gotoy y =
   let pages = layout y state.h in
   let ready = loadlayout pages in
   state.ty <- yratio y;
-  if conf.showall then (
-    if ready then (
+  if conf.showall
+  then (
+    if ready
+    then (
       state.layout <- pages;
       state.y <- y;
       Glut.postRedisplay ();
@@ -637,7 +644,8 @@ let act cmd =
       then gotoy (truncate (ceil (state.ty *. float state.maxy)))
       else (
         let visible = List.exists (fun l -> l.pageno + 1 = n) state.layout in
-        if visible then gotoy state.y
+        if visible
+        then gotoy state.y
         else (ignore (loadlayout state.layout); preload ())
       )
 
@@ -656,7 +664,9 @@ let act cmd =
         let l = String.length s in
         let b = Buffer.create (String.length s) in
         let rec loop pc2 i =
-          if i = l then () else
+          if i = l
+          then ()
+          else
             let pc2 =
               match s.[i] with
               | '\xa0' when pc2 -> Buffer.add_char b ' '; false
@@ -691,7 +701,8 @@ let idle () =
     let r, _, _ = Unix.select [state.csock] [] [] delay in
     begin match r with
     | [] ->
-        if conf.autoscroll then begin
+        if conf.autoscroll
+        then begin
           let y = state.y + conf.scrollincr in
           let y = if y >= state.maxy then 0 else y in
           gotoy y;
@@ -1193,7 +1204,9 @@ let narrow outlines pattern =
   | None -> None
   | Some re ->
       let rec fold accu n =
-        if n = -1 then accu else
+        if n = -1
+        then accu
+        else
           let (s, _, _, _) as o = outlines.(n) in
           let accu =
             if (try ignore (Str.search_forward re s 0); true
@@ -1211,7 +1224,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
   let search active pattern incr =
     let dosearch re =
       let rec loop n =
-        if n = Array.length outlines || n = -1 then None else
+        if n = Array.length outlines || n = -1
+        then None
+        else
           let (s, _, _, _) = outlines.(n) in
           if
             (try ignore (Str.search_forward re s 0); true
@@ -1691,7 +1706,8 @@ let mouse ~button ~bstate ~x ~y =
       | Unone | Utext _ ->
           if bstate = Glut.DOWN
           then (
-            if state.rotate mod 360 = 0 then (
+            if state.rotate mod 360 = 0
+            then (
               state.mstate <- Msel ((x, y), (x, y));
               Glut.postRedisplay ()
             )
