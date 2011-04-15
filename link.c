@@ -339,8 +339,6 @@ static void openxref (char *filename)
     int i;
     fz_error error;
 
-    state.pig = NULL;
-
     for (i = 0; i < state.texcount; ++i)  {
         state.texowners[i].slice = NULL;
     }
@@ -985,15 +983,6 @@ mainloop (void *unused)
             }
             unlinkpage (ptr);
             state.pig = ptr;
-        }
-        else if (!strncmp ("drop", p, 4)) {
-            void *ptr;
-
-            ret = sscanf (p + 4, " %p", &ptr);
-            if (ret != 1) {
-                errx (1, "malformed drop `%.*s' ret=%d", len, p, ret);
-            }
-            freepage (ptr);
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;

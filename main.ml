@@ -924,10 +924,7 @@ let doreshape w h =
 let opendoc path =
   invalidate ();
   state.path <- path;
-  Hashtbl.iter
-    (fun k v -> if validopaque v then wcmd "drop" [`s v]) state.pagemap;
   Hashtbl.clear state.pagemap;
-  cbclear state.pagecache "";
 
   writecmd state.csock ("open " ^ path ^ "\000");
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
