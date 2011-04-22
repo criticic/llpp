@@ -1820,11 +1820,11 @@ let () =
       prerr_endline ("Error setting state " ^ Printexc.to_string exn)
   in
 
-  Arg.parse []
-    (fun s ->
-      if String.length state.path = 0
-      then state.path <- s
-      else state.password <- s) "options:";
+  Arg.parse
+    ["-p", Arg.String (fun s -> state.password <- s) , "password"]
+    (fun s -> state.path <- s)
+    ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\noptions:")
+  ;
   let name =
     if String.length state.path = 0
     then (prerr_endline "filename missing"; exit 1)

@@ -21,7 +21,7 @@ If everything goes fine llpp binary will appear, it can be used like so:
 
 $ ./llpp /path/to/some.pdf
 or
-$ ./llpp /path/to/some.password.protected.pdf password
+$ ./llpp -p password /path/to/some.password.protected.pdf
 
 [1] http://www.mupdf.com
 [2] http://mupdf.com/repos/mupdf/README
