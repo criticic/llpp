@@ -75,7 +75,9 @@ let bso name objs =
     so
     (StrSet.singleton so)
     o
-    (StrSet.singleton (Filename.concat mupdflibpath "libmupdf.a"))
+    (StrSet.add
+        (Filename.concat mupdflibpath "libfitz.a")
+        (StrSet.singleton (Filename.concat mupdflibpath "libmupdf.a")))
   ;
   so
 ;;
