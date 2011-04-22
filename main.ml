@@ -140,6 +140,7 @@ type state =
     ; mutable outline : (bool * int * int * outline array * string) option
     ; mutable bookmarks : outline list
     ; mutable path : string
+    ; mutable password : string
     ; mutable invalidated : int
     ; mutable colorscale : float
     ; hists : hists
@@ -194,6 +195,7 @@ let state =
   ; outline = None
   ; bookmarks = []
   ; path = ""
+  ; password = ""
   ; invalidated = 0
   ; hists =
       { nav = cbnew 100 0.0
@@ -921,12 +923,13 @@ let doreshape w h =
   Glut.reshapeWindow w h;
 ;;
 
-let opendoc path =
+let opendoc path password =
   invalidate ();
   state.path <- path;
+  state.password <- password;
   Hashtbl.clear state.pagemap;
 
-  writecmd state.csock ("open " ^ path ^ "\000");
+  writecmd state.csock ("open " ^ path ^ "\000" ^ password ^ "\000");
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
   wcmd "geometry" [`i (state.w - conf.scrollw); `i state.h];
 ;;
@@ -1145,7 +1148,7 @@ let viewkeyboard ~key ~x ~y =
       | 'k' -> gotoy (clamp (-conf.scrollincr))
       | 'j' -> gotoy (clamp conf.scrollincr)
 
-      | 'r' -> opendoc state.path
+      | 'r' -> opendoc state.path state.password
 
       | _ ->
           vlog "huh? %d %c" key (Char.chr key);
@@ -1817,7 +1820,11 @@ let () =
       prerr_endline ("Error setting state " ^ Printexc.to_string exn)
   in
 
-  Arg.parse [] (fun s -> state.path <- s) "options:";
+  Arg.parse []
+    (fun s ->
+      if String.length state.path = 0
+      then state.path <- s
+      else state.password <- s) "options:";
   let name =
     if String.length state.path = 0
     then (prerr_endline "filename missing"; exit 1)
@@ -1867,7 +1874,7 @@ let () =
   state.csock <- csock;
   state.ssock <- ssock;
   state.text <- "Opening " ^ name;
-  writecmd csock ("open " ^ name ^ "\000");
+  writecmd state.csock ("open " ^ state.path ^ "\000" ^ state.password ^ "\000");
 
   at_exit savestate;
 

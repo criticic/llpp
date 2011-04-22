@@ -20,6 +20,8 @@ installation (or lack thereof)
 If everything goes fine llpp binary will appear, it can be used like so:
 
 $ ./llpp /path/to/some.pdf
+or
+$ ./llpp /path/to/some.password.protected.pdf password
 
 [1] http://www.mupdf.com
 [2] http://mupdf.com/repos/mupdf/README

@@ -334,7 +334,7 @@ static void die (fz_error error)
     exit (1);
 }
 
-static void openxref (char *filename)
+static void openxref (char *filename, char *password)
 {
     int i;
     fz_error error;
@@ -367,7 +367,7 @@ static void openxref (char *filename)
     }
     state.pagedimcount = 0;
 
-    error = pdf_open_xref (&state.xref, filename, NULL);
+    error = pdf_open_xref (&state.xref, filename, password);
     if (error) {
         die (error);
     }
@@ -956,9 +956,14 @@ mainloop (void *unused)
 
         if (!strncmp ("open", p, 4)) {
             fz_obj *obj;
+            size_t filenamelen;
+            char *password;
             char *filename = p + 5;
 
-            openxref (filename);
+            filenamelen = strlen (filename);
+            password = filename + filenamelen + 1;
+
+            openxref (filename, password);
             initpdims ();
 
             obj = fz_dict_gets (state.xref->trailer, "Info");
