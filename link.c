@@ -1772,7 +1772,7 @@ CAMLprim value ml_init (value sock_v)
 #else
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
-        errx (1, "pthread_create: %s", strerror (errno));
+        errx (1, "pthread_create: %s", strerror (ret));
     }
 #endif
 
