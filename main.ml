@@ -290,7 +290,7 @@ let calcheight () =
         max 0 fh
   in
   let fh = f 0 0 0 state.pages in
-  fh + conf.interpagespace;
+  fh;
 ;;
 
 let getpageyh pageno =
@@ -305,7 +305,7 @@ let getpageyh pageno =
           f n h y rest
 
     | [] ->
-        y + conf.interpagespace + (pageno - pn) * (ph + conf.interpagespace), ph
+        y + (pageno - pn) * (ph + conf.interpagespace), ph
   in
   f 0 0 0 state.pages;
 ;;
@@ -392,7 +392,7 @@ let layout y sh =
         ~pageno:0
         ~pdimno:~-1
         ~prev:(0,0,0)
-        ~vy:(y-ips)
+        ~vy:y
         ~py:0
         ~dy:0
         ~pdims:state.pages
@@ -1568,12 +1568,6 @@ let drawpage i l =
       drawplaceholder l;
   end;
   GlDraw.color (0.5, 0.5, 0.5);
-  if state.y < conf.interpagespace
-  then
-    GlDraw.rect
-      (0., 0.0)
-      (float (state.w - conf.scrollw), float (conf.interpagespace - state.y))
-  ;
   GlDraw.rect
     (0., float i)
     (float (state.w - conf.scrollw), float (i + (l.pagedispy - i)))
