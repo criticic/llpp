@@ -299,13 +299,13 @@ let getpageyh pageno =
     | (n, _, h) :: rest ->
         if n >= pageno
         then
-          y + (pageno - pn) * ph, h
+          y + (pageno - pn) * (ph + conf.interpagespace), h
         else
-          let y = y + (n - pn) * ph in
+          let y = y + (n - pn) * (ph + conf.interpagespace) in
           f n h y rest
 
     | [] ->
-        y + (pageno - pn) * ph, ph
+        y + (pageno - pn) * (ph + conf.interpagespace), ph
   in
   f 0 0 0 state.pages;
 ;;
@@ -1074,6 +1074,20 @@ let viewkeyboard ~key ~x ~y =
 
       | 'a' ->
           conf.autoscroll <- not conf.autoscroll
+
+      | 'P' ->
+          begin match state.layout with
+          | [] -> ()
+          | l :: _ ->
+              let ips =
+                let d = state.h - l.pageh in
+                max 0 (d / 2)
+              in
+              let rely = yratio state.y in
+              conf.interpagespace <- ips;
+              state.maxy <- calcheight ();
+              gotoy (truncate (float state.maxy *. rely));
+          end;
 
       | 'f' ->
           begin match state.fullscreen with
