@@ -102,6 +102,7 @@ type conf =
     ; mutable showall : bool
     ; mutable hlinks : bool
     ; mutable underinfo : bool
+    ; mutable interpagespace : int
     }
 ;;
 
@@ -166,6 +167,7 @@ let conf =
   ; showall = false
   ; hlinks = false
   ; underinfo = false
+  ; interpagespace = 2
   }
 ;;
 
@@ -280,11 +282,11 @@ let calcheight () =
   let rec f pn ph fh l =
     match l with
     | (n, _, h) :: rest ->
-        let fh = fh + (n - pn) * ph in
+        let fh = fh + (n - pn) * (ph + conf.interpagespace) in
         f n h fh rest
 
     | [] ->
-        let fh = fh + (ph * (state.pagecount - pn)) in
+        let fh = fh + ((ph + conf.interpagespace) * (state.pagecount - pn)) in
         max 0 fh
   in
   let fh = f 0 0 0 state.pages in
@@ -311,16 +313,17 @@ let getpageyh pageno =
 let getpagey pageno = fst (getpageyh pageno);;
 
 let layout y sh =
-  let rec f pageno pdimno prev vy py dy l cacheleft accu =
+  let ips = conf.interpagespace in
+  let rec f ~pageno ~pdimno ~prev ~vy ~py ~dy ~pdims ~cacheleft ~accu =
     if pageno = state.pagecount || cacheleft = 0
     then accu
     else
       let ((_, w, h) as curr), rest, pdimno =
-        match l with
+        match pdims with
         | ((pageno', _, _) as curr) :: rest when pageno' = pageno ->
             curr, rest, pdimno + 1
         | _ ->
-            prev, l, pdimno
+            prev, pdims, pdimno
       in
       let pageno' = pageno + 1 in
       if py + h > vy
@@ -357,15 +360,45 @@ let layout y sh =
             }
           in
           let accu = e :: accu in
-          f pageno' pdimno curr
-            (vy + vh) (py + h) (dy + vh + 2) rest
-            (pred cacheleft) accu
-      else
-        f pageno' pdimno curr vy (py + h) dy rest cacheleft accu
+          f ~pageno:pageno'
+            ~pdimno
+            ~prev:curr
+            ~vy:(vy + vh)
+            ~py:(py + h)
+            ~dy:(dy + vh + ips)
+            ~pdims:rest
+            ~cacheleft:(pred cacheleft)
+            ~accu
+      else (
+        let py' = vy - py in
+        let vh = h - py' in
+        let t = ips + vh in
+        let dy, py = if t < 0 then 0, py + h + ips else t, py + h - vh in
+        f ~pageno:pageno'
+          ~pdimno
+          ~prev:curr
+          ~vy
+          ~py
+          ~dy
+          ~pdims:rest
+          ~cacheleft
+          ~accu
+      )
   in
   if state.invalidated = 0
   then
-    let accu = f 0 ~-1 (0,0,0) y 0 0 state.pages (cblen state.pagecache) [] in
+    let accu =
+      f
+        ~pageno:0
+        ~pdimno:~-1
+        ~prev:(0,0,0)
+        ~vy:y
+        ~py:0
+        ~dy:0
+        ~pdims:state.pages
+        ~cacheleft:(cblen state.pagecache)
+        ~accu:[]
+    in
     state.maxy <- calcheight ();
     List.rev accu
   else
@@ -841,6 +874,19 @@ let optentry text key =
       conf.underinfo <- not conf.underinfo;
       TEdone ("underinfo " ^ btos conf.underinfo)
 
+  | 'S' ->
+      let ondone s =
+        try
+          conf.interpagespace <- int_of_string s;
+          let rely = yratio state.y in
+          state.maxy <- calcheight ();
+          gotoy (truncate (float state.maxy *. rely));
+        with exc ->
+          state.text <- Printf.sprintf "bad integer `%s': %s"
+            s (Printexc.to_string exc)
+      in
+      TEswitch ('%', "", None, intentry, ondone)
+
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
       TEstop
@@ -1059,14 +1105,14 @@ let viewkeyboard ~key ~x ~y =
           begin match List.rev state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (clamp (l.pageh - l.pagey))
+              gotoy (clamp (l.pageh - l.pagey + conf.interpagespace))
           end
 
       | '\127' ->
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (clamp (-l.pageh));
+              gotoy (clamp (-l.pageh - conf.interpagespace));
           end
 
       | '=' ->

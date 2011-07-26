@@ -37,6 +37,7 @@ ctrl pageup/pagedown    - align top of the screen with first/last visible page
 tunables
 -i                      - toggle case sensitivity of searches
 -s<number>              - scroll increment
+-S<number>              - amount of space between pages
 -c                      - toggle crop hack
 -a                      - toggle throttled scrolling
 -R<number>              - rotate
