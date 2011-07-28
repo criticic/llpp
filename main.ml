@@ -1035,7 +1035,7 @@ let viewkeyboard ~key ~x ~y =
       | '+' ->
           if Glut.getModifiers () land Glut.active_ctrl != 0
           then (
-            let margin = min 8 (conf.margin + 1) in
+            let margin = max 0 (conf.margin - 1) in
             conf.margin <- margin;
             reshape state.winw state.h;
           )
@@ -1058,7 +1058,7 @@ let viewkeyboard ~key ~x ~y =
       | '-' ->
           if Glut.getModifiers () land Glut.active_ctrl != 0
           then (
-            let margin = max 0 (conf.margin - 1) in
+            let margin = min 8 (conf.margin + 1) in
             conf.margin <- margin;
             reshape state.winw state.h;
           )
