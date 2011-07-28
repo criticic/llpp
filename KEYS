@@ -31,6 +31,7 @@ a                       - autoscroll
 <,>                     - rotate
 [,]                     - decrease/increase page brightness
 Ctrl-g                  - interrupt search
+Ctrl-+/-                - increase/decrease horizontal margins
 home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
 ctrl pageup/pagedown    - align top of the screen with first/last visible page
