@@ -103,6 +103,7 @@ type conf =
     ; mutable hlinks : bool
     ; mutable underinfo : bool
     ; mutable interpagespace : int
+    ; mutable margin : int
     }
 ;;
 
@@ -120,6 +121,7 @@ type state =
     ; mutable ssock : Unix.file_descr
     ; mutable w : int
     ; mutable h : int
+    ; mutable winw : int
     ; mutable rotate : int
     ; mutable y : int
     ; mutable ty : float
@@ -168,6 +170,7 @@ let conf =
   ; hlinks = false
   ; underinfo = false
   ; interpagespace = 2
+  ; margin = 0
   }
 ;;
 
@@ -176,6 +179,7 @@ let state =
   ; ssock = Unix.stdin
   ; w = 900
   ; h = 900
+  ; winw = 900
   ; rotate = 0
   ; y = 0
   ; ty = 0.0
@@ -413,14 +417,12 @@ let clamp incr =
 ;;
 
 let getopaque pageno =
-  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w - conf.scrollw,
-                                       state.rotate))
+  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w, state.rotate))
   with Not_found -> None
 ;;
 
 let cache pageno opaque =
-  Hashtbl.replace state.pagemap (pageno + 1, state.w - conf.scrollw,
-                                state.rotate) opaque
+  Hashtbl.replace state.pagemap (pageno + 1, state.w, state.rotate) opaque
 ;;
 
 let validopaque opaque = String.length opaque > 0;;
@@ -528,9 +530,16 @@ let scalecolor c =
 ;;
 
 let reshape ~w ~h =
+  let margin =
+    let m = float conf.margin in
+    let m = m *. (float w /. 20.) in
+    let m = truncate m in
+    if m*2 > (w - conf.scrollw) then 0 else m
+  in
+  state.winw <- w;
+  let w = w - margin * 2 - conf.scrollw in
   state.w <- w;
   state.h <- h;
-  GlDraw.viewport 0 0 w h;
   GlMat.mode `modelview;
   GlMat.load_identity ();
   GlMat.mode `projection;
@@ -542,14 +551,14 @@ let reshape ~w ~h =
   GlClear.clear [`color];
 
   invalidate ();
-  wcmd "geometry" [`i (state.w - conf.scrollw); `i h];
+  wcmd "geometry" [`i state.w; `i h];
 ;;
 
 let showtext c s =
   GlDraw.color (0.0, 0.0, 0.0);
   GlDraw.rect
     (0.0, float (state.h - 18))
-    (float (state.w - conf.scrollw - 1), float state.h)
+    (float (state.winw - conf.scrollw - 1), float state.h)
   ;
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
@@ -977,7 +986,7 @@ let opendoc path password =
 
   writecmd state.csock ("open " ^ path ^ "\000" ^ password ^ "\000");
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
-  wcmd "geometry" [`i (state.w - conf.scrollw); `i state.h];
+  wcmd "geometry" [`i state.w; `i state.h];
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -1017,6 +1026,13 @@ let viewkeyboard ~key ~x ~y =
                         textentry, ondone (c ='/')))
 
       | '+' ->
+          if Glut.getModifiers () land Glut.active_ctrl != 0
+          then (
+            let margin = min 8 (conf.margin + 1) in
+            conf.margin <- margin;
+            reshape state.winw state.h;
+          )
+          else
           let ondone s =
             let n =
               try int_of_string s with exc ->
@@ -1033,6 +1049,13 @@ let viewkeyboard ~key ~x ~y =
           enttext (Some ('+', "", None, intentry, ondone))
 
       | '-' ->
+          if Glut.getModifiers () land Glut.active_ctrl != 0
+          then (
+            let margin = max 0 (conf.margin - 1) in
+            conf.margin <- margin;
+            reshape state.winw state.h;
+          )
+          else
           let ondone msg =
             state.text <- msg;
           in
@@ -1065,7 +1088,7 @@ let viewkeyboard ~key ~x ~y =
 
       | 'b' ->
           conf.scrollw <- if conf.scrollw > 0 then 0 else 5;
-          reshape state.w state.h;
+          reshape state.winw state.h;
 
       | 'l' ->
           conf.hlinks <- not conf.hlinks;
@@ -1155,7 +1178,7 @@ let viewkeyboard ~key ~x ~y =
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              doreshape (l.pagew + conf.scrollw) l.pageh;
+              doreshape l.pagew l.pageh;
               Glut.postRedisplay ();
           end
 
@@ -1190,7 +1213,7 @@ let viewkeyboard ~key ~x ~y =
                   (truncate (a.(1) -. a.(0)),
                   truncate (a.(3) -. a.(0)))
               in
-              doreshape (w + conf.scrollw) h;
+              doreshape w h;
               Glut.postRedisplay ();
 
           | [] -> ()
@@ -1559,7 +1582,8 @@ let drawpage i l =
       then GlDraw.color (scalecolor 1.0)
       else GlDraw.color (scalecolor 0.4);
       let a = now () in
-      draw (l.pagedispy, l.pagew, l.pagevh, l.pagey, conf.hlinks) opaque;
+      draw (l.pagedispy, l.pagew, l.pagevh, l.pagey, conf.hlinks)
+        opaque;
       let b = now () in
       let d = b-.a in
       vlog "draw %f sec" d;
@@ -1567,11 +1591,6 @@ let drawpage i l =
   | _ ->
       drawplaceholder l;
   end;
-  GlDraw.color (0.5, 0.5, 0.5);
-  GlDraw.rect
-    (0., float i)
-    (float (state.w - conf.scrollw), float (i + (l.pagedispy - i)))
-  ;
   l.pagedispy + l.pagevh;
 ;;
 
@@ -1579,8 +1598,8 @@ let scrollindicator () =
   let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
   GlDraw.color (0.64 , 0.64, 0.64);
   GlDraw.rect
-    (float (state.w - conf.scrollw), 0.)
-    (float state.w, float state.h)
+    (0., 0.)
+    (float conf.scrollw, float state.h)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
   let sh = (float (maxy + state.h) /. float state.h)  in
@@ -1602,12 +1621,12 @@ let scrollindicator () =
       position
   in
   GlDraw.rect
-    (float (state.w - conf.scrollw), position)
-    (float state.w, position +. sh)
+    (0.0, position)
+    (float conf.scrollw, position +. sh)
   ;
 ;;
 
-let showsel () =
+let showsel margin =
   match state.mstate with
   | Mnone ->
       ()
@@ -1621,7 +1640,7 @@ let showsel () =
               match getopaque l.pageno with
               | Some opaque when validopaque opaque ->
                   let oy = -l.pagey + l.pagedispy in
-                  seltext opaque (x0, y0, x1, y1) oy;
+                  seltext opaque (x0 - margin, y0, x1 - margin, y1) oy;
                   ()
               | _ -> ()
             else loop ls
@@ -1685,7 +1704,7 @@ let showoutline = function
             GlFunc.blend_func `src_alpha `one_minus_src_alpha;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
             GlDraw.rect (0., float (y + 1))
-              (float (state.w - conf.scrollw - 1), float (y + 18));
+              (float (state.winw - conf.scrollw - 1), float (y + 18));
             GlDraw.polygon_mode `both `fill;
             Gl.disable `blend;
             GlDraw.color (1., 1., 1.);
@@ -1698,21 +1717,24 @@ let showoutline = function
 ;;
 
 let display () =
+  let margin = (state.winw - (state.w + conf.scrollw)) / 2 in
+  GlDraw.viewport margin 0 state.w state.h;
+  GlClear.color (scalecolor 0.5);
+  GlClear.clear [`color];
   let lasty = List.fold_left drawpage 0 (state.layout) in
-  GlDraw.color (scalecolor 0.5);
-  GlDraw.rect
-    (0., float lasty)
-    (float (state.w - conf.scrollw), float state.h)
-  ;
   showrects ();
+  GlDraw.viewport (state.winw - conf.scrollw) 0 state.winw state.h;
   scrollindicator ();
-  showsel ();
+  showsel margin;
+  GlDraw.viewport 0 0 state.winw state.h;
   showoutline state.outline;
   enttext ();
   Glut.swapBuffers ();
 ;;
 
 let getunder x y =
+  let margin = (state.winw - (state.w + conf.scrollw)) / 2 in
+  let x = x - margin in
   let rec f = function
     | l :: rest ->
         begin match getopaque l.pageno with
@@ -1857,7 +1879,7 @@ let () =
     try
       let w, h =
         match state.fullscreen with
-        | None -> state.w, state.h
+        | None -> state.winw, state.h
         | Some wh -> wh
       in
       Hashtbl.replace pstate state.path (state.bookmarks, w, h);
