@@ -553,7 +553,7 @@ let represent () =
       | (_, _, h) :: _ ->
           let ips =
             let d = state.h - h in
-            max 0 (d / 2)
+            max 0 ((d + 1) / 2)
           in
           let rely = yratio state.y in
           conf.interpagespace <- ips;
