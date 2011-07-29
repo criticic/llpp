@@ -299,7 +299,7 @@ let calcheight () =
         max 0 fh
   in
   let fh = f 0 0 0 state.pages in
-  fh + (if conf.presentation then conf.interpagespace else 0);
+  fh + (if conf.presentation then conf.interpagespace else -conf.interpagespace);
 ;;
 
 let getpageyh pageno =
