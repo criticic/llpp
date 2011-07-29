@@ -1088,6 +1088,7 @@ let viewkeyboard ~key ~x ~y =
       | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
           let margin = min 8 (conf.margin + 1) in
           conf.margin <- margin;
+          if margin > 0 then state.x <- 0;
           reshape state.winw state.h;
 
       | '-' ->
