@@ -104,7 +104,7 @@ type conf =
     ; mutable hlinks : bool
     ; mutable underinfo : bool
     ; mutable interpagespace : int
-    ; mutable margin : int
+    ; mutable zoom : float
     ; mutable presentation : bool
     }
 ;;
@@ -173,7 +173,7 @@ let conf =
   ; hlinks = false
   ; underinfo = false
   ; interpagespace = 2
-  ; margin = 0
+  ; zoom = 1.0
   ; presentation = false
   }
 ;;
@@ -571,12 +571,7 @@ let represent () =
 ;;
 
 let reshape ~w ~h =
-  let margin =
-    let m = float conf.margin in
-    let m = m *. (float w /. 20.) in
-    let m = truncate m in
-    if m*2 > (w - conf.scrollw) then 0 else m
-  in
+  let margin = truncate (0.5 *. (float w -. float w *. conf.zoom)) in
   state.winw <- w;
   let w = w - margin * 2 - conf.scrollw in
   state.w <- w;
@@ -1065,9 +1060,8 @@ let viewkeyboard ~key ~x ~y =
                         textentry, ondone (c ='/')))
 
       | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
-          let margin = max ~-16 (conf.margin - 1) in
-          conf.margin <- margin;
-          reshape state.winw state.h;
+          conf.zoom <- min 10.0 (conf.zoom +. 0.1);
+          reshape state.winw state.h
 
       | '+' ->
           let ondone s =
@@ -1086,9 +1080,8 @@ let viewkeyboard ~key ~x ~y =
           enttext (Some ('+', "", None, intentry, ondone))
 
       | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
-          let margin = min 8 (conf.margin + 1) in
-          conf.margin <- margin;
-          if margin > 0 then state.x <- 0;
+          conf.zoom <- max 0.1 (conf.zoom -. 0.1);
+          if conf.zoom <= 1.0 then state.x <- 0;
           reshape state.winw state.h;
 
       | '-' ->
@@ -1099,7 +1092,7 @@ let viewkeyboard ~key ~x ~y =
 
       | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           state.x <- 0;
-          conf.margin <- 0;
+          conf.zoom <- 1.0;
           reshape state.winw state.h
 
       | '0' .. '9' ->
@@ -1536,10 +1529,10 @@ let special ~key ~x ~y =
                 addnav ();
                 state.maxy - (if conf.maxhfit then state.h else 0)
 
-            | Glut.KEY_RIGHT when conf.margin < 0 ->
+            | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
                 state.x <- state.x - 10;
                 state.y
-            | Glut.KEY_LEFT when conf.margin < 0  ->
+            | Glut.KEY_LEFT when conf.zoom > 1.0  ->
                 state.x <- state.x + 10;
                 state.y
 
@@ -1768,13 +1761,13 @@ let display () =
     let x = float state.x in
     GlMat.translate ~x ();
   );
-  if conf.margin < 0
+  if conf.zoom > 1.0
   then (
     Gl.enable `scissor_test;
     GlMisc.scissor 0 0 (state.winw - conf.scrollw) state.h;
   );
   let _lasty = List.fold_left drawpage 0 (state.layout) in
-  if conf.margin < 0
+  if conf.zoom > 1.0
   then
     Gl.disable `scissor_test
   ;
@@ -1903,7 +1896,7 @@ let motion ~x ~y =
         let dx = x - x0
         and dy = y0 - y in
         state.mstate <- Mpan (x, y);
-        if conf.margin < 0 then state.x <- state.x + dx;
+        if conf.zoom > 1.0 then state.x <- state.x + dx;
         let y = clamp dy in
         gotoy y
 
