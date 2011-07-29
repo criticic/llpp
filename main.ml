@@ -104,6 +104,7 @@ type conf =
     ; mutable underinfo : bool
     ; mutable interpagespace : int
     ; mutable margin : int
+    ; mutable presentation : bool
     }
 ;;
 
@@ -171,6 +172,7 @@ let conf =
   ; underinfo = false
   ; interpagespace = 2
   ; margin = 0
+  ; presentation = false
   }
 ;;
 
@@ -294,10 +296,11 @@ let calcheight () =
         max 0 fh
   in
   let fh = f 0 0 0 state.pages in
-  fh;
+  fh + (if conf.presentation then conf.interpagespace else 0);
 ;;
 
 let getpageyh pageno =
+  let inc = if conf.presentation then conf.interpagespace else 0 in
   let rec f pn ph y l =
     match l with
     | (n, _, h) :: rest ->
@@ -309,7 +312,7 @@ let getpageyh pageno =
           f n h y rest
 
     | [] ->
-        y + (pageno - pn) * (ph + conf.interpagespace), ph
+        y + (pageno - pn) * (ph + conf.interpagespace) + inc, ph
   in
   f 0 0 0 state.pages;
 ;;
@@ -391,14 +394,26 @@ let layout y sh =
   in
   if state.invalidated = 0
   then
+    let vy, py, dy =
+      if conf.presentation
+      then (
+        if y < ips
+        then
+          y, y, ips - y
+        else
+          y - ips, 0, 0
+      )
+      else
+        y, 0, 0
+    in
     let accu =
       f
         ~pageno:0
         ~pdimno:~-1
         ~prev:(0,0,0)
-        ~vy:y
-        ~py:0
-        ~dy:0
+        ~vy
+        ~py
+        ~dy
         ~pdims:state.pages
         ~cacheleft:(cblen state.pagecache)
         ~accu:[]
@@ -529,6 +544,29 @@ let scalecolor c =
   (c, c, c);
 ;;
 
+let represent () =
+  let rely =
+    if conf.presentation
+    then
+      match state.pages with
+      | [] -> yratio state.y
+      | (_, _, h) :: _ ->
+          let ips =
+            let d = state.h - h in
+            max 0 (d / 2)
+          in
+          let rely = yratio state.y in
+          conf.interpagespace <- ips;
+          rely
+    else
+      let rely = yratio state.y in
+      conf.interpagespace <- 2;
+      rely
+  in
+  state.maxy <- calcheight ();
+  gotoy (truncate (float state.maxy *. rely));
+;;
+
 let reshape ~w ~h =
   let margin =
     let m = float conf.margin in
@@ -617,11 +655,7 @@ let act cmd =
       state.pagecount <- n;
       state.invalidated <- state.invalidated - 1;
       if state.invalidated = 0
-      then (
-        let rely = yratio state.y in
-        state.maxy <- calcheight ();
-        gotoy (truncate (float state.maxy *. rely));
-      )
+      then represent ()
 
   | 't' ->
       let s = Scanf.sscanf cmd "t %n"
@@ -1106,18 +1140,8 @@ let viewkeyboard ~key ~x ~y =
           conf.autoscroll <- not conf.autoscroll
 
       | 'P' ->
-          begin match state.layout with
-          | [] -> ()
-          | l :: _ ->
-              let ips =
-                let d = state.h - l.pageh in
-                max 0 (d / 2)
-              in
-              let rely = yratio state.y in
-              conf.interpagespace <- ips;
-              state.maxy <- calcheight ();
-              gotoy (truncate (float state.maxy *. rely));
-          end;
+          conf.presentation <- not conf.presentation;
+          represent ()
 
       | 'f' ->
           begin match state.fullscreen with
@@ -1142,7 +1166,7 @@ let viewkeyboard ~key ~x ~y =
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (state.y - l.pagey - conf.interpagespace);
+              gotoy (getpagey l.pageno - conf.interpagespace)
           end
 
       | ' ' ->
