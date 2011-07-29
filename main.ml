@@ -124,6 +124,7 @@ type state =
     ; mutable h : int
     ; mutable winw : int
     ; mutable rotate : int
+    ; mutable x : int
     ; mutable y : int
     ; mutable ty : float
     ; mutable maxy : int
@@ -184,6 +185,7 @@ let state =
   ; winw = 900
   ; rotate = 0
   ; y = 0
+  ; x = 0
   ; ty = 0.0
   ; layout = []
   ; maxy = max_int
@@ -1064,25 +1066,25 @@ let viewkeyboard ~key ~x ~y =
       | '+' ->
           if Glut.getModifiers () land Glut.active_ctrl != 0
           then (
-            let margin = max 0 (conf.margin - 1) in
+            let margin = max ~-16 (conf.margin - 1) in
             conf.margin <- margin;
             reshape state.winw state.h;
           )
           else
-          let ondone s =
-            let n =
-              try int_of_string s with exc ->
-                state.text <- Printf.sprintf "bad integer `%s': %s"
-                  s (Printexc.to_string exc);
-                max_int
+            let ondone s =
+              let n =
+                try int_of_string s with exc ->
+                  state.text <- Printf.sprintf "bad integer `%s': %s"
+                    s (Printexc.to_string exc);
+                  max_int
+              in
+              if n != max_int
+              then (
+                conf.pagebias <- n;
+                state.text <- "page bias is now " ^ string_of_int n;
+              )
             in
-            if n != max_int
-            then (
-              conf.pagebias <- n;
-              state.text <- "page bias is now " ^ string_of_int n;
-            )
-          in
-          enttext (Some ('+', "", None, intentry, ondone))
+            enttext (Some ('+', "", None, intentry, ondone))
 
       | '-' ->
           if Glut.getModifiers () land Glut.active_ctrl != 0
@@ -1092,10 +1094,15 @@ let viewkeyboard ~key ~x ~y =
             reshape state.winw state.h;
           )
           else
-          let ondone msg =
-            state.text <- msg;
-          in
-          enttext (Some ('-', "", None, optentry, ondone))
+            let ondone msg =
+              state.text <- msg;
+            in
+            enttext (Some ('-', "", None, optentry, ondone))
+
+      | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+          state.x <- 0;
+          conf.margin <- 0;
+          reshape state.winw state.h
 
       | '0' .. '9' ->
           let ondone s =
@@ -1530,6 +1537,14 @@ let special ~key ~x ~y =
             | Glut.KEY_END ->
                 addnav ();
                 state.maxy - (if conf.maxhfit then state.h else 0)
+
+            | Glut.KEY_RIGHT when conf.margin < 0 ->
+                state.x <- state.x - 10;
+                state.y
+            | Glut.KEY_LEFT when conf.margin < 0  ->
+                state.x <- state.x + 10;
+                state.y
+
             | _ -> state.y
           in
           if not conf.verbose then state.text <- "";
@@ -1666,7 +1681,9 @@ let showsel margin =
               match getopaque l.pageno with
               | Some opaque when validopaque opaque ->
                   let oy = -l.pagey + l.pagedispy in
-                  seltext opaque (x0 - margin, y0, x1 - margin, y1) oy;
+                  seltext opaque
+                    (x0 - margin - state.x, y0,
+                    x1 - margin - state.x, y1) oy;
                   ()
               | _ -> ()
             else loop ls
@@ -1747,7 +1764,26 @@ let display () =
   GlDraw.viewport margin 0 state.w state.h;
   GlClear.color (scalecolor 0.5);
   GlClear.clear [`color];
-  let lasty = List.fold_left drawpage 0 (state.layout) in
+  if state.x != 0
+  then (
+    let x = float state.x in
+    GlMat.translate ~x ();
+  );
+  if conf.margin < 0
+  then (
+    Gl.enable `scissor_test;
+    GlMisc.scissor 0 0 (state.winw - conf.scrollw) state.h;
+  );
+  let _lasty = List.fold_left drawpage 0 (state.layout) in
+  if conf.margin < 0
+  then
+    Gl.disable `scissor_test
+  ;
+  if state.x != 0
+  then (
+    let x = -.float state.x in
+    GlMat.translate ~x ();
+  );
   showrects ();
   GlDraw.viewport (state.winw - conf.scrollw) 0 state.winw state.h;
   scrollindicator ();
@@ -1760,7 +1796,7 @@ let display () =
 
 let getunder x y =
   let margin = (state.winw - (state.w + conf.scrollw)) / 2 in
-  let x = x - margin in
+  let x = x - margin - state.x in
   let rec f = function
     | l :: rest ->
         begin match getopaque l.pageno with

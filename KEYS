@@ -1,4 +1,5 @@
 up/down arrow           - scroll up/down
+left/right arrow        - pan left/right (when zoomed in)
 j/k                     - ..............
 mouse buttons 3/4       - ..............
 primary mouse button[1] - click on link or select text[2]
@@ -31,7 +32,8 @@ a                       - autoscroll
 <,>                     - rotate
 [,]                     - decrease/increase page brightness
 Ctrl-g                  - interrupt search
-Ctrl-+/-                - increase/decrease horizontal margins
+Ctrl-+/-                - zoom in/out
+Ctrl-0                  - fit page width and reset panning
 home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
 ctrl pageup/pagedown    - align top of the screen with first/last visible page
