@@ -303,7 +303,6 @@ let calcheight () =
 ;;
 
 let getpageyh pageno =
-  let inc = if conf.presentation then conf.interpagespace else 0 in
   let rec f pn ph y l =
     match l with
     | (n, _, h) :: rest ->
@@ -315,7 +314,7 @@ let getpageyh pageno =
           f n h y rest
 
     | [] ->
-        y + (pageno - pn) * (ph + conf.interpagespace) + inc, ph
+        y + (pageno - pn) * (ph + conf.interpagespace), ph
   in
   f 0 0 0 state.pages;
 ;;
@@ -1159,21 +1158,23 @@ let viewkeyboard ~key ~x ~y =
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (getpagey l.pageno - conf.interpagespace)
+              gotoy (getpagey l.pageno)
           end
 
       | ' ' ->
           begin match List.rev state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (clamp (l.pageh - l.pagey + conf.interpagespace))
+              let pageno = min (l.pageno+1) (state.pagecount-1) in
+              gotoy (getpagey pageno)
           end
 
       | '\127' ->
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (clamp (-l.pageh - conf.interpagespace));
+              let pageno = max 0 (l.pageno-1) in
+              gotoy (getpagey pageno)
           end
 
       | '=' ->
