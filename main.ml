@@ -1746,8 +1746,9 @@ let showoutline = function
             GlDraw.polygon_mode `both `line;
             GlFunc.blend_func `src_alpha `one_minus_src_alpha;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
+            let sw = float (conf.scrollw - 1) *. float state.w /. float state.winw in
             GlDraw.rect (0., float (y + 1))
-              (float (state.winw - conf.scrollw - 1), float (y + 18));
+              ((float state.w -. sw), float (y + 18));
             GlDraw.polygon_mode `both `fill;
             Gl.disable `blend;
             GlDraw.color (1., 1., 1.);
