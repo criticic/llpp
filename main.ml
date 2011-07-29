@@ -16,7 +16,8 @@ external copysel : string ->  unit = "ml_copysel";;
 external getpagewh : int -> float array = "ml_getpagewh";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 
-type mstate = Msel of ((int * int) * (int * int)) | Mnone;;
+type mpos = int * int
+type mstate = Msel of (mpos * mpos) | Mpan of mpos | Mnone;;
 
 type 'a circbuf =
     { store : 'a array
@@ -1063,41 +1064,37 @@ let viewkeyboard ~key ~x ~y =
           enttext (Some (c, "", Some (onhist state.hists.pat),
                         textentry, ondone (c ='/')))
 
+      | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
+          let margin = max ~-16 (conf.margin - 1) in
+          conf.margin <- margin;
+          reshape state.winw state.h;
+
       | '+' ->
-          if Glut.getModifiers () land Glut.active_ctrl != 0
-          then (
-            let margin = max ~-16 (conf.margin - 1) in
-            conf.margin <- margin;
-            reshape state.winw state.h;
-          )
-          else
-            let ondone s =
-              let n =
-                try int_of_string s with exc ->
-                  state.text <- Printf.sprintf "bad integer `%s': %s"
-                    s (Printexc.to_string exc);
-                  max_int
-              in
-              if n != max_int
-              then (
-                conf.pagebias <- n;
-                state.text <- "page bias is now " ^ string_of_int n;
-              )
+          let ondone s =
+            let n =
+              try int_of_string s with exc ->
+                state.text <- Printf.sprintf "bad integer `%s': %s"
+                  s (Printexc.to_string exc);
+                max_int
             in
-            enttext (Some ('+', "", None, intentry, ondone))
+            if n != max_int
+            then (
+              conf.pagebias <- n;
+              state.text <- "page bias is now " ^ string_of_int n;
+            )
+          in
+          enttext (Some ('+', "", None, intentry, ondone))
+
+      | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
+          let margin = min 8 (conf.margin + 1) in
+          conf.margin <- margin;
+          reshape state.winw state.h;
 
       | '-' ->
-          if Glut.getModifiers () land Glut.active_ctrl != 0
-          then (
-            let margin = min 8 (conf.margin + 1) in
-            conf.margin <- margin;
-            reshape state.winw state.h;
-          )
-          else
-            let ondone msg =
-              state.text <- msg;
-            in
-            enttext (Some ('-', "", None, optentry, ondone))
+          let ondone msg =
+            state.text <- msg;
+          in
+          enttext (Some ('-', "", None, optentry, ondone))
 
       | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           state.x <- 0;
@@ -1669,7 +1666,7 @@ let scrollindicator () =
 
 let showsel margin =
   match state.mstate with
-  | Mnone ->
+  | Mnone | Mpan _ ->
       ()
 
   | Msel ((x0, y0), (x1, y1)) ->
@@ -1833,6 +1830,14 @@ let mouse ~button ~bstate ~x ~y =
       let y = clamp incr in
       gotoy y
 
+  | Glut.LEFT_BUTTON when state.outline = None
+      && Glut.getModifiers () land Glut.active_ctrl != 0 ->
+      if bstate = Glut.DOWN
+      then
+        state.mstate <- Mpan (x, y)
+      else
+        state.mstate <- Mnone
+
   | Glut.LEFT_BUTTON when state.outline = None ->
       let dest = if bstate = Glut.DOWN then getunder x y else Unone in
       begin match dest with
@@ -1845,8 +1850,8 @@ let mouse ~button ~bstate ~x ~y =
           print_endline s
 
       | Unone when bstate = Glut.DOWN ->
-          Glut.setCursor Glut.CURSOR_INHERIT;
-          state.mstate <- Mnone
+          Glut.setCursor Glut.CURSOR_CROSSHAIR;
+          state.mstate <- Mpan (x, y);
 
       | Unone | Utext _ ->
           if bstate = Glut.DOWN
@@ -1859,7 +1864,12 @@ let mouse ~button ~bstate ~x ~y =
           )
           else (
             match state.mstate with
-            | Mnone -> ()
+            | Mnone  -> ()
+
+            | Mpan _ ->
+                Glut.setCursor Glut.CURSOR_INHERIT;
+                state.mstate <- Mnone
+
             | Msel ((x0, y0), (x1, y1)) ->
                 let f l =
                   if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
@@ -1887,6 +1897,15 @@ let motion ~x ~y =
   then
     match state.mstate with
     | Mnone -> ()
+
+    | Mpan (x0, y0) ->
+        let dx = x - x0
+        and dy = y0 - y in
+        state.mstate <- Mpan (x, y);
+        if conf.margin < 0 then state.x <- state.x + dx;
+        let y = clamp dy in
+        gotoy y
+
     | Msel (a, _) ->
         state.mstate <- Msel (a, (x, y));
         Glut.postRedisplay ()
@@ -1910,7 +1929,7 @@ let pmotion ~x ~y =
             Glut.setCursor Glut.CURSOR_TEXT
         end
 
-    | Msel (a, _) ->
+    | Mpan _ | Msel _ ->
         ()
 ;;
 
