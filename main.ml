@@ -595,16 +595,11 @@ let reshape ~w ~h =
 let showtext c s =
   GlDraw.viewport 0 0 state.winw state.h;
   GlDraw.color (0.0, 0.0, 0.0);
-  GlMat.push ();
-  GlMat.load_identity ();
-  GlMat.rotate ~x:1.0 ~angle:180.0 ();
-  GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
-  GlMat.scale3 (2.0 /. float state.winw, 2.0 /. float state.h, 1.0);
+  let sw = float (conf.scrollw - 1) *. float state.w /. float state.winw in
   GlDraw.rect
     (0.0, float (state.h - 18))
-    (float (state.winw - conf.scrollw), float state.h)
+    (float state.w -. sw, float state.h)
   ;
-  GlMat.pop ();
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
   GlPix.raster_pos ~x:0.0 ~y:(float (state.h - 5)) ();
