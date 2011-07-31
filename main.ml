@@ -1669,6 +1669,7 @@ let showsel margin =
 ;;
 
 let showrects () =
+  let panx = float state.x in
   Gl.enable `blend;
   GlDraw.color (0.0, 0.0, 1.0) ~alpha:0.5;
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
@@ -1681,10 +1682,10 @@ let showrects () =
           GlDraw.color (0.0, 0.0, 1.0 /. float c) ~alpha:0.5;
           GlDraw.begins `quads;
           (
-            GlDraw.vertex2 (x0, y0+.d);
-            GlDraw.vertex2 (x1, y1+.d);
-            GlDraw.vertex2 (x2, y2+.d);
-            GlDraw.vertex2 (x3, y3+.d);
+            GlDraw.vertex2 (x0+.panx, y0+.d);
+            GlDraw.vertex2 (x1+.panx, y1+.d);
+            GlDraw.vertex2 (x2+.panx, y2+.d);
+            GlDraw.vertex2 (x3+.panx, y3+.d);
           );
           GlDraw.ends ();
         )
