@@ -475,9 +475,20 @@ let preload () =
     in
     if not evictedvisible
     then
-      let y = if state.y < state.h then 0 else state.y - state.h in
+      let rely = yratio state.y in
+      let presentation = conf.presentation in
+      let interpagespace = conf.interpagespace in
+      let maxy = state.maxy in
+      conf.presentation <- false;
+      conf.interpagespace <- 0;
+      state.maxy <- calcheight ();
+      let y = truncate (float state.maxy *. rely) in
+      let y = if y < state.h then 0 else y - state.h in
       let pages = layout y (state.h*3) in
       List.iter render pages;
+      conf.presentation <- presentation;
+      conf.interpagespace <- interpagespace;
+      state.maxy <- maxy;
 ;;
 
 let gotoy y =
