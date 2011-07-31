@@ -1128,6 +1128,8 @@ let viewkeyboard ~key ~x ~y =
 
       | 'P' ->
           conf.presentation <- not conf.presentation;
+          showtext ' ' ("Presnetation mode " ^
+                       if conf.presentation then "on" else "off");
           represent ()
 
       | 'f' ->
