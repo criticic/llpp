@@ -351,7 +351,7 @@ let layout y sh =
       | (pageno', w, h) :: rest when pageno' = pageno ->
           let ips = calcips h in
           (w, h, ips), rest, pdimno + 1,
-          if conf.presentation then ips else 0
+          if conf.presentation && pageno = 0 then ips else 0
       | _ ->
           prev, pdims, pdimno, 0
     in
