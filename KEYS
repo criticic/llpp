@@ -38,7 +38,7 @@ home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
 ctrl pageup/pagedown    - align top of the screen with first/last visible page
 
-(moving mouse while holding the first button will pan the page)
+(moving mouse while holding primary mouse button will pan the page)
 
 tunables
 -i                      - toggle case sensitivity of searches
