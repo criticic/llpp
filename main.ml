@@ -287,141 +287,133 @@ let wcmd s l =
   writecmd state.csock cmd;
 ;;
 
+let calcips h =
+  if conf.presentation
+  then
+    let d = state.h - h in
+    max 0 ((d + 1) / 2)
+  else
+    conf.interpagespace
+;;
+
 let calcheight () =
-  let rec f pn ph fh l =
+  let rec f pn ph pi fh l =
     match l with
     | (n, _, h) :: rest ->
-        let fh = fh + (n - pn) * (ph + conf.interpagespace) in
-        f n h fh rest
+        let ips = calcips h in
+        let fh =
+          if n = 0 && conf.presentation
+          then
+            fh+ips
+          else
+            fh
+        in
+        let fh = fh + ((n - pn) * (ph + pi)) in
+        f n h ips fh rest
 
     | [] ->
-        let fh = fh + ((ph + conf.interpagespace) * (state.pagecount - pn)) in
+        let inc =
+          if conf.presentation
+          then 0
+          else -pi
+        in
+        let fh = fh + ((state.pagecount - pn) * (ph + pi)) + inc in
         max 0 fh
   in
-  let fh = f 0 0 0 state.pages in
-  fh + (if conf.presentation then conf.interpagespace else -conf.interpagespace);
+  let fh = f 0 0 0 0 state.pages in
+  fh;
 ;;
 
 let getpageyh pageno =
-  let rec f pn ph y l =
+  let rec f pn ph pi y l =
     match l with
     | (n, _, h) :: rest ->
+        let ips = calcips h in
         if n >= pageno
         then
-          y + (pageno - pn) * (ph + conf.interpagespace), h
+          y + (pageno - pn) * (ph + pi), h
         else
-          let y = y + (n - pn) * (ph + conf.interpagespace) in
-          f n h y rest
+          let y = y + (n - pn) * (ph + pi) in
+          f n h ips y rest
 
     | [] ->
-        y + (pageno - pn) * (ph + conf.interpagespace), ph
+        y + (pageno - pn) * (ph + pi), ph
   in
-  f 0 0 0 state.pages;
+  f 0 0 0 0 state.pages
 ;;
 
 let getpagey pageno = fst (getpageyh pageno);;
 
 let layout y sh =
-  let ips = conf.interpagespace in
-  let rec f ~pageno ~pdimno ~prev ~vy ~py ~dy ~pdims ~cacheleft ~accu =
-    if pageno = state.pagecount || cacheleft = 0
-    then accu
+  let rec f ~pageno ~pdimno ~prev ~py ~vh ~pdims ~cacheleft ~accu =
+    let ((w, h, ips) as curr), rest, pdimno, p0a =
+      match pdims with
+      | (pageno', w, h) :: rest when pageno' = pageno ->
+          let ips = calcips h in
+          (w, h, ips), rest, pdimno + 1,
+          if conf.presentation then ips else 0
+      | _ ->
+          prev, pdims, pdimno, 0
+    in
+    if pageno = state.pagecount || cacheleft = 0 || vh >= sh
+    then
+      accu
     else
-      let ((_, w, h) as curr), rest, pdimno =
-        match pdims with
-        | ((pageno', _, _) as curr) :: rest when pageno' = pageno ->
-            curr, rest, pdimno + 1
-        | _ ->
-            prev, pdims, pdimno
-      in
-      let pageno' = pageno + 1 in
-      if py + h > vy
+      let py = py + p0a in
+      let vy = y + vh in
+      if py + h <= vy
       then
-        let py' = vy - py in
-        let vh = h - py' in
-        if dy + vh > sh
-        then
-          let vh = sh - dy in
-          if vh <= 0
-          then
-            accu
-          else
-            let e =
-              { pageno = pageno
-              ; pagedimno = pdimno
-              ; pagew = w
-              ; pageh = h
-              ; pagedispy = dy
-              ; pagey = py'
-              ; pagevh = vh
-              }
-            in
-            e :: accu
-        else
-          let e =
-            { pageno = pageno
-            ; pagedimno = pdimno
-            ; pagew = w
-            ; pageh = h
-            ; pagedispy = dy
-            ; pagey = py'
-            ; pagevh = vh
-            }
-          in
-          let accu = e :: accu in
-          f ~pageno:pageno'
-            ~pdimno
-            ~prev:curr
-            ~vy:(vy + vh)
-            ~py:(py + h)
-            ~dy:(dy + vh + ips)
-            ~pdims:rest
-            ~cacheleft:(pred cacheleft)
-            ~accu
-      else (
-        let py' = vy - py in
-        let vh = h - py' in
-        let t = ips + vh in
-        let dy, py = if t < 0 then 0, py + h + ips else t, py + h - vh in
-        f ~pageno:pageno'
+        let py = py + h + ips in
+        let vh = max 0 (py - y) in
+        f ~pageno:(pageno+1)
           ~pdimno
           ~prev:curr
-          ~vy
           ~py
-          ~dy
+          ~vh
           ~pdims:rest
           ~cacheleft
           ~accu
-      )
+      else
+        let top = vy - py in
+        let left = h - top in
+        let left = min (sh - vh) left in
+        let py = py + h + ips in
+        let p0y = if top < 0 then -top else 0 in
+        let e =
+          { pageno = pageno
+          ; pagedimno = pdimno
+          ; pagew = w
+          ; pageh = h
+          ; pagedispy = vh+p0y
+          ; pagey = top+p0y
+          ; pagevh = left-p0y
+          }
+        in
+        let accu = e :: accu in
+        f ~pageno:(pageno+1)
+          ~pdimno
+          ~prev:curr
+          ~py
+          ~vh:(vh+left+ips)
+          ~pdims:rest
+          ~cacheleft:(cacheleft-1)
+          ~accu
   in
   if state.invalidated = 0
-  then
-    let vy, py, dy =
-      if conf.presentation
-      then (
-        if y < ips
-        then
-          y, y, ips - y
-        else
-          y - ips, 0, 0
-      )
-      else
-        y, 0, 0
-    in
+  then (
     let accu =
       f
         ~pageno:0
         ~pdimno:~-1
         ~prev:(0,0,0)
-        ~vy
-        ~py
-        ~dy
+        ~py:0
+        ~vh:0
         ~pdims:state.pages
         ~cacheleft:(cblen state.pagecache)
         ~accu:[]
     in
-    state.maxy <- calcheight ();
     List.rev accu
+  )
   else
     []
 ;;
@@ -547,26 +539,18 @@ let scalecolor c =
 ;;
 
 let represent () =
-  let rely =
-    if conf.presentation
-    then
-      match state.pages with
-      | [] -> yratio state.y
-      | (_, _, h) :: _ ->
-          let ips =
-            let d = state.h - h in
-            max 0 ((d + 1) / 2)
-          in
-          let rely = yratio state.y in
-          conf.interpagespace <- ips;
-          rely
-    else
-      let rely = yratio state.y in
-      conf.interpagespace <- 2;
-      rely
+  let y =
+    match state.layout with
+    | [] ->
+        let rely = yratio state.y in
+        state.maxy <- calcheight ();
+        truncate (float state.maxy *. rely)
+
+    | l :: _ ->
+        state.maxy <- calcheight ();
+        getpagey l.pageno
   in
-  state.maxy <- calcheight ();
-  gotoy (truncate (float state.maxy *. rely));
+  gotoy y
 ;;
 
 let reshape ~w ~h =
@@ -1619,7 +1603,7 @@ let drawpage i l =
         opaque;
       let b = now () in
       let d = b-.a in
-      vlog "draw %f sec" d;
+      vlog "draw %d %f sec" l.pageno d;
 
   | _ ->
       drawplaceholder l;
