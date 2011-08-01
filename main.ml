@@ -1066,7 +1066,7 @@ let viewkeyboard ~key ~x ~y =
                         textentry, ondone (c ='/')))
 
       | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
-          conf.zoom <- min 10.0 (conf.zoom +. 0.1);
+          conf.zoom <- min 2.2 (conf.zoom +. 0.1);
           state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
           reshape state.winw state.h
 
