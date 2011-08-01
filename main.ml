@@ -1071,18 +1071,6 @@ let viewkeyboard ~key ~x ~y =
           enttext (Some (c, "", Some (onhist state.hists.pat),
                         textentry, ondone (c ='/')))
 
-      | 'Z' ->
-          let maxh =
-            List.fold_left (fun m (_, _, h) -> max h m) 0 state.pages
-          in
-          let zoom = float state.h /. float maxh in
-          if zoom < 1.0
-          then (
-            conf.zoom <- zoom;
-            state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-            reshape state.winw state.h;
-          )
-
       | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
           conf.zoom <- min 2.2 (conf.zoom +. 0.1);
           state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
