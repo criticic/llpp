@@ -1838,8 +1838,10 @@ let mouse ~button ~bstate ~x ~y =
   | Glut.LEFT_BUTTON when state.outline = None
       && Glut.getModifiers () land Glut.active_ctrl != 0 ->
       if bstate = Glut.DOWN
-      then
+      then (
+        Glut.setCursor Glut.CURSOR_CROSSHAIR;
         state.mstate <- Mpan (x, y)
+      )
       else
         state.mstate <- Mnone
 
