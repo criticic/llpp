@@ -128,7 +128,6 @@ type state =
     ; mutable x : int
     ; mutable y : int
     ; mutable ty : float
-    ; mutable vports : float
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : ((int * int * int), string) Hashtbl.t
@@ -188,7 +187,6 @@ let state =
   ; rotate = 0
   ; y = 0
   ; x = 0
-  ; vports = 1.0
   ; ty = 0.0
   ; layout = []
   ; maxy = max_int
@@ -576,20 +574,30 @@ let represent () =
   gotoy y
 ;;
 
+let pagematrix () =
+  GlMat.mode `projection;
+  GlMat.load_identity ();
+  GlMat.rotate ~x:1.0 ~angle:180.0 ();
+  GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
+  GlMat.scale3 (2.0 /. float state.w, 2.0 /. float state.h, 1.0);
+;;
+
+let winmatrix () =
+  GlMat.mode `projection;
+  GlMat.load_identity ();
+  GlMat.rotate ~x:1.0 ~angle:180.0 ();
+  GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
+  GlMat.scale3 (2.0 /. float state.winw, 2.0 /. float state.h, 1.0);
+;;
+
 let reshape ~w ~h =
   let margin = truncate (0.5 *. (float w -. float w *. conf.zoom)) in
   state.winw <- w;
   let w = w - margin * 2 - conf.scrollw in
   state.w <- w;
   state.h <- h;
-  state.vports <- float state.w /. float state.winw;
   GlMat.mode `modelview;
   GlMat.load_identity ();
-  GlMat.mode `projection;
-  GlMat.load_identity ();
-  GlMat.rotate ~x:1.0 ~angle:180.0 ();
-  GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
-  GlMat.scale3 (2.0 /. float w, 2.0 /. float state.h, 1.0);
   GlClear.color (scalecolor 1.0);
   GlClear.clear [`color];
 
@@ -598,12 +606,10 @@ let reshape ~w ~h =
 ;;
 
 let showtext c s =
-  GlDraw.viewport 0 0 state.winw state.h;
   GlDraw.color (0.0, 0.0, 0.0);
-  let sw = float (conf.scrollw + 1) *. state.vports in
   GlDraw.rect
     (0.0, float (state.h - 18))
-    (float state.w -. sw, float state.h)
+    (float (state.winw - conf.scrollw - 1), float state.h)
   ;
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
@@ -1263,7 +1269,7 @@ let viewkeyboard ~key ~x ~y =
                   (truncate (a.(1) -. a.(0)),
                   truncate (a.(3) -. a.(0)))
               in
-              doreshape (w + conf.scrollw) h;
+              doreshape (w + conf.scrollw) (h + conf.interpagespace);
               Glut.postRedisplay ();
 
           | [] -> ()
@@ -1654,10 +1660,9 @@ let drawpage i l =
 let scrollindicator () =
   let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
   GlDraw.color (0.64 , 0.64, 0.64);
-  let sw = float conf.scrollw *. state.vports in
   GlDraw.rect
-    (0., 0.)
-    (sw, float state.h)
+    (float (state.winw - conf.scrollw), 0.)
+    (float state.winw, float state.h)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
   let sh = (float (maxy + state.h) /. float state.h)  in
@@ -1679,8 +1684,8 @@ let scrollindicator () =
       position
   in
   GlDraw.rect
-    (0.0, position)
-    (sw, position +. sh)
+    (float (state.winw - conf.scrollw), position)
+    (float state.winw, position +. sh)
   ;
 ;;
 
@@ -1757,7 +1762,7 @@ let showoutline = function
         else (
           let (s, l, _, _) = outlines.(row) in
           let y = (row - first) * 16 in
-          let x = truncate (5.0*.state.vports +. 15.0*.float l*.state.vports) in
+          let x = 5 + 15*l in
           if row = active
           then (
             Gl.enable `blend;
@@ -1765,7 +1770,7 @@ let showoutline = function
             GlFunc.blend_func `src_alpha `one_minus_src_alpha;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
             GlDraw.rect (0., float (y + 1))
-              ((float state.w -. state.vports), float (y + 18));
+              (float (state.w - 1), float (y + 18));
             GlDraw.polygon_mode `both `fill;
             Gl.disable `blend;
             GlDraw.color (1., 1., 1.);
@@ -1780,6 +1785,7 @@ let showoutline = function
 let display () =
   let margin = (state.winw - (state.w + conf.scrollw)) / 2 in
   GlDraw.viewport margin 0 state.w state.h;
+  pagematrix ();
   GlClear.color (scalecolor 0.5);
   GlClear.clear [`color];
   if state.x != 0
@@ -1804,9 +1810,9 @@ let display () =
   );
   showrects ();
   showsel margin;
-  GlDraw.viewport (state.winw - conf.scrollw) 0 state.winw state.h;
-  scrollindicator ();
   GlDraw.viewport 0 0 state.winw state.h;
+  winmatrix ();
+  scrollindicator ();
   showoutline state.outline;
   enttext ();
   Glut.swapBuffers ();
