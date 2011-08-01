@@ -1151,7 +1151,7 @@ let viewkeyboard ~key ~x ~y =
       | 'f' ->
           begin match state.fullscreen with
           | None ->
-              state.fullscreen <- Some (state.w, state.h);
+              state.fullscreen <- Some (state.winw, state.h);
               Glut.fullScreen ()
           | Some (w, h) ->
               state.fullscreen <- None;
@@ -1216,7 +1216,7 @@ let viewkeyboard ~key ~x ~y =
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              doreshape l.pagew l.pageh;
+              doreshape (l.pagew + conf.scrollw) l.pageh;
               Glut.postRedisplay ();
           end
 
@@ -1251,7 +1251,7 @@ let viewkeyboard ~key ~x ~y =
                   (truncate (a.(1) -. a.(0)),
                   truncate (a.(3) -. a.(0)))
               in
-              doreshape w h;
+              doreshape (w + conf.scrollw) h;
               Glut.postRedisplay ();
 
           | [] -> ()
