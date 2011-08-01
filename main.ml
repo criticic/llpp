@@ -17,7 +17,12 @@ external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 
 type mpos = int * int
-type mstate = Msel of (mpos * mpos) | Mpan of mpos | Mnone;;
+and mstate =
+    | Msel of (mpos * mpos)
+    | Mpan of mpos
+    | Mscroll
+    | Mnone
+;;
 
 type 'a circbuf =
     { store : 'a array
@@ -159,7 +164,7 @@ and hists =
 ;;
 
 let conf =
-  { scrollw = 5
+  { scrollw = 7
   ; scrollh = 12
   ; icase = true
   ; preload = true
@@ -1164,7 +1169,7 @@ let viewkeyboard ~key ~x ~y =
                         pageentry, ondone))
 
       | 'b' ->
-          conf.scrollw <- if conf.scrollw > 0 then 0 else 5;
+          conf.scrollw <- if conf.scrollw > 0 then 0 else 7;
           reshape state.winw state.h;
 
       | 'l' ->
@@ -1672,14 +1677,8 @@ let drawpage i l =
   l.pagedispy + l.pagevh;
 ;;
 
-let scrollindicator () =
+let scrollph y =
   let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
-  GlDraw.color (0.64 , 0.64, 0.64);
-  GlDraw.rect
-    (float (state.winw - conf.scrollw), 0.)
-    (float state.winw, float state.h)
-  ;
-  GlDraw.color (0.0, 0.0, 0.0);
   let sh = (float (maxy + state.h) /. float state.h)  in
   let sh = float state.h /. sh in
   let sh = max sh (float conf.scrollh) in
@@ -1687,17 +1686,27 @@ let scrollindicator () =
   let percent =
     if state.y = state.maxy
     then 1.0
-    else float state.y /. float maxy
+    else float y /. float maxy
   in
   let position = (float state.h -. sh) *. percent in
 
   let position =
     if position +. sh > float state.h
-    then
-      float state.h -. sh
-    else
-      position
+    then float state.h -. sh
+    else position
   in
+  position, sh;
+;;
+
+let scrollindicator () =
+  GlDraw.color (0.64 , 0.64, 0.64);
+  GlDraw.rect
+    (float (state.winw - conf.scrollw), 0.)
+    (float state.winw, float state.h)
+  ;
+  GlDraw.color (0.0, 0.0, 0.0);
+
+  let position, sh = scrollph state.y in
   GlDraw.rect
     (float (state.winw - conf.scrollw), position)
     (float state.winw, position +. sh)
@@ -1706,7 +1715,7 @@ let scrollindicator () =
 
 let showsel margin =
   match state.mstate with
-  | Mnone | Mpan _ ->
+  | Mnone | Mscroll _ | Mpan _ ->
       ()
 
   | Msel ((x0, y0), (x1, y1)) ->
@@ -1881,6 +1890,22 @@ let mouse ~button ~bstate ~x ~y =
       else
         state.mstate <- Mnone
 
+  | Glut.LEFT_BUTTON when state.outline = None
+      && x > state.w ->
+      if bstate = Glut.DOWN
+      then
+        let position, sh = scrollph state.y in
+        if y > truncate position && y < truncate (position +. sh)
+        then
+          state.mstate <- Mscroll
+        else
+          let percent = float y /. float state.h in
+          let desty = truncate (float (state.maxy - state.h) *. percent) in
+          gotoy desty;
+          state.mstate <- Mscroll
+      else
+        state.mstate <- Mnone
+
   | Glut.LEFT_BUTTON when state.outline = None ->
       let dest = if bstate = Glut.DOWN then getunder x y else Unone in
       begin match dest with
@@ -1908,6 +1933,9 @@ let mouse ~button ~bstate ~x ~y =
           else (
             match state.mstate with
             | Mnone  -> ()
+
+            | Mscroll ->
+                state.mstate <- Mnone
 
             | Mpan _ ->
                 Glut.setCursor Glut.CURSOR_INHERIT;
@@ -1952,6 +1980,12 @@ let motion ~x ~y =
     | Msel (a, _) ->
         state.mstate <- Msel (a, (x, y));
         Glut.postRedisplay ()
+
+    | Mscroll ->
+        let y = min state.h (max 0 y) in
+        let percent = float y /. float state.h in
+        let y = truncate (float (state.maxy - state.h) *. percent) in
+        gotoy_and_clear_text y
 ;;
 
 let pmotion ~x ~y =
@@ -1972,7 +2006,7 @@ let pmotion ~x ~y =
             Glut.setCursor Glut.CURSOR_TEXT
         end
 
-    | Mpan _ | Msel _ ->
+    | Mpan _ | Msel _ | Mscroll ->
         ()
 ;;
 
