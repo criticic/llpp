@@ -526,6 +526,11 @@ let gotoy y =
   preload ();
 ;;
 
+let gotoy_and_clear_text y =
+  gotoy y;
+  if not conf.verbose then state.text <- "";
+;;
+
 let addnav () =
   cbput state.hists.nav (yratio state.y);
   cbrfollowlen state.hists.nav;
@@ -539,13 +544,13 @@ let getnav () =
 let gotopage n top =
   let y, h = getpageyh n in
   addnav ();
-  gotoy (y + (truncate (top *. float h)));
+  gotoy_and_clear_text (y + (truncate (top *. float h)));
 ;;
 
 let gotopage1 n top =
   let y = getpagey n in
   addnav ();
-  gotoy (y + top);
+  gotoy_and_clear_text (y + top);
 ;;
 
 let invalidate () =
@@ -1045,7 +1050,7 @@ let viewkeyboard ~key ~x ~y =
 
       | '\008' ->
           let y = getnav () in
-          gotoy y
+          gotoy_and_clear_text y
 
       | 'o' ->
           enteroutlinemode ()
@@ -1117,7 +1122,7 @@ let viewkeyboard ~key ~x ~y =
               addnav ();
               cbput state.hists.pag (string_of_int n);
               cbrfollowlen state.hists.pag;
-              gotoy (getpagey (n + conf.pagebias - 1))
+              gotoy_and_clear_text (getpagey (n + conf.pagebias - 1))
             )
           in
           let pageentry text key =
@@ -1158,7 +1163,7 @@ let viewkeyboard ~key ~x ~y =
           end
 
       | 'g' ->
-          gotoy 0
+          gotoy_and_clear_text 0
 
       | 'n' ->
           search state.searchpattern true
@@ -1170,7 +1175,7 @@ let viewkeyboard ~key ~x ~y =
           begin match state.layout with
           | [] -> ()
           | l :: _ ->
-              gotoy (getpagey l.pageno)
+              gotoy_and_clear_text (getpagey l.pageno)
           end
 
       | ' ' ->
@@ -1178,7 +1183,7 @@ let viewkeyboard ~key ~x ~y =
           | [] -> ()
           | l :: _ ->
               let pageno = min (l.pageno+1) (state.pagecount-1) in
-              gotoy (getpagey pageno)
+              gotoy_and_clear_text (getpagey pageno)
           end
 
       | '\127' ->
@@ -1186,7 +1191,7 @@ let viewkeyboard ~key ~x ~y =
           | [] -> ()
           | l :: _ ->
               let pageno = max 0 (l.pageno-1) in
-              gotoy (getpagey pageno)
+              gotoy_and_clear_text (getpagey pageno)
           end
 
       | '=' ->
@@ -1551,8 +1556,7 @@ let special ~key ~x ~y =
 
             | _ -> state.y
           in
-          if not conf.verbose then state.text <- "";
-          gotoy y
+          gotoy_and_clear_text y
 
       | Some (c, s, Some onhist, onkey, ondone) ->
           let s =
@@ -1836,7 +1840,7 @@ let mouse ~button ~bstate ~x ~y =
       in
       let incr = incr * 2 in
       let y = clamp incr in
-      gotoy y
+      gotoy_and_clear_text y
 
   | Glut.LEFT_BUTTON when state.outline = None
       && Glut.getModifiers () land Glut.active_ctrl != 0 ->
@@ -1914,7 +1918,7 @@ let motion ~x ~y =
         state.mstate <- Mpan (x, y);
         if conf.zoom > 1.0 then state.x <- state.x + dx;
         let y = clamp dy in
-        gotoy y
+        gotoy_and_clear_text y
 
     | Msel (a, _) ->
         state.mstate <- Msel (a, (x, y));
