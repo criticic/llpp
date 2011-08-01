@@ -13,7 +13,7 @@ external draw : (int * int * int * int * bool) -> string  -> unit = "ml_draw";;
 external seltext : string -> (int * int * int * int) -> int -> unit =
   "ml_seltext";;
 external copysel : string ->  unit = "ml_copysel";;
-external getpagewh : int -> float array = "ml_getpagewh";;
+external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 
 type mpos = int * int
@@ -131,7 +131,7 @@ type state =
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : ((int * int * int), string) Hashtbl.t
-    ; mutable pages : (int * int * int) list
+    ; mutable pdims : (int * int * int) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
     ; mutable rendering : bool
@@ -192,7 +192,7 @@ let state =
   ; maxy = max_int
   ; pagemap = Hashtbl.create 10
   ; pagecache = cbnew 10 ""
-  ; pages = []
+  ; pdims = []
   ; pagecount = 0
   ; rendering = false
   ; mstate = Mnone
@@ -318,7 +318,7 @@ let calcheight () =
         let fh = fh + ((state.pagecount - pn) * (ph + pi)) + inc in
         max 0 fh
   in
-  let fh = f 0 0 0 0 state.pages in
+  let fh = f 0 0 0 0 state.pdims in
   fh;
 ;;
 
@@ -342,7 +342,7 @@ let getpageyh pageno =
     | [] ->
         y + (pageno - pn) * (ph + pi), ph
   in
-  f 0 0 0 0 state.pages
+  f 0 0 0 0 state.pdims
 ;;
 
 let getpagey pageno = fst (getpageyh pageno);;
@@ -413,7 +413,7 @@ let layout y sh =
         ~prev:(0,0,0)
         ~py:0
         ~dy:0
-        ~pdims:state.pages
+        ~pdims:state.pdims
         ~cacheleft:(cblen state.pagecache)
         ~accu:[]
     in
@@ -548,7 +548,7 @@ let gotopage1 n top =
 
 let invalidate () =
   state.layout <- [];
-  state.pages <- [];
+  state.pdims <- [];
   state.rects <- [];
   state.rects1 <- [];
   state.invalidated <- state.invalidated + 1;
@@ -649,7 +649,7 @@ let showtext c s =
 let act cmd =
   match cmd.[0] with
   | 'c' ->
-      state.pages <- [];
+      state.pdims <- [];
 
   | 'D' ->
       state.rects <- state.rects1;
@@ -740,10 +740,10 @@ let act cmd =
       )
 
   | 'l' ->
-      let (n, w, h) as pagelayout =
+      let (n, w, h) as pdim =
         Scanf.sscanf cmd "l %d %d %d" (fun n w h -> n, w, h)
       in
-      state.pages <- pagelayout :: state.pages
+      state.pdims <- pdim :: state.pdims
 
   | 'o' ->
       let (l, n, t, h, pos) =
@@ -1246,15 +1246,15 @@ let viewkeyboard ~key ~x ~y =
       | 'z' ->
           begin match state.layout with
           | l :: _ ->
-              let a = getpagewh l.pagedimno in
+              let rect = getpdimrect l.pagedimno in
               let w, h =
                 if conf.crophack
                 then
-                  (truncate (1.8 *. (a.(1) -. a.(0))),
-                  truncate (1.2 *. (a.(3) -. a.(0))))
+                  (truncate (1.8 *. (rect.(1) -. rect.(0))),
+                  truncate (1.2 *. (rect.(3) -. rect.(0))))
                 else
-                  (truncate (a.(1) -. a.(0)),
-                  truncate (a.(3) -. a.(0)))
+                  (truncate (rect.(1) -. rect.(0)),
+                  truncate (rect.(3) -. rect.(0)))
               in
               doreshape (w + conf.scrollw) (h + conf.interpagespace);
               Glut.postRedisplay ();

@@ -1716,7 +1716,7 @@ CAMLprim value ml_copysel (value ptr_v)
     CAMLreturn (Val_unit);
 }
 
-CAMLprim value ml_getpagewh (value pagedimno_v)
+CAMLprim value ml_getpdimrect (value pagedimno_v)
 {
     CAMLparam1 (pagedimno_v);
     CAMLlocal1 (ret_v);
