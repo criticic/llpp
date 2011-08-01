@@ -128,6 +128,7 @@ type state =
     ; mutable x : int
     ; mutable y : int
     ; mutable ty : float
+    ; mutable vports : float
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : ((int * int * int), string) Hashtbl.t
@@ -187,6 +188,7 @@ let state =
   ; rotate = 0
   ; y = 0
   ; x = 0
+  ; vports = 1.0
   ; ty = 0.0
   ; layout = []
   ; maxy = max_int
@@ -580,6 +582,7 @@ let reshape ~w ~h =
   let w = w - margin * 2 - conf.scrollw in
   state.w <- w;
   state.h <- h;
+  state.vports <- float state.w /. float state.winw;
   GlMat.mode `modelview;
   GlMat.load_identity ();
   GlMat.mode `projection;
@@ -597,7 +600,7 @@ let reshape ~w ~h =
 let showtext c s =
   GlDraw.viewport 0 0 state.winw state.h;
   GlDraw.color (0.0, 0.0, 0.0);
-  let sw = float (conf.scrollw - 1) *. float state.w /. float state.winw in
+  let sw = float (conf.scrollw + 1) *. state.vports in
   GlDraw.rect
     (0.0, float (state.h - 18))
     (float state.w -. sw, float state.h)
@@ -1638,9 +1641,10 @@ let drawpage i l =
 let scrollindicator () =
   let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
   GlDraw.color (0.64 , 0.64, 0.64);
+  let sw = float conf.scrollw *. state.vports in
   GlDraw.rect
     (0., 0.)
-    (float conf.scrollw, float state.h)
+    (sw, float state.h)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
   let sh = (float (maxy + state.h) /. float state.h)  in
@@ -1663,7 +1667,7 @@ let scrollindicator () =
   in
   GlDraw.rect
     (0.0, position)
-    (float conf.scrollw, position +. sh)
+    (sw, position +. sh)
   ;
 ;;
 
@@ -1740,16 +1744,15 @@ let showoutline = function
         else (
           let (s, l, _, _) = outlines.(row) in
           let y = (row - first) * 16 in
-          let x = 5 + 15*l in
+          let x = truncate (5.0*.state.vports +. 15.0*.float l*.state.vports) in
           if row = active
           then (
             Gl.enable `blend;
             GlDraw.polygon_mode `both `line;
             GlFunc.blend_func `src_alpha `one_minus_src_alpha;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
-            let sw = float (conf.scrollw - 1) *. float state.w /. float state.winw in
             GlDraw.rect (0., float (y + 1))
-              ((float state.w -. sw), float (y + 18));
+              ((float state.w -. state.vports), float (y + 18));
             GlDraw.polygon_mode `both `fill;
             Gl.disable `blend;
             GlDraw.color (1., 1., 1.);
@@ -1787,9 +1790,9 @@ let display () =
     GlMat.translate ~x ();
   );
   showrects ();
+  showsel margin;
   GlDraw.viewport (state.winw - conf.scrollw) 0 state.winw state.h;
   scrollindicator ();
-  showsel margin;
   GlDraw.viewport 0 0 state.winw state.h;
   showoutline state.outline;
   enttext ();
