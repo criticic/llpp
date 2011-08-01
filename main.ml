@@ -1648,7 +1648,7 @@ let drawplaceholder l =
   GlDraw.color (0.0, 0.0, 0.0);
   GlPix.raster_pos ~x ~y ();
   String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c))
-    ("Loading " ^ string_of_int l.pageno);
+    ("Loading " ^ string_of_int (l.pageno + 1));
 ;;
 
 let now () = Unix.gettimeofday ();;
