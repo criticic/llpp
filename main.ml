@@ -601,7 +601,7 @@ let reshape ~w ~h =
   GlClear.clear [`color];
 
   invalidate ();
-  wcmd "geometry" [`i state.w; `i h];
+  wcmd "geometry" [`i w; `i h];
 ;;
 
 let showtext c s =
