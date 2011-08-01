@@ -302,7 +302,7 @@ let calcheight () =
     | (n, _, h) :: rest ->
         let ips = calcips h in
         let fh =
-          if n = 0 && conf.presentation
+          if conf.presentation
           then
             fh+ips
           else
@@ -331,8 +331,13 @@ let getpageyh pageno =
         let ips = calcips h in
         if n >= pageno
         then
-          y + (pageno - pn) * (ph + pi), h
+          if conf.presentation && n = pageno
+          then
+            y + (pageno - pn) * (ph + pi) + pi, h
+          else
+            y + (pageno - pn) * (ph + pi), h
         else
+          let y = y + (if conf.presentation then pi else 0) in
           let y = y + (n - pn) * (ph + pi) in
           f n h ips y rest
 
@@ -345,48 +350,55 @@ let getpageyh pageno =
 let getpagey pageno = fst (getpageyh pageno);;
 
 let layout y sh =
-  let rec f ~pageno ~pdimno ~prev ~py ~vh ~pdims ~cacheleft ~accu =
-    let ((w, h, ips) as curr), rest, pdimno, p0a =
+  let rec f ~pageno ~pdimno ~prev ~py ~dy ~pdims ~cacheleft ~accu =
+    let ((w, h, ips) as curr), rest, pdimno, yinc =
       match pdims with
       | (pageno', w, h) :: rest when pageno' = pageno ->
           let ips = calcips h in
           (w, h, ips), rest, pdimno + 1,
-          if conf.presentation && pageno = 0 then ips else 0
+          if conf.presentation then ips else 0
       | _ ->
           prev, pdims, pdimno, 0
     in
-    if pageno = state.pagecount || cacheleft = 0 || vh >= sh
+    let dy = dy + yinc in
+    let py = py + yinc in
+    if pageno = state.pagecount || cacheleft = 0 || dy >= sh
     then
       accu
     else
-      let py = py + p0a in
-      let vy = y + vh in
-      if py + h <= vy
+      let vy = y + dy in
+      if py + h <= vy - yinc
       then
         let py = py + h + ips in
-        let vh = max 0 (py - y) in
+        let dy = max 0 (py - y) in
         f ~pageno:(pageno+1)
           ~pdimno
           ~prev:curr
           ~py
-          ~vh
+          ~dy
           ~pdims:rest
           ~cacheleft
           ~accu
       else
-        let top = vy - py in
-        let left = h - top in
-        let left = min (sh - vh) left in
+        let pagey = vy - py in
+        let pagevh = h - pagey in
+        let pagevh = min (sh - dy) pagevh in
+        let off =
+          if yinc > 0
+          then
+            py - vy
+          else
+            0
+        in
         let py = py + h + ips in
-        let p0y = if top < 0 then -top else 0 in
         let e =
           { pageno = pageno
           ; pagedimno = pdimno
           ; pagew = w
           ; pageh = h
-          ; pagedispy = vh+p0y
-          ; pagey = top+p0y
-          ; pagevh = left-p0y
+          ; pagedispy = dy + off
+          ; pagey = pagey + off
+          ; pagevh = pagevh - off
           }
         in
         let accu = e :: accu in
@@ -394,7 +406,7 @@ let layout y sh =
           ~pdimno
           ~prev:curr
           ~py
-          ~vh:(vh+left+ips)
+          ~dy:(dy+pagevh+ips)
           ~pdims:rest
           ~cacheleft:(cacheleft-1)
           ~accu
@@ -407,7 +419,7 @@ let layout y sh =
         ~pdimno:~-1
         ~prev:(0,0,0)
         ~py:0
-        ~vh:0
+        ~dy:0
         ~pdims:state.pages
         ~cacheleft:(cblen state.pagecache)
         ~accu:[]
