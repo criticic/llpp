@@ -26,6 +26,7 @@ o                       - switch to outline mode
 m                       - create named bookmark
 ~                       - create quick bookmark
 z                       - crop
+Z                       - zoom to height
 r                       - reload document
 P                       - "presentation" mode
 a                       - autoscroll
