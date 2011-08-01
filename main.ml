@@ -303,10 +303,8 @@ let calcheight () =
         let ips = calcips h in
         let fh =
           if conf.presentation
-          then
-            fh+ips
-          else
-            fh
+          then fh+ips
+          else fh
         in
         let fh = fh + ((n - pn) * (ph + pi)) in
         f n h ips fh rest
@@ -355,8 +353,8 @@ let layout y sh =
       match pdims with
       | (pageno', w, h) :: rest when pageno' = pageno ->
           let ips = calcips h in
-          (w, h, ips), rest, pdimno + 1,
-          if conf.presentation then ips else 0
+          let yinc = if conf.presentation then ips else 0 in
+          (w, h, ips), rest, pdimno + 1, yinc
       | _ ->
           prev, pdims, pdimno, 0
     in
@@ -383,12 +381,7 @@ let layout y sh =
         let pagey = vy - py in
         let pagevh = h - pagey in
         let pagevh = min (sh - dy) pagevh in
-        let off =
-          if yinc > 0
-          then
-            py - vy
-          else
-            0
+        let off = if yinc > 0 then py - vy else 0
         in
         let py = py + h + ips in
         let e =
@@ -994,7 +987,6 @@ let enterbookmarkmode () =
   let bookmarks = Array.of_list state.bookmarks in
   enterselector true bookmarks "Document has no bookmarks (yet)";
 ;;
-
 
 let quickbookmark ?title () =
   match state.layout with
