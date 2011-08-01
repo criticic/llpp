@@ -950,6 +950,7 @@ let enterselector allowdel outlines errmsg =
     showtext ' ' errmsg;
   )
   else (
+    state.text <- "";
     Glut.setCursor Glut.CURSOR_INHERIT;
     let pageno =
       match state.layout with
