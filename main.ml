@@ -1067,6 +1067,7 @@ let viewkeyboard ~key ~x ~y =
 
       | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
           conf.zoom <- min 10.0 (conf.zoom +. 0.1);
+          state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
           reshape state.winw state.h
 
       | '+' ->
@@ -1088,6 +1089,7 @@ let viewkeyboard ~key ~x ~y =
       | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
           conf.zoom <- max 0.1 (conf.zoom -. 0.1);
           if conf.zoom <= 1.0 then state.x <- 0;
+          state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
           reshape state.winw state.h;
 
       | '-' ->
@@ -1099,6 +1101,7 @@ let viewkeyboard ~key ~x ~y =
       | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           state.x <- 0;
           conf.zoom <- 1.0;
+          state.text <- "zoom is 100%";
           reshape state.winw state.h
 
       | '0' .. '9' ->
