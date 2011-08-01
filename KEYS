@@ -34,6 +34,7 @@ a                       - autoscroll
 Ctrl-g                  - interrupt search
 Ctrl-+/-                - zoom in/out
 Ctrl-0                  - fit page width and reset panning
+Ctrl-1                  - fit page height
 home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
 ctrl pageup/pagedown    - align top of the screen with first/last visible page

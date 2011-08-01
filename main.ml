@@ -1110,6 +1110,34 @@ let viewkeyboard ~key ~x ~y =
           state.text <- "zoom is 100%";
           reshape state.winw state.h
 
+      | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+          let n =
+            let rec find n maxh nformaxh = function
+              | (_, _, h) as pdim :: rest ->
+                  if h > maxh
+                  then find (n+1) h n rest
+                  else find (n+1) maxh nformaxh rest
+              | [] -> nformaxh
+            in
+            find 0 0 0 state.pdims
+          in
+
+          let rect = getpdimrect n in
+          let pw = rect.(1) -. rect.(0) in
+          let ph = rect.(3) -. rect.(2) in
+
+          let num = (float state.h *. pw) +. (ph *. float conf.scrollw) in
+          let den = ph *. float state.winw in
+          let zoom = num /. den in
+
+          if zoom < 1.0
+          then (
+            conf.zoom <- zoom;
+            state.x <- 0;
+            state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
+            reshape state.winw state.h;
+          )
+
       | '0' .. '9' ->
           let ondone s =
             let n =
