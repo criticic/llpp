@@ -1200,12 +1200,11 @@ static void highlightlinks (struct page *page, int yoff)
 static void upload2 (struct page *page, int slicenum, const char *cap)
 {
     int i;
-    int w, h;
+    int w;
     double start, end;
     struct slice *slice = &page->slices[slicenum];
 
     w = page->pixmap->w;
-    h = page->pixmap->h;
 
     ARSERT (w == slice->w);
     if (slice->texindex != -1
@@ -1279,6 +1278,8 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
         }
 
         end = now ();
+        (void) start;
+        (void) end;
         lprintf ("%s[%d] slice=%d(%d,%d) texid=%d %f sec\n",
                  subimage ? "sub" : "img",
                  page->pageno, slicenum,

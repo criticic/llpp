@@ -1118,7 +1118,7 @@ let viewkeyboard ~key ~x ~y =
       | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           let n =
             let rec find n maxh nformaxh = function
-              | (_, _, h) as pdim :: rest ->
+              | (_, _, h) :: rest ->
                   if h > maxh
                   then find (n+1) h n rest
                   else find (n+1) maxh nformaxh rest
