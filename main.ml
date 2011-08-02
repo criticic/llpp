@@ -111,6 +111,7 @@ type conf =
     ; mutable interpagespace : int
     ; mutable zoom : float
     ; mutable presentation : bool
+    ; mutable angle : int
     }
 ;;
 
@@ -129,7 +130,6 @@ type state =
     ; mutable w : int
     ; mutable h : int
     ; mutable winw : int
-    ; mutable rotate : int
     ; mutable x : int
     ; mutable y : int
     ; mutable ty : float
@@ -180,6 +180,7 @@ let conf =
   ; interpagespace = 2
   ; zoom = 1.0
   ; presentation = false
+  ; angle = 0
   }
 ;;
 
@@ -189,7 +190,6 @@ let state =
   ; w = 900
   ; h = 900
   ; winw = 900
-  ; rotate = 0
   ; y = 0
   ; x = 0
   ; ty = 0.0
@@ -436,12 +436,12 @@ let clamp incr =
 ;;
 
 let getopaque pageno =
-  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w, state.rotate))
+  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w, conf.angle))
   with Not_found -> None
 ;;
 
 let cache pageno opaque =
-  Hashtbl.replace state.pagemap (pageno + 1, state.w, state.rotate) opaque
+  Hashtbl.replace state.pagemap (pageno + 1, state.w, conf.angle) opaque
 ;;
 
 let validopaque opaque = String.length opaque > 0;;
@@ -513,8 +513,12 @@ let gotoy y =
     then (
       state.layout <- pages;
       state.y <- y;
+      Glut.setCursor Glut.CURSOR_INHERIT;
       Glut.postRedisplay ();
     )
+    else (
+      Glut.setCursor Glut.CURSOR_WAIT;
+    );
   )
   else (
     state.layout <- pages;
@@ -873,7 +877,7 @@ let textentry text key =
 ;;
 
 let rotate angle =
-  state.rotate <- angle;
+  conf.angle <- angle;
   invalidate ();
   wcmd "rotate" [`i angle];
 ;;
@@ -1296,7 +1300,7 @@ let viewkeyboard ~key ~x ~y =
           end
 
       | '<' | '>' ->
-          rotate (state.rotate + (if c = '>' then 30 else -30));
+          rotate (conf.angle + (if c = '>' then 30 else -30));
 
       | '[' | ']' ->
           state.colorscale <-
@@ -1924,7 +1928,7 @@ let mouse ~button ~bstate ~x ~y =
       | Unone | Utext _ ->
           if bstate = Glut.DOWN
           then (
-            if state.rotate mod 360 = 0
+            if conf.angle mod 360 = 0
             then (
               state.mstate <- Msel ((x, y), (x, y));
               Glut.postRedisplay ()
