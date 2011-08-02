@@ -513,11 +513,7 @@ let gotoy y =
     then (
       state.layout <- pages;
       state.y <- y;
-      Glut.setCursor Glut.CURSOR_INHERIT;
       Glut.postRedisplay ();
-    )
-    else (
-      Glut.setCursor Glut.CURSOR_WAIT;
     );
   )
   else (
