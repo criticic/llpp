@@ -5,5 +5,3 @@ This is llpp a graphical PDF viewer which aims to superficially
 resemble less(1)
 
 The rendering library used is MuPDF (http://www.mupdf.com/)
-
-
