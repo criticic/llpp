@@ -1894,8 +1894,8 @@ let mouse ~button ~bstate ~x ~y =
       else
         state.mstate <- Mnone
 
-  | Glut.LEFT_BUTTON when state.outline = None
-      && x > state.w ->
+  | Glut.LEFT_BUTTON
+      when state.outline = None && x > state.winw - conf.scrollw ->
       if bstate = Glut.DOWN
       then
         let position, sh = scrollph state.y in
