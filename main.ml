@@ -1771,7 +1771,7 @@ let showoutline = function
       Gl.enable `blend;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
       GlDraw.color (0., 0., 0.) ~alpha:0.85;
-      GlDraw.rect (0., 0.) (float state.w, float state.h);
+      GlDraw.rect (0., 0.) (float state.winw, float state.h);
       Gl.disable `blend;
 
       GlDraw.color (1., 1., 1.);
@@ -1794,7 +1794,7 @@ let showoutline = function
             GlFunc.blend_func `src_alpha `one_minus_src_alpha;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
             GlDraw.rect (0., float (y + 1))
-              (float (state.w - 1), float (y + 18));
+              (float (state.winw - 1), float (y + 18));
             GlDraw.polygon_mode `both `fill;
             Gl.disable `blend;
             GlDraw.color (1., 1., 1.);
