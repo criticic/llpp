@@ -121,6 +121,7 @@ struct slice {
 struct pagedim {
     int pageno;
     int rotate;
+    int left;
     fz_rect box;
     fz_bbox bbox;
     fz_matrix ctm, ctm1;
@@ -628,7 +629,7 @@ static void layout (void)
     int pindex;
     fz_matrix ctm;
     fz_rect box, box2;
-    double zoom, w;
+    double zoom, w, maxw;
     struct pagedim *p = state.pagedims;
 
     for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
@@ -642,20 +643,40 @@ static void layout (void)
         ctm = fz_concat (ctm, fz_rotate (p->rotate));
         box2 = fz_transform_rect (ctm, box);
         w = box2.x1 - box2.x0;
+        maxw = MAX (w, maxw);
+    }
 
-        zoom = (state.w / w);
+    p = state.pagedims;
+    for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
+        double scale;
+
+        box.x0 = MIN (p->box.x0, p->box.x1);
+        box.y0 = MIN (p->box.y0, p->box.y1);
+        box.x1 = MAX (p->box.x0, p->box.x1);
+        box.y1 = MAX (p->box.y0, p->box.y1);
+
+        ctm = fz_identity;
+        ctm = fz_concat (ctm, fz_translate (0, -box.y1));
+        ctm = fz_concat (ctm, fz_rotate (p->rotate));
+        box2 = fz_transform_rect (ctm, box);
+        w = box2.x1 - box2.x0;
+
+        scale = w / maxw;
+        zoom = (state.w / w) * scale;
         ctm = fz_identity;
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
         ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
         memcpy (&p->ctm1, &ctm, sizeof (ctm));
         ctm = fz_concat (ctm, fz_rotate (p->rotate));
         p->bbox = fz_round_rect (fz_transform_rect (ctm, box));
+        p->left = ((maxw - w) * zoom) / 2.0;
         memcpy (&p->ctm, &ctm, sizeof (ctm));
     }
 
     while (p-- != state.pagedims)  {
-        printd (state.sock, "l %d %d %d",
-                p->pageno, p->bbox.x1 - p->bbox.x0, p->bbox.y1 - p->bbox.y0);
+        printd (state.sock, "l %d %d %d %d",
+                p->pageno, p->bbox.x1 - p->bbox.x0, p->bbox.y1 - p->bbox.y0,
+                p->left);
     }
 }
 
@@ -864,7 +885,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 fz_bbox *sb, *eb;
                 fz_point p1, p2, p3, p4;
 
-                xoff = -pdim->bbox.x0;
+                xoff = pdim->left - pdim->bbox.x0;
                 yoff = -pdim->bbox.y0;
 
                 sb = &span->text[rm.rm_so].bbox;
@@ -1120,7 +1141,7 @@ static void showsel (struct page *page, int oy)
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
     glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
 
-    ox = -page->pixmap->x;
+    ox = -page->pixmap->x + page->pagedim.left;
     oy = -page->pixmap->y + oy;
     for (span = first.span; span; span = span->next) {
         int i, j, k;
@@ -1339,7 +1360,7 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
 
     h = MIN (state.h, h);
     while (h) {
-        int th;
+        int th, left;
         struct slice *slice = &page->slices[slicenum];
 
         ARSERT (slicenum < page->slicecount && "ml_draw wrong slicenum");
@@ -1347,19 +1368,20 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
         th = MIN (h, slice->h - py);
         upload2 (page, slicenum, "upload");
 
+        left = page->pagedim.left;
         glBegin (GL_QUADS);
         {
             glTexCoord2i (0, py);
-            glVertex2i (0, dispy);
+            glVertex2i (left, dispy);
 
             glTexCoord2i (w, py);
-            glVertex2i (w, dispy);
+            glVertex2i (left+w, dispy);
 
             glTexCoord2i (w, py+th);
-            glVertex2i (w, dispy + th);
+            glVertex2i (left+w, dispy + th);
 
             glTexCoord2i (0, py+th);
-            glVertex2i (0, dispy + th);
+            glVertex2i (left, dispy + th);
         }
         glEnd ();
 
@@ -1547,7 +1569,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     struct page *page;
     fz_text_span *span;
     struct mark first, last;
-    int i, x0, x1, y0, y1, oy;
+    int i, x0, x1, y0, y1, oy, left;
     char *s = String_val (ptr_v);
 
     if (trylock ("ml_seltext")) {
@@ -1563,6 +1585,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     x1 = Int_val (Field (rect_v, 2));
     y1 = Int_val (Field (rect_v, 3));
 
+    left = page->pagedim.left;
     if (0) {
         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
         glColor3ub (128, 128, 128);
@@ -1570,9 +1593,9 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    x0 += page->pixmap->x;
+    x0 += page->pixmap->x - left;
     y0 += page->pixmap->y - oy;
-    x1 += page->pixmap->x;
+    x1 += page->pixmap->x - left;
     y1 += page->pixmap->y - oy;
 
     first.span = NULL;
@@ -1583,13 +1606,23 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     for (span = page->text; span; span = span->next) {
         for (i = 0; i < span->len; ++i) {
             b = &span->text[i].bbox;
+            int selected = 0;
+
             if (x0 >= b->x0 && x0 <= b->x1 && y0 >= b->y0 && y0 <= b->y1) {
                 first.i = i;
                 first.span = span;
+                selected = 1;
             }
             if (x1 >= b->x0 && x1 <= b->x1 && y1 >= b->y0 && y1 <= b->y1) {
                 last.i = i;
                 last.span = span;
+                selected = 1;
+            }
+            if (0 && selected) {
+                glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
+                glColor3ub (128, 128, 128);
+                glRecti (b->x0+left, b->y0, b->x1+left, b->y1);
+                glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
             }
         }
     }

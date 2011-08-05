@@ -91,6 +91,7 @@ type layout =
     ; pagedispy : int
     ; pagey : int
     ; pagevh : int
+    ; pagex : int
     }
 ;;
 
@@ -137,7 +138,7 @@ type state =
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : ((int * int * int), string) Hashtbl.t
-    ; mutable pdims : (int * int * int) list
+    ; mutable pdims : (int * int * int * int) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
     ; mutable rendering : bool
@@ -308,7 +309,7 @@ let calcips h =
 let calcheight () =
   let rec f pn ph pi fh l =
     match l with
-    | (n, _, h) :: rest ->
+    | (n, _, h, _) :: rest ->
         let ips = calcips h in
         let fh =
           if conf.presentation
@@ -334,7 +335,7 @@ let calcheight () =
 let getpageyh pageno =
   let rec f pn ph pi y l =
     match l with
-    | (n, _, h) :: rest ->
+    | (n, _, h, _) :: rest ->
         let ips = calcips h in
         if n >= pageno
         then
@@ -358,12 +359,12 @@ let getpagey pageno = fst (getpageyh pageno);;
 
 let layout y sh =
   let rec f ~pageno ~pdimno ~prev ~py ~dy ~pdims ~cacheleft ~accu =
-    let ((w, h, ips) as curr), rest, pdimno, yinc =
+    let ((w, h, ips, x) as curr), rest, pdimno, yinc =
       match pdims with
-      | (pageno', w, h) :: rest when pageno' = pageno ->
+      | (pageno', w, h, x) :: rest when pageno' = pageno ->
           let ips = calcips h in
           let yinc = if conf.presentation then ips else 0 in
-          (w, h, ips), rest, pdimno + 1, yinc
+          (w, h, ips, x), rest, pdimno + 1, yinc
       | _ ->
           prev, pdims, pdimno, 0
     in
@@ -401,6 +402,7 @@ let layout y sh =
           ; pagedispy = dy + off
           ; pagey = pagey + off
           ; pagevh = pagevh - off
+          ; pagex = x
           }
         in
         let accu = e :: accu in
@@ -419,7 +421,7 @@ let layout y sh =
       f
         ~pageno:0
         ~pdimno:~-1
-        ~prev:(0,0,0)
+        ~prev:(0,0,0,0)
         ~py:0
         ~dy:0
         ~pdims:state.pdims
@@ -749,8 +751,8 @@ let act cmd =
       )
 
   | 'l' ->
-      let (n, w, h) as pdim =
-        Scanf.sscanf cmd "l %d %d %d" (fun n w h -> n, w, h)
+      let (n, w, h, x) as pdim =
+        Scanf.sscanf cmd "l %d %d %d %d" (fun n w h x -> n, w, h, x)
       in
       state.pdims <- pdim :: state.pdims
 
@@ -1127,7 +1129,7 @@ let viewkeyboard ~key ~x ~y =
       | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           let n =
             let rec find n maxh nformaxh = function
-              | (_, _, h) :: rest ->
+              | (_, _, h, _) :: rest ->
                   if h > maxh
                   then find (n+1) h n rest
                   else find (n+1) maxh nformaxh rest
@@ -1659,10 +1661,10 @@ let special ~key ~x ~y =
 let drawplaceholder l =
   GlDraw.color (scalecolor 1.0);
   GlDraw.rect
-    (0.0, float l.pagedispy)
-    (float l.pagew, float (l.pagedispy + l.pagevh))
+    (float l.pagex, float l.pagedispy)
+    (float (l.pagew + l.pagex), float (l.pagedispy + l.pagevh))
   ;
-  let x = 0.0
+  let x = float l.pagex
   and y = float (l.pagedispy + 13) in
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (0.0, 0.0, 0.0);
@@ -1868,6 +1870,7 @@ let getunder x y =
             if y > 0
             then
               let y = l.pagey + y in
+              let x = x - l.pagex in
               match whatsunder opaque x y with
               | Unone -> f rest
               | under -> under
