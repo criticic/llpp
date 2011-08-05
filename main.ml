@@ -2411,15 +2411,17 @@ struct
       Buffer.add_string bb "</llppconfig>";
     in
     load1 f;
-    try
-      let tmp = path ^ ".tmp" in
-      let oc = open_out_bin tmp in
-      Buffer.output_buffer oc bb;
-      close_out oc;
-      Sys.rename tmp path;
-    with exn ->
-      prerr_endline
-        ("error while saving configuration: " ^ Printexc.to_string exn)
+    if Buffer.length bb > 0
+    then
+      try
+        let tmp = path ^ ".tmp" in
+        let oc = open_out_bin tmp in
+        Buffer.output_buffer oc bb;
+        close_out oc;
+        Sys.rename tmp path;
+      with exn ->
+        prerr_endline
+          ("error while saving configuration: " ^ Printexc.to_string exn)
   ;;
 end;;
 
