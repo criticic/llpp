@@ -1177,7 +1177,7 @@ let viewkeyboard ~key ~x ~y =
                         pageentry, ondone))
 
       | 'b' ->
-          conf.scrollw <- if conf.scrollw > 0 then 0 else 7;
+          conf.scrollw <- if conf.scrollw > 0 then 0 else defconf.scrollw;
           reshape conf.winw conf.winh;
 
       | 'l' ->
