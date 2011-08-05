@@ -122,7 +122,7 @@ type outline = string * int * int * float;;
 type outlines =
     | Oarray of outline array
     | Olist of outline list
-    | Onarrow of outline array * outline array
+    | Onarrow of string * outline array * outline array
 ;;
 
 type rect = (float * float * float * float * float * float * float * float);;
@@ -962,13 +962,13 @@ let optentry text key =
 
 let maxoutlinerows () = (conf.winh - 31) / 16;;
 
-let enterselector allowdel outlines errmsg =
+let enterselector  allowdel outlines errmsg msg =
   if Array.length outlines = 0
   then (
     showtext ' ' errmsg;
   )
   else (
-    state.text <- "";
+    state.text <- msg;
     Glut.setCursor Glut.CURSOR_INHERIT;
     let pageno =
       match state.layout with
@@ -993,21 +993,22 @@ let enterselector allowdel outlines errmsg =
 ;;
 
 let enteroutlinemode () =
-  let outlines =
+  let outlines, msg =
     match state.outlines with
-    | Oarray a -> a
+    | Oarray a -> a, ""
     | Olist l ->
         let a = Array.of_list (List.rev l) in
         state.outlines <- Oarray a;
-        a
-    | Onarrow (a, b) -> a
+        a, ""
+    | Onarrow (pat, a, b) ->
+        a, "Outline was narrowed to `" ^ pat ^ "' (Ctrl-u to restore)"
   in
-  enterselector false outlines "Document has no outline";
+  enterselector false outlines "Document has no outline" msg;
 ;;
 
 let enterbookmarkmode () =
   let bookmarks = Array.of_list state.bookmarks in
-  enterselector true bookmarks "Document has no bookmarks (yet)";
+  enterselector true bookmarks "Document has no bookmarks (yet)" "";
 ;;
 
 let quickbookmark ?title () =
@@ -1489,7 +1490,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       state.outline <- Some (allowdel, active, first, outlines, pattern);
       Glut.postRedisplay ()
 
-  | 14 when not allowdel ->
+  | 14 when not allowdel ->             (* ctrl-n *)
       let optoutlines = narrow outlines qsearch in
       begin match optoutlines with
       | None -> state.text <- "can't narrow"
@@ -1497,12 +1498,14 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
           state.outline <- Some (allowdel, 0, 0, outlines, qsearch);
           match state.outlines with
           | Olist l -> ()
-          | Oarray a -> state.outlines <- Onarrow (outlines, a)
-          | Onarrow (a, b) -> state.outlines <- Onarrow (outlines, b)
+          | Oarray a ->
+              state.outlines <- Onarrow (qsearch, outlines, a)
+          | Onarrow (pat, a, b) ->
+              state.outlines <- Onarrow (qsearch, outlines, b)
       end;
       Glut.postRedisplay ()
 
-  | 21 when not allowdel ->
+  | 21 when not allowdel ->             (* ctrl-u *)
       let outline =
         match state.outlines with
         | Oarray a -> a
@@ -1510,8 +1513,9 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             let a = Array.of_list (List.rev l) in
             state.outlines <- Oarray a;
             a
-        | Onarrow (a, b) ->
+        | Onarrow (pat, a, b) ->
             state.outlines <- Oarray b;
+            state.text <- "";
             b
       in
       state.outline <- Some (allowdel, 0, 0, outline, qsearch);
