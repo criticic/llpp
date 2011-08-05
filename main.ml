@@ -2102,7 +2102,7 @@ struct
     dst.angle          <- src.angle;
     dst.winw           <- src.winw;
     dst.winh           <- src.winh;
-    dst.savebmarks <- src.savebmarks;
+    dst.savebmarks     <- src.savebmarks;
   ;;
 
   let get s =
@@ -2145,13 +2145,24 @@ struct
           let y =
             try
               float_of_string (List.assoc "rely" attrs)
-            with _ -> 0.0
+            with
+            | Not_found -> 0.0
+            | exn ->
+                dolog "error while accesing rely: %s" (Printexc.to_string exn);
+                0.0
+          in
+          let x =
+            try
+              int_of_string (List.assoc "pan" attrs)
+            with
+            | Not_found -> 0
+            | exn ->
+                dolog "error while accesing rely: %s" (Printexc.to_string exn);
+                0
           in
           if closed
-          then (Hashtbl.add h path (c, [], y); v)
-          else (
-            { v with f = doc path y c [] }
-          )
+          then (Hashtbl.add h path (c, [], x, y); v)
+          else { v with f = doc path x y c [] }
 
       | Vopen (tag, _, closed) ->
           error "unexpected subelement in llppconfig" s spos
@@ -2159,23 +2170,23 @@ struct
       | Vclose "llppconfig" ->  { v with f = toplevel }
       | Vclose tag -> error "unexpected close in llppconfig" s spos
 
-    and doc path y c bookmarks v t spos epos =
+    and doc path x y c bookmarks v t spos epos =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in doc" s spos
       | Vopen ("bookmarks", attrs, closed) ->
-          { v with f = pbookmarks path y c [] }
+          { v with f = pbookmarks path x y c [] }
 
       | Vopen (tag, _, _) ->
           error "unexpected subelement in doc" s spos
 
       | Vclose "doc" ->
-          Hashtbl.add h path (c, bookmarks, y);
+          Hashtbl.add h path (c, bookmarks, x, y);
           { v with f = llppconfig }
 
       | Vclose tag -> error "unexpected close in doc" s spos
 
-    and pbookmarks path y c bookmarks v t spos epos =
+    and pbookmarks path x y c bookmarks v t spos epos =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in bookmarks" s spos
@@ -2199,7 +2210,7 @@ struct
           in
           let bookmarks = (title, 0, page, rely) :: bookmarks in
           if closed
-          then { v with f = pbookmarks path y c bookmarks }
+          then { v with f = pbookmarks path x y c bookmarks }
           else
             let f () = v in
             { v with f = skip "item" f }
@@ -2208,7 +2219,7 @@ struct
           error "unexpected subelement in bookmarks" s spos
 
       | Vclose "bookmarks" ->
-          { v with f = doc path y c bookmarks }
+          { v with f = doc path x y c bookmarks }
 
       | Vclose tag -> error "unexpected close in bookmarks" s spos
 
@@ -2288,14 +2299,15 @@ struct
 
   let load () =
     let f (h, dc) =
-      let pc, pb, py =
+      let pc, pb, px, py =
         try
           Hashtbl.find h state.path
-        with Not_found -> dc, [], 0.0
+        with Not_found -> dc, [], 0, 0.0
       in
       setconf defconf dc;
       setconf conf pc;
       state.bookmarks <- pb;
+      state.x <- px;
       cbput state.hists.nav py;
       cbrfollowlen state.hists.nav;
     in
@@ -2340,14 +2352,19 @@ struct
       add_attrs bb true dc dc;
       Buffer.add_string bb "/>\n";
 
-      let adddoc path y c bookmarks =
+      let adddoc path x y c bookmarks =
         if bookmarks == [] && c = dc && y = 0.0
         then ()
         else (
           Printf.bprintf bb "<doc path='%s'"
             (enent path 0 (String.length path));
+
           if y <> 0.0
           then Printf.bprintf bb " rely='%f'" y;
+
+          if x != 0
+          then Printf.bprintf bb " pan='%d'" x;
+
           add_attrs bb false dc c;
 
           begin match bookmarks with
@@ -2366,13 +2383,13 @@ struct
         )
       in
 
-      adddoc state.path (yratio state.y) conf
+      adddoc state.path state.x (yratio state.y) conf
         (if conf.savebmarks then state.bookmarks else []);
 
-      Hashtbl.iter (fun path (c, bookmarks, y) ->
+      Hashtbl.iter (fun path (c, bookmarks, x, y) ->
         if path <> state.path
         then
-          adddoc path y c bookmarks
+          adddoc path x y c bookmarks
       ) h;
       Buffer.add_string bb "</llppconfig>";
     in
