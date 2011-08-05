@@ -1020,8 +1020,8 @@ let quickbookmark ?title () =
         | None ->
             let sec = Unix.gettimeofday () in
             let tm = Unix.localtime sec in
-            Printf.sprintf "Quick %d visited (%d/%d/%d %d:%d)"
-              l.pageno
+            Printf.sprintf "Quick (page %d) visited (%d/%d/%d %d:%d)"
+              (l.pageno+1)
               tm.Unix.tm_mday
               tm.Unix.tm_mon
               (tm.Unix.tm_year + 1900)
