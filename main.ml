@@ -2283,7 +2283,7 @@ struct
 
       | None -> ()
     else
-      ()
+      f (Hashtbl.create 0, defconf)
   ;;
 
   let load () =
