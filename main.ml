@@ -2325,8 +2325,16 @@ struct
       if always || a <> b
       then Printf.bprintf bb "\n    %s='%f'" s (a*.100.)
     in
-    oi "width" c.winw dc.winw;
-    oi "height" c.winh dc.winh;
+    let w, h =
+      if always
+      then dc.winw, dc.winh
+      else
+        match state.fullscreen with
+        | Some wh -> wh
+        | None -> c.winw, c.winh
+    in
+    oi "width" w dc.winw;
+    oi "height" h dc.winh;
     oi "scroll-bar-width" c.scrollw dc.scrollw;
     oi "scroll-handle-height" c.scrollh dc.scrollh;
     ob "case-insensitive-search" c.icase dc.icase;
