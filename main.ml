@@ -2310,7 +2310,7 @@ struct
       if always || a != b
       then Printf.bprintf bb "\n    %s='%d'" s a
     and oz s a b =
-      if always || a != b
+      if always || a <> b
       then Printf.bprintf bb "\n    %s='%f'" s (a*.100.)
     in
     oi "width" c.winw dc.winw;
