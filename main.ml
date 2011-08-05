@@ -1491,18 +1491,21 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       Glut.postRedisplay ()
 
   | 14 when not allowdel ->             (* ctrl-n *)
-      let optoutlines = narrow outlines qsearch in
-      begin match optoutlines with
-      | None -> state.text <- "can't narrow"
-      | Some outlines ->
-          state.outline <- Some (allowdel, 0, 0, outlines, qsearch);
-          match state.outlines with
-          | Olist l -> ()
-          | Oarray a ->
-              state.outlines <- Onarrow (qsearch, outlines, a)
-          | Onarrow (pat, a, b) ->
-              state.outlines <- Onarrow (qsearch, outlines, b)
-      end;
+      if String.length qsearch > 0
+      then (
+        let optoutlines = narrow outlines qsearch in
+        begin match optoutlines with
+        | None -> state.text <- "can't narrow"
+        | Some outlines ->
+            state.outline <- Some (allowdel, 0, 0, outlines, qsearch);
+            match state.outlines with
+            | Olist l -> ()
+            | Oarray a ->
+                state.outlines <- Onarrow (qsearch, outlines, a)
+            | Onarrow (pat, a, b) ->
+                state.outlines <- Onarrow (qsearch, outlines, b)
+        end;
+      );
       Glut.postRedisplay ()
 
   | 21 when not allowdel ->             (* ctrl-u *)
