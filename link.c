@@ -958,10 +958,22 @@ mainloop (void *unused)
             fz_obj *obj;
             size_t filenamelen;
             char *password;
+            char *anglestr;
             char *filename = p + 5;
 
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
+            anglestr = password + strlen (password) + 1;
+
+            if (*anglestr) {
+                int angle;
+                int ret = sscanf (anglestr, "%d", &angle);
+                if (ret != 1) {
+                    errx (1, "malformed angle `%.*s' ret=%d",
+                          strlen (anglestr), anglestr, ret);
+                }
+                state.rotate = angle;
+            }
 
             openxref (filename, password);
             initpdims ();
@@ -977,6 +989,7 @@ mainloop (void *unused)
                 }
                 fz_free (s);
             }
+
             state.needoutline = 1;
         }
         else if (!strncmp ("free", p, 4)) {

@@ -2472,7 +2472,9 @@ let () =
   state.csock <- csock;
   state.ssock <- ssock;
   state.text <- "Opening " ^ name;
-  writecmd state.csock ("open " ^ state.path ^ "\000" ^ state.password ^ "\000");
+  writecmd state.csock
+    ("open " ^ state.path ^ "\000" ^ state.password ^ "\000"
+      ^ string_of_int conf.angle ^ "\000");
 
   at_exit State.save;
 
