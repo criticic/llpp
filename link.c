@@ -631,7 +631,6 @@ static void layout (void)
     double zoom, w;
     struct pagedim *p = state.pagedims;
 
-    pindex = 0;
     for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
         box.x0 = MIN (p->box.x0, p->box.x1);
         box.y0 = MIN (p->box.y0, p->box.y1);
