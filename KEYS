@@ -53,6 +53,7 @@ tunables
 -R<number>              - rotate
 -p                      - toggle preloading
 -v                      - toggle verbosity
+-P                      - toggle persistent bookmarks
 -h                      - toggle maxfit
 -f                      - toggle "what's under cursor" identification
                           (only font name currently)

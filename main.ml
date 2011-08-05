@@ -114,6 +114,7 @@ type conf =
     ; mutable angle : int
     ; mutable winw : int
     ; mutable winh : int
+    ; mutable savebmarks : bool
     }
 ;;
 
@@ -183,6 +184,7 @@ let conf =
   ; angle = 0
   ; winw = 900
   ; winh = 900
+  ; savebmarks = true
   }
 ;;
 
@@ -935,6 +937,10 @@ let optentry text key =
   | 'f' ->
       conf.underinfo <- not conf.underinfo;
       TEdone ("underinfo " ^ btos conf.underinfo)
+
+  | 'P' ->
+      conf.savebmarks <- not conf.savebmarks;
+      TEdone ("persistent bookmarks " ^ btos conf.savebmarks)
 
   | 'S' ->
       let ondone s =
@@ -2049,6 +2055,7 @@ struct
         | "rotation-angle" -> { c with angle = int_of_string v }
         | "width" -> { c with winw = int_of_string v }
         | "height" -> { c with winh = int_of_string v }
+        | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -2095,6 +2102,7 @@ struct
     dst.angle          <- src.angle;
     dst.winw           <- src.winw;
     dst.winh           <- src.winh;
+    dst.savebmarks <- src.savebmarks;
   ;;
 
   let get s =
@@ -2322,6 +2330,7 @@ struct
     oz "zoom" c.zoom dc.zoom;
     ob "presentation" c.presentation dc.presentation;
     oi "rotation-angle" c.angle dc.angle;
+    ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
   ;;
 
   let save () =
@@ -2357,7 +2366,9 @@ struct
         )
       in
 
-      adddoc state.path (yratio state.y) conf state.bookmarks;
+      adddoc state.path (yratio state.y) conf
+        (if conf.savebmarks then state.bookmarks else []);
+
       Hashtbl.iter (fun path (c, bookmarks, y) ->
         if path <> state.path
         then
