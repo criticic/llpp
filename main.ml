@@ -2434,18 +2434,23 @@ let () =
     (fun s -> state.path <- s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\noptions:")
   ;
-  let name =
+  let path =
     if String.length state.path = 0
     then (prerr_endline "filename missing"; exit 1)
-    else state.path
+    else (
+      if Filename.is_relative state.path
+      then Filename.concat (Sys.getcwd ()) state.path
+      else state.path
+    )
   in
+  state.path <- path;
 
   State.load ();
 
   let _ = Glut.init Sys.argv in
   let () = Glut.initDisplayMode ~depth:false ~double_buffer:true () in
   let () = Glut.initWindowSize conf.winw conf.winh in
-  let _ = Glut.createWindow ("llpp " ^ Filename.basename name) in
+  let _ = Glut.createWindow ("llpp " ^ Filename.basename path) in
 
   let csock, ssock =
     if Sys.os_type = "Unix"
@@ -2483,9 +2488,9 @@ let () =
   init ssock;
   state.csock <- csock;
   state.ssock <- ssock;
-  state.text <- "Opening " ^ name;
+  state.text <- "Opening " ^ path;
   writecmd state.csock
-    ("open " ^ state.path ^ "\000" ^ state.password ^ "\000"
+    ("open " ^ path ^ "\000" ^ state.password ^ "\000"
       ^ string_of_int conf.angle ^ "\000");
 
   at_exit State.save;
