@@ -2184,13 +2184,13 @@ struct
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in doc" s spos
       | Vopen ("bookmarks", attrs, closed) ->
-          { v with f = pbookmarks path x y c [] }
+          { v with f = pbookmarks path x y c bookmarks }
 
       | Vopen (tag, _, _) ->
           error "unexpected subelement in doc" s spos
 
       | Vclose "doc" ->
-          Hashtbl.add h path (c, bookmarks, x, y);
+          Hashtbl.add h path (c, List.rev bookmarks, x, y);
           { v with f = llppconfig }
 
       | Vclose tag -> error "unexpected close in doc" s spos
