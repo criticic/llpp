@@ -59,6 +59,7 @@ srcpath=$(dirname $0)
 if test "$1" = "opt"; then
     cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
     ocamlopt -c -o link.o -ccopt -O $srcpath/link.c
+    ocamlopt -c -o parser.cmo $srcpath/parser.ml
     ocamlopt -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
     ocamlopt -o llpp \
@@ -66,10 +67,12 @@ if test "$1" = "opt"; then
     str.cmxa unix.cmxa lablgl.cmxa lablglut.cmxa \
     link.o \
     -cclib "$cclib" \
+    parser.cmx \
     main.cmx
 else
     cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
     ocamlc -c -o link.o -ccopt -O $srcpath/link.c
+    ocamlc -c -o parser.cmo $srcpath/parser.ml
     ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
     ocamlc -custom -o llpp \
@@ -77,5 +80,6 @@ else
         str.cma unix.cma lablgl.cma lablglut.cma \
         link.o \
         -cclib "$cclib" \
+        parser.cmo \
         main.cmo
 fi

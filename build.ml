@@ -95,42 +95,12 @@ let () =
       (State.dep_sort cmos)
       StrSet.empty
   in
-  let main =
-    cmopp ~flags:"-g -w y -I +lablGL -thread" ~dirname:srcdir "main";
-    "main.cmo"
+  let mkcmo name =
+    cmopp ~flags:"-g -w y -I +lablGL -thread" ~dirname:srcdir name;
+    (name ^ ".cmo")
   in
-  prog "llpp" [so; main];
-;;
-
-let () =
-  let objs =
-    c cc "-c -Wall -Werror -Wextra -g" srcdir "test";
-    ["test.o"]
-  in
-  let objsgl =
-    c cc "-c -Wall -Werror -Wextra -g" srcdir "testgl";
-    ["testgl.o"]
-  in
-  let prog name objs =
-    gcc
-      ~cc
-      ~doscan:false
-      ~flags1:""
-      ~flags2:"-lX11 -lXext"
-      ~output:name
-      objs
-  in
-  let proggl name objs =
-    gcc
-      ~cc
-      ~doscan:false
-      ~flags1:""
-      ~flags2:"-lX11 -lXext -lGL"
-      ~output:name
-      objs
-  in
-  prog "test" objs;
-  proggl "testgl" objsgl;
+  let cmos = so :: List.map mkcmo ["parser"; "main"] in
+  prog "llpp" cmos;
 ;;
 
 let () =

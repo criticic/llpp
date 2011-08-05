@@ -24,7 +24,7 @@ fi
 
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
 mupdf=/home/malc/x/rcs/git/mupdf
-cc=gcc
+cc=gcc-4.6.0
 ccopt="-std=c89 -Wall -Werror -I$mupdf/fitz -I$mupdf/pdf"
 ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"

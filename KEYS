@@ -4,7 +4,7 @@ j/k                     - ..............
 mouse buttons 3/4       - ..............
 primary mouse button[1] - click on link or select text[2]
 escape/q                - quit
-backspace               - go back after jumping (clicking link and suchlike)
+backspace               - go back after jumping (clicking link and suchlike) [3]
 u                       - dehighlight
 /,?                     - enter text to search for (/ - forward, ? - backward)
 +                       - set page bias
@@ -54,7 +54,7 @@ tunables
 -p                      - toggle preloading
 -v                      - toggle verbosity
 -h                      - toggle maxfit
--f                      - toggle whats under cursor identification
+-f                      - toggle "what's under cursor" identification
                           (only font name currently)
 
 outline mode
@@ -80,3 +80,6 @@ up/down arrow           - previous/next entered text
 [2] text selection requires xsel
     http://www.vergenet.net/~conrad/software/xsel/
     On OSX and Windows selected text will be dumped to the terminal
+
+[3] if the document was previously visited initial backspace will
+    jump to the last visited place

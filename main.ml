@@ -112,6 +112,8 @@ type conf =
     ; mutable zoom : float
     ; mutable presentation : bool
     ; mutable angle : int
+    ; mutable winw : int
+    ; mutable winh : int
     }
 ;;
 
@@ -128,8 +130,6 @@ type state =
     { mutable csock : Unix.file_descr
     ; mutable ssock : Unix.file_descr
     ; mutable w : int
-    ; mutable h : int
-    ; mutable winw : int
     ; mutable x : int
     ; mutable y : int
     ; mutable ty : float
@@ -181,15 +181,17 @@ let conf =
   ; zoom = 1.0
   ; presentation = false
   ; angle = 0
+  ; winw = 900
+  ; winh = 900
   }
 ;;
+
+let defconf = { conf with angle=conf.angle };;
 
 let state =
   { csock = Unix.stdin
   ; ssock = Unix.stdin
-  ; w = 900
-  ; h = 900
-  ; winw = 900
+  ; w = 0
   ; y = 0
   ; x = 0
   ; ty = 0.0
@@ -295,7 +297,7 @@ let wcmd s l =
 let calcips h =
   if conf.presentation
   then
-    let d = state.h - h in
+    let d = conf.winh - h in
     max 0 ((d + 1) / 2)
   else
     conf.interpagespace
@@ -431,7 +433,7 @@ let layout y sh =
 let clamp incr =
   let y = state.y + incr in
   let y = max 0 y in
-  let y = min y (state.maxy - (if conf.maxhfit then state.h else 0)) in
+  let y = min y (state.maxy - (if conf.maxhfit then conf.winh else 0)) in
   y;
 ;;
 
@@ -493,8 +495,8 @@ let preload () =
       conf.interpagespace <- 0;
       state.maxy <- calcheight ();
       let y = truncate (float state.maxy *. rely) in
-      let y = if y < state.h then 0 else y - state.h in
-      let pages = layout y (state.h*3) in
+      let y = if y < conf.winh then 0 else y - conf.winh in
+      let pages = layout y (conf.winh*3) in
       List.iter render pages;
       conf.presentation <- presentation;
       conf.interpagespace <- interpagespace;
@@ -504,7 +506,7 @@ let preload () =
 let gotoy y =
   let y = max 0 y in
   let y = min state.maxy y in
-  let pages = layout y state.h in
+  let pages = layout y conf.winh in
   let ready = loadlayout pages in
   state.ty <- yratio y;
   if conf.showall
@@ -584,7 +586,7 @@ let pagematrix () =
   GlMat.load_identity ();
   GlMat.rotate ~x:1.0 ~angle:180.0 ();
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
-  GlMat.scale3 (2.0 /. float state.w, 2.0 /. float state.h, 1.0);
+  GlMat.scale3 (2.0 /. float state.w, 2.0 /. float conf.winh, 1.0);
 ;;
 
 let winmatrix () =
@@ -592,14 +594,14 @@ let winmatrix () =
   GlMat.load_identity ();
   GlMat.rotate ~x:1.0 ~angle:180.0 ();
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
-  GlMat.scale3 (2.0 /. float state.winw, 2.0 /. float state.h, 1.0);
+  GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
 ;;
 
 let reshape ~w ~h =
-  state.winw <- w;
+  conf.winw <- w;
   let w = truncate (float w *. conf.zoom) - conf.scrollw in
   state.w <- w;
-  state.h <- h;
+  conf.winh <- h;
   GlMat.mode `modelview;
   GlMat.load_identity ();
   GlClear.color (scalecolor 1.0);
@@ -612,12 +614,12 @@ let reshape ~w ~h =
 let showtext c s =
   GlDraw.color (0.0, 0.0, 0.0);
   GlDraw.rect
-    (0.0, float (state.h - 18))
-    (float (state.winw - conf.scrollw - 1), float state.h)
+    (0.0, float (conf.winh - 18))
+    (float (conf.winw - conf.scrollw - 1), float conf.winh)
   ;
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
-  GlPix.raster_pos ~x:0.0 ~y:(float (state.h - 5)) ();
+  GlPix.raster_pos ~x:0.0 ~y:(float (conf.winh - 5)) ();
   Glut.bitmapCharacter ~font ~c:(Char.code c);
   String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s;
 ;;
@@ -919,7 +921,7 @@ let optentry text key =
 
   | 'h' ->
       conf.maxhfit <- not conf.maxhfit;
-      state.maxy <- state.maxy + (if conf.maxhfit then -state.h else state.h);
+      state.maxy <- state.maxy + (if conf.maxhfit then -conf.winh else conf.winh);
       TEdone ("maxhfit " ^ (btos conf.maxhfit))
 
   | 'c' ->
@@ -952,7 +954,7 @@ let optentry text key =
       TEstop
 ;;
 
-let maxoutlinerows () = (state.h - 31) / 16;;
+let maxoutlinerows () = (conf.winh - 31) / 16;;
 
 let enterselector allowdel outlines errmsg =
   if Array.length outlines = 0
@@ -1037,7 +1039,7 @@ let opendoc path password =
 
   writecmd state.csock ("open " ^ path ^ "\000" ^ password ^ "\000");
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
-  wcmd "geometry" [`i state.w; `i state.h];
+  wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -1079,7 +1081,7 @@ let viewkeyboard ~key ~x ~y =
       | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
           conf.zoom <- min 2.2 (conf.zoom +. 0.1);
           state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-          reshape state.winw state.h
+          reshape conf.winw conf.winh
 
       | '+' ->
           let ondone s =
@@ -1101,7 +1103,7 @@ let viewkeyboard ~key ~x ~y =
           conf.zoom <- max 0.1 (conf.zoom -. 0.1);
           if conf.zoom <= 1.0 then state.x <- 0;
           state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-          reshape state.winw state.h;
+          reshape conf.winw conf.winh;
 
       | '-' ->
           let ondone msg =
@@ -1113,7 +1115,7 @@ let viewkeyboard ~key ~x ~y =
           state.x <- 0;
           conf.zoom <- 1.0;
           state.text <- "zoom is 100%";
-          reshape state.winw state.h
+          reshape conf.winw conf.winh
 
       | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           let n =
@@ -1131,8 +1133,8 @@ let viewkeyboard ~key ~x ~y =
           let pw = rect.(1) -. rect.(0) in
           let ph = rect.(3) -. rect.(2) in
 
-          let num = (float state.h *. pw) +. (ph *. float conf.scrollw) in
-          let den = ph *. float state.winw in
+          let num = (float conf.winh *. pw) +. (ph *. float conf.scrollw) in
+          let den = ph *. float conf.winw in
           let zoom = num /. den in
 
           if zoom < 1.0
@@ -1140,7 +1142,7 @@ let viewkeyboard ~key ~x ~y =
             conf.zoom <- zoom;
             state.x <- 0;
             state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-            reshape state.winw state.h;
+            reshape conf.winw conf.winh;
           )
 
       | '0' .. '9' ->
@@ -1170,7 +1172,7 @@ let viewkeyboard ~key ~x ~y =
 
       | 'b' ->
           conf.scrollw <- if conf.scrollw > 0 then 0 else 7;
-          reshape state.winw state.h;
+          reshape conf.winw conf.winh;
 
       | 'l' ->
           conf.hlinks <- not conf.hlinks;
@@ -1183,13 +1185,13 @@ let viewkeyboard ~key ~x ~y =
       | 'P' ->
           conf.presentation <- not conf.presentation;
           showtext ' ' ("presentation mode " ^
-                       if conf.presentation then "on" else "off");
+                           if conf.presentation then "on" else "off");
           represent ()
 
       | 'f' ->
           begin match state.fullscreen with
           | None ->
-              state.fullscreen <- Some (state.winw, state.h);
+              state.fullscreen <- Some (conf.winw, conf.winh);
               Glut.fullScreen ()
           | Some (w, h) ->
               state.fullscreen <- None;
@@ -1234,7 +1236,7 @@ let viewkeyboard ~key ~x ~y =
           in
           let fn, ln = List.fold_left f (-1, -1) state.layout in
           let s =
-            let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
+            let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
             let percent =
               if maxy <= 0
               then 100.
@@ -1567,7 +1569,7 @@ let special ~key ~x ~y =
                   | [] -> state.y
                   | l :: _ -> state.y - l.pagey
                 else
-                  clamp (-state.h)
+                  clamp (-conf.winh)
             | Glut.KEY_PAGE_DOWN ->
                 if Glut.getModifiers () land Glut.active_ctrl != 0
                 then
@@ -1575,11 +1577,11 @@ let special ~key ~x ~y =
                   | [] -> state.y
                   | l :: _ -> getpagey l.pageno
                 else
-                  clamp state.h
+                  clamp conf.winh
             | Glut.KEY_HOME -> addnav (); 0
             | Glut.KEY_END ->
                 addnav ();
-                state.maxy - (if conf.maxhfit then state.h else 0)
+                state.maxy - (if conf.maxhfit then conf.winh else 0)
 
             | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
                 state.x <- state.x - 10;
@@ -1678,9 +1680,9 @@ let drawpage i l =
 ;;
 
 let scrollph y =
-  let maxy = state.maxy - (if conf.maxhfit then state.h else 0) in
-  let sh = (float (maxy + state.h) /. float state.h)  in
-  let sh = float state.h /. sh in
+  let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
+  let sh = (float (maxy + conf.winh) /. float conf.winh)  in
+  let sh = float conf.winh /. sh in
   let sh = max sh (float conf.scrollh) in
 
   let percent =
@@ -1688,11 +1690,11 @@ let scrollph y =
     then 1.0
     else float y /. float maxy
   in
-  let position = (float state.h -. sh) *. percent in
+  let position = (float conf.winh -. sh) *. percent in
 
   let position =
-    if position +. sh > float state.h
-    then float state.h -. sh
+    if position +. sh > float conf.winh
+    then float conf.winh -. sh
     else position
   in
   position, sh;
@@ -1701,15 +1703,15 @@ let scrollph y =
 let scrollindicator () =
   GlDraw.color (0.64 , 0.64, 0.64);
   GlDraw.rect
-    (float (state.winw - conf.scrollw), 0.)
-    (float state.winw, float state.h)
+    (float (conf.winw - conf.scrollw), 0.)
+    (float conf.winw, float conf.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
   let position, sh = scrollph state.y in
   GlDraw.rect
-    (float (state.winw - conf.scrollw), position)
-    (float state.winw, position +. sh)
+    (float (conf.winw - conf.scrollw), position)
+    (float conf.winw, position +. sh)
   ;
 ;;
 
@@ -1771,7 +1773,7 @@ let showoutline = function
       Gl.enable `blend;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
       GlDraw.color (0., 0., 0.) ~alpha:0.85;
-      GlDraw.rect (0., 0.) (float state.winw, float state.h);
+      GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
       Gl.disable `blend;
 
       GlDraw.color (1., 1., 1.);
@@ -1781,7 +1783,7 @@ let showoutline = function
         String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
       in
       let rec loop row =
-        if row = Array.length outlines || (row - first) * 16 > state.h
+        if row = Array.length outlines || (row - first) * 16 > conf.winh
         then ()
         else (
           let (s, l, _, _) = outlines.(row) in
@@ -1794,7 +1796,7 @@ let showoutline = function
             GlFunc.blend_func `src_alpha `one_minus_src_alpha;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
             GlDraw.rect (0., float (y + 1))
-              (float (state.winw - 1), float (y + 18));
+              (float (conf.winw - 1), float (y + 18));
             GlDraw.polygon_mode `both `fill;
             Gl.disable `blend;
             GlDraw.color (1., 1., 1.);
@@ -1807,8 +1809,8 @@ let showoutline = function
 ;;
 
 let display () =
-  let margin = (state.winw - (state.w + conf.scrollw)) / 2 in
-  GlDraw.viewport margin 0 state.w state.h;
+  let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+  GlDraw.viewport margin 0 state.w conf.winh;
   pagematrix ();
   GlClear.color (scalecolor 0.5);
   GlClear.clear [`color];
@@ -1820,7 +1822,7 @@ let display () =
   if conf.zoom > 1.0
   then (
     Gl.enable `scissor_test;
-    GlMisc.scissor 0 0 (state.winw - conf.scrollw) state.h;
+    GlMisc.scissor 0 0 (conf.winw - conf.scrollw) conf.winh;
   );
   let _lasty = List.fold_left drawpage 0 (state.layout) in
   if conf.zoom > 1.0
@@ -1834,7 +1836,7 @@ let display () =
   );
   showrects ();
   showsel margin;
-  GlDraw.viewport 0 0 state.winw state.h;
+  GlDraw.viewport 0 0 conf.winw conf.winh;
   winmatrix ();
   scrollindicator ();
   showoutline state.outline;
@@ -1843,7 +1845,7 @@ let display () =
 ;;
 
 let getunder x y =
-  let margin = (state.winw - (state.w + conf.scrollw)) / 2 in
+  let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
   let x = x - margin - state.x in
   let rec f = function
     | l :: rest ->
@@ -1891,7 +1893,7 @@ let mouse ~button ~bstate ~x ~y =
         state.mstate <- Mnone
 
   | Glut.LEFT_BUTTON
-      when state.outline = None && x > state.winw - conf.scrollw ->
+      when state.outline = None && x > conf.winw - conf.scrollw ->
       if bstate = Glut.DOWN
       then
         let position, sh = scrollph state.y in
@@ -1899,8 +1901,8 @@ let mouse ~button ~bstate ~x ~y =
         then
           state.mstate <- Mscroll
         else
-          let percent = float y /. float state.h in
-          let desty = truncate (float (state.maxy - state.h) *. percent) in
+          let percent = float y /. float conf.winh in
+          let desty = truncate (float (state.maxy - conf.winh) *. percent) in
           gotoy desty;
           state.mstate <- Mscroll
       else
@@ -1946,10 +1948,10 @@ let mouse ~button ~bstate ~x ~y =
                   if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
                     || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
                   then
-                      match getopaque l.pageno with
-                      | Some opaque when validopaque opaque ->
-                          copysel opaque
-                      | _ -> ()
+                    match getopaque l.pageno with
+                    | Some opaque when validopaque opaque ->
+                        copysel opaque
+                    | _ -> ()
                 in
                 List.iter f state.layout;
                 copysel "";             (* ugly *)
@@ -1982,9 +1984,9 @@ let motion ~x ~y =
         Glut.postRedisplay ()
 
     | Mscroll ->
-        let y = min state.h (max 0 y) in
-        let percent = float y /. float state.h in
-        let y = truncate (float (state.maxy - state.h) *. percent) in
+        let y = min conf.winh (max 0 y) in
+        let percent = float y /. float conf.winh in
+        let y = truncate (float (state.maxy - conf.winh) *. percent) in
         gotoy_and_clear_text y
 ;;
 
@@ -2010,57 +2012,373 @@ let pmotion ~x ~y =
         ()
 ;;
 
-let () =
-  let statepath =
-    let home =
-      if Sys.os_type = "Win32"
-      then
-        try Sys.getenv "HOMEPATH" with Not_found -> ""
-      else
-        try Filename.concat (Sys.getenv "HOME") ".config" with Not_found -> ""
-    in
-    Filename.concat home "llpp"
-  in
-  let pstate =
-    try
-      let ic = open_in_bin statepath in
-      let hash = input_value ic in
-      close_in ic;
-      hash
-    with exn ->
-      if false
-      then
-        prerr_endline ("Error loading state " ^ Printexc.to_string exn)
-      ;
-      Hashtbl.create 1
-  in
-  let savestate () =
-    try
-      let w, h =
-        match state.fullscreen with
-        | None -> state.winw, state.h
-        | Some wh -> wh
-      in
-      Hashtbl.replace pstate state.path (state.bookmarks, w, h);
-      let oc = open_out_bin statepath in
-      output_value oc pstate
-    with exn ->
-      if false
-      then
-        prerr_endline ("Error saving state " ^ Printexc.to_string exn)
-      ;
-  in
-  let setstate () =
-    try
-      let statebookmarks, statew, stateh = Hashtbl.find pstate state.path in
-      state.w <- statew;
-      state.h <- stateh;
-      state.bookmarks <- statebookmarks;
-    with Not_found -> ()
-    | exn ->
-      prerr_endline ("Error setting state " ^ Printexc.to_string exn)
-  in
+module State =
+struct
+  open Parser
 
+  let home =
+    try
+      match Sys.os_type with
+      | "Win32" -> Sys.getenv "HOMEPATH"
+      | _ -> Sys.getenv "HOME"
+    with exn ->
+      prerr_endline
+        ("Can not determine home directory location: " ^
+            Printexc.to_string exn);
+      ""
+  ;;
+
+  let config_of c attrs =
+    let apply c k v =
+      try
+        match k with
+        | "scroll-bar-width" -> { c with scrollw = int_of_string v }
+        | "scroll-handle-height" -> { c with scrollh = int_of_string v }
+        | "case-insensitive-search" -> { c with icase = bool_of_string v }
+        | "preload" -> { c with preload = bool_of_string v }
+        | "page-bias" -> { c with pagebias = int_of_string v }
+        | "scroll-step" -> { c with scrollincr = int_of_string v }
+        | "max-height-fit" -> { c with maxhfit = bool_of_string v }
+        | "crop-hack" -> { c with crophack = bool_of_string v }
+        | "throttle" -> { c with showall = bool_of_string v }
+        | "highlight-links" -> { c with hlinks = bool_of_string v }
+        | "under-cursor-info" -> { c with underinfo = bool_of_string v }
+        | "vertical-margin" -> { c with interpagespace = int_of_string v }
+        | "zoom" -> { c with zoom = float_of_string v /. 100. }
+        | "presentation" -> { c with presentation = bool_of_string v }
+        | "rotation-angle" -> { c with angle = int_of_string v }
+        | "width" -> { c with winw = int_of_string v }
+        | "height" -> { c with winh = int_of_string v }
+        | _ -> c
+      with exn ->
+        prerr_endline ("Error processing attribute (`" ^
+                          k ^ "'=`" ^ v ^ "'): " ^ Printexc.to_string exn);
+        c
+    in
+    let rec fold c = function
+      | [] -> c
+      | (k, v) :: rest ->
+          let c = apply c k v in
+          fold c rest
+    in
+    fold c attrs;
+  ;;
+
+  let bookmark_of attrs =
+    let rec fold title page rely = function
+      | ("title", v) :: rest -> fold v page rely rest
+      | ("page", v) :: rest -> fold title v rely rest
+      | ("rely", v) :: rest -> fold title page v rest
+      | _ :: rest -> fold title page rely rest
+      | [] -> title, page, rely
+    in
+    fold "invalid" "0" "0" attrs
+  ;;
+
+  let setconf dst src =
+    dst.scrollw        <- src.scrollw;
+    dst.scrollh        <- src.scrollh;
+    dst.icase          <- src.icase;
+    dst.preload        <- src.preload;
+    dst.pagebias       <- src.pagebias;
+    dst.verbose        <- src.verbose;
+    dst.scrollincr     <- src.scrollincr;
+    dst.maxhfit        <- src.maxhfit;
+    dst.crophack       <- src.crophack;
+    dst.autoscroll     <- src.autoscroll;
+    dst.showall        <- src.showall;
+    dst.hlinks         <- src.hlinks;
+    dst.underinfo      <- src.underinfo;
+    dst.interpagespace <- src.interpagespace;
+    dst.zoom           <- src.zoom;
+    dst.presentation   <- src.presentation;
+    dst.angle          <- src.angle;
+    dst.winw           <- src.winw;
+    dst.winh           <- src.winh;
+  ;;
+
+  let get s =
+    let h = Hashtbl.create 10 in
+    let dc = { defconf with angle = defconf.angle } in
+    let rec toplevel v t spos epos =
+      match t with
+      | Vdata | Vcdata | Vend -> v
+      | Vopen ("llppconfig", attrs, closed) ->
+          if closed
+          then v
+          else { v with f = llppconfig }
+      | Vopen _ ->
+          error "unexpected subelement at top level" s spos
+      | Vclose tag -> error "unexpected close at toplevel" s spos
+
+    and llppconfig v t spos epos =
+      match t with
+      | Vdata | Vcdata | Vend -> v
+      | Vopen ("defaults", attrs, closed) ->
+          let c = config_of dc attrs in
+          setconf dc c;
+          if closed
+          then v
+          else { v with f = skip "defaults" (fun () -> v) }
+
+      | Vopen ("doc", attrs, closed) ->
+          let pathent =
+            try
+              List.assoc "path" attrs
+            with Not_found -> error "doc is missing path attribute" s spos
+          in
+          let path =
+            let l = String.length pathent in
+            let b = Buffer.create l in
+            unent b pathent 0 l;
+            Buffer.contents b;
+          in
+          let c = config_of dc attrs in
+          let y =
+            try
+              float_of_string (List.assoc "rely" attrs)
+            with _ -> 0.0
+          in
+          if closed
+          then (Hashtbl.add h path (c, [], y); v)
+          else (
+            { v with f = doc path y c [] }
+          )
+
+      | Vopen (tag, _, closed) ->
+          error "unexpected subelement in llppconfig" s spos
+
+      | Vclose "llppconfig" ->  { v with f = toplevel }
+      | Vclose tag -> error "unexpected close in llppconfig" s spos
+
+    and doc path y c bookmarks v t spos epos =
+      match t with
+      | Vdata | Vcdata -> v
+      | Vend -> error "unexpected end of input in doc" s spos
+      | Vopen ("bookmarks", attrs, closed) ->
+          { v with f = pbookmarks path y c [] }
+
+      | Vopen (tag, _, _) ->
+          error "unexpected subelement in doc" s spos
+
+      | Vclose "doc" ->
+          Hashtbl.add h path (c, bookmarks, y);
+          { v with f = llppconfig }
+
+      | Vclose tag -> error "unexpected close in doc" s spos
+
+    and pbookmarks path y c bookmarks v t spos epos =
+      match t with
+      | Vdata | Vcdata -> v
+      | Vend -> error "unexpected end of input in bookmarks" s spos
+      | Vopen ("item", attrs, closed) ->
+          let title, spage, srely = bookmark_of attrs in
+          let page =
+            try
+              int_of_string spage
+            with exn ->
+              dolog "Failed to convert page %S to integer: %s"
+                spage (Printexc.to_string exn);
+              0
+          in
+          let rely =
+            try
+              float_of_string srely
+            with exn ->
+              dolog "Failed to convert rely %S to real: %s"
+                srely (Printexc.to_string exn);
+              0.0
+          in
+          let bookmarks = (title, 0, page, rely) :: bookmarks in
+          if closed
+          then { v with f = pbookmarks path y c bookmarks }
+          else
+            let f () = v in
+            { v with f = skip "item" f }
+
+      | Vopen _ ->
+          error "unexpected subelement in bookmarks" s spos
+
+      | Vclose "bookmarks" ->
+          { v with f = doc path y c bookmarks }
+
+      | Vclose tag -> error "unexpected close in bookmarks" s spos
+
+    and skip tag f v t spos epos =
+      match t with
+      | Vdata | Vcdata -> v
+      | Vend ->
+          error ("unexpected end of input in skipped " ^ tag) s spos
+      | Vopen (tag', _, closed) ->
+          if closed
+          then v
+          else
+            let f' () = { v with f = skip tag f } in
+            { v with f = skip tag' f' }
+      | Vclose ctag ->
+          if tag = ctag
+          then f ()
+          else error ("unexpected close in skipped " ^ tag) s spos
+    in
+
+    parse { f = toplevel; accu = () } s;
+    h, dc;
+  ;;
+
+  let do_load f ic =
+    try
+      let len = in_channel_length ic in
+      let s = String.create len in
+      really_input ic s 0 len;
+      f s;
+    with
+    | Parse_error (msg, s, pos) ->
+        let subs = subs s pos in
+        let s = Printf.sprintf "%s: at %d [..%s..]" msg pos subs in
+        failwith ("parse error: " ^ s)
+
+    | exn ->
+        failwith ("config load error: " ^ Printexc.to_string exn)
+  ;;
+
+  let path =
+    let dir =
+      try
+        let dir = Filename.concat home ".config" in
+        if Sys.is_directory dir then dir else home
+      with _ -> home
+    in
+    Filename.concat dir "llpp.conf"
+  ;;
+
+  let load1 f =
+    if Sys.file_exists path
+    then
+      match
+        (try Some (open_in_bin path)
+          with exn ->
+            prerr_endline
+              ("Error opening configuation file `" ^ path ^ "': " ^
+                  Printexc.to_string exn);
+            None
+        )
+      with
+      | Some ic ->
+          begin try
+              f (do_load get ic)
+            with exn ->
+              prerr_endline
+                ("Error loading configuation from `" ^ path ^ "': " ^
+                    Printexc.to_string exn);
+          end;
+          close_in ic;
+
+      | None -> ()
+    else
+      ()
+  ;;
+
+  let load () =
+    let f (h, dc) =
+      let pc, pb, py =
+        try
+          Hashtbl.find h state.path
+        with Not_found -> dc, [], 0.0
+      in
+      setconf defconf dc;
+      setconf conf pc;
+      state.bookmarks <- pb;
+      cbput state.hists.nav py;
+      cbrfollowlen state.hists.nav;
+    in
+    load1 f
+  ;;
+
+  let add_attrs bb always dc c =
+    let ob s a b =
+      if always || a != b
+      then Printf.bprintf bb "\n    %s='%b'" s a
+    and oi s a b =
+      if always || a != b
+      then Printf.bprintf bb "\n    %s='%d'" s a
+    and oz s a b =
+      if always || a != b
+      then Printf.bprintf bb "\n    %s='%f'" s (a*.100.)
+    in
+    oi "width" c.winw dc.winw;
+    oi "height" c.winh dc.winh;
+    oi "scroll-bar-width" c.scrollw dc.scrollw;
+    oi "scroll-handle-height" c.scrollh dc.scrollh;
+    ob "case-insensitive-search" c.icase dc.icase;
+    ob "preload" c.preload dc.preload;
+    oi "page-bias" c.pagebias dc.pagebias;
+    oi "scroll-step" c.scrollincr dc.scrollincr;
+    ob "max-height-fit" c.maxhfit dc.maxhfit;
+    ob "crop-hack" c.crophack dc.crophack;
+    ob "throttle" c.showall dc.showall;
+    ob "highlight-links" c.hlinks dc.hlinks;
+    ob "under-cursor-info" c.underinfo dc.underinfo;
+    oi "vertical-margin" c.interpagespace dc.interpagespace;
+    oz "zoom" c.zoom dc.zoom;
+    ob "presentation" c.presentation dc.presentation;
+    oi "rotation-angle" c.angle dc.angle;
+  ;;
+
+  let save () =
+    let bb = Buffer.create 32768 in
+    let f (h, dc) =
+      Buffer.add_string  bb "<llppconfig>\n<defaults ";
+      add_attrs bb true dc dc;
+      Buffer.add_string bb "/>\n";
+
+      let adddoc path y c bookmarks =
+        if bookmarks == [] && c = dc && y = 0.0
+        then ()
+        else (
+          Printf.bprintf bb "<doc path='%s'"
+            (enent path 0 (String.length path));
+          if y <> 0.0
+          then Printf.bprintf bb " rely='%f'" y;
+          add_attrs bb false dc c;
+
+          begin match bookmarks with
+          | [] -> Buffer.add_string bb "/>\n"
+          | _ ->
+              Buffer.add_string bb ">\n<bookmarks>\n";
+              List.iter (fun (title, _level, page, rely) ->
+                Printf.bprintf bb
+                  "<item title='%s' page='%d' rely='%f'/>\n"
+                  (enent title 0 (String.length title))
+                  page
+                  rely
+              ) bookmarks;
+              Buffer.add_string bb "</bookmarks>\n</doc>\n";
+          end;
+        )
+      in
+
+      adddoc state.path (yratio state.y) conf state.bookmarks;
+      Hashtbl.iter (fun path (c, bookmarks, y) ->
+        if path <> state.path
+        then
+          adddoc path y c bookmarks
+      ) h;
+      Buffer.add_string bb "</llppconfig>";
+    in
+    load1 f;
+    try
+      let tmp = path ^ ".tmp" in
+      let oc = open_out_bin tmp in
+      Buffer.output_buffer oc bb;
+      close_out oc;
+      Sys.rename tmp path;
+    with exn ->
+      prerr_endline
+        ("error while saving configuration: " ^ Printexc.to_string exn)
+  ;;
+end;;
+
+let () =
   Arg.parse
     ["-p", Arg.String (fun s -> state.password <- s) , "password"]
     (fun s -> state.path <- s)
@@ -2072,10 +2390,11 @@ let () =
     else state.path
   in
 
-  setstate ();
+  State.load ();
+
   let _ = Glut.init Sys.argv in
   let () = Glut.initDisplayMode ~depth:false ~double_buffer:true () in
-  let () = Glut.initWindowSize state.w state.h in
+  let () = Glut.initWindowSize conf.winw conf.winh in
   let _ = Glut.createWindow ("llpp " ^ Filename.basename name) in
 
   let csock, ssock =
@@ -2117,7 +2436,7 @@ let () =
   state.text <- "Opening " ^ name;
   writecmd state.csock ("open " ^ state.path ^ "\000" ^ state.password ^ "\000");
 
-  at_exit savestate;
+  at_exit State.save;
 
   let rec handlelablglutbug () =
     try
