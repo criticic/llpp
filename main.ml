@@ -2105,6 +2105,13 @@ struct
     dst.savebmarks     <- src.savebmarks;
   ;;
 
+  let unent s =
+    let l = String.length s in
+    let b = Buffer.create l in
+    unent b s 0 l;
+    Buffer.contents b;
+  ;;
+
   let get s =
     let h = Hashtbl.create 10 in
     let dc = { defconf with angle = defconf.angle } in
@@ -2135,12 +2142,7 @@ struct
               List.assoc "path" attrs
             with Not_found -> error "doc is missing path attribute" s spos
           in
-          let path =
-            let l = String.length pathent in
-            let b = Buffer.create l in
-            unent b pathent 0 l;
-            Buffer.contents b;
-          in
+          let path = unent pathent in
           let c = config_of dc attrs in
           let y =
             try
@@ -2191,7 +2193,7 @@ struct
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in bookmarks" s spos
       | Vopen ("item", attrs, closed) ->
-          let title, spage, srely = bookmark_of attrs in
+          let titleent, spage, srely = bookmark_of attrs in
           let page =
             try
               int_of_string spage
@@ -2208,7 +2210,7 @@ struct
                 srely (Printexc.to_string exn);
               0.0
           in
-          let bookmarks = (title, 0, page, rely) :: bookmarks in
+          let bookmarks = (unent titleent, 0, page, rely) :: bookmarks in
           if closed
           then { v with f = pbookmarks path x y c bookmarks }
           else
