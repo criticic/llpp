@@ -352,22 +352,25 @@ let calcips h =
 ;;
 
 let calcheight () =
-  let pmode = conf.presentation || state.birdseye <> None in
   let rec f pn ph pi fh l =
     match l with
     | (n, _, h, _) :: rest ->
         let ips = calcips h in
         let fh =
-          if pmode
+          if conf.presentation
           then fh+ips
-          else fh
+          else (
+            if state.birdseye <> None && pn = 0
+            then fh + ips
+            else fh
+          )
         in
         let fh = fh + ((n - pn) * (ph + pi)) in
         f n h ips fh rest
 
     | [] ->
         let inc =
-          if pmode
+          if conf.presentation || (state.birdseye <> None && pn = 0)
           then 0
           else -pi
         in
