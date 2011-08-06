@@ -1776,6 +1776,57 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
     CAMLreturn (ret_v);
 }
 
+CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
+{
+    CAMLparam3 (winw_v, winh_v, dw_v);
+    CAMLlocal1 (ret_v);
+    int i;
+    double zoom;
+    double maxw = 0.0, maxh = 0.0;
+    struct pagedim *p;
+    double winw = Int_val (winw_v);
+    double winh = Int_val (winh_v);
+    double dw = Int_val (dw_v);
+    double pw, ph, num, den;
+
+    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+        double x0, x1, w;
+
+        x0 = MIN (p->box.x0, p->box.x1);
+        x1 = MAX (p->box.x0, p->box.x1);
+
+        w = x1 - x0;
+        maxw = MAX (w, maxw);
+    }
+
+    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+        double x0, x1, y0, y1, w, h, scaledh, scale;
+
+        x0 = MIN (p->box.x0, p->box.x1);
+        y0 = MIN (p->box.y0, p->box.y1);
+        x1 = MAX (p->box.x0, p->box.x1);
+        y1 = MAX (p->box.y0, p->box.y1);
+
+        w = x1 - x0;
+        h = y1 - y0;
+        scale = w / maxw;
+
+        scaledh = h * scale;
+        if (scaledh > maxh) {
+            maxh = scaledh;
+            ph = scaledh;
+            pw = w * scale;
+        }
+    }
+
+    num = (winh * pw) + (ph * dw);
+    den = ph * winw;
+    zoom = num / den;
+
+    ret_v = caml_copy_double (zoom);
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_init (value sock_v)
 {
 #ifndef _WIN32

@@ -15,6 +15,7 @@ external seltext : string -> (int * int * int * int) -> int -> unit =
 external copysel : string ->  unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
+external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
 
 type mpos = int * int
 and mstate =
@@ -1127,25 +1128,7 @@ let viewkeyboard ~key ~x ~y =
           reshape conf.winw conf.winh
 
       | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-          let n =
-            let rec find n maxh nformaxh = function
-              | (_, _, h, _) :: rest ->
-                  if h > maxh
-                  then find (n+1) h n rest
-                  else find (n+1) maxh nformaxh rest
-              | [] -> nformaxh
-            in
-            find 0 0 0 state.pdims
-          in
-
-          let rect = getpdimrect n in
-          let pw = rect.(1) -. rect.(0) in
-          let ph = rect.(3) -. rect.(2) in
-
-          let num = (float conf.winh *. pw) +. (ph *. float conf.scrollw) in
-          let den = ph *. float conf.winw in
-          let zoom = num /. den in
-
+          let zoom = zoomforh conf.winw conf.winh conf.scrollw in
           if zoom < 1.0
           then (
             conf.zoom <- zoom;
