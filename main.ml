@@ -2125,31 +2125,31 @@ struct
     let apply c k v =
       try
         match k with
-        | "scroll-bar-width" -> { c with scrollw = int_of_string v }
-        | "scroll-handle-height" -> { c with scrollh = int_of_string v }
+        | "scroll-bar-width" -> { c with scrollw = max 0 (int_of_string v) }
+        | "scroll-handle-height" -> { c with scrollh = max 0 (int_of_string v) }
         | "case-insensitive-search" -> { c with icase = bool_of_string v }
         | "preload" -> { c with preload = bool_of_string v }
         | "page-bias" -> { c with pagebias = int_of_string v }
-        | "scroll-step" -> { c with scrollincr = int_of_string v }
+        | "scroll-step" -> { c with scrollincr = max 1 (int_of_string v) }
         | "max-height-fit" -> { c with maxhfit = bool_of_string v }
         | "crop-hack" -> { c with crophack = bool_of_string v }
         | "throttle" -> { c with showall = bool_of_string v }
         | "highlight-links" -> { c with hlinks = bool_of_string v }
         | "under-cursor-info" -> { c with underinfo = bool_of_string v }
-        | "vertical-margin" -> { c with interpagespace = int_of_string v }
+        | "vertical-margin" -> { c with interpagespace = max 0 (int_of_string v) }
         | "zoom" ->
             let zoom = float_of_string v /. 100. in
             let zoom = max 0.01 (min 2.2 zoom) in
             { c with zoom = zoom }
         | "presentation" -> { c with presentation = bool_of_string v }
         | "rotation-angle" -> { c with angle = int_of_string v }
-        | "width" -> { c with winw = int_of_string v }
-        | "height" -> { c with winh = int_of_string v }
+        | "width" -> { c with winw = max 20 (int_of_string v) }
+        | "height" -> { c with winh = max 20 (int_of_string v) }
         | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
         | "proportional-display" -> { c with proportional = bool_of_string v }
-        | "pixmap-cache-size" -> { c with memlimit = int_of_string v }
-        | "tex-count" -> { c with texcount = int_of_string v }
-        | "slice-height" -> { c with sliceheight = int_of_string v }
+        | "pixmap-cache-size" -> { c with memlimit = max 2 (int_of_string v) }
+        | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
+        | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
