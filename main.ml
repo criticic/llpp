@@ -683,7 +683,7 @@ let act cmd =
       Glut.postRedisplay ()
 
   | 'C' ->
-      let n = Scanf.sscanf cmd "C %d" (fun n -> n) in
+      let n = Scanf.sscanf cmd "C %u" (fun n -> n) in
       state.pagecount <- n;
       state.invalidated <- state.invalidated - 1;
       if state.invalidated = 0
@@ -720,7 +720,7 @@ let act cmd =
 
   | 'F' ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
-        Scanf.sscanf cmd "F %d %d %f %f %f %f %f %f %f %f"
+        Scanf.sscanf cmd "F %u %d %f %f %f %f %f %f %f %f"
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
@@ -731,7 +731,7 @@ let act cmd =
 
   | 'R' ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
-        Scanf.sscanf cmd "R %d %d %f %f %f %f %f %f %f %f"
+        Scanf.sscanf cmd "R %u %d %f %f %f %f %f %f %f %f"
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
@@ -740,7 +740,7 @@ let act cmd =
 
   | 'r' ->
       let n, w, h, r, l, p =
-        Scanf.sscanf cmd "r %d %d %d %d %d %s"
+        Scanf.sscanf cmd "r %u %u %u %u %d %s"
           (fun n w h r l p -> (n, w, h, r, l != 0, p))
       in
       Hashtbl.replace state.pagemap (n, w, r, l) p;
@@ -768,13 +768,13 @@ let act cmd =
 
   | 'l' ->
       let (n, w, h, x) as pdim =
-        Scanf.sscanf cmd "l %d %d %d %d" (fun n w h x -> n, w, h, x)
+        Scanf.sscanf cmd "l %u %u %u %u" (fun n w h x -> n, w, h, x)
       in
       state.pdims <- pdim :: state.pdims
 
   | 'o' ->
       let (l, n, t, h, pos) =
-        Scanf.sscanf cmd "o %d %d %d %d %n" (fun l n t h pos -> l, n, t, h, pos)
+        Scanf.sscanf cmd "o %u %u %u %u %n" (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub cmd pos (String.length cmd - pos) in
       let s =
