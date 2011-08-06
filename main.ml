@@ -53,36 +53,35 @@ let cbnew n v =
   }
 ;;
 
-let cblen b = Array.length b.store;;
+let cbcap b = Array.length b.store;;
 
 let cbput b v =
-  let len = cblen b in
+  let cap = cbcap b in
   b.store.(b.wc) <- v;
-  b.wc <- (b.wc + 1) mod len;
-  b.len <- min (b.len + 1) len;
+  b.wc <- (b.wc + 1) mod cap;
+  b.rc <- b.wc;
+  b.len <- min (b.len + 1) cap;
 ;;
 
-let cbpeekw b = b.store.(b.wc);;
+let cbempty b = b.len = 0;;
 
 let cbget b dir =
-  if b.len = 0
+  if cbempty b
   then b.store.(0)
   else
     let rc = b.rc + dir in
-    let rc = if rc = -1 then b.len - 1 else rc in
-    let rc = if rc = b.len then 0 else rc in
+    let rc = max 0 (min rc (b.len-1)) in
     b.rc <- rc;
     b.store.(rc);
 ;;
 
-let cbrfollowlen b =
-  b.rc <- b.len;
+let cbpeek b =
+  let rc = b.wc - b.len in
+  let rc = if rc < 0 then cbcap b + rc else rc in
+  b.store.(rc);
 ;;
 
-let cbclear b v =
-  b.len <- 0;
-  Array.fill b.store 0 (Array.length b.store) v;
-;;
+let cbdecr b = b.len <- b.len - 1;;
 
 type layout =
     { pageno : int
@@ -118,6 +117,7 @@ type conf =
     ; mutable winh : int
     ; mutable savebmarks : bool
     ; mutable proportional : bool
+    ; mutable memlimit : int
     }
 ;;
 
@@ -129,6 +129,7 @@ and angle = int
 and proportional = bool
 and opaque = string
 and recttype = int
+and pixmapsize = int
 ;;
 
 type outline = string * int * int * float;;
@@ -149,7 +150,8 @@ type state =
     ; mutable ty : float
     ; mutable maxy : int
     ; mutable layout : layout list
-    ; pagemap : ((pageno * width * angle * proportional), opaque) Hashtbl.t
+    ; pagemap :
+      ((pageno * width * angle * proportional), (opaque * pixmapsize)) Hashtbl.t
     ; mutable pdims : (pageno * width * height * leftx) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
@@ -168,6 +170,7 @@ type state =
     ; mutable password : string
     ; mutable invalidated : int
     ; mutable colorscale : float
+    ; mutable memused : int
     ; hists : hists
     }
 and hists =
@@ -199,6 +202,7 @@ let defconf =
   ; winh = 900
   ; savebmarks = true
   ; proportional = true
+  ; memlimit = 32*1024*1024
   }
 ;;
 
@@ -214,7 +218,7 @@ let state =
   ; layout = []
   ; maxy = max_int
   ; pagemap = Hashtbl.create 10
-  ; pagecache = cbnew 10 ""
+  ; pagecache = cbnew 100 ""
   ; pdims = []
   ; pagecount = 0
   ; rendering = false
@@ -237,6 +241,7 @@ let state =
       ; pag = cbnew 10 ""
       }
   ; colorscale = 1.0
+  ; memused = 0
   }
 ;;
 
@@ -438,7 +443,7 @@ let layout y sh =
         ~py:0
         ~dy:0
         ~pdims:state.pdims
-        ~cacheleft:(cblen state.pagecache)
+        ~cacheleft:(cbcap state.pagecache)
         ~accu:[]
     in
     List.rev accu
@@ -471,7 +476,7 @@ let render l =
   match getopaque l.pageno with
   | None when not state.rendering ->
       state.rendering <- true;
-      cache l.pageno "";
+      cache l.pageno ("", -1);
       wcmd "render" [`i (l.pageno + 1)
                     ;`i l.pagedimno
                     ;`i l.pagew
@@ -485,26 +490,32 @@ let loadlayout layout =
     | l :: ls ->
         begin match getopaque l.pageno with
         | None -> render l; f false ls
-        | Some opaque -> f (all && validopaque opaque) ls
+        | Some (opaque, _) -> f (all && validopaque opaque) ls
         end
     | [] -> all
   in
   f (layout <> []) layout;
 ;;
 
+let findpageforopaque opaque =
+  Hashtbl.fold
+    (fun k (v, s) a -> if v = opaque then Some (k, s) else a)
+    state.pagemap None
+;;
+
+let pagevisible n = List.exists (fun l -> l.pageno + 1 = n) state.layout;;
+
 let preload () =
   if conf.preload
   then
-    let evictedvisible =
-      let evictedopaque = cbpeekw state.pagecache in
-      List.exists (fun l ->
-        match getopaque l.pageno with
-        | Some opaque when validopaque opaque ->
-            evictedopaque = opaque
-        | otherwise -> false
-      ) state.layout
+    let oktopreload =
+      let opaque = cbpeek state.pagecache in
+      match findpageforopaque opaque with
+      | Some ((n, _, _, _), size) ->
+          not (pagevisible n) && state.memused - size <= conf.memlimit
+      | None -> false
     in
-    if not evictedvisible
+    if oktopreload
     then
       let rely = yratio state.y in
       let presentation = conf.presentation in
@@ -552,7 +563,6 @@ let gotoy_and_clear_text y =
 
 let addnav () =
   cbput state.hists.nav (yratio state.y);
-  cbrfollowlen state.hists.nav;
 ;;
 
 let getnav () =
@@ -739,29 +749,41 @@ let act cmd =
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | 'r' ->
-      let n, w, h, r, l, p =
-        Scanf.sscanf cmd "r %u %u %u %u %d %s"
-          (fun n w h r l p -> (n, w, h, r, l != 0, p))
+      let n, w, h, r, l, s, p =
+        Scanf.sscanf cmd "r %u %u %u %u %d %u %s"
+          (fun n w h r l s p -> (n, w, h, r, l != 0, s, p))
       in
-      Hashtbl.replace state.pagemap (n, w, r, l) p;
-      let opaque = cbpeekw state.pagecache in
-      if validopaque opaque
-      then (
-        let k =
-          Hashtbl.fold
-            (fun k v a -> if v = opaque then k else a)
-            state.pagemap (-1, -1, -1, false)
-        in
-        wcmd "free" [`s opaque];
-        Hashtbl.remove state.pagemap k
-      );
+
+      Hashtbl.replace state.pagemap (n, w, r, l) (p, s);
+      state.memused <- state.memused + s;
+
+      let rec gc () =
+        if (state.memused <= conf.memlimit) || cbempty state.pagecache
+        then ()
+        else (
+          let evictedopaque = cbpeek state.pagecache in
+          match findpageforopaque evictedopaque with
+          | None -> failwith "bug in gc"
+          | Some ((evictedn, _, _, _) as k, evictedsize) ->
+              if not (pagevisible evictedn)
+              then (
+                wcmd "free" [`s evictedopaque];
+                state.memused <- state.memused - evictedsize;
+                Hashtbl.remove state.pagemap k;
+                cbdecr state.pagecache;
+                gc ();
+              )
+        )
+      in
+      gc ();
+
       cbput state.pagecache p;
       state.rendering <- false;
+
       if conf.showall
       then gotoy (truncate (ceil (state.ty *. float state.maxy)))
       else (
-        let visible = List.exists (fun l -> l.pageno + 1 = n) state.layout in
-        if visible
+        if pagevisible n
         then gotoy state.y
         else (ignore (loadlayout state.layout); preload ())
       )
@@ -1110,7 +1132,6 @@ let viewkeyboard ~key ~x ~y =
       | '/' | '?' ->
           let ondone isforw s =
             cbput state.hists.pat s;
-            cbrfollowlen state.hists.pat;
             state.searchpattern <- s;
             search s isforw
           in
@@ -1178,7 +1199,6 @@ let viewkeyboard ~key ~x ~y =
             then (
               addnav ();
               cbput state.hists.pag (string_of_int n);
-              cbrfollowlen state.hists.pag;
               gotoy_and_clear_text (getpagey (n + conf.pagebias - 1))
             )
           in
@@ -1709,7 +1729,7 @@ let now () = Unix.gettimeofday ();;
 
 let drawpage i l =
   begin match getopaque l.pageno with
-  | Some opaque when validopaque opaque ->
+  | Some (opaque, _) when validopaque opaque ->
       if state.textentry = None
       then GlDraw.color (scalecolor 1.0)
       else GlDraw.color (scalecolor 0.4);
@@ -1774,7 +1794,7 @@ let showsel margin =
               || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
             then
               match getopaque l.pageno with
-              | Some opaque when validopaque opaque ->
+              | Some (opaque, _) when validopaque opaque ->
                   let oy = -l.pagey + l.pagedispy in
                   seltext opaque
                     (x0 - margin - state.x, y0,
@@ -1897,7 +1917,7 @@ let getunder x y =
   let rec f = function
     | l :: rest ->
         begin match getopaque l.pageno with
-        | Some opaque when validopaque opaque ->
+        | Some (opaque, _) when validopaque opaque ->
             let y = y - l.pagedispy in
             if y > 0
             then
@@ -1997,7 +2017,7 @@ let mouse ~button ~bstate ~x ~y =
                     || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
                   then
                     match getopaque l.pageno with
-                    | Some opaque when validopaque opaque ->
+                    | Some (opaque, _) when validopaque opaque ->
                         copysel opaque
                     | _ -> ()
                 in
@@ -2094,7 +2114,7 @@ struct
         | "vertical-margin" -> { c with interpagespace = int_of_string v }
         | "zoom" ->
             let zoom = float_of_string v /. 100. in
-            let zoom = max 0.1 (min 2.2 zoom) in
+            let zoom = max 0.01 (min 2.2 zoom) in
             { c with zoom = zoom }
         | "presentation" -> { c with presentation = bool_of_string v }
         | "rotation-angle" -> { c with angle = int_of_string v }
@@ -2102,6 +2122,7 @@ struct
         | "height" -> { c with winh = int_of_string v }
         | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
         | "proportional-display" -> { c with proportional = bool_of_string v }
+        | "pixmap-cache-size" -> { c with memlimit = int_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -2149,6 +2170,7 @@ struct
     dst.winw           <- src.winw;
     dst.winh           <- src.winh;
     dst.savebmarks     <- src.savebmarks;
+    dst.memlimit       <- src.memlimit;
     dst.proportional   <- src.proportional;
   ;;
 
@@ -2358,7 +2380,6 @@ struct
       state.bookmarks <- pb;
       state.x <- px;
       cbput state.hists.nav py;
-      cbrfollowlen state.hists.nav;
     in
     load1 f
   ;;
@@ -2401,6 +2422,7 @@ struct
     oi "rotation-angle" c.angle dc.angle;
     ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
     ob "proportional-display" c.proportional dc.proportional;
+    oi "pixmap-cache-size" c.memlimit dc.memlimit;
   ;;
 
   let save () =

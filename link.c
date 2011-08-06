@@ -1116,12 +1116,13 @@ mainloop (void *unused)
             page = render (pageno, pindex);
             unlock ("render");
 
-            printd (state.sock, "r %d %d %d %d %d %p",
+            printd (state.sock, "r %d %d %d %d %d %d %p",
                     pageno,
                     state.w,
                     state.h,
                     state.rotate,
                     state.proportional,
+                    w * h * 4,
                     page);
         }
         else if (!strncmp ("interrupt", p, 9)) {
