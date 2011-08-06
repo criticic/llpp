@@ -1767,12 +1767,22 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
     CAMLparam1 (pagedimno_v);
     CAMLlocal1 (ret_v);
     int pagedimno = Int_val (pagedimno_v);
+    fz_rect box;
 
     ret_v = caml_alloc_small (4 * Double_wosize, Double_array_tag);
-    Store_double_field (ret_v, 0, state.pagedims[pagedimno].box.x0);
-    Store_double_field (ret_v, 1, state.pagedims[pagedimno].box.x1);
-    Store_double_field (ret_v, 2, state.pagedims[pagedimno].box.y0);
-    Store_double_field (ret_v, 3, state.pagedims[pagedimno].box.y1);
+    if (trylock ("ml_getpdimrect")) {
+        box = fz_empty_rect;
+    }
+    else {
+        box = state.pagedims[pagedimno].box;
+        unlock ("ml_getpdimrect");
+    }
+
+    Store_double_field (ret_v, 0, box.x0);
+    Store_double_field (ret_v, 1, box.x1);
+    Store_double_field (ret_v, 2, box.y0);
+    Store_double_field (ret_v, 3, box.y1);
+
     CAMLreturn (ret_v);
 }
 
@@ -1781,13 +1791,17 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     CAMLparam3 (winw_v, winh_v, dw_v);
     CAMLlocal1 (ret_v);
     int i;
-    double zoom;
+    double zoom = 1.0;
     double maxw = 0.0, maxh = 0.0;
     struct pagedim *p;
     double winw = Int_val (winw_v);
     double winh = Int_val (winh_v);
     double dw = Int_val (dw_v);
     double pw, ph, num, den;
+
+    if (trylock ("ml_zoom_for_height")) {
+        goto done;
+    }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
         double x0, x1, w;
@@ -1823,6 +1837,8 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     den = ph * winw;
     zoom = num / den;
 
+    unlock ("ml_zoom_for_height");
+ done:
     ret_v = caml_copy_double (zoom);
     CAMLreturn (ret_v);
 }

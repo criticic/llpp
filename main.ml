@@ -1283,7 +1283,10 @@ let viewkeyboard ~key ~x ~y =
                   (truncate (rect.(1) -. rect.(0)),
                   truncate (rect.(3) -. rect.(0)))
               in
-              doreshape (w + conf.scrollw) (h + conf.interpagespace);
+              if w != 0 && h != 0
+              then
+                doreshape (w + conf.scrollw) (h + conf.interpagespace)
+              ;
               Glut.postRedisplay ();
 
           | [] -> ()
