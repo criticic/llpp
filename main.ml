@@ -18,8 +18,11 @@ and recttype = int
 and pixmapsize = int
 and angle = int
 and proportional = bool
+and presentation = bool
+and interpagespace = int
 and texcount = int
 and sliceheight = int
+and zoom = float
 ;;
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;
@@ -138,9 +141,9 @@ type conf =
     ; mutable showall : bool
     ; mutable hlinks : bool
     ; mutable underinfo : bool
-    ; mutable interpagespace : int
-    ; mutable zoom : float
-    ; mutable presentation : bool
+    ; mutable interpagespace : interpagespace
+    ; mutable zoom : zoom
+    ; mutable presentation : presentation
     ; mutable angle : angle
     ; mutable winw : int
     ; mutable winh : int
@@ -182,6 +185,7 @@ type state =
     ; mutable rects1 : (pageno * recttype * rect) list
     ; mutable text : string
     ; mutable fullscreen : (width * height) option
+    ; mutable birdseye : (zoom * leftx * presentation * interpagespace) option
     ; mutable textentry : textentry option
     ; mutable outlines : outlines
     ; mutable outline : (bool * int * int * outline array * string) option
@@ -249,6 +253,7 @@ let state =
   ; rects1 = []
   ; text = ""
   ; fullscreen = None
+  ; birdseye = None
   ; textentry = None
   ; searchpattern = ""
   ; outlines = Olist []
@@ -347,12 +352,13 @@ let calcips h =
 ;;
 
 let calcheight () =
+  let pmode = conf.presentation || state.birdseye <> None in
   let rec f pn ph pi fh l =
     match l with
     | (n, _, h, _) :: rest ->
         let ips = calcips h in
         let fh =
-          if conf.presentation
+          if pmode
           then fh+ips
           else fh
         in
@@ -361,7 +367,7 @@ let calcheight () =
 
     | [] ->
         let inc =
-          if conf.presentation
+          if pmode
           then 0
           else -pi
         in
@@ -403,7 +409,11 @@ let layout y sh =
       match pdims with
       | (pageno', w, h, x) :: rest when pageno' = pageno ->
           let ips = calcips h in
-          let yinc = if conf.presentation then ips else 0 in
+          let yinc =
+            if conf.presentation || (state.birdseye <> None && pageno = 0)
+            then ips
+            else 0
+          in
           (w, h, ips, x), rest, pdimno + 1, yinc
       | _ ->
           prev, pdims, pdimno, 0
@@ -1207,6 +1217,34 @@ let viewkeyboard ~key ~x ~y =
             state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
             reshape conf.winw conf.winh;
           )
+
+      | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+          begin match state.birdseye with
+          | None ->
+              let zoom = 120.0 /. float state.w in
+              state.birdseye <- Some (
+                conf.zoom,
+                state.x,
+                conf.presentation,
+                conf.interpagespace;
+              );
+              conf.zoom <- zoom;
+              conf.presentation <- false;
+              conf.interpagespace <- 10;
+              state.x <- 0;
+              state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
+                (100.0*.zoom)
+
+          | Some (zoom, x, presentation, interpagespace) ->
+              state.birdseye <- None;
+              conf.zoom <- zoom;
+              conf.presentation <- presentation;
+              conf.interpagespace <- interpagespace;
+              state.x <- x;
+              state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
+                (100.0*.zoom);
+          end;
+          reshape conf.winw conf.winh
 
       | '0' .. '9' ->
           let ondone s =
@@ -2432,6 +2470,15 @@ struct
         | Some wh -> wh
         | None -> c.winw, c.winh
     in
+    let zoom, presentation, interpagespace =
+      if always
+      then dc.zoom, dc.presentation, dc.interpagespace
+      else
+        match state.birdseye with
+        | Some (zoom, _, presentation, interpagespace) ->
+            (zoom, presentation, interpagespace)
+        | None -> c.zoom, c.presentation, c.interpagespace
+    in
     oi "width" w dc.winw;
     oi "height" h dc.winh;
     oi "scroll-bar-width" c.scrollw dc.scrollw;
@@ -2445,9 +2492,9 @@ struct
     ob "throttle" c.showall dc.showall;
     ob "highlight-links" c.hlinks dc.hlinks;
     ob "under-cursor-info" c.underinfo dc.underinfo;
-    oi "vertical-margin" c.interpagespace dc.interpagespace;
-    oz "zoom" c.zoom dc.zoom;
-    ob "presentation" c.presentation dc.presentation;
+    oi "vertical-margin" interpagespace dc.interpagespace;
+    oz "zoom" zoom dc.zoom;
+    ob "presentation" presentation dc.presentation;
     oi "rotation-angle" c.angle dc.angle;
     ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
     ob "proportional-display" c.proportional dc.proportional;
@@ -2494,7 +2541,12 @@ struct
         )
       in
 
-      adddoc state.path state.x (yratio state.y) conf
+      let x =
+        match state.birdseye with
+        | Some (_, x, _, _) -> x
+        | None -> state.x
+      in
+      adddoc state.path x (yratio state.y) conf
         (if conf.savebmarks then state.bookmarks else []);
 
       Hashtbl.iter (fun path (c, bookmarks, x, y) ->
