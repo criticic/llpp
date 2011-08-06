@@ -1630,16 +1630,30 @@ let special ~key ~x ~y =
 
   | Some (allowdel, active, first, outlines, qsearch) ->
       let maxrows = maxoutlinerows () in
+      let calcfirst first active =
+        if active > first
+        then
+          let rows = active - first in
+          if rows > maxrows then active - maxrows else first
+        else active
+      in
       let navigate incr =
         let active = active + incr in
         let active = max 0 (min active (Array.length outlines - 1)) in
-        let first =
-          if active > first
-          then
-            let rows = active - first in
-            if rows > maxrows then active - maxrows else first
-          else active
+        let first = calcfirst first active in
+        state.outline <- Some (allowdel, active, first, outlines, qsearch);
+        Glut.postRedisplay ()
+      in
+      let updownlevel incr =
+        let len = Array.length outlines in
+        let (_, curlevel, _, _) = outlines.(active) in
+        let rec flow i =
+          if i = len then i-1 else if i = -1 then 0 else
+              let (_, l, _, _) = outlines.(i) in
+              if l != curlevel then i else flow (i+incr)
         in
+        let active = flow active in
+        let first = calcfirst first active in
         state.outline <- Some (allowdel, active, first, outlines, qsearch);
         Glut.postRedisplay ()
       in
@@ -1648,6 +1662,9 @@ let special ~key ~x ~y =
       | Glut.KEY_DOWN      -> navigate   1
       | Glut.KEY_PAGE_UP   -> navigate ~-maxrows
       | Glut.KEY_PAGE_DOWN -> navigate   maxrows
+
+      | Glut.KEY_RIGHT when not allowdel -> updownlevel 1
+      | Glut.KEY_LEFT when not allowdel -> updownlevel ~-1
 
       | Glut.KEY_HOME ->
           state.outline <- Some (allowdel, 0, 0, outlines, qsearch);
