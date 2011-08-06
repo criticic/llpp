@@ -985,21 +985,9 @@ mainloop (void *unused)
             size_t filenamelen;
             char *password;
             char *filename = p + 5;
-            char *p2 ;
-            int angle, proportional;
 
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
-            p2 = password + strlen (password) + 1;
-
-            ret = sscanf (p2, " %d %d", &angle, &proportional);
-            if (ret != 2) {
-                errx (1, "malformed open `%*s' ret=%d",
-                      len - (p2 - p), p2, ret);
-            }
-
-            state.rotate = angle;
-            state.proportional = proportional;
 
             openxref (filename, password);
             initpdims ();
@@ -1862,15 +1850,17 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_init (value sock_v)
+CAMLprim value ml_init (value sock_v, value params_v)
 {
 #ifndef _WIN32
     int ret;
 #endif
-    CAMLparam1 (sock_v);
+    CAMLparam2 (sock_v, params_v);
 
-    state.texcount = 256;
-    state.sliceheight = 24;
+    state.rotate = Int_val (Field (params_v, 0));
+    state.proportional = Bool_val (Field (params_v, 1));
+    state.texcount = Int_val (Field (params_v, 2));
+    state.sliceheight = Int_val (Field (params_v, 3));
     state.texform = GL_RGBA;
     state.texty = GL_UNSIGNED_BYTE;
 

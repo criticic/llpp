@@ -8,7 +8,21 @@ and facename = string;;
 let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
-external init : Unix.file_descr -> unit = "ml_init";;
+type params = angle * proportional * texcount * sliceheight
+and pageno = int
+and width = int
+and height = int
+and leftx = int
+and opaque = string
+and recttype = int
+and pixmapsize = int
+and angle = int
+and proportional = bool
+and texcount = int
+and sliceheight = int
+;;
+
+external init : Unix.file_descr -> params -> unit = "ml_init";;
 external draw : (int * int * int * int * bool) -> string  -> unit = "ml_draw";;
 external seltext : string -> (int * int * int * int) -> int -> unit =
   "ml_seltext";;
@@ -127,24 +141,15 @@ type conf =
     ; mutable interpagespace : int
     ; mutable zoom : float
     ; mutable presentation : bool
-    ; mutable angle : int
+    ; mutable angle : angle
     ; mutable winw : int
     ; mutable winh : int
     ; mutable savebmarks : bool
-    ; mutable proportional : bool
+    ; mutable proportional : proportional
     ; mutable memlimit : int
+    ; mutable texcount : texcount
+    ; mutable sliceheight : sliceheight
     }
-;;
-
-type pageno = int
-and width = int
-and height = int
-and leftx = int
-and angle = int
-and proportional = bool
-and opaque = string
-and recttype = int
-and pixmapsize = int
 ;;
 
 type outline = string * int * int * float;;
@@ -218,6 +223,8 @@ let defconf =
   ; savebmarks = true
   ; proportional = true
   ; memlimit = 32*1024*1024
+  ; texcount = 256
+  ; sliceheight = 24
   }
 ;;
 
@@ -1101,12 +1108,7 @@ let doreshape w h =
 ;;
 
 let writeopen path password  =
-  writecmd state.csock
-    ("open " ^ path ^ "\000"
-      ^ state.password ^ "\000"
-      ^ string_of_int conf.angle ^ " "
-      ^ (if conf.proportional then "1" else "0"))
-  ;
+  writecmd state.csock ("open " ^ path ^ "\000" ^ state.password ^ "\000");
 ;;
 
 let opendoc path password =
@@ -2146,6 +2148,8 @@ struct
         | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
         | "proportional-display" -> { c with proportional = bool_of_string v }
         | "pixmap-cache-size" -> { c with memlimit = int_of_string v }
+        | "tex-count" -> { c with texcount = int_of_string v }
+        | "slice-height" -> { c with sliceheight = int_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -2195,6 +2199,8 @@ struct
     dst.savebmarks     <- src.savebmarks;
     dst.memlimit       <- src.memlimit;
     dst.proportional   <- src.proportional;
+    dst.texcount       <- src.texcount;
+    dst.sliceheight    <- src.sliceheight;
   ;;
 
   let unent s =
@@ -2446,6 +2452,8 @@ struct
     ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
     ob "proportional-display" c.proportional dc.proportional;
     oi "pixmap-cache-size" c.memlimit dc.memlimit;
+    oi "texcount" c.texcount dc.texcount;
+    oi "slice-height" c.sliceheight dc.sliceheight;
   ;;
 
   let save () =
@@ -2568,7 +2576,7 @@ let () =
   let () = Glut.motionFunc motion in
   let () = Glut.passiveMotionFunc pmotion in
 
-  init ssock;
+  init ssock (conf.angle, conf.proportional, conf.texcount, conf.sliceheight);
   state.csock <- csock;
   state.ssock <- ssock;
   state.text <- "Opening " ^ path;
