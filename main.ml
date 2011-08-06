@@ -121,6 +121,16 @@ type conf =
     }
 ;;
 
+type pageno = int
+and width = int
+and height = int
+and leftx = int
+and angle = int
+and proportional = bool
+and opaque = string
+and recttype = int
+;;
+
 type outline = string * int * int * float;;
 type outlines =
     | Oarray of outline array
@@ -139,17 +149,17 @@ type state =
     ; mutable ty : float
     ; mutable maxy : int
     ; mutable layout : layout list
-    ; pagemap : ((int * int * int * bool), string) Hashtbl.t
-    ; mutable pdims : (int * int * int * int) list
+    ; pagemap : ((pageno * width * angle * proportional), opaque) Hashtbl.t
+    ; mutable pdims : (pageno * width * height * leftx) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
     ; mutable rendering : bool
     ; mutable mstate : mstate
     ; mutable searchpattern : string
-    ; mutable rects : (int * int * rect) list
-    ; mutable rects1 : (int * int * rect) list
+    ; mutable rects : (pageno * recttype * rect) list
+    ; mutable rects1 : (pageno * recttype * rect) list
     ; mutable text : string
-    ; mutable fullscreen : (int * int) option
+    ; mutable fullscreen : (width * height) option
     ; mutable textentry : textentry option
     ; mutable outlines : outlines
     ; mutable outline : (bool * int * int * outline array * string) option
@@ -167,7 +177,7 @@ and hists =
     }
 ;;
 
-let conf =
+let defconf =
   { scrollw = 7
   ; scrollh = 12
   ; icase = true
@@ -192,7 +202,7 @@ let conf =
   }
 ;;
 
-let defconf = { conf with angle=conf.angle };;
+let conf = { defconf with angle = defconf.angle };;
 
 let state =
   { csock = Unix.stdin
