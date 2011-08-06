@@ -2202,7 +2202,7 @@ struct
           else { v with f = llppconfig }
       | Vopen _ ->
           error "unexpected subelement at top level" s spos
-      | Vclose tag -> error "unexpected close at toplevel" s spos
+      | Vclose tag -> error "unexpected close at top level" s spos
 
     and llppconfig v t spos epos =
       match t with
