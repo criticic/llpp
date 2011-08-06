@@ -827,7 +827,7 @@ let act cmd =
 
   | 'o' ->
       let (l, n, t, h, pos) =
-        Scanf.sscanf cmd "o %u %u %u %u %n" (fun l n t h pos -> l, n, t, h, pos)
+        Scanf.sscanf cmd "o %u %u %d %u %n" (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub cmd pos (String.length cmd - pos) in
       let s =
