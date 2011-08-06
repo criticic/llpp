@@ -55,6 +55,7 @@ tunables
 -v                      - toggle verbosity
 -P                      - toggle persistent bookmarks
 -h                      - toggle maxfit
+-l                      - toggle proportional display
 -f                      - toggle "what's under cursor" identification
                           (only font name currently)
 
