@@ -409,8 +409,7 @@ let layout y sh =
         let pagey = vy - py in
         let pagevh = h - pagey in
         let pagevh = min (sh - dy) pagevh in
-        let off = if yinc > 0 then py - vy else 0
-        in
+        let off = if yinc > 0 then py - vy else 0 in
         let py = py + h + ips in
         let e =
           { pageno = pageno
