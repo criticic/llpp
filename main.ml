@@ -2091,7 +2091,10 @@ struct
         | "highlight-links" -> { c with hlinks = bool_of_string v }
         | "under-cursor-info" -> { c with underinfo = bool_of_string v }
         | "vertical-margin" -> { c with interpagespace = int_of_string v }
-        | "zoom" -> { c with zoom = float_of_string v /. 100. }
+        | "zoom" ->
+            let zoom = float_of_string v /. 100. in
+            let zoom = max 0.1 (min 2.2 zoom) in
+            { c with zoom = zoom }
         | "presentation" -> { c with presentation = bool_of_string v }
         | "rotation-angle" -> { c with angle = int_of_string v }
         | "width" -> { c with winw = int_of_string v }
