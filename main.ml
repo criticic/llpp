@@ -619,6 +619,7 @@ let winmatrix () =
 let reshape ~w ~h =
   conf.winw <- w;
   let w = truncate (float w *. conf.zoom) - conf.scrollw in
+  let w = max w 2 in
   state.w <- w;
   conf.winh <- h;
   GlMat.mode `modelview;
