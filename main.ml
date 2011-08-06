@@ -65,15 +65,30 @@ let cbput b v =
 
 let cbempty b = b.len = 0;;
 
-let cbget b dir =
+let cbgetg b circular dir =
   if cbempty b
   then b.store.(0)
   else
     let rc = b.rc + dir in
-    let rc = max 0 (min rc (b.len-1)) in
+    let rc =
+      if circular
+      then (
+        if rc = -1
+        then b.len-1
+        else (
+          if rc = b.len
+          then 0
+          else rc
+        )
+      )
+      else max 0 (min rc (b.len-1))
+    in
     b.rc <- rc;
     b.store.(rc);
 ;;
+
+let cbget b = cbgetg b false;;
+let cbgetc b = cbgetg b true;;
 
 let cbpeek b =
   let rc = b.wc - b.len in
@@ -565,7 +580,7 @@ let addnav () =
 ;;
 
 let getnav () =
-  let y = cbget state.hists.nav ~-1 in
+  let y = cbgetc state.hists.nav ~-1 in
   truncate (y *. float state.maxy)
 ;;
 
