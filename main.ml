@@ -33,13 +33,11 @@ type 'a circbuf =
     }
 ;;
 
-type textentry = (char * string * opthist * onkey * ondone)
+type textentry = (char * string * onhist * onkey * ondone)
 and onkey = string -> int -> te
 and ondone = string -> unit
-and onhist = histcmd -> string
-and onhistcancel = unit -> unit
-and opthist = (onhist * onhistcancel) option
-and histcmd = HCnext | HCprev | HCfirst | HClast
+and onhist = (histcmd -> string) option
+and histcmd = HCnext | HCprev | HCfirst | HClast | HCcancel
 and te =
     | TEstop
     | TEdone of string
@@ -858,11 +856,14 @@ let idle () =
   in loop 0.001
 ;;
 
-let onhist cb = function
-  | HCprev  -> cbget cb ~-1
-  | HCnext  -> cbget cb 1
-  | HCfirst -> cbget cb ~-(cb.rc)
-  | HClast  -> cbget cb (cb.len - 1 - cb.rc)
+let onhist cb =
+  let rc = cb.rc in
+  function
+  | HCprev   -> cbget cb ~-1
+  | HCnext   -> cbget cb 1
+  | HCfirst  -> cbget cb ~-(cb.rc)
+  | HClast   -> cbget cb (cb.len - 1 - cb.rc)
+  | HCcancel -> cb.rc <- rc; cb.store.(0) (* ugly *)
 ;;
 
 let search pattern forward =
@@ -1105,11 +1106,6 @@ let opendoc path password =
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
-let histcancel cb =
-  let rc = cb.rc in
-  fun () -> cb.rc <- rc;
-;;
-
 let viewkeyboard ~key ~x ~y =
   let enttext te =
     state.textentry <- te;
@@ -1142,8 +1138,7 @@ let viewkeyboard ~key ~x ~y =
             state.searchpattern <- s;
             search s isforw
           in
-          enttext (Some (c, "", Some (onhist state.hists.pat,
-                                     histcancel state.hists.pat),
+          enttext (Some (c, "", Some (onhist state.hists.pat),
                         textentry, ondone (c ='/')))
 
       | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
@@ -1218,8 +1213,7 @@ let viewkeyboard ~key ~x ~y =
             | _ -> intentry text key
           in
           let text = "x" in text.[0] <- c;
-          enttext (Some (':', text, Some (onhist state.hists.pag,
-                                         histcancel state.hists.pag),
+          enttext (Some (':', text, Some (onhist state.hists.pag),
                         pageentry, ondone))
 
       | 'b' ->
@@ -1382,7 +1376,7 @@ let viewkeyboard ~key ~x ~y =
         enttext (Some (c, s, opthist, onkey, ondone))
       )
 
-  | Some (c, text, opthist, onkey, ondone) ->
+  | Some (c, text, onhist, onkey, ondone) ->
       begin match Char.unsafe_chr key with
       | '\r' | '\n' ->
           ondone text;
@@ -1390,9 +1384,9 @@ let viewkeyboard ~key ~x ~y =
           Glut.postRedisplay ()
 
       | '\027' ->
-          begin match opthist with
+          begin match onhist with
           | None -> ()
-          | Some (_, onhistcancel) -> onhistcancel ()
+          | Some onhist -> ignore (onhist HCcancel)
           end;
           state.textentry <- None;
           Glut.postRedisplay ()
@@ -1405,7 +1399,7 @@ let viewkeyboard ~key ~x ~y =
               Glut.postRedisplay ()
 
           | TEcont text ->
-              enttext (Some (c, text, opthist, onkey, ondone));
+              enttext (Some (c, text, onhist, onkey, ondone));
 
           | TEstop ->
               state.textentry <- None;
@@ -1659,7 +1653,7 @@ let special ~key ~x ~y =
           in
           gotoy_and_clear_text y
 
-      | Some (c, s, Some (onhist, onhistcancel), onkey, ondone) ->
+      | Some (c, s, Some onhist, onkey, ondone) ->
           let s =
             match key with
             | Glut.KEY_UP    -> onhist HCprev
@@ -1668,8 +1662,7 @@ let special ~key ~x ~y =
             | Glut.KEY_END   -> onhist HClast
             | _ -> state.text
           in
-          state.textentry <- Some (c, s, Some (onhist,
-                                              onhistcancel), onkey, ondone);
+          state.textentry <- Some (c, s, Some onhist, onkey, ondone);
           Glut.postRedisplay ()
 
       | _ -> ()
