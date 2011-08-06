@@ -169,6 +169,7 @@ struct {
     } *texowners;
 
     int rotate;
+    int proportional;
     int needoutline;
 
 #ifdef _WIN32
@@ -632,24 +633,24 @@ static void layout (void)
     double zoom, w, maxw;
     struct pagedim *p = state.pagedims;
 
-    for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
-        box.x0 = MIN (p->box.x0, p->box.x1);
-        box.y0 = MIN (p->box.y0, p->box.y1);
-        box.x1 = MAX (p->box.x0, p->box.x1);
-        box.y1 = MAX (p->box.y0, p->box.y1);
+    if (state.proportional) {
+        for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
+            box.x0 = MIN (p->box.x0, p->box.x1);
+            box.y0 = MIN (p->box.y0, p->box.y1);
+            box.x1 = MAX (p->box.x0, p->box.x1);
+            box.y1 = MAX (p->box.y0, p->box.y1);
 
-        ctm = fz_identity;
-        ctm = fz_concat (ctm, fz_translate (0, -box.y1));
-        ctm = fz_concat (ctm, fz_rotate (p->rotate));
-        box2 = fz_transform_rect (ctm, box);
-        w = box2.x1 - box2.x0;
-        maxw = MAX (w, maxw);
+            ctm = fz_identity;
+            ctm = fz_concat (ctm, fz_translate (0, -box.y1));
+            ctm = fz_concat (ctm, fz_rotate (p->rotate));
+            box2 = fz_transform_rect (ctm, box);
+            w = box2.x1 - box2.x0;
+            maxw = MAX (w, maxw);
+        }
     }
 
     p = state.pagedims;
     for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
-        double scale;
-
         box.x0 = MIN (p->box.x0, p->box.x1);
         box.y0 = MIN (p->box.y0, p->box.y1);
         box.x1 = MAX (p->box.x0, p->box.x1);
@@ -661,15 +662,20 @@ static void layout (void)
         box2 = fz_transform_rect (ctm, box);
         w = box2.x1 - box2.x0;
 
-        scale = w / maxw;
-        zoom = (state.w / w) * scale;
+        if (state.proportional) {
+            double scale = w / maxw;
+            zoom = (state.w / w) * scale;
+        }
+        else {
+            zoom = state.w / w;
+        }
         ctm = fz_identity;
         ctm = fz_concat (ctm, fz_translate (0, -box.y1));
         ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
         memcpy (&p->ctm1, &ctm, sizeof (ctm));
         ctm = fz_concat (ctm, fz_rotate (p->rotate));
         p->bbox = fz_round_rect (fz_transform_rect (ctm, box));
-        p->left = ((maxw - w) * zoom) / 2.0;
+        p->left = state.proportional ? ((maxw - w) * zoom) / 2.0 : 0;
         memcpy (&p->ctm, &ctm, sizeof (ctm));
     }
 
@@ -978,22 +984,22 @@ mainloop (void *unused)
             fz_obj *obj;
             size_t filenamelen;
             char *password;
-            char *anglestr;
             char *filename = p + 5;
+            char *p2 ;
+            int angle, proportional;
 
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
-            anglestr = password + strlen (password) + 1;
+            p2 = password + strlen (password) + 1;
 
-            if (*anglestr) {
-                int angle;
-                int ret = sscanf (anglestr, "%d", &angle);
-                if (ret != 1) {
-                    errx (1, "malformed angle `%.*s' ret=%d",
-                          strlen (anglestr), anglestr, ret);
-                }
-                state.rotate = angle;
+            ret = sscanf (p2, " %d %d", &angle, &proportional);
+            if (ret != 2) {
+                errx (1, "malformed open `%*s' ret=%d",
+                      len - (p2 - p), p2, ret);
             }
+
+            state.rotate = angle;
+            state.proportional = proportional;
 
             openxref (filename, password);
             initpdims ();
@@ -1072,16 +1078,18 @@ mainloop (void *unused)
             unlock ("geometry");
             printd (state.sock, "C %d", state.pagecount);
         }
-        else if (!strncmp ("rotate", p, 6)) {
+        else if (!strncmp ("reinit", p, 6)) {
             float rotate;
+            int proportional;
 
             printd (state.sock, "c");
-            ret = sscanf (p + 6, " %f", &rotate);
-            if (ret != 1) {
+            ret = sscanf (p + 6, " %f %d", &rotate, &proportional);
+            if (ret != 2) {
                 errx (1, "bad rotate line `%.*s' ret=%d", len, p, ret);
             }
-            lock ("rotate");
+            lock ("reinit");
             state.rotate = rotate;
+            state.proportional = proportional;
             state.pagedimcount = 0;
             free (state.pagedims);
             state.pagedims = NULL;
@@ -1092,7 +1100,7 @@ mainloop (void *unused)
                 freepage (state.pig);
                 state.pig = NULL;
             }
-            unlock ("rotate");
+            unlock ("reinit");
             printd (state.sock, "C %d", state.pagecount);
         }
         else if (!strncmp ("render", p, 6)) {
@@ -1108,11 +1116,12 @@ mainloop (void *unused)
             page = render (pageno, pindex);
             unlock ("render");
 
-            printd (state.sock, "r %d %d %d %d %p",
+            printd (state.sock, "r %d %d %d %d %d %p",
                     pageno,
                     state.w,
                     state.h,
                     state.rotate,
+                    state.proportional,
                     page);
         }
         else if (!strncmp ("interrupt", p, 9)) {
@@ -1803,14 +1812,16 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
         goto done;
     }
 
-    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        double x0, x1, w;
+    if (state.proportional) {
+        for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+            double x0, x1, w;
 
-        x0 = MIN (p->box.x0, p->box.x1);
-        x1 = MAX (p->box.x0, p->box.x1);
+            x0 = MIN (p->box.x0, p->box.x1);
+            x1 = MAX (p->box.x0, p->box.x1);
 
-        w = x1 - x0;
-        maxw = MAX (w, maxw);
+            w = x1 - x0;
+            maxw = MAX (w, maxw);
+        }
     }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
@@ -1823,9 +1834,16 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
 
         w = x1 - x0;
         h = y1 - y0;
-        scale = w / maxw;
 
-        scaledh = h * scale;
+        if (state.proportional) {
+            scale = w / maxw;
+            scaledh = h * scale;
+        }
+        else  {
+            scale = 1.0;
+            scaledh = h;
+        }
+
         if (scaledh > maxh) {
             maxh = scaledh;
             ph = scaledh;

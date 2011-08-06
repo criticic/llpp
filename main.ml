@@ -117,6 +117,7 @@ type conf =
     ; mutable winw : int
     ; mutable winh : int
     ; mutable savebmarks : bool
+    ; mutable proportional : bool
     }
 ;;
 
@@ -138,7 +139,7 @@ type state =
     ; mutable ty : float
     ; mutable maxy : int
     ; mutable layout : layout list
-    ; pagemap : ((int * int * int), string) Hashtbl.t
+    ; pagemap : ((int * int * int * bool), string) Hashtbl.t
     ; mutable pdims : (int * int * int * int) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
@@ -187,6 +188,7 @@ let conf =
   ; winw = 900
   ; winh = 900
   ; savebmarks = true
+  ; proportional = true
   }
 ;;
 
@@ -443,12 +445,14 @@ let clamp incr =
 ;;
 
 let getopaque pageno =
-  try Some (Hashtbl.find state.pagemap (pageno + 1, state.w, conf.angle))
+  try Some (Hashtbl.find state.pagemap
+               (pageno + 1, state.w, conf.angle, conf.proportional))
   with Not_found -> None
 ;;
 
 let cache pageno opaque =
-  Hashtbl.replace state.pagemap (pageno + 1, state.w, conf.angle) opaque
+  Hashtbl.replace state.pagemap
+    (pageno + 1, state.w, conf.angle, conf.proportional) opaque
 ;;
 
 let validopaque opaque = String.length opaque > 0;;
@@ -724,18 +728,18 @@ let act cmd =
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | 'r' ->
-      let n, w, h, r, p =
-        Scanf.sscanf cmd "r %d %d %d %d %s"
-          (fun n w h r p -> (n, w, h, r, p))
+      let n, w, h, r, l, p =
+        Scanf.sscanf cmd "r %d %d %d %d %d %s"
+          (fun n w h r l p -> (n, w, h, r, l != 0, p))
       in
-      Hashtbl.replace state.pagemap (n, w, r) p;
+      Hashtbl.replace state.pagemap (n, w, r, l) p;
       let opaque = cbpeekw state.pagecache in
       if validopaque opaque
       then (
         let k =
           Hashtbl.fold
             (fun k v a -> if v = opaque then k else a)
-            state.pagemap (-1, -1, -1)
+            state.pagemap (-1, -1, -1, false)
         in
         wcmd "free" [`s opaque];
         Hashtbl.remove state.pagemap k
@@ -879,10 +883,11 @@ let textentry text key =
       TEcont text
 ;;
 
-let rotate angle =
+let reinit angle proportional =
   conf.angle <- angle;
+  conf.proportional <- proportional;
   invalidate ();
-  wcmd "rotate" [`i angle];
+  wcmd "reinit" [`i angle; `b proportional];
 ;;
 
 let optentry text key =
@@ -906,7 +911,7 @@ let optentry text key =
               s (Printexc.to_string exc);
             None
         with
-        | Some angle -> rotate angle
+        | Some angle -> reinit angle conf.proportional
         | None -> ()
       in
       TEswitch ('^', "", None, intentry, ondone)
@@ -957,6 +962,10 @@ let optentry text key =
             s (Printexc.to_string exc)
       in
       TEswitch ('%', "", None, intentry, ondone)
+
+  | 'l' ->
+      reinit conf.angle (not conf.proportional);
+      TEdone ("proprortional display " ^ btos conf.proportional)
 
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
@@ -1041,13 +1050,22 @@ let doreshape w h =
   Glut.reshapeWindow w h;
 ;;
 
+let writeopen path password  =
+  writecmd state.csock
+    ("open " ^ path ^ "\000"
+      ^ state.password ^ "\000"
+      ^ string_of_int conf.angle ^ " "
+      ^ (if conf.proportional then "1" else "0"))
+  ;
+;;
+
 let opendoc path password =
   invalidate ();
   state.path <- path;
   state.password <- password;
   Hashtbl.clear state.pagemap;
 
-  writecmd state.csock ("open " ^ path ^ "\000" ^ password ^ "\000");
+  writeopen path password;
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
@@ -1293,7 +1311,7 @@ let viewkeyboard ~key ~x ~y =
           end
 
       | '<' | '>' ->
-          rotate (conf.angle + (if c = '>' then 30 else -30));
+          reinit (conf.angle + (if c = '>' then 30 else -30)) conf.proportional
 
       | '[' | ']' ->
           state.colorscale <-
@@ -2052,6 +2070,7 @@ struct
         | "width" -> { c with winw = int_of_string v }
         | "height" -> { c with winh = int_of_string v }
         | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
+        | "proportional-display" -> { c with proportional = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -2099,6 +2118,7 @@ struct
     dst.winw           <- src.winw;
     dst.winh           <- src.winh;
     dst.savebmarks     <- src.savebmarks;
+    dst.proportional   <- src.proportional;
   ;;
 
   let unent s =
@@ -2349,6 +2369,7 @@ struct
     ob "presentation" c.presentation dc.presentation;
     oi "rotation-angle" c.angle dc.angle;
     ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
+    ob "proportional-display" c.proportional dc.proportional;
   ;;
 
   let save () =
@@ -2475,9 +2496,7 @@ let () =
   state.csock <- csock;
   state.ssock <- ssock;
   state.text <- "Opening " ^ path;
-  writecmd state.csock
-    ("open " ^ path ^ "\000" ^ state.password ^ "\000"
-      ^ string_of_int conf.angle ^ "\000");
+  writeopen state.path state.password;
 
   at_exit State.save;
 
