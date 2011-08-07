@@ -496,13 +496,13 @@ let clamp incr =
 
 let getopaque pageno =
   try Some (Hashtbl.find state.pagemap
-               (pageno + 1, state.w, conf.angle, conf.proportional))
+               (pageno, state.w, conf.angle, conf.proportional))
   with Not_found -> None
 ;;
 
 let cache pageno opaque =
   Hashtbl.replace state.pagemap
-    (pageno + 1, state.w, conf.angle, conf.proportional) opaque
+    (pageno, state.w, conf.angle, conf.proportional) opaque
 ;;
 
 let validopaque opaque = String.length opaque > 0;;
@@ -538,7 +538,7 @@ let findpageforopaque opaque =
     state.pagemap None
 ;;
 
-let pagevisible n = List.exists (fun l -> l.pageno + 1 = n) state.layout;;
+let pagevisible n = List.exists (fun l -> l.pageno = n) state.layout;;
 
 let preload () =
   if conf.preload
@@ -786,7 +786,8 @@ let act cmd =
   | 'r' ->
       let n, w, h, r, l, s, p =
         Scanf.sscanf cmd "r %u %u %u %u %d %u %s"
-          (fun n w h r l s p -> (n, w, h, r, l != 0, s, p))
+          (fun n w h r l s p ->
+            (n-1, w, h, r, l != 0, s, p))
       in
 
       Hashtbl.replace state.pagemap (n, w, r, l) (p, s);
