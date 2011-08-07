@@ -1268,6 +1268,8 @@ let viewkeyboard ~key ~x ~y =
               conf.presentation <- false;
               conf.interpagespace <- 10;
               state.x <- 0;
+              state.mstate <- Mnone;
+              Glut.setCursor Glut.CURSOR_INHERIT;
               state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
                 (100.0*.zoom)
 
