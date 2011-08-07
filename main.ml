@@ -2202,6 +2202,7 @@ let mouse ~button ~bstate ~x ~y =
                 if y > l.pagedispy && y < l.pagedispy + l.pagevh
                   && x > margin && x < margin + l.pagew
                 then (
+                  state.birdseyepageno <- l.pageno;
                   birdseyeoff vals;
                   reshape conf.winw conf.winh;
                 )
