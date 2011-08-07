@@ -23,6 +23,7 @@ and interpagespace = int
 and texcount = int
 and sliceheight = int
 and zoom = float
+and gen = int
 ;;
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;
@@ -165,6 +166,8 @@ type outlines =
 
 type rect = (float * float * float * float * float * float * float * float);;
 
+type pagemapkey = (pageno * width * angle * proportional * gen);;
+
 type state =
     { mutable csock : Unix.file_descr
     ; mutable ssock : Unix.file_descr
@@ -174,8 +177,7 @@ type state =
     ; mutable ty : float
     ; mutable maxy : int
     ; mutable layout : layout list
-    ; pagemap :
-      ((pageno * width * angle * proportional), (opaque * pixmapsize)) Hashtbl.t
+    ; pagemap : (pagemapkey, (opaque * pixmapsize)) Hashtbl.t
     ; mutable pdims : (pageno * width * height * leftx) list
     ; mutable pagecount : int
     ; pagecache : string circbuf
@@ -197,6 +199,7 @@ type state =
     ; mutable colorscale : float
     ; mutable memused : int
     ; mutable birdseyepageno : pageno
+    ; mutable gen : gen
     ; hists : hists
     }
 and hists =
@@ -272,6 +275,7 @@ let state =
   ; colorscale = 1.0
   ; memused = 0
   ; birdseyepageno = 0
+  ; gen = 0
   }
 ;;
 
@@ -498,13 +502,13 @@ let clamp incr =
 
 let getopaque pageno =
   try Some (Hashtbl.find state.pagemap
-               (pageno, state.w, conf.angle, conf.proportional))
+               (pageno, state.w, conf.angle, conf.proportional, state.gen))
   with Not_found -> None
 ;;
 
 let cache pageno opaque =
   Hashtbl.replace state.pagemap
-    (pageno, state.w, conf.angle, conf.proportional) opaque
+    (pageno, state.w, conf.angle, conf.proportional, state.gen) opaque
 ;;
 
 let validopaque opaque = String.length opaque > 0;;
@@ -548,7 +552,7 @@ let preload () =
     let oktopreload =
       let opaque = cbpeek state.pagecache in
       match findpageforopaque opaque with
-      | Some ((n, _, _, _), size) ->
+      | Some ((n, _, _, _, _), size) ->
           not (pagevisible n) && state.memused - size <= conf.memlimit
       | None -> false
     in
@@ -799,7 +803,7 @@ let act cmd =
             (n-1, w, h, r, l != 0, s, p))
       in
 
-      Hashtbl.replace state.pagemap (n, w, r, l) (p, s);
+      Hashtbl.replace state.pagemap (n, w, r, l, state.gen) (p, s);
       state.memused <- state.memused + s;
 
       let rec gc () =
@@ -809,8 +813,8 @@ let act cmd =
           let evictedopaque = cbpeek state.pagecache in
           match findpageforopaque evictedopaque with
           | None -> failwith "bug in gc"
-          | Some ((evictedn, _, _, _) as k, evictedsize) ->
-              if not (pagevisible evictedn)
+          | Some ((evictedn, _, _, _, gen) as k, evictedsize) ->
+              if state.gen != gen || not (pagevisible evictedn)
               then (
                 wcmd "free" [`s evictedopaque];
                 state.memused <- state.memused - evictedsize;
@@ -1140,6 +1144,7 @@ let opendoc path password =
   invalidate ();
   state.path <- path;
   state.password <- password;
+  state.gen <- state.gen + 1;
 
   writeopen path password;
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
