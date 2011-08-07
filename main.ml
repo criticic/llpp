@@ -1799,7 +1799,7 @@ let drawplaceholder l =
 
 let now () = Unix.gettimeofday ();;
 
-let drawpage i l =
+let drawpage l =
   begin match getopaque l.pageno with
   | Some (opaque, _) when validopaque opaque ->
       if state.textentry = None
@@ -1815,7 +1815,6 @@ let drawpage i l =
   | _ ->
       drawplaceholder l;
   end;
-  l.pagedispy + l.pagevh;
 ;;
 
 let scrollph y =
@@ -1968,7 +1967,7 @@ let display () =
     Gl.enable `scissor_test;
     GlMisc.scissor 0 0 (conf.winw - conf.scrollw) conf.winh;
   );
-  let _lasty = List.fold_left drawpage 0 (state.layout) in
+  List.iter drawpage state.layout;
   if conf.zoom > 1.0
   then
     Gl.disable `scissor_test
