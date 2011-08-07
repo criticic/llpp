@@ -185,7 +185,7 @@ type state =
     ; mutable rects1 : (pageno * recttype * rect) list
     ; mutable text : string
     ; mutable fullscreen : (width * height) option
-    ; mutable birdseye : (conf * leftx) option
+    ; mutable birdseye : (conf * leftx * pageno) option
     ; mutable textentry : textentry option
     ; mutable outlines : outlines
     ; mutable outline : (bool * int * int * outline array * string) option
@@ -1186,7 +1186,7 @@ let opendoc path password =
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
-let birdseyeoff (c, leftx) =
+let birdseyeoff (c, leftx, _) =
   state.birdseye <- None;
   conf.zoom <- c.zoom;
   conf.presentation <- c.presentation;
@@ -1302,7 +1302,8 @@ let viewkeyboard ~key ~x ~y =
                 | l :: _ -> l.pageno
               in
               state.birdseyepageno <- birdseyepageno;
-              state.birdseye <- Some ({ conf with zoom = conf.zoom }, state.x);
+              state.birdseye <-
+                Some ({ conf with zoom = conf.zoom }, state.x, -1);
               conf.zoom <- zoom;
               conf.presentation <- false;
               conf.interpagespace <- 10;
@@ -1928,7 +1929,21 @@ let drawpage l =
   begin match getopaque l.pageno with
   | Some (opaque, _) when validopaque opaque ->
       if state.textentry = None
-      then GlDraw.color (scalecolor 1.0)
+      then (
+        match state.birdseye with
+        | None -> GlDraw.color (scalecolor 1.0);
+        | Some (_, _, hooverpageno) ->
+            let color =
+              if l.pageno = state.birdseyepageno
+              then 0.7
+              else (
+                if l.pageno = hooverpageno
+                then 0.9
+                else 1.0
+              )
+            in
+            GlDraw.color (scalecolor color);
+      )
       else GlDraw.color (scalecolor 0.4);
       let a = now () in
       draw (l.pagedispy, l.pagew, l.pagevh, l.pagey, conf.hlinks)
@@ -1940,18 +1955,6 @@ let drawpage l =
   | _ ->
       drawplaceholder l;
   end;
-  if state.birdseye <> None && state.birdseyepageno = l.pageno
-  then (
-    GlDraw.polygon_mode `both `line;
-    GlDraw.line_width 4.0;
-    GlDraw.color (0.8, 0.0, 0.0);
-    GlDraw.rect
-      (float (l.pagex - 1), float (l.pagedispy - 1))
-      (float (l.pagew + l.pagex + 1), float (l.pagedispy + l.pagevh + 1))
-    ;
-    GlDraw.line_width 1.0;
-    GlDraw.polygon_mode `both `fill;
-  );
 ;;
 
 let scrollph y =
@@ -2291,25 +2294,49 @@ let motion ~x ~y =
 ;;
 
 let pmotion ~x ~y =
-  if state.outline = None && state.birdseye = None
-  then
-    match state.mstate with
-    | Mnone ->
-        begin match getunder x y with
-        | Unone -> Glut.setCursor Glut.CURSOR_INHERIT
-        | Ulinkuri uri ->
-            if conf.underinfo then showtext 'u' ("ri: " ^ uri);
-            Glut.setCursor Glut.CURSOR_INFO
-        | Ulinkgoto (page, y) ->
-            if conf.underinfo then showtext 'p' ("age: " ^ string_of_int page);
-            Glut.setCursor Glut.CURSOR_INFO
-        | Utext s ->
-            if conf.underinfo then showtext 'f' ("ont: " ^ s);
-            Glut.setCursor Glut.CURSOR_TEXT
-        end
+  match state.birdseye with
+  | Some (conf, leftx, hooverpageno) ->
+      let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+      let rec loop = function
+        | [] ->
+            if hooverpageno != -1
+            then (
+              state.birdseye <- Some (conf, leftx, -1);
+              Glut.postRedisplay ();
+            )
+        | l :: rest ->
+            if y > l.pagedispy && y < l.pagedispy + l.pagevh
+              && x > margin && x < margin + l.pagew
+            then (
+              state.birdseye <- Some (conf, leftx, l.pageno);
+              Glut.postRedisplay ();
+            )
+            else loop rest
+      in
+      loop state.layout
 
-    | Mpan _ | Msel _ | Mscroll ->
-        ()
+  | None ->
+      if state.outline = None
+      then
+        match state.mstate with
+        | Mnone ->
+            begin match getunder x y with
+            | Unone -> Glut.setCursor Glut.CURSOR_INHERIT
+            | Ulinkuri uri ->
+                if conf.underinfo then showtext 'u' ("ri: " ^ uri);
+                Glut.setCursor Glut.CURSOR_INFO
+            | Ulinkgoto (page, y) ->
+                if conf.underinfo
+                then showtext 'p' ("age: " ^ string_of_int page);
+                Glut.setCursor Glut.CURSOR_INFO
+            | Utext s ->
+                if conf.underinfo then showtext 'f' ("ont: " ^ s);
+                Glut.setCursor Glut.CURSOR_TEXT
+            end
+
+        | Mpan _ | Msel _ | Mscroll ->
+            ()
+
 ;;
 
 module State =
@@ -2644,7 +2671,7 @@ struct
       then dc.zoom, dc.presentation, dc.interpagespace, dc.showall
       else
         match state.birdseye with
-        | Some (bc, _) ->
+        | Some (bc, _, _) ->
             bc.zoom, bc.presentation, bc.interpagespace, bc.showall
         | None -> c.zoom, c.presentation, c.interpagespace, c.showall
     in
@@ -2712,7 +2739,7 @@ struct
 
       let x =
         match state.birdseye with
-        | Some (_, x) -> x
+        | Some (_, x, _) -> x
         | None -> state.x
       in
       adddoc state.path x (yratio state.y) conf
