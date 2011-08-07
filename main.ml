@@ -576,17 +576,16 @@ let gotoy y =
   let pages = layout y conf.winh in
   let ready = loadlayout pages in
   state.ty <- yratio y;
+  state.layout <- pages;
   if conf.showall
   then (
     if ready
     then (
-      state.layout <- pages;
       state.y <- y;
       Glut.postRedisplay ();
     );
   )
   else (
-    state.layout <- pages;
     state.y <- y;
     Glut.postRedisplay ();
   );
@@ -1141,7 +1140,6 @@ let opendoc path password =
   invalidate ();
   state.path <- path;
   state.password <- password;
-  Hashtbl.clear state.pagemap;
 
   writeopen path password;
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
