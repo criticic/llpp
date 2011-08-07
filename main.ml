@@ -1226,7 +1226,7 @@ let viewkeyboard ~key ~x ~y =
       | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           begin match state.birdseye with
           | None ->
-              let zoom = 120.0 /. float state.w in
+              let zoom = 50.0 /. float state.w in
               state.birdseye <- Some (
                 conf.zoom,
                 state.x,
@@ -1947,7 +1947,12 @@ let display () =
   let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
   GlDraw.viewport margin 0 state.w conf.winh;
   pagematrix ();
-  GlClear.color (scalecolor 0.5);
+  if state.birdseye <> None
+  then
+    GlClear.color (0.5, 0.5, 0.55)
+  else
+    GlClear.color (scalecolor 0.5)
+  ;
   GlClear.clear [`color];
   if state.x != 0
   then (
