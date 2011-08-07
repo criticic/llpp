@@ -271,7 +271,7 @@ let state =
       }
   ; colorscale = 1.0
   ; memused = 0
-  ; birdseyepageno = 0
+  ; birdseyepageno = -1
   ; gen = 0
   ; throttle = None
   }
@@ -652,15 +652,22 @@ let scalecolor c =
 
 let represent () =
   let y =
-    match state.layout with
-    | [] ->
-        let rely = yratio state.y in
-        state.maxy <- calcheight ();
-        truncate (float state.maxy *. rely)
+    if state.birdseyepageno = -1 && state.birdseye = None
+    then
+      match state.layout with
+      | [] ->
+          let rely = yratio state.y in
+          state.maxy <- calcheight ();
+          truncate (float state.maxy *. rely)
 
-    | l :: _ ->
-        state.maxy <- calcheight ();
-        getpagey l.pageno
+      | l :: _ ->
+          state.maxy <- calcheight ();
+          getpagey l.pageno
+    else (
+      let y = getpagey state.birdseyepageno in
+      state.birdseyepageno <- -1;
+      y
+    )
   in
   gotoy y
 ;;
@@ -1213,8 +1220,6 @@ let viewkeyboard ~key ~x ~y =
           begin match state.birdseye with
           | None -> ()
           | Some vals ->
-              let y = getpagey state.birdseyepageno in
-              state.y <- y;
               birdseyeoff vals;
               reshape conf.winw conf.winh;
           end;
@@ -1291,6 +1296,12 @@ let viewkeyboard ~key ~x ~y =
           begin match state.birdseye with
           | None ->
               let zoom = 76.0 /. float state.w in
+              let birdseyepageno =
+                match state.layout with
+                | [] -> 0
+                | l :: _ -> l.pageno
+              in
+              state.birdseyepageno <- birdseyepageno;
               state.birdseye <- Some ({ conf with zoom = conf.zoom }, state.x);
               conf.zoom <- zoom;
               conf.presentation <- false;
@@ -1771,7 +1782,7 @@ let special ~key ~x ~y =
           begin match List.rev state.layout with
           | l :: _ ->
               state.birdseyepageno <- min (state.pagecount - 1) (l.pageno + 1);
-              gotoy (clamp (l.pagedispy + conf.interpagespace + l.pageh))
+              gotoy (clamp (l.pagedispy + l.pageh))
           | [] -> gotoy (clamp conf.winh)
           end;
 
@@ -2188,8 +2199,6 @@ let mouse ~button ~bstate ~x ~y =
                 if y > l.pagedispy && y < l.pagedispy + l.pagevh
                   && x > margin && x < margin + l.pagew
                 then (
-                  let y = getpagey l.pageno in
-                  state.y <- y;
                   birdseyeoff vals;
                   reshape conf.winw conf.winh;
                 )
