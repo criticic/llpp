@@ -60,7 +60,15 @@ tunables
 -f                      - toggle "what's under cursor" identification
                           (only font name currently)
 
+bird's eye mode
+(page)up/(page)down     - navigate
+home/end                - go to first/last page
+enter                   - select the page and leave bird's eye mode
+ctrl-9                  - leave bird's eye view
+1st mouse button        - select the page under cursor and leave bird's eye mode
+
 outline/bookmark mode
+esc                     - leave outline/bookmark mode
 up/down                 - select previous/next item
 alpha-numeric           - quick search
 Ctrl-s                  - repeat search (forward)
