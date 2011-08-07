@@ -196,6 +196,7 @@ type state =
     ; mutable invalidated : int
     ; mutable colorscale : float
     ; mutable memused : int
+    ; mutable birdseyepageno : pageno
     ; hists : hists
     }
 and hists =
@@ -270,6 +271,7 @@ let state =
       }
   ; colorscale = 1.0
   ; memused = 0
+  ; birdseyepageno = 0
   }
 ;;
 
@@ -587,6 +589,14 @@ let gotoy y =
     state.layout <- pages;
     state.y <- y;
     Glut.postRedisplay ();
+  );
+  if state.birdseye <> None
+  then (
+    if not (pagevisible state.birdseyepageno)
+    then
+      match state.layout with
+      | [] -> ()
+      | l :: _ -> state.birdseyepageno <- l.pageno
   );
   preload ();
 ;;
@@ -1166,6 +1176,16 @@ let viewkeyboard ~key ~x ~y =
           let y = getnav () in
           gotoy_and_clear_text y
 
+      | '\013' ->
+          begin match state.birdseye with
+          | None -> ()
+          | Some vals ->
+              let y = getpagey state.birdseyepageno in
+              state.y <- y;
+              birdseyeoff vals;
+              reshape conf.winw conf.winh;
+          end;
+
       | 'o' ->
           enteroutlinemode ()
 
@@ -1677,6 +1697,51 @@ let keyboard ~key ~x ~y =
 
 let special ~key ~x ~y =
   match state.outline with
+  | None when state.birdseye <> None ->
+      begin match key with
+      | Glut.KEY_UP ->
+          let pageno = max 0 (state.birdseyepageno - 1) in
+          state.birdseyepageno <- pageno;
+          if not (pagevisible pageno)
+          then gotopage pageno 0.0
+          else Glut.postRedisplay ();
+
+      | Glut.KEY_DOWN ->
+          let pageno = min (state.pagecount - 1) (state.birdseyepageno + 1) in
+          state.birdseyepageno <- pageno;
+          if not (pagevisible pageno)
+          then
+            begin match List.rev state.layout with
+            | [] -> gotopage pageno 0.0
+            | l :: _ ->
+                gotoy (state.y + conf.interpagespace + l.pageh*2 - l.pagevh)
+            end
+          else Glut.postRedisplay ();
+
+      | Glut.KEY_PAGE_UP ->
+          begin match state.layout with
+          | l :: _ ->
+              state.birdseyepageno <- max 0 (l.pageno - 1);
+              gotopage state.birdseyepageno 0.0
+          | [] -> gotoy (clamp (-conf.winh))
+          end;
+      | Glut.KEY_PAGE_DOWN ->
+          begin match List.rev state.layout with
+          | l :: _ ->
+              state.birdseyepageno <- min (state.pagecount - 1) (l.pageno + 1);
+              gotoy (clamp (l.pagedispy + conf.interpagespace + l.pageh))
+          | [] -> gotoy (clamp conf.winh)
+          end;
+
+      | Glut.KEY_HOME ->
+          state.birdseyepageno <- 0;
+          gotopage 0 0.0
+      | Glut.KEY_END ->
+          state.birdseyepageno <- state.pagecount - 1;
+          gotopage state.birdseyepageno 0.0
+      | _ -> ()
+      end
+
   | None ->
       begin match state.textentry with
       | None ->
@@ -1816,6 +1881,18 @@ let drawpage l =
   | _ ->
       drawplaceholder l;
   end;
+  if state.birdseye <> None && state.birdseyepageno = l.pageno
+  then (
+    GlDraw.polygon_mode `both `line;
+    GlDraw.line_width 4.0;
+    GlDraw.color (0.8, 0.0, 0.0);
+    GlDraw.rect
+      (float (l.pagex - 1), float (l.pagedispy - 1))
+      (float (l.pagew + l.pagex + 1), float (l.pagedispy + l.pagevh + 1))
+    ;
+    GlDraw.line_width 1.0;
+    GlDraw.polygon_mode `both `fill;
+  );
 ;;
 
 let scrollph y =
