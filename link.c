@@ -738,8 +738,10 @@ static void recurse_outline (pdf_outline *outline, int level)
         }
 
         lprintf ("%*c%s %d\n", level, ' ', outline->title, pageno);
-        printd (state.sock, "o %d %d %d %d %s",
-                level, pageno, top, h, outline->title);
+        if (pageno > 0) {
+            printd (state.sock, "o %d %d %d %d %s",
+                    level, pageno, top, h, outline->title);
+        }
     next:
         if (outline->child) {
             recurse_outline (outline->child, level + 1);
