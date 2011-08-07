@@ -1137,6 +1137,16 @@ let opendoc path password =
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
+let birdseyeoff (zoom, x, presentation, interpagespace) =
+  state.birdseye <- None;
+  conf.zoom <- zoom;
+  conf.presentation <- presentation;
+  conf.interpagespace <- interpagespace;
+  state.x <- x;
+  state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
+    (100.0*.zoom);
+;;
+
 let viewkeyboard ~key ~x ~y =
   let enttext te =
     state.textentry <- te;
@@ -1240,14 +1250,8 @@ let viewkeyboard ~key ~x ~y =
               state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
                 (100.0*.zoom)
 
-          | Some (zoom, x, presentation, interpagespace) ->
-              state.birdseye <- None;
-              conf.zoom <- zoom;
-              conf.presentation <- presentation;
-              conf.interpagespace <- interpagespace;
-              state.x <- x;
-              state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-                (100.0*.zoom);
+          | Some vals ->
+              birdseyeoff vals;
           end;
           reshape conf.winw conf.winh
 
@@ -2049,6 +2053,27 @@ let mouse ~button ~bstate ~x ~y =
       else
         state.mstate <- Mnone
 
+  | Glut.LEFT_BUTTON when state.outline = None && state.birdseye <> None ->
+      begin match state.birdseye with
+      | Some vals ->
+          let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+          let rec loop = function
+            | [] -> ()
+            | l :: rest ->
+                if y > l.pagedispy && y < l.pagedispy + l.pagevh
+                  && x > margin && x < margin + l.pagew
+                then (
+                  let y = getpagey l.pageno in
+                  state.y <- y;
+                  birdseyeoff vals;
+                  reshape conf.winw conf.winh;
+                )
+                else loop rest
+          in
+          loop state.layout;
+      | None -> ()                      (* impossible *)
+      end
+
   | Glut.LEFT_BUTTON when state.outline = None ->
       let dest = if bstate = Glut.DOWN then getunder x y else Unone in
       begin match dest with
@@ -2132,7 +2157,7 @@ let motion ~x ~y =
 ;;
 
 let pmotion ~x ~y =
-  if state.outline = None
+  if state.outline = None && state.birdseye = None
   then
     match state.mstate with
     | Mnone ->
