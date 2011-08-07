@@ -1721,8 +1721,12 @@ let special ~key ~x ~y =
       | Glut.KEY_PAGE_UP ->
           begin match state.layout with
           | l :: _ ->
-              state.birdseyepageno <- max 0 (l.pageno - 1);
-              gotopage state.birdseyepageno 0.0
+              if l.pageno = state.birdseyepageno
+              then gotoy (clamp (-conf.winh))
+              else (
+                state.birdseyepageno <- max 0 (l.pageno - 1);
+                gotopage state.birdseyepageno 0.0
+              )
           | [] -> gotoy (clamp (-conf.winh))
           end;
       | Glut.KEY_PAGE_DOWN ->
