@@ -304,9 +304,29 @@ let parse v s =
 
   and collect_attributes pos =
     let rec f accu pos =
+      let skip_comment pos =
+        if slen - pos < 6
+        then error "not enough data in attribute list after <" s pos;
+        if s.[pos] = '!' && s.[pos+1] = '-'
+        then
+          let pos =
+            try
+              find_substr (pos+2) "-->" r_comment_terminator
+            with Not_found ->
+              error "comment is not terminated" s pos
+          in
+          pos+3
+        else error "invalid < in attribute list" s pos
+      in
+
       let nameval pos =
         let pos, name = getname pos in
         let pos = find_non_white pos in
+        let pos =
+          if s.[pos] = '<'
+          then find_non_white (skip_comment (pos+1))
+          else pos
+        in
         if s.[pos] = '='
         then
           let qpos = pos+1 in
@@ -335,6 +355,11 @@ let parse v s =
       in
 
       let pos = find_non_white pos in
+      let pos =
+        if s.[pos] = '<'
+        then find_non_white (skip_comment (pos+1))
+        else pos
+      in
       if s.[pos] = '>'
       then
         accu, pos+1, false
