@@ -1260,7 +1260,7 @@ let viewkeyboard ~key ~x ~y =
       | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
           begin match state.birdseye with
           | None ->
-              let zoom = 50.0 /. float state.w in
+              let zoom = 76.0 /. float state.w in
               state.birdseye <- Some ({ conf with zoom = conf.zoom }, state.x);
               conf.zoom <- zoom;
               conf.presentation <- false;
