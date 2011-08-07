@@ -172,7 +172,6 @@ type state =
     ; mutable w : int
     ; mutable x : int
     ; mutable y : int
-    ; mutable ty : float
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : (pagemapkey, (opaque * pixmapsize)) Hashtbl.t
@@ -198,6 +197,7 @@ type state =
     ; mutable memused : int
     ; mutable birdseyepageno : pageno
     ; mutable gen : gen
+    ; mutable throttle : layout list option
     ; hists : hists
     }
 and hists =
@@ -243,7 +243,6 @@ let state =
   ; w = 0
   ; y = 0
   ; x = 0
-  ; ty = 0.0
   ; layout = []
   ; maxy = max_int
   ; pagemap = Hashtbl.create 10
@@ -274,6 +273,7 @@ let state =
   ; memused = 0
   ; birdseyepageno = 0
   ; gen = 0
+  ; throttle = None
   }
 ;;
 
@@ -542,17 +542,21 @@ let findpageforopaque opaque =
     state.pagemap None
 ;;
 
-let pagevisible n = List.exists (fun l -> l.pageno = n) state.layout;;
+let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
 
 let preload () =
   if conf.preload
   then
     let oktopreload =
-      let opaque = cbpeek state.pagecache in
-      match findpageforopaque opaque with
-      | Some ((n, _, _, _, _), size) ->
-          not (pagevisible n) && state.memused - size <= conf.memlimit
-      | None -> false
+      let memleft = conf.memlimit - state.memused in
+      if memleft < 0
+      then
+        let opaque = cbpeek state.pagecache in
+        match findpageforopaque opaque with
+        | Some ((n, _, _, _, _), size) ->
+            memleft + size >= 0 && not (pagevisible state.layout n)
+        | None -> false
+      else true
     in
     if oktopreload
     then
@@ -577,23 +581,28 @@ let gotoy y =
   let y = min state.maxy y in
   let pages = layout y conf.winh in
   let ready = loadlayout pages in
-  state.ty <- yratio y;
-  state.layout <- pages;
   if conf.showall
   then (
     if ready
     then (
       state.y <- y;
+      state.layout <- pages;
+      state.throttle <- None;
       Glut.postRedisplay ();
-    );
+    )
+    else (
+      state.throttle <- Some pages;
+    )
   )
   else (
     state.y <- y;
+    state.layout <- pages;
+    state.throttle <- None;
     Glut.postRedisplay ();
   );
   if state.birdseye <> None
   then (
-    if not (pagevisible state.birdseyepageno)
+    if not (pagevisible pages state.birdseyepageno)
     then
       match state.layout with
       | [] -> ()
@@ -804,6 +813,12 @@ let act cmd =
       Hashtbl.replace state.pagemap (n, w, r, l, state.gen) (p, s);
       state.memused <- state.memused + s;
 
+      let layout =
+        match state.throttle with
+        | None -> state.layout
+        | Some layout -> layout
+      in
+
       let rec gc () =
         if (state.memused <= conf.memlimit) || cbempty state.pagecache
         then ()
@@ -812,7 +827,7 @@ let act cmd =
           match findpageforopaque evictedopaque with
           | None -> failwith "bug in gc"
           | Some ((evictedn, _, _, _, gen) as k, evictedsize) ->
-              if state.gen != gen || not (pagevisible evictedn)
+              if state.gen != gen || not (pagevisible layout evictedn)
               then (
                 wcmd "free" [`s evictedopaque];
                 state.memused <- state.memused - evictedsize;
@@ -827,13 +842,22 @@ let act cmd =
       cbput state.pagecache p;
       state.rendering <- false;
 
-      if conf.showall
-      then gotoy (truncate (ceil (state.ty *. float state.maxy)))
-      else (
-        if pagevisible n
-        then gotoy state.y
-        else (ignore (loadlayout state.layout); preload ())
-      )
+      begin match state.throttle with
+      | None ->
+          if pagevisible state.layout n
+          then gotoy state.y
+          else (
+            let allvisible = loadlayout state.layout in
+            if allvisible then preload ();
+          )
+
+      | Some layout ->
+          match layout with
+          | [] -> ()
+          | l :: _ ->
+              let y = getpagey l.pageno + l.pagey in
+              gotoy y
+      end
 
   | 'l' ->
       let (n, w, h, x) as pdim =
@@ -1704,14 +1728,14 @@ let special ~key ~x ~y =
       | Glut.KEY_UP ->
           let pageno = max 0 (state.birdseyepageno - 1) in
           state.birdseyepageno <- pageno;
-          if not (pagevisible pageno)
+          if not (pagevisible state.layout pageno)
           then gotopage pageno 0.0
           else Glut.postRedisplay ();
 
       | Glut.KEY_DOWN ->
           let pageno = min (state.pagecount - 1) (state.birdseyepageno + 1) in
           state.birdseyepageno <- pageno;
-          if not (pagevisible pageno)
+          if not (pagevisible state.layout pageno)
           then
             begin match List.rev state.layout with
             | [] -> gotopage pageno 0.0
@@ -1750,7 +1774,7 @@ let special ~key ~x ~y =
           gotopage 0 0.0
       | Glut.KEY_END ->
           state.birdseyepageno <- state.pagecount - 1;
-          if not (pagevisible state.birdseyepageno)
+          if not (pagevisible state.layout state.birdseyepageno)
           then
             gotopage state.birdseyepageno 0.0
           else
