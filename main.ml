@@ -18,11 +18,9 @@ and recttype = int
 and pixmapsize = int
 and angle = int
 and proportional = bool
-and presentation = bool
 and interpagespace = int
 and texcount = int
 and sliceheight = int
-and zoom = float
 and gen = int
 ;;
 
@@ -144,8 +142,8 @@ type conf =
     ; mutable hlinks : bool
     ; mutable underinfo : bool
     ; mutable interpagespace : interpagespace
-    ; mutable zoom : zoom
-    ; mutable presentation : presentation
+    ; mutable zoom : float
+    ; mutable presentation : bool
     ; mutable angle : angle
     ; mutable winw : int
     ; mutable winh : int
@@ -188,7 +186,7 @@ type state =
     ; mutable rects1 : (pageno * recttype * rect) list
     ; mutable text : string
     ; mutable fullscreen : (width * height) option
-    ; mutable birdseye : (zoom * leftx * presentation * interpagespace) option
+    ; mutable birdseye : (conf * leftx) option
     ; mutable textentry : textentry option
     ; mutable outlines : outlines
     ; mutable outline : (bool * int * int * outline array * string) option
@@ -1151,14 +1149,16 @@ let opendoc path password =
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
-let birdseyeoff (zoom, x, presentation, interpagespace) =
+let birdseyeoff (c, leftx) =
   state.birdseye <- None;
-  conf.zoom <- zoom;
-  conf.presentation <- presentation;
-  conf.interpagespace <- interpagespace;
-  state.x <- x;
+  conf.zoom <- c.zoom;
+  conf.presentation <- c.presentation;
+  conf.interpagespace <- c.interpagespace;
+  conf.showall <- c.showall;
+  conf.hlinks <- c.hlinks;
+  state.x <- leftx;
   state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-    (100.0*.zoom);
+    (100.0*.conf.zoom);
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -1261,17 +1261,14 @@ let viewkeyboard ~key ~x ~y =
           begin match state.birdseye with
           | None ->
               let zoom = 50.0 /. float state.w in
-              state.birdseye <- Some (
-                conf.zoom,
-                state.x,
-                conf.presentation,
-                conf.interpagespace;
-              );
+              state.birdseye <- Some ({ conf with zoom = conf.zoom }, state.x);
               conf.zoom <- zoom;
               conf.presentation <- false;
               conf.interpagespace <- 10;
+              conf.hlinks <- false;
               state.x <- 0;
               state.mstate <- Mnone;
+              conf.showall <- false;
               Glut.setCursor Glut.CURSOR_INHERIT;
               state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
                 (100.0*.zoom)
@@ -2603,14 +2600,14 @@ struct
         | Some wh -> wh
         | None -> c.winw, c.winh
     in
-    let zoom, presentation, interpagespace =
+    let zoom, presentation, interpagespace, showall=
       if always
-      then dc.zoom, dc.presentation, dc.interpagespace
+      then dc.zoom, dc.presentation, dc.interpagespace, dc.showall
       else
         match state.birdseye with
-        | Some (zoom, _, presentation, interpagespace) ->
-            (zoom, presentation, interpagespace)
-        | None -> c.zoom, c.presentation, c.interpagespace
+        | Some (bc, _) ->
+            bc.zoom, bc.presentation, bc.interpagespace, bc.showall
+        | None -> c.zoom, c.presentation, c.interpagespace, c.showall
     in
     oi "width" w dc.winw;
     oi "height" h dc.winh;
@@ -2622,7 +2619,7 @@ struct
     oi "scroll-step" c.scrollincr dc.scrollincr;
     ob "max-height-fit" c.maxhfit dc.maxhfit;
     ob "crop-hack" c.crophack dc.crophack;
-    ob "throttle" c.showall dc.showall;
+    ob "throttle" showall dc.showall;
     ob "highlight-links" c.hlinks dc.hlinks;
     ob "under-cursor-info" c.underinfo dc.underinfo;
     oi "vertical-margin" interpagespace dc.interpagespace;
@@ -2676,7 +2673,7 @@ struct
 
       let x =
         match state.birdseye with
-        | Some (_, x, _, _) -> x
+        | Some (_, x) -> x
         | None -> state.x
       in
       adddoc state.path x (yratio state.y) conf
