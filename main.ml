@@ -1724,7 +1724,13 @@ let special ~key ~x ~y =
           begin match state.layout with
           | l :: _ ->
               if l.pageno = state.birdseyepageno
-              then gotoy (clamp (-conf.winh))
+              then (
+                match layout (state.y - conf.winh) conf.winh with
+                | [] -> gotoy (clamp (-conf.winh))
+                | l :: _ -> 
+                    state.birdseyepageno <- max 0 (l.pageno - 1);
+                    gotopage state.birdseyepageno 0.0
+              )
               else (
                 state.birdseyepageno <- max 0 (l.pageno - 1);
                 gotopage state.birdseyepageno 0.0
