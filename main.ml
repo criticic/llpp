@@ -53,8 +53,9 @@ type 'a circbuf =
 type textentry = (char * string * onhist * onkey * ondone)
 and onkey = string -> int -> te
 and ondone = string -> unit
-and onhist = (histcmd -> string) option
-and histcmd = HCnext | HCprev | HCfirst | HClast | HCcancel
+and histcancel = unit -> unit
+and onhist = ((histcmd -> string) * histcancel) option
+and histcmd = HCnext | HCprev | HCfirst | HClast
 and te =
     | TEstop
     | TEdone of string
@@ -892,12 +893,13 @@ let idle () =
 
 let onhist cb =
   let rc = cb.rc in
-  function
+  let action = function
   | HCprev   -> cbget cb ~-1
   | HCnext   -> cbget cb 1
   | HCfirst  -> cbget cb ~-(cb.rc)
   | HClast   -> cbget cb (cb.len - 1 - cb.rc)
-  | HCcancel -> cb.rc <- rc; cb.store.(0) (* ugly *)
+  and cancel () = cb.rc <- rc
+  in (action, cancel)
 ;;
 
 let search pattern forward =
@@ -1443,7 +1445,7 @@ let viewkeyboard ~key ~x ~y =
       | '\027' ->
           begin match onhist with
           | None -> ()
-          | Some onhist -> ignore (onhist HCcancel)
+          | Some (_, onhistcancel) -> onhistcancel ()
           end;
           state.textentry <- None;
           Glut.postRedisplay ()
@@ -1710,16 +1712,16 @@ let special ~key ~x ~y =
           in
           gotoy_and_clear_text y
 
-      | Some (c, s, Some onhist, onkey, ondone) ->
+      | Some (c, s, (Some (action, _) as onhist), onkey, ondone) ->
           let s =
             match key with
-            | Glut.KEY_UP    -> onhist HCprev
-            | Glut.KEY_DOWN  -> onhist HCnext
-            | Glut.KEY_HOME  -> onhist HCfirst
-            | Glut.KEY_END   -> onhist HClast
+            | Glut.KEY_UP    -> action HCprev
+            | Glut.KEY_DOWN  -> action HCnext
+            | Glut.KEY_HOME  -> action HCfirst
+            | Glut.KEY_END   -> action HClast
             | _ -> state.text
           in
-          state.textentry <- Some (c, s, Some onhist, onkey, ondone);
+          state.textentry <- Some (c, s, onhist, onkey, ondone);
           Glut.postRedisplay ()
 
       | _ -> ()
