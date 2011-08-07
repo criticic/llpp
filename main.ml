@@ -1061,10 +1061,16 @@ let optentry text key =
   | 'S' ->
       let ondone s =
         try
+          let pageno, py =
+            match state.layout with
+            | [] -> 0, 0
+            | l :: _ ->
+                l.pageno, l.pagey
+          in
           conf.interpagespace <- int_of_string s;
-          let rely = yratio state.y in
           state.maxy <- calcheight ();
-          gotoy (truncate (float state.maxy *. rely));
+          let y = getpagey pageno in
+          gotoy (y + py)
         with exc ->
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
