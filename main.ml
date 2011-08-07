@@ -1738,7 +1738,12 @@ let special ~key ~x ~y =
           gotopage 0 0.0
       | Glut.KEY_END ->
           state.birdseyepageno <- state.pagecount - 1;
-          gotopage state.birdseyepageno 0.0
+          if not (pagevisible state.birdseyepageno)
+          then
+            gotopage state.birdseyepageno 0.0
+          else
+            Glut.postRedisplay ()
+          ;
       | _ -> ()
       end
 
