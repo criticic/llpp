@@ -1864,12 +1864,13 @@ let special ~key ~x ~y =
 ;;
 
 let drawplaceholder l =
+  let margin = state.x + (conf.winw - (state.w + conf.scrollw)) / 2 in
   GlDraw.color (scalecolor 1.0);
   GlDraw.rect
     (float l.pagex, float l.pagedispy)
     (float (l.pagew + l.pagex), float (l.pagedispy + l.pagevh))
   ;
-  let x = float l.pagex
+  let x = float (if margin < 0 then -margin else 0)
   and y = float (l.pagedispy + 13) in
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (0.0, 0.0, 0.0);
