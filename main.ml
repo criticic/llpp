@@ -1762,19 +1762,12 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
   match key with
   | Glut.KEY_UP ->
       let pageno = max 0 (pageno - 1) in
-      let move =
-        let rec loop = function
-          | [] -> true
-          | l :: rest ->
-              if l.pageno = pageno
-              then l.pagey != 0
-              else loop rest
-        in
-        loop state.layout
+      let rec loop = function
+        | [] -> gotopage1 pageno 0
+        | l :: _ when l.pageno = pageno -> Glut.postRedisplay ()
+        | _ :: rest -> loop rest
       in
-      if move
-      then gotopage1 pageno 0
-      else Glut.postRedisplay ();
+      loop state.layout;
       state.birdseye <- Some (conf, leftx, pageno, hooverpageno)
 
   | Glut.KEY_DOWN ->
