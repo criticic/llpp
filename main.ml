@@ -1925,7 +1925,7 @@ let drawplaceholder l =
     (float l.pagex, float l.pagedispy)
     (float (l.pagew + l.pagex), float (l.pagedispy + l.pagevh))
   ;
-  let x = float (if margin < 0 then -margin else 0)
+  let x = float (if margin < 0 then -margin else l.pagex)
   and y = float (l.pagedispy + 13) in
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (0.0, 0.0, 0.0);
