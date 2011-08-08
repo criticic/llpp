@@ -655,17 +655,16 @@ let scalecolor c =
 ;;
 
 let represent () =
+  state.maxy <- calcheight ();
   let y =
     if state.birdseyepageno = -1 && state.birdseye = None
     then
       match state.layout with
       | [] ->
           let rely = yratio state.y in
-          state.maxy <- calcheight ();
           truncate (float state.maxy *. rely)
 
       | l :: _ ->
-          state.maxy <- calcheight ();
           getpagey l.pageno
     else (
       let y = getpagey state.birdseyepageno in
@@ -1330,7 +1329,7 @@ let viewkeyboard ~key ~x ~y =
           | Some vals ->
               birdseyeoff vals;
           end;
-          reshape conf.winw conf.winh
+          reshape conf.winw conf.winh;
 
       | '0' .. '9' ->
           let ondone s =
