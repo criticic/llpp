@@ -1599,29 +1599,28 @@ let birdseyekeyboard ~key ~x ~y ((c, leftx, pageno, hooverpageno) as beye) =
       viewkeyboard ~key ~x ~y
 ;;
 
-let narrow outlines pattern =
-  let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
-  match reopt with
-  | None -> None
-  | Some re ->
-      let rec fold accu n =
-        if n = -1
-        then accu
-        else
-          let (s, _, _, _) as o = outlines.(n) in
-          let accu =
-            if (try ignore (Str.search_forward re s 0); true
-              with Not_found -> false)
-            then (o :: accu)
-            else accu
-          in
-          fold accu (n-1)
-      in
-      let matched = fold [] (Array.length outlines - 1) in
-      if matched = [] then None else Some (Array.of_list matched)
-;;
-
 let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
+  let narrow outlines pattern =
+    let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
+    match reopt with
+    | None -> None
+    | Some re ->
+        let rec fold accu n =
+          if n = -1
+          then accu
+          else
+            let (s, _, _, _) as o = outlines.(n) in
+            let accu =
+              if (try ignore (Str.search_forward re s 0); true
+                with Not_found -> false)
+              then (o :: accu)
+              else accu
+            in
+            fold accu (n-1)
+        in
+        let matched = fold [] (Array.length outlines - 1) in
+        if matched = [] then None else Some (Array.of_list matched)
+  in
   let search active pattern incr =
     let dosearch re =
       let rec loop n =
