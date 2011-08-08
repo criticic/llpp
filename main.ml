@@ -377,7 +377,7 @@ let calcheight () =
           )
         in
         let fh = fh + ((n - pn) * (ph + pi)) in
-        f n h ips fh rest
+        f n h ips fh rest;
 
     | [] ->
         let inc =
@@ -1590,10 +1590,6 @@ let birdseyekeyboard ~key ~x ~y ((c, leftx, pageno, hooverpageno) as beye) =
       birdseyeoff beye;
       reshape conf.winw conf.winh;
       state.anchor <- (pageno, 0.0);
-
-  | 0x39 when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-      birdseyeon ();
-      reshape conf.winw conf.winh;
 
   | _ ->
       viewkeyboard ~key ~x ~y
