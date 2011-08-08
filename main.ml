@@ -392,6 +392,7 @@ let getpageyh pageno =
         let ips = calcips h in
         if n >= pageno
         then
+          let h = if n = pageno then h else ph in
           if conf.presentation && n = pageno
           then
             y + (pageno - pn) * (ph + pi) + pi, h
