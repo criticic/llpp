@@ -1269,334 +1269,336 @@ let viewkeyboard ~key ~x ~y =
     enttext ();
     Glut.postRedisplay ()
   in
-  match state.mode with
-  | Outline _ -> ()
-  | View | Birdseye _ ->
-      let c = Char.chr key in
-      begin match c with
-      | '\027' ->
-          begin match state.mode with
-          | Birdseye vals ->
-              birdseyeoff vals;
-              reshape conf.winw conf.winh
-          | _ -> exit 0
-          end;
+  let c = Char.chr key in
+  match c with
+  | '\027' | 'q' ->
+      exit 0
 
-      | 'q' ->
-          exit 0
+  | '\008' ->
+      let y = getnav () in
+      gotoy_and_clear_text y
 
-      | '\008' ->
-          let y = getnav () in
-          gotoy_and_clear_text y
+  | 'o' ->
+      enteroutlinemode ()
 
-      | '\012' ->                       (* ctrl-l *)
-          begin match state.mode with
-          | Birdseye ((_, _, pageno, _) as vals) ->
-              let y, h = getpageyh pageno in
-              let top = (conf.winh - h) / 2 in
-              gotoy (max 0 (y - top))
-          | _ -> ()
-          end;
+  | 'u' ->
+      state.rects <- [];
+      state.text <- "";
+      Glut.postRedisplay ()
 
-      | '\013' ->
-          begin match state.mode with
-          | Birdseye ((_, _, pageno, _) as vals) ->
-              addnav ();
-              birdseyeoff vals;
-              reshape conf.winw conf.winh;
-              state.anchor <- (pageno, 0.0);
-          | _ -> ()
-          end;
+  | '/' | '?' ->
+      let ondone isforw s =
+        cbput state.hists.pat s;
+        state.searchpattern <- s;
+        search s isforw
+      in
+      enttext (c, "", Some (onhist state.hists.pat),
+              textentry, ondone (c ='/'))
 
-      | 'o' ->
-          enteroutlinemode ()
+  | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
+      let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
+      conf.zoom <- min 2.2 (conf.zoom +. incr);
+      state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
+      reshape conf.winw conf.winh
 
-      | 'u' ->
-          state.rects <- [];
-          state.text <- "";
-          Glut.postRedisplay ()
+  | '+' ->
+      let ondone s =
+        let n =
+          try int_of_string s with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc);
+            max_int
+        in
+        if n != max_int
+        then (
+          conf.pagebias <- n;
+          state.text <- "page bias is now " ^ string_of_int n;
+        )
+      in
+      enttext ('+', "", None, intentry, ondone)
 
-      | '/' | '?' ->
-          let ondone isforw s =
-            cbput state.hists.pat s;
-            state.searchpattern <- s;
-            search s isforw
-          in
-          enttext (c, "", Some (onhist state.hists.pat),
-                  textentry, ondone (c ='/'))
+  | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
+      let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
+      conf.zoom <- max 0.01 (conf.zoom -. decr);
+      if conf.zoom <= 1.0 then state.x <- 0;
+      state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
+      reshape conf.winw conf.winh;
 
-      | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
-          let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
-          conf.zoom <- min 2.2 (conf.zoom +. incr);
-          state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-          reshape conf.winw conf.winh
+  | '-' ->
+      let ondone msg =
+        state.text <- msg;
+      in
+      enttext ('-', "", None, optentry, ondone)
 
-      | '+' ->
-          let ondone s =
-            let n =
-              try int_of_string s with exc ->
-                state.text <- Printf.sprintf "bad integer `%s': %s"
-                  s (Printexc.to_string exc);
-                max_int
-            in
-            if n != max_int
-            then (
-              conf.pagebias <- n;
-              state.text <- "page bias is now " ^ string_of_int n;
-            )
-          in
-          enttext ('+', "", None, intentry, ondone)
+  | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+      state.x <- 0;
+      conf.zoom <- 1.0;
+      state.text <- "zoom is 100%";
+      reshape conf.winw conf.winh
 
-      | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
-          let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
-          conf.zoom <- max 0.01 (conf.zoom -. decr);
-          if conf.zoom <= 1.0 then state.x <- 0;
-          state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-          reshape conf.winw conf.winh;
+  | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+      let zoom = zoomforh conf.winw conf.winh conf.scrollw in
+      if zoom < 1.0
+      then (
+        conf.zoom <- zoom;
+        state.x <- 0;
+        state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
+        reshape conf.winw conf.winh;
+      )
 
-      | '-' ->
-          let ondone msg =
-            state.text <- msg;
-          in
-          enttext ('-', "", None, optentry, ondone)
+  | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+      togglebirdseye ();
+      reshape conf.winw conf.winh;
 
-      | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-          state.x <- 0;
-          conf.zoom <- 1.0;
-          state.text <- "zoom is 100%";
-          reshape conf.winw conf.winh
+  | '0' .. '9' ->
+      let ondone s =
+        let n =
+          try int_of_string s with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc);
+            -1
+        in
+        if n >= 0
+        then (
+          addnav ();
+          cbput state.hists.pag (string_of_int n);
+          gotoy_and_clear_text (getpagey (n + conf.pagebias - 1))
+        )
+      in
+      let pageentry text key =
+        match Char.unsafe_chr key with
+        | 'g' -> TEdone text
+        | _ -> intentry text key
+      in
+      let text = "x" in text.[0] <- c;
+      enttext (':', text, Some (onhist state.hists.pag), pageentry, ondone)
 
-      | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-          let zoom = zoomforh conf.winw conf.winh conf.scrollw in
-          if zoom < 1.0
-          then (
-            conf.zoom <- zoom;
-            state.x <- 0;
-            state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-            reshape conf.winw conf.winh;
-          )
+  | 'b' ->
+      conf.scrollw <- if conf.scrollw > 0 then 0 else defconf.scrollw;
+      reshape conf.winw conf.winh;
 
-      | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-          togglebirdseye ();
-          reshape conf.winw conf.winh;
+  | 'l' ->
+      conf.hlinks <- not conf.hlinks;
+      state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
+      Glut.postRedisplay ()
 
-      | '0' .. '9' ->
-          let ondone s =
-            let n =
-              try int_of_string s with exc ->
-                state.text <- Printf.sprintf "bad integer `%s': %s"
-                  s (Printexc.to_string exc);
-                -1
-            in
-            if n >= 0
-            then (
-              addnav ();
-              cbput state.hists.pag (string_of_int n);
-              gotoy_and_clear_text (getpagey (n + conf.pagebias - 1))
-            )
-          in
-          let pageentry text key =
-            match Char.unsafe_chr key with
-            | 'g' -> TEdone text
-            | _ -> intentry text key
-          in
-          let text = "x" in text.[0] <- c;
-          enttext (':', text, Some (onhist state.hists.pag), pageentry, ondone)
+  | 'a' ->
+      conf.autoscroll <- not conf.autoscroll
 
-      | 'b' ->
-          conf.scrollw <- if conf.scrollw > 0 then 0 else defconf.scrollw;
-          reshape conf.winw conf.winh;
+  | 'P' ->
+      conf.presentation <- not conf.presentation;
+      showtext ' ' ("presentation mode " ^
+                       if conf.presentation then "on" else "off");
+      represent ()
 
-      | 'l' ->
-          conf.hlinks <- not conf.hlinks;
-          state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
-          Glut.postRedisplay ()
-
-      | 'a' ->
-          conf.autoscroll <- not conf.autoscroll
-
-      | 'P' ->
-          conf.presentation <- not conf.presentation;
-          showtext ' ' ("presentation mode " ^
-                           if conf.presentation then "on" else "off");
-          represent ()
-
-      | 'f' ->
-          begin match state.fullscreen with
-          | None ->
-              state.fullscreen <- Some (conf.winw, conf.winh);
-              Glut.fullScreen ()
-          | Some (w, h) ->
-              state.fullscreen <- None;
-              doreshape w h
-          end
-
-      | 'g' ->
-          gotoy_and_clear_text 0
-
-      | 'n' ->
-          search state.searchpattern true
-
-      | 'p' | 'N' ->
-          search state.searchpattern false
-
-      | 't' ->
-          begin match state.layout with
-          | [] -> ()
-          | l :: _ ->
-              gotoy_and_clear_text (getpagey l.pageno)
-          end
-
-      | ' ' ->
-          begin match List.rev state.layout with
-          | [] -> ()
-          | l :: _ ->
-              let pageno = min (l.pageno+1) (state.pagecount-1) in
-              gotoy_and_clear_text (getpagey pageno)
-          end
-
-      | '\127' ->
-          begin match state.layout with
-          | [] -> ()
-          | l :: _ ->
-              let pageno = max 0 (l.pageno-1) in
-              gotoy_and_clear_text (getpagey pageno)
-          end
-
-      | '=' ->
-          let f (fn, ln) l =
-            if fn = -1 then l.pageno, l.pageno else fn, l.pageno
-          in
-          let fn, ln = List.fold_left f (-1, -1) state.layout in
-          let s =
-            let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
-            let percent =
-              if maxy <= 0
-              then 100.
-              else (100. *. (float state.y /. float maxy)) in
-            if fn = ln
-            then
-              Printf.sprintf "Page %d of %d %.2f%%"
-                (fn+1) state.pagecount percent
-            else
-              Printf.sprintf
-                "Pages %d-%d of %d %.2f%%"
-                (fn+1) (ln+1) state.pagecount percent
-          in
-          showtext ' ' s;
-
-      | 'w' ->
-          begin match state.layout with
-          | [] -> ()
-          | l :: _ ->
-              doreshape (l.pagew + conf.scrollw) l.pageh;
-              Glut.postRedisplay ();
-          end
-
-      | '\'' ->
-          enterbookmarkmode ()
-
-      | 'm' ->
-          let ondone s =
-            match state.layout with
-            | l :: _ ->
-                state.bookmarks <-
-                  (s, 0, l.pageno, float l.pagey /. float l.pageh)
-                :: state.bookmarks
-            | _ -> ()
-          in
-          enttext ('~', "", None, textentry, ondone)
-
-      | '~' ->
-          quickbookmark ();
-          showtext ' ' "Quick bookmark added";
-
-      | 'z' ->
-          begin match state.layout with
-          | l :: _ ->
-              let rect = getpdimrect l.pagedimno in
-              let w, h =
-                if conf.crophack
-                then
-                  (truncate (1.8 *. (rect.(1) -. rect.(0))),
-                  truncate (1.2 *. (rect.(3) -. rect.(0))))
-                else
-                  (truncate (rect.(1) -. rect.(0)),
-                  truncate (rect.(3) -. rect.(0)))
-              in
-              if w != 0 && h != 0
-              then
-                doreshape (w + conf.scrollw) (h + conf.interpagespace)
-              ;
-              Glut.postRedisplay ();
-
-          | [] -> ()
-          end
-
-      | '<' | '>' ->
-          reinit (conf.angle + (if c = '>' then 30 else -30)) conf.proportional
-
-      | '[' | ']' ->
-          state.colorscale <-
-            max 0.0
-            (min (state.colorscale +. (if c = ']' then 0.1 else -0.1)) 1.0);
-          Glut.postRedisplay ()
-
-      | 'k' -> gotoy (clamp (-conf.scrollincr))
-      | 'j' -> gotoy (clamp conf.scrollincr)
-
-      | 'r' -> opendoc state.path state.password
-
-      | _ ->
-          vlog "huh? %d %c" key (Char.chr key);
+  | 'f' ->
+      begin match state.fullscreen with
+      | None ->
+          state.fullscreen <- Some (conf.winw, conf.winh);
+          Glut.fullScreen ()
+      | Some (w, h) ->
+          state.fullscreen <- None;
+          doreshape w h
       end
 
-  | Textentry (c, text, opthist, onkey, ondone) when key = 8 ->
-      let len = String.length text in
-      if len = 0
-      then (
+  | 'g' ->
+      gotoy_and_clear_text 0
+
+  | 'n' ->
+      search state.searchpattern true
+
+  | 'p' | 'N' ->
+      search state.searchpattern false
+
+  | 't' ->
+      begin match state.layout with
+      | [] -> ()
+      | l :: _ ->
+          gotoy_and_clear_text (getpagey l.pageno)
+      end
+
+  | ' ' ->
+      begin match List.rev state.layout with
+      | [] -> ()
+      | l :: _ ->
+          let pageno = min (l.pageno+1) (state.pagecount-1) in
+          gotoy_and_clear_text (getpagey pageno)
+      end
+
+  | '\127' ->
+      begin match state.layout with
+      | [] -> ()
+      | l :: _ ->
+          let pageno = max 0 (l.pageno-1) in
+          gotoy_and_clear_text (getpagey pageno)
+      end
+
+  | '=' ->
+      let f (fn, ln) l =
+        if fn = -1 then l.pageno, l.pageno else fn, l.pageno
+      in
+      let fn, ln = List.fold_left f (-1, -1) state.layout in
+      let s =
+        let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
+        let percent =
+          if maxy <= 0
+          then 100.
+          else (100. *. (float state.y /. float maxy)) in
+        if fn = ln
+        then
+          Printf.sprintf "Page %d of %d %.2f%%"
+            (fn+1) state.pagecount percent
+        else
+          Printf.sprintf
+            "Pages %d-%d of %d %.2f%%"
+            (fn+1) (ln+1) state.pagecount percent
+      in
+      showtext ' ' s;
+
+  | 'w' ->
+      begin match state.layout with
+      | [] -> ()
+      | l :: _ ->
+          doreshape (l.pagew + conf.scrollw) l.pageh;
+          Glut.postRedisplay ();
+      end
+
+  | '\'' ->
+      enterbookmarkmode ()
+
+  | 'm' ->
+      let ondone s =
+        match state.layout with
+        | l :: _ ->
+            state.bookmarks <-
+              (s, 0, l.pageno, float l.pagey /. float l.pageh)
+            :: state.bookmarks
+        | _ -> ()
+      in
+      enttext ('~', "", None, textentry, ondone)
+
+  | '~' ->
+      quickbookmark ();
+      showtext ' ' "Quick bookmark added";
+
+  | 'z' ->
+      begin match state.layout with
+      | l :: _ ->
+          let rect = getpdimrect l.pagedimno in
+          let w, h =
+            if conf.crophack
+            then
+              (truncate (1.8 *. (rect.(1) -. rect.(0))),
+              truncate (1.2 *. (rect.(3) -. rect.(0))))
+            else
+              (truncate (rect.(1) -. rect.(0)),
+              truncate (rect.(3) -. rect.(0)))
+          in
+          if w != 0 && h != 0
+          then
+            doreshape (w + conf.scrollw) (h + conf.interpagespace)
+          ;
+          Glut.postRedisplay ();
+
+      | [] -> ()
+      end
+
+  | '<' | '>' ->
+      reinit (conf.angle + (if c = '>' then 30 else -30)) conf.proportional
+
+  | '[' | ']' ->
+      state.colorscale <-
+        max 0.0
+        (min (state.colorscale +. (if c = ']' then 0.1 else -0.1)) 1.0);
+      Glut.postRedisplay ()
+
+  | 'k' -> gotoy (clamp (-conf.scrollincr))
+  | 'j' -> gotoy (clamp conf.scrollincr)
+
+  | 'r' -> opendoc state.path state.password
+
+  | _ ->
+      vlog "huh? %d %c" key (Char.chr key);
+;;
+
+let textentrykeyboard ~key ~x ~y (c, text, opthist, onkey, ondone) =
+  let enttext te =
+    state.mode <- Textentry te;
+    state.text <- "";
+    enttext ();
+    Glut.postRedisplay ()
+  in
+  if key = 8
+  then
+    let len = String.length text in
+    if len = 0
+    then (
+      state.mode <- View;
+      Glut.postRedisplay ();
+    )
+    else (
+      let s = String.sub text 0 (len - 1) in
+      enttext (c, s, opthist, onkey, ondone)
+    )
+  else (
+    match Char.unsafe_chr key with
+    | '\r' | '\n' ->
+        ondone text;
         state.mode <- View;
-        Glut.postRedisplay ();
-      )
-      else (
-        let s = String.sub text 0 (len - 1) in
-        enttext (c, s, opthist, onkey, ondone)
-      )
+        Glut.postRedisplay ()
 
-  | Textentry (c, text, onhist, onkey, ondone) ->
-      begin match Char.unsafe_chr key with
-      | '\r' | '\n' ->
-          ondone text;
-          state.mode <- View;
-          Glut.postRedisplay ()
+    | '\027' ->
+        begin match opthist with
+        | None -> ()
+        | Some (_, onhistcancel) -> onhistcancel ()
+        end;
+        state.mode <- View;
+        Glut.postRedisplay ()
 
-      | '\027' ->
-          begin match onhist with
-          | None -> ()
-          | Some (_, onhistcancel) -> onhistcancel ()
-          end;
-          state.mode <- View;
-          Glut.postRedisplay ()
+    | _ ->
+        begin match onkey text key with
+        | TEdone text ->
+            state.mode <- View;
+            ondone text;
+            Glut.postRedisplay ()
 
-      | _ ->
-          begin match onkey text key with
-          | TEdone text ->
-              state.mode <- View;
-              ondone text;
-              Glut.postRedisplay ()
+        | TEcont text ->
+            enttext (c, text, opthist, onkey, ondone);
 
-          | TEcont text ->
-              enttext (c, text, onhist, onkey, ondone);
+        | TEstop ->
+            state.mode <- View;
+            Glut.postRedisplay ()
 
-          | TEstop ->
-              state.mode <- View;
-              Glut.postRedisplay ()
+        | TEswitch te ->
+            state.mode <- Textentry te;
+            Glut.postRedisplay ()
+        end;
+  );
+;;
 
-          | TEswitch te ->
-              state.mode <- Textentry te;
-              Glut.postRedisplay ()
-          end;
-      end;
+let birdseyekeyboard ~key ~x ~y ((c, leftx, pageno, hooverpageno) as beye) =
+  match key with
+  | 27 ->
+      birdseyeoff beye;
+      reshape conf.winw conf.winh
+
+  | 12 ->
+      let y, h = getpageyh pageno in
+      let top = (conf.winh - h) / 2 in
+      gotoy (max 0 (y - top))
+
+  | 13 ->
+      addnav ();
+      birdseyeoff beye;
+      reshape conf.winw conf.winh;
+      state.anchor <- (pageno, 0.0);
+
+  | 0x39 when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+      birdseyeon ();
+      reshape conf.winw conf.winh;
+
+  | _ ->
+      viewkeyboard ~key ~x ~y
 ;;
 
 let narrow outlines pattern =
@@ -1796,7 +1798,9 @@ let keyboard ~key ~x ~y =
   else
     match state.mode with
     | Outline outline -> outlinekeyboard ~key ~x ~y outline
-    | _ -> viewkeyboard ~key ~x ~y
+    | Textentry textentry -> textentrykeyboard ~key ~x ~y textentry
+    | Birdseye birdseye -> birdseyekeyboard ~key ~x ~y birdseye
+    | View -> viewkeyboard ~key ~x ~y
 ;;
 
 let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
