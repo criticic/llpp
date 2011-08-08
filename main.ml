@@ -1528,52 +1528,50 @@ let textentrykeyboard ~key ~x ~y (c, text, opthist, onkey, ondone) =
     enttext ();
     Glut.postRedisplay ()
   in
-  if key = 8
-  then
-    let len = String.length text in
-    if len = 0
-    then (
+  match Char.unsafe_chr key with
+  | '\008' ->
+      let len = String.length text in
+      if len = 0
+      then (
+        state.mode <- View;
+        Glut.postRedisplay ();
+      )
+      else (
+        let s = String.sub text 0 (len - 1) in
+        enttext (c, s, opthist, onkey, ondone)
+      )
+
+  | '\r' | '\n' ->
+      ondone text;
       state.mode <- View;
-      Glut.postRedisplay ();
-    )
-    else (
-      let s = String.sub text 0 (len - 1) in
-      enttext (c, s, opthist, onkey, ondone)
-    )
-  else (
-    match Char.unsafe_chr key with
-    | '\r' | '\n' ->
-        ondone text;
-        state.mode <- View;
-        Glut.postRedisplay ()
+      Glut.postRedisplay ()
 
-    | '\027' ->
-        begin match opthist with
-        | None -> ()
-        | Some (_, onhistcancel) -> onhistcancel ()
-        end;
-        state.mode <- View;
-        Glut.postRedisplay ()
+  | '\027' ->
+      begin match opthist with
+      | None -> ()
+      | Some (_, onhistcancel) -> onhistcancel ()
+      end;
+      state.mode <- View;
+      Glut.postRedisplay ()
 
-    | _ ->
-        begin match onkey text key with
-        | TEdone text ->
-            state.mode <- View;
-            ondone text;
-            Glut.postRedisplay ()
+  | _ ->
+      begin match onkey text key with
+      | TEdone text ->
+          state.mode <- View;
+          ondone text;
+          Glut.postRedisplay ()
 
-        | TEcont text ->
-            enttext (c, text, opthist, onkey, ondone);
+      | TEcont text ->
+          enttext (c, text, opthist, onkey, ondone);
 
-        | TEstop ->
-            state.mode <- View;
-            Glut.postRedisplay ()
+      | TEstop ->
+          state.mode <- View;
+          Glut.postRedisplay ()
 
-        | TEswitch te ->
-            state.mode <- Textentry te;
-            Glut.postRedisplay ()
-        end;
-  );
+      | TEswitch te ->
+          state.mode <- Textentry te;
+          Glut.postRedisplay ()
+      end;
 ;;
 
 let birdseyekeyboard ~key ~x ~y ((c, leftx, pageno, hooverpageno) as beye) =
