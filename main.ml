@@ -2473,6 +2473,15 @@ struct
     fold c attrs;
   ;;
 
+  let fromstring f pos n v d =
+    try f v
+    with exn ->
+      dolog "Error processing attribute (%S=%S) at %d\n%s"
+        n v pos (Printexc.to_string exn)
+      ;
+      d
+  ;;
+
   let bookmark_of attrs =
     let rec fold title page rely = function
       | ("title", v) :: rest -> fold v page rely rest
@@ -2482,6 +2491,18 @@ struct
       | [] -> title, page, rely
     in
     fold "invalid" "0" "0" attrs
+  ;;
+
+  let doc_of attrs =
+    let rec fold path page rely pan = function
+      | ("path", v) :: rest -> fold v page rely pan rest
+      | ("page", v) :: rest -> fold path v rely pan rest
+      | ("rely", v) :: rest -> fold path page v pan rest
+      | ("pan", v) :: rest -> fold path page rely v rest
+      | _ :: rest -> fold path page rely pan rest
+      | [] -> path, page, rely, pan
+    in
+    fold "" "0" "0" "0" attrs
   ;;
 
   let setconf dst src =
@@ -2544,32 +2565,11 @@ struct
           else { v with f = skip "defaults" (fun () -> v) }
 
       | Vopen ("doc", attrs, closed) ->
-          let emptys = "" in
-          let path, pageno, rely, pan =
-            let safef f n v d =
-              try f v
-              with exn ->
-                dolog "error accessing %s (%S) at postion %d:\n %s"
-                  n v spos (Printexc.to_string exn);
-                d
-            in
-            let rec fold path pageno rely pan = function
-              | [] -> path, pageno, rely, pan
-              | ("path", v) :: rest ->
-                  fold (unent v) pageno rely pan rest
-              | ("rely", v) :: rest ->
-                  fold path pageno (safef float_of_string "rely" v 0.0) pan rest
-              | ("page", v) :: rest ->
-                  fold path (safef int_of_string "page" v 0) rely pan rest
-              | ("pan", v) :: rest ->
-                  fold path pageno rely (safef int_of_string "pan" v 0) rest
-              | _ :: rest ->
-                  fold path pageno rely pan rest
-            in
-            fold emptys 0 0.0 0 attrs
-          in
-          if path == emptys
-          then dolog "doc is missing path attribute near position %d" spos;
+          let pathent, spage, srely, span = doc_of attrs in
+          let path = unent pathent
+          and pageno = fromstring int_of_string spos "page" spage 0
+          and rely = fromstring float_of_string spos "rely" srely 0.0
+          and pan = fromstring int_of_string spos "pan" span 0 in
           let c = config_of dc attrs in
           let anchor = (pageno, rely) in
           if closed
@@ -2604,22 +2604,8 @@ struct
       | Vend -> error "unexpected end of input in bookmarks" s spos
       | Vopen ("item", attrs, closed) ->
           let titleent, spage, srely = bookmark_of attrs in
-          let page =
-            try
-              int_of_string spage
-            with exn ->
-              dolog "Failed to convert page %S to integer: %s"
-                spage (Printexc.to_string exn);
-              0
-          in
-          let rely =
-            try
-              float_of_string srely
-            with exn ->
-              dolog "Failed to convert rely %S to real: %s"
-                srely (Printexc.to_string exn);
-              0.0
-          in
+          let page = fromstring int_of_string spos "page" spage 0
+          and rely = fromstring float_of_string spos "rely" srely 0.0 in
           let bookmarks = (unent titleent, 0, page, rely) :: bookmarks in
           if closed
           then { v with f = pbookmarks path pan anchor c bookmarks }
