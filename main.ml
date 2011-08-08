@@ -648,6 +648,17 @@ let getnav () =
   getanchory anchor;
 ;;
 
+let gotopagenonav n top =
+  let y, h = getpageyh n in
+  gotoy_and_clear_text (y + (truncate (top *. float h)));
+;;
+
+let gotopage1nonav n top =
+  let y, h = getpageyh n in
+  addnav ();
+  gotoy_and_clear_text (y + top);
+;;
+
 let gotopage n top =
   let y, h = getpageyh n in
   addnav ();
@@ -1763,7 +1774,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
   | Glut.KEY_UP ->
       let pageno = max 0 (pageno - 1) in
       let rec loop = function
-        | [] -> gotopage1 pageno 0
+        | [] -> gotopage1nonav pageno 0
         | l :: _ when l.pageno = pageno -> Glut.postRedisplay ()
         | _ :: rest -> loop rest
       in
@@ -1796,12 +1807,12 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
             | l :: _ ->
                 let pageno = max 0 (l.pageno - 1) in
                 state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
-                gotopage pageno 0.0
+                gotopagenonav pageno 0.0
           )
           else (
             let pageno = max 0 (l.pageno - 1) in
             state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
-            gotopage pageno 0.0
+            gotopagenonav pageno 0.0
           )
       | [] -> gotoy (clamp (-conf.winh))
       end;
@@ -1816,7 +1827,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
 
   | Glut.KEY_HOME ->
       state.birdseye <- Some (conf, leftx, 0, hooverpageno);
-      gotopage 0 0.0
+      gotopage1nonav 0 0
   | Glut.KEY_END ->
       let pageno = state.pagecount - 1 in
       state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
