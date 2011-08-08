@@ -655,14 +655,14 @@ let scalecolor c =
 ;;
 
 let represent () =
-  state.maxy <- calcheight ();
+  let maxy = calcheight () in
   let y =
     if state.birdseyepageno = -1 && state.birdseye = None
     then
       match state.layout with
       | [] ->
           let rely = yratio state.y in
-          truncate (float state.maxy *. rely)
+          truncate (float maxy *. rely)
 
       | l :: _ ->
           getpagey l.pageno
@@ -672,6 +672,7 @@ let represent () =
       y
     )
   in
+  state.maxy <- maxy;
   gotoy y
 ;;
 
