@@ -90,6 +90,7 @@ up/down arrow           - previous/next entered text
 [2] text selection requires xsel
     http://www.vergenet.net/~conrad/software/xsel/
     On OSX and Windows selected text will be dumped to the terminal
-
+    Also selection can not cross page boundaries
+    
 [3] if the document was previously visited initial backspace will
     jump to the last visited place
