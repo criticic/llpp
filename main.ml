@@ -173,7 +173,7 @@ type anchor = pageno * top;;
 type mode =
     | Birdseye of (conf * leftx * pageno * pageno)
     | Outline of (bool * int * int * outline array * string)
-    | Textentry of textentry
+    | Textentry of (textentry * mode)
     | View
 ;;
 
@@ -751,7 +751,7 @@ let showtext c s =
 let enttext () =
   let len = String.length state.text in
   match state.mode with
-  | Textentry (c, text, _, _, _) ->
+  | Textentry ((c, text, _, _, _), _) ->
       let s =
         if len > 0
         then
@@ -1263,7 +1263,7 @@ let togglebirdseye () =
 
 let viewkeyboard ~key ~x ~y =
   let enttext te =
-    state.mode <- Textentry te;
+    state.mode <- Textentry (te, state.mode);
     state.text <- "";
     enttext ();
     Glut.postRedisplay ()
@@ -1520,9 +1520,9 @@ let viewkeyboard ~key ~x ~y =
       vlog "huh? %d %c" key (Char.chr key);
 ;;
 
-let textentrykeyboard ~key ~x ~y (c, text, opthist, onkey, ondone) =
+let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
   let enttext te =
-    state.mode <- Textentry te;
+    state.mode <- Textentry (te, mode);
     state.text <- "";
     enttext ();
     Glut.postRedisplay ()
@@ -1532,7 +1532,7 @@ let textentrykeyboard ~key ~x ~y (c, text, opthist, onkey, ondone) =
       let len = String.length text in
       if len = 0
       then (
-        state.mode <- View;
+        state.mode <- mode;
         Glut.postRedisplay ();
       )
       else (
@@ -1542,7 +1542,7 @@ let textentrykeyboard ~key ~x ~y (c, text, opthist, onkey, ondone) =
 
   | '\r' | '\n' ->
       ondone text;
-      state.mode <- View;
+      state.mode <- mode;
       Glut.postRedisplay ()
 
   | '\027' ->
@@ -1556,7 +1556,7 @@ let textentrykeyboard ~key ~x ~y (c, text, opthist, onkey, ondone) =
   | _ ->
       begin match onkey text key with
       | TEdone text ->
-          state.mode <- View;
+          state.mode <- mode;
           ondone text;
           Glut.postRedisplay ()
 
@@ -1564,11 +1564,11 @@ let textentrykeyboard ~key ~x ~y (c, text, opthist, onkey, ondone) =
           enttext (c, text, opthist, onkey, ondone);
 
       | TEstop ->
-          state.mode <- View;
+          state.mode <- mode;
           Glut.postRedisplay ()
 
       | TEswitch te ->
-          state.mode <- Textentry te;
+          state.mode <- Textentry (te, mode);
           Glut.postRedisplay ()
       end;
 ;;
@@ -1922,7 +1922,8 @@ let special ~key ~x ~y =
           in
           gotoy_and_clear_text y
 
-      | Textentry (c, s, (Some (action, _) as onhist), onkey, ondone) ->
+      | Textentry
+          ((c, s, (Some (action, _) as onhist), onkey, ondone), mode) ->
           let s =
             match key with
             | Glut.KEY_UP    -> action HCprev
@@ -1931,7 +1932,7 @@ let special ~key ~x ~y =
             | Glut.KEY_END   -> action HClast
             | _ -> state.text
           in
-          state.mode <- Textentry (c, s, onhist, onkey, ondone);
+          state.mode <- Textentry ((c, s, onhist, onkey, ondone), mode);
           Glut.postRedisplay ()
 
       | _ -> ()
