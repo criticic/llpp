@@ -2336,6 +2336,7 @@ let birdseyemouse button bstate x y
             else loop rest
       in
       loop state.layout
+  | Glut.OTHER_BUTTON _ -> viewmouse button bstate x y
   | _ -> ()
 ;;
 
