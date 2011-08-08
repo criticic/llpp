@@ -675,7 +675,7 @@ let represent () =
         truncate (float maxy *. rely)
   in
   state.maxy <- maxy;
-  gotoy y
+  gotoy y;
 ;;
 
 let pagematrix () =
