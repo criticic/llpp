@@ -1774,15 +1774,15 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
       let pageno = min (state.pagecount - 1) (pageno + 1) in
       state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
       let rec loop = function
-        | [] -> gotopage1 pageno 0
-        | l :: rest ->
-            if l.pageno = pageno
-            then (
-              if l.pagevh != l.pageh
-              then gotoy (clamp (l.pageh - l.pagevh + conf.interpagespace))
-              else Glut.postRedisplay ()
-            )
-            else loop rest
+        | [] ->
+            let y, h = getpageyh pageno in
+            let dy = (y - state.y) - (conf.winh - h - conf.interpagespace) in
+            gotoy (clamp dy)
+        | l :: rest when l.pageno = pageno ->
+            if l.pagevh != l.pageh
+            then gotoy (clamp (l.pageh - l.pagevh + conf.interpagespace))
+            else Glut.postRedisplay ()
+        | l :: rest -> loop rest
       in
       loop state.layout
 
