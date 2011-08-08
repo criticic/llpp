@@ -1797,7 +1797,10 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
       let pageno = max 0 (pageno - 1) in
       let rec loop = function
         | [] -> gotopage1nonav pageno 0
-        | l :: _ when l.pageno = pageno -> Glut.postRedisplay ()
+        | l :: _ when l.pageno = pageno ->
+            if l.pagedispy >= 0 && l.pagey = 0
+            then Glut.postRedisplay ()
+            else gotopage1nonav pageno 0
         | _ :: rest -> loop rest
       in
       loop state.layout;
