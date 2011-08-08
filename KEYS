@@ -62,6 +62,7 @@ tunables
 
 bird's eye mode
 Ctrl-9/F9/esc           - leave bird's eye view
+Ctrl-l                  - center the view on the currently selected page
 (page)up/(page)down     - navigate
 home/end                - go to first/last page
 enter                   - select the page and leave bird's eye mode

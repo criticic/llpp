@@ -1280,6 +1280,15 @@ let viewkeyboard ~key ~x ~y =
           let y = getnav () in
           gotoy_and_clear_text y
 
+      | '\012' ->                       (* ctrl-l *)
+          begin match state.birdseye with
+          | None -> ()
+          | Some ((_, _, pageno, _) as vals) ->
+              let y, h = getpageyh pageno in
+              let top = (conf.winh - h) / 2 in
+              gotoy (max 0 (y - top))
+          end;
+
       | '\013' ->
           begin match state.birdseye with
           | None -> ()
