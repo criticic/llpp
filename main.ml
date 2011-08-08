@@ -207,7 +207,7 @@ type state =
 and hists =
     { pat : string circbuf
     ; pag : string circbuf
-    ; nav : float circbuf
+    ; nav : anchor circbuf
     }
 ;;
 
@@ -271,7 +271,7 @@ let state =
   ; password = ""
   ; invalidated = 0
   ; hists =
-      { nav = cbnew 100 0.0
+      { nav = cbnew 100 (0, 0.0)
       ; pat = cbnew 20 ""
       ; pag = cbnew 10 ""
       }
@@ -318,12 +318,6 @@ let readcmd fd =
   let n = Unix.read fd s 0 len in
   if n != len then failwith "incomplete read(data)";
   s
-;;
-
-let yratio y =
-  if y = state.maxy
-  then 1.0
-  else float y /. float state.maxy
 ;;
 
 let makecmd s l =
@@ -628,13 +622,30 @@ let gotoy_and_clear_text y =
   if not conf.verbose then state.text <- "";
 ;;
 
+let emptyanchor = (0, 0.0);;
+
+let getanchor () =
+  match state.layout with
+  | []     -> emptyanchor
+  | l :: _ -> (l.pageno, float l.pagey /. float l.pageh)
+;;
+
+let getanchory (n, top) =
+    let y, h = getpageyh n in
+    y + (truncate (top *. float h));
+;;
+
+let gotoanchor anchor =
+  gotoy (getanchory anchor);
+;;
+
 let addnav () =
-  cbput state.hists.nav (yratio state.y);
+  cbput state.hists.nav (getanchor ());
 ;;
 
 let getnav () =
-  let y = cbgetc state.hists.nav ~-1 in
-  truncate (y *. float state.maxy)
+  let anchor = cbgetc state.hists.nav ~-1 in
+  getanchory anchor;
 ;;
 
 let gotopage n top =
@@ -663,14 +674,8 @@ let scalecolor c =
 ;;
 
 let represent () =
-  let maxy = calcheight () in
-  let y =
-    let (n, top) = state.anchor in
-    let y, h = getpageyh n in
-    y + (truncate (top *. float h))
-  in
-  state.maxy <- maxy;
-  gotoy y;
+  state.maxy <- calcheight ();
+  gotoanchor state.anchor;
 ;;
 
 let pagematrix () =
@@ -687,12 +692,6 @@ let winmatrix () =
   GlMat.rotate ~x:1.0 ~angle:180.0 ();
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
   GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
-;;
-
-let getanchor () =
-  match state.layout with
-  | []     -> (0, 0.0)
-  | l :: _ -> (l.pageno, float l.pagey /. float l.pageh)
 ;;
 
 let reshape ~w ~h =
@@ -2523,27 +2522,31 @@ struct
           in
           let path = unent pathent in
           let c = config_of dc attrs in
-          let y =
-            try
-              float_of_string (List.assoc "rely" attrs)
-            with
-            | Not_found -> 0.0
-            | exn ->
-                dolog "error while accesing rely: %s" (Printexc.to_string exn);
-                0.0
+          let pageno, rely, x =
+            let safef f n v d =
+              try f v
+              with exn ->
+                dolog "error accessing %s (%S) at postion %d:\n %s"
+                  n v spos (Printexc.to_string exn);
+                d
+            in
+            let rec fold pageno rely x = function
+              | [] -> pageno, rely, x
+              | ("rely", v) :: rest ->
+                  fold pageno (safef float_of_string "rely" v 0.0) x rest
+              | ("page", v) :: rest ->
+                  fold (safef int_of_string "page" v 0) rely x rest
+              | ("x", v) :: rest ->
+                  fold pageno rely (safef int_of_string "x" v 0) rest
+              | _ :: rest ->
+                  fold pageno rely x rest
+            in
+            fold 0 0.0 0 attrs
           in
-          let x =
-            try
-              int_of_string (List.assoc "pan" attrs)
-            with
-            | Not_found -> 0
-            | exn ->
-                dolog "error while accesing rely: %s" (Printexc.to_string exn);
-                0
-          in
+          let anchor = (pageno, rely) in
           if closed
-          then (Hashtbl.add h path (c, [], x, y); v)
-          else { v with f = doc path x y c [] }
+          then (Hashtbl.add h path (c, [], x, anchor); v)
+          else { v with f = doc path x anchor  c [] }
 
       | Vopen (tag, _, closed) ->
           error "unexpected subelement in llppconfig" s spos
@@ -2551,23 +2554,23 @@ struct
       | Vclose "llppconfig" ->  { v with f = toplevel }
       | Vclose tag -> error "unexpected close in llppconfig" s spos
 
-    and doc path x y c bookmarks v t spos epos =
+    and doc path x anchor c bookmarks v t spos epos =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in doc" s spos
       | Vopen ("bookmarks", attrs, closed) ->
-          { v with f = pbookmarks path x y c bookmarks }
+          { v with f = pbookmarks path x anchor c bookmarks }
 
       | Vopen (tag, _, _) ->
           error "unexpected subelement in doc" s spos
 
       | Vclose "doc" ->
-          Hashtbl.add h path (c, List.rev bookmarks, x, y);
+          Hashtbl.add h path (c, List.rev bookmarks, x, anchor);
           { v with f = llppconfig }
 
       | Vclose tag -> error "unexpected close in doc" s spos
 
-    and pbookmarks path x y c bookmarks v t spos epos =
+    and pbookmarks path x anchor c bookmarks v t spos epos =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in bookmarks" s spos
@@ -2591,7 +2594,7 @@ struct
           in
           let bookmarks = (unent titleent, 0, page, rely) :: bookmarks in
           if closed
-          then { v with f = pbookmarks path x y c bookmarks }
+          then { v with f = pbookmarks path x anchor c bookmarks }
           else
             let f () = v in
             { v with f = skip "item" f }
@@ -2600,7 +2603,7 @@ struct
           error "unexpected subelement in bookmarks" s spos
 
       | Vclose "bookmarks" ->
-          { v with f = doc path x y c bookmarks }
+          { v with f = doc path x anchor c bookmarks }
 
       | Vclose tag -> error "unexpected close in bookmarks" s spos
 
@@ -2680,16 +2683,16 @@ struct
 
   let load () =
     let f (h, dc) =
-      let pc, pb, px, py =
+      let pc, pb, px, pa =
         try
           Hashtbl.find h state.path
-        with Not_found -> dc, [], 0, 0.0
+        with Not_found -> dc, [], 0, (0, 0.0)
       in
       setconf defconf dc;
       setconf conf pc;
       state.bookmarks <- pb;
       state.x <- px;
-      cbput state.hists.nav py;
+      cbput state.hists.nav pa;
     in
     load1 f
   ;;
@@ -2754,15 +2757,19 @@ struct
       add_attrs bb true dc dc;
       Buffer.add_string bb "/>\n";
 
-      let adddoc path x y c bookmarks =
-        if bookmarks == [] && c = dc && y = 0.0
+      let adddoc path x anchor c bookmarks =
+        if bookmarks == [] && c = dc && anchor == emptyanchor
         then ()
         else (
           Printf.bprintf bb "<doc path='%s'"
             (enent path 0 (String.length path));
 
-          if y <> 0.0
-          then Printf.bprintf bb " rely='%f'" y;
+          if anchor != emptyanchor
+          then (
+            let n, y = anchor in
+            Printf.bprintf bb " page='%d'" n;
+            Printf.bprintf bb " rely='%f'" y;
+          );
 
           if x != 0
           then Printf.bprintf bb " pan='%d'" x;
@@ -2790,7 +2797,7 @@ struct
         | Some (_, x, _, _) -> x
         | None -> state.x
       in
-      adddoc state.path x (yratio state.y) conf
+      adddoc state.path x (getanchor ()) conf
         (if conf.savebmarks then state.bookmarks else []);
 
       Hashtbl.iter (fun path (c, bookmarks, x, y) ->
