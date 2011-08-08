@@ -1188,7 +1188,7 @@ static void highlightlinks (struct page *page, int yoff)
     glEnable (GL_LINE_STIPPLE);
     glLineStipple (0.5, 0xcccc);
 
-    xoff = -page->pixmap->x;
+    xoff =  page->pagedim.left - page->pixmap->x;
     yoff -= page->pixmap->y;
 
     glBegin (GL_QUADS);
