@@ -1264,6 +1264,7 @@ let viewkeyboard ~key ~x ~y =
           begin match state.birdseye with
           | None -> ()
           | Some ((_, _, pageno, _) as vals) ->
+              addnav ();
               birdseyeoff vals;
               reshape conf.winw conf.winh;
               state.anchor <- (pageno, 0.0);
