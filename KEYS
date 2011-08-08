@@ -61,10 +61,10 @@ tunables
                           (only font name currently)
 
 bird's eye mode
+Ctrl-9/F9/esc           - leave bird's eye view
 (page)up/(page)down     - navigate
 home/end                - go to first/last page
 enter                   - select the page and leave bird's eye mode
-Ctrl-9/F9               - leave bird's eye view
 1st mouse button        - select the page under cursor and leave bird's eye mode
 
 outline/bookmark mode

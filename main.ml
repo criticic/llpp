@@ -1261,7 +1261,15 @@ let viewkeyboard ~key ~x ~y =
   | None ->
       let c = Char.chr key in
       begin match c with
-      | '\027' | 'q' ->
+      | '\027' ->
+          begin match state.birdseye with
+          | None -> exit 0
+          | Some vals ->
+              birdseyeoff vals;
+              reshape conf.winw conf.winh
+          end;
+
+      | 'q' ->
           exit 0
 
       | '\008' ->
