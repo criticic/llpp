@@ -1123,7 +1123,7 @@ let optentry text key =
 
 let maxoutlinerows () = (conf.winh - 31) / 16;;
 
-let enterselector  allowdel outlines errmsg msg =
+let enterselector allowdel outlines errmsg msg =
   if Array.length outlines = 0
   then (
     showtext ' ' errmsg;
