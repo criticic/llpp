@@ -152,6 +152,7 @@ type conf =
     ; mutable memlimit : int
     ; mutable texcount : texcount
     ; mutable sliceheight : sliceheight
+    ; mutable thumbw : width
     }
 ;;
 
@@ -231,6 +232,7 @@ let defconf =
   ; memlimit = 32*1024*1024
   ; texcount = 256
   ; sliceheight = 24
+  ; thumbw = 76
   }
 ;;
 
@@ -1191,7 +1193,7 @@ let opendoc path password =
 ;;
 
 let birdseyeon () =
-  let zoom = 76.0 /. float state.w in
+  let zoom = float conf.thumbw /. float conf.winw in
   let birdseyepageno =
     match state.layout with
     | [] -> 0
@@ -2413,6 +2415,7 @@ struct
         | "pixmap-cache-size" -> { c with memlimit = max 2 (int_of_string v) }
         | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
         | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
+        | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -2464,6 +2467,7 @@ struct
     dst.proportional   <- src.proportional;
     dst.texcount       <- src.texcount;
     dst.sliceheight    <- src.sliceheight;
+    dst.thumbw         <- src.thumbw;
   ;;
 
   let unent s =
@@ -2726,6 +2730,7 @@ struct
     oi "pixmap-cache-size" c.memlimit dc.memlimit;
     oi "texcount" c.texcount dc.texcount;
     oi "slice-height" c.sliceheight dc.sliceheight;
+    oi "thumbnail-width" c.thumbw  dc.thumbw;
   ;;
 
   let save () =
