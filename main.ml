@@ -2825,13 +2825,13 @@ struct
         | Some (_, x, _, _) -> x
         | None -> state.x
       in
-      adddoc state.path x (getanchor ()) conf
+      let basename = Filename.basename state.path in
+      adddoc basename x (getanchor ()) conf
         (if conf.savebmarks then state.bookmarks else []);
 
       Hashtbl.iter (fun path (c, bookmarks, x, y) ->
-        if path <> state.path
-        then
-          adddoc path x y c bookmarks
+        if basename <> path
+        then adddoc path x y c bookmarks
       ) h;
       Buffer.add_string bb "</llppconfig>";
     in
@@ -2856,23 +2856,15 @@ let () =
     (fun s -> state.path <- s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\noptions:")
   ;
-  let path =
-    if String.length state.path = 0
-    then (prerr_endline "filename missing"; exit 1)
-    else (
-      if Filename.is_relative state.path
-      then Filename.concat (Sys.getcwd ()) state.path
-      else state.path
-    )
-  in
-  state.path <- path;
+  if String.length state.path = 0
+  then (prerr_endline "filename missing"; exit 1);
 
   State.load ();
 
   let _ = Glut.init Sys.argv in
   let () = Glut.initDisplayMode ~depth:false ~double_buffer:true () in
   let () = Glut.initWindowSize conf.winw conf.winh in
-  let _ = Glut.createWindow ("llpp " ^ Filename.basename path) in
+  let _ = Glut.createWindow ("llpp " ^ Filename.basename state.path) in
 
   let csock, ssock =
     if Sys.os_type = "Unix"
@@ -2910,7 +2902,7 @@ let () =
   init ssock (conf.angle, conf.proportional, conf.texcount, conf.sliceheight);
   state.csock <- csock;
   state.ssock <- ssock;
-  state.text <- "Opening " ^ path;
+  state.text <- "Opening " ^ state.path;
   writeopen state.path state.password;
 
   at_exit State.save;
