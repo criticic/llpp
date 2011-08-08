@@ -1241,9 +1241,10 @@ let birdseyeon () =
   else
     state.text <- ""
   ;
+  reshape conf.winw conf.winh;
 ;;
 
-let birdseyeoff (c, leftx, pageno, _, _) =
+let birdseyeoff (c, leftx, pageno, _, anchor) goback =
   state.mode <- View;
   conf.zoom <- c.zoom;
   conf.presentation <- c.presentation;
@@ -1256,11 +1257,13 @@ let birdseyeoff (c, leftx, pageno, _, _) =
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
       (100.0*.conf.zoom)
   ;
+  reshape conf.winw conf.winh;
+  state.anchor <- if goback then anchor else (pageno, 0.0);
 ;;
 
 let togglebirdseye () =
   match state.mode with
-  | Birdseye vals -> birdseyeoff vals
+  | Birdseye vals -> birdseyeoff vals true
   | View | Outline _ -> birdseyeon ()
   | _ -> ()
 ;;
@@ -1350,8 +1353,7 @@ let viewkeyboard ~key ~x ~y =
       )
 
   | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-      togglebirdseye ();
-      reshape conf.winw conf.winh;
+      togglebirdseye ()
 
   | '0' .. '9' ->
       let ondone s =
@@ -1580,9 +1582,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
 let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
   match key with
   | 27 ->
-      birdseyeoff beye;
-      reshape conf.winw conf.winh;
-      state.anchor <- anchor;
+      birdseyeoff beye true
 
   | 12 ->
       let y, h = getpageyh pageno in
@@ -1590,10 +1590,7 @@ let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
       gotoy (max 0 (y - top))
 
   | 13 ->
-      addnav ();
-      birdseyeoff beye;
-      reshape conf.winw conf.winh;
-      state.anchor <- (pageno, 0.0);
+      birdseyeoff beye false
 
   | _ ->
       viewkeyboard ~key ~x ~y
@@ -1885,8 +1882,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
 let special ~key ~x ~y =
   match state.mode with
   | View | (Birdseye _) when key = Glut.KEY_F9 ->
-      togglebirdseye ();
-      reshape conf.winw conf.winh;
+      togglebirdseye ()
 
   | Birdseye vals ->
       birdseyespecial key x y vals
@@ -2335,9 +2331,7 @@ let birdseyemouse button bstate x y
             if y > l.pagedispy && y < l.pagedispy + l.pagevh
               && x > margin && x < margin + l.pagew
             then (
-              birdseyeoff (conf, leftx, l.pageno, hooverpageno, anchor);
-              reshape conf.winw conf.winh;
-              state.anchor <- (l.pageno, 0.0);
+              birdseyeoff (conf, leftx, l.pageno, hooverpageno, anchor) false;
             )
             else loop rest
       in
