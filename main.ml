@@ -686,7 +686,12 @@ let scalecolor c =
 
 let represent () =
   state.maxy <- calcheight ();
-  gotoanchor state.anchor;
+  match state.birdseye with
+  | None -> gotoanchor state.anchor
+  | Some (_, _, pageno, _) ->
+      let y, h = getpageyh pageno in
+      let top = (conf.winh - h) / 2 in
+      gotoy (max 0 (y - top))
 ;;
 
 let pagematrix () =
@@ -1209,7 +1214,6 @@ let opendoc path password =
 let birdseyeon () =
   let zoom = float conf.thumbw /. float conf.winw in
   let (birdseyepageno, _) as anchor = getanchor () in
-  state.anchor <- anchor;
   state.birdseye <-
     Some ({ conf with zoom = conf.zoom }, state.x, birdseyepageno, -1);
   conf.zoom <- zoom;
