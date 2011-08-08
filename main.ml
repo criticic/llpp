@@ -2544,14 +2544,8 @@ struct
           else { v with f = skip "defaults" (fun () -> v) }
 
       | Vopen ("doc", attrs, closed) ->
-          let pathent =
-            try
-              List.assoc "path" attrs
-            with Not_found -> error "doc is missing path attribute" s spos
-          in
-          let path = unent pathent in
-          let c = config_of dc attrs in
-          let pageno, rely, x =
+          let emptys = "" in
+          let path, pageno, rely, pan =
             let safef f n v d =
               try f v
               with exn ->
@@ -2559,23 +2553,28 @@ struct
                   n v spos (Printexc.to_string exn);
                 d
             in
-            let rec fold pageno rely x = function
-              | [] -> pageno, rely, x
+            let rec fold path pageno rely pan = function
+              | [] -> path, pageno, rely, pan
+              | ("path", v) :: rest ->
+                  fold (unent v) pageno rely pan rest
               | ("rely", v) :: rest ->
-                  fold pageno (safef float_of_string "rely" v 0.0) x rest
+                  fold path pageno (safef float_of_string "rely" v 0.0) pan rest
               | ("page", v) :: rest ->
-                  fold (safef int_of_string "page" v 0) rely x rest
-              | ("x", v) :: rest ->
-                  fold pageno rely (safef int_of_string "x" v 0) rest
+                  fold path (safef int_of_string "page" v 0) rely pan rest
+              | ("pan", v) :: rest ->
+                  fold path pageno rely (safef int_of_string "pan" v 0) rest
               | _ :: rest ->
-                  fold pageno rely x rest
+                  fold path pageno rely pan rest
             in
-            fold 0 0.0 0 attrs
+            fold emptys 0 0.0 0 attrs
           in
+          if path == emptys
+          then dolog "doc is missing path attribute near position %d" spos;
+          let c = config_of dc attrs in
           let anchor = (pageno, rely) in
           if closed
-          then (Hashtbl.add h path (c, [], x, anchor); v)
-          else { v with f = doc path x anchor  c [] }
+          then (Hashtbl.add h path (c, [], pan, anchor); v)
+          else { v with f = doc path pan anchor  c [] }
 
       | Vopen (tag, _, closed) ->
           error "unexpected subelement in llppconfig" s spos
@@ -2583,23 +2582,23 @@ struct
       | Vclose "llppconfig" ->  { v with f = toplevel }
       | Vclose tag -> error "unexpected close in llppconfig" s spos
 
-    and doc path x anchor c bookmarks v t spos epos =
+    and doc path pan anchor c bookmarks v t spos epos =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in doc" s spos
       | Vopen ("bookmarks", attrs, closed) ->
-          { v with f = pbookmarks path x anchor c bookmarks }
+          { v with f = pbookmarks path pan anchor c bookmarks }
 
       | Vopen (tag, _, _) ->
           error "unexpected subelement in doc" s spos
 
       | Vclose "doc" ->
-          Hashtbl.add h path (c, List.rev bookmarks, x, anchor);
+          Hashtbl.add h path (c, List.rev bookmarks, pan, anchor);
           { v with f = llppconfig }
 
       | Vclose tag -> error "unexpected close in doc" s spos
 
-    and pbookmarks path x anchor c bookmarks v t spos epos =
+    and pbookmarks path pan anchor c bookmarks v t spos epos =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in bookmarks" s spos
@@ -2623,7 +2622,7 @@ struct
           in
           let bookmarks = (unent titleent, 0, page, rely) :: bookmarks in
           if closed
-          then { v with f = pbookmarks path x anchor c bookmarks }
+          then { v with f = pbookmarks path pan anchor c bookmarks }
           else
             let f () = v in
             { v with f = skip "item" f }
@@ -2632,7 +2631,7 @@ struct
           error "unexpected subelement in bookmarks" s spos
 
       | Vclose "bookmarks" ->
-          { v with f = doc path x anchor c bookmarks }
+          { v with f = doc path pan anchor c bookmarks }
 
       | Vclose tag -> error "unexpected close in bookmarks" s spos
 
