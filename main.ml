@@ -706,6 +706,10 @@ let pagematrix () =
   GlMat.rotate ~x:1.0 ~angle:180.0 ();
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
   GlMat.scale3 (2.0 /. float state.w, 2.0 /. float conf.winh, 1.0);
+  if state.x != 0
+  then (
+    GlMat.translate ~x:(float state.x) ();
+  );
 ;;
 
 let winmatrix () =
@@ -2171,11 +2175,6 @@ let display () =
   pagematrix ();
   GlClear.color (scalecolor 0.5);
   GlClear.clear [`color];
-  if state.x != 0
-  then (
-    let x = float state.x in
-    GlMat.translate ~x ();
-  );
   if conf.zoom > 1.0
   then (
     Gl.enable `scissor_test;
