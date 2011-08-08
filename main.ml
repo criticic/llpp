@@ -2122,7 +2122,8 @@ let showrects () =
   Gl.disable `blend;
 ;;
 
-let showoutline = function
+let showoutline =
+  match state.outline with
   | Outline (allowdel, active, first, outlines, qsearch) ->
       Gl.enable `blend;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
@@ -2195,7 +2196,7 @@ let display () =
   GlDraw.viewport 0 0 conf.winw conf.winh;
   winmatrix ();
   scrollindicator ();
-  showoutline state.mode;
+  showoutline ();
   enttext ();
   Glut.swapBuffers ();
 ;;
