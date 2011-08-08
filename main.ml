@@ -631,8 +631,8 @@ let getanchor () =
 ;;
 
 let getanchory (n, top) =
-    let y, h = getpageyh n in
-    y + (truncate (top *. float h));
+  let y, h = getpageyh n in
+  y + (truncate (top *. float h));
 ;;
 
 let gotoanchor anchor =
