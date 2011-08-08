@@ -41,14 +41,6 @@ and mstate =
     | Mnone
 ;;
 
-type 'a circbuf =
-    { store : 'a array
-    ; mutable rc : int
-    ; mutable wc : int
-    ; mutable len : int
-    }
-;;
-
 type textentry = (char * string * onhist * onkey * ondone)
 and onkey = string -> int -> te
 and ondone = string -> unit
@@ -60,6 +52,14 @@ and te =
     | TEdone of string
     | TEcont of string
     | TEswitch of textentry
+;;
+
+type 'a circbuf =
+    { store : 'a array
+    ; mutable rc : int
+    ; mutable wc : int
+    ; mutable len : int
+    }
 ;;
 
 let cbnew n v =
