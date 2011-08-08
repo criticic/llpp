@@ -5,7 +5,6 @@ type under =
     | Utext of facename
 and facename = string;;
 
-let log fmt = Printf.kprintf prerr_endline fmt;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
 type params = angle * proportional * texcount * sliceheight
@@ -940,7 +939,7 @@ let act cmd =
       state.outlines <- outlines
 
   | _ ->
-      log "unknown cmd `%S'" cmd
+      dolog "unknown cmd `%S'" cmd
 ;;
 
 let now = Unix.gettimeofday;;
@@ -1026,7 +1025,7 @@ let textentry text key =
       TEcont text
 
   | _ ->
-      log "unhandled key %d char `%c'" key (Char.unsafe_chr key);
+      dolog "unhandled key %d char `%c'" key (Char.unsafe_chr key);
       TEcont text
 ;;
 
@@ -1780,7 +1779,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       );
       Glut.postRedisplay ()
 
-  | _ -> log "unknown key %d" key
+  | _ -> dolog "unknown key %d" key
 ;;
 
 let keyboard ~key ~x ~y =
