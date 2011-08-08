@@ -170,7 +170,7 @@ type pagemapkey = (pageno * width * angle * proportional * gen);;
 type anchor = pageno * top;;
 
 type mode =
-    | Birdseye of (conf * leftx * pageno * pageno)
+    | Birdseye of (conf * leftx * pageno * pageno * anchor)
     | Outline of (bool * int * int * outline array * string)
     | Textentry of (textentry * mode)
     | View
@@ -610,13 +610,13 @@ let gotoy y =
     Glut.postRedisplay ();
   );
   begin match state.mode with
-  | Birdseye (conf, leftx, pageno, hooverpageno) ->
+  | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
       if not (pagevisible pages pageno)
       then (
         match state.layout with
         | [] -> ()
         | l :: _ ->
-            state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno)
+            state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno, anchor)
       );
   | _ -> ()
   end;
@@ -693,7 +693,7 @@ let scalecolor c =
 let represent () =
   state.maxy <- calcheight ();
   match state.mode with
-  | Birdseye (_, _, pageno, _) ->
+  | Birdseye (_, _, pageno, _, _) ->
       let y, h = getpageyh pageno in
       let top = (conf.winh - h) / 2 in
       gotoy (max 0 (y - top))
@@ -1223,8 +1223,9 @@ let birdseyeon () =
     in
     fold state.layout
   in
-  state.mode <-
-    Birdseye ({ conf with zoom = conf.zoom }, state.x, birdseyepageno, -1);
+  state.mode <- Birdseye (
+    { conf with zoom = conf.zoom }, state.x, birdseyepageno, -1, getanchor ()
+  );
   conf.zoom <- zoom;
   conf.presentation <- false;
   conf.interpagespace <- 10;
@@ -1242,7 +1243,7 @@ let birdseyeon () =
   ;
 ;;
 
-let birdseyeoff (c, leftx, pageno, _) =
+let birdseyeoff (c, leftx, pageno, _, _) =
   state.mode <- View;
   conf.zoom <- c.zoom;
   conf.presentation <- c.presentation;
@@ -1576,11 +1577,12 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
       end;
 ;;
 
-let birdseyekeyboard ~key ~x ~y ((c, leftx, pageno, hooverpageno) as beye) =
+let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
   match key with
   | 27 ->
       birdseyeoff beye;
-      reshape conf.winw conf.winh
+      reshape conf.winw conf.winh;
+      state.anchor <- anchor;
 
   | 12 ->
       let y, h = getpageyh pageno in
@@ -1798,7 +1800,7 @@ let keyboard ~key ~x ~y =
     | View -> viewkeyboard ~key ~x ~y
 ;;
 
-let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
+let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
   match key with
   | Glut.KEY_UP ->
       let pageno = max 0 (pageno - 1) in
@@ -1811,11 +1813,11 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
         | _ :: rest -> loop rest
       in
       loop state.layout;
-      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno)
+      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor)
 
   | Glut.KEY_DOWN ->
       let pageno = min (state.pagecount - 1) (pageno + 1) in
-      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno);
+      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor);
       let rec loop = function
         | [] ->
             let y, h = getpageyh pageno in
@@ -1834,7 +1836,9 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
       | l :: _ ->
           if l.pagey != 0
           then (
-            state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno);
+            state.mode <- Birdseye (
+              conf, leftx, l.pageno, hooverpageno, anchor
+            );
             gotopage1nonav l.pageno 0;
           )
           else (
@@ -1842,7 +1846,9 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
             match layout with
             | [] -> gotoy (clamp (-conf.winh))
             | l :: _ ->
-                state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno);
+                state.mode <- Birdseye (
+                  conf, leftx, l.pageno, hooverpageno, anchor
+                );
                 gotopage1nonav l.pageno 0
           );
 
@@ -1852,18 +1858,18 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
   | Glut.KEY_PAGE_DOWN ->
       begin match List.rev state.layout with
       | l :: _ ->
-          state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno);
+          state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno, anchor);
           gotoy (clamp (l.pagedispy + l.pageh))
       | [] -> gotoy (clamp conf.winh)
       end;
 
   | Glut.KEY_HOME ->
-      state.mode <- Birdseye (conf, leftx, 0, hooverpageno);
+      state.mode <- Birdseye (conf, leftx, 0, hooverpageno, anchor);
       gotopage1nonav 0 0
 
   | Glut.KEY_END ->
       let pageno = state.pagecount - 1 in
-      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno);
+      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor);
       if not (pagevisible state.layout pageno)
       then
         let h =
@@ -2014,7 +2020,7 @@ let drawpage l =
     match state.mode with
     | Textentry _ -> scalecolor 0.4
     | View | Outline _ -> scalecolor 1.0
-    | Birdseye (_, _, pageno, hooverpageno) ->
+    | Birdseye (_, _, pageno, hooverpageno, _) ->
         if l.pageno = pageno
         then scalecolor 1.0
         else (
@@ -2318,7 +2324,8 @@ let viewmouse button bstate x y =
   | _ -> ()
 ;;
 
-let birdseyemouse button bstate x y (conf, leftx, pageno, hooverpageno) =
+let birdseyemouse button bstate x y
+    (conf, leftx, pageno, hooverpageno, anchor) =
   match button with
   | Glut.LEFT_BUTTON when bstate = Glut.UP ->
       let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
@@ -2328,7 +2335,7 @@ let birdseyemouse button bstate x y (conf, leftx, pageno, hooverpageno) =
             if y > l.pagedispy && y < l.pagedispy + l.pagevh
               && x > margin && x < margin + l.pagew
             then (
-              birdseyeoff (conf, leftx, l.pageno, hooverpageno);
+              birdseyeoff (conf, leftx, l.pageno, hooverpageno, anchor);
               reshape conf.winw conf.winh;
               state.anchor <- (l.pageno, 0.0);
             )
@@ -2376,20 +2383,20 @@ let motion ~x ~y =
 
 let pmotion ~x ~y =
   match state.mode with
-  | Birdseye (conf, leftx, pageno, hooverpageno) ->
+  | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
       let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
       let rec loop = function
         | [] ->
             if hooverpageno != -1
             then (
-              state.mode <- Birdseye (conf, leftx, pageno, -1);
+              state.mode <- Birdseye (conf, leftx, pageno, -1, anchor);
               Glut.postRedisplay ();
             )
         | l :: rest ->
             if y > l.pagedispy && y < l.pagedispy + l.pagevh
               && x > margin && x < margin + l.pagew
             then (
-              state.mode <- Birdseye (conf, leftx, pageno, l.pageno);
+              state.mode <- Birdseye (conf, leftx, pageno, l.pageno, anchor);
               Glut.postRedisplay ();
             )
             else loop rest
@@ -2742,7 +2749,7 @@ struct
       then dc.zoom, dc.presentation, dc.interpagespace, dc.showall
       else
         match state.mode with
-        | Birdseye (bc, _, _, _) ->
+        | Birdseye (bc, _, _, _, _) ->
             bc.zoom, bc.presentation, bc.interpagespace, bc.showall
         | _ -> c.zoom, c.presentation, c.interpagespace, c.showall
     in
@@ -2815,7 +2822,7 @@ struct
 
       let x =
         match state.mode with
-        | Birdseye (_, x, _, _) -> x
+        | Birdseye (_, x, _, _, _) -> x
         | _ -> state.x
       in
       let basename = Filename.basename state.path in
