@@ -2122,8 +2122,8 @@ let showrects () =
   Gl.disable `blend;
 ;;
 
-let showoutline =
-  match state.outline with
+let showoutline () =
+  match state.mode with
   | Outline (allowdel, active, first, outlines, qsearch) ->
       Gl.enable `blend;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
