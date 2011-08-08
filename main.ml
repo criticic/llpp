@@ -769,15 +769,8 @@ let enttext () =
 ;;
 
 let showtext c s =
-  if true
-  then (
-    state.text <- Printf.sprintf "%c%s" c s;
-    Glut.postRedisplay ();
-  )
-  else (
-    showtext c s;
-    Glut.swapBuffers ();
-  )
+  state.text <- Printf.sprintf "%c%s" c s;
+  Glut.postRedisplay ();
 ;;
 
 let act cmd =
