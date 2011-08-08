@@ -1909,7 +1909,6 @@ let special ~key ~x ~y =
 
 let drawplaceholder l =
   let margin = state.x + (conf.winw - (state.w + conf.scrollw)) / 2 in
-  GlDraw.color (scalecolor 1.0);
   GlDraw.rect
     (float l.pagex, float l.pagedispy)
     (float (l.pagew + l.pagex), float (l.pagedispy + l.pagevh))
@@ -1926,25 +1925,25 @@ let drawplaceholder l =
 let now () = Unix.gettimeofday ();;
 
 let drawpage l =
+  if state.textentry = None
+  then (
+    match state.birdseye with
+    | None -> GlDraw.color (scalecolor 1.0);
+    | Some (_, _, hooverpageno) ->
+        let color =
+          if l.pageno = state.birdseyepageno
+          then 1.0
+          else (
+            if l.pageno = hooverpageno
+            then 0.9
+            else 0.8
+          )
+        in
+        GlDraw.color (scalecolor color);
+  )
+  else GlDraw.color (scalecolor 0.4);
   begin match getopaque l.pageno with
   | Some (opaque, _) when validopaque opaque ->
-      if state.textentry = None
-      then (
-        match state.birdseye with
-        | None -> GlDraw.color (scalecolor 1.0);
-        | Some (_, _, hooverpageno) ->
-            let color =
-              if l.pageno = state.birdseyepageno
-              then 0.7
-              else (
-                if l.pageno = hooverpageno
-                then 0.9
-                else 1.0
-              )
-            in
-            GlDraw.color (scalecolor color);
-      )
-      else GlDraw.color (scalecolor 0.4);
       let a = now () in
       draw (l.pagedispy, l.pagew, l.pagevh, l.pagey, conf.hlinks)
         opaque;
