@@ -545,9 +545,9 @@ let findpageforopaque opaque =
 let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
 
 let preload () =
-  if conf.preload
-  then
-    let oktopreload =
+  let oktopreload =
+    if conf.preload
+    then
       let memleft = conf.memlimit - state.memused in
       if memleft < 0
       then
@@ -557,23 +557,24 @@ let preload () =
             memleft + size >= 0 && not (pagevisible state.layout n)
         | None -> false
       else true
-    in
-    if oktopreload
-    then
-      let rely = yratio state.y in
-      let presentation = conf.presentation in
-      let interpagespace = conf.interpagespace in
-      let maxy = state.maxy in
-      conf.presentation <- false;
-      conf.interpagespace <- 0;
-      state.maxy <- calcheight ();
-      let y = truncate (float state.maxy *. rely) in
-      let y = if y < conf.winh then 0 else y - conf.winh in
-      let pages = layout y (conf.winh*3) in
-      List.iter render pages;
-      conf.presentation <- presentation;
-      conf.interpagespace <- interpagespace;
-      state.maxy <- maxy;
+    else false
+  in
+  if oktopreload
+  then
+    let rely = yratio state.y in
+    let presentation = conf.presentation in
+    let interpagespace = conf.interpagespace in
+    let maxy = state.maxy in
+    conf.presentation <- false;
+    conf.interpagespace <- 0;
+    state.maxy <- calcheight ();
+    let y = truncate (float state.maxy *. rely) in
+    let y = if y < conf.winh then 0 else y - conf.winh in
+    let pages = layout y (conf.winh*3) in
+    List.iter render pages;
+    conf.presentation <- presentation;
+    conf.interpagespace <- interpagespace;
+    state.maxy <- maxy;
 ;;
 
 let gotoy y =
