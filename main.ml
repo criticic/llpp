@@ -2758,13 +2758,13 @@ struct
       Buffer.add_string bb "/>\n";
 
       let adddoc path x anchor c bookmarks =
-        if bookmarks == [] && c = dc && anchor == emptyanchor
+        if bookmarks == [] && c = dc && anchor = emptyanchor
         then ()
         else (
           Printf.bprintf bb "<doc path='%s'"
             (enent path 0 (String.length path));
 
-          if anchor != emptyanchor
+          if anchor <> emptyanchor
           then (
             let n, y = anchor in
             Printf.bprintf bb " page='%d'" n;
