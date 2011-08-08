@@ -1194,8 +1194,11 @@ let birdseyeoff (c, leftx, _) =
   conf.showall <- c.showall;
   conf.hlinks <- c.hlinks;
   state.x <- leftx;
-  state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-    (100.0*.conf.zoom);
+  if conf.verbose
+  then
+    state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
+      (100.0*.conf.zoom)
+  ;
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -1312,8 +1315,13 @@ let viewkeyboard ~key ~x ~y =
               state.mstate <- Mnone;
               conf.showall <- false;
               Glut.setCursor Glut.CURSOR_INHERIT;
-              state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
-                (100.0*.zoom)
+              if conf.verbose
+              then
+                state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
+                  (100.0*.zoom)
+              else
+                state.text <- ""
+              ;
 
           | Some vals ->
               birdseyeoff vals;
@@ -2089,12 +2097,7 @@ let display () =
   let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
   GlDraw.viewport margin 0 state.w conf.winh;
   pagematrix ();
-  if state.birdseye <> None
-  then
-    GlClear.color (0.5, 0.5, 0.55)
-  else
-    GlClear.color (scalecolor 0.5)
-  ;
+  GlClear.color (scalecolor 0.5);
   GlClear.clear [`color];
   if state.x != 0
   then (
