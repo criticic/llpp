@@ -179,7 +179,6 @@ type mode =
 
 let isbirdseye = function Birdseye _ -> true | _ -> false;;
 let istextentry = function Textentry _ -> true | _ -> false;;
-let isoutline = function Outline _ -> true | _ -> false;;
 
 type state =
     { mutable csock : Unix.file_descr
@@ -2226,7 +2225,7 @@ let getunder x y =
   f state.layout
 ;;
 
-let mouse ~button ~bstate ~x ~y =
+let viewmouse button bstate x y =
   match button with
   | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
       let incr =
@@ -2240,8 +2239,7 @@ let mouse ~button ~bstate ~x ~y =
       let y = clamp incr in
       gotoy_and_clear_text y
 
-  | Glut.LEFT_BUTTON when not (isoutline state.mode)
-      && Glut.getModifiers () land Glut.active_ctrl != 0 ->
+  | Glut.LEFT_BUTTON when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       if bstate = Glut.DOWN
       then (
         Glut.setCursor Glut.CURSOR_CROSSHAIR;
@@ -2250,8 +2248,7 @@ let mouse ~button ~bstate ~x ~y =
       else
         state.mstate <- Mnone
 
-  | Glut.LEFT_BUTTON
-      when not (isoutline state.mode) && x > conf.winw - conf.scrollw ->
+  | Glut.LEFT_BUTTON when x > conf.winw - conf.scrollw ->
       if bstate = Glut.DOWN
       then
         let position, sh = scrollph state.y in
@@ -2266,28 +2263,7 @@ let mouse ~button ~bstate ~x ~y =
       else
         state.mstate <- Mnone
 
-  | Glut.LEFT_BUTTON
-      when not (isoutline state.mode) && (isbirdseye state.mode) ->
-      begin match state.mode with
-      | Birdseye (conf, leftx, pageno, hooverpageno) ->
-          let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
-          let rec loop = function
-            | [] -> ()
-            | l :: rest ->
-                if y > l.pagedispy && y < l.pagedispy + l.pagevh
-                  && x > margin && x < margin + l.pagew
-                then (
-                  birdseyeoff (conf, leftx, l.pageno, hooverpageno);
-                  reshape conf.winw conf.winh;
-                  state.anchor <- (l.pageno, 0.0);
-                )
-                else loop rest
-          in
-          loop state.layout;
-      | _ -> ()                         (* impossible *)
-      end
-
-  | Glut.LEFT_BUTTON when not (isoutline state.mode) ->
+  | Glut.LEFT_BUTTON ->
       let dest = if bstate = Glut.DOWN then getunder x y else Unone in
       begin match dest with
       | Ulinkgoto (pageno, top) ->
@@ -2339,10 +2315,38 @@ let mouse ~button ~bstate ~x ~y =
           )
       end
 
-  | _ ->
-      ()
+  | _ -> ()
 ;;
-let mouse ~button ~state ~x ~y = mouse button state x y;;
+
+let birdseyemouse button bstate x y (conf, leftx, pageno, hooverpageno) =
+  match button with
+  | Glut.LEFT_BUTTON when bstate = Glut.UP ->
+      let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+      let rec loop = function
+        | [] -> ()
+        | l :: rest ->
+            if y > l.pagedispy && y < l.pagedispy + l.pagevh
+              && x > margin && x < margin + l.pagew
+            then (
+              birdseyeoff (conf, leftx, l.pageno, hooverpageno);
+              reshape conf.winw conf.winh;
+              state.anchor <- (l.pageno, 0.0);
+            )
+            else loop rest
+      in
+      loop state.layout
+  | _ -> ()
+;;
+
+let mouse bstate button x y =
+  match state.mode with
+  | View -> viewmouse button bstate x y
+  | Birdseye beye -> birdseyemouse button bstate x y beye
+  | Textentry _ -> ()
+  | Outline _ -> ()
+;;
+
+let mouse ~button ~state ~x ~y = mouse state button x y;;
 
 let motion ~x ~y =
   match state.mode with
