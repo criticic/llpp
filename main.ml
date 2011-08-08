@@ -1822,27 +1822,27 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
   | Glut.KEY_PAGE_UP ->
       begin match state.layout with
       | l :: _ ->
-          if l.pageno = pageno
+          if l.pagey != 0
           then (
-            match layout (state.y - conf.winh) conf.winh with
-            | [] -> gotoy (clamp (-conf.winh))
-            | l :: _ ->
-                let pageno = max 0 (l.pageno - 1) in
-                state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
-                gotopagenonav pageno 0.0
+            state.birdseye <- Some (conf, leftx, l.pageno, hooverpageno);
+            gotopage1nonav l.pageno 0;
           )
           else (
-            let pageno = max 0 (l.pageno - 1) in
-            state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
-            gotopagenonav pageno 0.0
-          )
+            let layout = layout (state.y-conf.winh) conf.winh in
+            match layout with
+            | [] -> gotoy (clamp (-conf.winh))
+            | l :: _ ->
+                state.birdseye <- Some (conf, leftx, l.pageno, hooverpageno);
+                gotopage1nonav l.pageno 0
+          );
+
       | [] -> gotoy (clamp (-conf.winh))
       end;
+
   | Glut.KEY_PAGE_DOWN ->
       begin match List.rev state.layout with
       | l :: _ ->
-          let pageno = min l.pageno (state.pagecount - 1) in
-          state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
+          state.birdseye <- Some (conf, leftx, l.pageno, hooverpageno);
           gotoy (clamp (l.pagedispy + l.pageh))
       | [] -> gotoy (clamp conf.winh)
       end;
@@ -1850,6 +1850,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
   | Glut.KEY_HOME ->
       state.birdseye <- Some (conf, leftx, 0, hooverpageno);
       gotopage1nonav 0 0
+
   | Glut.KEY_END ->
       let pageno = state.pagecount - 1 in
       state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
