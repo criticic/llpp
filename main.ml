@@ -185,7 +185,7 @@ type state =
     ; mutable rects1 : (pageno * recttype * rect) list
     ; mutable text : string
     ; mutable fullscreen : (width * height) option
-    ; mutable birdseye : (conf * leftx * pageno) option
+    ; mutable birdseye : (conf * leftx * pageno * pageno) option
     ; mutable textentry : textentry option
     ; mutable outlines : outlines
     ; mutable outline : (bool * int * int * outline array * string) option
@@ -195,7 +195,6 @@ type state =
     ; mutable invalidated : int
     ; mutable colorscale : float
     ; mutable memused : int
-    ; mutable birdseyepageno : pageno
     ; mutable gen : gen
     ; mutable throttle : layout list option
     ; hists : hists
@@ -271,7 +270,6 @@ let state =
       }
   ; colorscale = 1.0
   ; memused = 0
-  ; birdseyepageno = -1
   ; gen = 0
   ; throttle = None
   }
@@ -604,14 +602,17 @@ let gotoy y =
     state.throttle <- None;
     Glut.postRedisplay ();
   );
-  if state.birdseye <> None
-  then (
-    if not (pagevisible pages state.birdseyepageno)
-    then
-      match state.layout with
-      | [] -> ()
-      | l :: _ -> state.birdseyepageno <- l.pageno
-  );
+  begin match state.birdseye with
+  | Some (conf, leftx, pageno, hooverpageno) ->
+      if not (pagevisible pages pageno)
+      then (
+        match state.layout with
+        | [] -> ()
+        | l :: _ ->
+            state.birdseye <- Some (conf, leftx, l.pageno, hooverpageno)
+      );
+  | _ -> ()
+  end;
   preload ();
 ;;
 
@@ -657,20 +658,19 @@ let scalecolor c =
 let represent () =
   let maxy = calcheight () in
   let y =
-    if state.birdseyepageno = -1 && state.birdseye = None
-    then
-      match state.layout with
-      | [] ->
-          let rely = yratio state.y in
-          truncate (float maxy *. rely)
+    match state.birdseye with
+    | None ->
+        begin match state.layout with
+        | [] ->
+            let rely = yratio state.y in
+            truncate (float maxy *. rely)
 
-      | l :: _ ->
-          getpagey l.pageno
-    else (
-      let y = getpagey state.birdseyepageno in
-      state.birdseyepageno <- -1;
-      y
-    )
+        | l :: _ -> getpagey l.pageno
+        end;
+
+    | Some (conf, leftx, pageno, hooverpageno) ->
+        let rely = yratio state.y in
+        truncate (float maxy *. rely)
   in
   state.maxy <- maxy;
   gotoy y
@@ -1197,9 +1197,8 @@ let birdseyeon () =
     | [] -> 0
     | l :: _ -> l.pageno
   in
-  state.birdseyepageno <- birdseyepageno;
   state.birdseye <-
-    Some ({ conf with zoom = conf.zoom }, state.x, -1);
+    Some ({ conf with zoom = conf.zoom }, state.x, birdseyepageno, -1);
   conf.zoom <- zoom;
   conf.presentation <- false;
   conf.interpagespace <- 10;
@@ -1217,7 +1216,7 @@ let birdseyeon () =
   ;
 ;;
 
-let birdseyeoff (c, leftx, _) =
+let birdseyeoff (c, leftx, pageno, _) =
   state.birdseye <- None;
   conf.zoom <- c.zoom;
   conf.presentation <- c.presentation;
@@ -1225,6 +1224,8 @@ let birdseyeoff (c, leftx, _) =
   conf.showall <- c.showall;
   conf.hlinks <- c.hlinks;
   state.x <- leftx;
+  state.maxy <- calcheight ();
+  state.y <- getpagey pageno;
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
@@ -1755,73 +1756,87 @@ let keyboard ~key ~x ~y =
     | Some outline -> outlinekeyboard ~key ~x ~y outline
 ;;
 
+let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
+  match key with
+  | Glut.KEY_UP ->
+      let pageno = max 0 (pageno - 1) in
+      let move =
+        let rec loop = function
+          | [] -> true
+          | l :: rest ->
+              if l.pageno = pageno
+              then l.pagey != 0
+              else loop rest
+        in
+        loop state.layout
+      in
+      if move
+      then gotopage1 pageno 0
+      else Glut.postRedisplay ();
+      state.birdseye <- Some (conf, leftx, pageno, hooverpageno)
+
+  | Glut.KEY_DOWN ->
+      let pageno = min (state.pagecount - 1) (pageno + 1) in
+      state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
+      if not (pagevisible state.layout pageno)
+      then
+        begin match List.rev state.layout with
+        | [] -> gotopage pageno 0.0
+        | l :: _ ->
+            gotoy (state.y + conf.interpagespace + l.pageh*2 - l.pagevh)
+        end
+      else Glut.postRedisplay ();
+
+  | Glut.KEY_PAGE_UP ->
+      begin match state.layout with
+      | l :: _ ->
+          if l.pageno = pageno
+          then (
+            match layout (state.y - conf.winh) conf.winh with
+            | [] -> gotoy (clamp (-conf.winh))
+            | l :: _ ->
+                let pageno = max 0 (l.pageno - 1) in
+                state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
+                gotopage pageno 0.0
+          )
+          else (
+            let pageno = max 0 (l.pageno - 1) in
+            state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
+            gotopage pageno 0.0
+          )
+      | [] -> gotoy (clamp (-conf.winh))
+      end;
+  | Glut.KEY_PAGE_DOWN ->
+      begin match List.rev state.layout with
+      | l :: _ ->
+          let pageno = min l.pageno (state.pagecount - 1) in
+          state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
+          gotoy (clamp (l.pagedispy + l.pageh))
+      | [] -> gotoy (clamp conf.winh)
+      end;
+
+  | Glut.KEY_HOME ->
+      state.birdseye <- Some (conf, leftx, 0, hooverpageno);
+      gotopage 0 0.0
+  | Glut.KEY_END ->
+      let pageno = state.pagecount - 1 in
+      state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
+      if not (pagevisible state.layout pageno)
+      then gotopage pageno 0.0
+      else Glut.postRedisplay ();
+  | _ -> ()
+;;
+
 let special ~key ~x ~y =
-  match state.outline with
-  | None when key = Glut.KEY_F9 ->
+  match state.outline, state.birdseye with
+  | None, _ when key = Glut.KEY_F9 ->
       togglebirdseye ();
       reshape conf.winw conf.winh;
 
-  | None when state.birdseye <> None ->
-      begin match key with
-      | Glut.KEY_UP ->
-          let pageno = max 0 (state.birdseyepageno - 1) in
-          state.birdseyepageno <- pageno;
-          if not (pagevisible state.layout pageno)
-          then gotopage pageno 0.0
-          else Glut.postRedisplay ();
+  | None, (Some vals) ->
+      birdseyespecial key x y vals
 
-      | Glut.KEY_DOWN ->
-          let pageno = min (state.pagecount - 1) (state.birdseyepageno + 1) in
-          state.birdseyepageno <- pageno;
-          if not (pagevisible state.layout pageno)
-          then
-            begin match List.rev state.layout with
-            | [] -> gotopage pageno 0.0
-            | l :: _ ->
-                gotoy (state.y + conf.interpagespace + l.pageh*2 - l.pagevh)
-            end
-          else Glut.postRedisplay ();
-
-      | Glut.KEY_PAGE_UP ->
-          begin match state.layout with
-          | l :: _ ->
-              if l.pageno = state.birdseyepageno
-              then (
-                match layout (state.y - conf.winh) conf.winh with
-                | [] -> gotoy (clamp (-conf.winh))
-                | l :: _ -> 
-                    state.birdseyepageno <- max 0 (l.pageno - 1);
-                    gotopage state.birdseyepageno 0.0
-              )
-              else (
-                state.birdseyepageno <- max 0 (l.pageno - 1);
-                gotopage state.birdseyepageno 0.0
-              )
-          | [] -> gotoy (clamp (-conf.winh))
-          end;
-      | Glut.KEY_PAGE_DOWN ->
-          begin match List.rev state.layout with
-          | l :: _ ->
-              state.birdseyepageno <- min (state.pagecount - 1) (l.pageno + 1);
-              gotoy (clamp (l.pagedispy + l.pageh))
-          | [] -> gotoy (clamp conf.winh)
-          end;
-
-      | Glut.KEY_HOME ->
-          state.birdseyepageno <- 0;
-          gotopage 0 0.0
-      | Glut.KEY_END ->
-          state.birdseyepageno <- state.pagecount - 1;
-          if not (pagevisible state.layout state.birdseyepageno)
-          then
-            gotopage state.birdseyepageno 0.0
-          else
-            Glut.postRedisplay ()
-          ;
-      | _ -> ()
-      end
-
-  | None ->
+  | None, None ->
       begin match state.textentry with
       | None ->
           let y =
@@ -1876,7 +1891,7 @@ let special ~key ~x ~y =
       | _ -> ()
       end
 
-  | Some (allowdel, active, first, outlines, qsearch) ->
+  | Some (allowdel, active, first, outlines, qsearch), _ ->
       let maxrows = maxoutlinerows () in
       let calcfirst first active =
         if active > first
@@ -1949,9 +1964,9 @@ let drawpage l =
   then (
     match state.birdseye with
     | None -> GlDraw.color (scalecolor 1.0);
-    | Some (_, _, hooverpageno) ->
+    | Some (_, _, pageno, hooverpageno) ->
         let color =
-          if l.pageno = state.birdseyepageno
+          if l.pageno = pageno
           then 1.0
           else (
             if l.pageno = hooverpageno
@@ -2208,7 +2223,7 @@ let mouse ~button ~bstate ~x ~y =
 
   | Glut.LEFT_BUTTON when state.outline = None && state.birdseye <> None ->
       begin match state.birdseye with
-      | Some vals ->
+      | Some (conf, leftx, pageno, hooverpageno) ->
           let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
           let rec loop = function
             | [] -> ()
@@ -2216,8 +2231,7 @@ let mouse ~button ~bstate ~x ~y =
                 if y > l.pagedispy && y < l.pagedispy + l.pagevh
                   && x > margin && x < margin + l.pagew
                 then (
-                  state.birdseyepageno <- l.pageno;
-                  birdseyeoff vals;
+                  birdseyeoff (conf, leftx, l.pageno, hooverpageno);
                   reshape conf.winw conf.winh;
                 )
                 else loop rest
@@ -2310,20 +2324,20 @@ let motion ~x ~y =
 
 let pmotion ~x ~y =
   match state.birdseye with
-  | Some (conf, leftx, hooverpageno) ->
+  | Some (conf, leftx, pageno, hooverpageno) ->
       let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
       let rec loop = function
         | [] ->
             if hooverpageno != -1
             then (
-              state.birdseye <- Some (conf, leftx, -1);
+              state.birdseye <- Some (conf, leftx, pageno, -1);
               Glut.postRedisplay ();
             )
         | l :: rest ->
             if y > l.pagedispy && y < l.pagedispy + l.pagevh
               && x > margin && x < margin + l.pagew
             then (
-              state.birdseye <- Some (conf, leftx, l.pageno);
+              state.birdseye <- Some (conf, leftx, pageno, l.pageno);
               Glut.postRedisplay ();
             )
             else loop rest
@@ -2686,9 +2700,9 @@ struct
       then dc.zoom, dc.presentation, dc.interpagespace, dc.showall
       else
         match state.birdseye with
-        | Some (bc, _, _) ->
+        | Some (bc, _, _, _) ->
             bc.zoom, bc.presentation, bc.interpagespace, bc.showall
-        | None -> c.zoom, c.presentation, c.interpagespace, c.showall
+        | _ -> c.zoom, c.presentation, c.interpagespace, c.showall
     in
     oi "width" w dc.winw;
     oi "height" h dc.winh;
@@ -2754,7 +2768,7 @@ struct
 
       let x =
         match state.birdseye with
-        | Some (_, x, _) -> x
+        | Some (_, x, _, _) -> x
         | None -> state.x
       in
       adddoc state.path x (yratio state.y) conf
