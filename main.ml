@@ -1197,11 +1197,8 @@ let opendoc path password =
 
 let birdseyeon () =
   let zoom = float conf.thumbw /. float conf.winw in
-  let birdseyepageno =
-    match state.layout with
-    | [] -> 0
-    | l :: _ -> l.pageno
-  in
+  let (birdseyepageno, _) as anchor  = getanchor () in
+  state.anchor <- anchor;
   state.birdseye <-
     Some ({ conf with zoom = conf.zoom }, state.x, birdseyepageno, -1);
   conf.zoom <- zoom;
