@@ -2713,7 +2713,7 @@ struct
     let f (h, dc) =
       let pc, pb, px, pa =
         try
-          Hashtbl.find h state.path
+          Hashtbl.find h (Filename.basename state.path)
         with Not_found -> dc, [], 0, (0, 0.0)
       in
       setconf defconf dc;
