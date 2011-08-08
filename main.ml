@@ -561,14 +561,17 @@ let preload () =
   in
   if oktopreload
   then
-    let rely = yratio state.y in
     let presentation = conf.presentation in
     let interpagespace = conf.interpagespace in
     let maxy = state.maxy in
     conf.presentation <- false;
     conf.interpagespace <- 0;
     state.maxy <- calcheight ();
-    let y = truncate (float state.maxy *. rely) in
+    let y =
+      match state.layout with
+      | [] -> 0
+      | l :: _ -> getpagey l.pageno
+    in
     let y = if y < conf.winh then 0 else y - conf.winh in
     let pages = layout y (conf.winh*3) in
     List.iter render pages;
