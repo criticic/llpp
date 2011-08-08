@@ -1824,7 +1824,13 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno) =
       let pageno = state.pagecount - 1 in
       state.birdseye <- Some (conf, leftx, pageno, hooverpageno);
       if not (pagevisible state.layout pageno)
-      then gotopage pageno 0.0
+      then
+        let h =
+          match List.rev state.pdims with
+          | [] -> conf.winh
+          | (_, _, h, _) :: _ -> h
+        in
+        gotoy (max 0 (getpagey pageno - (conf.winh - h - conf.interpagespace)))
       else Glut.postRedisplay ();
   | _ -> ()
 ;;
