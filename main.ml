@@ -1190,6 +1190,33 @@ let opendoc path password =
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
+let birdseyeon () =
+  let zoom = 76.0 /. float state.w in
+  let birdseyepageno =
+    match state.layout with
+    | [] -> 0
+    | l :: _ -> l.pageno
+  in
+  state.birdseyepageno <- birdseyepageno;
+  state.birdseye <-
+    Some ({ conf with zoom = conf.zoom }, state.x, -1);
+  conf.zoom <- zoom;
+  conf.presentation <- false;
+  conf.interpagespace <- 10;
+  conf.hlinks <- false;
+  state.x <- 0;
+  state.mstate <- Mnone;
+  conf.showall <- false;
+  Glut.setCursor Glut.CURSOR_INHERIT;
+  if conf.verbose
+  then
+    state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
+      (100.0*.zoom)
+  else
+    state.text <- ""
+  ;
+;;
+
 let birdseyeoff (c, leftx, _) =
   state.birdseye <- None;
   conf.zoom <- c.zoom;
@@ -1203,6 +1230,12 @@ let birdseyeoff (c, leftx, _) =
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
       (100.0*.conf.zoom)
   ;
+;;
+
+let togglebirdseye () =
+  match state.birdseye with
+  | None -> birdseyeon ()
+  | Some vals -> birdseyeoff vals
 ;;
 
 let viewkeyboard ~key ~x ~y =
@@ -1300,36 +1333,7 @@ let viewkeyboard ~key ~x ~y =
           )
 
       | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-          begin match state.birdseye with
-          | None ->
-              let zoom = 76.0 /. float state.w in
-              let birdseyepageno =
-                match state.layout with
-                | [] -> 0
-                | l :: _ -> l.pageno
-              in
-              state.birdseyepageno <- birdseyepageno;
-              state.birdseye <-
-                Some ({ conf with zoom = conf.zoom }, state.x, -1);
-              conf.zoom <- zoom;
-              conf.presentation <- false;
-              conf.interpagespace <- 10;
-              conf.hlinks <- false;
-              state.x <- 0;
-              state.mstate <- Mnone;
-              conf.showall <- false;
-              Glut.setCursor Glut.CURSOR_INHERIT;
-              if conf.verbose
-              then
-                state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
-                  (100.0*.zoom)
-              else
-                state.text <- ""
-              ;
-
-          | Some vals ->
-              birdseyeoff vals;
-          end;
+          togglebirdseye ();
           reshape conf.winw conf.winh;
 
       | '0' .. '9' ->
@@ -1753,6 +1757,10 @@ let keyboard ~key ~x ~y =
 
 let special ~key ~x ~y =
   match state.outline with
+  | None when key = Glut.KEY_F9 ->
+      togglebirdseye ();
+      reshape conf.winw conf.winh;
+
   | None when state.birdseye <> None ->
       begin match key with
       | Glut.KEY_UP ->

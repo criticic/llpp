@@ -35,7 +35,7 @@ Ctrl-g                  - interrupt search
 Ctrl-+/-                - zoom in/out
 Ctrl-0                  - fit page width and reset panning
 Ctrl-1                  - fit page height
-Ctrl-9                  - toggle bird's eye view
+Ctrl-9/F9               - enter bird's eye view
 home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
 ctrl pageup/pagedown    - align top of the screen with first/last visible page
@@ -64,7 +64,7 @@ bird's eye mode
 (page)up/(page)down     - navigate
 home/end                - go to first/last page
 enter                   - select the page and leave bird's eye mode
-ctrl-9                  - leave bird's eye view
+Ctrl-9/F9               - leave bird's eye view
 1st mouse button        - select the page under cursor and leave bird's eye mode
 
 outline/bookmark mode
