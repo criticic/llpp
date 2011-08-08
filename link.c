@@ -630,7 +630,7 @@ static void layout (void)
     int pindex;
     fz_matrix ctm;
     fz_rect box, box2;
-    double zoom, w, maxw;
+    double zoom, w, maxw = 0;
     struct pagedim *p = state.pagedims;
 
     if (state.proportional) {
@@ -1797,7 +1797,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     double winw = Int_val (winw_v);
     double winh = Int_val (winh_v);
     double dw = Int_val (dw_v);
-    double pw, ph, num, den;
+    double pw = 1.0, ph = 1.0, num, den;
 
     if (trylock ("ml_zoom_for_height")) {
         goto done;
