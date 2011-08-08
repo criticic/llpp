@@ -22,6 +22,7 @@ and interpagespace = int
 and texcount = int
 and sliceheight = int
 and gen = int
+and top = float
 ;;
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;
@@ -167,12 +168,15 @@ type rect = (float * float * float * float * float * float * float * float);;
 
 type pagemapkey = (pageno * width * angle * proportional * gen);;
 
+type anchor = pageno * top;;
+
 type state =
     { mutable csock : Unix.file_descr
     ; mutable ssock : Unix.file_descr
     ; mutable w : int
     ; mutable x : int
     ; mutable y : int
+    ; mutable anchor : anchor
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : (pagemapkey, (opaque * pixmapsize)) Hashtbl.t
@@ -241,9 +245,10 @@ let conf = { defconf with angle = defconf.angle };;
 let state =
   { csock = Unix.stdin
   ; ssock = Unix.stdin
-  ; w = 0
-  ; y = 0
   ; x = 0
+  ; y = 0
+  ; anchor = (0, 0.0)
+  ; w = 0
   ; layout = []
   ; maxy = max_int
   ; pagemap = Hashtbl.create 10
@@ -660,19 +665,9 @@ let scalecolor c =
 let represent () =
   let maxy = calcheight () in
   let y =
-    match state.birdseye with
-    | None ->
-        begin match state.layout with
-        | [] ->
-            let rely = yratio state.y in
-            truncate (float maxy *. rely)
-
-        | l :: _ -> getpagey l.pageno
-        end;
-
-    | Some (conf, leftx, pageno, hooverpageno) ->
-        let rely = yratio state.y in
-        truncate (float maxy *. rely)
+    let (n, top) = state.anchor in
+    let y, h = getpageyh n in
+    y + (truncate (top *. float h))
   in
   state.maxy <- maxy;
   gotoy y;
@@ -694,7 +689,16 @@ let winmatrix () =
   GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
 ;;
 
+let getanchor () =
+  match state.layout with
+  | []     -> (0, 0.0)
+  | l :: _ -> (l.pageno, float l.pagey /. float l.pageh)
+;;
+
 let reshape ~w ~h =
+  if state.invalidated = 0
+  then state.anchor <- getanchor ();
+
   conf.winw <- w;
   let w = truncate (float w *. conf.zoom) - conf.scrollw in
   let w = max w 2 in
@@ -1226,8 +1230,6 @@ let birdseyeoff (c, leftx, pageno, _) =
   conf.showall <- c.showall;
   conf.hlinks <- c.hlinks;
   state.x <- leftx;
-  state.maxy <- calcheight ();
-  state.y <- getpagey pageno;
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
@@ -1262,9 +1264,10 @@ let viewkeyboard ~key ~x ~y =
       | '\013' ->
           begin match state.birdseye with
           | None -> ()
-          | Some vals ->
+          | Some ((_, _, pageno, _) as vals) ->
               birdseyeoff vals;
               reshape conf.winw conf.winh;
+              state.anchor <- (pageno, 0.0);
           end;
 
       | 'o' ->
@@ -2245,6 +2248,7 @@ let mouse ~button ~bstate ~x ~y =
                 then (
                   birdseyeoff (conf, leftx, l.pageno, hooverpageno);
                   reshape conf.winw conf.winh;
+                  state.anchor <- (l.pageno, 0.0);
                 )
                 else loop rest
           in
