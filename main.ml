@@ -2955,8 +2955,8 @@ struct
       state.bookmarks <- pb;
       state.x <- px;
       if conf.jumpback
-      then state.anchor <- pa
-      else cbput state.hists.nav pa;
+      then state.anchor <- pa;
+      cbput state.hists.nav pa;
     in
     load1 f
   ;;
