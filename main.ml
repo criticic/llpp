@@ -2143,7 +2143,7 @@ let special ~key ~x ~y =
           if Glut.active_ctrl != 0
           then (
             state.mode <- Outline (
-              allowdel, active, first, outlines, qsearch, pan + 1
+              allowdel, active, first, outlines, qsearch, min 0 (pan + 1)
             );
             Glut.postRedisplay ();
           )
