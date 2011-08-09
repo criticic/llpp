@@ -2176,11 +2176,11 @@ let drawpage l =
     | Textentry _ -> scalecolor 0.4
     | View | Outline _ -> scalecolor 1.0
     | Birdseye (_, _, pageno, hooverpageno, _) ->
-        if l.pageno = pageno
-        then scalecolor 1.0
+        if l.pageno = hooverpageno
+        then scalecolor 0.9
         else (
-          if l.pageno = hooverpageno
-          then scalecolor 0.9
+          if l.pageno = pageno
+          then scalecolor 1.0
           else scalecolor 0.8
         )
   in
