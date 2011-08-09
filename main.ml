@@ -1915,65 +1915,61 @@ let special ~key ~x ~y =
   | Birdseye vals ->
       birdseyespecial key x y vals
 
-  | View | Textentry _ ->
-      begin match state.mode with
-      | View ->
-          if conf.autoscrollstep > 0
-            && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
-          then setautoscrollspeed (key = Glut.KEY_DOWN)
-          else
-            let y =
-              match key with
-              | Glut.KEY_F3        -> search state.searchpattern true; state.y
-              | Glut.KEY_UP        -> clamp (-conf.scrollstep)
-              | Glut.KEY_DOWN      -> clamp conf.scrollstep
-              | Glut.KEY_PAGE_UP   ->
-                  if Glut.getModifiers () land Glut.active_ctrl != 0
-                  then
-                    match state.layout with
-                    | [] -> state.y
-                    | l :: _ -> state.y - l.pagey
-                  else
-                    clamp (-conf.winh)
-              | Glut.KEY_PAGE_DOWN ->
-                  if Glut.getModifiers () land Glut.active_ctrl != 0
-                  then
-                    match List.rev state.layout with
-                    | [] -> state.y
-                    | l :: _ -> getpagey l.pageno
-                  else
-                    clamp conf.winh
-              | Glut.KEY_HOME -> addnav (); 0
-              | Glut.KEY_END ->
-                  addnav ();
-                  state.maxy - (if conf.maxhfit then conf.winh else 0)
+  | View ->
+      if conf.autoscrollstep > 0 && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
+      then setautoscrollspeed (key = Glut.KEY_DOWN)
+      else
+        let y =
+          match key with
+          | Glut.KEY_F3        -> search state.searchpattern true; state.y
+          | Glut.KEY_UP        -> clamp (-conf.scrollstep)
+          | Glut.KEY_DOWN      -> clamp conf.scrollstep
+          | Glut.KEY_PAGE_UP   ->
+              if Glut.getModifiers () land Glut.active_ctrl != 0
+              then
+                match state.layout with
+                | [] -> state.y
+                | l :: _ -> state.y - l.pagey
+              else
+                clamp (-conf.winh)
+          | Glut.KEY_PAGE_DOWN ->
+              if Glut.getModifiers () land Glut.active_ctrl != 0
+              then
+                match List.rev state.layout with
+                | [] -> state.y
+                | l :: _ -> getpagey l.pageno
+              else
+                clamp conf.winh
+          | Glut.KEY_HOME -> addnav (); 0
+          | Glut.KEY_END ->
+              addnav ();
+              state.maxy - (if conf.maxhfit then conf.winh else 0)
 
-              | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
-                  state.x <- state.x - 10;
-                  state.y
-              | Glut.KEY_LEFT when conf.zoom > 1.0  ->
-                  state.x <- state.x + 10;
-                  state.y
+          | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
+              state.x <- state.x - 10;
+              state.y
+          | Glut.KEY_LEFT when conf.zoom > 1.0  ->
+              state.x <- state.x + 10;
+              state.y
 
-              | _ -> state.y
-            in
-            gotoy_and_clear_text y
+          | _ -> state.y
+        in
+        gotoy_and_clear_text y
 
-      | Textentry
-          ((c, s, (Some (action, _) as onhist), onkey, ondone), mode) ->
-          let s =
-            match key with
-            | Glut.KEY_UP    -> action HCprev
-            | Glut.KEY_DOWN  -> action HCnext
-            | Glut.KEY_HOME  -> action HCfirst
-            | Glut.KEY_END   -> action HClast
-            | _ -> state.text
-          in
-          state.mode <- Textentry ((c, s, onhist, onkey, ondone), mode);
-          Glut.postRedisplay ()
+  | Textentry
+      ((c, s, (Some (action, _) as onhist), onkey, ondone), mode) ->
+      let s =
+        match key with
+        | Glut.KEY_UP    -> action HCprev
+        | Glut.KEY_DOWN  -> action HCnext
+        | Glut.KEY_HOME  -> action HCfirst
+        | Glut.KEY_END   -> action HClast
+        | _ -> state.text
+      in
+      state.mode <- Textentry ((c, s, onhist, onkey, ondone), mode);
+      Glut.postRedisplay ()
 
-      | _ -> ()
-      end
+  | Textentry _ -> ()
 
   | Outline (allowdel, active, first, outlines, qsearch) ->
       let maxrows = maxoutlinerows () in
