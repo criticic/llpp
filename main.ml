@@ -1525,6 +1525,7 @@ let viewkeyboard ~key ~x ~y =
       represent ()
 
   | 'f' ->
+      state.anchor <- getanchor ();
       begin match state.fullscreen with
       | None ->
           state.fullscreen <- Some (conf.winw, conf.winh);
