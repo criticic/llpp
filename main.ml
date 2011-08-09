@@ -1034,7 +1034,7 @@ let setzoom zoom =
   );
 ;;
 
-let birdseyeon () =
+let enterbirdseye () =
   let zoom = float conf.thumbw /. float conf.winw in
   let birdseyepageno =
     let rec fold = function
@@ -1065,7 +1065,7 @@ let birdseyeon () =
   reshape conf.winw conf.winh;
 ;;
 
-let birdseyeoff (c, leftx, pageno, _, anchor) goback =
+let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   state.mode <- View;
   conf.zoom <- c.zoom;
   conf.presentation <- c.presentation;
@@ -1084,8 +1084,8 @@ let birdseyeoff (c, leftx, pageno, _, anchor) goback =
 
 let togglebirdseye () =
   match state.mode with
-  | Birdseye vals -> birdseyeoff vals true
-  | View | Outline _ -> birdseyeon ()
+  | Birdseye vals -> leavebirdseye vals true
+  | View | Outline _ -> enterbirdseye ()
   | _ -> ()
 ;;
 
@@ -1132,8 +1132,8 @@ let optentry text key =
             Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
           begin match state.mode with
           | Textentry (_, Birdseye beye) ->
-              birdseyeoff beye false;
-              birdseyeon ()
+              leavebirdseye beye false;
+              enterbirdseye ()
           | _ -> ()
           end;
         with exc ->
@@ -1616,7 +1616,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
 let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
   match key with
   | 27 ->
-      birdseyeoff beye true
+      leavebirdseye beye true
 
   | 12 ->
       let y, h = getpageyh pageno in
@@ -1624,7 +1624,7 @@ let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
       gotoy (max 0 (y - top))
 
   | 13 ->
-      birdseyeoff beye false
+      leavebirdseye beye false
 
   | _ ->
       viewkeyboard ~key ~x ~y
@@ -2421,7 +2421,7 @@ let birdseyemouse button bstate x y
             if y > l.pagedispy && y < l.pagedispy + l.pagevh
               && x > margin && x < margin + l.pagew
             then (
-              birdseyeoff (conf, leftx, l.pageno, hooverpageno, anchor) false;
+              leavebirdseye (conf, leftx, l.pageno, hooverpageno, anchor) false;
             )
             else loop rest
       in
