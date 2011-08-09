@@ -1855,8 +1855,26 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
   | Glut.KEY_PAGE_DOWN ->
       begin match List.rev state.layout with
       | l :: _ ->
-          state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno, anchor);
-          gotoy (clamp (l.pagedispy + l.pageh))
+          let layout = layout (state.y + conf.winh) conf.winh in
+          begin match layout with
+          | [] ->
+              let incr = l.pageh - l.pagevh in
+              if incr = 0
+              then (
+                state.mode <-
+                  Birdseye (
+                    conf, leftx, state.pagecount - 1, hooverpageno, anchor
+                  );
+                Glut.postRedisplay ();
+              )
+              else gotoy (clamp (incr + conf.interpagespace*2));
+
+          | l :: _ ->
+              state.mode <-
+                Birdseye (conf, leftx, l.pageno, hooverpageno, anchor);
+              gotopage1nonav l.pageno 0;
+          end
+
       | [] -> gotoy (clamp conf.winh)
       end;
 
