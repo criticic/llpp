@@ -154,6 +154,7 @@ type conf =
     ; mutable texcount : texcount
     ; mutable sliceheight : sliceheight
     ; mutable thumbw : width
+    ; mutable jumpback : bool
     }
 ;;
 
@@ -248,6 +249,7 @@ let defconf =
   ; texcount = 256
   ; sliceheight = 24
   ; thumbw = 76
+  ; jumpback = false
   }
 ;;
 
@@ -714,7 +716,7 @@ let winmatrix () =
 ;;
 
 let reshape ~w ~h =
-  if state.invalidated = 0
+  if state.invalidated = 0 && state.anchor == emptyanchor
   then state.anchor <- getanchor ();
 
   conf.winw <- w;
@@ -1321,6 +1323,7 @@ let enterinfomode () =
     :: (1, "pixmap cache size " ^ string_of_int conf.memlimit)
     :: (1, "pixmap cache used " ^ string_of_int state.memused)
     :: (1, "thumbnail width " ^ string_of_int conf.thumbw)
+    :: (1, "persistent location " ^ btos conf.jumpback)
     :: (1, Printf.sprintf "window dimensions %dx%d " conf.winw conf.winh)
     :: (0, "Document information")
     :: (1, string_of_int state.pagecount ^ " pages")
@@ -2701,6 +2704,7 @@ struct
         | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
         | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
         | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
+        | "persistent-location" -> { c with jumpback = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -2774,6 +2778,7 @@ struct
     dst.texcount       <- src.texcount;
     dst.sliceheight    <- src.sliceheight;
     dst.thumbw         <- src.thumbw;
+    dst.jumpback       <- src.jumpback;
   ;;
 
   let unent s =
@@ -2949,7 +2954,9 @@ struct
       setconf conf pc;
       state.bookmarks <- pb;
       state.x <- px;
-      cbput state.hists.nav pa;
+      if conf.jumpback
+      then state.anchor <- pa
+      else cbput state.hists.nav pa;
     in
     load1 f
   ;;
@@ -3006,6 +3013,7 @@ struct
     oi "texcount" c.texcount dc.texcount;
     oi "slice-height" c.sliceheight dc.sliceheight;
     oi "thumbnail-width" c.thumbw  dc.thumbw;
+    ob "persistent-location" c.jumpback  dc.jumpback;
   ;;
 
   let save () =
