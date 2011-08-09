@@ -2042,6 +2042,9 @@ let special ~key ~x ~y =
   | Birdseye vals ->
       birdseyespecial key x y vals
 
+  | View when key = Glut.KEY_F1 ->
+      enterhelpmode ()
+
   | View ->
       if state.ascrollstep > 0 && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
       then setautoscrollspeed (key = Glut.KEY_DOWN)

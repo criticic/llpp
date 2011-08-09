@@ -24,7 +24,7 @@ delete                  - go to the previous page
 w                       - change height to encompass all of the page
 o                       - switch to outline mode
 '                       - switch to bookmark mode
-h                       - switch to help mode
+h/F1                    - switch to help mode
 i                       - switch to info mode
 m                       - create named bookmark
 ~                       - create quick bookmark
