@@ -398,7 +398,6 @@ static void pdfinfo (void)
         f = open_memstream (&buf, &size);
         obj = fz_dict_gets (state.xref->trailer, "Info");
         fz_fprint_obj (f, fz_resolve_indirect (obj), 0);
-        fputc ('\n', f);
         fclose (f);
         printd (state.sock, "i %.*s", size, buf);
         free (buf);
