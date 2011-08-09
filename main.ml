@@ -42,7 +42,7 @@ and mstate =
     | Mnone
 ;;
 
-type textentry = (char * string * onhist * onkey * ondone)
+type textentry = char * string * onhist * onkey * ondone
 and onkey = string -> int -> te
 and ondone = string -> unit
 and histcancel = unit -> unit
@@ -165,9 +165,9 @@ type outlines =
     | Onarrow of string * outline array * outline array
 ;;
 
-type rect = (float * float * float * float * float * float * float * float);;
+type rect = float * float * float * float * float * float * float * float;;
 
-type pagemapkey = (pageno * width * angle * proportional * gen);;
+type pagemapkey = pageno * width * angle * proportional * gen;;
 
 type anchor = pageno * top;;
 
