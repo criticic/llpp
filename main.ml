@@ -2806,7 +2806,7 @@ struct
       add_attrs bb true dc dc;
       Buffer.add_string bb "/>\n";
 
-      let adddoc path x anchor c bookmarks =
+      let adddoc path pan anchor c bookmarks =
         if bookmarks == [] && c = dc && anchor = emptyanchor
         then ()
         else (
@@ -2820,8 +2820,8 @@ struct
             Printf.bprintf bb " rely='%f'" y;
           );
 
-          if x != 0
-          then Printf.bprintf bb " pan='%d'" x;
+          if pan != 0
+          then Printf.bprintf bb " pan='%d'" pan;
 
           add_attrs bb false dc c;
 
@@ -2841,13 +2841,13 @@ struct
         )
       in
 
-      let x =
+      let pan =
         match state.mode with
-        | Birdseye (_, x, _, _, _) -> x
+        | Birdseye (_, pan, _, _, _) -> pan
         | _ -> state.x
       in
       let basename = Filename.basename state.path in
-      adddoc basename x (getanchor ())
+      adddoc basename pan (getanchor ())
         { conf with
           autoscrollstep =
             if state.ascrollstep > 0
