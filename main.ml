@@ -172,7 +172,7 @@ type anchor = pageno * top;;
 
 type mode =
     | Birdseye of (conf * leftx * pageno * pageno * anchor)
-    | Outline of (bool * int * int * outline array * string)
+    | Outline of (bool * int * int * outline array * string * int)
     | Textentry of (textentry * mode)
     | View
 ;;
@@ -1266,7 +1266,7 @@ let enterselector allowdel outlines errmsg msg =
       loop 0
     in
     state.mode <- Outline
-      (allowdel, active, max 0 (active - maxoutlinerows () / 2), outlines, "");
+      (allowdel, active, max 0 (active - maxoutlinerows () / 2), outlines, "", 0);
     Glut.postRedisplay ();
   )
 ;;
@@ -1727,7 +1727,8 @@ let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
       viewkeyboard ~key ~x ~y
 ;;
 
-let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
+let outlinekeyboard ~key ~x ~y
+    (allowdel, active, first, outlines, qsearch, pan) =
   let narrow outlines pattern =
     let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
     match reopt with
@@ -1782,7 +1783,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       )
       else (
         state.text <- "";
-        state.mode <- Outline (allowdel, active, first, outlines, "");
+        state.mode <- Outline (allowdel, active, first, outlines, "", pan);
         Glut.postRedisplay ();
       )
 
@@ -1797,7 +1798,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             state.text <- qsearch;
             active, firstof active
       in
-      state.mode <- Outline (allowdel, active, first, outlines, qsearch);
+      state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
       Glut.postRedisplay ();
 
   | 8 ->
@@ -1808,7 +1809,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
         if len = 1
         then (
           state.text <- "";
-          state.mode <- Outline (allowdel, active, first, outlines, "");
+          state.mode <- Outline (allowdel, active, first, outlines, "", pan);
         )
         else
           let qsearch = String.sub qsearch 0 (len - 1) in
@@ -1821,7 +1822,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
                 state.text <- qsearch;
                 active, firstof active
           in
-          state.mode <- Outline (allowdel, active, first, outlines, qsearch);
+          state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
       );
       Glut.postRedisplay ()
 
@@ -1848,7 +1849,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             state.text <- pattern;
             active, firstof active
       in
-      state.mode <- Outline (allowdel, active, first, outlines, pattern);
+      state.mode <- Outline (allowdel, active, first, outlines, pattern, pan);
       Glut.postRedisplay ()
 
   | 14 when not allowdel ->             (* ctrl-n *)
@@ -1858,7 +1859,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
         begin match optoutlines with
         | None -> state.text <- "can't narrow"
         | Some outlines ->
-            state.mode <- Outline (allowdel, 0, 0, outlines, qsearch);
+            state.mode <- Outline (allowdel, 0, 0, outlines, qsearch, pan);
             match state.outlines with
             | Olist l -> ()
             | Oarray a ->
@@ -1882,12 +1883,12 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             state.text <- "";
             b
       in
-      state.mode <- Outline (allowdel, 0, 0, outline, qsearch);
+      state.mode <- Outline (allowdel, 0, 0, outline, qsearch, pan);
       Glut.postRedisplay ()
 
   | 12 ->
       state.mode <- Outline
-        (allowdel, active, firstof active, outlines, qsearch);
+        (allowdel, active, firstof active, outlines, qsearch, pan);
       Glut.postRedisplay ()
 
   | 127 when allowdel ->
@@ -1909,7 +1910,8 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
             allowdel,
             min active (len-1),
             min first (len-1),
-            bookmarks, qsearch
+            bookmarks, qsearch,
+            0
           );
       );
       Glut.postRedisplay ()
@@ -2102,7 +2104,7 @@ let special ~key ~x ~y =
 
   | Textentry _ -> ()
 
-  | Outline (allowdel, active, first, outlines, qsearch) ->
+  | Outline (allowdel, active, first, outlines, qsearch, pan) ->
       let maxrows = maxoutlinerows () in
       let calcfirst first active =
         if active > first
@@ -2115,7 +2117,7 @@ let special ~key ~x ~y =
         let active = active + incr in
         let active = max 0 (min active (Array.length outlines - 1)) in
         let first = calcfirst first active in
-        state.mode <- Outline (allowdel, active, first, outlines, qsearch);
+        state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
         Glut.postRedisplay ()
       in
       let updownlevel incr =
@@ -2128,7 +2130,7 @@ let special ~key ~x ~y =
         in
         let active = flow active in
         let first = calcfirst first active in
-        state.mode <- Outline (allowdel, active, first, outlines, qsearch);
+        state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
         Glut.postRedisplay ()
       in
       match key with
@@ -2137,17 +2139,42 @@ let special ~key ~x ~y =
       | Glut.KEY_PAGE_UP   -> navigate ~-maxrows
       | Glut.KEY_PAGE_DOWN -> navigate   maxrows
 
-      | Glut.KEY_RIGHT when not allowdel -> updownlevel 1
-      | Glut.KEY_LEFT when not allowdel -> updownlevel ~-1
+      | Glut.KEY_RIGHT ->
+          if Glut.active_ctrl != 0
+          then (
+            state.mode <- Outline (
+              allowdel, active, first, outlines, qsearch, pan + 1
+            );
+            Glut.postRedisplay ();
+          )
+          else (
+            if not allowdel
+            then updownlevel 1
+          )
+
+      | Glut.KEY_LEFT ->
+          if Glut.active_ctrl != 0
+          then (
+            state.mode <- Outline (
+              allowdel, active, first, outlines, qsearch, pan - 1
+            );
+            Glut.postRedisplay ();
+          )
+          else (
+            if not allowdel
+            then updownlevel ~-1
+          )
 
       | Glut.KEY_HOME ->
-          state.mode <- Outline (allowdel, 0, 0, outlines, qsearch);
+          state.mode <- Outline (allowdel, 0, 0, outlines, qsearch, pan);
           Glut.postRedisplay ()
 
       | Glut.KEY_END ->
           let active = Array.length outlines - 1 in
           let first = max 0 (active - maxrows) in
-          state.mode <- Outline (allowdel, active, first, outlines, qsearch);
+          state.mode <- Outline (
+            allowdel, active, first, outlines, qsearch, pan
+          );
           Glut.postRedisplay ()
 
       | _ -> ()
@@ -2289,7 +2316,7 @@ let showrects () =
 
 let showoutline () =
   match state.mode with
-  | Outline (allowdel, active, first, outlines, qsearch) ->
+  | Outline (allowdel, active, first, outlines, qsearch, pan) ->
       Gl.enable `blend;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
       GlDraw.color (0., 0., 0.) ~alpha:0.85;
@@ -2321,7 +2348,21 @@ let showoutline () =
             Gl.disable `blend;
             GlDraw.color (1., 1., 1.);
           );
-          draw_string (float x) (float (y + 16)) s;
+          let draw_string s =
+            let l = String.length s in
+            if pan < 0
+            then (
+              let pan = pan * 2 in
+              let left = l + pan in
+              if left > 0
+              then
+                let s = String.sub s (-pan) left in
+                draw_string (float x) (float (y + 16)) s
+            )
+            else
+              draw_string (float (x + pan*15)) (float (y + 16)) s
+          in
+          draw_string s;
           loop (row+1)
         )
       in

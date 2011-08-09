@@ -84,6 +84,7 @@ alpha-numeric           - quick search
 Ctrl-s                  - repeat search (forward)
 Ctrl-r                  - repeat search (backward)
 Ctrl-l                  - center on current item
+Ctrl-left/right         - pan text left/right
 
 outline mode
 left/right              - go up/down a level
