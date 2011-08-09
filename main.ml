@@ -836,7 +836,7 @@ let act cmd =
 
   | 'r' ->
       let n, w, h, r, l, s, p =
-        Scanf.sscanf cmd "r %u %u %u %u %d %u %s"
+        Scanf.sscanf cmd "r %u %u %u %d %d %u %s"
           (fun n w h r l s p ->
             (n-1, w, h, r, l != 0, s, p))
       in
