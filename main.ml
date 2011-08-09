@@ -3019,7 +3019,9 @@ end;;
 
 let () =
   Arg.parse
-    ["-p", Arg.String (fun s -> state.password <- s) , "password"]
+    ["-p", Arg.String (fun s -> state.password <- s) , "password"
+    ;("-v", Arg.Unit (fun () -> print_endline Help.version; exit 0),
+      "print version")]
     (fun s -> state.path <- s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\noptions:")
   ;
