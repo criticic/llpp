@@ -654,26 +654,13 @@ let getnav () =
   getanchory anchor;
 ;;
 
-let gotopagenonav n top =
-  let y, h = getpageyh n in
-  gotoy_and_clear_text (y + (truncate (top *. float h)));
-;;
-
-let gotopage1nonav n top =
-  let y, h = getpageyh n in
-  addnav ();
-  gotoy_and_clear_text (y + top);
-;;
-
 let gotopage n top =
   let y, h = getpageyh n in
-  addnav ();
   gotoy_and_clear_text (y + (truncate (top *. float h)));
 ;;
 
 let gotopage1 n top =
   let y = getpagey n in
-  addnav ();
   gotoy_and_clear_text (y + top);
 ;;
 
@@ -1700,6 +1687,7 @@ let outlinekeyboard ~key ~x ~y (allowdel, active, first, outlines, qsearch) =
       if active < Array.length outlines
       then (
         let (_, _, n, t) = outlines.(active) in
+        addnav ();
         gotopage n t;
       );
       state.text <- "";
@@ -1804,11 +1792,11 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
   | Glut.KEY_UP ->
       let pageno = max 0 (pageno - 1) in
       let rec loop = function
-        | [] -> gotopage1nonav pageno 0
+        | [] -> gotopage1 pageno 0
         | l :: _ when l.pageno = pageno ->
             if l.pagedispy >= 0 && l.pagey = 0
             then Glut.postRedisplay ()
-            else gotopage1nonav pageno 0
+            else gotopage1 pageno 0
         | _ :: rest -> loop rest
       in
       loop state.layout;
@@ -1838,7 +1826,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
             state.mode <- Birdseye (
               conf, leftx, l.pageno, hooverpageno, anchor
             );
-            gotopage1nonav l.pageno 0;
+            gotopage1 l.pageno 0;
           )
           else (
             let layout = layout (state.y-conf.winh) conf.winh in
@@ -1848,7 +1836,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
                 state.mode <- Birdseye (
                   conf, leftx, l.pageno, hooverpageno, anchor
                 );
-                gotopage1nonav l.pageno 0
+                gotopage1 l.pageno 0
           );
 
       | [] -> gotoy (clamp (-conf.winh))
@@ -1874,7 +1862,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
           | l :: _ ->
               state.mode <-
                 Birdseye (conf, leftx, l.pageno, hooverpageno, anchor);
-              gotopage1nonav l.pageno 0;
+              gotopage1 l.pageno 0;
           end
 
       | [] -> gotoy (clamp conf.winh)
@@ -1882,7 +1870,7 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
 
   | Glut.KEY_HOME ->
       state.mode <- Birdseye (conf, leftx, 0, hooverpageno, anchor);
-      gotopage1nonav 0 0
+      gotopage1 0 0
 
   | Glut.KEY_END ->
       let pageno = state.pagecount - 1 in
@@ -2300,8 +2288,10 @@ let viewmouse button bstate x y =
       begin match dest with
       | Ulinkgoto (pageno, top) ->
           if pageno >= 0
-          then
-            gotopage1 pageno top
+          then (
+            addnav ();
+            gotopage1 pageno top;
+          )
 
       | Ulinkuri s ->
           print_endline s
