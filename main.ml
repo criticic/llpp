@@ -1030,7 +1030,6 @@ let setzoom zoom =
     then state.x <- 0;
     conf.zoom <- zoom;
     reshape conf.winw conf.winh;
-    let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
     state.text <- Printf.sprintf "zoom is now %f" (zoom *. 100.0);
   );
 ;;
