@@ -96,7 +96,7 @@ let () =
       StrSet.empty
   in
   let mkcmo name =
-    cmopp ~flags:"-g -w y -I +lablGL -thread" ~dirname:srcdir name;
+    cmopp ~flags:"-g -w Alze -I +lablGL -thread" ~dirname:srcdir name;
     (name ^ ".cmo")
   in
   let cmos = so :: List.map mkcmo ["parser"; "main"] in
