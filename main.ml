@@ -1303,7 +1303,6 @@ let enterinfomode () =
       else conf.autoscrollstep
     in
     (0, "Current parameters")
-    :: (1, "version " ^ Help.version)
     :: (1, "presentation mode " ^ btos conf.presentation)
     :: (1, "case insensitive search " ^ btos conf.icase)
     :: (1, "preload " ^ btos conf.preload)
@@ -1347,7 +1346,7 @@ let enterinfomode () =
 let enterhelpmode () =
   let pageno, top = getanchor () in
   let o =
-    let help = ("Keys for llpp " ^ Help.version)  ::state.help in
+    let help = ("Keys for llpp version " ^ Help.version) :: state.help in
     let o = Array.create (List.length help) ("", 0, pageno, top) in
     let rec iteri i = function
       | [] -> ()
