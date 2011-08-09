@@ -56,22 +56,27 @@ cd ..
 
 srcpath=$(dirname $0)
 
+sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
+
 if test "$1" = "opt"; then
     cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
     ocamlopt -c -o link.o -ccopt -O $srcpath/link.c
-    ocamlopt -c -o parser.cmo $srcpath/parser.ml
-    ocamlopt -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
+    ocamlopt -c -o help.cmx help.ml
+    ocamlopt -c -o parser.cmx $srcpath/parser.ml
+    ocamlopt -c -o main.cmx -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
     ocamlopt -o llpp \
     -I $root/lib/ocaml/lablGL \
     str.cmxa unix.cmxa lablgl.cmxa lablglut.cmxa \
     link.o \
     -cclib "$cclib" \
+    help.cmx \
     parser.cmx \
     main.cmx
 else
     cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
     ocamlc -c -o link.o -ccopt -O $srcpath/link.c
+    ocamlc -c -o help.cmo help.ml
     ocamlc -c -o parser.cmo $srcpath/parser.ml
     ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
@@ -80,6 +85,7 @@ else
         str.cma unix.cma lablgl.cma lablglut.cma \
         link.o \
         -cclib "$cclib" \
+        help.cmo \
         parser.cmo \
         main.cmo
 fi

@@ -211,6 +211,7 @@ type state =
     ; mutable gen : gen
     ; mutable throttle : layout list option
     ; mutable ascrollstep : int
+    ; mutable help : string list
     ; hists : hists
     }
 and hists =
@@ -287,6 +288,7 @@ let state =
   ; gen = 0
   ; throttle = None
   ; ascrollstep = 0
+  ; help = Help.keys
   }
 ;;
 
@@ -1030,7 +1032,7 @@ let setzoom zoom =
     then state.x <- 0;
     conf.zoom <- zoom;
     reshape conf.winw conf.winh;
-    state.text <- Printf.sprintf "zoom is now %f" (zoom *. 100.0);
+    state.text <- Printf.sprintf "zoom is now %-5.1f" (zoom *. 100.0);
   );
 ;;
 
@@ -1266,6 +1268,71 @@ let enteroutlinemode () =
 let enterbookmarkmode () =
   let bookmarks = Array.of_list state.bookmarks in
   enterselector true bookmarks "Document has no bookmarks (yet)" "";
+;;
+
+let enterinfomode () =
+  let btos = function true -> "on" | _ -> "off" in
+  let pageno, top = getanchor () in
+  let help =
+    let autoscrollstep =
+      if state.ascrollstep > 0
+      then state.ascrollstep
+      else conf.autoscrollstep
+    in
+    ("Current parameters")
+    :: ("version " ^ Help.version)
+    :: ("presentation mode " ^ btos conf.presentation)
+    :: ("case insensitive search " ^ btos conf.icase)
+    :: ("preload " ^ btos conf.preload)
+    :: ("page bias " ^ string_of_int conf.pagebias)
+    :: ("verbose " ^ btos conf.verbose)
+    :: ("scroll step " ^ string_of_int conf.scrollstep)
+    :: ("max fit " ^ btos conf.maxhfit)
+    :: ("crop hack " ^ btos conf.crophack)
+    :: ("autoscroll step " ^ string_of_int autoscrollstep)
+    :: ("throttle " ^ btos conf.showall)
+    :: ("highlight links " ^ btos conf.hlinks)
+    :: ("under info " ^ btos conf.underinfo)
+    :: ("veritcal margin " ^ string_of_int conf.interpagespace)
+    :: ("zoom " ^ Printf.sprintf "%-5.1f" (conf.zoom*.100.))
+    :: ("rotation " ^ string_of_int conf.angle)
+    :: ("persistent bookmarks " ^ btos conf.savebmarks)
+    :: ("proportional display " ^ btos conf.proportional)
+    :: ("pixmap cache size " ^ string_of_int conf.memlimit)
+    :: ("pixmap cache used " ^ string_of_int state.memused)
+    :: ("thumbnail width " ^ string_of_int conf.thumbw)
+    :: (Printf.sprintf "window dimensions %dx%d " conf.winw conf.winh)
+    :: []
+  in
+  let o =
+    let o = Array.create (List.length help) ("", 0, pageno, top) in
+    let rec iteri i = function
+      | [] -> ()
+      | s :: rest ->
+          o.(i) <- (s, (if i = 0 then 0 else 1), pageno, top);
+          iteri (i+1) rest
+    in
+    iteri 0 help;
+    o
+  in
+  enterselector false o "Info not available" "";
+;;
+
+let enterhelpmode () =
+  let pageno, top = getanchor () in
+  let o =
+    let help = ("Keys for llpp " ^ Help.version)  ::state.help in
+    let o = Array.create (List.length help) ("", 0, pageno, top) in
+    let rec iteri i = function
+      | [] -> ()
+      | s :: rest ->
+          o.(i) <- (s, (if i = 0 then 0 else 1), pageno, top);
+          iteri (i+1) rest
+    in
+    iteri 0 help;
+    o
+  in
+  enterselector false o "Help not available" "";
 ;;
 
 let quickbookmark ?title () =
@@ -1504,6 +1571,12 @@ let viewkeyboard ~key ~x ~y =
 
   | '\'' ->
       enterbookmarkmode ()
+
+  | 'h' ->
+      enterhelpmode ()
+
+  | 'i' ->
+      enterinfomode ()
 
   | 'm' ->
       let ondone s =

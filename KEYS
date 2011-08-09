@@ -24,6 +24,8 @@ delete                  - go to the previous page
 w                       - change height to encompass all of the page
 o                       - switch to outline mode
 '                       - switch to bookmark mode
+h                       - switch to help mode
+i                       - switch to info mode
 m                       - create named bookmark
 ~                       - create quick bookmark
 z                       - crop
@@ -75,7 +77,7 @@ home/end                - go to first/last page
 enter                   - select the page and leave bird's eye mode
 1st mouse button        - select the page under cursor and leave bird's eye mode
 
-outline/bookmark mode
+outline/bookmark/help/info mode
 esc                     - leave outline/bookmark mode
 up/down                 - select previous/next item
 alpha-numeric           - quick search

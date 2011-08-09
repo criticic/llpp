@@ -84,6 +84,25 @@ let bso name objs =
 
 let () =
   boc "-g" "link";
+  let _ =
+    let mkhelp = Filename.concat srcdir "mkhelp.sh" in
+    let keystoml = Filename.concat srcdir "keystoml.ml" in
+    let keys = Filename.concat srcdir "KEYS" in
+    let cmd = "sh " ^ mkhelp ^ " " ^ keystoml ^ " " ^ keys ^ "> help.ml" in
+    let build =
+      { get_commands = (fun _ -> [Run cmd])
+      ; get_cookie = (fun _ -> "")
+      ; get_presentation = (fun _ -> "KEYSTOML KEYS")
+      }
+    in
+    put_build_info "help.ml" build;
+    let sing s = StrSet.singleton s in
+    add_target
+      "help.ml"
+      (sing "KEYS")
+      (sing "help.ml")
+      (StrSet.add keys (StrSet.add mkhelp (sing keystoml)))
+  in
   let so = bso "link" ["link"] in
   let prog name cmos =
     ocaml
@@ -96,13 +115,15 @@ let () =
       StrSet.empty
   in
   let mkcmo name =
-    cmopp ~flags:"-g -w Alze -I +lablGL -thread" ~dirname:srcdir name;
+    let dirname = if name = "help" then Sys.getcwd () else srcdir in
+    cmopp ~flags:"-g -w Alze -I +lablGL -thread" ~dirname name;
     (name ^ ".cmo")
   in
-  let cmos = so :: List.map mkcmo ["parser"; "main"] in
+  let cmos = so :: List.map mkcmo ["help"; "parser"; "main"] in
   prog "llpp" cmos;
 ;;
 
 let () =
+  run start jobs ["help.ml"] false dotarlist;
   run start jobs targets dodeplist dotarlist;
 ;;
