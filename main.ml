@@ -171,6 +171,9 @@ type pagemapkey = (pageno * width * angle * proportional * gen);;
 
 type anchor = pageno * top;;
 
+let emptyanchor = (0, 0.0);;
+let initialanchor = (-1, nan);;
+
 type mode =
     | Birdseye of (conf * leftx * pageno * pageno * anchor)
     | Outline of (bool * int * int * outline array * string * int)
@@ -260,7 +263,7 @@ let state =
   ; ssock = Unix.stdin
   ; x = 0
   ; y = 0
-  ; anchor = (0, 0.0)
+  ; anchor = initialanchor
   ; w = 0
   ; layout = []
   ; maxy = max_int
@@ -636,8 +639,6 @@ let gotoy_and_clear_text y =
   if not conf.verbose then state.text <- "";
 ;;
 
-let emptyanchor = (0, 0.0);;
-
 let getanchor () =
   match state.layout with
   | []     -> emptyanchor
@@ -716,7 +717,7 @@ let winmatrix () =
 ;;
 
 let reshape ~w ~h =
-  if state.invalidated = 0 && state.anchor == emptyanchor
+  if state.invalidated = 0 && state.anchor == initialanchor
   then state.anchor <- getanchor ();
 
   conf.winw <- w;
@@ -1525,7 +1526,6 @@ let viewkeyboard ~key ~x ~y =
       represent ()
 
   | 'f' ->
-      state.anchor <- getanchor ();
       begin match state.fullscreen with
       | None ->
           state.fullscreen <- Some (conf.winw, conf.winh);
