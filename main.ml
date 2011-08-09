@@ -3087,11 +3087,13 @@ end;;
 
 let () =
   Arg.parse
-    ["-p", Arg.String (fun s -> state.password <- s) , "password"
-    ;("-v", Arg.Unit (fun () -> print_endline Help.version; exit 0),
-      "print version")]
+    (Arg.align
+        ["-p", Arg.String (fun s -> state.password <- s) , " Set password"
+        ;("-v", Arg.Unit (fun () -> print_endline Help.version; exit 0),
+         " Print version and exit")]
+    )
     (fun s -> state.path <- s)
-    ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\noptions:")
+    ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:")
   ;
   if String.length state.path = 0
   then (prerr_endline "filename missing"; exit 1);
