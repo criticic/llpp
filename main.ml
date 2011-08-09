@@ -3096,7 +3096,7 @@ let () =
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:")
   ;
   if String.length state.path = 0
-  then (prerr_endline "filename missing"; exit 1);
+  then (prerr_endline "file name missing"; exit 1);
 
   State.load ();
 
