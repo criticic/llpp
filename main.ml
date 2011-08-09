@@ -3035,7 +3035,10 @@ struct
           then (
             let n, y = anchor in
             Printf.bprintf bb " page='%d'" n;
-            Printf.bprintf bb " rely='%f'" y;
+            if y > 1e-6
+            then
+              Printf.bprintf bb " rely='%f'" y
+            ;
           );
 
           if pan != 0
@@ -3049,10 +3052,15 @@ struct
               Buffer.add_string bb ">\n<bookmarks>\n";
               List.iter (fun (title, _level, page, rely) ->
                 Printf.bprintf bb
-                  "<item title='%s' page='%d' rely='%f'/>\n"
+                  "<item title='%s' page='%d'"
                   (enent title 0 (String.length title))
                   page
-                  rely
+                ;
+                if rely > 1e-6
+                then
+                  Printf.bprintf bb " rely='%f'" rely
+                ;
+                Buffer.add_string bb "/>\n";
               ) bookmarks;
               Buffer.add_string bb "</bookmarks>\n</doc>\n";
           end;
