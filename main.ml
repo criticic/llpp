@@ -527,7 +527,6 @@ let render l =
                     ;`i l.pagedimno
                     ;`i l.pagew
                     ;`i l.pageh];
-
   | _ -> ()
 ;;
 
@@ -577,7 +576,7 @@ let preload () =
     let y =
       match state.layout with
       | [] -> 0
-      | l :: _ -> getpagey l.pageno
+      | l :: _ -> getpagey l.pageno + l.pagey
     in
     let y = if y < conf.winh then 0 else y - conf.winh in
     let pages = layout y (conf.winh*3) in
