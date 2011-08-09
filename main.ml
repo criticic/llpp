@@ -209,6 +209,7 @@ type state =
     ; mutable memused : int
     ; mutable gen : gen
     ; mutable throttle : layout list option
+    ; mutable ascrollstep : int
     ; hists : hists
     }
 and hists =
@@ -228,7 +229,7 @@ let defconf =
   ; scrollstep = 24
   ; maxhfit = true
   ; crophack = false
-  ; autoscrollstep = 0
+  ; autoscrollstep = 24
   ; showall = false
   ; hlinks = false
   ; underinfo = false
@@ -284,6 +285,7 @@ let state =
   ; memused = 0
   ; gen = 0
   ; throttle = None
+  ; ascrollstep = 0
   }
 ;;
 
@@ -933,9 +935,9 @@ let idle () =
     let r, _, _ = Unix.select [state.csock] [] [] delay in
     begin match r with
     | [] ->
-        if conf.autoscrollstep > 0
+        if state.ascrollstep > 0
         then begin
-          let y = state.y + conf.autoscrollstep in
+          let y = state.y + state.ascrollstep in
           let y = if y >= state.maxy then 0 else y in
           gotoy y;
           state.text <- "";
@@ -1375,9 +1377,12 @@ let viewkeyboard ~key ~x ~y =
       Glut.postRedisplay ()
 
   | 'a' ->
-      if conf.autoscrollstep = 0
-      then conf.autoscrollstep <- conf.scrollstep
-      else conf.autoscrollstep <- 0;
+      if state.ascrollstep = 0
+      then state.ascrollstep <- conf.autoscrollstep
+      else (
+        conf.autoscrollstep <- state.ascrollstep;
+        state.ascrollstep <- 0;
+      )
 
   | 'P' ->
       conf.presentation <- not conf.presentation;
@@ -1888,11 +1893,9 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
 ;;
 
 let setautoscrollspeed goingdown =
-  let incr = max 1 (conf.autoscrollstep / 2) in
-  let astep = max 1 (
-    conf.autoscrollstep + (if goingdown then incr else -incr)
-  ) in
-  conf.autoscrollstep <- astep;
+  let incr = max 1 (state.ascrollstep / 2) in
+  let astep = max 1 (state.ascrollstep + (if goingdown then incr else -incr)) in
+  state.ascrollstep <- astep;
 ;;
 
 let special ~key ~x ~y =
@@ -1904,7 +1907,7 @@ let special ~key ~x ~y =
       birdseyespecial key x y vals
 
   | View ->
-      if conf.autoscrollstep > 0 && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
+      if state.ascrollstep > 0 && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
       then setautoscrollspeed (key = Glut.KEY_DOWN)
       else
         let y =
@@ -2246,7 +2249,7 @@ let getunder x y =
 let viewmouse button bstate x y =
   match button with
   | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
-      if conf.autoscrollstep > 0
+      if state.ascrollstep > 0
       then
         setautoscrollspeed (n=4)
       else
@@ -2845,7 +2848,12 @@ struct
         | _ -> state.x
       in
       let basename = Filename.basename state.path in
-      adddoc basename x (getanchor ()) conf
+      adddoc basename x (getanchor ())
+        { conf with
+          autoscrollstep =
+            if state.ascrollstep > 0
+            then state.ascrollstep
+            else conf.autoscrollstep }
         (if conf.savebmarks then state.bookmarks else []);
 
       Hashtbl.iter (fun path (c, bookmarks, x, y) ->
