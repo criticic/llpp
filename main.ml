@@ -1323,7 +1323,7 @@ let enterinfomode () =
     :: (1, "thumbnail width " ^ string_of_int conf.thumbw)
     :: (1, Printf.sprintf "window dimensions %dx%d " conf.winw conf.winh)
     :: (0, "Document information")
-    :: (1, "Pages " ^ string_of_int state.pagecount)
+    :: (1, string_of_int state.pagecount ^ " pages")
     :: state.docinfo
   in
   let o =
