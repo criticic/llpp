@@ -1518,6 +1518,7 @@ let viewkeyboard ~key ~x ~y =
       conf.presentation <- not conf.presentation;
       showtext ' ' ("presentation mode " ^
                        if conf.presentation then "on" else "off");
+      state.anchor <- getanchor ();
       represent ()
 
   | 'f' ->
