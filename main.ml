@@ -38,6 +38,7 @@ and mstate =
     | Msel of (mpos * mpos)
     | Mpan of mpos
     | Mscroll
+    | Mzoom of (int * int)
     | Mnone
 ;;
 
@@ -1021,6 +1022,19 @@ let reinit angle proportional =
   wcmd "reinit" [`i angle; `b proportional];
 ;;
 
+let setzoom zoom =
+  let zoom = max 0.01 (min 2.2 zoom) in
+  if zoom <> conf.zoom
+  then (
+    if zoom <= 1.0
+    then state.x <- 0;
+    conf.zoom <- zoom;
+    reshape conf.winw conf.winh;
+    let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+    state.text <- Printf.sprintf "zoom is now %f" (zoom *. 100.0);
+  );
+;;
+
 let optentry text key =
   let btos b = if b then "on" else "off" in
   let c = Char.unsafe_chr key in
@@ -1049,12 +1063,7 @@ let optentry text key =
       let ondone s =
         try
           let zoom = float (int_of_string s) /. 100.0 in
-          let zoom = max 0.01 (min 2.2 zoom) in
-          conf.zoom <- zoom;
-          if zoom <= 1.0
-          then state.x <- 0;
-          reshape conf.winh conf.winw;
-          state.text <- Printf.sprintf "zoom is now %f" (zoom *. 100.0);
+          setzoom zoom
         with exc ->
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
@@ -1319,9 +1328,7 @@ let viewkeyboard ~key ~x ~y =
 
   | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
-      conf.zoom <- min 2.2 (conf.zoom +. incr);
-      state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-      reshape conf.winw conf.winh
+      setzoom (min 2.2 (conf.zoom +. incr))
 
   | '+' ->
       let ondone s =
@@ -1341,10 +1348,7 @@ let viewkeyboard ~key ~x ~y =
 
   | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
-      conf.zoom <- max 0.01 (conf.zoom -. decr);
-      if conf.zoom <= 1.0 then state.x <- 0;
-      state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-      reshape conf.winw conf.winh;
+      setzoom (max 0.01 (conf.zoom -. decr))
 
   | '-' ->
       let ondone msg =
@@ -1353,20 +1357,12 @@ let viewkeyboard ~key ~x ~y =
       enttext ('-', "", None, optentry, ondone)
 
   | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-      state.x <- 0;
-      conf.zoom <- 1.0;
-      state.text <- "zoom is 100%";
-      reshape conf.winw conf.winh
+      setzoom 1.0
 
   | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
       let zoom = zoomforh conf.winw conf.winh conf.scrollw in
       if zoom < 1.0
-      then (
-        conf.zoom <- zoom;
-        state.x <- 0;
-        state.text <- Printf.sprintf "zoom is %3.1f%%" (100.0*.conf.zoom);
-        reshape conf.winw conf.winh;
-      )
+      then setzoom zoom
 
   | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
       togglebirdseye ()
@@ -2124,7 +2120,7 @@ let scrollindicator () =
 
 let showsel margin =
   match state.mstate with
-  | Mnone | Mscroll _ | Mpan _ ->
+  | Mnone | Mscroll _ | Mpan _ | Mzoom _ ->
       ()
 
   | Msel ((x0, y0), (x1, y1)) ->
@@ -2276,18 +2272,45 @@ let getunder x y =
 let viewmouse button bstate x y =
   match button with
   | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
-      if state.ascrollstep > 0
-      then
-        setautoscrollspeed (n=4)
-      else
-        let incr =
-          if n = 3
-          then -conf.scrollstep
-          else conf.scrollstep
-        in
-        let incr = incr * 2 in
-        let y = clamp incr in
-        gotoy_and_clear_text y
+      if Glut.getModifiers () land Glut.active_ctrl != 0
+      then (
+        match state.mstate with
+        | Mzoom (oldn, i) ->
+            if oldn = n
+            then (
+              if i = 2
+              then
+                let incr =
+                  match n with
+                  | 4 ->
+                      if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01
+                  | _ ->
+                      if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
+                in
+                let zoom = conf.zoom +. incr in
+                setzoom zoom;
+                state.mstate <- Mzoom (n, 0);
+              else
+                state.mstate <- Mzoom (n, i+1);
+            )
+            else state.mstate <- Mzoom (n, 0)
+
+        | _ -> state.mstate <- Mzoom (n, 0)
+      )
+      else (
+        if state.ascrollstep > 0
+        then
+          setautoscrollspeed (n=4)
+        else
+          let incr =
+            if n = 3
+            then -conf.scrollstep
+            else conf.scrollstep
+          in
+          let incr = incr * 2 in
+          let y = clamp incr in
+          gotoy_and_clear_text y
+      )
 
   | Glut.LEFT_BUTTON when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       if bstate = Glut.DOWN
@@ -2343,7 +2366,7 @@ let viewmouse button bstate x y =
             match state.mstate with
             | Mnone  -> ()
 
-            | Mscroll ->
+            | Mzoom _ | Mscroll ->
                 state.mstate <- Mnone
 
             | Mpan _ ->
@@ -2405,7 +2428,7 @@ let motion ~x ~y =
   | Outline _ -> ()
   | _ ->
       match state.mstate with
-      | Mnone -> ()
+      | Mzoom _ | Mnone -> ()
 
       | Mpan (x0, y0) ->
           let dx = x - x0
@@ -2466,7 +2489,7 @@ let pmotion ~x ~y =
               Glut.setCursor Glut.CURSOR_TEXT
           end
 
-      | Mpan _ | Msel _ | Mscroll ->
+      | Mpan _ | Msel _ | Mzoom _ | Mscroll ->
           ()
 
 ;;

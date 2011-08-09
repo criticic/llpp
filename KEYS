@@ -1,7 +1,8 @@
 up/down arrow           - scroll up/down
-left/right arrow        - pan left/right (when zoomed in)
 j/k                     - ..............
 mouse buttons 3/4       - .............. (aka mouse wheel)
+  when control is held  - zoom
+left/right arrow        - pan left/right (when zoomed in)
 primary mouse button[1] - click on link or select text[2]
 escape/q                - quit
 backspace               - go back after jumping (clicking link and suchlike) [3]
