@@ -134,10 +134,10 @@ type conf =
     ; mutable preload : bool
     ; mutable pagebias : int
     ; mutable verbose : bool
-    ; mutable scrollincr : int
+    ; mutable scrollstep : int
     ; mutable maxhfit : bool
     ; mutable crophack : bool
-    ; mutable autoscroll : bool
+    ; mutable autoscrollstep : int
     ; mutable showall : bool
     ; mutable hlinks : bool
     ; mutable underinfo : bool
@@ -225,10 +225,10 @@ let defconf =
   ; preload = true
   ; pagebias = 0
   ; verbose = false
-  ; scrollincr = 24
+  ; scrollstep = 24
   ; maxhfit = true
   ; crophack = false
-  ; autoscroll = false
+  ; autoscrollstep = 0
   ; showall = false
   ; hlinks = false
   ; underinfo = false
@@ -946,9 +946,9 @@ let idle () =
     let r, _, _ = Unix.select [state.csock] [] [] delay in
     begin match r with
     | [] ->
-        if conf.autoscroll && conf.scrollincr != 0
+        if conf.autoscrollstep > 0
         then begin
-          let y = state.y + conf.scrollincr in
+          let y = state.y + conf.autoscrollstep in
           let y = if y >= state.maxy then 0 else y in
           gotoy y;
           state.text <- "";
@@ -1039,7 +1039,7 @@ let optentry text key =
   match c with
   | 's' ->
       let ondone s =
-        try conf.scrollincr <- int_of_string s with exc ->
+        try conf.scrollstep <- int_of_string s with exc ->
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
@@ -1388,7 +1388,9 @@ let viewkeyboard ~key ~x ~y =
       Glut.postRedisplay ()
 
   | 'a' ->
-      conf.autoscroll <- not conf.autoscroll
+      if conf.autoscrollstep = 0
+      then conf.autoscrollstep <- conf.scrollstep
+      else conf.autoscrollstep <- 0;
 
   | 'P' ->
       conf.presentation <- not conf.presentation;
@@ -1517,8 +1519,8 @@ let viewkeyboard ~key ~x ~y =
         (min (state.colorscale +. (if c = ']' then 0.1 else -0.1)) 1.0);
       Glut.postRedisplay ()
 
-  | 'k' -> gotoy (clamp (-conf.scrollincr))
-  | 'j' -> gotoy (clamp conf.scrollincr)
+  | 'k' -> gotoy (clamp (-conf.scrollstep))
+  | 'j' -> gotoy (clamp conf.scrollstep)
 
   | 'r' -> opendoc state.path state.password
 
@@ -1897,6 +1899,14 @@ let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
   | _ -> ()
 ;;
 
+let setautoscrollspeed goingdown =
+  let incr = max 1 (conf.autoscrollstep / 2) in
+  let astep = max 1 (
+    conf.autoscrollstep + (if goingdown then incr else -incr)
+  ) in
+  conf.autoscrollstep <- astep;
+;;
+
 let special ~key ~x ~y =
   match state.mode with
   | View | (Birdseye _) when key = Glut.KEY_F9 ->
@@ -1908,42 +1918,46 @@ let special ~key ~x ~y =
   | View | Textentry _ ->
       begin match state.mode with
       | View ->
-          let y =
-            match key with
-            | Glut.KEY_F3        -> search state.searchpattern true; state.y
-            | Glut.KEY_UP        -> clamp (-conf.scrollincr)
-            | Glut.KEY_DOWN      -> clamp conf.scrollincr
-            | Glut.KEY_PAGE_UP   ->
-                if Glut.getModifiers () land Glut.active_ctrl != 0
-                then
-                  match state.layout with
-                  | [] -> state.y
-                  | l :: _ -> state.y - l.pagey
-                else
-                  clamp (-conf.winh)
-            | Glut.KEY_PAGE_DOWN ->
-                if Glut.getModifiers () land Glut.active_ctrl != 0
-                then
-                  match List.rev state.layout with
-                  | [] -> state.y
-                  | l :: _ -> getpagey l.pageno
-                else
-                  clamp conf.winh
-            | Glut.KEY_HOME -> addnav (); 0
-            | Glut.KEY_END ->
-                addnav ();
-                state.maxy - (if conf.maxhfit then conf.winh else 0)
+          if conf.autoscrollstep > 0
+            && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
+          then setautoscrollspeed (key = Glut.KEY_DOWN)
+          else
+            let y =
+              match key with
+              | Glut.KEY_F3        -> search state.searchpattern true; state.y
+              | Glut.KEY_UP        -> clamp (-conf.scrollstep)
+              | Glut.KEY_DOWN      -> clamp conf.scrollstep
+              | Glut.KEY_PAGE_UP   ->
+                  if Glut.getModifiers () land Glut.active_ctrl != 0
+                  then
+                    match state.layout with
+                    | [] -> state.y
+                    | l :: _ -> state.y - l.pagey
+                  else
+                    clamp (-conf.winh)
+              | Glut.KEY_PAGE_DOWN ->
+                  if Glut.getModifiers () land Glut.active_ctrl != 0
+                  then
+                    match List.rev state.layout with
+                    | [] -> state.y
+                    | l :: _ -> getpagey l.pageno
+                  else
+                    clamp conf.winh
+              | Glut.KEY_HOME -> addnav (); 0
+              | Glut.KEY_END ->
+                  addnav ();
+                  state.maxy - (if conf.maxhfit then conf.winh else 0)
 
-            | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
-                state.x <- state.x - 10;
-                state.y
-            | Glut.KEY_LEFT when conf.zoom > 1.0  ->
-                state.x <- state.x + 10;
-                state.y
+              | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
+                  state.x <- state.x - 10;
+                  state.y
+              | Glut.KEY_LEFT when conf.zoom > 1.0  ->
+                  state.x <- state.x + 10;
+                  state.y
 
-            | _ -> state.y
-          in
-          gotoy_and_clear_text y
+              | _ -> state.y
+            in
+            gotoy_and_clear_text y
 
       | Textentry
           ((c, s, (Some (action, _) as onhist), onkey, ondone), mode) ->
@@ -2248,16 +2262,18 @@ let getunder x y =
 let viewmouse button bstate x y =
   match button with
   | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
-      let incr =
-        if n = 3
-        then
-          -conf.scrollincr
-        else
-          conf.scrollincr
-      in
-      let incr = incr * 2 in
-      let y = clamp incr in
-      gotoy_and_clear_text y
+      if conf.autoscrollstep > 0
+      then
+        setautoscrollspeed (n=4)
+      else
+        let incr =
+          if n = 3
+          then -conf.scrollstep
+          else conf.scrollstep
+        in
+        let incr = incr * 2 in
+        let y = clamp incr in
+        gotoy_and_clear_text y
 
   | Glut.LEFT_BUTTON when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       if bstate = Glut.DOWN
@@ -2464,13 +2480,16 @@ struct
         | "case-insensitive-search" -> { c with icase = bool_of_string v }
         | "preload" -> { c with preload = bool_of_string v }
         | "page-bias" -> { c with pagebias = int_of_string v }
-        | "scroll-step" -> { c with scrollincr = max 1 (int_of_string v) }
+        | "scroll-step" -> { c with scrollstep = max 1 (int_of_string v) }
+        | "auto-scroll-step" ->
+            { c with autoscrollstep = max 0 (int_of_string v) }
         | "max-height-fit" -> { c with maxhfit = bool_of_string v }
         | "crop-hack" -> { c with crophack = bool_of_string v }
         | "throttle" -> { c with showall = bool_of_string v }
         | "highlight-links" -> { c with hlinks = bool_of_string v }
         | "under-cursor-info" -> { c with underinfo = bool_of_string v }
-        | "vertical-margin" -> { c with interpagespace = max 0 (int_of_string v) }
+        | "vertical-margin" ->
+            { c with interpagespace = max 0 (int_of_string v) }
         | "zoom" ->
             let zoom = float_of_string v /. 100. in
             let zoom = max 0.01 (min 2.2 zoom) in
@@ -2539,10 +2558,10 @@ struct
     dst.preload        <- src.preload;
     dst.pagebias       <- src.pagebias;
     dst.verbose        <- src.verbose;
-    dst.scrollincr     <- src.scrollincr;
+    dst.scrollstep     <- src.scrollstep;
     dst.maxhfit        <- src.maxhfit;
     dst.crophack       <- src.crophack;
-    dst.autoscroll     <- src.autoscroll;
+    dst.autoscrollstep <- src.autoscrollstep;
     dst.showall        <- src.showall;
     dst.hlinks         <- src.hlinks;
     dst.underinfo      <- src.underinfo;
@@ -2773,7 +2792,8 @@ struct
     ob "case-insensitive-search" c.icase dc.icase;
     ob "preload" c.preload dc.preload;
     oi "page-bias" c.pagebias dc.pagebias;
-    oi "scroll-step" c.scrollincr dc.scrollincr;
+    oi "scroll-step" c.scrollstep dc.scrollstep;
+    oi "auto-scroll-step" c.autoscrollstep dc.autoscrollstep;
     ob "max-height-fit" c.maxhfit dc.maxhfit;
     ob "crop-hack" c.crophack dc.crophack;
     ob "throttle" showall dc.showall;

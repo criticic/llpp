@@ -1,7 +1,7 @@
 up/down arrow           - scroll up/down
 left/right arrow        - pan left/right (when zoomed in)
 j/k                     - ..............
-mouse buttons 3/4       - ..............
+mouse buttons 3/4       - .............. (aka mouse wheel)
 primary mouse button[1] - click on link or select text[2]
 escape/q                - quit
 backspace               - go back after jumping (clicking link and suchlike) [3]
@@ -44,6 +44,9 @@ ctrl pageup/pagedown    - align top of the screen with first/last visible page
 if the mouse is over selectable element (text/link) holding countrol
 will make the page pan instead of the default action (selecting text/
 clicking link))
+
+if auto scrolling is active:
+    up/down arrows and mouse buttons 3/4 will make scrolling go faster/slower
 
 tunables
 -i                      - toggle case sensitivity of searches
