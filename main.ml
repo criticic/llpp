@@ -1059,12 +1059,12 @@ let setzoom zoom =
 let enterbirdseye () =
   let zoom = float conf.thumbw /. float conf.winw in
   let birdseyepageno =
-    let rec fold = function
-      | [] -> 0
+    let rec fold candidate = function
+      | [] -> candidate
       | l :: _ when l.pagey = 0 -> l.pageno
-      | _ :: rest -> fold rest
+      | l :: rest -> fold l.pageno rest
     in
-    fold state.layout
+    fold 0 state.layout
   in
   state.mode <- Birdseye (
     { conf with zoom = conf.zoom }, state.x, birdseyepageno, -1, getanchor ()
