@@ -13,7 +13,7 @@ export CPATH=$CPATH:$mupdfincpath
 sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
 ocamlc -c -o link.o -ccopt -O $srcpath/link.c
-ocamlc -c -o help.cmo $srcpath/help.ml
+ocamlc -c -o help.cmo help.ml
 ocamlc -c -o parser.cmo $srcpath/parser.ml
 ocamlc -c -o main.cmo -I +lablGL $srcpath/main.ml
 
