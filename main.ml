@@ -212,6 +212,7 @@ type state =
     ; mutable throttle : layout list option
     ; mutable ascrollstep : int
     ; mutable help : string list
+    ; mutable docinfo : (int * string) list
     ; hists : hists
     }
 and hists =
@@ -289,6 +290,7 @@ let state =
   ; throttle = None
   ; ascrollstep = 0
   ; help = Help.keys
+  ; docinfo = []
   }
 ;;
 
@@ -926,6 +928,24 @@ let act cmd =
       in
       state.outlines <- outlines
 
+
+  | 'i' ->
+      let s = Scanf.sscanf cmd "i %n"
+        (fun n -> String.sub cmd n (String.length cmd - n))
+      in
+      let len = String.length s in
+      let rec fold accu pos =
+        let eolpos =
+          try String.index_from s pos '\n' with Not_found -> len
+        in
+        if eolpos = len
+        then List.rev accu
+        else
+          let line = String.sub s pos (eolpos - pos) in
+          fold ((1, line)::accu) (eolpos+1)
+      in
+      state.docinfo <- fold state.docinfo 0
+
   | _ ->
       dolog "unknown cmd `%S'" cmd
 ;;
@@ -1273,46 +1293,48 @@ let enterbookmarkmode () =
 let enterinfomode () =
   let btos = function true -> "on" | _ -> "off" in
   let pageno, top = getanchor () in
-  let help =
+  let info =
     let autoscrollstep =
       if state.ascrollstep > 0
       then state.ascrollstep
       else conf.autoscrollstep
     in
-    ("Current parameters")
-    :: ("version " ^ Help.version)
-    :: ("presentation mode " ^ btos conf.presentation)
-    :: ("case insensitive search " ^ btos conf.icase)
-    :: ("preload " ^ btos conf.preload)
-    :: ("page bias " ^ string_of_int conf.pagebias)
-    :: ("verbose " ^ btos conf.verbose)
-    :: ("scroll step " ^ string_of_int conf.scrollstep)
-    :: ("max fit " ^ btos conf.maxhfit)
-    :: ("crop hack " ^ btos conf.crophack)
-    :: ("autoscroll step " ^ string_of_int autoscrollstep)
-    :: ("throttle " ^ btos conf.showall)
-    :: ("highlight links " ^ btos conf.hlinks)
-    :: ("under info " ^ btos conf.underinfo)
-    :: ("veritcal margin " ^ string_of_int conf.interpagespace)
-    :: ("zoom " ^ Printf.sprintf "%-5.1f" (conf.zoom*.100.))
-    :: ("rotation " ^ string_of_int conf.angle)
-    :: ("persistent bookmarks " ^ btos conf.savebmarks)
-    :: ("proportional display " ^ btos conf.proportional)
-    :: ("pixmap cache size " ^ string_of_int conf.memlimit)
-    :: ("pixmap cache used " ^ string_of_int state.memused)
-    :: ("thumbnail width " ^ string_of_int conf.thumbw)
-    :: (Printf.sprintf "window dimensions %dx%d " conf.winw conf.winh)
-    :: []
+    (0, "Current parameters")
+    :: (1, "version " ^ Help.version)
+    :: (1, "presentation mode " ^ btos conf.presentation)
+    :: (1, "case insensitive search " ^ btos conf.icase)
+    :: (1, "preload " ^ btos conf.preload)
+    :: (1, "page bias " ^ string_of_int conf.pagebias)
+    :: (1, "verbose " ^ btos conf.verbose)
+    :: (1, "scroll step " ^ string_of_int conf.scrollstep)
+    :: (1, "max fit " ^ btos conf.maxhfit)
+    :: (1, "crop hack " ^ btos conf.crophack)
+    :: (1, "autoscroll step " ^ string_of_int autoscrollstep)
+    :: (1, "throttle " ^ btos conf.showall)
+    :: (1, "highlight links " ^ btos conf.hlinks)
+    :: (1, "under info " ^ btos conf.underinfo)
+    :: (1, "veritcal margin " ^ string_of_int conf.interpagespace)
+    :: (1, "zoom " ^ Printf.sprintf "%-5.1f" (conf.zoom*.100.))
+    :: (1, "rotation " ^ string_of_int conf.angle)
+    :: (1, "persistent bookmarks " ^ btos conf.savebmarks)
+    :: (1, "proportional display " ^ btos conf.proportional)
+    :: (1, "pixmap cache size " ^ string_of_int conf.memlimit)
+    :: (1, "pixmap cache used " ^ string_of_int state.memused)
+    :: (1, "thumbnail width " ^ string_of_int conf.thumbw)
+    :: (1, Printf.sprintf "window dimensions %dx%d " conf.winw conf.winh)
+    :: (0, "Document information")
+    :: (1, "Pages " ^ string_of_int state.pagecount)
+    :: state.docinfo
   in
   let o =
-    let o = Array.create (List.length help) ("", 0, pageno, top) in
+    let o = Array.create (List.length info) ("", 0, pageno, top) in
     let rec iteri i = function
       | [] -> ()
-      | s :: rest ->
-          o.(i) <- (s, (if i = 0 then 0 else 1), pageno, top);
+      | (l, s) :: rest ->
+          o.(i) <- (s, l, pageno, top);
           iteri (i+1) rest
     in
-    iteri 0 help;
+    iteri 0 info;
     o
   in
   enterselector false o "Info not available" "";
@@ -1364,6 +1386,7 @@ let doreshape w h =
 
 let writeopen path password  =
   writecmd state.csock ("open " ^ path ^ "\000" ^ state.password ^ "\000");
+  writecmd state.csock "info";
 ;;
 
 let opendoc path password =

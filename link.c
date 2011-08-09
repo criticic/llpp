@@ -382,6 +382,30 @@ static void openxref (char *filename, char *password)
     state.pagecount = pdf_count_pages (state.xref);
 }
 
+static void pdfinfo (void)
+{
+    fz_obj *obj;
+
+    printd (state.sock, "i version PDF-%d.%d\n",
+            state.xref->version / 10, state.xref->version % 10);
+
+#ifdef _GNU_SOURCE
+    {
+        FILE *f;
+        char *buf;
+        size_t size;
+
+        f = open_memstream (&buf, &size);
+        obj = fz_dict_gets (state.xref->trailer, "Info");
+        fz_fprint_obj (f, fz_resolve_indirect (obj), 0);
+        fputc ('\n', f);
+        fclose (f);
+        printd (state.sock, "i %.*s", size, buf);
+        free (buf);
+    }
+#endif
+}
+
 static int readlen (int fd)
 {
     ssize_t n;
@@ -1114,6 +1138,9 @@ mainloop (void *unused)
                     state.proportional,
                     w * h * 4,
                     page);
+        }
+        else if (!strncmp ("info", p, 4)) {
+            pdfinfo ();
         }
         else if (!strncmp ("interrupt", p, 9)) {
             printd (state.sock, "V interrupted");
