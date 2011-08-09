@@ -50,8 +50,8 @@ if auto scrolling is active:
 
 tunables
 -i                      - toggle case sensitivity of searches
--s<number>              - scroll increment
--S<number>              - amount of space between pages
+-s<number>              - set scroll step (pixels)
+-S<number>              - set space between pages (pixels)
 -c                      - toggle crop hack
 -a                      - toggle throttled scrolling
 -R<number>              - rotate
@@ -60,6 +60,8 @@ tunables
 -P                      - toggle persistent bookmarks
 -h                      - toggle maxfit
 -l                      - toggle proportional display
+-Z                      - set zoom (percent)
+-A                      - set auto scroll step (pixels )
 -f                      - toggle "what's under cursor" identification
                           (only font name currently)
 

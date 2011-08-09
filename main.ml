@@ -1033,6 +1033,34 @@ let optentry text key =
       in
       TEswitch ('#', "", None, intentry, ondone)
 
+  | 'A' ->
+      let ondone s =
+        try
+          conf.autoscrollstep <- int_of_string s;
+          if state.ascrollstep > 0
+          then state.ascrollstep <- conf.autoscrollstep;
+        with exc ->
+          state.text <- Printf.sprintf "bad integer `%s': %s"
+            s (Printexc.to_string exc)
+      in
+      TEswitch ('*', "", None, intentry, ondone)
+
+  | 'Z' ->
+      let ondone s =
+        try
+          let zoom = float (int_of_string s) /. 100.0 in
+          let zoom = max 0.01 (min 2.2 zoom) in
+          conf.zoom <- zoom;
+          if zoom <= 1.0
+          then state.x <- 0;
+          reshape conf.winh conf.winw;
+          state.text <- Printf.sprintf "zoom is now %f" (zoom *. 100.0);
+        with exc ->
+          state.text <- Printf.sprintf "bad integer `%s': %s"
+            s (Printexc.to_string exc)
+      in
+      TEswitch ('@', "", None, intentry, ondone)
+
   | 'R' ->
       let ondone s =
         match try
