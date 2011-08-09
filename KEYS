@@ -62,7 +62,8 @@ tunables
 -h                      - toggle maxfit
 -l                      - toggle proportional display
 -Z                      - set zoom (percent)
--A                      - set auto scroll step (pixels )
+-A                      - set auto scroll step (pixels)
+-t                      - set thumbnail width (pixels)
 -f                      - toggle "what's under cursor" identification
                           (only font name currently)
 
@@ -97,6 +98,6 @@ up/down arrow           - previous/next entered text
     http://www.vergenet.net/~conrad/software/xsel/
     On OSX and Windows selected text will be dumped to the terminal
     Also selection can not cross page boundaries
-    
+
 [3] if the document was previously visited initial backspace will
     jump to the last visited place

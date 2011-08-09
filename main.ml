@@ -1035,6 +1035,61 @@ let setzoom zoom =
   );
 ;;
 
+let birdseyeon () =
+  let zoom = float conf.thumbw /. float conf.winw in
+  let birdseyepageno =
+    let rec fold = function
+      | [] -> 0
+      | l :: _ when l.pagey = 0 -> l.pageno
+      | _ :: rest -> fold rest
+    in
+    fold state.layout
+  in
+  state.mode <- Birdseye (
+    { conf with zoom = conf.zoom }, state.x, birdseyepageno, -1, getanchor ()
+  );
+  conf.zoom <- zoom;
+  conf.presentation <- false;
+  conf.interpagespace <- 10;
+  conf.hlinks <- false;
+  state.x <- 0;
+  state.mstate <- Mnone;
+  conf.showall <- false;
+  Glut.setCursor Glut.CURSOR_INHERIT;
+  if conf.verbose
+  then
+    state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
+      (100.0*.zoom)
+  else
+    state.text <- ""
+  ;
+  reshape conf.winw conf.winh;
+;;
+
+let birdseyeoff (c, leftx, pageno, _, anchor) goback =
+  state.mode <- View;
+  conf.zoom <- c.zoom;
+  conf.presentation <- c.presentation;
+  conf.interpagespace <- c.interpagespace;
+  conf.showall <- c.showall;
+  conf.hlinks <- c.hlinks;
+  state.x <- leftx;
+  if conf.verbose
+  then
+    state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
+      (100.0*.conf.zoom)
+  ;
+  reshape conf.winw conf.winh;
+  state.anchor <- if goback then anchor else (pageno, 0.0);
+;;
+
+let togglebirdseye () =
+  match state.mode with
+  | Birdseye vals -> birdseyeoff vals true
+  | View | Outline _ -> birdseyeon ()
+  | _ -> ()
+;;
+
 let optentry text key =
   let btos b = if b then "on" else "off" in
   let c = Char.unsafe_chr key in
@@ -1069,6 +1124,24 @@ let optentry text key =
             s (Printexc.to_string exc)
       in
       TEswitch ('@', "", None, intentry, ondone)
+
+  | 't' ->
+      let ondone s =
+        try
+          conf.thumbw <- max 2 (min 1920 (int_of_string s));
+          state.text <-
+            Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
+          begin match state.mode with
+          | Textentry (_, Birdseye beye) ->
+              birdseyeoff beye false;
+              birdseyeon ()
+          | _ -> ()
+          end;
+        with exc ->
+          state.text <- Printf.sprintf "bad integer `%s': %s"
+            s (Printexc.to_string exc)
+      in
+      TEswitch ('$', "", None, intentry, ondone)
 
   | 'R' ->
       let ondone s =
@@ -1236,61 +1309,6 @@ let opendoc path password =
   writeopen path password;
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
   wcmd "geometry" [`i state.w; `i conf.winh];
-;;
-
-let birdseyeon () =
-  let zoom = float conf.thumbw /. float conf.winw in
-  let birdseyepageno =
-    let rec fold = function
-      | [] -> 0
-      | l :: _ when l.pagey = 0 -> l.pageno
-      | _ :: rest -> fold rest
-    in
-    fold state.layout
-  in
-  state.mode <- Birdseye (
-    { conf with zoom = conf.zoom }, state.x, birdseyepageno, -1, getanchor ()
-  );
-  conf.zoom <- zoom;
-  conf.presentation <- false;
-  conf.interpagespace <- 10;
-  conf.hlinks <- false;
-  state.x <- 0;
-  state.mstate <- Mnone;
-  conf.showall <- false;
-  Glut.setCursor Glut.CURSOR_INHERIT;
-  if conf.verbose
-  then
-    state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
-      (100.0*.zoom)
-  else
-    state.text <- ""
-  ;
-  reshape conf.winw conf.winh;
-;;
-
-let birdseyeoff (c, leftx, pageno, _, anchor) goback =
-  state.mode <- View;
-  conf.zoom <- c.zoom;
-  conf.presentation <- c.presentation;
-  conf.interpagespace <- c.interpagespace;
-  conf.showall <- c.showall;
-  conf.hlinks <- c.hlinks;
-  state.x <- leftx;
-  if conf.verbose
-  then
-    state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-      (100.0*.conf.zoom)
-  ;
-  reshape conf.winw conf.winh;
-  state.anchor <- if goback then anchor else (pageno, 0.0);
-;;
-
-let togglebirdseye () =
-  match state.mode with
-  | Birdseye vals -> birdseyeoff vals true
-  | View | Outline _ -> birdseyeon ()
-  | _ -> ()
 ;;
 
 let viewkeyboard ~key ~x ~y =
