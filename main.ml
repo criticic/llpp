@@ -160,8 +160,10 @@ type conf =
     }
 ;;
 
-type outline = string * int * int * float;;
-type outlines =
+type anchor = pageno * top;;
+
+type outline = string * int * anchor
+and outlines =
     | Oarray of outline array
     | Olist of outline list
     | Onarrow of string * outline array * outline array
@@ -170,8 +172,6 @@ type outlines =
 type rect = float * float * float * float * float * float * float * float;;
 
 type pagemapkey = pageno * width * angle * proportional * gen;;
-
-type anchor = pageno * top;;
 
 let emptyanchor = (0, 0.0);;
 let initialanchor = (-1, nan);;
@@ -951,7 +951,7 @@ let act cmd =
         loop false 0;
         Buffer.contents b
       in
-      let outline = (s, l, n, float t /. float h) in
+      let outline = (s, l, (n, float t /. float h)) in
       let outlines =
         match state.outlines with
         | Olist outlines -> Olist (outline :: outlines)
@@ -1324,7 +1324,7 @@ let enterselector allowdel outlines errmsg msg =
         if n = Array.length outlines
         then 0
         else
-          let (_, _, outlinepageno, _) = outlines.(n) in
+          let (_, _, (outlinepageno, _)) = outlines.(n) in
           if outlinepageno >= pageno then n else loop (n+1)
       in
       loop 0
@@ -1583,7 +1583,8 @@ let quickbookmark ?title () =
         | Some title -> title
       in
       state.bookmarks <-
-        (title, 0, l.pageno, float l.pagey /. float l.pageh) :: state.bookmarks
+        (title, 0, (l.pageno, float l.pagey /. float l.pageh))
+      :: state.bookmarks
 ;;
 
 let doreshape w h =
@@ -1820,7 +1821,7 @@ let viewkeyboard ~key ~x ~y =
         match state.layout with
         | l :: _ ->
             state.bookmarks <-
-              (s, 0, l.pageno, float l.pagey /. float l.pageh)
+              (s, 0, (l.pageno, float l.pagey /. float l.pageh))
             :: state.bookmarks
         | _ -> ()
       in
@@ -2068,7 +2069,7 @@ let outlinekeyboard ~key ~x ~y
           if n = -1
           then accu
           else
-            let (s, _, _, _) as o = outlines.(n) in
+            let (s, _, _) as o = outlines.(n) in
             let accu =
               if (try ignore (Str.search_forward re s 0); true
                 with Not_found -> false)
@@ -2086,7 +2087,7 @@ let outlinekeyboard ~key ~x ~y
         if n = Array.length outlines || n = -1
         then None
         else
-          let (s, _, _, _) = outlines.(n) in
+          let (s, _, _) = outlines.(n) in
           if
             (try ignore (Str.search_forward re s 0); true
               with Not_found -> false)
@@ -2167,9 +2168,9 @@ let outlinekeyboard ~key ~x ~y
   | 13 ->                               (* enter *)
       if active < Array.length outlines
       then (
-        let (_, _, n, t) = outlines.(active) in
+        let (_, _, anchor) = outlines.(active) in
         addnav ();
-        gotopage n t;
+        gotoanchor anchor;
       );
       state.text <- "";
       if allowdel then state.bookmarks <- Array.to_list outlines;
@@ -2549,10 +2550,10 @@ let special ~key ~x ~y =
       in
       let updownlevel incr =
         let len = Array.length outlines in
-        let (_, curlevel, _, _) = outlines.(active) in
+        let (_, curlevel, _) = outlines.(active) in
         let rec flow i =
           if i = len then i-1 else if i = -1 then 0 else
-              let (_, l, _, _) = outlines.(i) in
+              let (_, l, _) = outlines.(i) in
               if l != curlevel then i else flow (i+incr)
         in
         let active = flow active in
@@ -2746,7 +2747,7 @@ let showrects () =
   Gl.disable `blend;
 ;;
 
-let showoutline (_, active, first, outlines, _, pan, _) =
+let showstrings active first pan strings =
   Gl.enable `blend;
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   GlDraw.color (0., 0., 0.) ~alpha:0.85;
@@ -2760,10 +2761,10 @@ let showoutline (_, active, first, outlines, _, pan, _) =
     String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
   in
   let rec loop row =
-    if row = Array.length outlines || (row - first) * 16 > conf.winh
+    if row = Array.length strings || (row - first) * 16 > conf.winh
     then ()
     else (
-      let (s, level, _, _) = outlines.(row) in
+      let (s, level, _) = strings.(row) in
       let y = (row - first) * 16 in
       let x = 5 + 15*(max 0 (level+pan)) in
       if row = active
@@ -2783,10 +2784,15 @@ let showoutline (_, active, first, outlines, _, pan, _) =
         if pan < 0
         then (
           let pan = pan * 2 in
-          let left = l + pan in
+          let pos = pan + level in
+          let left = l + pos in
           if left > 0
           then
-            let s = String.sub s (-pan) left in
+            let s =
+              if left > l
+              then s
+              else String.sub s (-pos) left
+            in
             draw_string (float x) (float (y + 16)) s
         )
         else
@@ -2799,57 +2805,12 @@ let showoutline (_, active, first, outlines, _, pan, _) =
   loop first
 ;;
 
-let showitems (active, first, items, _, pan, _) =
-  Gl.enable `blend;
-  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
-  GlDraw.color (0., 0., 0.) ~alpha:0.90;
-  GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
-  Gl.disable `blend;
+let showoutline (_, active, first, outlines, _, pan, _) =
+  showstrings active first pan outlines;
+;;
 
-  GlDraw.color (1., 1., 1.);
-  let font = Glut.BITMAP_9_BY_15 in
-  let draw_string x y s =
-    GlPix.raster_pos ~x ~y ();
-    String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
-  in
-  let rec loop row =
-    if row = Array.length items || (row - first) * 16 > conf.winh
-    then ()
-    else (
-      let (s, l, a) = items.(row) in
-      let y = (row - first) * 16 in
-      let x = 5 + (max 0 (l+pan))*15 in
-      if row = active && a <> Noaction
-      then (
-        Gl.enable `blend;
-        GlDraw.polygon_mode `both `line;
-        GlFunc.blend_func `src_alpha `one_minus_src_alpha;
-        GlDraw.color (1., 1., 1.) ~alpha:0.9;
-        GlDraw.rect (0., float (y + 1))
-          (float (conf.winw - 1), float (y + 18));
-        GlDraw.polygon_mode `both `fill;
-        Gl.disable `blend;
-        GlDraw.color (1., 1., 1.);
-      );
-      let draw_string s =
-        let l = String.length s in
-        if pan < 0
-        then (
-          let pan = pan * 2 in
-          let left = l + pan in
-          if left > 0
-          then
-            let s = String.sub s (-pan) left in
-            draw_string (float x) (float (y + 16)) s
-        )
-        else
-          draw_string (float (x + pan*15)) (float (y + 16)) s
-      in
-      draw_string s;
-      loop (row+1)
-    )
-  in
-  loop first
+let showitems (active, first, items, _, pan, _) =
+  showstrings active first pan items;
 ;;
 
 let display () =
@@ -3345,7 +3306,7 @@ struct
           let titleent, spage, srely = bookmark_of attrs in
           let page = fromstring int_of_string spos "page" spage 0
           and rely = fromstring float_of_string spos "rely" srely 0.0 in
-          let bookmarks = (unent titleent, 0, page, rely) :: bookmarks in
+          let bookmarks = (unent titleent, 0, (page, rely)) :: bookmarks in
           if closed
           then { v with f = pbookmarks path pan anchor c bookmarks }
           else
@@ -3550,7 +3511,7 @@ struct
           | [] -> Buffer.add_string bb "/>\n"
           | _ ->
               Buffer.add_string bb ">\n<bookmarks>\n";
-              List.iter (fun (title, _level, page, rely) ->
+              List.iter (fun (title, _level, (page, rely)) ->
                 Printf.bprintf bb
                   "<item title='%s' page='%d'"
                   (enent title 0 (String.length title))
