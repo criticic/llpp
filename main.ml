@@ -3532,7 +3532,7 @@ end;;
 let () =
   Arg.parse
     (Arg.align
-        ["-p", Arg.String (fun s -> state.password <- s) , " Set password"
+        [("-p", Arg.String (fun s -> state.password <- s) , " Set password")
         ;("-v", Arg.Unit (fun () -> print_endline Help.version; exit 0),
          " Print version and exit")]
     )
