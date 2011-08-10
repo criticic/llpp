@@ -2473,13 +2473,13 @@ let special ~key ~x ~y =
 
       | Glut.KEY_RIGHT ->
           state.mode <- Items (
-            active, first, items, qsearch, min 0 (pan + 1), oldmode
+            active, first, items, qsearch, min 0 (pan - 1), oldmode
           );
           Glut.postRedisplay ()
 
       | Glut.KEY_LEFT ->
           state.mode <- Items (
-            active, first, items, qsearch, min 0 (pan - 1), oldmode
+            active, first, items, qsearch, min 0 (pan + 1), oldmode
           );
           Glut.postRedisplay ()
 
@@ -2541,7 +2541,7 @@ let special ~key ~x ~y =
           then (
             state.mode <- Outline (
               allowdel, active, first, outlines,
-              qsearch, min 0 (pan + 1), oldmode
+              qsearch, min 0 (pan - 1), oldmode
             );
             Glut.postRedisplay ();
           )
@@ -2554,7 +2554,7 @@ let special ~key ~x ~y =
           if Glut.getModifiers () land Glut.active_ctrl != 0
           then (
             state.mode <- Outline (
-              allowdel, active, first, outlines, qsearch, pan - 1, oldmode
+              allowdel, active, first, outlines, qsearch, pan + 1, oldmode
             );
             Glut.postRedisplay ();
           )
