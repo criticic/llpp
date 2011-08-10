@@ -42,11 +42,11 @@ and mstate =
     | Mnone
 ;;
 
-type textentry = string * string * onhist * onkey * ondone
+type textentry = string * string * onhist option * onkey * ondone
 and onkey = string -> int -> te
 and ondone = string -> unit
 and histcancel = unit -> unit
-and onhist = ((histcmd -> string) * histcancel) option
+and onhist = ((histcmd -> string) * histcancel)
 and histcmd = HCnext | HCprev | HCfirst | HClast
 and te =
     | TEstop
