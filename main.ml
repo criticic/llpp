@@ -674,8 +674,8 @@ let addnav () =
   cbput state.hists.nav (getanchor ());
 ;;
 
-let getnav () =
-  let anchor = cbgetc state.hists.nav ~-1 in
+let getnav dir =
+  let anchor = cbgetc state.hists.nav dir in
   getanchory anchor;
 ;;
 
@@ -1622,7 +1622,7 @@ let viewkeyboard ~key ~x ~y =
       exit 0
 
   | '\008' ->                           (* backspace *)
-      let y = getnav () in
+      let y = getnav ~-1 in
       gotoy_and_clear_text y
 
   | 'o' ->
@@ -2395,6 +2395,10 @@ let special ~key ~x ~y =
           | Glut.KEY_END ->
               addnav ();
               state.maxy - (if conf.maxhfit then conf.winh else 0)
+
+          | (Glut.KEY_RIGHT | Glut.KEY_LEFT) when
+                Glut.getModifiers () land Glut.active_alt != 0 ->
+              getnav (if key = Glut.KEY_LEFT then 1 else -1)
 
           | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
               state.x <- state.x - 10;

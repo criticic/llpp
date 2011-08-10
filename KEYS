@@ -6,6 +6,7 @@ left/right arrow        - pan left/right (when zoomed in)
 primary mouse button[1] - click on link or select text[2]
 escape/q                - quit
 backspace               - go back after jumping (clicking link and suchlike) [3]
+alt-left/right arrow    - go backward/forward in history
 u                       - dehighlight
 /,?                     - enter text to search for (/ - forward, ? - backward)
 +                       - set page bias
