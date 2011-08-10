@@ -155,6 +155,7 @@ type conf =
     ; mutable sliceheight : sliceheight
     ; mutable thumbw : width
     ; mutable jumpback : bool
+    ; mutable bgcolor : float * float * float
     }
 ;;
 
@@ -260,6 +261,7 @@ let defconf =
   ; sliceheight = 24
   ; thumbw = 76
   ; jumpback = false
+  ; bgcolor = (0.5, 0.5, 0.5)
   }
 ;;
 
@@ -696,6 +698,10 @@ let invalidate () =
 let scalecolor c =
   let c = c *. state.colorscale in
   (c, c, c);
+;;
+
+let scalecolor2 (r, g, b) =
+  (r *. state.colorscale, g *. state.colorscale, b *. state.colorscale);
 ;;
 
 let represent () =
@@ -2818,7 +2824,7 @@ let display () =
   let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
   GlDraw.viewport margin 0 state.w conf.winh;
   pagematrix ();
-  GlClear.color (scalecolor 0.5);
+  GlClear.color (scalecolor2 conf.bgcolor);
   GlClear.clear [`color];
   if conf.zoom > 1.0
   then (
@@ -3114,6 +3120,12 @@ struct
       ""
   ;;
 
+  let color_of_string s =
+    Scanf.sscanf s "%d/%d/%d" (fun r g b ->
+      (float r /. 256.0, float g /. 256.0, float b /. 256.0)
+    )
+  ;;
+
   let config_of c attrs =
     let apply c k v =
       try
@@ -3148,6 +3160,7 @@ struct
         | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
         | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
         | "persistent-location" -> { c with jumpback = bool_of_string v }
+        | "background-color" -> { c with bgcolor = color_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -3222,6 +3235,7 @@ struct
     dst.sliceheight    <- src.sliceheight;
     dst.thumbw         <- src.thumbw;
     dst.jumpback       <- src.jumpback;
+    dst.bgcolor        <- src.bgcolor;
   ;;
 
   let unent s =
@@ -3414,6 +3428,14 @@ struct
     and oz s a b =
       if always || a <> b
       then Printf.bprintf bb "\n    %s='%f'" s (a*.100.)
+    and oc s a b =
+      if always || a <> b
+      then
+        let r, g, b = a in
+        let r = truncate (r *. 256.0)
+        and g = truncate (r *. 256.0)
+        and b = truncate (r *. 256.0) in
+        Printf.bprintf bb "\n    %s='%d/%d/%d'" s r g b
     in
     let w, h =
       if always
@@ -3455,8 +3477,9 @@ struct
     oi "pixmap-cache-size" c.memlimit dc.memlimit;
     oi "texcount" c.texcount dc.texcount;
     oi "slice-height" c.sliceheight dc.sliceheight;
-    oi "thumbnail-width" c.thumbw  dc.thumbw;
-    ob "persistent-location" c.jumpback  dc.jumpback;
+    oi "thumbnail-width" c.thumbw dc.thumbw;
+    ob "persistent-location" c.jumpback dc.jumpback;
+    oc "background-color" c.bgcolor dc.bgcolor;
   ;;
 
   let save () =
