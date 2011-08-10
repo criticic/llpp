@@ -116,7 +116,7 @@ let () =
   in
   let mkcmo name =
     let dirname = if name = "help" then Sys.getcwd () else srcdir in
-    cmopp ~flags:"-g -w Alze -I +lablGL -thread" ~dirname name;
+    cmopp ~flags:"-g -w Ale -I +lablGL -thread" ~dirname name;
     (name ^ ".cmo")
   in
   let cmos = so :: List.map mkcmo ["help"; "parser"; "main"] in

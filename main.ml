@@ -754,7 +754,7 @@ let reshape ~w ~h =
   wcmd "geometry" [`i w; `i h];
 ;;
 
-let showtext c s =
+let showtext s =
   GlDraw.color (0.0, 0.0, 0.0);
   GlDraw.rect
     (0.0, float (conf.winh - 18))
@@ -787,10 +787,10 @@ let enttext () =
             else
               Printf.sprintf "%s: %s^"  prefix text
       in
-      showtext ' ' s;
+      showtext s;
 
   | _ ->
-      if len > 0 then showtext ' ' state.text
+      if len > 0 then showtext state.text
 ;;
 
 let showtext c s =
@@ -864,7 +864,7 @@ let act cmd =
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | 'r' ->
-      let n, w, h, r, l, s, p =
+      let n, w, _h, r, l, s, p =
         Scanf.sscanf cmd "r %u %u %u %d %d %u %s"
           (fun n w h r l s p ->
             (n-1, w, h, r, l != 0, s, p))
@@ -920,7 +920,7 @@ let act cmd =
       end
 
   | 'l' ->
-      let (n, w, h, x) as pdim =
+      let pdim =
         Scanf.sscanf cmd "l %u %u %u %u" (fun n w h x -> n, w, h, x)
       in
       state.pdims <- pdim :: state.pdims
@@ -1165,16 +1165,16 @@ let downbirdseye (conf, leftx, pageno, hooverpageno, anchor) =
         let y, h = getpageyh pageno in
         let dy = (y - state.y) - (conf.winh - h - conf.interpagespace) in
         gotoy (clamp dy)
-    | l :: rest when l.pageno = pageno ->
+    | l :: _ when l.pageno = pageno ->
         if l.pagevh != l.pageh
         then gotoy (clamp (l.pageh - l.pagevh + conf.interpagespace))
         else Glut.postRedisplay ()
-    | l :: rest -> loop rest
+    | _ :: rest -> loop rest
   in
   loop state.layout
 ;;
 
-let optentry mode text key =
+let optentry mode _ key =
   let btos b = if b then "on" else "off" in
   let c = Char.unsafe_chr key in
   match c with
@@ -1316,7 +1316,7 @@ let enterselector allowdel outlines errmsg msg =
     let pageno =
       match state.layout with
       | [] -> -1
-      | {pageno=pageno} :: rest -> pageno
+      | {pageno=pageno} :: _ -> pageno
     in
     let active =
       let rec loop n =
@@ -1343,7 +1343,7 @@ let enteroutlinemode () =
         let a = Array.of_list (List.rev l) in
         state.outlines <- Oarray a;
         a, ""
-    | Onarrow (pat, a, b) ->
+    | Onarrow (pat, a, _) ->
         a, "Outline was narrowed to `" ^ pat ^ "' (Ctrl-u to restore)"
   in
   enterselector false outlines "Document has no outline" msg;
@@ -1373,7 +1373,7 @@ let enterinfomode () =
   let rec makeitems () =
     let intp name get set =
       Printf.sprintf "%-24s %d" name (get ()), 1, Action (
-        fun active first qsearch pan ->
+        fun active first _qsearch pan ->
           let ondone s =
             let n =
               try int_of_string s
@@ -1389,7 +1389,7 @@ let enterinfomode () =
           Textentry (
             te,
             fun _ ->
-              state.mode <- Items (active, first, makeitems (), "", 0, mode)
+              state.mode <- Items (active, first, makeitems (), "", pan, mode)
           )
       )
     and boolp name get set =
@@ -1449,7 +1449,7 @@ let enterinfomode () =
 
       boolp "proportional display"
         (fun () -> conf.proportional)
-        (fun v -> reinit conf.angle (not conf.proportional));
+        (fun v -> reinit conf.angle v);
 
       boolp "persistent location"
         (fun () -> conf.jumpback)
@@ -1591,7 +1591,7 @@ let doreshape w h =
 ;;
 
 let writeopen path password  =
-  writecmd state.csock ("open " ^ path ^ "\000" ^ state.password ^ "\000");
+  writecmd state.csock ("open " ^ path ^ "\000" ^ password ^ "\000");
   writecmd state.csock "info";
 ;;
 
@@ -1607,6 +1607,8 @@ let opendoc path password =
 ;;
 
 let viewkeyboard ~key ~x ~y =
+  ignore x;
+  ignore y;
   let enttext te =
     let mode = state.mode in
     state.mode <- Textentry (te, fun _ -> state.mode <- mode);
@@ -1667,9 +1669,7 @@ let viewkeyboard ~key ~x ~y =
       setzoom (max 0.01 (conf.zoom -. decr))
 
   | '-' ->
-      let ondone msg =
-        state.text <- msg;
-      in
+      let ondone msg = state.text <- msg in
       enttext (
         "option [acfhilpstvAPRSZ]", "", None,
         optentry state.mode, ondone
@@ -1776,7 +1776,7 @@ let viewkeyboard ~key ~x ~y =
       end
 
   | '=' ->
-      let f (fn, ln) l =
+      let f (fn, _) l =
         if fn = -1 then l.pageno, l.pageno else fn, l.pageno
       in
       let fn, ln = List.fold_left f (-1, -1) state.layout in
@@ -1879,6 +1879,8 @@ let viewkeyboard ~key ~x ~y =
 ;;
 
 let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
+  ignore x;
+  ignore y;
   let enttext te =
     state.mode <- Textentry (te, onleave);
     state.text <- "";
@@ -1931,7 +1933,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
       end;
 ;;
 
-let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
+let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, _) as beye) =
   match key with
   | 27 ->
       leavebirdseye beye true
@@ -1949,6 +1951,8 @@ let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
 ;;
 
 let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
+  ignore x;
+  ignore y;
   let set active first qsearch =
     state.mode <- Items (active, first, items, qsearch, pan, oldmode)
   in
@@ -2052,6 +2056,8 @@ let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
 
 let outlinekeyboard ~key ~x ~y
     (allowdel, active, first, outlines, qsearch, pan, oldmode) =
+  ignore x;
+  ignore y;
   let narrow outlines pattern =
     let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
     match reopt with
@@ -2196,10 +2202,10 @@ let outlinekeyboard ~key ~x ~y
               allowdel, 0, 0, outlines, qsearch, pan, oldmode
             );
             match state.outlines with
-            | Olist l -> ()
+            | Olist _ -> ()
             | Oarray a ->
                 state.outlines <- Onarrow (qsearch, outlines, a)
-            | Onarrow (pat, a, b) ->
+            | Onarrow (_, _, b) ->
                 state.outlines <- Onarrow (qsearch, outlines, b)
         end;
       );
@@ -2213,7 +2219,7 @@ let outlinekeyboard ~key ~x ~y
             let a = Array.of_list (List.rev l) in
             state.outlines <- Oarray a;
             a
-        | Onarrow (pat, a, b) ->
+        | Onarrow (_, _, b) ->
             state.outlines <- Oarray b;
             state.text <- "";
             b
@@ -2268,8 +2274,8 @@ let keyboard ~key ~x ~y =
     | Items items -> itemskeyboard ~key ~x ~y items
 ;;
 
-let birdseyespecial key x y
-    ((conf, leftx, pageno, hooverpageno, anchor) as beye) =
+let birdseyespecial key _ _
+    ((conf, leftx, _, hooverpageno, anchor) as beye) =
   match key with
   | Glut.KEY_UP -> upbirdseye beye
   | Glut.KEY_DOWN -> downbirdseye beye
@@ -2402,7 +2408,7 @@ let special ~key ~x ~y =
         gotoy_and_clear_text y
 
   | Textentry
-      ((c, s, (Some (action, _) as onhist), onkey, ondone), mode) ->
+      ((c, _, (Some (action, _) as onhist), onkey, ondone), mode) ->
       let s =
         match key with
         | Glut.KEY_UP    -> action HCprev
@@ -2735,7 +2741,7 @@ let showrects () =
   Gl.disable `blend;
 ;;
 
-let showoutline (allowdel, active, first, outlines, qsearch, pan, oldmode) =
+let showoutline (_, active, first, outlines, _, pan, _) =
   Gl.enable `blend;
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   GlDraw.color (0., 0., 0.) ~alpha:0.85;
@@ -2788,7 +2794,7 @@ let showoutline (allowdel, active, first, outlines, qsearch, pan, oldmode) =
   loop first
 ;;
 
-let showitems (active, first, items, qsearch, pan, oldmode) =
+let showitems (active, first, items, _, pan, _) =
   Gl.enable `blend;
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   GlDraw.color (0., 0., 0.) ~alpha:0.90;
@@ -3005,7 +3011,7 @@ let viewmouse button bstate x y =
                 Glut.setCursor Glut.CURSOR_INHERIT;
                 state.mstate <- Mnone
 
-            | Msel ((x0, y0), (x1, y1)) ->
+            | Msel ((_, y0), (_, y1)) ->
                 let f l =
                   if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
                     || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
@@ -3026,7 +3032,7 @@ let viewmouse button bstate x y =
 ;;
 
 let birdseyemouse button bstate x y
-    (conf, leftx, pageno, hooverpageno, anchor) =
+    (conf, leftx, _, hooverpageno, anchor) =
   match button with
   | Glut.LEFT_BUTTON when bstate = Glut.UP ->
       let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
@@ -3111,7 +3117,7 @@ let pmotion ~x ~y =
           | Ulinkuri uri ->
               if conf.underinfo then showtext 'u' ("ri: " ^ uri);
               Glut.setCursor Glut.CURSOR_INFO
-          | Ulinkgoto (page, y) ->
+          | Ulinkgoto (page, _) ->
               if conf.underinfo
               then showtext 'p' ("age: " ^ string_of_int page);
               Glut.setCursor Glut.CURSOR_INFO
@@ -3269,18 +3275,18 @@ struct
   let get s =
     let h = Hashtbl.create 10 in
     let dc = { defconf with angle = defconf.angle } in
-    let rec toplevel v t spos epos =
+    let rec toplevel v t spos _ =
       match t with
       | Vdata | Vcdata | Vend -> v
-      | Vopen ("llppconfig", attrs, closed) ->
+      | Vopen ("llppconfig", _, closed) ->
           if closed
           then v
           else { v with f = llppconfig }
       | Vopen _ ->
           error "unexpected subelement at top level" s spos
-      | Vclose tag -> error "unexpected close at top level" s spos
+      | Vclose _ -> error "unexpected close at top level" s spos
 
-    and llppconfig v t spos epos =
+    and llppconfig v t spos _ =
       match t with
       | Vdata | Vcdata | Vend -> v
       | Vopen ("defaults", attrs, closed) ->
@@ -3302,29 +3308,31 @@ struct
           then (Hashtbl.add h path (c, [], pan, anchor); v)
           else { v with f = doc path pan anchor  c [] }
 
-      | Vopen (tag, _, closed) ->
+      | Vopen _ ->
           error "unexpected subelement in llppconfig" s spos
 
       | Vclose "llppconfig" ->  { v with f = toplevel }
-      | Vclose tag -> error "unexpected close in llppconfig" s spos
+      | Vclose _ -> error "unexpected close in llppconfig" s spos
 
-    and doc path pan anchor c bookmarks v t spos epos =
+    and doc path pan anchor c bookmarks v t spos _ =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in doc" s spos
-      | Vopen ("bookmarks", attrs, closed) ->
-          { v with f = pbookmarks path pan anchor c bookmarks }
+      | Vopen ("bookmarks", _, closed) ->
+          if closed
+          then v
+          else { v with f = pbookmarks path pan anchor c bookmarks }
 
-      | Vopen (tag, _, _) ->
+      | Vopen (_, _, _) ->
           error "unexpected subelement in doc" s spos
 
       | Vclose "doc" ->
           Hashtbl.add h path (c, List.rev bookmarks, pan, anchor);
           { v with f = llppconfig }
 
-      | Vclose tag -> error "unexpected close in doc" s spos
+      | Vclose _ -> error "unexpected close in doc" s spos
 
-    and pbookmarks path pan anchor c bookmarks v t spos epos =
+    and pbookmarks path pan anchor c bookmarks v t spos _ =
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in bookmarks" s spos
@@ -3345,9 +3353,9 @@ struct
       | Vclose "bookmarks" ->
           { v with f = doc path pan anchor c bookmarks }
 
-      | Vclose tag -> error "unexpected close in bookmarks" s spos
+      | Vclose _ -> error "unexpected close in bookmarks" s spos
 
-    and skip tag f v t spos epos =
+    and skip tag f v t spos _ =
       match t with
       | Vdata | Vcdata -> v
       | Vend ->
@@ -3454,8 +3462,8 @@ struct
       then
         let r, g, b = a in
         let r = truncate (r *. 256.0)
-        and g = truncate (r *. 256.0)
-        and b = truncate (r *. 256.0) in
+        and g = truncate (g *. 256.0)
+        and b = truncate (b *. 256.0) in
         Printf.bprintf bb "\n    %s='%d/%d/%d'" s r g b
     in
     let w, h =
