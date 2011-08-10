@@ -91,6 +91,9 @@ left/right              - go up/down a level
 Ctrl-n                  - narrow to search pattern
 Ctrl-u                  - undo narrowing
 
+info mode
+enter                   - toggle/enter new value for selected parameter
+
 when entering search pattern/page number
 up/down arrow           - previous/next entered text
 

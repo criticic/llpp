@@ -42,7 +42,7 @@ and mstate =
     | Mnone
 ;;
 
-type textentry = char * string * onhist * onkey * ondone
+type textentry = string * string * onhist * onkey * ondone
 and onkey = string -> int -> te
 and ondone = string -> unit
 and histcancel = unit -> unit
@@ -176,9 +176,16 @@ let initialanchor = (-1, nan);;
 
 type mode =
     | Birdseye of (conf * leftx * pageno * pageno * anchor)
-    | Outline of (bool * int * int * outline array * string * int)
-    | Textentry of (textentry * mode)
+    | Outline of (bool * int * int * outline array * string * int * mode)
+    | Items of (int * int * item array * string * int * mode)
+    | Textentry of (textentry * onleave)
     | View
+and onleave = leavetextentrystatus -> unit
+and leavetextentrystatus = | Cancel | Confirm
+and item = string * int * action
+and action =
+    | Noaction
+    | Action of (int -> int -> string -> int -> mode)
 ;;
 
 let isbirdseye = function Birdseye _ -> true | _ -> false;;
@@ -215,7 +222,7 @@ type state =
     ; mutable gen : gen
     ; mutable throttle : layout list option
     ; mutable ascrollstep : int
-    ; mutable help : string list
+    ; mutable help : item array
     ; mutable docinfo : (int * string) list
     ; hists : hists
     }
@@ -258,6 +265,11 @@ let defconf =
 
 let conf = { defconf with angle = defconf.angle };;
 
+let makehelp () =
+  let strings = ("llpp version " ^ Help.version) :: "" :: Help.keys in
+  Array.of_list (List.map (fun s -> s, 0, Noaction) strings);
+;;
+
 let state =
   { csock = Unix.stdin
   ; ssock = Unix.stdin
@@ -294,7 +306,7 @@ let state =
   ; gen = 0
   ; throttle = None
   ; ascrollstep = 0
-  ; help = Help.keys
+  ; help = makehelp ()
   ; docinfo = []
   }
 ;;
@@ -743,22 +755,30 @@ let showtext c s =
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
   GlPix.raster_pos ~x:0.0 ~y:(float (conf.winh - 5)) ();
-  Glut.bitmapCharacter ~font ~c:(Char.code c);
   String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s;
 ;;
 
 let enttext () =
   let len = String.length state.text in
   match state.mode with
-  | Textentry ((c, text, _, _, _), _) ->
+  | Textentry ((prefix, text, _, _, _), _) ->
       let s =
-        if len > 0
-        then
-          text ^ " [" ^ state.text ^ "]"
-        else
-          text
+        match String.length prefix with
+        | 0 | 1 ->
+            if len > 0
+            then
+              Printf.sprintf "%s%s^ [%s]" prefix text state.text
+            else
+              Printf.sprintf "%s%s^"  prefix text
+
+        | _ ->
+            if len > 0
+            then
+              Printf.sprintf "%s: %s^ [%s]" prefix text state.text
+            else
+              Printf.sprintf "%s: %s^"  prefix text
       in
-      showtext c s;
+      showtext ' ' s;
 
   | _ ->
       if len > 0 then showtext ' ' state.text
@@ -1114,7 +1134,7 @@ let togglebirdseye () =
   | _ -> ()
 ;;
 
-let optentry text key =
+let optentry mode text key =
   let btos b = if b then "on" else "off" in
   let c = Char.unsafe_chr key in
   match c with
@@ -1124,7 +1144,7 @@ let optentry text key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ('#', "", None, intentry, ondone)
+      TEswitch ("scroll step", "", None, intentry, ondone)
 
   | 'A' ->
       let ondone s =
@@ -1136,7 +1156,7 @@ let optentry text key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ('*', "", None, intentry, ondone)
+      TEswitch ("auto scroll step", "", None, intentry, ondone)
 
   | 'Z' ->
       let ondone s =
@@ -1147,7 +1167,7 @@ let optentry text key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ('@', "", None, intentry, ondone)
+      TEswitch ("zoom", "", None, intentry, ondone)
 
   | 't' ->
       let ondone s =
@@ -1155,17 +1175,17 @@ let optentry text key =
           conf.thumbw <- max 2 (min 1920 (int_of_string s));
           state.text <-
             Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
-          begin match state.mode with
-          | Textentry (_, Birdseye beye) ->
+          begin match mode with
+          | Birdseye beye ->
               leavebirdseye beye false;
-              enterbirdseye ()
-          | _ -> ()
-          end;
+              enterbirdseye ();
+          | _ -> ();
+          end
         with exc ->
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ('$', "", None, intentry, ondone)
+      TEswitch ("thumbnail width", "", None, intentry, ondone)
 
   | 'R' ->
       let ondone s =
@@ -1179,7 +1199,7 @@ let optentry text key =
         | Some angle -> reinit angle conf.proportional
         | None -> ()
       in
-      TEswitch ('^', "", None, intentry, ondone)
+      TEswitch ("rotation", "", None, intentry, ondone)
 
   | 'i' ->
       conf.icase <- not conf.icase;
@@ -1232,7 +1252,7 @@ let optentry text key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ('%', "", None, intentry, ondone)
+      TEswitch ("vertical margin", "", None, intentry, ondone)
 
   | 'l' ->
       reinit conf.angle (not conf.proportional);
@@ -1269,7 +1289,8 @@ let enterselector allowdel outlines errmsg msg =
       loop 0
     in
     state.mode <- Outline
-      (allowdel, active, max 0 (active - maxoutlinerows () / 2), outlines, "", 0);
+      (allowdel, active, max 0 (active - maxoutlinerows () / 2), outlines, "", 0,
+      state.mode);
     Glut.postRedisplay ();
   )
 ;;
@@ -1293,71 +1314,198 @@ let enterbookmarkmode () =
   enterselector true bookmarks "Document has no bookmarks (yet)" "";
 ;;
 
+let mode_to_string mode =
+  let b = Buffer.create 10 in
+  let rec f = function
+    | Textentry (_, _) -> Buffer.add_string b "Textentry ";
+    | View -> Buffer.add_string b "View"
+    | Birdseye _ -> Buffer.add_string b "Birdseye"
+    | Items _ -> Buffer.add_string b "Items"
+    | Outline _ -> Buffer.add_string b "Outline"
+  in
+  f mode;
+  Buffer.contents b;
+;;
+
 let enterinfomode () =
   let btos = function true -> "on" | _ -> "off" in
-  let pageno, top = getanchor () in
-  let info =
-    let autoscrollstep =
-      if state.ascrollstep > 0
-      then state.ascrollstep
-      else conf.autoscrollstep
+  let mode = state.mode in
+  let rec makeitems () =
+    let intp name get set =
+      Printf.sprintf "%-24s %d" name (get ()), 1, Action (
+        fun active first qsearch pan ->
+          let ondone s =
+            let n =
+              try int_of_string s
+              with exn ->
+                state.text <- Printf.sprintf "bad integer `%s': %s"
+                  s (Printexc.to_string exn);
+                max_int;
+            in
+            if n != max_int then set n;
+          in
+          let te = name, "", None, intentry, ondone in
+          state.text <- "";
+          Textentry (
+            te,
+            fun _ ->
+              state.mode <- Items (active, first, makeitems (), "", 0, mode)
+          )
+      )
+    and boolp name get set =
+      Printf.sprintf "%-24s %s" name (btos (get ())), 1, Action (
+        fun active first qsearch pan ->
+          let v = get () in
+          set (not v);
+          Items (active, first, makeitems (), qsearch, pan, mode);
+      )
     in
-    (0, "Current parameters")
-    :: (1, "presentation mode " ^ btos conf.presentation)
-    :: (1, "case insensitive search " ^ btos conf.icase)
-    :: (1, "preload " ^ btos conf.preload)
-    :: (1, "page bias " ^ string_of_int conf.pagebias)
-    :: (1, "verbose " ^ btos conf.verbose)
-    :: (1, "scroll step " ^ string_of_int conf.scrollstep)
-    :: (1, "max fit " ^ btos conf.maxhfit)
-    :: (1, "crop hack " ^ btos conf.crophack)
-    :: (1, "autoscroll step " ^ string_of_int autoscrollstep)
-    :: (1, "throttle " ^ btos conf.showall)
-    :: (1, "highlight links " ^ btos conf.hlinks)
-    :: (1, "under info " ^ btos conf.underinfo)
-    :: (1, "veritcal margin " ^ string_of_int conf.interpagespace)
-    :: (1, "zoom " ^ Printf.sprintf "%-5.1f" (conf.zoom*.100.))
-    :: (1, "rotation " ^ string_of_int conf.angle)
-    :: (1, "persistent bookmarks " ^ btos conf.savebmarks)
-    :: (1, "proportional display " ^ btos conf.proportional)
-    :: (1, "pixmap cache size " ^ string_of_int conf.memlimit)
-    :: (1, "pixmap cache used " ^ string_of_int state.memused)
-    :: (1, "thumbnail width " ^ string_of_int conf.thumbw)
-    :: (1, "persistent location " ^ btos conf.jumpback)
-    :: (1, Printf.sprintf "window dimensions %dx%d " conf.winw conf.winh)
-    :: (0, "Document information")
-    :: (1, string_of_int state.pagecount ^ " pages")
-    :: state.docinfo
-  in
-  let o =
-    let o = Array.create (List.length info) ("", 0, pageno, top) in
-    let rec iteri i = function
-      | [] -> ()
-      | (l, s) :: rest ->
-          o.(i) <- (s, l, pageno, top);
-          iteri (i+1) rest
+
+    let items = [
+      "Setup", 0, Noaction;
+
+      boolp "presentation"
+        (fun () -> conf.presentation)
+        (fun v ->
+          conf.presentation <- v;
+          state.anchor <- getanchor ();
+          represent ());
+
+      boolp "ignore case in searches"
+        (fun () -> conf.icase)
+        (fun v -> conf.icase <- v);
+
+      boolp "preload"
+        (fun () -> conf.preload)
+        (fun v -> conf.preload <- v);
+
+      boolp "verbose"
+        (fun () -> conf.verbose)
+        (fun v -> conf.verbose <- v);
+
+      boolp "max fit"
+        (fun () -> conf.maxhfit)
+        (fun v -> conf.maxhfit <- v);
+
+      boolp "crop hack"
+        (fun () -> conf.crophack)
+        (fun v -> conf.crophack <- v);
+
+      boolp "throttle"
+        (fun () -> conf.showall)
+        (fun v -> conf.showall <- v);
+
+      boolp "highlight links"
+        (fun () -> conf.hlinks)
+        (fun v -> conf.hlinks <- v);
+
+      boolp "under info"
+        (fun () -> conf.underinfo)
+        (fun v -> conf.underinfo <- v);
+      boolp "persistent bookmarks"
+        (fun () -> conf.savebmarks)
+        (fun v -> conf.savebmarks <- v);
+
+      boolp "proportional display"
+        (fun () -> conf.proportional)
+        (fun v -> reinit conf.angle (not conf.proportional));
+
+      boolp "persistent location"
+        (fun () -> conf.jumpback)
+        (fun v -> conf.jumpback <- v);
+
+      "", 0, Noaction;
+
+      intp "vertical margin"
+        (fun () -> conf.interpagespace)
+        (fun n ->
+          conf.interpagespace <- n;
+          let pageno, py =
+            match state.layout with
+            | [] -> 0, 0
+            | l :: _ ->
+                l.pageno, l.pagey
+          in
+          state.maxy <- calcheight ();
+          let y = getpagey pageno in
+          gotoy (y + py)
+        );
+
+      intp "page bias"
+        (fun () -> conf.pagebias)
+        (fun v -> conf.pagebias <- v);
+
+      intp "scroll step"
+        (fun () -> conf.scrollstep)
+        (fun n -> conf.scrollstep <- n);
+
+      intp "auto scroll step"
+        (fun () ->
+          if state.ascrollstep > 0
+          then state.ascrollstep
+          else conf.autoscrollstep)
+        (fun n ->
+          if state.ascrollstep > 0
+          then state.ascrollstep <- n
+          else conf.autoscrollstep <- n);
+
+      intp "zoom"
+        (fun () -> truncate (conf.zoom *. 100.))
+        (fun v -> setzoom ((float v) /. 100.));
+
+      intp "rotation"
+        (fun () -> conf.angle)
+        (fun v -> reinit v conf.proportional);
+
+      intp "scroll bar width"
+        (fun () -> conf.scrollw)
+        (fun v ->
+          conf.scrollw <- v;
+          reshape conf.winw conf.winh;
+        );
+
+      intp "scroll handle height"
+        (fun () -> conf.scrollh)
+        (fun v -> conf.scrollh <- v;);
+
+      intp "thumbnail width"
+        (fun () -> conf.thumbw)
+        (fun v ->
+          conf.thumbw <- min 1920 v;
+          match mode with
+          | Birdseye beye ->
+              leavebirdseye beye false;
+              enterbirdseye ()
+          | _ -> ()
+        );
+
+      "", 0, Noaction;
+      "Pixmap Cache", 0, Noaction;
+
+      intp "size (advisory)"
+        (fun () -> conf.memlimit)
+        (fun v -> conf.memlimit <- v);
+      Printf.sprintf "%-24s %d" "used" state.memused, 1, Noaction;
+
+      "", 0, Noaction;
+      "Window", 0, Noaction;
+      Printf.sprintf "dimensions %dx%d" conf.winw conf.winh, 1, Noaction;
+
+      "", 0, Noaction;
+      "Document", 0, Noaction;
+    ]
     in
-    iteri 0 info;
-    o
+    Array.of_list
+      (items @ List.map (fun (_, s) -> (s, 1, Noaction)) state.docinfo);
   in
-  enterselector false o "Info not available" "";
+  state.text <- "";
+  state.mode <- Items (1, 0, makeitems (), "", 0, mode);
+  Glut.postRedisplay ();
 ;;
 
 let enterhelpmode () =
-  let pageno, top = getanchor () in
-  let o =
-    let help = ("Keys for llpp version " ^ Help.version) :: state.help in
-    let o = Array.create (List.length help) ("", 0, pageno, top) in
-    let rec iteri i = function
-      | [] -> ()
-      | s :: rest ->
-          o.(i) <- (s, (if i = 0 then 0 else 1), pageno, top);
-          iteri (i+1) rest
-    in
-    iteri 0 help;
-    o
-  in
-  enterselector false o "Help not available" "";
+  state.mode <- Items (0, 0, state.help, "", 0, state.mode);
+  Glut.postRedisplay ();
 ;;
 
 let quickbookmark ?title () =
@@ -1405,7 +1553,8 @@ let opendoc path password =
 
 let viewkeyboard ~key ~x ~y =
   let enttext te =
-    state.mode <- Textentry (te, state.mode);
+    let mode = state.mode in
+    state.mode <- Textentry (te, fun _ -> state.mode <- mode);
     state.text <- "";
     enttext ();
     Glut.postRedisplay ()
@@ -1433,7 +1582,9 @@ let viewkeyboard ~key ~x ~y =
         state.searchpattern <- s;
         search s isforw
       in
-      enttext (c, "", Some (onhist state.hists.pat),
+      let s = String.create 1 in
+      s.[0] <- c;
+      enttext (s, "", Some (onhist state.hists.pat),
               textentry, ondone (c ='/'))
 
   | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
@@ -1454,7 +1605,7 @@ let viewkeyboard ~key ~x ~y =
           state.text <- "page bias is now " ^ string_of_int n;
         )
       in
-      enttext ('+', "", None, intentry, ondone)
+      enttext ("page bias", "", None, intentry, ondone)
 
   | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
@@ -1464,7 +1615,7 @@ let viewkeyboard ~key ~x ~y =
       let ondone msg =
         state.text <- msg;
       in
-      enttext ('-', "", None, optentry, ondone)
+      enttext ("option", "", None, optentry state.mode, ondone)
 
   | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
       setzoom 1.0
@@ -1498,7 +1649,7 @@ let viewkeyboard ~key ~x ~y =
         | _ -> intentry text key
       in
       let text = "x" in text.[0] <- c;
-      enttext (':', text, Some (onhist state.hists.pag), pageentry, ondone)
+      enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone)
 
   | 'b' ->
       conf.scrollw <- if conf.scrollw > 0 then 0 else defconf.scrollw;
@@ -1614,7 +1765,7 @@ let viewkeyboard ~key ~x ~y =
             :: state.bookmarks
         | _ -> ()
       in
-      enttext ('~', "", None, textentry, ondone)
+      enttext ("bookmark", "", None, textentry, ondone)
 
   | '~' ->
       quickbookmark ();
@@ -1660,9 +1811,9 @@ let viewkeyboard ~key ~x ~y =
       vlog "huh? %d %c" key (Char.chr key);
 ;;
 
-let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
+let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
   let enttext te =
-    state.mode <- Textentry (te, mode);
+    state.mode <- Textentry (te, onleave);
     state.text <- "";
     enttext ();
     Glut.postRedisplay ()
@@ -1672,7 +1823,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
       let len = String.length text in
       if len = 0
       then (
-        state.mode <- mode;
+        onleave Cancel;
         Glut.postRedisplay ();
       )
       else (
@@ -1682,7 +1833,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
 
   | '\r' | '\n' ->
       ondone text;
-      state.mode <- mode;
+      onleave Confirm;
       Glut.postRedisplay ()
 
   | '\027' ->
@@ -1690,13 +1841,13 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
       | None -> ()
       | Some (_, onhistcancel) -> onhistcancel ()
       end;
-      state.mode <- View;
+      onleave Cancel;
       Glut.postRedisplay ()
 
   | _ ->
       begin match onkey text key with
       | TEdone text ->
-          state.mode <- mode;
+          onleave Confirm;
           ondone text;
           Glut.postRedisplay ()
 
@@ -1704,11 +1855,11 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), mode) =
           enttext (c, text, opthist, onkey, ondone);
 
       | TEstop ->
-          state.mode <- mode;
+          onleave Cancel;
           Glut.postRedisplay ()
 
       | TEswitch te ->
-          state.mode <- Textentry (te, mode);
+          state.mode <- Textentry (te, onleave);
           Glut.postRedisplay ()
       end;
 ;;
@@ -1730,8 +1881,110 @@ let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, anchor) as beye) =
       viewkeyboard ~key ~x ~y
 ;;
 
+let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
+  let set active first qsearch =
+    state.mode <- Items (active, first, items, qsearch, pan, oldmode)
+  in
+  let search active pattern incr =
+    let dosearch re =
+      let rec loop n =
+        if n = Array.length items || n = -1
+        then None
+        else
+          let (s, _, _) = items.(n) in
+          if
+            (try ignore (Str.search_forward re s 0); true
+              with Not_found -> false)
+          then Some n
+          else loop (n + incr)
+      in
+      loop active
+    in
+    try
+      let re = Str.regexp_case_fold pattern in
+      dosearch re
+    with Failure s ->
+      state.text <- s;
+      None
+  in
+  let firstof active = max 0 (active - maxoutlinerows () / 2) in
+  match key with
+  | 18 | 19 ->
+      let incr = if key = 18 then -1 else 1 in
+      let active, first =
+        match search (active + incr) qsearch incr with
+        | None ->
+            state.text <- qsearch ^ " [not found]";
+            active, first
+        | Some active ->
+            state.text <- qsearch;
+            active, firstof active
+      in
+      set active first qsearch;
+      Glut.postRedisplay ();
+
+  | 8 ->
+      let len = String.length qsearch in
+      if len = 0
+      then ()
+      else (
+        if len = 1
+        then (
+          state.text <- "";
+          set active first "";
+        )
+        else
+          let qsearch = String.sub qsearch 0 (len - 1) in
+          let active, first =
+            match search active qsearch ~-1 with
+            | None ->
+                state.text <- qsearch ^ " [not found]";
+                active, first
+            | Some active ->
+                state.text <- qsearch;
+                active, firstof active
+          in
+          set active first qsearch
+      );
+      Glut.postRedisplay ()
+
+  | _ when key >= 32 && key < 127 ->
+      let pattern = addchar qsearch (Char.chr key) in
+      let active, first =
+        match search active pattern 1 with
+        | None ->
+            state.text <- pattern ^ " [not found]";
+            active, first
+        | Some active ->
+            state.text <- pattern;
+            active, firstof active
+      in
+      set active first pattern;
+      Glut.postRedisplay ()
+
+  | 27 ->
+      state.text <- "";
+      state.mode <- oldmode;
+      Glut.postRedisplay ();
+
+  | 13 ->
+      if active < Array.length items
+      then (
+        match items.(active) with
+        | _, _, Action f ->
+            state.mode <- f active first qsearch pan
+
+        | _, _, Noaction ->
+            state.text <- "";
+            state.mode <- oldmode
+      );
+      Glut.postRedisplay ();
+
+  | _ -> dolog "unknown key %d" key
+;;
+
 let outlinekeyboard ~key ~x ~y
-    (allowdel, active, first, outlines, qsearch, pan) =
+    (allowdel, active, first, outlines, qsearch, pan, oldmode) =
   let narrow outlines pattern =
     let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
     match reopt with
@@ -1781,12 +2034,14 @@ let outlinekeyboard ~key ~x ~y
       if String.length qsearch = 0
       then (
         state.text <- "";
-        state.mode <- View;
+        state.mode <- oldmode;
         Glut.postRedisplay ();
       )
       else (
         state.text <- "";
-        state.mode <- Outline (allowdel, active, first, outlines, "", pan);
+        state.mode <- Outline (
+          allowdel, active, first, outlines, "", pan, oldmode
+        );
         Glut.postRedisplay ();
       )
 
@@ -1801,7 +2056,9 @@ let outlinekeyboard ~key ~x ~y
             state.text <- qsearch;
             active, firstof active
       in
-      state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
+      state.mode <- Outline (
+        allowdel, active, first, outlines, qsearch, pan, oldmode
+      );
       Glut.postRedisplay ();
 
   | 8 ->
@@ -1812,7 +2069,9 @@ let outlinekeyboard ~key ~x ~y
         if len = 1
         then (
           state.text <- "";
-          state.mode <- Outline (allowdel, active, first, outlines, "", pan);
+          state.mode <- Outline (
+            allowdel, active, first, outlines, "", pan, oldmode
+          );
         )
         else
           let qsearch = String.sub qsearch 0 (len - 1) in
@@ -1825,7 +2084,9 @@ let outlinekeyboard ~key ~x ~y
                 state.text <- qsearch;
                 active, firstof active
           in
-          state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
+          state.mode <- Outline (
+            allowdel, active, first, outlines, qsearch, pan, oldmode
+          );
       );
       Glut.postRedisplay ()
 
@@ -1838,7 +2099,7 @@ let outlinekeyboard ~key ~x ~y
       );
       state.text <- "";
       if allowdel then state.bookmarks <- Array.to_list outlines;
-      state.mode <- View;
+      state.mode <- oldmode;
       Glut.postRedisplay ();
 
   | _ when key >= 32 && key < 127 ->
@@ -1852,7 +2113,9 @@ let outlinekeyboard ~key ~x ~y
             state.text <- pattern;
             active, firstof active
       in
-      state.mode <- Outline (allowdel, active, first, outlines, pattern, pan);
+      state.mode <- Outline (
+        allowdel, active, first, outlines, pattern, pan, oldmode
+      );
       Glut.postRedisplay ()
 
   | 14 when not allowdel ->             (* ctrl-n *)
@@ -1862,7 +2125,9 @@ let outlinekeyboard ~key ~x ~y
         begin match optoutlines with
         | None -> state.text <- "can't narrow"
         | Some outlines ->
-            state.mode <- Outline (allowdel, 0, 0, outlines, qsearch, pan);
+            state.mode <- Outline (
+              allowdel, 0, 0, outlines, qsearch, pan, oldmode
+            );
             match state.outlines with
             | Olist l -> ()
             | Oarray a ->
@@ -1886,12 +2151,12 @@ let outlinekeyboard ~key ~x ~y
             state.text <- "";
             b
       in
-      state.mode <- Outline (allowdel, 0, 0, outline, qsearch, pan);
+      state.mode <- Outline (allowdel, 0, 0, outline, qsearch, pan, oldmode);
       Glut.postRedisplay ()
 
   | 12 ->
       state.mode <- Outline
-        (allowdel, active, firstof active, outlines, qsearch, pan);
+        (allowdel, active, firstof active, outlines, qsearch, pan, oldmode);
       Glut.postRedisplay ()
 
   | 127 when allowdel ->
@@ -1914,7 +2179,8 @@ let outlinekeyboard ~key ~x ~y
             min active (len-1),
             min first (len-1),
             bookmarks, qsearch,
-            0
+            0,
+            oldmode
           );
       );
       Glut.postRedisplay ()
@@ -1932,6 +2198,7 @@ let keyboard ~key ~x ~y =
     | Textentry textentry -> textentrykeyboard ~key ~x ~y textentry
     | Birdseye birdseye -> birdseyekeyboard ~key ~x ~y birdseye
     | View -> viewkeyboard ~key ~x ~y
+    | Items items -> itemskeyboard ~key ~x ~y items
 ;;
 
 let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
@@ -2107,7 +2374,109 @@ let special ~key ~x ~y =
 
   | Textentry _ -> ()
 
-  | Outline (allowdel, active, first, outlines, qsearch, pan) ->
+  | Items (active, first, items, qsearch, pan, oldmode) ->
+      let maxrows = maxoutlinerows () in
+      let itemcount = Array.length items in
+      let hasaction = function
+        | (_, _, Noaction) -> false
+        | _ -> true
+      in
+      let find start incr =
+        let rec find i =
+          if i = -1 || i = itemcount
+          then -1
+          else (
+            if hasaction items.(i)
+            then i
+            else find (i + incr)
+          )
+        in
+        find start
+      in
+      let set active first =
+        let first = max 0 (min first (itemcount - maxrows)) in
+        state.mode <- Items (active, first, items, qsearch, pan, oldmode)
+      in
+      let navigate incr =
+        let isvisible first n = n >= first && n - first <= maxrows in
+        let active, first =
+          let incr1 = if incr > 0 then 1 else -1 in
+          if isvisible first active
+          then
+            let next =
+              let next = active + incr in
+              let next =
+                if next < 0 || next >= itemcount
+                then -1
+                else find next incr1
+              in
+              if next = -1 || abs (active - next) > maxrows
+              then -1
+              else next
+            in
+            if next = -1
+            then
+              let first = first + incr in
+              let first = max 0 (min first (itemcount - 1)) in
+              let next =
+                let next = active + incr in
+                let next = max 0 (min next (itemcount - 1)) in
+                find next ~-incr1
+              in
+              let active = if next = -1 then active else next in
+              active, first
+            else
+              let first = min next first in
+              next, first
+          else
+            let first = first + incr in
+            let first = max 0 (min first (itemcount - 1)) in
+            let active =
+              let next = active + incr in
+              let next = max 0 (min next (itemcount - 1)) in
+              let next = find next incr1 in
+              if next = -1 || abs (active - first) > maxrows
+              then active
+              else next
+            in
+            active, first
+        in
+        set active first;
+        Glut.postRedisplay ()
+      in
+      begin match key with
+      | Glut.KEY_UP        -> navigate ~-1
+      | Glut.KEY_DOWN      -> navigate   1
+      | Glut.KEY_PAGE_UP   -> navigate ~-maxrows
+      | Glut.KEY_PAGE_DOWN -> navigate   maxrows
+
+      | Glut.KEY_RIGHT ->
+          state.mode <- Items (
+            active, first, items, qsearch, min 0 (pan + 1), oldmode
+          );
+          Glut.postRedisplay ()
+
+      | Glut.KEY_LEFT ->
+          state.mode <- Items (
+            active, first, items, qsearch, min 0 (pan - 1), oldmode
+          );
+          Glut.postRedisplay ()
+
+      | Glut.KEY_HOME ->
+          let active = find 0 1 in
+          set active 0;
+          Glut.postRedisplay ()
+
+      | Glut.KEY_END ->
+          let first = max 0 (itemcount - maxrows) in
+          let active = find (itemcount - 1) ~-1 in
+          set active first;
+          Glut.postRedisplay ()
+
+      | _ -> ()
+      end;
+
+  | Outline (allowdel, active, first, outlines, qsearch, pan, oldmode) ->
       let maxrows = maxoutlinerows () in
       let calcfirst first active =
         if active > first
@@ -2120,7 +2489,9 @@ let special ~key ~x ~y =
         let active = active + incr in
         let active = max 0 (min active (Array.length outlines - 1)) in
         let first = calcfirst first active in
-        state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
+        state.mode <- Outline (
+          allowdel, active, first, outlines, qsearch, pan, oldmode
+        );
         Glut.postRedisplay ()
       in
       let updownlevel incr =
@@ -2133,7 +2504,9 @@ let special ~key ~x ~y =
         in
         let active = flow active in
         let first = calcfirst first active in
-        state.mode <- Outline (allowdel, active, first, outlines, qsearch, pan);
+        state.mode <- Outline (
+          allowdel, active, first, outlines, qsearch, pan, oldmode
+        );
         Glut.postRedisplay ()
       in
       match key with
@@ -2143,10 +2516,11 @@ let special ~key ~x ~y =
       | Glut.KEY_PAGE_DOWN -> navigate   maxrows
 
       | Glut.KEY_RIGHT ->
-          if Glut.active_ctrl != 0
+          if Glut.getModifiers () land Glut.active_ctrl != 0
           then (
             state.mode <- Outline (
-              allowdel, active, first, outlines, qsearch, min 0 (pan + 1)
+              allowdel, active, first, outlines,
+              qsearch, min 0 (pan + 1), oldmode
             );
             Glut.postRedisplay ();
           )
@@ -2156,10 +2530,10 @@ let special ~key ~x ~y =
           )
 
       | Glut.KEY_LEFT ->
-          if Glut.active_ctrl != 0
+          if Glut.getModifiers () land Glut.active_ctrl != 0
           then (
             state.mode <- Outline (
-              allowdel, active, first, outlines, qsearch, pan - 1
+              allowdel, active, first, outlines, qsearch, pan - 1, oldmode
             );
             Glut.postRedisplay ();
           )
@@ -2169,14 +2543,16 @@ let special ~key ~x ~y =
           )
 
       | Glut.KEY_HOME ->
-          state.mode <- Outline (allowdel, 0, 0, outlines, qsearch, pan);
+          state.mode <- Outline (
+            allowdel, 0, 0, outlines, qsearch, pan, oldmode
+          );
           Glut.postRedisplay ()
 
       | Glut.KEY_END ->
           let active = Array.length outlines - 1 in
           let first = max 0 (active - maxrows) in
           state.mode <- Outline (
-            allowdel, active, first, outlines, qsearch, pan
+            allowdel, active, first, outlines, qsearch, pan, oldmode
           );
           Glut.postRedisplay ()
 
@@ -2204,7 +2580,7 @@ let drawpage l =
   let color =
     match state.mode with
     | Textentry _ -> scalecolor 0.4
-    | View | Outline _ -> scalecolor 1.0
+    | View | Outline _ | Items _ -> scalecolor 1.0
     | Birdseye (_, _, pageno, hooverpageno, _) ->
         if l.pageno = hooverpageno
         then scalecolor 0.9
@@ -2317,61 +2693,110 @@ let showrects () =
   Gl.disable `blend;
 ;;
 
-let showoutline () =
-  match state.mode with
-  | Outline (allowdel, active, first, outlines, qsearch, pan) ->
-      Gl.enable `blend;
-      GlFunc.blend_func `src_alpha `one_minus_src_alpha;
-      GlDraw.color (0., 0., 0.) ~alpha:0.85;
-      GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
-      Gl.disable `blend;
+let showoutline (allowdel, active, first, outlines, qsearch, pan, oldmode) =
+  Gl.enable `blend;
+  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+  GlDraw.color (0., 0., 0.) ~alpha:0.85;
+  GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
+  Gl.disable `blend;
 
-      GlDraw.color (1., 1., 1.);
-      let font = Glut.BITMAP_9_BY_15 in
-      let draw_string x y s =
-        GlPix.raster_pos ~x ~y ();
-        String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
-      in
-      let rec loop row =
-        if row = Array.length outlines || (row - first) * 16 > conf.winh
-        then ()
-        else (
-          let (s, l, _, _) = outlines.(row) in
-          let y = (row - first) * 16 in
-          let x = 5 + 15*l in
-          if row = active
-          then (
-            Gl.enable `blend;
-            GlDraw.polygon_mode `both `line;
-            GlFunc.blend_func `src_alpha `one_minus_src_alpha;
-            GlDraw.color (1., 1., 1.) ~alpha:0.9;
-            GlDraw.rect (0., float (y + 1))
-              (float (conf.winw - 1), float (y + 18));
-            GlDraw.polygon_mode `both `fill;
-            Gl.disable `blend;
-            GlDraw.color (1., 1., 1.);
-          );
-          let draw_string s =
-            let l = String.length s in
-            if pan < 0
-            then (
-              let pan = pan * 2 in
-              let left = l + pan in
-              if left > 0
-              then
-                let s = String.sub s (-pan) left in
-                draw_string (float x) (float (y + 16)) s
-            )
-            else
-              draw_string (float (x + pan*15)) (float (y + 16)) s
-          in
-          draw_string s;
-          loop (row+1)
+  GlDraw.color (1., 1., 1.);
+  let font = Glut.BITMAP_9_BY_15 in
+  let draw_string x y s =
+    GlPix.raster_pos ~x ~y ();
+    String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
+  in
+  let rec loop row =
+    if row = Array.length outlines || (row - first) * 16 > conf.winh
+    then ()
+    else (
+      let (s, level, _, _) = outlines.(row) in
+      let y = (row - first) * 16 in
+      let x = 5 + 15*(max 0 (level+pan)) in
+      if row = active
+      then (
+        Gl.enable `blend;
+        GlDraw.polygon_mode `both `line;
+        GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+        GlDraw.color (1., 1., 1.) ~alpha:0.9;
+        GlDraw.rect (0., float (y + 1))
+          (float (conf.winw - 1), float (y + 18));
+        GlDraw.polygon_mode `both `fill;
+        Gl.disable `blend;
+        GlDraw.color (1., 1., 1.);
+      );
+      let draw_string s =
+        let l = String.length s in
+        if pan < 0
+        then (
+          let pan = pan * 2 in
+          let left = l + pan in
+          if left > 0
+          then
+            let s = String.sub s (-pan) left in
+            draw_string (float x) (float (y + 16)) s
         )
+        else
+          draw_string (float (x + pan*15)) (float (y + 16)) s
       in
-      loop first
+      draw_string s;
+      loop (row+1)
+    )
+  in
+  loop first
+;;
 
-  | _ -> ()
+let showitems (active, first, items, qsearch, pan, oldmode) =
+  Gl.enable `blend;
+  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+  GlDraw.color (0., 0., 0.) ~alpha:0.90;
+  GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
+  Gl.disable `blend;
+
+  GlDraw.color (1., 1., 1.);
+  let font = Glut.BITMAP_9_BY_15 in
+  let draw_string x y s =
+    GlPix.raster_pos ~x ~y ();
+    String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
+  in
+  let rec loop row =
+    if row = Array.length items || (row - first) * 16 > conf.winh
+    then ()
+    else (
+      let (s, l, a) = items.(row) in
+      let y = (row - first) * 16 in
+      let x = 5 + (max 0 (l+pan))*15 in
+      if row = active && a <> Noaction
+      then (
+        Gl.enable `blend;
+        GlDraw.polygon_mode `both `line;
+        GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+        GlDraw.color (1., 1., 1.) ~alpha:0.9;
+        GlDraw.rect (0., float (y + 1))
+          (float (conf.winw - 1), float (y + 18));
+        GlDraw.polygon_mode `both `fill;
+        Gl.disable `blend;
+        GlDraw.color (1., 1., 1.);
+      );
+      let draw_string s =
+        let l = String.length s in
+        if pan < 0
+        then (
+          let pan = pan * 2 in
+          let left = l + pan in
+          if left > 0
+          then
+            let s = String.sub s (-pan) left in
+            draw_string (float x) (float (y + 16)) s
+        )
+        else
+          draw_string (float (x + pan*15)) (float (y + 16)) s
+      in
+      draw_string s;
+      loop (row+1)
+    )
+  in
+  loop first
 ;;
 
 let display () =
@@ -2400,7 +2825,11 @@ let display () =
   GlDraw.viewport 0 0 conf.winw conf.winh;
   winmatrix ();
   scrollindicator ();
-  showoutline ();
+  begin match state.mode with
+  | Items items -> showitems items
+  | Outline outline -> showoutline outline
+  | _ -> ()
+  end;
   enttext ();
   Glut.swapBuffers ();
 ;;
@@ -2578,8 +3007,7 @@ let mouse bstate button x y =
   match state.mode with
   | View -> viewmouse button bstate x y
   | Birdseye beye -> birdseyemouse button bstate x y beye
-  | Textentry _ -> ()
-  | Outline _ -> ()
+  | Textentry _ | Outline _ | Items _ -> ()
 ;;
 
 let mouse ~button ~state ~x ~y = mouse state button x y;;

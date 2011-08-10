@@ -386,7 +386,7 @@ static void pdfinfo (void)
 {
     fz_obj *obj;
 
-    printd (state.sock, "i version PDF-%d.%d\n",
+    printd (state.sock, "i PDF version %d.%d\n",
             state.xref->version / 10, state.xref->version % 10);
 
 #ifdef _GNU_SOURCE
