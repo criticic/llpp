@@ -1368,13 +1368,26 @@ let mode_to_string mode =
   Buffer.contents b;
 ;;
 
+let color_of_string s =
+  Scanf.sscanf s "%d/%d/%d" (fun r g b ->
+    (float r /. 256.0, float g /. 256.0, float b /. 256.0)
+  )
+;;
+
+let color_to_string (r, g, b) =
+  let r = truncate (r *. 256.0)
+  and g = truncate (g *. 256.0)
+  and b = truncate (b *. 256.0) in
+  Printf.sprintf "%d/%d/%d" r g b
+;;
+
 let enterinfomode () =
   let btos = function true -> "on" | _ -> "off" in
   let mode = state.mode in
   let rec makeitems () =
     let intp name get set =
       Printf.sprintf "%-24s %d" name (get ()), 1, Action (
-        fun active first _qsearch pan ->
+        fun active first _ pan ->
           let ondone s =
             let n =
               try int_of_string s
@@ -1399,6 +1412,29 @@ let enterinfomode () =
           let v = get () in
           set (not v);
           Items (active, first, makeitems (), qsearch, pan, mode);
+      )
+    and colorp name get set =
+      Printf.sprintf "%-24s %s" name (color_to_string (get ())), 1, Action (
+        fun active first _ pan ->
+          let invalid = (nan, nan, nan) in
+          let ondone s =
+            let c =
+              try color_of_string s
+              with exn ->
+                state.text <- Printf.sprintf "bad color `%s': %s"
+                  s (Printexc.to_string exn);
+                invalid
+            in
+            if c <> invalid
+            then set c;
+          in
+          let te = name, "", None, textentry, ondone in
+          state.text <- "";
+          Textentry (
+            te,
+            fun _ ->
+              state.mode <- Items (active, first, makeitems (), "", pan, mode)
+          )
       )
     in
 
@@ -1520,6 +1556,10 @@ let enterinfomode () =
               enterbirdseye ()
           | _ -> ()
         );
+
+      colorp "background color"
+        (fun () -> conf.bgcolor)
+        (fun v -> conf.bgcolor <- v);
 
       "", 0, Noaction;
       "Pixmap Cache", 0, Noaction;
@@ -3113,12 +3153,6 @@ struct
       ""
   ;;
 
-  let color_of_string s =
-    Scanf.sscanf s "%d/%d/%d" (fun r g b ->
-      (float r /. 256.0, float g /. 256.0, float b /. 256.0)
-    )
-  ;;
-
   let config_of c attrs =
     let apply c k v =
       try
@@ -3426,11 +3460,7 @@ struct
     and oc s a b =
       if always || a <> b
       then
-        let r, g, b = a in
-        let r = truncate (r *. 256.0)
-        and g = truncate (g *. 256.0)
-        and b = truncate (b *. 256.0) in
-        Printf.bprintf bb "\n    %s='%d/%d/%d'" s r g b
+        Printf.bprintf bb "\n    %s='%s'" s (color_to_string a)
     in
     let w, h =
       if always
