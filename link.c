@@ -384,8 +384,6 @@ static void openxref (char *filename, char *password)
 
 static void pdfinfo (void)
 {
-    fz_obj *obj;
-
     printd (state.sock, "i PDF version %d.%d\n",
             state.xref->version / 10, state.xref->version % 10);
 
@@ -394,6 +392,7 @@ static void pdfinfo (void)
         FILE *f;
         char *buf;
         size_t size;
+        fz_obj *obj;
 
         f = open_memstream (&buf, &size);
         if (f) {
