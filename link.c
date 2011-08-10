@@ -396,11 +396,17 @@ static void pdfinfo (void)
         size_t size;
 
         f = open_memstream (&buf, &size);
-        obj = fz_dict_gets (state.xref->trailer, "Info");
-        fz_fprint_obj (f, fz_resolve_indirect (obj), 0);
-        fclose (f);
-        printd (state.sock, "i %.*s", size, buf);
-        free (buf);
+        if (f) {
+            obj = fz_dict_gets (state.xref->trailer, "Info");
+            fz_fprint_obj (f, fz_resolve_indirect (obj), 0);
+            if (fclose (f)) err (1, "fclose on memstream failed");
+            printd (state.sock, "i %.*s", size, buf);
+            free (buf);
+        }
+        else {
+            printd (state.sock, "i error opening memstream: %s\n",
+                    strerror (errno));
+        }
     }
 #endif
 }
