@@ -1600,7 +1600,7 @@ let enterinfomode () =
 ;;
 
 let enterhelpmode () =
-  state.mode <- Items (0, 0, state.help, "", 0, state.mode);
+  state.mode <- Items (-1, 0, state.help, "", 0, state.mode);
   Glut.postRedisplay ();
 ;;
 
