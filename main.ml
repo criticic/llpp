@@ -763,6 +763,7 @@ let showtext c s =
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
   GlPix.raster_pos ~x:0.0 ~y:(float (conf.winh - 5)) ();
+  Glut.bitmapCharacter ~font ~c:(Char.code ' ');
   String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s;
 ;;
 
@@ -1264,7 +1265,7 @@ let optentry mode text key =
 
   | 'a' ->
       conf.showall <- not conf.showall;
-      TEdone ("showall " ^ btos conf.showall)
+      TEdone ("throttle " ^ btos conf.showall)
 
   | 'f' ->
       conf.underinfo <- not conf.underinfo;
@@ -1666,7 +1667,10 @@ let viewkeyboard ~key ~x ~y =
       let ondone msg =
         state.text <- msg;
       in
-      enttext ("option", "", None, optentry state.mode, ondone)
+      enttext (
+        "option [acfhilpstvAPRSZ]", "", None,
+        optentry state.mode, ondone
+      )
 
   | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
       setzoom 1.0
