@@ -1402,7 +1402,7 @@ let enterinfomode () =
     in
 
     let items = [
-      "Setup", 0, Noaction;
+      (if isbirdseye mode then "Setup bird's eye" else "Setup"), 0, Noaction;
 
       boolp "presentation"
         (fun () -> conf.presentation)
