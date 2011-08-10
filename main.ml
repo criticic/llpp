@@ -156,6 +156,7 @@ type conf =
     ; mutable thumbw : width
     ; mutable jumpback : bool
     ; mutable bgcolor : float * float * float
+    ; mutable bedefault : bool
     }
 ;;
 
@@ -262,6 +263,7 @@ let defconf =
   ; thumbw = 76
   ; jumpback = false
   ; bgcolor = (0.5, 0.5, 0.5)
+  ; bedefault = false
   }
 ;;
 
@@ -1527,6 +1529,18 @@ let enterinfomode () =
       "", 0, Noaction;
       "Window", 0, Noaction;
       Printf.sprintf "dimensions %dx%d" conf.winw conf.winh, 1, Noaction;
+
+      "", 0, Noaction;
+      (
+        Printf.sprintf "Save these parameters as defaults at exit (%s)"
+          (btos conf.bedefault),
+        0,
+        Action (
+          fun active first qsearch pan ->
+            conf.bedefault <- not conf.bedefault;
+            Items (active, first, makeitems (), qsearch, pan, mode);
+        )
+      );
 
       "", 0, Noaction;
       "Document", 0, Noaction;
@@ -3485,6 +3499,7 @@ struct
   let save () =
     let bb = Buffer.create 32768 in
     let f (h, dc) =
+      let dc = if conf.bedefault then conf else dc in
       Buffer.add_string  bb "<llppconfig>\n<defaults ";
       add_attrs bb true dc dc;
       Buffer.add_string bb "/>\n";
