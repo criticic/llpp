@@ -3102,8 +3102,8 @@ let pmotion ~x ~y =
       in
       loop state.layout
 
-  | Outline _ -> ()
-  | _ ->
+  | Outline _ | Items _ | Textentry _ -> ()
+  | View ->
       match state.mstate with
       | Mnone ->
           begin match getunder x y with
