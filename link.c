@@ -387,7 +387,7 @@ static void pdfinfo (void)
     printd (state.sock, "i PDF version %d.%d\n",
             state.xref->version / 10, state.xref->version % 10);
 
-#ifdef _GNU_SOURCE
+#if _XOPEN_SOURCE >= 700 || _POSIX_C_SOURCE >= 200809L
     {
         FILE *f;
         char *buf;
