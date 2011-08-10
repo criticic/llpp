@@ -1618,10 +1618,10 @@ let viewkeyboard ~key ~x ~y =
   in
   let c = Char.chr key in
   match c with
-  | '\027' | 'q' ->
+  | '\027' | 'q' ->                     (* escape *)
       exit 0
 
-  | '\008' ->
+  | '\008' ->                           (* backspace *)
       let y = getnav () in
       gotoy_and_clear_text y
 
@@ -1767,7 +1767,7 @@ let viewkeyboard ~key ~x ~y =
           gotoy_and_clear_text (getpagey pageno)
       end
 
-  | '\127' ->
+  | '\127' ->                           (* delte *)
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
@@ -1888,7 +1888,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
     Glut.postRedisplay ()
   in
   match Char.unsafe_chr key with
-  | '\008' ->
+  | '\008' ->                           (* backspace *)
       let len = String.length text in
       if len = 0
       then (
@@ -1905,7 +1905,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
       onleave Confirm;
       Glut.postRedisplay ()
 
-  | '\027' ->
+  | '\027' ->                           (* escape *)
       begin match opthist with
       | None -> ()
       | Some (_, onhistcancel) -> onhistcancel ()
@@ -1935,15 +1935,15 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
 
 let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, _) as beye) =
   match key with
-  | 27 ->
+  | 27 ->                               (* escape *)
       leavebirdseye beye true
 
-  | 12 ->
+  | 12 ->                               (* ctrl-l *)
       let y, h = getpageyh pageno in
       let top = (conf.winh - h) / 2 in
       gotoy (max 0 (y - top))
 
-  | 13 ->
+  | 13 ->                               (* enter *)
       leavebirdseye beye false
 
   | _ ->
@@ -1980,7 +1980,7 @@ let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
   in
   let firstof active = max 0 (active - maxoutlinerows () / 2) in
   match key with
-  | 18 | 19 ->
+  | 18 | 19 ->                          (* ctrl-r/ctlr-s *)
       let incr = if key = 18 then -1 else 1 in
       let active, first =
         match search (active + incr) qsearch incr with
@@ -1994,7 +1994,7 @@ let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
       set active first qsearch;
       Glut.postRedisplay ();
 
-  | 8 ->
+  | 8 ->                                (* backspace *)
       let len = String.length qsearch in
       if len = 0
       then ()
@@ -2033,12 +2033,12 @@ let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
       set active first pattern;
       Glut.postRedisplay ()
 
-  | 27 ->
+  | 27 ->                               (* escape *)
       state.text <- "";
       state.mode <- oldmode;
       Glut.postRedisplay ();
 
-  | 13 ->
+  | 13 ->                               (* enter *)
       if active < Array.length items
       then (
         match items.(active) with
@@ -2103,7 +2103,7 @@ let outlinekeyboard ~key ~x ~y
   in
   let firstof active = max 0 (active - maxoutlinerows () / 2) in
   match key with
-  | 27 ->
+  | 27 ->                               (* escape *)
       if String.length qsearch = 0
       then (
         state.text <- "";
@@ -2118,7 +2118,7 @@ let outlinekeyboard ~key ~x ~y
         Glut.postRedisplay ();
       )
 
-  | 18 | 19 ->
+  | 18 | 19 ->                          (* ctrl-r/ctrl-s *)
       let incr = if key = 18 then -1 else 1 in
       let active, first =
         match search (active + incr) qsearch incr with
@@ -2134,7 +2134,7 @@ let outlinekeyboard ~key ~x ~y
       );
       Glut.postRedisplay ();
 
-  | 8 ->
+  | 8 ->                                (* backspace *)
       let len = String.length qsearch in
       if len = 0
       then ()
@@ -2163,7 +2163,7 @@ let outlinekeyboard ~key ~x ~y
       );
       Glut.postRedisplay ()
 
-  | 13 ->
+  | 13 ->                               (* enter *)
       if active < Array.length outlines
       then (
         let (_, _, n, t) = outlines.(active) in
@@ -2227,12 +2227,12 @@ let outlinekeyboard ~key ~x ~y
       state.mode <- Outline (allowdel, 0, 0, outline, qsearch, pan, oldmode);
       Glut.postRedisplay ()
 
-  | 12 ->
+  | 12 ->                               (* ctrl-l *)
       state.mode <- Outline
         (allowdel, active, firstof active, outlines, qsearch, pan, oldmode);
       Glut.postRedisplay ()
 
-  | 127 when allowdel ->
+  | 127 when allowdel ->                (* delete *)
       let len = Array.length outlines - 1 in
       if len = 0
       then (
