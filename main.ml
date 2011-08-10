@@ -1401,8 +1401,9 @@ let enterinfomode () =
       )
     in
 
+    let birdseye = isbirdseye mode in
     let items = [
-      (if isbirdseye mode then "Setup bird's eye" else "Setup"), 0, Noaction;
+      (if birdseye then "Setup bird's eye" else "Setup"), 0, Noaction;
 
       boolp "presentation"
         (fun () -> conf.presentation)
@@ -1526,29 +1527,31 @@ let enterinfomode () =
         (fun () -> conf.memlimit)
         (fun v -> conf.memlimit <- v);
       Printf.sprintf "%-24s %d" "used" state.memused, 1, Noaction;
-
-      "", 0, Noaction;
-      "Window", 0, Noaction;
-      Printf.sprintf "dimensions %dx%d" conf.winw conf.winh, 1, Noaction;
-
-      "", 0, Noaction;
-      (
-        Printf.sprintf "Save these parameters as defaults at exit (%s)"
-          (btos conf.bedefault),
-        0,
-        Action (
-          fun active first qsearch pan ->
-            conf.bedefault <- not conf.bedefault;
-            Items (active, first, makeitems (), qsearch, pan, mode);
-        )
-      );
-
-      "", 0, Noaction;
-      "Document", 0, Noaction;
     ]
     in
-    Array.of_list
-      (items @ List.map (fun (_, s) -> (s, 1, Noaction)) state.docinfo);
+
+    let tailer =
+      let trailer =
+        ("", 0, Noaction)
+        :: ("Document", 0, Noaction)
+        :: List.map (fun (_, s) -> (s, 1, Noaction)) state.docinfo
+      in
+      if birdseye
+      then trailer
+      else (
+        ("", 0, Noaction)
+        :: (Printf.sprintf "Save these parameters as defaults at exit (%s)"
+               (btos conf.bedefault),
+           0,
+           Action (
+             fun active first qsearch pan ->
+               conf.bedefault <- not conf.bedefault;
+               Items (active, first, makeitems (), qsearch, pan, mode);
+           )
+        ) :: trailer 
+      )
+    in
+    Array.of_list (items @ tailer)
   in
   state.text <- "";
   state.mode <- Items (1, 0, makeitems (), "", 0, mode);
