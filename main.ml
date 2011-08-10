@@ -1134,6 +1134,37 @@ let togglebirdseye () =
   | _ -> ()
 ;;
 
+let upbirdseye (conf, leftx, pageno, hooverpageno, anchor) =
+  let pageno = max 0 (pageno - 1) in
+  let rec loop = function
+    | [] -> gotopage1 pageno 0
+    | l :: _ when l.pageno = pageno ->
+        if l.pagedispy >= 0 && l.pagey = 0
+        then Glut.postRedisplay ()
+        else gotopage1 pageno 0
+    | _ :: rest -> loop rest
+  in
+  loop state.layout;
+  state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor)
+;;
+
+let downbirdseye (conf, leftx, pageno, hooverpageno, anchor) =
+  let pageno = min (state.pagecount - 1) (pageno + 1) in
+  state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor);
+  let rec loop = function
+    | [] ->
+        let y, h = getpageyh pageno in
+        let dy = (y - state.y) - (conf.winh - h - conf.interpagespace) in
+        gotoy (clamp dy)
+    | l :: rest when l.pageno = pageno ->
+        if l.pagevh != l.pageh
+        then gotoy (clamp (l.pageh - l.pagevh + conf.interpagespace))
+        else Glut.postRedisplay ()
+    | l :: rest -> loop rest
+  in
+  loop state.layout
+;;
+
 let optentry mode text key =
   let btos b = if b then "on" else "off" in
   let c = Char.unsafe_chr key in
@@ -1802,8 +1833,17 @@ let viewkeyboard ~key ~x ~y =
         (min (state.colorscale +. (if c = ']' then 0.1 else -0.1)) 1.0);
       Glut.postRedisplay ()
 
-  | 'k' -> gotoy (clamp (-conf.scrollstep))
-  | 'j' -> gotoy (clamp conf.scrollstep)
+  | 'k' ->
+      begin match state.mode with
+      | Birdseye beye -> upbirdseye beye
+      | _ -> gotoy (clamp (-conf.scrollstep))
+      end
+
+  | 'j' ->
+      begin match state.mode with
+      | Birdseye beye -> downbirdseye beye
+      | _ -> gotoy (clamp conf.scrollstep)
+      end
 
   | 'r' -> opendoc state.path state.password
 
@@ -2201,36 +2241,11 @@ let keyboard ~key ~x ~y =
     | Items items -> itemskeyboard ~key ~x ~y items
 ;;
 
-let birdseyespecial key x y (conf, leftx, pageno, hooverpageno, anchor) =
+let birdseyespecial key x y
+    ((conf, leftx, pageno, hooverpageno, anchor) as beye) =
   match key with
-  | Glut.KEY_UP ->
-      let pageno = max 0 (pageno - 1) in
-      let rec loop = function
-        | [] -> gotopage1 pageno 0
-        | l :: _ when l.pageno = pageno ->
-            if l.pagedispy >= 0 && l.pagey = 0
-            then Glut.postRedisplay ()
-            else gotopage1 pageno 0
-        | _ :: rest -> loop rest
-      in
-      loop state.layout;
-      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor)
-
-  | Glut.KEY_DOWN ->
-      let pageno = min (state.pagecount - 1) (pageno + 1) in
-      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor);
-      let rec loop = function
-        | [] ->
-            let y, h = getpageyh pageno in
-            let dy = (y - state.y) - (conf.winh - h - conf.interpagespace) in
-            gotoy (clamp dy)
-        | l :: rest when l.pageno = pageno ->
-            if l.pagevh != l.pageh
-            then gotoy (clamp (l.pageh - l.pagevh + conf.interpagespace))
-            else Glut.postRedisplay ()
-        | l :: rest -> loop rest
-      in
-      loop state.layout
+  | Glut.KEY_UP -> upbirdseye beye
+  | Glut.KEY_DOWN -> downbirdseye beye
 
   | Glut.KEY_PAGE_UP ->
       begin match state.layout with
