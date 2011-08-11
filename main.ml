@@ -129,7 +129,7 @@ type layout =
 ;;
 
 type conf =
-    { mutable scrollw : int
+    { mutable scrollbw : int
     ; mutable scrollh : int
     ; mutable icase : bool
     ; mutable preload : bool
@@ -157,6 +157,7 @@ type conf =
     ; mutable jumpback : bool
     ; mutable bgcolor : float * float * float
     ; mutable bedefault : bool
+    ; mutable scrollbarinpm : bool
     }
 ;;
 
@@ -199,6 +200,7 @@ type state =
     ; mutable w : int
     ; mutable x : int
     ; mutable y : int
+    ; mutable scrollw : int
     ; mutable anchor : anchor
     ; mutable maxy : int
     ; mutable layout : layout list
@@ -236,7 +238,7 @@ and hists =
 ;;
 
 let defconf =
-  { scrollw = 7
+  { scrollbw = 7
   ; scrollh = 12
   ; icase = true
   ; preload = true
@@ -264,6 +266,7 @@ let defconf =
   ; jumpback = false
   ; bgcolor = (0.5, 0.5, 0.5)
   ; bedefault = false
+  ; scrollbarinpm = true
   }
 ;;
 
@@ -279,8 +282,9 @@ let state =
   ; ssock = Unix.stdin
   ; x = 0
   ; y = 0
-  ; anchor = initialanchor
   ; w = 0
+  ; scrollw = 0
+  ; anchor = initialanchor
   ; layout = []
   ; maxy = max_int
   ; pagemap = Hashtbl.create 10
@@ -741,7 +745,7 @@ let reshape ~w ~h =
   then state.anchor <- getanchor ();
 
   conf.winw <- w;
-  let w = truncate (float w *. conf.zoom) - conf.scrollw in
+  let w = truncate (float w *. conf.zoom) - state.scrollw in
   let w = max w 2 in
   state.w <- w;
   conf.winh <- h;
@@ -758,7 +762,7 @@ let showtext s =
   GlDraw.color (0.0, 0.0, 0.0);
   GlDraw.rect
     (0.0, float (conf.winh - 18))
-    (float (conf.winw - conf.scrollw - 1), float conf.winh)
+    (float (conf.winw - state.scrollw - 1), float conf.winh)
   ;
   let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
@@ -1536,9 +1540,9 @@ let enterinfomode () =
         (fun v -> reinit v conf.proportional);
 
       intp "scroll bar width"
-        (fun () -> conf.scrollw)
+        (fun () -> state.scrollw)
         (fun v ->
-          conf.scrollw <- v;
+          state.scrollw <- v;
           reshape conf.winw conf.winh;
         );
 
@@ -1560,6 +1564,22 @@ let enterinfomode () =
       colorp "background color"
         (fun () -> conf.bgcolor)
         (fun v -> conf.bgcolor <- v);
+
+      "", 0, Noaction;
+      "Presentation mode", 0, Noaction;
+
+      boolp "scrollbar visible"
+        (fun () -> conf.scrollbarinpm)
+        (fun v ->
+          if v != conf.scrollbarinpm then (
+            conf.scrollbarinpm <- v;
+            if conf.presentation
+            then (
+              state.scrollw <- 0;
+              reshape conf.winw conf.winh;
+            );
+          );
+        );
 
       "", 0, Noaction;
       "Pixmap Cache", 0, Noaction;
@@ -1721,7 +1741,7 @@ let viewkeyboard ~key ~x ~y =
       setzoom 1.0
 
   | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
-      let zoom = zoomforh conf.winw conf.winh conf.scrollw in
+      let zoom = zoomforh conf.winw conf.winh state.scrollw in
       if zoom < 1.0
       then setzoom zoom
 
@@ -1752,7 +1772,7 @@ let viewkeyboard ~key ~x ~y =
       enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone)
 
   | 'b' ->
-      conf.scrollw <- if conf.scrollw > 0 then 0 else defconf.scrollw;
+      state.scrollw <- if state.scrollw > 0 then 0 else conf.scrollbw;
       reshape conf.winw conf.winh;
 
   | 'l' ->
@@ -1770,6 +1790,14 @@ let viewkeyboard ~key ~x ~y =
 
   | 'P' ->
       conf.presentation <- not conf.presentation;
+      if conf.presentation
+      then (
+        if not conf.scrollbarinpm
+        then state.scrollw <- 0;
+      )
+      else
+        state.scrollw <- conf.scrollbw;
+
       showtext ' ' ("presentation mode " ^
                        if conf.presentation then "on" else "off");
       state.anchor <- getanchor ();
@@ -1843,7 +1871,7 @@ let viewkeyboard ~key ~x ~y =
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
-          doreshape (l.pagew + conf.scrollw) l.pageh;
+          doreshape (l.pagew + state.scrollw) l.pageh;
           Glut.postRedisplay ();
       end
 
@@ -1886,7 +1914,7 @@ let viewkeyboard ~key ~x ~y =
           in
           if w != 0 && h != 0
           then
-            doreshape (w + conf.scrollw) (h + conf.interpagespace)
+            doreshape (w + state.scrollw) (h + conf.interpagespace)
           ;
           Glut.postRedisplay ();
 
@@ -2654,7 +2682,7 @@ let special ~key ~x ~y =
 ;;
 
 let drawplaceholder l =
-  let margin = state.x + (conf.winw - (state.w + conf.scrollw)) / 2 in
+  let margin = state.x + (conf.winw - (state.w + state.scrollw)) / 2 in
   GlDraw.rect
     (float l.pagex, float l.pagedispy)
     (float (l.pagew + l.pagex), float (l.pagedispy + l.pagevh))
@@ -2723,14 +2751,14 @@ let scrollph y =
 let scrollindicator () =
   GlDraw.color (0.64 , 0.64, 0.64);
   GlDraw.rect
-    (float (conf.winw - conf.scrollw), 0.)
+    (float (conf.winw - state.scrollw), 0.)
     (float conf.winw, float conf.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
   let position, sh = scrollph state.y in
   GlDraw.rect
-    (float (conf.winw - conf.scrollw), position)
+    (float (conf.winw - state.scrollw), position)
     (float conf.winw, position +. sh)
   ;
 ;;
@@ -2854,7 +2882,7 @@ let showitems (active, first, items, _, pan, _) =
 ;;
 
 let display () =
-  let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+  let margin = (conf.winw - (state.w + state.scrollw)) / 2 in
   GlDraw.viewport margin 0 state.w conf.winh;
   pagematrix ();
   GlClear.color (scalecolor2 conf.bgcolor);
@@ -2862,7 +2890,7 @@ let display () =
   if conf.zoom > 1.0
   then (
     Gl.enable `scissor_test;
-    GlMisc.scissor 0 0 (conf.winw - conf.scrollw) conf.winh;
+    GlMisc.scissor 0 0 (conf.winw - state.scrollw) conf.winh;
   );
   List.iter drawpage state.layout;
   if conf.zoom > 1.0
@@ -2889,7 +2917,7 @@ let display () =
 ;;
 
 let getunder x y =
-  let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+  let margin = (conf.winw - (state.w + state.scrollw)) / 2 in
   let x = x - margin - state.x in
   let rec f = function
     | l :: rest ->
@@ -2965,7 +2993,7 @@ let viewmouse button bstate x y =
       else
         state.mstate <- Mnone
 
-  | Glut.LEFT_BUTTON when x > conf.winw - conf.scrollw ->
+  | Glut.LEFT_BUTTON when x > conf.winw - state.scrollw ->
       if bstate = Glut.DOWN
       then
         let position, sh = scrollph state.y in
@@ -3041,7 +3069,7 @@ let birdseyemouse button bstate x y
     (conf, leftx, _, hooverpageno, anchor) =
   match button with
   | Glut.LEFT_BUTTON when bstate = Glut.UP ->
-      let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+      let margin = (conf.winw - (state.w + state.scrollw)) / 2 in
       let rec loop = function
         | [] -> ()
         | l :: rest ->
@@ -3095,7 +3123,7 @@ let motion ~x ~y =
 let pmotion ~x ~y =
   match state.mode with
   | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
-      let margin = (conf.winw - (state.w + conf.scrollw)) / 2 in
+      let margin = (conf.winw - (state.w + state.scrollw)) / 2 in
       let rec loop = function
         | [] ->
             if hooverpageno != -1
@@ -3157,7 +3185,7 @@ struct
     let apply c k v =
       try
         match k with
-        | "scroll-bar-width" -> { c with scrollw = max 0 (int_of_string v) }
+        | "scroll-bar-width" -> { c with scrollbw = max 0 (int_of_string v) }
         | "scroll-handle-height" -> { c with scrollh = max 0 (int_of_string v) }
         | "case-insensitive-search" -> { c with icase = bool_of_string v }
         | "preload" -> { c with preload = bool_of_string v }
@@ -3188,6 +3216,8 @@ struct
         | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
         | "persistent-location" -> { c with jumpback = bool_of_string v }
         | "background-color" -> { c with bgcolor = color_of_string v }
+        | "scrollbar-in-presentation" ->
+            { c with scrollbarinpm = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -3236,7 +3266,7 @@ struct
   ;;
 
   let setconf dst src =
-    dst.scrollw        <- src.scrollw;
+    dst.scrollbw       <- src.scrollbw;
     dst.scrollh        <- src.scrollh;
     dst.icase          <- src.icase;
     dst.preload        <- src.preload;
@@ -3263,6 +3293,7 @@ struct
     dst.thumbw         <- src.thumbw;
     dst.jumpback       <- src.jumpback;
     dst.bgcolor        <- src.bgcolor;
+    dst.scrollbarinpm  <- src.scrollbarinpm;
   ;;
 
   let unent s =
@@ -3440,6 +3471,7 @@ struct
       setconf conf pc;
       state.bookmarks <- pb;
       state.x <- px;
+      state.scrollw <- conf.scrollbw;
       if conf.jumpback
       then state.anchor <- pa;
       cbput state.hists.nav pa;
@@ -3481,7 +3513,7 @@ struct
     in
     oi "width" w dc.winw;
     oi "height" h dc.winh;
-    oi "scroll-bar-width" c.scrollw dc.scrollw;
+    oi "scroll-bar-width" c.scrollbw dc.scrollbw;
     oi "scroll-handle-height" c.scrollh dc.scrollh;
     ob "case-insensitive-search" c.icase dc.icase;
     ob "preload" c.preload dc.preload;
@@ -3505,6 +3537,7 @@ struct
     oi "thumbnail-width" c.thumbw dc.thumbw;
     ob "persistent-location" c.jumpback dc.jumpback;
     oc "background-color" c.bgcolor dc.bgcolor;
+    ob "scrollbar-in-presentation" c.scrollbarinpm dc.scrollbarinpm;
   ;;
 
   let save () =
