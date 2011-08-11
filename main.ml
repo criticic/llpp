@@ -1668,9 +1668,7 @@ let opendoc path password =
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
-let viewkeyboard ~key ~x ~y =
-  ignore x;
-  ignore y;
+let viewkeyboard key =
   let enttext te =
     let mode = state.mode in
     state.mode <- Textentry (te, fun _ -> state.mode <- mode);
@@ -1948,9 +1946,7 @@ let viewkeyboard ~key ~x ~y =
       vlog "huh? %d %c" key (Char.chr key);
 ;;
 
-let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
-  ignore x;
-  ignore y;
+let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
   let enttext te =
     state.mode <- Textentry (te, onleave);
     state.text <- "";
@@ -2003,7 +1999,7 @@ let textentrykeyboard ~key ~x ~y ((c, text, opthist, onkey, ondone), onleave) =
       end;
 ;;
 
-let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, _) as beye) =
+let birdseyekeyboard key ((_, _, pageno, _, _) as beye) =
   match key with
   | 27 ->                               (* escape *)
       leavebirdseye beye true
@@ -2017,12 +2013,10 @@ let birdseyekeyboard ~key ~x ~y ((_, _, pageno, _, _) as beye) =
       leavebirdseye beye false
 
   | _ ->
-      viewkeyboard ~key ~x ~y
+      viewkeyboard key
 ;;
 
-let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
-  ignore x;
-  ignore y;
+let itemskeyboard key (active, first, items, qsearch, pan, oldmode) =
   let set active first qsearch =
     state.mode <- Items (active, first, items, qsearch, pan, oldmode)
   in
@@ -2124,10 +2118,8 @@ let itemskeyboard ~key ~x ~y (active, first, items, qsearch, pan, oldmode) =
   | _ -> dolog "unknown key %d" key
 ;;
 
-let outlinekeyboard ~key ~x ~y
+let outlinekeyboard key
     (allowdel, active, first, outlines, qsearch, pan, oldmode) =
-  ignore x;
-  ignore y;
   let narrow outlines pattern =
     let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
     match reopt with
@@ -2332,20 +2324,21 @@ let outlinekeyboard ~key ~x ~y
 ;;
 
 let keyboard ~key ~x ~y =
+  ignore x;
+  ignore y;
   if key = 7
   then
     wcmd "interrupt" []
   else
     match state.mode with
-    | Outline outline -> outlinekeyboard ~key ~x ~y outline
-    | Textentry textentry -> textentrykeyboard ~key ~x ~y textentry
-    | Birdseye birdseye -> birdseyekeyboard ~key ~x ~y birdseye
-    | View -> viewkeyboard ~key ~x ~y
-    | Items items -> itemskeyboard ~key ~x ~y items
+    | Outline outline -> outlinekeyboard key outline
+    | Textentry textentry -> textentrykeyboard key textentry
+    | Birdseye birdseye -> birdseyekeyboard key birdseye
+    | View -> viewkeyboard key
+    | Items items -> itemskeyboard key items
 ;;
 
-let birdseyespecial key _ _
-    ((conf, leftx, _, hooverpageno, anchor) as beye) =
+let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
   match key with
   | Glut.KEY_UP -> upbirdseye beye
   | Glut.KEY_DOWN -> downbirdseye beye
@@ -2426,12 +2419,14 @@ let setautoscrollspeed goingdown =
 ;;
 
 let special ~key ~x ~y =
+  ignore x;
+  ignore y;
   match state.mode with
   | View | (Birdseye _) when key = Glut.KEY_F9 ->
       togglebirdseye ()
 
   | Birdseye vals ->
-      birdseyespecial key x y vals
+      birdseyespecial key vals
 
   | View when key = Glut.KEY_F1 ->
       enterhelpmode ()
