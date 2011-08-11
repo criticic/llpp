@@ -1928,6 +1928,13 @@ let viewkeyboard key =
       | [] -> ()
       end
 
+  | 'x' ->
+      state.text <- "zoom is reset to 100";
+      Glut.reshapeWindow (state.w + state.scrollw)
+        (truncate (float conf.winh *. conf.zoom));
+      conf.zoom <- 1.0;
+      Glut.postRedisplay ()
+
   | '<' | '>' ->
       reinit (conf.angle + (if c = '>' then 30 else -30)) conf.proportional
 
@@ -1949,7 +1956,9 @@ let viewkeyboard key =
       | _ -> gotoy (clamp conf.scrollstep)
       end
 
-  | 'r' -> opendoc state.path state.password
+  | 'r' ->
+      state.anchor <- getanchor ();
+      opendoc state.path state.password
 
   | _ ->
       vlog "huh? %d %c" key (Char.chr key);
