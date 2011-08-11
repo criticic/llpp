@@ -1585,7 +1585,7 @@ let enterinfomode () =
             conf.scrollbarinpm <- v;
             if conf.presentation
             then (
-              state.scrollbw <- if v then conf.scrollbw else 0;
+              state.scrollw <- if v then conf.scrollbw else 0;
               reshape conf.winw conf.winh;
             )
           );
