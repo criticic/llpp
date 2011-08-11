@@ -91,7 +91,8 @@ let () =
     let cmd = "sh " ^ mkhelp ^ " " ^ keystoml ^ " " ^ keys ^ "> help.ml" in
     let build =
       { get_commands = (fun _ -> [Run cmd])
-      ; get_cookie = (fun _ -> get_cmd_output "git describe --tags --dirty")
+      ; get_cookie = (fun _ ->
+        get_cmd_output "git describe --tags --dirty || echo")
       ; get_presentation = (fun _ -> "KEYSTOML KEYS")
       }
     in
