@@ -1580,13 +1580,14 @@ let enterinfomode () =
       boolp "scrollbar visible"
         (fun () -> conf.scrollbarinpm)
         (fun v ->
-          if v != conf.scrollbarinpm then (
+          if v != conf.scrollbarinpm
+          then (
             conf.scrollbarinpm <- v;
             if conf.presentation
             then (
-              state.scrollw <- 0;
+              state.scrollbw <- if v then conf.scrollbw else 0;
               reshape conf.winw conf.winh;
-            );
+            )
           );
         );
 
