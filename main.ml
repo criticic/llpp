@@ -2326,7 +2326,7 @@ let outlinekeyboard key
 let keyboard ~key ~x ~y =
   ignore x;
   ignore y;
-  if key = 7
+  if key = 7                            (* ctrl-g *)
   then
     wcmd "interrupt" []
   else
