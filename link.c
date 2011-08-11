@@ -399,7 +399,8 @@ static void pdfinfo (void)
             obj = fz_dict_gets (state.xref->trailer, "Info");
             fz_fprint_obj (f, fz_resolve_indirect (obj), 0);
             if (fclose (f)) err (1, "fclose on memstream failed");
-            printd (state.sock, "i %.*s", size, buf);
+            if (size > 64*1024) size = 64*1024;
+            printd (state.sock, "i %.*s", (int) size, buf);
             free (buf);
         }
         else {
