@@ -1,4 +1,11 @@
 /* lots of code c&p-ed directly from mupdf */
+#define _BSD_SOURCE
+
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -17,32 +24,14 @@
 #endif
 
 #ifdef _MSC_VER
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-static void __declspec (noreturn) err (int exitcode, const char *fmt, ...)
-{
-    va_list ap;
-    int errcode;
+#define NORETURN __declspec (noreturn)
+#elif defined __GNUC__
+#define NORETURN __attribute__ ((noreturn))
+#else
+#define NORETURN
+#endif
 
-    errcode = errno;
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
-    fprintf (stderr, ": %s\n", strerror (errno));
-    exit (exitcode);
-}
-static void __declspec (noreturn) errx (int exitcode, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
-    fputc ('\n', stderr);
-    exit (exitcode);
-}
+#ifdef _WIN32
 static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 {
     va_list ap;
@@ -51,25 +40,22 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
     vfprintf (stderr, fmt, ap);
     va_end (ap);
     fprintf (stderr, ": wsaerror 0x%x\n", WSAGetLastError ());
-    exit (exitcode);
+    _exit (exitcode);
 }
 #else
 #define FMT_ss "%zd"
 #define FMT_s "%zu"
 #define fionread_arg int
 #define ioctlsocket ioctl
-#define _GNU_SOURCE
-#include <err.h>
 #define sockerr err
+#include <unistd.h>
 #endif
+
 #include <regex.h>
-#include <errno.h>
 #include <ctype.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
 #include <limits.h>
+
 #ifndef _WIN32
 #include <pthread.h>
 #include <sys/time.h>
@@ -77,6 +63,32 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #endif
+
+static void NORETURN err (int exitcode, const char *fmt, ...)
+{
+    va_list ap;
+    int savederrno;
+
+    savederrno = errno;
+    va_start (ap, fmt);
+    vfprintf (stderr, fmt, ap);
+    va_end (ap);
+    fprintf (stderr, ": %s\n", strerror (savederrno));
+    fflush (stderr);
+    _exit (exitcode);
+}
+
+static void NORETURN errx (int exitcode, const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start (ap, fmt);
+    vfprintf (stderr, fmt, ap);
+    va_end (ap);
+    fputc ('\n', stderr);
+    fflush (stderr);
+    _exit (exitcode);
+}
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -333,7 +345,7 @@ static void die (fz_error error)
     fz_catch (error, "aborting");
     if (state.xref)
        pdf_free_xref (state.xref);
-    exit (1);
+    _exit (1);
 }
 
 static void openxref (char *filename, char *password)
@@ -483,6 +495,7 @@ static int compatpdims (struct pagedim *p1, struct pagedim *p2)
 #include <altivec.h>
 
 static int cacheline32bytes;
+extern char **environ;
 
 static void __attribute__ ((constructor)) clcheck (void)
 {
