@@ -2105,15 +2105,14 @@ let itemskeyboard key (active, first, items, qsearch, pan, oldmode) =
       Glut.postRedisplay ()
 
   | 27 ->                               (* escape *)
+      state.text <- "";
       if String.length qsearch = 0
       then (
-        state.text <- "";
         state.mode <- oldmode;
       )
       else (
-        state.text <- "";
-        state.mode <- Items (active, first, items, "", pan, oldmode);
-      )
+        set active first "";
+      );
       Glut.postRedisplay ()
 
   | 13 ->                               (* enter *)
@@ -2184,19 +2183,17 @@ let outlinekeyboard key
   let firstof active = max 0 (active - maxoutlinerows () / 2) in
   match key with
   | 27 ->                               (* escape *)
+      state.text <- "";
       if String.length qsearch = 0
       then (
-        state.text <- "";
         state.mode <- oldmode;
-        Glut.postRedisplay ();
       )
       else (
-        state.text <- "";
         state.mode <- Outline (
           allowdel, active, first, outlines, "", pan, oldmode
         );
-        Glut.postRedisplay ();
-      )
+      );
+      Glut.postRedisplay ();
 
   | 18 | 19 ->                          (* ctrl-r/ctrl-s *)
       let incr = if key = 18 then -1 else 1 in
