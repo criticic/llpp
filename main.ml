@@ -2872,27 +2872,7 @@ let showstrings trusted active first pan strings =
         in
         ()
       in
-
-      let draw_string s =
-        let l = String.length s in
-        if pan < 0
-        then (
-          let pan = pan * 2 in
-          let pos = pan + level in
-          let left = l + pos in
-          if left > 0
-          then
-            let s =
-              if left > l
-              then s
-              else String.sub s (-pos) left
-            in
-            drawtabularstring x s
-        )
-        else
-          drawtabularstring (x + pan*15) s
-      in
-      draw_string s;
+      drawtabularstring (x + pan*15) s;
       loop (row+1)
     )
   in
