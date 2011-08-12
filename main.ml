@@ -776,6 +776,7 @@ let drawstring1 size x y s =
 ;;
 
 let enttext () =
+  let len = String.length state.text in
   let drawstring s =
     GlDraw.color (0.0, 0.0, 0.0);
     GlDraw.rect
@@ -783,9 +784,8 @@ let enttext () =
       (float (conf.winw - state.scrollw - 1), float conf.winh)
     ;
     GlDraw.color (1.0, 1.0, 1.0);
-    drawstring 14 8 (conf.winh - 5) s;
+    drawstring 14 (if len > 0 then 8 else 2) (conf.winh - 5) s;
   in
-  let len = String.length state.text in
   match state.mode with
   | Textentry ((prefix, text, _, _, _), _) ->
       let s =
