@@ -10,13 +10,13 @@ root=$(pwd)
 
 openjpeg=http://openjpeg.googlecode.com/svn/trunk/
 jbig2dec=git://git.ghostscript.com/jbig2dec.git
-lablgl=:pserver:anoncvs@camlcvs.inria.fr:/caml
+lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf=git://git.ghostscript.com/mupdf.git
 sumatrapdf=http://sumatrapdf.googlecode.com/svn/trunk
 
 test -d openjpeg || svn -r r608 checkout $openjpeg openjpeg
 test -d jbig2dec || git clone $jbig2dec jbig2dec
-test -d lablgl   || cvs -d $lablgl co -d lablgl bazar-ocaml/lablGL
+test -d lablGL-1.04 || (wget $lablgl && tar xf lablgl-1.04.tgz)
 
 if ! test -d mupdf; then
     if $use_sumatrapdf_patched_mupdf; then
@@ -38,7 +38,7 @@ mkdir -p $root/include
 (cd jbig2dec \
     && make -f Makefile.unix install prefix=$root && rm -f $root/lib/*.so*)
 
-(cd lablgl \
+(cd lablGL-1.04 \
     && cat Makefile.config.linux.mdk > Makefile.config \
     && make glut glutopt \
     && make install \
