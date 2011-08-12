@@ -2094,7 +2094,7 @@ let itemskeyboard key (active, first, items, qsearch, pan, oldmode) =
       Glut.postRedisplay ();
 
   | 13 ->                               (* enter *)
-      if active < Array.length items
+      if active >= 0 && active < Array.length items
       then (
         match items.(active) with
         | _, _, Action f ->
@@ -2103,6 +2103,10 @@ let itemskeyboard key (active, first, items, qsearch, pan, oldmode) =
         | _, _, Noaction ->
             state.text <- "";
             state.mode <- oldmode
+      )
+      else (
+        state.text <- "";
+        state.mode <- oldmode
       );
       Glut.postRedisplay ();
 
