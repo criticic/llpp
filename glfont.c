@@ -294,7 +294,7 @@ static float draw_glyph(FT_Face face, int size, int gid, float x, float y)
         return glyph->advance;
 }
 
-float measure_string(FT_Face face, float fsize, char *str)
+static float measure_string(FT_Face face, float fsize, char *str)
 {
         int size = fsize * 64;
         FT_Fixed advance;
@@ -319,7 +319,7 @@ float measure_string(FT_Face face, float fsize, char *str)
         return w;
 }
 
-float draw_string(FT_Face face, float fsize, float x, float y, char *str)
+static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
 {
         int size = fsize * 64;
         FT_Vector kern;
