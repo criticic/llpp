@@ -1531,6 +1531,7 @@ let enterinfomode () =
         (fun () -> state.scrollw)
         (fun v ->
           state.scrollw <- v;
+          conf.scrollbw <- v;
           reshape conf.winw conf.winh;
         );
 
