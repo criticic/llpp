@@ -2831,7 +2831,7 @@ let showstrings trusted active first pan strings =
   GlDraw.color (1., 1., 1.);
   Gl.enable `texture_2d;
 
-  let wx = measurestr 14 "w" in
+  let wx = measurestr 15 "w" in
   let tabx = 30.0*.wx  +. float (pan*15) in
   let rec loop row =
     if row = Array.length strings || (row - first) * 16 > conf.winh
@@ -2864,11 +2864,11 @@ let showstrings trusted active first pan strings =
               and s2 = String.sub s (tabpos + 1) len in
               let xx = wx +. drawstring1 14 x (y + 16) s1 in
               let x = truncate (max xx tabx) in
-              drawstring1 14 x (y + 16) s2
+              drawstring1 15 x (y + 16) s2
             else
-              drawstring1 14 x (y + 16) s
+              drawstring1 15 x (y + 16) s
           else
-            drawstring1 14 x (y + 16) s
+            drawstring1 15 x (y + 16) s
         in
         ()
       in
@@ -2888,11 +2888,9 @@ let showstrings trusted active first pan strings =
               else String.sub s (-pos) left
             in
             drawtabularstring x s
-              (* ignore (drawstring1 14 x (y + 16) s) *)
         )
         else
           drawtabularstring (x + pan*15) s
-            (* ignore (drawstring1 14 (x + pan*15) (y + 16) s) *)
       in
       draw_string s;
       loop (row+1)
