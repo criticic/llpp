@@ -110,7 +110,7 @@ static FT_Face load_font(char *fontname)
 
         code = FT_New_Face (g_freetype_lib, fontname, 0, &face);
         if (code) {
-            fprintf (stderr, "failed to load font font `%s'\n", fontname);
+            fprintf (stderr, "failed to load font `%s'\n", fontname);
             return NULL;
         }
 
