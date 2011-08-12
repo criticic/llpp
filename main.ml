@@ -33,7 +33,7 @@ external copysel : string ->  unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
-external drawstring : int -> int -> int -> string -> unit = "ml_draw_string";;
+external drawstr : int -> int -> int -> string -> unit = "ml_draw_string";;
 
 type mpos = int * int
 and mstate =
@@ -760,6 +760,18 @@ let reshape ~w ~h =
 
   invalidate ();
   wcmd "geometry" [`i w; `i h];
+;;
+
+let drawstring size x y s =
+  Gl.enable `blend;
+  Gl.enable `texture_2d;
+  drawstr size x y s;
+  Gl.disable `blend;
+  Gl.disable `texture_2d;
+;;
+
+let drawstring1 size x y s =
+  drawstr size x y s;
 ;;
 
 let enttext () =
@@ -2811,9 +2823,9 @@ let showstrings active first pan strings =
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   GlDraw.color (0., 0., 0.) ~alpha:0.85;
   GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
-  Gl.disable `blend;
-
   GlDraw.color (1., 1., 1.);
+  Gl.enable `texture_2d;
+
   let rec loop row =
     if row = Array.length strings || (row - first) * 16 > conf.winh
     then ()
@@ -2823,15 +2835,14 @@ let showstrings active first pan strings =
       let x = 5 + 15*(max 0 (level+pan)) in
       if row = active
       then (
-        Gl.enable `blend;
+        Gl.disable `texture_2d;
         GlDraw.polygon_mode `both `line;
-        GlFunc.blend_func `src_alpha `one_minus_src_alpha;
         GlDraw.color (1., 1., 1.) ~alpha:0.9;
         GlDraw.rect (0., float (y + 1))
           (float (conf.winw - 1), float (y + 18));
         GlDraw.polygon_mode `both `fill;
-        Gl.disable `blend;
         GlDraw.color (1., 1., 1.);
+        Gl.enable `texture_2d;
       );
       let draw_string s =
         let l = String.length s in
@@ -2847,16 +2858,18 @@ let showstrings active first pan strings =
               then s
               else String.sub s (-pos) left
             in
-            drawstring 14 x (y + 16) s
+            drawstring1 14 x (y + 16) s
         )
         else
-          drawstring 14 (x + pan*15) (y + 16) s
+          drawstring1 14 (x + pan*15) (y + 16) s
       in
       draw_string s;
       loop (row+1)
     )
   in
-  loop first
+  loop first;
+  Gl.disable `blend;
+  Gl.disable `texture_2d;
 ;;
 
 let showoutline (_, active, first, outlines, _, pan, _) =

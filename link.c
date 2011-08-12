@@ -1913,13 +1913,7 @@ CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
         errx (1, "draw string with no face");
     }
 
-    glEnable (GL_TEXTURE_2D);
-    glEnable (GL_BLEND);
-    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     draw_string (state.face, pt, x, y, String_val (string_v));
-    glDisable (GL_BLEND);
-    glDisable (GL_TEXTURE_2D);
-
     CAMLreturn (Val_unit);
 }
 
