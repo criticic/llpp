@@ -1,6 +1,4 @@
 /* lots of code c&p-ed directly from mupdf */
-#define _BSD_SOURCE
-
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>

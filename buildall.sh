@@ -58,7 +58,7 @@ srcpath=$(dirname $0)
 
 sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
-ccopt="$(freetype-config --cflags) -O -include ft2build.h"
+ccopt="$(freetype-config --cflags) -O -include ft2build.h -D_GNU_SOURCE"
 if test "$1" = "opt"; then
     cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
     ocamlopt -c -o link.o -ccopt "$ccopt" $srcpath/link.c
