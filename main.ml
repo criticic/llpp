@@ -33,7 +33,8 @@ external copysel : string ->  unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
-external drawstr : int -> int -> int -> string -> unit = "ml_draw_string";;
+external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
+external measurestr : int -> string -> float = "ml_measure_string";;
 
 type mpos = int * int
 and mstate =
@@ -765,7 +766,7 @@ let reshape ~w ~h =
 let drawstring size x y s =
   Gl.enable `blend;
   Gl.enable `texture_2d;
-  drawstr size x y s;
+  ignore (drawstr size x y s);
   Gl.disable `blend;
   Gl.disable `texture_2d;
 ;;
@@ -2862,10 +2863,10 @@ let showstrings active first pan strings =
               then s
               else String.sub s (-pos) left
             in
-            drawstring1 14 x (y + 16) s
+            ignore (drawstring1 14 x (y + 16) s)
         )
         else
-          drawstring1 14 (x + pan*15) (y + 16) s
+          ignore (drawstring1 14 (x + pan*15) (y + 16) s)
       in
       draw_string s;
       loop (row+1)

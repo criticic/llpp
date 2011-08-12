@@ -1908,13 +1908,21 @@ CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
     int pt = Int_val(pt_v);
     int x = Int_val (x_v);
     int y = Int_val (y_v);
+    double w;
 
-    if (!state.face) {
-        errx (1, "draw string with no face");
-    }
+    w = draw_string (state.face, pt, x, y, String_val (string_v));
+    CAMLreturn (caml_copy_double (w));
+}
 
-    draw_string (state.face, pt, x, y, String_val (string_v));
-    CAMLreturn (Val_unit);
+CAMLprim value ml_measure_string (value pt_v, value string_v)
+{
+    CAMLparam2 (pt_v, string_v);
+    CAMLlocal1 (ret_v);
+    int pt = Int_val (pt_v);
+    double w;
+
+    w = measure_string (state.face, pt, String_val (string_v));
+    CAMLreturn (caml_copy_double (w));
 }
 
 CAMLprim value ml_init (value sock_v, value params_v)
