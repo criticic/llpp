@@ -58,9 +58,10 @@ srcpath=$(dirname $0)
 
 sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
+ccopt="$(freetype-config --cflags) -O -include ft2build.h"
 if test "$1" = "opt"; then
     cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
-    ocamlopt -c -o link.o -ccopt -O $srcpath/link.c
+    ocamlopt -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     ocamlopt -c -o help.cmx help.ml
     ocamlopt -c -o parser.cmx $srcpath/parser.ml
     ocamlopt -c -o main.cmx -I $root/lib/ocaml/lablGL $srcpath/main.ml
@@ -75,7 +76,7 @@ if test "$1" = "opt"; then
     main.cmx
 else
     cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
-    ocamlc -c -o link.o -ccopt -O $srcpath/link.c
+    ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     ocamlc -c -o help.cmo help.ml
     ocamlc -c -o parser.cmo $srcpath/parser.ml
     ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml

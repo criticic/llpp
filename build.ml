@@ -31,7 +31,9 @@ let boc flags src =
     o
     (StrSet.singleton o)
     [Filename.concat srcdir c]
-    StrSet.empty
+    (* Since we are using ocaml instead of gcc to compile this
+       the dep scanning passs is not done, hence this cludge *)
+    (StrSet.singleton (Filename.concat srcdir "glfont.c"))
   ;
 ;;
 

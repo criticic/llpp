@@ -7,7 +7,7 @@ and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
-type params = angle * proportional * texcount * sliceheight
+type params = angle * proportional * texcount * sliceheight * fontpath
 and pageno = int
 and width = int
 and height = int
@@ -22,6 +22,7 @@ and texcount = int
 and sliceheight = int
 and gen = int
 and top = float
+and fontpath = string
 ;;
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;
@@ -32,6 +33,7 @@ external copysel : string ->  unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
+external drawstring : int -> int -> int -> string -> unit = "ml_draw_string";;
 
 type mpos = int * int
 and mstate =
@@ -158,6 +160,7 @@ type conf =
     ; mutable bgcolor : float * float * float
     ; mutable bedefault : bool
     ; mutable scrollbarinpm : bool
+    ; mutable uifont : string
     }
 ;;
 
@@ -267,6 +270,7 @@ let defconf =
   ; bgcolor = (0.5, 0.5, 0.5)
   ; bedefault = false
   ; scrollbarinpm = true
+  ; uifont = ""
   }
 ;;
 
@@ -764,11 +768,8 @@ let showtext s =
     (0.0, float (conf.winh - 18))
     (float (conf.winw - state.scrollw - 1), float conf.winh)
   ;
-  let font = Glut.BITMAP_8_BY_13 in
   GlDraw.color (1.0, 1.0, 1.0);
-  GlPix.raster_pos ~x:0.0 ~y:(float (conf.winh - 5)) ();
-  Glut.bitmapCharacter ~font ~c:(Char.code ' ');
-  String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s;
+  drawstring 14 8 (conf.winh - 5) s;
 ;;
 
 let enttext () =
@@ -780,16 +781,16 @@ let enttext () =
         | 0 | 1 ->
             if len > 0
             then
-              Printf.sprintf "%s%s^ [%s]" prefix text state.text
+              Printf.sprintf "%s%s\226– [%s]" prefix text state.text
             else
-              Printf.sprintf "%s%s^"  prefix text
+              Printf.sprintf "%s%s\226–"  prefix text
 
         | _ ->
             if len > 0
             then
-              Printf.sprintf "%s: %s^ [%s]" prefix text state.text
+              Printf.sprintf "%s: %s\226– [%s]" prefix text state.text
             else
-              Printf.sprintf "%s: %s^"  prefix text
+              Printf.sprintf "%s: %s\226–"  prefix text
       in
       showtext s;
 
@@ -934,27 +935,6 @@ let act cmd =
         Scanf.sscanf cmd "o %u %u %d %u %n" (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub cmd pos (String.length cmd - pos) in
-      let s =
-        let l = String.length s in
-        let b = Buffer.create (String.length s) in
-        let rec loop pc2 i =
-          if i = l
-          then ()
-          else
-            let pc2 =
-              match s.[i] with
-              | '\xa0' when pc2 -> Buffer.add_char b ' '; false
-              | '\xc2' -> true
-              | c ->
-                  let c = if Char.code c land 0x80 = 0 then c else '?' in
-                  Buffer.add_char b c;
-                  false
-            in
-            loop pc2 (i+1)
-        in
-        loop false 0;
-        Buffer.contents b
-      in
       let outline = (s, l, (n, float t /. float h)) in
       let outlines =
         match state.outlines with
@@ -2694,13 +2674,10 @@ let drawplaceholder l =
     (float l.pagex, float l.pagedispy)
     (float (l.pagew + l.pagex), float (l.pagedispy + l.pagevh))
   ;
-  let x = float (if margin < 0 then -margin else l.pagex)
-  and y = float (l.pagedispy + 13) in
-  let font = Glut.BITMAP_8_BY_13 in
+  let x = if margin < 0 then -margin else l.pagex
+  and y = l.pagedispy + 13 in
   GlDraw.color (0.0, 0.0, 0.0);
-  GlPix.raster_pos ~x ~y ();
-  String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c))
-    ("Loading " ^ string_of_int (l.pageno + 1));
+  drawstring 13 x y ("Loading " ^ string_of_int (l.pageno + 1))
 ;;
 
 let now () = Unix.gettimeofday ();;
@@ -2830,11 +2807,6 @@ let showstrings active first pan strings =
   Gl.disable `blend;
 
   GlDraw.color (1., 1., 1.);
-  let font = Glut.BITMAP_9_BY_15 in
-  let draw_string x y s =
-    GlPix.raster_pos ~x ~y ();
-    String.iter (fun c -> Glut.bitmapCharacter ~font ~c:(Char.code c)) s
-  in
   let rec loop row =
     if row = Array.length strings || (row - first) * 16 > conf.winh
     then ()
@@ -2868,10 +2840,10 @@ let showstrings active first pan strings =
               then s
               else String.sub s (-pos) left
             in
-            draw_string (float x) (float (y + 16)) s
+            drawstring 14 x (y + 16) s
         )
         else
-          draw_string (float (x + pan*15)) (float (y + 16)) s
+          drawstring 14 (x + pan*15) (y + 16) s
       in
       draw_string s;
       loop (row+1)
@@ -3225,6 +3197,7 @@ struct
         | "background-color" -> { c with bgcolor = color_of_string v }
         | "scrollbar-in-presentation" ->
             { c with scrollbarinpm = bool_of_string v }
+        | "ui-font" -> { c with uifont = v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -3301,6 +3274,7 @@ struct
     dst.jumpback       <- src.jumpback;
     dst.bgcolor        <- src.bgcolor;
     dst.scrollbarinpm  <- src.scrollbarinpm;
+    dst.uifont         <- src.uifont;
   ;;
 
   let unent s =
@@ -3344,7 +3318,7 @@ struct
           let anchor = (pageno, rely) in
           if closed
           then (Hashtbl.add h path (c, [], pan, anchor); v)
-          else { v with f = doc path pan anchor  c [] }
+          else { v with f = doc path pan anchor c [] }
 
       | Vopen _ ->
           error "unexpected subelement in llppconfig" s spos
@@ -3500,6 +3474,10 @@ struct
       if always || a <> b
       then
         Printf.bprintf bb "\n    %s='%s'" s (color_to_string a)
+    and os s a b =
+      if always || a <> b
+      then
+        Printf.bprintf bb "\n    %s='%s'" s a
     in
     let w, h =
       if always
@@ -3545,6 +3523,7 @@ struct
     ob "persistent-location" c.jumpback dc.jumpback;
     oc "background-color" c.bgcolor dc.bgcolor;
     ob "scrollbar-in-presentation" c.scrollbarinpm dc.scrollbarinpm;
+    os "ui-font" c.uifont dc.uifont;
   ;;
 
   let save () =
@@ -3686,7 +3665,10 @@ let () =
   let () = Glut.motionFunc motion in
   let () = Glut.passiveMotionFunc pmotion in
 
-  init ssock (conf.angle, conf.proportional, conf.texcount, conf.sliceheight);
+  init ssock (
+    conf.angle, conf.proportional, conf.texcount,
+    conf.sliceheight, conf.uifont
+  );
   state.csock <- csock;
   state.ssock <- ssock;
   state.text <- "Opening " ^ state.path;

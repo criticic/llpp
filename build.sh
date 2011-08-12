@@ -6,13 +6,13 @@ mupdflibpath=$mupdf/build/release
 mupdfincpath=$mupdf/fitz:$mupdf/pdf
 
 cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
-
+ccopt="$(freetype-config --cflags) -O -include ft2build.h"
 export LIBRARY_PATH=$LIBRARY_PATH:$mupdflibpath
 export CPATH=$CPATH:$mupdfincpath
 
 sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
-ocamlc -c -o link.o -ccopt -O $srcpath/link.c
+ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
 ocamlc -c -o help.cmo help.ml
 ocamlc -c -o parser.cmo $srcpath/parser.ml
 ocamlc -c -o main.cmo -I +lablGL $srcpath/main.ml
