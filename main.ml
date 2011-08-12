@@ -1066,7 +1066,10 @@ let setzoom zoom =
     if zoom <= 1.0
     then state.x <- 0;
     conf.zoom <- zoom;
-    state.anchor <- getanchor ();
+    if state.invalidated = 0
+    then
+      state.anchor <- getanchor ()
+    ;
     reshape conf.winw conf.winh;
     state.text <- Printf.sprintf "zoom is now %-5.1f" (zoom *. 100.0);
   );
