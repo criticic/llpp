@@ -1370,29 +1370,6 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
     }
 }
 
-#include "glfont.c"
-
-CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
-{
-    CAMLparam4 (pt_v, x_v, y_v, string_v);
-    int pt = Int_val(pt_v);
-    int x = Int_val (x_v);
-    int y = Int_val (y_v);
-
-    if (!state.face) {
-        errx (1, "draw string with no face");
-    }
-
-    glEnable (GL_TEXTURE_2D);
-    glEnable (GL_BLEND);
-    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    draw_string (state.face, pt, x, y, String_val (string_v));
-    glDisable (GL_BLEND);
-    glDisable (GL_TEXTURE_2D);
-
-    CAMLreturn (Val_unit);
-}
-
 CAMLprim value ml_draw (value args_v, value ptr_v)
 {
     CAMLparam2 (args_v, ptr_v);
@@ -1921,6 +1898,29 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
  done:
     ret_v = caml_copy_double (zoom);
     CAMLreturn (ret_v);
+}
+
+#include "glfont.c"
+
+CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
+{
+    CAMLparam4 (pt_v, x_v, y_v, string_v);
+    int pt = Int_val(pt_v);
+    int x = Int_val (x_v);
+    int y = Int_val (y_v);
+
+    if (!state.face) {
+        errx (1, "draw string with no face");
+    }
+
+    glEnable (GL_TEXTURE_2D);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    draw_string (state.face, pt, x, y, String_val (string_v));
+    glDisable (GL_BLEND);
+    glDisable (GL_TEXTURE_2D);
+
+    CAMLreturn (Val_unit);
 }
 
 CAMLprim value ml_init (value sock_v, value params_v)
