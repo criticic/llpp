@@ -45,7 +45,7 @@ pageup/pagedown         - go forward/backward one screen-full
 ctrl pageup/pagedown    - align top of the screen with first/last visible page
 
 (moving mouse while holding primary mouse button will pan the page,
-if the mouse is over selectable element (text/link) holding countrol
+if the mouse is over selectable element (text/link) holding control
 will make the page pan instead of the default action (selecting text/
 clicking link))
 
