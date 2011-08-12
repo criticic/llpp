@@ -2105,9 +2105,16 @@ let itemskeyboard key (active, first, items, qsearch, pan, oldmode) =
       Glut.postRedisplay ()
 
   | 27 ->                               (* escape *)
-      state.text <- "";
-      state.mode <- oldmode;
-      Glut.postRedisplay ();
+      if String.length qsearch = 0
+      then (
+        state.text <- "";
+        state.mode <- oldmode;
+      )
+      else (
+        state.text <- "";
+        state.mode <- Items (active, first, items, "", pan, oldmode);
+      )
+      Glut.postRedisplay ()
 
   | 13 ->                               (* enter *)
       if active >= 0 && active < Array.length items
