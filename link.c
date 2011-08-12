@@ -1947,10 +1947,10 @@ CAMLprim value ml_init (value sock_v, value params_v)
         unsigned int len;
         void *base = pdf_find_builtin_font ("Courier-Bold", &len);
 
-        if (!len || !base) errx (1, "failed to find builtin font\n");
+        if (!len || !base) errx (1, "failed to find builtin font");
 
         code = FT_New_Memory_Face (g_freetype_lib, base, len, 0, &state.face);
-        if (code) errx (1, "failed to load font bultin font\n");
+        if (code) errx (1, "failed to load bultin font");
     }
     if (!state.face) _exit (1);
 
