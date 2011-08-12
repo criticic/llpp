@@ -2031,7 +2031,7 @@ let itemskeyboard key (active, first, items, qsearch, pan, oldmode) =
   let search active pattern incr =
     let dosearch re =
       let rec loop n =
-        if n = Array.length items || n = -1
+        if n >= Array.length items || n < 0
         then None
         else
           let (s, _, _) = items.(n) in
