@@ -1394,7 +1394,7 @@ let enterinfomode () =
   let mode = state.mode in
   let rec makeitems () =
     let intp name get set =
-      Printf.sprintf "%-24s %d" name (get ()), 1, Action (
+      Printf.sprintf "%s\t%d" name (get ()), 1, Action (
         fun active first _ pan ->
           let ondone s =
             let n =
@@ -1415,14 +1415,14 @@ let enterinfomode () =
           )
       )
     and boolp name get set =
-      Printf.sprintf "%-24s %s" name (btos (get ())), 1, Action (
+      Printf.sprintf "%s\t%s" name (btos (get ())), 1, Action (
         fun active first qsearch pan ->
           let v = get () in
           set (not v);
           Items (active, first, makeitems (), qsearch, pan, mode);
       )
     and colorp name get set =
-      Printf.sprintf "%-24s %s" name (color_to_string (get ())), 1, Action (
+      Printf.sprintf "%s\t%s" name (color_to_string (get ())), 1, Action (
         fun active first _ pan ->
           let invalid = (nan, nan, nan) in
           let ondone s =
@@ -1593,7 +1593,7 @@ let enterinfomode () =
       intp "size (advisory)"
         (fun () -> conf.memlimit)
         (fun v -> conf.memlimit <- v);
-      Printf.sprintf "%-24s %d" "used" state.memused, 1, Noaction;
+      Printf.sprintf "%s\t%d" "used" state.memused, 1, Noaction;
     ]
     in
 
@@ -2823,7 +2823,7 @@ let showrects () =
   Gl.disable `blend;
 ;;
 
-let showstrings active first pan strings =
+let showstrings trusted active first pan strings =
   Gl.enable `blend;
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   GlDraw.color (0., 0., 0.) ~alpha:0.85;
@@ -2831,6 +2831,8 @@ let showstrings active first pan strings =
   GlDraw.color (1., 1., 1.);
   Gl.enable `texture_2d;
 
+  let wx = measurestr 14 "w" in
+  let tabx = 30.0*.wx  +. float (pan*15) in
   let rec loop row =
     if row = Array.length strings || (row - first) * 16 > conf.winh
     then ()
@@ -2849,6 +2851,28 @@ let showstrings active first pan strings =
         GlDraw.color (1., 1., 1.);
         Gl.enable `texture_2d;
       );
+
+      let drawtabularstring x s =
+        let _ =
+          if trusted
+          then
+            let tabpos = try String.index s '\t' with Not_found -> -1 in
+            if tabpos > 0
+            then
+              let len = String.length s - tabpos - 1 in
+              let s1 = String.sub s 0 tabpos
+              and s2 = String.sub s (tabpos + 1) len in
+              let xx = wx +. drawstring1 14 x (y + 16) s1 in
+              let x = truncate (max xx tabx) in
+              drawstring1 14 x (y + 16) s2
+            else
+              drawstring1 14 x (y + 16) s
+          else
+            drawstring1 14 x (y + 16) s
+        in
+        ()
+      in
+
       let draw_string s =
         let l = String.length s in
         if pan < 0
@@ -2863,10 +2887,12 @@ let showstrings active first pan strings =
               then s
               else String.sub s (-pos) left
             in
-            ignore (drawstring1 14 x (y + 16) s)
+            drawtabularstring x s
+              (* ignore (drawstring1 14 x (y + 16) s) *)
         )
         else
-          ignore (drawstring1 14 (x + pan*15) (y + 16) s)
+          drawtabularstring (x + pan*15) s
+            (* ignore (drawstring1 14 (x + pan*15) (y + 16) s) *)
       in
       draw_string s;
       loop (row+1)
@@ -2878,11 +2904,11 @@ let showstrings active first pan strings =
 ;;
 
 let showoutline (_, active, first, outlines, _, pan, _) =
-  showstrings active first pan outlines;
+  showstrings false active first pan outlines;
 ;;
 
 let showitems (active, first, items, _, pan, _) =
-  showstrings active first pan items;
+  showstrings true active first pan items;
 ;;
 
 let display () =

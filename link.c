@@ -1946,7 +1946,7 @@ CAMLprim value ml_init (value sock_v, value params_v)
     }
     else {
         unsigned int len;
-        void *base = pdf_find_builtin_font ("Courier-Bold", &len);
+        void *base = pdf_find_substitute_font (0, 0, 0, 0, &len);
 
         state.face = load_builtin_font (base, len);
     }
