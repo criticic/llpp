@@ -793,16 +793,16 @@ let enttext () =
         | 0 | 1 ->
             if len > 0
             then
-              Printf.sprintf "%s%s\226ñè [%s]" prefix text state.text
+              Printf.sprintf "%s%s_ [%s]" prefix text state.text
             else
-              Printf.sprintf "%s%s\226ñè"  prefix text
+              Printf.sprintf "%s%s_"  prefix text
 
         | _ ->
             if len > 0
             then
-              Printf.sprintf "%s: %s\226ñè [%s]" prefix text state.text
+              Printf.sprintf "%s: %s_ [%s]" prefix text state.text
             else
-              Printf.sprintf "%s: %s\226ñè"  prefix text
+              Printf.sprintf "%s: %s_"  prefix text
       in
       drawstring s
 
