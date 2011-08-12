@@ -762,17 +762,16 @@ let reshape ~w ~h =
   wcmd "geometry" [`i w; `i h];
 ;;
 
-let showtext s =
-  GlDraw.color (0.0, 0.0, 0.0);
-  GlDraw.rect
-    (0.0, float (conf.winh - 18))
-    (float (conf.winw - state.scrollw - 1), float conf.winh)
-  ;
-  GlDraw.color (1.0, 1.0, 1.0);
-  drawstring 14 8 (conf.winh - 5) s;
-;;
-
 let enttext () =
+  let drawstring s =
+    GlDraw.color (0.0, 0.0, 0.0);
+    GlDraw.rect
+      (0.0, float (conf.winh - 18))
+      (float (conf.winw - state.scrollw - 1), float conf.winh)
+    ;
+    GlDraw.color (1.0, 1.0, 1.0);
+    drawstring 14 8 (conf.winh - 5) s;
+  in
   let len = String.length state.text in
   match state.mode with
   | Textentry ((prefix, text, _, _, _), _) ->
@@ -792,10 +791,10 @@ let enttext () =
             else
               Printf.sprintf "%s: %s\226–"  prefix text
       in
-      showtext s;
+      drawstring s
 
   | _ ->
-      if len > 0 then showtext state.text
+      if len > 0 then drawstring state.text
 ;;
 
 let showtext c s =
