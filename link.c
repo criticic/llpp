@@ -399,31 +399,30 @@ static void openxref (char *filename, char *password)
 
 static void pdfinfo (void)
 {
-    printd (state.sock, "i PDF version %d.%d\n",
+    fz_obj *infoobj;
+
+    printd (state.sock, "i PDF version\t%d.%d",
             state.xref->version / 10, state.xref->version % 10);
 
-#if _XOPEN_SOURCE >= 700 || _POSIX_C_SOURCE >= 200809L
-    {
-        FILE *f;
-        char *buf;
-        size_t size;
-        fz_obj *obj;
+    infoobj = fz_dict_gets (state.xref->trailer, "Info");
+    if (infoobj) {
+        int i;
+        char *s;
+        char *items[] = { "Title", "Creator", "Producer", "CreationDate" };
 
-        f = open_memstream (&buf, &size);
-        if (f) {
-            obj = fz_dict_gets (state.xref->trailer, "Info");
-            fz_fprint_obj (f, fz_resolve_indirect (obj), 0);
-            if (fclose (f)) err (1, "fclose on memstream failed");
-            if (size > 64*1024) size = 64*1024;
-            printd (state.sock, "i %.*s", (int) size, buf);
-            free (buf);
+        for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
+            fz_obj *obj = fz_dict_gets (infoobj, items[i]);
+            s = pdf_to_utf8 (obj);
+            if (*s) {
+                if (i == 0) {
+                    printd (state.sock, "t %s", s);
+                }
+                printd (state.sock, "i %s\t%s", items[i], s);
+            }
+            fz_free (s);
         }
-        else {
-            printd (state.sock, "i error opening memstream: %s\n",
-                    strerror (errno));
-        }
+        printd (state.sock, "ie");
     }
-#endif
 }
 
 static int readlen (int fd)
@@ -1028,7 +1027,6 @@ mainloop (void *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
-            fz_obj *obj;
             size_t filenamelen;
             char *password;
             char *filename = p + 5;
@@ -1038,19 +1036,7 @@ mainloop (void *unused)
 
             openxref (filename, password);
             initpdims ();
-
-            obj = fz_dict_gets (state.xref->trailer, "Info");
-            if (obj) {
-                char *s;
-
-                obj = fz_dict_gets (obj, "Title");
-                s = pdf_to_utf8 (obj);
-                if (*s) {
-                    printd (state.sock, "t %s", s);
-                }
-                fz_free (s);
-            }
-
+            pdfinfo ();
             state.needoutline = 1;
         }
         else if (!strncmp ("free", p, 4)) {
@@ -1159,9 +1145,6 @@ mainloop (void *unused)
                     state.proportional,
                     w * h * 4,
                     page);
-        }
-        else if (!strncmp ("info", p, 4)) {
-            pdfinfo ();
         }
         else if (!strncmp ("interrupt", p, 9)) {
             printd (state.sock, "V interrupted");

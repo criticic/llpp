@@ -953,21 +953,14 @@ let act cmd =
 
 
   | 'i' ->
-      let s = Scanf.sscanf cmd "i %n"
-        (fun n -> String.sub cmd n (String.length cmd - n))
-      in
-      let len = String.length s in
-      let rec fold accu pos =
-        let eolpos =
-          try String.index_from s pos '\n' with Not_found -> len
+      if String.length cmd > 1 && cmd.[1] = 'e'
+      then
+        state.docinfo <- List.rev state.docinfo
+      else
+        let s = Scanf.sscanf cmd "i %n"
+          (fun n -> String.sub cmd n (String.length cmd - n))
         in
-        if eolpos = len
-        then List.rev accu
-        else
-          let line = String.sub s pos (eolpos - pos) in
-          fold ((1, line)::accu) (eolpos+1)
-      in
-      state.docinfo <- fold state.docinfo 0
+        state.docinfo <- (1, s) :: state.docinfo
 
   | _ ->
       dolog "unknown cmd `%S'" cmd
@@ -1664,7 +1657,6 @@ let doreshape w h =
 
 let writeopen path password  =
   writecmd state.csock ("open " ^ path ^ "\000" ^ password ^ "\000");
-  writecmd state.csock "info";
 ;;
 
 let opendoc path password =
@@ -1672,6 +1664,7 @@ let opendoc path password =
   state.path <- path;
   state.password <- password;
   state.gen <- state.gen + 1;
+  state.docinfo <- [];
 
   writeopen path password;
   Glut.setWindowTitle ("llpp " ^ Filename.basename path);
