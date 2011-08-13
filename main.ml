@@ -792,20 +792,11 @@ let enttext () =
   match state.mode with
   | Textentry ((prefix, text, _, _, _), _) ->
       let s =
-        match String.length prefix with
-        | 0 | 1 ->
-            if len > 0
-            then
-              Printf.sprintf "%s%s_ [%s]" prefix text state.text
-            else
-              Printf.sprintf "%s%s_"  prefix text
-
-        | _ ->
-            if len > 0
-            then
-              Printf.sprintf "%s: %s_ [%s]" prefix text state.text
-            else
-              Printf.sprintf "%s: %s_"  prefix text
+        if len > 0
+        then
+          Printf.sprintf "%s%s_ [%s]" prefix text state.text
+        else
+          Printf.sprintf "%s%s_"  prefix text
       in
       drawstring s
 
@@ -1307,11 +1298,11 @@ let optentry mode _ key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ("vertical margin", "", None, intentry, ondone)
+      TEswitch ("vertical margin: ", "", None, intentry, ondone)
 
   | 'l' ->
       reinit conf.angle (not conf.proportional);
-      TEdone ("proprortional display " ^ btos conf.proportional)
+      TEdone ("proprortional display:  " ^ btos conf.proportional)
 
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
@@ -1412,7 +1403,7 @@ let enterinfomode () =
             in
             if n != max_int then set n;
           in
-          let te = name, "", None, intentry, ondone in
+          let te = name ^ ": ", "", None, intentry, ondone in
           state.text <- "";
           Textentry (
             te,
@@ -1442,7 +1433,7 @@ let enterinfomode () =
             if c <> invalid
             then set c;
           in
-          let te = name, "", None, textentry, ondone in
+          let te = name ^ ": ", "", None, textentry, ondone in
           state.text <- "";
           Textentry (
             te,
@@ -1734,7 +1725,7 @@ let viewkeyboard key =
           state.text <- "page bias is now " ^ string_of_int n;
         )
       in
-      enttext ("page bias", "", None, intentry, ondone)
+      enttext ("page bias: ", "", None, intentry, ondone)
 
   | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
@@ -1743,7 +1734,7 @@ let viewkeyboard key =
   | '-' ->
       let ondone msg = state.text <- msg in
       enttext (
-        "option [acfhilpstvAPRSZ]", "", None,
+        "option [acfhilpstvAPRSZ]: ", "", None,
         optentry state.mode, ondone
       )
 
@@ -1903,7 +1894,7 @@ let viewkeyboard key =
             :: state.bookmarks
         | _ -> ()
       in
-      enttext ("bookmark", "", None, textentry, ondone)
+      enttext ("bookmark: ", "", None, textentry, ondone)
 
   | '~' ->
       quickbookmark ();
