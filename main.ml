@@ -228,7 +228,7 @@ type state =
     ; mutable memused : int
     ; mutable gen : gen
     ; mutable throttle : layout list option
-    ; mutable ascrollstep : int
+    ; mutable autoscroll :int option
     ; mutable help : item array
     ; mutable docinfo : (int * string) list
     ; mutable deadline : float
@@ -318,7 +318,7 @@ let state =
   ; memused = 0
   ; gen = 0
   ; throttle = None
-  ; ascrollstep = 0
+  ; autoscroll = None
   ; help = makehelp ()
   ; docinfo = []
   ; deadline = nan
@@ -987,16 +987,17 @@ let idle () =
     state.deadline <- state.deadline +. delay;
     begin match r with
     | [] ->
-        if state.ascrollstep != 0
-        then begin
-          let y = state.y + state.ascrollstep in
-          let y =
-            if y < 0
-            then state.maxy
-            else if y >= state.maxy then 0 else y
-          in
-          gotoy y;
-          state.text <- "";
+        begin match state.autoscroll with
+        | Some step when step != 0 ->
+            let y = state.y + step in
+            let y =
+              if y < 0
+              then state.maxy
+              else if y >= state.maxy then 0 else y
+            in
+            gotoy y;
+            state.text <- "";
+        | _ -> ()
         end;
 
     | _ ->
@@ -1201,8 +1202,8 @@ let optentry mode _ key =
       let ondone s =
         try
           conf.autoscrollstep <- int_of_string s;
-          if state.ascrollstep > 0
-          then state.ascrollstep <- conf.autoscrollstep;
+          if state.autoscroll <> None
+          then state.autoscroll <- Some conf.autoscrollstep
         with exc ->
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
@@ -1529,13 +1530,13 @@ let enterinfomode () =
 
       intp "auto scroll step"
         (fun () ->
-          if state.ascrollstep > 0
-          then state.ascrollstep
-          else conf.autoscrollstep)
+          match state.autoscroll with
+          | Some step -> step
+          | _ -> conf.autoscrollstep)
         (fun n ->
-          if state.ascrollstep > 0
-          then state.ascrollstep <- n
-          else conf.autoscrollstep <- n);
+          if state.autoscroll <> None
+          then state.autoscroll <- Some n;
+          conf.autoscrollstep <- n);
 
       intp "zoom"
         (fun () -> truncate (conf.zoom *. 100.))
@@ -1787,12 +1788,13 @@ let viewkeyboard key =
       Glut.postRedisplay ()
 
   | 'a' ->
-      if state.ascrollstep = 0
-      then state.ascrollstep <- conf.autoscrollstep
-      else (
-        conf.autoscrollstep <- state.ascrollstep;
-        state.ascrollstep <- 0;
-      )
+      begin match state.autoscroll with
+      | Some step ->
+          conf.autoscrollstep <- step;
+          state.autoscroll <- None
+      | None ->
+          state.autoscroll <- Some (conf.autoscrollstep)
+      end
 
   | 'P' ->
       conf.presentation <- not conf.presentation;
@@ -2430,12 +2432,11 @@ let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
   | _ -> ()
 ;;
 
-let setautoscrollspeed goingdown =
-  let incr = max 1 ((abs state.ascrollstep) / 2) in
+let setautoscrollspeed step goingdown =
+  let incr = max 1 ((abs step) / 2) in
   let incr = if goingdown then incr else -incr in
-  let astep = state.ascrollstep + incr  in
-  let astep = if astep = 0 then incr else astep in
-  state.ascrollstep <- astep;
+  let astep = step + incr  in
+  state.autoscroll <- Some astep;
 ;;
 
 let special ~key ~x ~y =
@@ -2452,9 +2453,11 @@ let special ~key ~x ~y =
       enterhelpmode ()
 
   | View ->
-      if state.ascrollstep != 0 && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
-      then setautoscrollspeed (key = Glut.KEY_DOWN)
-      else
+      begin match state.autoscroll with
+      | Some step when key = Glut.KEY_DOWN || key = Glut.KEY_UP ->
+          setautoscrollspeed step (key = Glut.KEY_DOWN)
+
+      | _ ->
         let y =
           match key with
           | Glut.KEY_F3        -> search state.searchpattern true; state.y
@@ -2495,6 +2498,7 @@ let special ~key ~x ~y =
           | _ -> state.y
         in
         gotoy_and_clear_text y
+      end
 
   | Textentry
       ((c, _, (Some (action, _) as onhist), onkey, ondone), mode) ->
@@ -2982,18 +2986,17 @@ let viewmouse button bstate x y =
         | _ -> state.mstate <- Mzoom (n, 0)
       )
       else (
-        if state.ascrollstep != 0
-        then
-          setautoscrollspeed (n=4)
-        else
-          let incr =
-            if n = 3
-            then -conf.scrollstep
-            else conf.scrollstep
-          in
-          let incr = incr * 2 in
-          let y = clamp incr in
-          gotoy_and_clear_text y
+        match state.autoscroll with
+        | Some step -> setautoscrollspeed step (n=4)
+        | None ->
+            let incr =
+              if n = 3
+              then -conf.scrollstep
+              else conf.scrollstep
+            in
+            let incr = incr * 2 in
+            let y = clamp incr in
+            gotoy_and_clear_text y
       )
 
   | Glut.LEFT_BUTTON when Glut.getModifiers () land Glut.active_ctrl != 0 ->
@@ -3619,9 +3622,9 @@ struct
       adddoc basename pan (getanchor ())
         { conf with
           autoscrollstep =
-            if state.ascrollstep > 0
-            then state.ascrollstep
-            else conf.autoscrollstep }
+            match state.autoscroll with
+            | Some step -> step
+            | None -> conf.autoscrollstep }
         (if conf.savebmarks then state.bookmarks else []);
 
       Hashtbl.iter (fun path (c, bookmarks, x, y) ->
