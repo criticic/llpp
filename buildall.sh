@@ -16,7 +16,7 @@ sumatrapdf=http://sumatrapdf.googlecode.com/svn/trunk
 
 test -d openjpeg || svn -r r608 checkout $openjpeg openjpeg
 test -d jbig2dec || git clone $jbig2dec jbig2dec
-test -d lablGL-1.04 || (wget $lablgl && tar xf lablgl-1.04.tgz)
+test -d lablGL-1.04 || (wget $lablgl && tar -xzf lablgl-1.04.tar.gz)
 
 if ! test -d mupdf; then
     if $use_sumatrapdf_patched_mupdf; then
@@ -30,27 +30,29 @@ mkdir -p $root/bin
 mkdir -p $root/lib
 mkdir -p $root/include
 
+make=$(gmake 2>/dev/null && echo gmake || echo make)
+
 (cd openjpeg \
-    && make dist \
+    && $make dist \
     && cp dist/*.h $root/include/ \
     && cp dist/*.a $root/lib/)
 
 (cd jbig2dec \
-    && make -f Makefile.unix install prefix=$root && rm -f $root/lib/*.so*)
+    && $make -f Makefile.unix install prefix=$root && rm -f $root/lib/*.so*)
 
 (cd lablGL-1.04 \
     && cat Makefile.config.linux.mdk > Makefile.config \
-    && make glut glutopt \
-    && make install \
+    && $make glut glutopt \
+    && $make install \
             BINDIR=$root/bin \
             LIBDIR=$root/lib/ocaml \
             DLLDIR=$root/lib/ocaml/stublibs \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-export CPATH=$CPATH:$root/include:$root/mupdf/pdf:$root/mupdf/fitz
-export LIBRARY_PATH=$LIBRARY_PATH:$root/lib:$root/mupdf/build/release
+export CPATH=$root/include:$root/mupdf/pdf:$root/mupdf/fitz:$CPATH:/usr/local/include
+export LIBRARY_PATH=$root/lib:$root/mupdf/build/release:$LIBRARY_PATH:/usr/local/lib
 
-(cd mupdf && make build=release)
+(cd mupdf && $make build=release)
 
 cd ..
 
