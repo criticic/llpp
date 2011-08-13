@@ -750,8 +750,9 @@ let reshape =
   let firsttime = ref true in
     fun ~w ~h ->
       if state.invalidated = 0 && not !firsttime
-      then (state.anchor <- getanchor (); firsttime := false);
+      then state.anchor <- getanchor ();
 
+      firsttime := false;
       conf.winw <- w;
       let w = truncate (float w *. conf.zoom) - state.scrollw in
       let w = max w 2 in
