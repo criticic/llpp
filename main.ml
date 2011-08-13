@@ -179,7 +179,6 @@ type rect = float * float * float * float * float * float * float * float;;
 type pagemapkey = pageno * width * angle * proportional * gen;;
 
 let emptyanchor = (0, 0.0);;
-let initialanchor = (-1, nan);;
 
 type mode =
     | Birdseye of (conf * leftx * pageno * pageno * anchor)
@@ -290,7 +289,7 @@ let state =
   ; y = 0
   ; w = 0
   ; scrollw = 0
-  ; anchor = initialanchor
+  ; anchor = emptyanchor
   ; layout = []
   ; maxy = max_int
   ; pagemap = Hashtbl.create 10
@@ -748,7 +747,7 @@ let winmatrix () =
 ;;
 
 let reshape ~w ~h =
-  if state.invalidated = 0 && state.anchor == initialanchor
+  if state.invalidated = 0
   then state.anchor <- getanchor ();
 
   conf.winw <- w;
@@ -1088,10 +1087,6 @@ let setzoom zoom =
     if zoom <= 1.0
     then state.x <- 0;
     conf.zoom <- zoom;
-    if state.invalidated = 0
-    then
-      state.anchor <- getanchor ()
-    ;
     reshape conf.winw conf.winh;
     state.text <- Printf.sprintf "zoom is now %-5.1f" (zoom *. 100.0);
   );
