@@ -1845,7 +1845,7 @@ let viewkeyboard key =
           gotoy_and_clear_text (getpagey pageno)
       end
 
-  | '\127' ->                           (* delte *)
+  | '\127' ->                           (* del *)
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
