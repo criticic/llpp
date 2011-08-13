@@ -232,6 +232,7 @@ type state =
     ; mutable ascrollstep : int
     ; mutable help : item array
     ; mutable docinfo : (int * string) list
+    ; mutable deadline : float
     ; hists : hists
     }
 and hists =
@@ -321,6 +322,7 @@ let state =
   ; ascrollstep = 0
   ; help = makehelp ()
   ; docinfo = []
+  ; deadline = nan
   }
 ;;
 
@@ -981,8 +983,15 @@ let act cmd =
 let now = Unix.gettimeofday;;
 
 let idle () =
+  if state.deadline == nan then state.deadline <- now ();
   let rec loop delay =
-    let r, _, _ = Unix.select [state.csock] [] [] delay in
+    let timeout =
+      if delay > 0.0
+      then max 0.0 (state.deadline -. now ())
+      else 0.0
+    in
+    let r, _, _ = Unix.select [state.csock] [] [] timeout in
+    state.deadline <- state.deadline +. delay;
     begin match r with
     | [] ->
         if state.ascrollstep > 0
@@ -998,7 +1007,7 @@ let idle () =
         act cmd;
         loop 0.0
     end;
-  in loop 0.001
+  in loop 0.007
 ;;
 
 let onhist cb =
