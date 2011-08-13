@@ -987,10 +987,14 @@ let idle () =
     state.deadline <- state.deadline +. delay;
     begin match r with
     | [] ->
-        if state.ascrollstep > 0
+        if state.ascrollstep != 0
         then begin
           let y = state.y + state.ascrollstep in
-          let y = if y >= state.maxy then 0 else y in
+          let y =
+            if y < 0
+            then state.maxy
+            else if y >= state.maxy then 0 else y
+          in
           gotoy y;
           state.text <- "";
         end;
@@ -2427,8 +2431,10 @@ let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
 ;;
 
 let setautoscrollspeed goingdown =
-  let incr = max 1 (state.ascrollstep / 2) in
-  let astep = max 1 (state.ascrollstep + (if goingdown then incr else -incr)) in
+  let incr = max 1 ((abs state.ascrollstep) / 2) in
+  let incr = if goingdown then incr else -incr in
+  let astep = state.ascrollstep + incr  in
+  let astep = if astep = 0 then incr else astep in
   state.ascrollstep <- astep;
 ;;
 
@@ -2446,7 +2452,7 @@ let special ~key ~x ~y =
       enterhelpmode ()
 
   | View ->
-      if state.ascrollstep > 0 && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
+      if state.ascrollstep != 0 && (key = Glut.KEY_DOWN || key = Glut.KEY_UP)
       then setautoscrollspeed (key = Glut.KEY_DOWN)
       else
         let y =
@@ -2976,7 +2982,7 @@ let viewmouse button bstate x y =
         | _ -> state.mstate <- Mzoom (n, 0)
       )
       else (
-        if state.ascrollstep > 0
+        if state.ascrollstep != 0
         then
           setautoscrollspeed (n=4)
         else
