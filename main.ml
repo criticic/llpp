@@ -1795,7 +1795,7 @@ let viewkeyboard key =
       | None ->
           if conf.autoscrollstep = 0
           then state.autoscroll <- Some 1
-          else state.autoscroll <- Some (conf.autoscrollstep)
+          else state.autoscroll <- Some conf.autoscrollstep
       end
 
   | 'P' ->
