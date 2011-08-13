@@ -746,22 +746,24 @@ let winmatrix () =
   GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
 ;;
 
-let reshape ~w ~h =
-  if state.invalidated = 0
-  then state.anchor <- getanchor ();
+let reshape =
+  let firsttime = ref true in
+    fun ~w ~h ->
+      if state.invalidated = 0 && not !firsttime
+      then (state.anchor <- getanchor (); firsttime := false);
 
-  conf.winw <- w;
-  let w = truncate (float w *. conf.zoom) - state.scrollw in
-  let w = max w 2 in
-  state.w <- w;
-  conf.winh <- h;
-  GlMat.mode `modelview;
-  GlMat.load_identity ();
-  GlClear.color (scalecolor 1.0);
-  GlClear.clear [`color];
+      conf.winw <- w;
+      let w = truncate (float w *. conf.zoom) - state.scrollw in
+      let w = max w 2 in
+      state.w <- w;
+      conf.winh <- h;
+      GlMat.mode `modelview;
+      GlMat.load_identity ();
+      GlClear.color (scalecolor 1.0);
+      GlClear.clear [`color];
 
-  invalidate ();
-  wcmd "geometry" [`i w; `i h];
+      invalidate ();
+      wcmd "geometry" [`i w; `i h];
 ;;
 
 let drawstring size x y s =
