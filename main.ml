@@ -1197,7 +1197,7 @@ let optentry mode _ key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ("scroll step", "", None, intentry, ondone)
+      TEswitch ("scroll step: ", "", None, intentry, ondone)
 
   | 'A' ->
       let ondone s =
@@ -1209,7 +1209,7 @@ let optentry mode _ key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ("auto scroll step", "", None, intentry, ondone)
+      TEswitch ("auto scroll step: ", "", None, intentry, ondone)
 
   | 'Z' ->
       let ondone s =
@@ -1220,7 +1220,7 @@ let optentry mode _ key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ("zoom", "", None, intentry, ondone)
+      TEswitch ("zoom: ", "", None, intentry, ondone)
 
   | 't' ->
       let ondone s =
@@ -1238,7 +1238,7 @@ let optentry mode _ key =
           state.text <- Printf.sprintf "bad integer `%s': %s"
             s (Printexc.to_string exc)
       in
-      TEswitch ("thumbnail width", "", None, intentry, ondone)
+      TEswitch ("thumbnail width: ", "", None, intentry, ondone)
 
   | 'R' ->
       let ondone s =
@@ -1252,7 +1252,7 @@ let optentry mode _ key =
         | Some angle -> reinit angle conf.proportional
         | None -> ()
       in
-      TEswitch ("rotation", "", None, intentry, ondone)
+      TEswitch ("rotation: ", "", None, intentry, ondone)
 
   | 'i' ->
       conf.icase <- not conf.icase;
@@ -1309,7 +1309,7 @@ let optentry mode _ key =
 
   | 'l' ->
       reinit conf.angle (not conf.proportional);
-      TEdone ("proprortional display:  " ^ btos conf.proportional)
+      TEdone ("proprortional display " ^ btos conf.proportional)
 
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
