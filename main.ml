@@ -996,7 +996,8 @@ let idle () =
               else if y >= state.maxy then 0 else y
             in
             gotoy y;
-            state.text <- "";
+            if state.mode = View
+            then state.text <- "";
         | _ -> ()
         end;
 
