@@ -42,7 +42,7 @@ Ctrl-1                  - fit page height
 Ctrl-9/F9               - enter bird's eye view
 home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
-ctrl pageup/pagedown    - align top of the screen with first/last visible page
+Ctrl pageup/pagedown    - align top of the screen with first/last visible page
 
 (moving mouse while holding primary mouse button will pan the page,
 if the mouse is over selectable element (text/link) holding control
