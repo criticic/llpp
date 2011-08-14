@@ -1418,7 +1418,7 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
     int ret;
     void *ptr;
     struct page *page;
-    int slicenum = 0;
+    int slicenum;
     int yoff = dispy - py;
     struct slice *slice;
 
@@ -1433,8 +1433,8 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
 
     glEnable (GL_TEXTURE_RECTANGLE_ARB);
 
-    for (slicenum = 0; slicenum < page->slicecount; ++slicenum) {
-        slice = &page->slices[slicenum];
+    for (slicenum = 0, slice = page->slices;
+         slicenum < page->slicecount; ++slicenum, ++slice) {
         if (slice->h > py) {
             break;
         }
