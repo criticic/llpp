@@ -3563,7 +3563,7 @@ struct
     ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
     ob "proportional-display" c.proportional dc.proportional;
     oi "pixmap-cache-size" c.memlimit dc.memlimit;
-    oi "texcount" c.texcount dc.texcount;
+    oi "tex-count" c.texcount dc.texcount;
     oi "slice-height" c.sliceheight dc.sliceheight;
     oi "max-tex-width" c.blockwidth dc.blockwidth;
     oi "thumbnail-width" c.thumbw dc.thumbw;
