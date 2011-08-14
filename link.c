@@ -1874,6 +1874,40 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
     CAMLreturn (ret_v);
 }
 
+static double getmaxw (void)
+{
+    int i;
+    struct pagedim *p;
+    double maxw = 0.0;
+
+    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+        double x0, x1, w;
+
+        x0 = MIN (p->box.x0, p->box.x1);
+        x1 = MAX (p->box.x0, p->box.x1);
+
+        w = x1 - x0;
+        maxw = MAX (w, maxw);
+    }
+    return maxw;
+}
+
+CAMLprim value ml_getmaxw (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    CAMLlocal1 (ret_v);
+    double maxw = 0.0;
+
+    if (trylock ("ml_getmaxw")) {
+        goto done;
+    }
+    maxw = getmaxw ();
+    unlock ("ml_getmaxw");
+ done:
+    ret_v = caml_copy_double (maxw);
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
 {
     CAMLparam3 (winw_v, winh_v, dw_v);
@@ -1892,15 +1926,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     }
 
     if (state.proportional) {
-        for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-            double x0, x1, w;
-
-            x0 = MIN (p->box.x0, p->box.x1);
-            x1 = MAX (p->box.x0, p->box.x1);
-
-            w = x1 - x0;
-            maxw = MAX (w, maxw);
-        }
+        maxw = getmaxw ();
     }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {

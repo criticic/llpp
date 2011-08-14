@@ -40,6 +40,7 @@ Ctrl-g                  - interrupt search
 Ctrl-+/-                - zoom in/out
 Ctrl-0                  - fit page width and reset panning
 Ctrl-1                  - fit page height
+Ctrl-2                  - zoom to ...
 Ctrl-9/F9               - enter bird's eye view
 home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
