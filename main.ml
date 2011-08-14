@@ -26,7 +26,7 @@ and fontpath = string
 ;;
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;
-external draw : (int * int * int * int * bool) -> string  -> unit = "ml_draw";;
+external draw : (int * int * int * bool) -> string  -> unit = "ml_draw";;
 external seltext : string -> (int * int * int * int) -> int -> unit =
   "ml_seltext";;
 external copysel : string ->  unit = "ml_copysel";;
@@ -2737,8 +2737,7 @@ let drawpage l =
   begin match getopaque l.pageno with
   | Some (opaque, _) when validopaque opaque ->
       let a = now () in
-      draw (l.pagedispy, l.pagew, l.pagevh, l.pagey, conf.hlinks)
-        opaque;
+      draw (l.pagedispy, l.pagevh, l.pagey, conf.hlinks) opaque;
       let b = now () in
       let d = b-.a in
       vlog "draw %d %f sec" l.pageno d;

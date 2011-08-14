@@ -1411,10 +1411,9 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
 {
     CAMLparam2 (args_v, ptr_v);
     int dispy = Int_val (Field (args_v, 0));
-    /* int w = Int_val (Field (args_v, 1)); */
-    int h = Int_val (Field (args_v, 2));
-    int py = Int_val (Field (args_v, 3));
-    int hlinks = Bool_val (Field (args_v, 4));
+    int h = Int_val (Field (args_v, 1));
+    int py = Int_val (Field (args_v, 2));
+    int hlinks = Bool_val (Field (args_v, 3));
     char *s = String_val (ptr_v);
     int ret;
     void *ptr;
@@ -1428,8 +1427,6 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
         errx (1, "cannot parse pointer `%s'", s);
     }
     page = ptr;
-
-    /* w = page->pixmap->w; */
 
     ARSERT (h >= 0 && "ml_draw wrong h");
     ARSERT (py <= page->pixmap->h && "ml_draw wrong py");
