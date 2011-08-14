@@ -557,7 +557,13 @@ static void __attribute__ ((constructor)) clcheck (void)
     }
 }
 
-static void __attribute__ ((optimize ("O"))) clearpixmap (fz_pixmap *pixmap)
+#if __GNUC__ > 4 && __GNUC_MINOR__ > 3
+#define OPTIMIZE __attribute__ ((optimize ("O3")))
+#else
+#define OPTIMIZE
+#endif
+
+static void clearpixmap (fz_pixmap *pixmap)
 {
     if (cacheline32bytes) {
         intptr_t a1, a2, diff;
