@@ -1074,7 +1074,7 @@ let reinit angle proportional =
 ;;
 
 let setzoom zoom =
-  let zoom = max 0.01 (min 2.2 zoom) in
+  let zoom = max 0.01 zoom in
   if zoom <> conf.zoom
   then (
     if zoom <= 1.0
@@ -1718,7 +1718,7 @@ let viewkeyboard key =
 
   | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
-      setzoom (min 2.2 (conf.zoom +. incr))
+      setzoom (conf.zoom +. incr)
 
   | '+' ->
       let ondone s =
@@ -3222,7 +3222,7 @@ struct
             { c with interpagespace = max 0 (int_of_string v) }
         | "zoom" ->
             let zoom = float_of_string v /. 100. in
-            let zoom = max 0.01 (min 2.2 zoom) in
+            let zoom = max 0.01 zoom in
             { c with zoom = zoom }
         | "presentation" -> { c with presentation = bool_of_string v }
         | "rotation-angle" -> { c with angle = int_of_string v }
