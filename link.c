@@ -126,9 +126,16 @@ static void NORETURN errx (int exitcode, const char *fmt, ...)
     break;                                              \
 }
 
-struct slice {
+struct block {
+    int w;
+    int x;
+    int offset;
     int texindex;
-    int w, h;
+};
+
+struct slice {
+    int h;
+    struct block *blocks;
 };
 
 struct pagedim {
@@ -143,6 +150,7 @@ struct pagedim {
 struct page {
     int pageno;
     int slicecount;
+    int blockcount;
     fz_text_span *text;
     fz_pixmap *pixmap;
     pdf_page *drawpage;
@@ -151,7 +159,7 @@ struct page {
         int i;
         fz_text_span *span;
     } fmark, lmark;
-    struct slice slices[];
+    struct slice *slices;
 };
 
 #if !defined _WIN32 && !defined __APPLE__
@@ -160,7 +168,7 @@ struct page {
 
 struct {
     int sock;
-    int sliceheight;
+    int sliceheight, blockwidth;
     struct page *pig;
     struct pagedim *pagedims;
     int pagecount;
@@ -178,7 +186,7 @@ struct {
 
     struct {
         int w, h;
-        struct slice *slice;
+        struct block *block;
     } *texowners;
 
     int rotate;
@@ -357,7 +365,7 @@ static void openxref (char *filename, char *password)
     fz_error error;
 
     for (i = 0; i < state.texcount; ++i)  {
-        state.texowners[i].slice = NULL;
+        state.texowners[i].block = NULL;
     }
 
     if (state.cache) {
@@ -444,12 +452,16 @@ static void unlinkpage (struct page *page)
     int i;
 
     for (i = 0; i < page->slicecount; ++i) {
+        int j;
         struct slice *s = &page->slices[i];
-        if (s->texindex != -1) {
-            if (state.texowners[s->texindex].slice == s) {
-                state.texowners[s->texindex].slice = NULL;
-                ARSERT (state.texowners[s->texindex].w == s->w);
-                ARSERT (state.texowners[s->texindex].h >= s->h);
+
+        for (j = 0; j < page->blockcount; ++j) {
+            struct block *b = &s->blocks[j];
+
+            if (b->texindex != -1) {
+                if (state.texowners[b->texindex].block == b) {
+                    state.texowners[b->texindex].block = NULL;
+                }
             }
         }
     }
@@ -457,6 +469,8 @@ static void unlinkpage (struct page *page)
 
 static void freepage (struct page *page)
 {
+    int i;
+
     fz_drop_pixmap (page->pixmap);
 
     unlinkpage (page);
@@ -467,21 +481,50 @@ static void freepage (struct page *page)
     if (page->drawpage) {
         pdf_free_page (page->drawpage);
     }
-
+    for (i = 0; i < page->slicecount; ++i) {
+        free (page->slices[i].blocks);
+    }
+    free (page->slices);
     free (page);
 }
 
-static void subdivide (struct page *p)
+static void subdivide (struct page *p, int blockcount)
 {
     int i;
+    int w = p->pixmap->w;
     int h = p->pixmap->h;
+    int offset = 0;
+    int tw = MIN (w, state.blockwidth);
     int th = MIN (h, state.sliceheight);
 
     for (i = 0; i < p->slicecount; ++i) {
+        int j, x, offset1;
         struct slice *s = &p->slices[i];
-        s->texindex = -1;
+
         s->h = MIN (th, h);
-        s->w = p->pixmap->w;
+
+        s->blocks = calloc (sizeof (struct block), p->blockcount);
+        if (!s->blocks) {
+            err (1, "calloc blocks page %d slice %d, %d",
+                 p->pageno, i, p->blockcount);
+        }
+
+        w = p->pixmap->w;
+        x = 0;
+        offset1 = offset;
+
+        for (j = 0; j < blockcount; ++j) {
+            struct block *b = &s->blocks[j];
+
+            b->texindex = -1;
+            b->w = MIN (tw, w);
+            b->x = x;
+            b->offset = offset1;
+            w -= tw;
+            x += tw;
+            offset1 += tw * 4;
+        }
+        offset += s->h * p->pixmap->w * 4;
         h -= th;
     }
 }
@@ -545,12 +588,12 @@ static void __attribute__ ((optimize ("O"))) clearpixmap (fz_pixmap *pixmap)
 static void *render (int pageno, int pindex)
 {
     fz_error error;
-    int slicecount;
-    struct page *page = NULL;
+    fz_device *idev;
     double start, end;
     pdf_page *drawpage;
-    fz_device *idev;
     struct pagedim *pagedim;
+    struct page *page = NULL;
+    int slicecount, blockcount;
 
     start = now ();
     printd (state.sock, "V rendering %d", pageno);
@@ -559,6 +602,10 @@ static void *render (int pageno, int pindex)
     slicecount = (pagedim->bbox.y1 - pagedim->bbox.y0
                   + state.sliceheight - 1) / state.sliceheight;
     slicecount += slicecount == 0;
+
+    blockcount = (pagedim->bbox.x1 - pagedim->bbox.x0
+                  + state.blockwidth - 1) / state.blockwidth;
+    blockcount += blockcount == 0;
 
     if (state.pig) {
         if (compatpdims (&state.pig->pagedim, pagedim)) {
@@ -577,15 +624,19 @@ static void *render (int pageno, int pindex)
         }
     }
     if (!page) {
-        page = calloc (sizeof (*page)
-                       + (slicecount * sizeof (struct slice)), 1);
+        page = calloc (sizeof (struct page), 1);
         if (!page) {
-            err (1, "calloc page %d\n", pageno);
+            err (1, "calloc page %d", pageno);
+        }
+        page->slices = calloc (sizeof (struct slice), slicecount);
+        if (!page->slices) {
+            err (1, "calloc slices %d %d", pageno, slicecount);
         }
         page->pixmap = fz_new_pixmap_with_rect (fz_device_rgb, pagedim->bbox);
     }
 
     page->slicecount = slicecount;
+    page->blockcount = blockcount;
 
     error = pdf_load_page (&drawpage, state.xref, pageno - 1);
     if (error)
@@ -604,7 +655,7 @@ static void *render (int pageno, int pindex)
     page->drawpage = drawpage;
     page->pagedim = *pagedim;
     page->pageno = pageno;
-    subdivide (page);
+    subdivide (page, blockcount);
     end = now ();
 
     pdf_age_store (state.xref->store, 3);
@@ -1091,7 +1142,7 @@ mainloop (void *unused)
                 int i;
                 state.w = w;
                 for (i = 0; i < state.texcount; ++i)  {
-                    state.texowners[i].slice = NULL;
+                    state.texowners[i].block = NULL;
                 }
             }
             layout ();
@@ -1261,30 +1312,21 @@ static void highlightlinks (struct page *page, int yoff)
     glDisable (GL_LINE_STIPPLE);
 }
 
-static void upload2 (struct page *page, int slicenum, const char *cap)
+static void upload (struct page *page, int slicenum, int blocknum)
 {
-    int i;
-    int w;
     double start, end;
     struct slice *slice = &page->slices[slicenum];
+    struct block *block = &slice->blocks[blocknum];
 
-    w = page->pixmap->w;
-
-    ARSERT (w == slice->w);
-    if (slice->texindex != -1
-        && state.texowners[slice->texindex].slice == slice) {
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[slice->texindex]);
+    if (block->texindex != -1
+        && state.texowners[block->texindex].block == block) {
+        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[block->texindex]);
     }
     else  {
         int subimage = 0;
         int index = (state.texindex++ % state.texcount);
-        size_t offset = 0;
 
-        for (i = 0; i < slicenum; ++i) {
-            offset += w * page->slices[i].h * 4;
-        }
-
-        if (state.texowners[index].w == slice->w) {
+        if (state.texowners[index].w == block->w) {
             if (state.texowners[index].h >= slice->h ) {
                 subimage = 1;
             }
@@ -1296,59 +1338,65 @@ static void upload2 (struct page *page, int slicenum, const char *cap)
             state.texowners[index].h = slice->h;
         }
 
-        state.texowners[index].slice = slice;
-        state.texowners[index].w = slice->w;
-        slice->texindex = index;
+        state.texowners[index].w = block->w;
+        state.texowners[index].block = block;
+        block->texindex = index;
 
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[slice->texindex]);
+        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[block->texindex]);
+        glPixelStorei (GL_UNPACK_ROW_LENGTH, page->pixmap->w);
+
         start = now ();
-        if (subimage) {
-            {
-                GLenum err = glGetError ();
-                if (err != GL_NO_ERROR) {
-                    printf ("\033[0;31mERROR1 %d %d %#x\033[0m\n", w, slice->h, err);
-                    abort ();
-                }
+        if (0) {
+            GLenum err = glGetError ();
+            if (err != GL_NO_ERROR) {
+                printf ("\033[0;31mERROR1 %d %d %#x\033[0m\n",
+                        block->w, slice->h, err);
+                abort ();
             }
+        }
+        if (subimage) {
             glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB,
                              0,
                              0,
                              0,
-                             w,
+                             block->w,
                              slice->h,
                              state.texform,
                              state.texty,
-                             page->pixmap->samples + offset
+                             page->pixmap->samples + block->offset
                 );
-            {
-                GLenum err = glGetError ();
-                if (err != GL_NO_ERROR) {
-                    printf ("\033[0;31mERROR %d %d %#x\033[0m\n", w, slice->h, err);
-                    abort ();
-                }
-            }
         }
         else {
             glTexImage2D (GL_TEXTURE_RECTANGLE_ARB,
                           0,
                           GL_RGBA8,
-                          w,
+                          block->w,
                           slice->h,
                           0,
                           state.texform,
                           state.texty,
-                          page->pixmap->samples + offset
+                          page->pixmap->samples + block->offset
                 );
+        }
+        if (0) {
+            GLenum err = glGetError ();
+            if (err != GL_NO_ERROR) {
+                printf ("\033[0;31mERROR %d %d %#x\033[0m\n",
+                        block->w, slice->h, err);
+                abort ();
+            }
         }
 
         end = now ();
         (void) start;
         (void) end;
-        lprintf ("%s[%d] slice=%d(%d,%d) texid=%d %f sec\n",
+        lprintf ("%s[%d] slice=%d,%d(%d,%d) tex=%d,%d offset=%d %f sec\n",
                  subimage ? "sub" : "img",
-                 page->pageno, slicenum,
-                 slice->w, slice->h,
-                 state.texids[slice->texindex],
+                 page->pageno, slicenum, blocknum,
+                 block->w, slice->h,
+                 block->texindex,
+                 state.texids[block->texindex],
+                 block->offset,
                  end - start);
     }
 }
@@ -1357,7 +1405,7 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
 {
     CAMLparam2 (args_v, ptr_v);
     int dispy = Int_val (Field (args_v, 0));
-    int w = Int_val (Field (args_v, 1));
+    /* int w = Int_val (Field (args_v, 1)); */
     int h = Int_val (Field (args_v, 2));
     int py = Int_val (Field (args_v, 3));
     int hlinks = Bool_val (Field (args_v, 4));
@@ -1367,6 +1415,7 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
     struct page *page;
     int slicenum = 0;
     int yoff = dispy - py;
+    struct slice *slice;
 
     ret = sscanf (s, "%p", &ptr);
     if (ret != 1) {
@@ -1374,7 +1423,7 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
     }
     page = ptr;
 
-    w = page->pixmap->w;
+    /* w = page->pixmap->w; */
 
     ARSERT (h >= 0 && "ml_draw wrong h");
     ARSERT (py <= page->pixmap->h && "ml_draw wrong py");
@@ -1382,39 +1431,43 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
     glEnable (GL_TEXTURE_RECTANGLE_ARB);
 
     for (slicenum = 0; slicenum < page->slicecount; ++slicenum) {
-        struct slice *slice = &page->slices[slicenum];
+        slice = &page->slices[slicenum];
         if (slice->h > py) {
             break;
         }
         py -= slice->h;
     }
-
     h = MIN (state.h, h);
+
     while (h) {
-        int th, left;
-        struct slice *slice = &page->slices[slicenum];
+        int th, left, blocknum;
 
         ARSERT (slicenum < page->slicecount && "ml_draw wrong slicenum");
 
         th = MIN (h, slice->h - py);
-        upload2 (page, slicenum, "upload");
-
         left = page->pagedim.left;
-        glBegin (GL_QUADS);
-        {
-            glTexCoord2i (0, py);
-            glVertex2i (left, dispy);
 
-            glTexCoord2i (w, py);
-            glVertex2i (left+w, dispy);
+        for (blocknum = 0; blocknum < page->blockcount; ++blocknum)  {
+            struct block *block = &slice->blocks[blocknum];
 
-            glTexCoord2i (w, py+th);
-            glVertex2i (left+w, dispy + th);
+            upload (page, slicenum, blocknum);
+            glBegin (GL_QUADS);
+            {
+                glTexCoord2i (0, py);
+                glVertex2i (left, dispy);
 
-            glTexCoord2i (0, py+th);
-            glVertex2i (left, dispy + th);
+                glTexCoord2i (block->w, py);
+                glVertex2i (left + block->w, dispy);
+
+                glTexCoord2i (block->w, py + th);
+                glVertex2i (left + block->w, dispy + th);
+
+                glTexCoord2i (0, py + th);
+                glVertex2i (left, dispy + th);
+            }
+            glEnd ();
+            left += block->w;
         }
-        glEnd ();
 
         h -= th;
         py = 0;
@@ -1422,9 +1475,10 @@ CAMLprim value ml_draw (value args_v, value ptr_v)
         slicenum += 1;
     }
 
+    glDisable (GL_TEXTURE_RECTANGLE_ARB);
+
     showsel (page, yoff);
     if (hlinks) highlightlinks (page, yoff);
-    glDisable (GL_TEXTURE_RECTANGLE_ARB);
 
     CAMLreturn (Val_unit);
 }
@@ -1923,6 +1977,8 @@ CAMLprim value ml_init (value sock_v, value params_v)
     fontpath = String_val (Field (params_v, 4));
     state.texform = GL_RGBA;
     state.texty = GL_UNSIGNED_BYTE;
+    state.blockwidth = 2048;
+    state.sliceheight = 24;
 
     if (*fontpath) {
         state.face = load_font (fontpath);
