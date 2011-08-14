@@ -7,7 +7,8 @@ and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
-type params = angle * proportional * texcount * sliceheight * fontpath
+type params =
+    angle * proportional * texcount * sliceheight * blockwidth * fontpath
 and pageno = int
 and width = int
 and height = int
@@ -20,6 +21,7 @@ and proportional = bool
 and interpagespace = int
 and texcount = int
 and sliceheight = int
+and blockwidth = int
 and gen = int
 and top = float
 and fontpath = string
@@ -156,6 +158,7 @@ type conf =
     ; mutable memlimit : int
     ; mutable texcount : texcount
     ; mutable sliceheight : sliceheight
+    ; mutable blockwidth : blockwidth
     ; mutable thumbw : width
     ; mutable jumpback : bool
     ; mutable bgcolor : float * float * float
@@ -266,6 +269,7 @@ let defconf =
   ; memlimit = 32*1024*1024
   ; texcount = 256
   ; sliceheight = 24
+  ; blockwidth = 2048
   ; thumbw = 76
   ; jumpback = false
   ; bgcolor = (0.5, 0.5, 0.5)
@@ -3232,6 +3236,7 @@ struct
         | "pixmap-cache-size" -> { c with memlimit = max 2 (int_of_string v) }
         | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
         | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
+        | "max-tex-width" -> { c with blockwidth = max 2 (int_of_string v) }
         | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
         | "persistent-location" -> { c with jumpback = bool_of_string v }
         | "background-color" -> { c with bgcolor = color_of_string v }
@@ -3310,6 +3315,7 @@ struct
     dst.proportional   <- src.proportional;
     dst.texcount       <- src.texcount;
     dst.sliceheight    <- src.sliceheight;
+    dst.blockwidth     <- src.blockwidth;
     dst.thumbw         <- src.thumbw;
     dst.jumpback       <- src.jumpback;
     dst.bgcolor        <- src.bgcolor;
@@ -3559,6 +3565,7 @@ struct
     oi "pixmap-cache-size" c.memlimit dc.memlimit;
     oi "texcount" c.texcount dc.texcount;
     oi "slice-height" c.sliceheight dc.sliceheight;
+    oi "max-tex-width" c.blockwidth dc.blockwidth;
     oi "thumbnail-width" c.thumbw dc.thumbw;
     ob "persistent-location" c.jumpback dc.jumpback;
     oc "background-color" c.bgcolor dc.bgcolor;
@@ -3707,7 +3714,7 @@ let () =
 
   init ssock (
     conf.angle, conf.proportional, conf.texcount,
-    conf.sliceheight, conf.uifont
+    conf.sliceheight, conf.blockwidth, conf.uifont
   );
   state.csock <- csock;
   state.ssock <- ssock;

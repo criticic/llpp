@@ -1977,11 +1977,10 @@ CAMLprim value ml_init (value sock_v, value params_v)
     state.proportional = Bool_val (Field (params_v, 1));
     state.texcount = Int_val (Field (params_v, 2));
     state.sliceheight = Int_val (Field (params_v, 3));
-    fontpath = String_val (Field (params_v, 4));
+    state.blockwidth = Int_val (Field (params_v, 4));
+    fontpath = String_val (Field (params_v, 5));
     state.texform = GL_RGBA;
     state.texty = GL_UNSIGNED_BYTE;
-    state.blockwidth = 2048;
-    state.sliceheight = 24;
 
     if (*fontpath) {
         state.face = load_font (fontpath);
