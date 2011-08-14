@@ -1681,7 +1681,16 @@ let viewkeyboard key =
   in
   let c = Char.chr key in
   match c with
-  | '\027' | 'q' ->                     (* escape *)
+  | '\027' ->                           (* escape *)
+      if String.length state.text > 0
+      then (
+        state.text <- "";
+        Glut.postRedisplay ();
+      )
+      else
+        exit 0
+
+  | 'q' ->
       exit 0
 
   | '\008' ->                           (* backspace *)
