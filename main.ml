@@ -3236,7 +3236,7 @@ struct
         | "pixmap-cache-size" -> { c with memlimit = max 2 (int_of_string v) }
         | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
         | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
-        | "max-tex-width" -> { c with blockwidth = max 2 (int_of_string v) }
+        | "block-width" -> { c with blockwidth = max 2 (int_of_string v) }
         | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
         | "persistent-location" -> { c with jumpback = bool_of_string v }
         | "background-color" -> { c with bgcolor = color_of_string v }
@@ -3565,7 +3565,7 @@ struct
     oi "pixmap-cache-size" c.memlimit dc.memlimit;
     oi "tex-count" c.texcount dc.texcount;
     oi "slice-height" c.sliceheight dc.sliceheight;
-    oi "max-tex-width" c.blockwidth dc.blockwidth;
+    oi "block-width" c.blockwidth dc.blockwidth;
     oi "thumbnail-width" c.thumbw dc.thumbw;
     ob "persistent-location" c.jumpback dc.jumpback;
     oc "background-color" c.bgcolor dc.bgcolor;
