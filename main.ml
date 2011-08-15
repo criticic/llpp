@@ -3758,18 +3758,17 @@ let () =
   state.text <- "Opening " ^ state.path;
   writeopen state.path state.password;
 
-  let rec handlelablglutbug () =
+  while true do
     try
       Glut.mainLoop ();
     with
     | Glut.BadEnum "key in special_of_int" ->
-      showtext '!' " LablGlut bug: special key not recognized";
-      handlelablglutbug ()
+        showtext '!' " LablGlut bug: special key not recognized";
 
-    | Quit->
+    | Quit ->
         if Sys.os_type <> "Unix"
         then Unix.shutdown ssock Unix.SHUTDOWN_ALL;
-        State.save ()
-  in
-  handlelablglutbug ();
+        State.save ();
+        exit 0
+  done;
 ;;
