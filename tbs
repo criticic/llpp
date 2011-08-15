@@ -31,7 +31,6 @@ targets="llpp"
 libs="-lmupdf -lfitz -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig"
 ccopt="$ccopt -maltivec -O -D_GNU_SOURCE"
 
-lpath=$mupdf/build/linux-ppc-release/
 lpath=$mupdf/build/release
 
 ./b -O src:$h -r -O ccopt:"$ccopt" -O cc:"$cc" \
