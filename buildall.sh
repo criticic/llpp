@@ -30,7 +30,7 @@ mkdir -p $root/bin
 mkdir -p $root/lib
 mkdir -p $root/include
 
-make=$(gmake 2>/dev/null && echo gmake || echo make)
+make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
 
 (cd openjpeg \
     && $make dist \
