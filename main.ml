@@ -3475,7 +3475,7 @@ struct
         failwith ("config load error: " ^ Printexc.to_string exn)
   ;;
 
-  let path =
+  let defconfpath =
     let dir =
       try
         let dir = Filename.concat home ".config" in
@@ -3485,14 +3485,16 @@ struct
     Filename.concat dir "llpp.conf"
   ;;
 
+  let confpath = ref defconfpath;;
+
   let load1 f =
-    if Sys.file_exists path
+    if Sys.file_exists !confpath
     then
       match
-        (try Some (open_in_bin path)
+        (try Some (open_in_bin !confpath)
           with exn ->
             prerr_endline
-              ("Error opening configuation file `" ^ path ^ "': " ^
+              ("Error opening configuation file `" ^ !confpath ^ "': " ^
                   Printexc.to_string exn);
             None
         )
@@ -3502,7 +3504,7 @@ struct
               f (do_load get ic)
             with exn ->
               prerr_endline
-                ("Error loading configuation from `" ^ path ^ "': " ^
+                ("Error loading configuation from `" ^ !confpath ^ "': " ^
                     Printexc.to_string exn);
           end;
           close_in ic;
@@ -3673,11 +3675,11 @@ struct
     if Buffer.length bb > 0
     then
       try
-        let tmp = path ^ ".tmp" in
+        let tmp = !confpath ^ ".tmp" in
         let oc = open_out_bin tmp in
         Buffer.output_buffer oc bb;
         close_out oc;
-        Sys.rename tmp path;
+        Sys.rename tmp !confpath;
       with exn ->
         prerr_endline
           ("error while saving configuration: " ^ Printexc.to_string exn)
@@ -3691,6 +3693,8 @@ let () =
         ;("-v", Arg.Unit (fun () -> print_endline Help.version; exit 0),
          " Print version and exit")
         ;("-f", Arg.String (fun s -> State.fontpath := s), "UI font path")
+        ;("-c", Arg.String (fun s -> State.confpath := s),
+         "Configuration file path")
         ]
     )
     (fun s -> state.path <- s)
