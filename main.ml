@@ -1073,6 +1073,7 @@ let textentry text key =
 ;;
 
 let reinit angle proportional =
+  state.anchor <- getanchor ();
   conf.angle <- angle;
   conf.proportional <- proportional;
   invalidate ();
