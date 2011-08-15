@@ -7,6 +7,8 @@ and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 
+exception Quit;;
+
 type params =
     angle * proportional * texcount * sliceheight * blockwidth * fontpath
 and pageno = int
@@ -1693,11 +1695,10 @@ let viewkeyboard key =
         state.text <- "";
         Glut.postRedisplay ();
       )
-      else
-        exit 0
+      else raise Quit;
 
   | 'q' ->
-      exit 0
+      raise Quit
 
   | '\008' ->                           (* backspace *)
       let y = getnav ~-1 in
@@ -3706,7 +3707,6 @@ let () =
       in
       opts ssock;
       opts csock;
-      at_exit (fun () -> Unix.shutdown ssock Unix.SHUTDOWN_ALL);
       ssock, csock
   in
 
@@ -3728,14 +3728,18 @@ let () =
   state.text <- "Opening " ^ state.path;
   writeopen state.path state.password;
 
-  at_exit State.save;
-
   let rec handlelablglutbug () =
     try
       Glut.mainLoop ();
-    with Glut.BadEnum "key in special_of_int" ->
+    with
+    | Glut.BadEnum "key in special_of_int" ->
       showtext '!' " LablGlut bug: special key not recognized";
       handlelablglutbug ()
+
+    | Quit->
+        if Sys.os_type <> "Unix"
+        then Unix.shutdown ssock Unix.SHUTDOWN_ALL;
+        State.save ()
   in
   handlelablglutbug ();
 ;;
