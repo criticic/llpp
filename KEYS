@@ -99,6 +99,8 @@ enter                   - toggle/enter new value for selected parameter
 
 when entering search pattern/page number
 up/down arrow           - previous/next entered text
+enter                   - confirm
+ctrl-g,esc              - cancel
 
 [1] i'm somewhat mouse button confused, since i use "left handed" mouse
     while not being lefthanded

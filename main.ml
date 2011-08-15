@@ -2002,6 +2002,7 @@ let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
       onleave Confirm;
       Glut.postRedisplay ()
 
+  | '\007'                              (* ctrl-g *)
   | '\027' ->                           (* escape *)
       begin match opthist with
       | None -> ()
@@ -2365,7 +2366,7 @@ let outlinekeyboard key
 let keyboard ~key ~x ~y =
   ignore x;
   ignore y;
-  if key = 7                            (* ctrl-g *)
+  if key = 7 && not (istextentry state.mode) (* ctrl-g *)
   then
     wcmd "interrupt" []
   else
