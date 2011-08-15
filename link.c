@@ -109,14 +109,12 @@ static void NORETURN errx (int exitcode, const char *fmt, ...)
 #include <fitz.h>
 #include <mupdf.h>
 
+#include FT_FREETYPE_H
+
 #if 0
 #define lprintf printf
 #else
 #define lprintf(...)
-#endif
-
-#ifdef FT_FREETYPE_H
-#include FT_FREETYPE_H
 #endif
 
 #define ARSERT(cond) for (;;) {                         \
@@ -1611,7 +1609,6 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                         ? span->font->name
                         : "Span has no font name"
                         ;
-#ifdef FT_FREETYPE_H
                     FT_FaceRec *face = span->font->ft_face;
                     if (face && face->family_name) {
                         char *s;
@@ -1633,9 +1630,6 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                     if (str_v == 0) {
                         str_v = caml_copy_string (n2);
                     }
-#else
-                    str_v = caml_copy_string (n2);
-#endif
                     ret_v = caml_alloc_small (1, 2);
                     Field (ret_v, 0) = str_v;
                     goto unlock;
