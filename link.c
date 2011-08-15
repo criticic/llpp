@@ -24,12 +24,15 @@
 #ifdef _MSC_VER
 #define NORETURN __declspec (noreturn)
 #define UNUSED
+#define OPTIMIZE
 #elif defined __GNUC__
 #define NORETURN __attribute__ ((noreturn))
 #define UNUSED __attribute__ ((unused))
+#define OPTIMIZE(n) __attribute__ ((optimize ("O"#n)))
 #else
 #define NORETURN
 #define UNUSED
+#define OPTIMIZE
 #endif
 
 #ifdef _WIN32
@@ -555,13 +558,7 @@ static void __attribute__ ((constructor)) clcheck (void)
     }
 }
 
-#if __GNUC__ > 4 && __GNUC_MINOR__ > 3
-#define OPTIMIZE __attribute__ ((optimize ("O3")))
-#else
-#define OPTIMIZE
-#endif
-
-static void clearpixmap (fz_pixmap *pixmap)
+static void OPTIMIZE (3) clearpixmap (fz_pixmap *pixmap)
 {
     if (cacheline32bytes) {
         intptr_t a1, a2, diff;
