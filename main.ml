@@ -3188,7 +3188,6 @@ let pmotion ~x ~y =
 
       | Mpan _ | Msel _ | Mzoom _ | Mscroll ->
           ()
-
 ;;
 
 module State =
