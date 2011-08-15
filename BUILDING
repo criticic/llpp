@@ -9,8 +9,8 @@ wouldn't hurt either.
 To build llpp "the easy way" one can invoke `sh buildall.sh' which
 will first attempt to automatically fetch openjpeg, jbig2dec, lablGL,
 mupdf and build them then, if everything goes fine, it will proceed
-building llpp itself. Note that OCaml should still be installed
-separately.
+building llpp itself. Note that OCaml and freetype should still be
+installed separately.
 
 Otherwise, provided that all prereqs are already built, one should
 invoke `sh build.sh' from the top of llpp's directory, prior to that
