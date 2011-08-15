@@ -620,7 +620,8 @@ let preload () =
       | l :: _ -> getpagey l.pageno + l.pagey
     in
     let y = if y < conf.winh then 0 else y - conf.winh in
-    let pages = layout y (conf.winh*3) in
+    let h = state.y - y + conf.winh*3 in
+    let pages = layout y h in
     List.iter render pages;
     conf.presentation <- presentation;
     conf.interpagespace <- interpagespace;
