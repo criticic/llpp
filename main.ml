@@ -1835,6 +1835,9 @@ let viewkeyboard key =
   | 'g' ->
       gotoy_and_clear_text 0
 
+  | 'G' ->
+      gotopage1 (state.pagecount - 1) 0
+
   | 'n' ->
       search state.searchpattern true
 

@@ -18,7 +18,7 @@ l                       - toggle links highlighting
 f                       - toggle fullscreen
 n                       - repeat last search (forward)
 p, N                    - .................. (backward)
-g                       - go to first page
+g, G                    - go to first/last page
 t                       - align top of the screen with the top of the page
 space                   - go to the next page
 delete                  - go to the previous page
