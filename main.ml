@@ -3392,7 +3392,8 @@ struct
       | Vopen (_, _, _) ->
           error "unexpected subelement in ui-font" s spos
       | Vclose "ui-font" ->
-          fontpath := Buffer.contents b;
+          if String.length !fontpath = 0
+          then fontpath := Buffer.contents b;
           { v with f = llppconfig }
       | Vclose _ -> error "unexpected close in ui-font" s spos
       | Vend -> error "unexpected end of input in ui-font" s spos
