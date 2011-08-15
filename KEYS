@@ -26,7 +26,7 @@ delete                  - go to the previous page
 w                       - change height to encompass all of the page
 o                       - switch to outline mode
 '                       - switch to bookmark mode
-h/F1                    - switch to help mode
+h,F1                    - switch to help mode
 i                       - switch to info mode
 m                       - create named bookmark
 ~                       - create quick bookmark
@@ -73,7 +73,7 @@ tunables
                           (only font name currently)
 
 bird's eye mode
-Ctrl-9/F9/esc           - leave bird's eye view
+Ctrl-9,F9,esc           - leave bird's eye view
 Ctrl-l                  - center the view on the currently selected page
 (page)up/(page)down     - navigate
 home/end                - go to first/last page
