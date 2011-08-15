@@ -3689,12 +3689,22 @@ end;;
 let () =
   Arg.parse
     (Arg.align
-        [("-p", Arg.String (fun s -> state.password <- s) , " Set password")
-        ;("-v", Arg.Unit (fun () -> print_endline Help.version; exit 0),
-         " Print version and exit")
-        ;("-f", Arg.String (fun s -> State.fontpath := s), "UI font path")
-        ;("-c", Arg.String (fun s -> State.confpath := s),
-         "Configuration file path")
+        [("-p", Arg.String (fun s -> state.password <- s) ,
+         "<password> Set password");
+
+         ("-f", Arg.String (fun s -> State.fontpath := s),
+         "<path> Set path to the user interface font");
+
+         ("-c", Arg.String (fun s -> State.confpath := s),
+         "<path> Set path to the configuration file");
+
+         ("-v", Arg.Unit (fun () ->
+           Printf.printf
+             "%s\nconfiguration path: %s\n"
+             Help.version
+             State.defconfpath
+           ;
+           exit 0), " Print version and exit");
         ]
     )
     (fun s -> state.path <- s)
