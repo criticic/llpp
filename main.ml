@@ -3352,7 +3352,8 @@ struct
 
     and llppconfig v t spos _ =
       match t with
-      | Vdata | Vcdata | Vend -> v
+      | Vdata | Vcdata -> v
+      | Vend -> error "unexpected end of input in llppconfig" s spos
       | Vopen ("defaults", attrs, closed) ->
           let c = config_of dc attrs in
           setconf dc c;
