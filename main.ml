@@ -167,7 +167,6 @@ type conf =
     ; mutable bgcolor : float * float * float
     ; mutable bedefault : bool
     ; mutable scrollbarinpm : bool
-    ; mutable uifont : string
     }
 ;;
 
@@ -278,7 +277,6 @@ let defconf =
   ; bgcolor = (0.5, 0.5, 0.5)
   ; bedefault = false
   ; scrollbarinpm = true
-  ; uifont = ""
   }
 ;;
 
@@ -3200,6 +3198,8 @@ module State =
 struct
   open Parser
 
+  let fontpath = ref "";;
+
   let home =
     try
       match Sys.os_type with
@@ -3250,7 +3250,6 @@ struct
         | "background-color" -> { c with bgcolor = color_of_string v }
         | "scrollbar-in-presentation" ->
             { c with scrollbarinpm = bool_of_string v }
-        | "ui-font" -> { c with uifont = v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -3328,7 +3327,6 @@ struct
     dst.jumpback       <- src.jumpback;
     dst.bgcolor        <- src.bgcolor;
     dst.scrollbarinpm  <- src.scrollbarinpm;
-    dst.uifont         <- src.uifont;
   ;;
 
   let unent s =
@@ -3362,6 +3360,11 @@ struct
           then v
           else { v with f = skip "defaults" (fun () -> v) }
 
+      | Vopen ("ui-font", _, closed) ->
+          if closed
+          then v
+          else { v with f = uifont (Buffer.create 10) }
+
       | Vopen ("doc", attrs, closed) ->
           let pathent, spage, srely, span = doc_of attrs in
           let path = unent pathent
@@ -3379,6 +3382,19 @@ struct
 
       | Vclose "llppconfig" ->  { v with f = toplevel }
       | Vclose _ -> error "unexpected close in llppconfig" s spos
+
+    and uifont b v t spos epos =
+      match t with
+      | Vdata | Vcdata ->
+          Buffer.add_substring b s spos (epos - spos);
+          v
+      | Vopen (_, _, _) ->
+          error "unexpected subelement in ui-font" s spos
+      | Vclose "ui-font" ->
+          fontpath := Buffer.contents b;
+          { v with f = llppconfig }
+      | Vclose _ -> error "unexpected close in ui-font" s spos
+      | Vend -> error "unexpected end of input in ui-font" s spos
 
     and doc path pan anchor c bookmarks v t spos _ =
       match t with
@@ -3528,10 +3544,6 @@ struct
       if always || a <> b
       then
         Printf.bprintf bb "\n    %s='%s'" s (color_to_string a)
-    and os s a b =
-      if always || a <> b
-      then
-        Printf.bprintf bb "\n    %s='%s'" s a
     in
     let w, h =
       if always
@@ -3578,14 +3590,18 @@ struct
     ob "persistent-location" c.jumpback dc.jumpback;
     oc "background-color" c.bgcolor dc.bgcolor;
     ob "scrollbar-in-presentation" c.scrollbarinpm dc.scrollbarinpm;
-    os "ui-font" c.uifont dc.uifont;
   ;;
 
   let save () =
     let bb = Buffer.create 32768 in
     let f (h, dc) =
       let dc = if conf.bedefault then conf else dc in
-      Buffer.add_string  bb "<llppconfig>\n<defaults ";
+      Buffer.add_string  bb "<llppconfig>\n";
+
+      if String.length !fontpath > 0
+      then Printf.bprintf bb "<ui-font><![CDATA[%s]]></ui-font>\n" !fontpath;
+
+      Buffer.add_string bb "<defaults ";
       add_attrs bb true dc dc;
       Buffer.add_string bb "/>\n";
 
@@ -3672,7 +3688,9 @@ let () =
     (Arg.align
         [("-p", Arg.String (fun s -> state.password <- s) , " Set password")
         ;("-v", Arg.Unit (fun () -> print_endline Help.version; exit 0),
-         " Print version and exit")]
+         " Print version and exit")
+        ;("-f", Arg.String (fun s -> State.fontpath := s), "UI font path")
+        ]
     )
     (fun s -> state.path <- s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:")
@@ -3721,7 +3739,7 @@ let () =
 
   init ssock (
     conf.angle, conf.proportional, conf.texcount,
-    conf.sliceheight, conf.blockwidth, conf.uifont
+    conf.sliceheight, conf.blockwidth, !State.fontpath
   );
   state.csock <- csock;
   state.ssock <- ssock;
