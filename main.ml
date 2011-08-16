@@ -593,7 +593,7 @@ let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
 
 let preload () =
   let oktopreload =
-    if conf.preload
+    if conf.preload && not state.rendering
     then
       let memleft = conf.memlimit - state.memused in
       if memleft < 0
