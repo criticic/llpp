@@ -991,7 +991,6 @@ let idle () =
       else 0.0
     in
     let r, _, _ = Unix.select [state.csock] [] [] timeout in
-    state.deadline <- state.deadline +. delay;
     begin match r with
     | [] ->
         begin match state.autoscroll with
@@ -1005,7 +1004,10 @@ let idle () =
             gotoy y;
             if state.mode = View
             then state.text <- "";
-        | _ -> ()
+            state.deadline <- state.deadline +. 0.01;
+
+        | _ ->
+            state.deadline <- state.deadline +. delay;
         end;
 
     | _ ->
