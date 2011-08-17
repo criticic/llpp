@@ -1512,7 +1512,7 @@ static void ensuretext (struct page *page)
         page->text = fz_new_text_span ();
         tdev = fz_new_text_device (page->text);
         error = pdf_run_page (state.xref, page->drawpage, tdev,
-                             page->pagedim.ctm);
+                              page->pagedim.ctm);
         if (error) die (error);
         fz_free_device (tdev);
     }
