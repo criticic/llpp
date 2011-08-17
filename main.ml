@@ -2723,6 +2723,7 @@ let special ~key ~x ~y =
 ;;
 
 let drawplaceholder l =
+  GlDraw.color (1.0, 1.0, 1.0);
   let margin = state.x + (conf.winw - (state.w + state.scrollw)) / 2 in
   GlDraw.rect
     (float l.pagex, float l.pagedispy)
