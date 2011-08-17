@@ -598,11 +598,21 @@ let preload () =
       let memleft = conf.memlimit - state.memused in
       if memleft < 0
       then
-        let opaque = cbpeek state.pagecache in
-        match findpageforopaque opaque with
-        | Some ((n, _, _, _, _), size) ->
-            memleft + size >= 0 && not (pagevisible state.layout n)
-        | None -> false
+        let cb = { state.pagecache with len = state.pagecache.len } in
+        let rec simgc memleft =
+          if cbempty cb
+          then false
+          else
+            let opaque = cbpeek cb in
+            match findpageforopaque opaque with
+            | Some ((n, _, _, _, _), size) ->
+                let memleft = memleft + size in
+                if memleft >= 0
+                then not (pagevisible state.layout n)
+                else (cbdecr cb; simgc memleft)
+            | None -> false
+        in
+        simgc memleft
       else true
     else false
   in
