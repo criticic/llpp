@@ -1962,13 +1962,15 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
 CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
 {
     CAMLparam4 (pt_v, x_v, y_v, string_v);
+    CAMLlocal1 (ret_v);
     int pt = Int_val(pt_v);
     int x = Int_val (x_v);
     int y = Int_val (y_v);
     double w;
 
     w = draw_string (state.face, pt, x, y, String_val (string_v));
-    CAMLreturn (caml_copy_double (w));
+    ret_v = caml_copy_double (w);
+    CAMLreturn (ret_v);
 }
 
 CAMLprim value ml_measure_string (value pt_v, value string_v)
@@ -1979,7 +1981,8 @@ CAMLprim value ml_measure_string (value pt_v, value string_v)
     double w;
 
     w = measure_string (state.face, pt, String_val (string_v));
-    CAMLreturn (caml_copy_double (w));
+    ret_v = caml_copy_double (w);
+    CAMLreturn (ret_v);
 }
 
 CAMLprim value ml_init (value sock_v, value params_v)
