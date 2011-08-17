@@ -2874,7 +2874,7 @@ let showstrings trusted active first pan strings =
         Gl.disable `texture_2d;
         GlDraw.polygon_mode `both `line;
         GlDraw.color (1., 1., 1.) ~alpha:0.9;
-        GlDraw.rect (0., float (y + 1))
+        GlDraw.rect (1., float (y + 1))
           (float (conf.winw - 1), float (y + 18));
         GlDraw.polygon_mode `both `fill;
         GlDraw.color (1., 1., 1.);
