@@ -933,11 +933,9 @@ let act cmd =
       begin match state.throttle with
       | None ->
           if pagevisible state.layout n
-          then gotoy state.y
-          else (
-            let allvisible = loadlayout state.layout in
-            if allvisible then preload ();
-          )
+          then Glut.postRedisplay ();
+          let allvisible = loadlayout state.layout in
+          if allvisible then preload ()
 
       | Some layout ->
           match layout with
