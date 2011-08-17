@@ -94,7 +94,8 @@ let () =
     let build =
       { get_commands = (fun _ -> [Run cmd])
       ; get_cookie = (fun _ ->
-        get_cmd_output "git describe --tags --dirty || echo")
+        get_cmd_output "cd " ^ srcdir ^
+          " && git describe --tags --dirty || echo")
       ; get_presentation = (fun _ -> "KEYSTOML KEYS")
       }
     in
