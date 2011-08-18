@@ -1004,7 +1004,7 @@ let idle () =
             gotoy y;
             if state.mode = View
             then state.text <- "";
-            state.deadline <- state.deadline +. 0.01;
+            state.deadline <- state.deadline +. 0.005;
 
         | _ ->
             state.deadline <- state.deadline +. delay;
