@@ -895,6 +895,7 @@ let act cmd =
                 wcmd "free" [`s opaque];
                 Hashtbl.remove state.pagemap pagekey;
                 state.memused <- state.memused - size;
+                gc ();
               )
       in
       gc ();
