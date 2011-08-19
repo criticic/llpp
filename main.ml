@@ -869,23 +869,37 @@ let act cmd =
       in
 
       state.memused <- state.memused + s;
-      Hashtbl.replace state.pagemap (n, w, r, l, state.gen) (p, s);
+
+      let layout =
+        match state.throttle with
+        | None -> state.layout
+        | Some layout -> layout
+      in
 
       let rec gc () =
         if state.memused <= conf.memlimit || Queue.is_empty state.pagelru
         then ()
         else
-          let opaque = Queue.pop state.pagelru in
+          let opaque = Queue.peek state.pagelru in
           match findpageforopaque opaque with
-          | None -> failwith "wtf!"
+          | None -> failwith "bug in gc"
           | Some (pagekey, size) ->
-              wcmd "free" [`s opaque];
-              Hashtbl.remove state.pagemap pagekey;
-              state.memused <- state.memused - size;
-              gc ()
+              let n, w, a, p, g = pagekey in
+              if   w != state.w
+                || a != conf.angle
+                || p != conf.proportional
+                || g != state.gen
+                || not (pagevisible layout n)
+              then (
+                ignore (Queue.pop state.pagelru);
+                wcmd "free" [`s opaque];
+                Hashtbl.remove state.pagemap pagekey;
+                state.memused <- state.memused - size;
+              )
       in
       gc ();
 
+      Hashtbl.replace state.pagemap (n, w, r, l, state.gen) (p, s);
       Queue.push p state.pagelru;
       state.rendering <- false;
 
