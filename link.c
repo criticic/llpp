@@ -1099,6 +1099,9 @@ mainloop (void *unused)
                 errx (1, "malformed free `%.*s' ret=%d", len, p, ret);
             }
             unlinkpage (ptr);
+            if (state.pig) {
+                freepage (state.pig);
+            }
             state.pig = ptr;
         }
         else if (!strncmp ("search", p, 6)) {
