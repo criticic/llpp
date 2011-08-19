@@ -116,14 +116,6 @@ let cbgetg b circular dir =
 let cbget b = cbgetg b false;;
 let cbgetc b = cbgetg b true;;
 
-let cbpeek b =
-  let rc = b.wc - b.len in
-  let rc = if rc < 0 then cbcap b + rc else rc in
-  b.store.(rc);
-;;
-
-let cbdecr b = b.len <- b.len - 1;;
-
 type layout =
     { pageno : int
     ; pagedimno : int
@@ -213,9 +205,9 @@ type state =
     ; mutable maxy : int
     ; mutable layout : layout list
     ; pagemap : (pagemapkey, (opaque * pixmapsize)) Hashtbl.t
+    ; pagelru : opaque Queue.t
     ; mutable pdims : (pageno * width * height * leftx) list
     ; mutable pagecount : int
-    ; pagecache : string circbuf
     ; mutable rendering : bool
     ; mutable mstate : mstate
     ; mutable searchpattern : string
@@ -297,8 +289,8 @@ let state =
   ; anchor = emptyanchor
   ; layout = []
   ; maxy = max_int
+  ; pagelru = Queue.create ()
   ; pagemap = Hashtbl.create 10
-  ; pagecache = cbnew 100 ""
   ; pdims = []
   ; pagecount = 0
   ; rendering = false
@@ -460,7 +452,7 @@ let getpageyh pageno =
 let getpagey pageno = fst (getpageyh pageno);;
 
 let layout y sh =
-  let rec f ~pageno ~pdimno ~prev ~py ~dy ~pdims ~cacheleft ~accu =
+  let rec f ~pageno ~pdimno ~prev ~py ~dy ~pdims ~accu =
     let ((w, h, ips, x) as curr), rest, pdimno, yinc =
       match pdims with
       | (pageno', w, h, x) :: rest when pageno' = pageno ->
@@ -476,7 +468,7 @@ let layout y sh =
     in
     let dy = dy + yinc in
     let py = py + yinc in
-    if pageno = state.pagecount || cacheleft = 0 || dy >= sh
+    if pageno = state.pagecount || dy >= sh
     then
       accu
     else
@@ -491,7 +483,6 @@ let layout y sh =
           ~py
           ~dy
           ~pdims:rest
-          ~cacheleft
           ~accu
       else
         let pagey = vy - py in
@@ -517,7 +508,6 @@ let layout y sh =
           ~py
           ~dy:(dy+pagevh+ips)
           ~pdims:rest
-          ~cacheleft:(cacheleft-1)
           ~accu
   in
   if state.invalidated = 0
@@ -530,7 +520,6 @@ let layout y sh =
         ~py:0
         ~dy:0
         ~pdims:state.pdims
-        ~cacheleft:(cbcap state.pagecache)
         ~accu:[]
     in
     List.rev accu
@@ -594,26 +583,7 @@ let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
 let preload () =
   let oktopreload =
     if conf.preload && not state.rendering
-    then
-      let memleft = conf.memlimit - state.memused in
-      if memleft < 0
-      then
-        let cb = { state.pagecache with len = state.pagecache.len } in
-        let rec simgc memleft =
-          if cbempty cb
-          then false
-          else
-            let opaque = cbpeek cb in
-            match findpageforopaque opaque with
-            | Some ((n, _, _, _, _), size) ->
-                let memleft = memleft + size in
-                if memleft >= 0
-                then not (pagevisible state.layout n)
-                else (cbdecr cb; simgc memleft)
-            | None -> false
-        in
-        simgc memleft
-      else true
+    then conf.memlimit > state.memused
     else false
   in
   if oktopreload
@@ -898,36 +868,25 @@ let act cmd =
             (n-1, w, h, r, l != 0, s, p))
       in
 
-      Hashtbl.replace state.pagemap (n, w, r, l, state.gen) (p, s);
       state.memused <- state.memused + s;
-
-      let layout =
-        match state.throttle with
-        | None -> state.layout
-        | Some layout -> layout
-      in
+      Hashtbl.replace state.pagemap (n, w, r, l, state.gen) (p, s);
 
       let rec gc () =
-        if (state.memused <= conf.memlimit) || cbempty state.pagecache
+        if state.memused <= conf.memlimit || Queue.is_empty state.pagelru
         then ()
-        else (
-          let evictedopaque = cbpeek state.pagecache in
-          match findpageforopaque evictedopaque with
-          | None -> failwith "bug in gc"
-          | Some ((evictedn, _, _, _, gen) as k, evictedsize) ->
-              if state.gen != gen || not (pagevisible layout evictedn)
-              then (
-                wcmd "free" [`s evictedopaque];
-                state.memused <- state.memused - evictedsize;
-                Hashtbl.remove state.pagemap k;
-                cbdecr state.pagecache;
-                gc ();
-              )
-        )
+        else
+          let opaque = Queue.pop state.pagelru in
+          match findpageforopaque opaque with
+          | None -> failwith "wtf!"
+          | Some (pagekey, size) ->
+              wcmd "free" [`s opaque];
+              Hashtbl.remove state.pagemap pagekey;
+              state.memused <- state.memused - size;
+              gc ()
       in
       gc ();
 
-      cbput state.pagecache p;
+      Queue.push p state.pagelru;
       state.rendering <- false;
 
       begin match state.throttle with
