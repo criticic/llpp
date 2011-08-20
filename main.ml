@@ -1911,9 +1911,10 @@ let viewkeyboard key =
               truncate (rect.(3) -. rect.(0)))
           in
           if w != 0 && h != 0
-          then
+          then (
+            state.anchor <- getanchor ();
             doreshape (w + state.scrollw) (h + conf.interpagespace)
-          ;
+          );
           Glut.postRedisplay ();
 
       | [] -> ()
