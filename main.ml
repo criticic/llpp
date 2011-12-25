@@ -3752,8 +3752,7 @@ let () =
         showtext '!' " LablGlut bug: special key not recognized";
 
     | Quit ->
-        if Sys.os_type <> "Unix"
-        then Unix.shutdown ssock Unix.SHUTDOWN_ALL;
+        wcmd "quit" [];
         State.save ();
         exit 0
   done;
