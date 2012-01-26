@@ -6,6 +6,7 @@ type under =
 and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
+let now = Unix.gettimeofday;;
 
 exception Quit;;
 
@@ -223,7 +224,7 @@ type conf =
     ; mutable maxhfit        : bool
     ; mutable crophack       : bool
     ; mutable autoscrollstep : int
-    ; mutable showall        : bool
+    ; mutable maxwait        : float option
     ; mutable hlinks         : bool
     ; mutable underinfo      : bool
     ; mutable interpagespace : interpagespace
@@ -350,7 +351,7 @@ type state =
     ; mutable colorscale    : float
     ; mutable memused       : memsize
     ; mutable gen           : gen
-    ; mutable throttle      : (page list * int) option
+    ; mutable throttle      : (page list * int * float) option
     ; mutable autoscroll    : int option
     ; mutable help          : helpitem array
     ; mutable docinfo       : (int * string) list
@@ -379,7 +380,7 @@ let defconf =
   ; maxhfit        = true
   ; crophack       = false
   ; autoscrollstep = 2
-  ; showall        = false
+  ; maxwait        = None
   ; hlinks         = false
   ; underinfo      = false
   ; interpagespace = 2
@@ -1108,25 +1109,37 @@ let layoutready layout =
 let gotoy y =
   let y = bound y 0 state.maxy in
   let y, layout, proceed =
-    if conf.showall
-    then
-      match state.throttle with
-      | None ->
-          let layout = layout y conf.winh in
-          let ready = layoutready layout in
-          if not ready
-          then (
-            load layout;
-            state.throttle <- Some (layout, y);
-          )
-          else G.postRedisplay "gotoy showall (None)";
-          y, layout, ready
-      | Some _ -> -1, [], false
-    else
-      let layout = layout y conf.winh in
-      if true || layoutready layout
-      then G.postRedisplay "gotoy ready";
-      y, layout, true
+    match conf.maxwait with
+    | Some time ->
+        begin match state.throttle with
+        | None ->
+            let layout = layout y conf.winh in
+            let ready = layoutready layout in
+            if not ready
+            then (
+              load layout;
+              state.throttle <- Some (layout, y, now ());
+            )
+            else G.postRedisplay "gotoy showall (None)";
+            y, layout, ready
+        | Some (_, _, started) ->
+            let dt = now () -. started in
+            if dt > time
+            then (
+              state.throttle <- None;
+              let layout = layout y conf.winh in
+              load layout;
+              G.postRedisplay "maxwait";
+              y, layout, true
+            )
+            else -1, [], false
+        end
+
+    | None ->
+        let layout = layout y conf.winh in
+        if true || layoutready layout
+        then G.postRedisplay "gotoy ready";
+        y, layout, true
   in
   if proceed
   then (
@@ -1427,7 +1440,7 @@ let act cmds =
       end;
       if state.invalidated = 0
       then represent ();
-      if not conf.showall
+      if conf.maxwait = None
       then G.postRedisplay "continue";
 
   | "title" ->
@@ -1514,7 +1527,7 @@ let act cmds =
                 then G.postRedisplay "page";
               )
 
-          | Some (layout, _) ->
+          | Some (layout, _, _) ->
               state.currently <- Idle;
               tilepage l.pageno pageopaque layout;
               load state.layout
@@ -1565,7 +1578,7 @@ let act cmds =
                   && tilevisible state.layout l.pageno x y
                 then G.postRedisplay "tile nothrottle";
 
-            | Some (layout, y) ->
+            | Some (layout, y, _) ->
                 let ready = layoutready layout in
                 if ready
                 then (
@@ -1617,8 +1630,6 @@ let act cmds =
   | _ ->
       dolog "unknown cmd `%S'" cmds
 ;;
-
-let now = Unix.gettimeofday;;
 
 let idle () =
   if state.deadline == nan then state.deadline <- now ();
@@ -1795,7 +1806,7 @@ let enterbirdseye () =
   conf.hlinks <- false;
   state.x <- 0;
   state.mstate <- Mnone;
-  conf.showall <- false;
+  conf.maxwait <- None;
   Glut.setCursor Glut.CURSOR_INHERIT;
   if conf.verbose
   then
@@ -1812,7 +1823,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   conf.zoom <- c.zoom;
   conf.presentation <- c.presentation;
   conf.interpagespace <- c.interpagespace;
-  conf.showall <- c.showall;
+  conf.maxwait <- c.maxwait;
   conf.hlinks <- c.hlinks;
   state.x <- leftx;
   if conf.verbose
@@ -1956,8 +1967,16 @@ let optentry mode _ key =
       TEdone ("crophack " ^ btos conf.crophack)
 
   | 'a' ->
-      conf.showall <- not conf.showall;
-      TEdone ("throttle " ^ btos conf.showall)
+      let s =
+        match conf.maxwait with
+        | None ->
+            conf.maxwait <- Some infinity;
+            "always wait for page to complete"
+        | Some _ ->
+            conf.maxwait <- None;
+            "show placeholder if page is not ready"
+      in
+      TEdone s
 
   | 'f' ->
       conf.underinfo <- not conf.underinfo;
@@ -3094,10 +3113,6 @@ let enterinfomode =
       (fun () -> conf.preload)
       (fun v -> conf.preload <- v);
 
-    src#bool "throttle"
-      (fun () -> conf.showall)
-      (fun v -> conf.showall <- v);
-
     src#bool "highlight links"
       (fun () -> conf.hlinks)
       (fun v -> conf.hlinks <- v);
@@ -3296,6 +3311,27 @@ let enterinfomode =
             then settrim true conf.trimfuzz;
           with exn ->
             state.text <- Printf.sprintf "bad irect `%s': %s"
+              v (Printexc.to_string exn)
+        );
+      src#string "throttle"
+        (fun () ->
+          match conf.maxwait with
+          | None -> "show place holder if page is not ready"
+          | Some time ->
+              if time = infinity
+              then "wait for page to fully render"
+              else
+                "wait " ^ string_of_float time
+                ^ " seconds before showing placeholder"
+        )
+        (fun v ->
+          try
+            let f = float_of_string v in
+            if f <= 0.0
+            then conf.maxwait <- None
+            else conf.maxwait <- Some f
+          with exn ->
+            state.text <- Printf.sprintf "bad time `%s': %s"
               v (Printexc.to_string exn)
         );
       src#colorspace "color space"
@@ -4463,7 +4499,14 @@ struct
             { c with autoscrollstep = max 0 (int_of_string v) }
         | "max-height-fit" -> { c with maxhfit = bool_of_string v }
         | "crop-hack" -> { c with crophack = bool_of_string v }
-        | "throttle" -> { c with showall = bool_of_string v }
+        | "throttle" ->
+            let mw =
+              match String.lowercase v with
+              | "true" -> Some infinity
+              | "false" -> None
+              | f -> Some (float_of_string f)
+            in
+            { c with maxwait = mw}
         | "highlight-links" -> { c with hlinks = bool_of_string v }
         | "under-cursor-info" -> { c with underinfo = bool_of_string v }
         | "vertical-margin" ->
@@ -4557,7 +4600,7 @@ struct
     dst.maxhfit        <- src.maxhfit;
     dst.crophack       <- src.crophack;
     dst.autoscrollstep <- src.autoscrollstep;
-    dst.showall        <- src.showall;
+    dst.maxwait        <- src.maxwait;
     dst.hlinks         <- src.hlinks;
     dst.underinfo      <- src.underinfo;
     dst.interpagespace <- src.interpagespace;
@@ -4823,6 +4866,18 @@ struct
       if always || a <> b
       then
         Printf.bprintf bb "\n    %s='%s'" s (enent a 0 (String.length a))
+    and oW s a b =
+      if always || a <> b
+      then
+        let v =
+          match a with
+          | None -> "false"
+          | Some f ->
+              if f = infinity
+              then "true"
+              else string_of_float f
+        in
+        Printf.bprintf bb "\n    %s='%s'" s v
     in
     let w, h =
       if always
@@ -4832,14 +4887,14 @@ struct
         | Some wh -> wh
         | None -> c.winw, c.winh
     in
-    let zoom, presentation, interpagespace, showall=
+    let zoom, presentation, interpagespace, maxwait =
       if always
-      then dc.zoom, dc.presentation, dc.interpagespace, dc.showall
+      then dc.zoom, dc.presentation, dc.interpagespace, dc.maxwait
       else
         match state.mode with
         | Birdseye (bc, _, _, _, _) ->
-            bc.zoom, bc.presentation, bc.interpagespace, bc.showall
-        | _ -> c.zoom, c.presentation, c.interpagespace, c.showall
+            bc.zoom, bc.presentation, bc.interpagespace, bc.maxwait
+        | _ -> c.zoom, c.presentation, c.interpagespace, c.maxwait
     in
     oi "width" w dc.winw;
     oi "height" h dc.winh;
@@ -4852,7 +4907,7 @@ struct
     oi "auto-scroll-step" c.autoscrollstep dc.autoscrollstep;
     ob "max-height-fit" c.maxhfit dc.maxhfit;
     ob "crop-hack" c.crophack dc.crophack;
-    ob "throttle" showall dc.showall;
+    oW "throttle" maxwait dc.maxwait;
     ob "highlight-links" c.hlinks dc.hlinks;
     ob "under-cursor-info" c.underinfo dc.underinfo;
     oi "vertical-margin" interpagespace dc.interpagespace;
