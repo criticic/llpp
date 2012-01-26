@@ -2144,8 +2144,8 @@ object (self)
     Gl.enable `texture_2d;
     let fs = !uifontsize in
     let nfs = fs + 1 in
-    let wx = measurestr fs "w" in
-    let tabx = 30.0*.wx  +. float (m_pan * fs) in
+    let ww = measurestr fs "w" in
+    let tabw = 30.0*.ww in
     let rec loop row =
       if (row - m_first) * nfs > conf.winh
       then ()
@@ -2154,7 +2154,7 @@ object (self)
         then (
           let (s, level) = source#getitem row in
           let y = (row - m_first) * nfs in
-          let x = 5 + fs*(max 0 (level+m_pan)) in
+          let x = 5.0 +. float (level + m_pan) *. ww in
           if row = m_active
           then (
             Gl.disable `texture_2d;
@@ -2167,7 +2167,8 @@ object (self)
             Gl.enable `texture_2d;
           );
 
-          let drawtabularstring x s =
+          let drawtabularstring s =
+            let drawstr x s = drawstring1 fs (truncate x) (y+nfs) s in
             if trusted
             then
               let tabpos = try String.index s '\t' with Not_found -> -1 in
@@ -2176,15 +2177,16 @@ object (self)
                 let len = String.length s - tabpos - 1 in
                 let s1 = String.sub s 0 tabpos
                 and s2 = String.sub s (tabpos + 1) len in
-                let xx = wx +. drawstring1 fs x (y + !uifontsize+1) s1 in
-                let x = truncate (max xx tabx) in
-                drawstring1 nfs x (y + (!uifontsize+1)) s2
+                let nx = drawstr x s1 in
+                let sw = nx -. x in
+                let x = x +. (max tabw sw) in
+                drawstr x s2
               else
-                drawstring1 fs x (y + nfs) s
+                drawstr x s
             else
-              drawstring1 fs x (y + nfs) s
+              drawstr x s
           in
-          let _w = drawtabularstring (x + m_pan*nfs) s in
+          let _ = drawtabularstring s in
           loop (row+1)
         )
       )
