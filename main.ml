@@ -2001,7 +2001,7 @@ let maxoutlinerows () = (conf.winh - !uifontsize - 1) / (!uifontsize + 1);;
 
 class type lvsource = object
   method getitemcount : int
-  method getitem : int -> (string * int) option
+  method getitem : int -> (string * int)
   method hasaction : int -> bool
   method exit :
     uioh:uioh ->
@@ -2149,47 +2149,45 @@ object (self)
     let rec loop row =
       if (row - m_first) * nfs > conf.winh
       then ()
-      else
-        match
-          if row >= 0 && row < source#getitemcount
-          then source#getitem row
-          else None
-        with
-        | None -> ()
-        | Some (s, level) ->
-            let y = (row - m_first) * nfs in
-            let x = 5 + fs*(max 0 (level+m_pan)) in
-            if row = m_active
-            then (
-              Gl.disable `texture_2d;
-              GlDraw.polygon_mode `both `line;
-              GlDraw.color (1., 1., 1.) ~alpha:0.9;
-              GlDraw.rect (1., float (y + 1))
-                (float (conf.winw - 1), float (y + fs + 3));
-              GlDraw.polygon_mode `both `fill;
-              GlDraw.color (1., 1., 1.);
-              Gl.enable `texture_2d;
-            );
+      else (
+        if row >= 0 && row < source#getitemcount
+        then (
+          let (s, level) = source#getitem row in
+          let y = (row - m_first) * nfs in
+          let x = 5 + fs*(max 0 (level+m_pan)) in
+          if row = m_active
+          then (
+            Gl.disable `texture_2d;
+            GlDraw.polygon_mode `both `line;
+            GlDraw.color (1., 1., 1.) ~alpha:0.9;
+            GlDraw.rect (1., float (y + 1))
+              (float (conf.winw - 1), float (y + fs + 3));
+            GlDraw.polygon_mode `both `fill;
+            GlDraw.color (1., 1., 1.);
+            Gl.enable `texture_2d;
+          );
 
-            let drawtabularstring x s =
-              if trusted
+          let drawtabularstring x s =
+            if trusted
+            then
+              let tabpos = try String.index s '\t' with Not_found -> -1 in
+              if tabpos > 0
               then
-                let tabpos = try String.index s '\t' with Not_found -> -1 in
-                if tabpos > 0
-                then
-                  let len = String.length s - tabpos - 1 in
-                  let s1 = String.sub s 0 tabpos
-                  and s2 = String.sub s (tabpos + 1) len in
-                  let xx = wx +. drawstring1 fs x (y + !uifontsize+1) s1 in
-                  let x = truncate (max xx tabx) in
-                  drawstring1 nfs x (y + (!uifontsize+1)) s2
-                else
-                  drawstring1 fs x (y + nfs) s
+                let len = String.length s - tabpos - 1 in
+                let s1 = String.sub s 0 tabpos
+                and s2 = String.sub s (tabpos + 1) len in
+                let xx = wx +. drawstring1 fs x (y + !uifontsize+1) s1 in
+                let x = truncate (max xx tabx) in
+                drawstring1 nfs x (y + (!uifontsize+1)) s2
               else
                 drawstring1 fs x (y + nfs) s
-            in
-            let _w = drawtabularstring (x + m_pan*nfs) s in
-            loop (row+1)
+            else
+              drawstring1 fs x (y + nfs) s
+          in
+          let _w = drawtabularstring (x + m_pan*nfs) s in
+          loop (row+1)
+        )
+      )
     in
     loop 0;
     Gl.disable `blend;
@@ -2203,15 +2201,14 @@ object (self)
       let dosearch re =
         let rec loop n =
           if n >= 0 && n < source#getitemcount
-          then
-            match source#getitem n with
-            | None -> None
-            | Some (s, _) ->
-                if
-                  (try ignore (Str.search_forward re s 0); true
-                    with Not_found -> false)
-                then Some n
-                else loop (n + incr)
+          then (
+            let s, _ = source#getitem n in
+            if
+              (try ignore (Str.search_forward re s 0); true
+                with Not_found -> false)
+            then Some n
+            else loop (n + incr)
+          )
           else None
         in
         loop active
@@ -2524,18 +2521,10 @@ object
     in
     let updownlevel incr =
       let len = source#getitemcount  in
-      let curlevel =
-        match source#getitem m_active with
-        | None -> assert false
-        | Some (_, level) -> level
-      in
+      let _, curlevel = source#getitem m_active in
       let rec flow i =
         if i = len then i-1 else if i = -1 then 0 else
-            let l =
-              match source#getitem i with
-              | None -> -1
-              | Some (_, l) -> l
-            in
+            let _, l = source#getitem i in
             if l != curlevel then i else flow (i+incr)
       in
       let active = flow m_active in
@@ -2599,10 +2588,10 @@ let outlinesource usebookmarks =
     method getitem n =
       if n == Array.length m_items && m_hadremovals
       then
-        Some ("[Confirm removal]", 0)
+        ("[Confirm removal]", 0)
       else
         let s, n, _ = m_items.(n) in
-        Some (s, n)
+        (s, n)
 
     method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
       ignore (uioh, first, pan, qsearch);
@@ -3002,7 +2991,7 @@ let rec enterinfomode =
                     m_first <- 0;
 
                   method getitemcount = Array.length vals
-                  method getitem n = Some (vals.(n), 0)
+                  method getitem n = (vals.(n), 0)
                   method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
                     ignore (uioh, first, pan, qsearch);
                     if not cancel then set active;
@@ -3032,13 +3021,11 @@ let rec enterinfomode =
           | `empty -> ""
         in
         let name, t, offset, _ = m_a.(n) in
-        Some (
-          (let s = tostr t in
-           if String.length s > 0
-           then Printf.sprintf "%s\t%s" name s
-           else name),
-          offset
-        )
+        ((let s = tostr t in
+          if String.length s > 0
+          then Printf.sprintf "%s\t%s" name s
+          else name),
+        offset)
 
       method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
         let uiohopt =
@@ -3339,7 +3326,7 @@ let enterhelpmode =
       method getitemcount = Array.length state.help
       method getitem n =
         let s, n, _ = state.help.(n) in
-        Some (s, n)
+        (s, n)
 
       method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
         let optuioh =
