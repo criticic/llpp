@@ -3060,7 +3060,7 @@ let enterinfomode =
         | _ -> false
     end)
   in
-  let rec fillsrc () =
+  let rec fillsrc prevmode prevuioh =
     let sep () = src#caption "" 0 in
     let colorp name get set =
       src#string name
@@ -3116,7 +3116,7 @@ let enterinfomode =
 
     src#bool "trim margins"
       (fun () -> conf.trimmargins)
-      (fun v -> settrim v conf.trimfuzz; fillsrc ());
+      (fun v -> settrim v conf.trimfuzz; fillsrc prevmode prevuioh);
 
     src#bool "persistent location"
       (fun () -> conf.jumpback)
@@ -3242,7 +3242,7 @@ let enterinfomode =
     let btos b = if b then "\xc2\xab" else "\xc2\xbb" in
     src#bool ~offset:0 ~btos "Extended parameters"
       (fun () -> !showextended)
-      (fun v -> showextended := v; fillsrc ());
+      (fun v -> showextended := v; fillsrc prevmode prevuioh);
     if !showextended
     then (
       src#bool "checkers"
@@ -3318,11 +3318,13 @@ let enterinfomode =
         (fun () -> string_of_int (List.length state.pdims)) 1;
     );
 
-    src#reset state.mode state.uioh;
+    src#reset prevmode prevuioh;
   in
   fun () ->
     state.text <- "";
-    fillsrc ();
+    let prevmode = state.mode
+    and prevuioh = state.uioh in
+    fillsrc prevmode prevuioh;
     let source = (src :> lvsource) in
     state.uioh <- object
       inherit listview ~source ~trusted:true
@@ -3335,7 +3337,7 @@ let enterinfomode =
               G.postRedisplay "memusedchanged";
             )
         | Pdim -> G.postRedisplay "pdimchanged"
-        | Docinfo -> fillsrc ()
+        | Docinfo -> fillsrc prevmode prevuioh
     end;
     G.postRedisplay "info";
 ;;
