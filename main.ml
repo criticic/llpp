@@ -278,6 +278,7 @@ class type uioh = object
     Glut.button_t -> Glut.mouse_button_state_t -> int -> int -> uioh
   method motion : int -> int -> uioh
   method pmotion : int -> int -> uioh
+  method memusedchanged : unit
 end;;
 
 type mode =
@@ -311,6 +312,7 @@ let nouioh : uioh = object (self)
   method button _ _ _ _ = self
   method motion _ _ = self
   method pmotion _ _ = self
+  method memusedchanged = ()
 end;;
 
 type state =
@@ -1345,6 +1347,7 @@ let gctiles () =
         else (
           wcmd "freetile" [`s p];
           state.memused <- state.memused - s;
+          state.uioh#memusedchanged;
           Hashtbl.remove state.tilemap k;
         );
         loop (qpos+1)
@@ -1357,6 +1360,7 @@ let flushtiles () =
   Queue.iter (fun (k, p, s) ->
     wcmd "freetile" [`s p];
     state.memused <- state.memused - s;
+    state.uioh#memusedchanged;
     Hashtbl.remove state.tilemap k;
   ) state.tilelru;
   Queue.clear state.tilelru;
@@ -1536,6 +1540,7 @@ let act cmds =
           else  (
             puttileopaque l col row gen cs angle opaque size t;
             state.memused <- state.memused + size;
+            state.uioh#memusedchanged;
             gctiles ();
             Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                        opaque, size) state.tilelru;
@@ -1567,7 +1572,7 @@ let act cmds =
                 )
                 else load layout;
             end;
-          )
+          );
 
       | _ ->
           dolog "Inconsistent tiling state";
@@ -2467,6 +2472,8 @@ object (self)
       else self
     in
     coe o
+
+  method memusedchanged = ()
 end;;
 
 class outlinelistview ~source : uioh =
@@ -3312,7 +3319,16 @@ let rec enterinfomode =
 
     src#reset state.mode state.uioh;
     let source = (src :> lvsource) in
-    state.uioh <- new listview ~source ~trusted:true;
+    state.uioh <- object
+      inherit listview ~source ~trusted:true
+      val mutable m_prevmemused = 0
+      method memusedchanged =
+        if m_prevmemused != state.memused
+        then (
+          m_prevmemused <- state.memused;
+          G.postRedisplay "memusedchanged";
+        )
+    end;
     G.postRedisplay "info";
 ;;
 
@@ -4393,6 +4409,8 @@ let uioh = object
             ()
     end;
     state.uioh
+
+  method memusedchanged = ()
 end;;
 
 module Config =
