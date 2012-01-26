@@ -3306,6 +3306,11 @@ let rec enterinfomode =
     sep ();
     src#caption "Document" 0;
     List.iter (fun (_, s) -> src#caption s 1) state.docinfo;
+    if conf.trimmargins
+    then (
+      src#caption "Trimmed margins" 0;
+      src#caption ("Dimensions\t" ^ string_of_int (List.length state.pdims)) 1;
+    );
 
     src#reset state.mode state.uioh;
     let source = (src :> lvsource) in
