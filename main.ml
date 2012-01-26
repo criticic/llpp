@@ -270,6 +270,8 @@ and col = int;;
 
 let emptyanchor = (0, 0.0);;
 
+type infochange = | Memused | Docinfo | Pdim;;
+
 class type uioh = object
   method display : unit
   method key : int -> uioh
@@ -278,7 +280,7 @@ class type uioh = object
     Glut.button_t -> Glut.mouse_button_state_t -> int -> int -> uioh
   method motion : int -> int -> uioh
   method pmotion : int -> int -> uioh
-  method memusedchanged : unit
+  method infochanged : infochange -> unit
 end;;
 
 type mode =
@@ -312,7 +314,7 @@ let nouioh : uioh = object (self)
   method button _ _ _ _ = self
   method motion _ _ = self
   method pmotion _ _ = self
-  method memusedchanged = ()
+  method infochanged _ = ()
 end;;
 
 type state =
@@ -1348,7 +1350,7 @@ let gctiles () =
         else (
           wcmd "freetile" [`s p];
           state.memused <- state.memused - s;
-          state.uioh#memusedchanged;
+          state.uioh#infochanged Memused;
           Hashtbl.remove state.tilemap k;
         );
         loop (qpos+1)
@@ -1361,7 +1363,7 @@ let flushtiles () =
   Queue.iter (fun (k, p, s) ->
     wcmd "freetile" [`s p];
     state.memused <- state.memused - s;
-    state.uioh#memusedchanged;
+    state.uioh#infochanged Memused;
     Hashtbl.remove state.tilemap k;
   ) state.tilelru;
   Queue.clear state.tilelru;
@@ -1406,6 +1408,7 @@ let act cmds =
   in
   match op with
   | "clear" ->
+      state.uioh#infochanged Pdim;
       state.pdims <- [];
 
   | "clearrects" ->
@@ -1541,7 +1544,7 @@ let act cmds =
           else  (
             puttileopaque l col row gen cs angle opaque size t;
             state.memused <- state.memused + size;
-            state.uioh#memusedchanged;
+            state.uioh#infochanged Memused;
             gctiles ();
             Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                        opaque, size) state.tilelru;
@@ -1585,6 +1588,7 @@ let act cmds =
       let pdim =
         Scanf.sscanf args "%u %u %u %u" (fun n w h x -> n, w, h, x)
       in
+      state.uioh#infochanged Pdim;
       state.pdims <- pdim :: state.pdims
 
   | "o" ->
@@ -1607,6 +1611,7 @@ let act cmds =
       state.docinfo <- (1, args) :: state.docinfo
 
   | "infoend" ->
+      state.uioh#infochanged Docinfo;
       state.docinfo <- List.rev state.docinfo
 
   | _ ->
@@ -2473,7 +2478,7 @@ object (self)
     in
     coe o
 
-  method memusedchanged = ()
+  method infochanged _ = ()
 end;;
 
 class outlinelistview ~source : uioh =
@@ -2873,6 +2878,10 @@ let describe_location () =
 let rec enterinfomode =
   let btos b = if b then "\xe2\x88\x9a" else "" in
   let showextended = ref false in
+  let reenter () =
+    state.uioh <- state.uioh#key 27;
+    enterinfomode ();
+  in
   let leave mode = function
     | Confirm -> state.mode <- mode
     | Cancel -> state.mode <- mode in
@@ -3112,7 +3121,7 @@ let rec enterinfomode =
 
     src#bool "trim margins"
       (fun () -> conf.trimmargins)
-      (fun v -> settrim v conf.trimfuzz);
+      (fun v -> settrim v conf.trimfuzz; reenter ());
 
     src#bool "persistent location"
       (fun () -> conf.jumpback)
@@ -3238,7 +3247,7 @@ let rec enterinfomode =
     let btos b = if b then "\xc2\xab" else "\xc2\xbb" in
     src#bool ~offset:0 ~btos "Extended parameters"
       (fun () -> !showextended)
-      (fun v -> showextended := v; enterinfomode ());
+      (fun v -> showextended := v; reenter ());
     if !showextended
     then (
       src#bool "checkers"
@@ -3308,8 +3317,10 @@ let rec enterinfomode =
     List.iter (fun (_, s) -> src#caption s 1) state.docinfo;
     if conf.trimmargins
     then (
+      sep ();
       src#caption "Trimmed margins" 0;
-      src#caption ("Dimensions\t" ^ string_of_int (List.length state.pdims)) 1;
+      src#caption2 "Dimensions"
+        (fun () -> string_of_int (List.length state.pdims)) 1;
     );
 
     src#reset state.mode state.uioh;
@@ -3317,12 +3328,15 @@ let rec enterinfomode =
     state.uioh <- object
       inherit listview ~source ~trusted:true
       val mutable m_prevmemused = 0
-      method memusedchanged =
-        if m_prevmemused != state.memused
-        then (
-          m_prevmemused <- state.memused;
-          G.postRedisplay "memusedchanged";
-        )
+      method infochanged = function
+        | Memused ->
+            if m_prevmemused != state.memused
+            then (
+              m_prevmemused <- state.memused;
+              G.postRedisplay "memusedchanged";
+            )
+        | Pdim -> G.postRedisplay "pdimchanged"
+        | Docinfo -> reenter ()
     end;
     G.postRedisplay "info";
 ;;
@@ -4405,7 +4419,7 @@ let uioh = object
     end;
     state.uioh
 
-  method memusedchanged = ()
+  method infochanged _ = ()
 end;;
 
 module Config =
