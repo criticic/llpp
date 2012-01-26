@@ -510,7 +510,8 @@ let vlog fmt =
 module G =
 struct
   let postRedisplay who =
-    vlog "redisplay for %s" who;
+    if conf.verbose
+    then prerr_endline ("redisplay for " ^ who);
     Glut.postRedisplay ();
   ;;
 end;;
