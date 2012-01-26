@@ -2875,13 +2875,9 @@ let describe_location () =
       (fn+1) (ln+1) state.pagecount percent
 ;;
 
-let rec enterinfomode =
+let enterinfomode =
   let btos b = if b then "\xe2\x88\x9a" else "" in
   let showextended = ref false in
-  let reenter () =
-    state.uioh <- state.uioh#key 27;
-    enterinfomode ();
-  in
   let leave mode = function
     | Confirm -> state.mode <- mode
     | Cancel -> state.mode <- mode in
@@ -3064,7 +3060,7 @@ let rec enterinfomode =
         | _ -> false
     end)
   in
-  fun () ->
+  let rec fillsrc () =
     let sep () = src#caption "" 0 in
     let colorp name get set =
       src#string name
@@ -3080,7 +3076,6 @@ let rec enterinfomode =
     in
     let oldmode = state.mode in
     let birdseye = isbirdseye state.mode in
-    state.text <- "";
 
     src#caption (if birdseye then "Setup (Bird's eye)" else "Setup") 0;
 
@@ -3121,7 +3116,7 @@ let rec enterinfomode =
 
     src#bool "trim margins"
       (fun () -> conf.trimmargins)
-      (fun v -> settrim v conf.trimfuzz; reenter ());
+      (fun v -> settrim v conf.trimfuzz; fillsrc ());
 
     src#bool "persistent location"
       (fun () -> conf.jumpback)
@@ -3247,7 +3242,7 @@ let rec enterinfomode =
     let btos b = if b then "\xc2\xab" else "\xc2\xbb" in
     src#bool ~offset:0 ~btos "Extended parameters"
       (fun () -> !showextended)
-      (fun v -> showextended := v; reenter ());
+      (fun v -> showextended := v; fillsrc ());
     if !showextended
     then (
       src#bool "checkers"
@@ -3324,6 +3319,10 @@ let rec enterinfomode =
     );
 
     src#reset state.mode state.uioh;
+  in
+  fun () ->
+    state.text <- "";
+    fillsrc ();
     let source = (src :> lvsource) in
     state.uioh <- object
       inherit listview ~source ~trusted:true
@@ -3336,7 +3335,7 @@ let rec enterinfomode =
               G.postRedisplay "memusedchanged";
             )
         | Pdim -> G.postRedisplay "pdimchanged"
-        | Docinfo -> reenter ()
+        | Docinfo -> fillsrc ()
     end;
     G.postRedisplay "info";
 ;;
