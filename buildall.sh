@@ -1,44 +1,26 @@
 # builds "hard" prerequisites and llpp
 set -e
 
-use_sumatrapdf_patched_mupdf=false
-
 mkdir -p 3rdp
 cd 3rdp
-
 root=$(pwd)
 
-openjpeg=http://openjpeg.googlecode.com/svn/trunk/
-jbig2dec=git://git.ghostscript.com/jbig2dec.git
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf=git://git.ghostscript.com/mupdf.git
-sumatrapdf=http://sumatrapdf.googlecode.com/svn/trunk
+mupdf3p=http://mupdf.com/download/mupdf-thirdparty.zip
+mupdfrev=50dbc1a356577f3df15a876f6adb716dea29bdc5
 
-test -d openjpeg || svn -r r608 checkout $openjpeg openjpeg
-test -d jbig2dec || git clone $jbig2dec jbig2dec
-test -d lablGL-1.04 || (wget $lablgl && tar -xzf lablgl-1.04.tar.gz)
-
+test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 if ! test -d mupdf; then
-    if $use_sumatrapdf_patched_mupdf; then
-        svn checkout $sumatrapdf/mupdf mupdf
-    else
-        git clone $mupdf
-    fi
+    git clone $mupdf
+    (cd mupdf; git checkout $mupdfrev)
+else
+    : #(cd mupdf; git pull $mupdf; git checkout $mupdfrev)
 fi
 
-mkdir -p $root/bin
-mkdir -p $root/lib
-mkdir -p $root/include
+test -d mupdf/thirdparty || (wget -nc $mupdf3p && unzip -d mupdf mupdf-thirdparty.zip)
 
 make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
-
-(cd openjpeg \
-    && $make dist \
-    && cp dist/*.h $root/include/ \
-    && cp dist/*.a $root/lib/)
-
-(cd jbig2dec \
-    && $make -f Makefile.unix install prefix=$root && rm -f $root/lib/*.so*)
 
 (cd lablGL-1.04 \
     && cat Makefile.config.linux.mdk > Makefile.config \
@@ -49,9 +31,6 @@ make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
             DLLDIR=$root/lib/ocaml/stublibs \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-export CPATH=$root/include:$root/mupdf/pdf:$root/mupdf/fitz:$CPATH:/usr/local/include
-export LIBRARY_PATH=$root/lib:$root/mupdf/build/release:$LIBRARY_PATH:/usr/local/lib
-
 (cd mupdf && $make build=release)
 
 cd ..
@@ -60,9 +39,23 @@ srcpath=$(dirname $0)
 
 sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
-ccopt="$(freetype-config --cflags) -O -include ft2build.h -D_GNU_SOURCE"
+tp=$root/mupdf/thirdparty
+
+ccopt="-O"
+ccopt="$ccopt -I $tp/jbig2dec"
+ccopt="$ccopt -I $tp/jpeg-8c"
+ccopt="$ccopt -I $tp/freetype-2.4.4/include"
+ccopt="$ccopt -I $tp/openjpeg-1.4/libopenjpeg"
+ccopt="$ccopt -I $tp/zlib-1.2.5"
+ccopt="$ccopt -I $root/mupdf/fitz -I $root/mupdf/pdf"
+
+ccopt="$ccopt -include ft2build.h -D_GNU_SOURCE"
+
+cclib="$cclib -L$root/mupdf/build/release"
+cclib="$cclib -lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+
 if test "$1" = "opt"; then
-    cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
+    cclib="$cclib -lpthread"
     ocamlopt -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     ocamlopt -c -o help.cmx help.ml
     ocamlopt -c -o parser.cmx $srcpath/parser.ml
@@ -77,7 +70,6 @@ if test "$1" = "opt"; then
     parser.cmx \
     main.cmx
 else
-    cclib="-lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
     ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     ocamlc -c -o help.cmo help.ml
     ocamlc -c -o parser.cmo $srcpath/parser.ml

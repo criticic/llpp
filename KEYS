@@ -3,7 +3,10 @@ j/k                     - ..............
 mouse buttons 3/4       - .............. (aka mouse wheel)
   when control is held  - zoom
 left/right arrow        - pan left/right (when zoomed in)
+cntrol + shift up/down  - set previous zoom level
+control + arrows        - scroll up/down, pan left/right (by half a screen widht/height)
 primary mouse button[1] - click on link or select text[2]
+other mouse button[1]   - select rectangle to zoom to
 escape/q                - quit
 backspace               - go back after jumping (clicking link and suchlike) [3]
 alt-left/right arrow    - go backward/forward in history
@@ -68,8 +71,10 @@ tunables
 -Z                      - set zoom (percent)
 -A                      - set auto scroll step (pixels)
 -t                      - set thumbnail width (pixels)
+-T                      - toggle trimming of margins
+-I                      - invert colors
 -f                      - toggle "what's under cursor" identification
-                          (only font name currently)
+    (only font name of the text under cursor and link target currently)
 
 bird's eye mode
 Ctrl-9,F9,esc           - leave bird's eye view
@@ -106,8 +111,15 @@ ctrl-g,esc              - cancel
 
 [2] text selection requires xsel
     http://www.vergenet.net/~conrad/software/xsel/
-    On OSX and Windows selected text will be dumped to the terminal
-    Also selection can not cross page boundaries
 
 [3] if the document was previously visited initial backspace will
     jump to the last visited place
+
+======================================================================
+Caveat emptor:
+
+o Selection can not cross page boundaries
+o On OSX(cocoa) and Windows selected text will be dumped to the terminal
+o Text searching is very naive
+o Most of the Ctrl keys do not work on Windows and native OSX (X11 version
+  is fine though)

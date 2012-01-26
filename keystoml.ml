@@ -20,7 +20,7 @@ let tabify s =
       let b = Buffer.create 80 in
       Buffer.add_substring b s 0 (nonwspos+1);
       Buffer.add_string b "\t";
-      Buffer.add_substring b s dashpos (String.length s - dashpos); 
+      Buffer.add_substring b s dashpos (String.length s - dashpos);
       Buffer.contents b
 ;;
 

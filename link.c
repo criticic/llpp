@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define PIGGYBACK
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -16,12 +18,12 @@
 #else
 #define FMT_s "%u"
 #endif
-#pragma warning (disable:4244)
-#pragma warning (disable:4996)
-#pragma warning (disable:4995)
 #endif
 
 #ifdef _MSC_VER
+#pragma warning (disable:4244)
+#pragma warning (disable:4996)
+#pragma warning (disable:4995)
 #define NORETURN __declspec (noreturn)
 #define UNUSED
 #define OPTIMIZE
@@ -33,6 +35,18 @@
 #define NORETURN
 #define UNUSED
 #define OPTIMIZE
+#endif
+
+#ifdef __MINGW32__
+/* some versions of MingW have non idempotent %p */
+#include <inttypes.h>
+#define FMT_ptr PRIxPTR
+#define FMT_ptr_cast(p) ((intptr_t *) (p))
+#define FMT_ptr_cast2(p) ((intptr_t) (p))
+#else
+#define FMT_ptr "p"
+#define FMT_ptr_cast(p) (p)
+#define FMT_ptr_cast2(p) (p)
 #endif
 
 #ifdef _WIN32
@@ -104,6 +118,18 @@ static void NORETURN errx (int exitcode, const char *fmt, ...)
 #define GL_TEXTURE_RECTANGLE_ARB          0x84F5
 #endif
 
+#ifndef GL_BGRA
+#define GL_BGRA                           0x80E1
+#endif
+
+#ifndef GL_UNSIGNED_INT_8_8_8_8
+#define GL_UNSIGNED_INT_8_8_8_8           0x8035
+#endif
+
+#ifndef GL_UNSIGNED_INT_8_8_8_8_REV
+#define GL_UNSIGNED_INT_8_8_8_8_REV       0x8367
+#endif
+
 #include <caml/fail.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
@@ -127,40 +153,40 @@ static void NORETURN errx (int exitcode, const char *fmt, ...)
     break;                                              \
 }
 
-struct block {
-    int w;
-    int x;
-    int offset;
+struct slice {
+    int h;
     int texindex;
 };
 
-struct slice {
-    int h;
-    struct block *blocks;
+struct tile {
+    int x, y, w, h;
+    int slicecount;
+    fz_pixmap *pixmap;
+    struct slice slices[1];
 };
 
 struct pagedim {
     int pageno;
     int rotate;
     int left;
-    fz_rect box;
-    fz_bbox bbox;
-    fz_matrix ctm, ctm1;
+    int tctmready;
+    fz_bbox bounds;
+    fz_rect pagebox;
+    fz_rect mediabox;
+    fz_matrix ctm, zoomctm, lctm, tctm;
 };
 
 struct page {
+    int gen;
     int pageno;
-    int slicecount;
-    int blockcount;
+    int pdimno;
     fz_text_span *text;
-    fz_pixmap *pixmap;
     pdf_page *drawpage;
-    struct pagedim pagedim;
+    fz_display_list *dlist;
     struct mark {
         int i;
         fz_text_span *span;
     } fmark, lmark;
-    struct slice *slices;
 };
 
 #if !defined _WIN32 && !defined __APPLE__
@@ -169,8 +195,7 @@ struct page {
 
 struct {
     int sock;
-    int sliceheight, blockwidth;
-    struct page *pig;
+    int sliceheight;
     struct pagedim *pagedims;
     int pagecount;
     int pagedimcount;
@@ -183,17 +208,27 @@ struct {
     int texcount;
     GLuint *texids;
 
+    GLenum texiform;
     GLenum texform;
     GLenum texty;
 
+    fz_colorspace *colorspace;
+
     struct {
         int w, h;
-        struct block *block;
+        struct slice *slice;
     } *texowners;
 
     int rotate;
     int proportional;
+    int trimmargins;
     int needoutline;
+    int gen;
+    int aalevel;
+
+    int trimanew;
+    fz_bbox trimfuzz;
+    fz_pixmap *pig;
 
 #ifdef _WIN32
     HANDLE thread;
@@ -204,6 +239,22 @@ struct {
 
     FT_Face face;
 } state;
+
+static void UNUSED debug_rect (const char *cap, fz_rect r)
+{
+    printf ("%s(rect) %.2f,%.2f,%.2f,%.2f\n", cap, r.x0, r.y0, r.x1, r.y1);
+}
+
+static void UNUSED debug_bbox (const char *cap, fz_bbox r)
+{
+    printf ("%s(bbox) %d,%d,%d,%d\n", cap, r.x0, r.y0, r.x1, r.y1);
+}
+
+static void UNUSED debug_matrix (const char *cap, fz_matrix m)
+{
+    printf ("%s(matrix) %.2f,%.2f,%.2f,%.2f %.2f %.2f\n", cap,
+            m.a, m.b, m.c, m.d, m.e, m.f);
+}
 
 #ifdef _WIN32
 static CRITICAL_SECTION critsec;
@@ -259,7 +310,7 @@ static void *parse_pointer (const char *cap, const char *s)
     int ret;
     void *ptr;
 
-    ret = sscanf (s, "%p", &ptr);
+    ret = sscanf (s, "%" FMT_ptr, FMT_ptr_cast (&ptr));
     if (ret != 1) {
         errx (1, "%s: cannot parse pointer in `%s'", cap, s);
     }
@@ -277,12 +328,23 @@ static int hasdata (int sock)
 
 static double now (void)
 {
+#ifdef _WIN32
+    FILETIME ft;
+    uint64 tmp;
+
+    GetSystemTimeAsFileTime (&ft);
+    tmp = ft.dwHighDateTime;
+    tmp <<= 32;
+    tmp |= ft.dwLowDateTime;
+    return tmp * 1e-7;
+#else
     struct timeval tv;
 
     if (gettimeofday (&tv, NULL)) {
         err (1, "gettimeofday");
     }
     return tv.tv_sec + tv.tv_usec*1e-6;
+#endif
 }
 
 static void readdata (int fd, char *p, int size)
@@ -358,16 +420,8 @@ static void openxref (char *filename, char *password)
     int i;
 
     for (i = 0; i < state.texcount; ++i)  {
-        state.texowners[i].block = NULL;
-    }
-
-    if (state.cache) {
-        fz_free_glyph_cache (state.ctx, state.cache);
-    }
-
-    state.cache = fz_new_glyph_cache (state.ctx);
-    if (!state.cache) {
-        errx (1, "fz_newglyph_cache failed");
+        state.texowners[i].w = -1;
+        state.texowners[i].slice = NULL;
     }
 
    if (state.xref) {
@@ -381,9 +435,14 @@ static void openxref (char *filename, char *password)
     }
     state.pagedimcount = 0;
 
-    state.xref = pdf_open_xref (state.ctx, filename, password);
-    pdf_load_page_tree (state.xref);
-
+    fz_set_aa_level (state.ctx, state.aalevel);
+    state.xref = pdf_open_xref (state.ctx, filename);
+    if (pdf_needs_password (state.xref)) {
+        int okay = pdf_authenticate_password (state.xref, password);
+        if (!okay) {
+            errx (1, "invalid password");
+        }
+    }
     state.pagecount = pdf_count_pages (state.xref);
 }
 
@@ -391,28 +450,31 @@ static void pdfinfo (void)
 {
     fz_obj *infoobj;
 
-    printd (state.sock, "i PDF version\t%d.%d",
+    printd (state.sock, "info PDF version\t%d.%d",
             state.xref->version / 10, state.xref->version % 10);
 
     infoobj = fz_dict_gets (state.xref->trailer, "Info");
     if (infoobj) {
         int i;
         char *s;
-        char *items[] = { "Title", "Creator", "Producer", "CreationDate" };
+        char *items[] = { "Title", "Author", "Creator",
+                          "Producer", "CreationDate" };
 
         for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
             fz_obj *obj = fz_dict_gets (infoobj, items[i]);
             s = pdf_to_utf8 (state.ctx, obj);
             if (*s) {
                 if (i == 0) {
-                    printd (state.sock, "t %s", s);
+                    printd (state.sock, "title %s", s);
                 }
-                printd (state.sock, "i %s\t%s", items[i], s);
+                printd (state.sock, "info %s\t%s", items[i], s);
             }
             fz_free (state.ctx, s);
         }
-        printd (state.sock, "ie");
     }
+    printd (state.sock, "info Pages\t%d", state.pagecount);
+    printd (state.sock, "info Dimensions\t%d", state.pagedimcount);
+    printd (state.sock, "infoend");
 }
 
 static int readlen (int fd)
@@ -429,21 +491,16 @@ static int readlen (int fd)
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
 }
 
-static void unlinkpage (struct page *page)
+static void unlinktile (struct tile *tile)
 {
     int i;
 
-    for (i = 0; i < page->slicecount; ++i) {
-        int j;
-        struct slice *s = &page->slices[i];
+    for (i = 0; i < tile->slicecount; ++i) {
+        struct slice *s = &tile->slices[i];
 
-        for (j = 0; j < page->blockcount; ++j) {
-            struct block *b = &s->blocks[j];
-
-            if (b->texindex != -1) {
-                if (state.texowners[b->texindex].block == b) {
-                    state.texowners[b->texindex].block = NULL;
-                }
+        if (s->texindex != -1) {
+            if (state.texowners[s->texindex].slice == s) {
+                state.texowners[s->texindex].slice = NULL;
             }
         }
     }
@@ -451,71 +508,26 @@ static void unlinkpage (struct page *page)
 
 static void freepage (struct page *page)
 {
-    int i;
-
-    fz_drop_pixmap (state.ctx, page->pixmap);
-
-    unlinkpage (page);
-
     if (page->text) {
         fz_free_text_span (state.ctx, page->text);
     }
-    if (page->drawpage) {
-        pdf_free_page (state.ctx, page->drawpage);
-    }
-    for (i = 0; i < page->slicecount; ++i) {
-        free (page->slices[i].blocks);
-    }
-    free (page->slices);
+    pdf_free_page (state.ctx, page->drawpage);
+    fz_free_display_list (state.ctx, page->dlist);
     free (page);
 }
 
-static void subdivide (struct page *p, int blockcount)
+static void freetile (struct tile *tile)
 {
-    int i;
-    int w = p->pixmap->w;
-    int h = p->pixmap->h;
-    int offset = 0;
-    int tw = MIN (w, state.blockwidth);
-    int th = MIN (h, state.sliceheight);
-
-    for (i = 0; i < p->slicecount; ++i) {
-        int j, x, offset1;
-        struct slice *s = &p->slices[i];
-
-        s->h = MIN (th, h);
-
-        s->blocks = calloc (sizeof (struct block), p->blockcount);
-        if (!s->blocks) {
-            err (1, "calloc blocks page %d slice %d, %d",
-                 p->pageno, i, p->blockcount);
-        }
-
-        w = p->pixmap->w;
-        x = 0;
-        offset1 = offset;
-
-        for (j = 0; j < blockcount; ++j) {
-            struct block *b = &s->blocks[j];
-
-            b->texindex = -1;
-            b->w = MIN (tw, w);
-            b->x = x;
-            b->offset = offset1;
-            w -= tw;
-            x += tw;
-            offset1 += tw * 4;
-        }
-        offset += s->h * p->pixmap->w * 4;
-        h -= th;
+    unlinktile (tile);
+#ifndef PIGGYBACK
+    fz_drop_pixmap (state.ctx, tile->pixmap);
+#else
+    if (state.pig) {
+        fz_drop_pixmap (state.ctx, state.pig);
     }
-}
-
-static int compatpdims (struct pagedim *p1, struct pagedim *p2)
-{
-    return p1->rotate == p2->rotate
-        && !memcmp (&p1->bbox, &p2->bbox, sizeof (p1->bbox))
-        && !memcmp (&p1->ctm, &p2->ctm, sizeof (p1->ctm));
+    state.pig = tile->pixmap;
+#endif
+    free (tile);
 }
 
 #ifdef __ALTIVEC__
@@ -567,76 +579,123 @@ static void OPTIMIZE (3) clearpixmap (fz_pixmap *pixmap)
 #define clearpixmap(p) fz_clear_pixmap_with_color (p, 0xff)
 #endif
 
-static void *render (int pageno, int pindex)
+static fz_matrix trimctm (pdf_page *page, int pindex)
 {
-    fz_device *idev;
-    double start, end;
-    pdf_page *drawpage;
-    struct pagedim *pagedim;
-    struct page *page = NULL;
-    int slicecount, blockcount;
+    fz_matrix ctm;
+    struct pagedim *pdim = &state.pagedims[pindex];
 
-    start = now ();
-    printd (state.sock, "V rendering %d", pageno);
+    if (!pdim->tctmready) {
+        if (state.trimmargins) {
+            fz_rect realbox;
 
-    pagedim = &state.pagedims[pindex];
-    slicecount = (pagedim->bbox.y1 - pagedim->bbox.y0
-                  + state.sliceheight - 1) / state.sliceheight;
-    slicecount += slicecount == 0;
-
-    blockcount = (pagedim->bbox.x1 - pagedim->bbox.x0
-                  + state.blockwidth - 1) / state.blockwidth;
-    blockcount += blockcount == 0;
-
-    if (state.pig) {
-        if (compatpdims (&state.pig->pagedim, pagedim)) {
-            page = state.pig;
-            if (page->text) {
-                fz_free_text_span (state.ctx, page->text);
-                page->text = NULL;
-            }
-            if (page->drawpage) {
-                pdf_free_page (state.ctx, page->drawpage);
-                page->drawpage = NULL;
-            }
+            ctm = fz_concat (fz_rotate (-pdim->rotate), fz_scale (1, -1));
+            realbox = fz_transform_rect (ctm, pdim->mediabox);
+            ctm = fz_concat (ctm, fz_translate (-realbox.x0, -realbox.y0));
+            ctm = fz_concat (fz_invert_matrix (page->ctm), ctm);
         }
         else {
-            freepage (state.pig);
+            ctm = fz_identity;
         }
+        pdim->tctm = ctm;
+        pdim->tctmready = 1;
     }
+    return pdim->tctm;
+}
+
+static fz_matrix pagectm (struct page *page)
+{
+    return fz_concat (trimctm (page->drawpage, page->pdimno),
+                      state.pagedims[page->pdimno].ctm);
+}
+
+static void *loadpage (int pageno, int pindex)
+{
+    fz_device *dev;
+    struct page *page = NULL;
+
+    page = calloc (sizeof (struct page), 1);
     if (!page) {
-        page = calloc (sizeof (struct page), 1);
-        if (!page) {
-            err (1, "calloc page %d", pageno);
-        }
-        page->slices = calloc (sizeof (struct slice), slicecount);
-        if (!page->slices) {
-            err (1, "calloc slices %d %d", pageno, slicecount);
-        }
-        page->pixmap = fz_new_pixmap_with_rect (state.ctx, fz_device_rgb,
-                                                pagedim->bbox);
+        err (1, "calloc page %d", pageno);
     }
 
-    page->slicecount = slicecount;
-    page->blockcount = blockcount;
+    page->drawpage = pdf_load_page (state.xref, pageno);
+    page->dlist = fz_new_display_list (state.ctx);
+    dev = fz_new_list_device (state.ctx, page->dlist);
+    pdf_run_page (state.xref, page->drawpage, dev, fz_identity, NULL);
+    fz_free_device (dev);
 
-    drawpage = pdf_load_page (state.xref, pageno - 1);
-
-    clearpixmap (page->pixmap);
-
-    idev = fz_new_draw_device (state.ctx, state.cache, page->pixmap);
-    pdf_run_page (state.xref, drawpage, idev, pagedim->ctm);
-    fz_free_device (idev);
-
-    page->drawpage = drawpage;
-    page->pagedim = *pagedim;
+    page->pdimno = pindex;
     page->pageno = pageno;
-    subdivide (page, blockcount);
-    end = now ();
+    page->gen = state.gen;
 
-    printd (state.sock, "V rendering %d took %f sec", pageno, end - start);
-    state.pig = NULL;
     return page;
+}
+
+static struct tile *alloctile (int h)
+{
+    int i;
+    int slicecount;
+    size_t tilesize;
+    struct tile *tile;
+
+    slicecount = (h + state.sliceheight - 1) / state.sliceheight;
+    tilesize = sizeof (*tile) + ((slicecount - 1) * sizeof (struct slice));
+    tile = calloc (tilesize, 1);
+    if (!tile) {
+        err (1, "can not allocate tile (" FMT_s " bytes)", tilesize);
+    }
+    for (i = 0; i < slicecount; ++i) {
+        int sh = MIN (h, state.sliceheight);
+        tile->slices[i].h = sh;
+        tile->slices[i].texindex = -1;
+        h -= sh;
+    }
+    tile->slicecount = slicecount;
+    return tile;
+}
+
+static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
+{
+    fz_bbox bbox;
+    fz_device *dev;
+    struct tile *tile;
+    struct pagedim *pdim;
+
+    tile = alloctile (h);
+    pdim = &state.pagedims[page->pdimno];
+
+    bbox = pdim->bounds;
+    bbox.x0 += x;
+    bbox.y0 += y;
+    bbox.x1 = bbox.x0 + w;
+    bbox.y1 = bbox.y0 + h;
+
+    if (state.pig) {
+        if (state.pig->w == w
+            && state.pig->h == h
+            && state.pig->colorspace == state.colorspace) {
+            tile->pixmap = state.pig;
+            tile->pixmap->x = bbox.x0;
+            tile->pixmap->y = bbox.y0;
+        }
+        else {
+            fz_drop_pixmap (state.ctx, state.pig);
+        }
+        state.pig = NULL;
+    }
+    if (!tile->pixmap) {
+        tile->pixmap =
+            fz_new_pixmap_with_rect (state.ctx, state.colorspace, bbox);
+    }
+
+    tile->w = w;
+    tile->h = h;
+    clearpixmap (tile->pixmap);
+    dev = fz_new_draw_device (state.ctx, tile->pixmap);
+    fz_execute_display_list (page->dlist, dev, pagectm (page), bbox, NULL);
+    fz_free_device (dev);
+
+    return tile;
 }
 
 static void initpdims (void)
@@ -647,34 +706,85 @@ static void initpdims (void)
     start = now ();
     for (pageno = 0; pageno < state.pagecount; ++pageno) {
         int rotate;
-        fz_rect box;
+        fz_obj *pageobj;
         struct pagedim *p;
-        fz_obj *obj, *pageobj;
+        fz_rect mediabox, cropbox;
 
         pageobj = state.xref->page_objs[pageno];
 
-        obj = fz_dict_gets (pageobj, "CropBox");
-        if (!fz_is_array (obj)) {
-            obj = fz_dict_gets (pageobj, "MediaBox");
-            if (!fz_is_array (obj)) {
-                fz_throw (state.ctx, "cannot find page bounds %d (%d Rd)",
-                          fz_to_num (pageobj), fz_to_gen (pageobj));
+        if (state.trimmargins) {
+            fz_obj *obj;
+            pdf_page *page;
+
+            page = pdf_load_page (state.xref, pageno);
+            obj = fz_dict_gets (pageobj, "llpp.TrimBox");
+            if (state.trimanew || !obj) {
+                fz_rect rect;
+                fz_bbox bbox;
+                fz_matrix ctm;
+                fz_device *dev;
+
+                dev = fz_new_bbox_device (state.ctx, &bbox);
+                dev->hints |= FZ_IGNORE_SHADE;
+                ctm = fz_invert_matrix (page->ctm);
+                pdf_run_page (state.xref, page, dev, fz_identity, NULL);
+                fz_free_device (dev);
+
+                rect.x0 = bbox.x0 + state.trimfuzz.x0;
+                rect.x1 = bbox.x1 + state.trimfuzz.x1;
+                rect.y0 = bbox.y0 + state.trimfuzz.y0;
+                rect.y1 = bbox.y1 + state.trimfuzz.y1;
+                rect = fz_transform_rect (ctm, rect);
+                rect = fz_intersect_rect (rect, page->mediabox);
+
+                if (fz_is_empty_rect (rect)) {
+                    mediabox = page->mediabox;
+                }
+                else {
+                    mediabox = rect;
+                }
+
+                obj = fz_new_array (state.ctx, 4);
+                fz_array_push (obj, fz_new_real (state.ctx, mediabox.x0));
+                fz_array_push (obj, fz_new_real (state.ctx, mediabox.y0));
+                fz_array_push (obj, fz_new_real (state.ctx, mediabox.x1));
+                fz_array_push (obj, fz_new_real (state.ctx, mediabox.y1));
+                fz_dict_puts (pageobj, "llpp.TrimBox", obj);
             }
-        }
-        box = pdf_to_rect (state.ctx, obj);
+            else {
+                mediabox.x0 = fz_to_real (fz_array_get (obj, 0));
+                mediabox.y0 = fz_to_real (fz_array_get (obj, 1));
+                mediabox.x1 = fz_to_real (fz_array_get (obj, 2));
+                mediabox.y1 = fz_to_real (fz_array_get (obj, 3));
+            }
 
-        obj = fz_dict_gets (pageobj, "Rotate");
-        if (fz_is_int (obj)) {
-            rotate = fz_to_int (obj);
-        }
-        else  {
-            rotate = 0;
-        }
-        rotate += state.rotate;
+            rotate = page->rotate;
+            pdf_free_page (state.ctx, page);
 
-        p = &state.pagedims[state.pagedimcount - 1];
-        if ((state.pagedimcount == 0)
-            || (p->rotate != rotate || memcmp (&p->box, &box, sizeof (box)))) {
+            printd (state.sock, "progress %f Trimming %d",
+                    (double) (pageno + 1) / state.pagecount,
+                    pageno + 1);
+        }
+        else {
+            mediabox = pdf_to_rect (state.ctx, fz_dict_gets (pageobj, "MediaBox"));
+            if (fz_is_empty_rect (mediabox)) {
+                fprintf (stderr, "cannot find page size for page %d\n", pageno+1);
+                mediabox.x0 = 0;
+                mediabox.y0 = 0;
+                mediabox.x1 = 612;
+                mediabox.y1 = 792;
+            }
+
+            cropbox = pdf_to_rect (state.ctx, fz_dict_gets (pageobj, "CropBox"));
+            if (!fz_is_empty_rect (cropbox)) {
+                mediabox = fz_intersect_rect (mediabox, cropbox);
+            }
+            rotate = fz_to_int (fz_dict_gets (pageobj, "Rotate"));
+        }
+
+        if (state.pagedimcount == 0
+            || (p = &state.pagedims[state.pagedimcount-1], p->rotate != rotate)
+            || memcmp (&p->mediabox, &mediabox, sizeof (mediabox))) {
             size_t size;
 
             size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
@@ -683,53 +793,50 @@ static void initpdims (void)
                 err (1, "realloc pagedims to " FMT_s " (%d elems)",
                      size, state.pagedimcount + 1);
             }
+
             p = &state.pagedims[state.pagedimcount++];
             p->rotate = rotate;
-            p->box = box;
+            p->mediabox = mediabox;
             p->pageno = pageno;
         }
     }
     end = now ();
-    printd (state.sock, "T Processed %d pages in %f seconds",
-            state.pagecount, end - start);
+    if (state.trimmargins) {
+        printd (state.sock, "progress 1 Trimmed %d pages in %f seconds",
+                state.pagecount, end - start);
+    }
+    else {
+        printd (state.sock, "vmsg Processed %d pages in %f seconds",
+                state.pagecount, end - start);
+    }
+    state.trimanew = 0;
 }
 
 static void layout (void)
 {
     int pindex;
+    fz_rect box;
     fz_matrix ctm;
-    fz_rect box, box2;
     double zoom, w, maxw = 0;
     struct pagedim *p = state.pagedims;
 
     if (state.proportional) {
         for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
-            box.x0 = MIN (p->box.x0, p->box.x1);
-            box.y0 = MIN (p->box.y0, p->box.y1);
-            box.x1 = MAX (p->box.x0, p->box.x1);
-            box.y1 = MAX (p->box.y0, p->box.y1);
-
-            ctm = fz_identity;
-            ctm = fz_concat (ctm, fz_translate (0, -box.y1));
-            ctm = fz_concat (ctm, fz_rotate (p->rotate));
-            box2 = fz_transform_rect (ctm, box);
-            w = box2.x1 - box2.x0;
+            box = fz_transform_rect (fz_rotate (p->rotate + state.rotate),
+                                     p->mediabox);
+            w = box.x1 - box.x0;
             maxw = MAX (w, maxw);
         }
     }
 
     p = state.pagedims;
     for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
-        box.x0 = MIN (p->box.x0, p->box.x1);
-        box.y0 = MIN (p->box.y0, p->box.y1);
-        box.x1 = MAX (p->box.x0, p->box.x1);
-        box.y1 = MAX (p->box.y0, p->box.y1);
+        fz_bbox bbox;
 
-        ctm = fz_identity;
-        ctm = fz_concat (ctm, fz_translate (0, -box.y1));
-        ctm = fz_concat (ctm, fz_rotate (p->rotate));
-        box2 = fz_transform_rect (ctm, box);
-        w = box2.x1 - box2.x0;
+        ctm = fz_rotate (state.rotate);
+        box = fz_transform_rect (fz_rotate (p->rotate + state.rotate),
+                                 p->mediabox);
+        w = box.x1 - box.x0;
 
         if (state.proportional) {
             double scale = w / maxw;
@@ -738,47 +845,67 @@ static void layout (void)
         else {
             zoom = state.w / w;
         }
-        ctm = fz_identity;
-        ctm = fz_concat (ctm, fz_translate (0, -box.y1));
-        ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
-        memcpy (&p->ctm1, &ctm, sizeof (ctm));
-        ctm = fz_concat (ctm, fz_rotate (p->rotate));
-        p->bbox = fz_round_rect (fz_transform_rect (ctm, box));
+
+        p->zoomctm = fz_scale (zoom, zoom);
+        ctm = fz_concat (p->zoomctm, ctm);
+
+        p->pagebox = fz_transform_rect (fz_rotate (p->rotate), p->mediabox);
+        p->pagebox.x1 -= p->pagebox.x0;
+        p->pagebox.y1 -= p->pagebox.y0;
+        p->pagebox.x0 = 0;
+        p->pagebox.y0 = 0;
+        bbox = fz_round_rect (fz_transform_rect (ctm, p->pagebox));
+
+        p->bounds = bbox;
         p->left = state.proportional ? ((maxw - w) * zoom) / 2.0 : 0;
-        memcpy (&p->ctm, &ctm, sizeof (ctm));
+        p->ctm = ctm;
+
+        ctm = fz_identity;
+        ctm = fz_concat (ctm, fz_translate (0, -p->mediabox.y1));
+        ctm = fz_concat (ctm, fz_scale (zoom, -zoom));
+        ctm = fz_concat (ctm, fz_rotate (p->rotate + state.rotate));
+        p->lctm = ctm;
+
+        p->tctmready = 0;
     }
 
     while (p-- != state.pagedims)  {
-        printd (state.sock, "l %d %d %d %d",
-                p->pageno, p->bbox.x1 - p->bbox.x0, p->bbox.y1 - p->bbox.y0,
-                p->left);
+        int w = p->bounds.x1 - p->bounds.x0;
+        int h = p->bounds.y1 - p->bounds.y0;
+
+        printd (state.sock, "pdim %d %d %d %d", p->pageno, w, h, p->left);
     }
 }
 
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        int pageno;
-        int i, top = 0, h;
-        struct pagedim *pagedim = state.pagedims;
+        fz_link_dest *dest;
+        int i, top = 0;
+        struct pagedim *pdim = state.pagedims;
 
-        pageno = outline->page;
+        dest = &outline->dest;
         for (i = 0; i < state.pagedimcount; ++i) {
-            if (state.pagedims[i].pageno > pageno)
+            if (state.pagedims[i].pageno > dest->ld.gotor.page)
                 break;
-            pagedim = &state.pagedims[i];
+            pdim = &state.pagedims[i];
         }
-#ifdef HAS_PRECISE_POSITIONING
-        if (!outline->x_is_null && !outline->y_is_null) {
-            fz_point p = fz_transform_point (pagedim->ctm, outline->p);
+        if (dest->ld.gotor.flags & fz_link_flag_t_valid) {
+            fz_point p;
+            p.x = 0;
+            p.y = dest->ld.gotor.lt.y;
+            p = fz_transform_point (pdim->lctm, p);
             top = p.y;
         }
-#endif
-        h = pagedim->bbox.y1 - pagedim->bbox.y0;
-        lprintf ("%*c%s %d %d\n", level, ' ', outline->title, pageno, top);
-        if (pageno > 0) {
+        if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
+            int h;
+            double y0, y1;
+
+            y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
+            y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
+            h = y1 - y0;
             printd (state.sock, "o %d %d %d %d %s",
-                    level, pageno, top, h, outline->title);
+                    level, dest->ld.gotor.page, top, h, outline->title);
         }
         if (outline->down) {
             recurse_outline (outline->down, level + 1);
@@ -830,12 +957,15 @@ static void search (regex_t *re, int pageno, int y, int forward)
         if (niters++ == 5) {
             niters = 0;
             if (hasdata (state.sock)) {
-                printd (state.sock, "T attention requested aborting search at %d",
+                printd (state.sock,
+                        "progress 1 attention requested aborting search at %d",
                         pageno);
                 stop = 1;
             }
             else {
-                printd (state.sock, "T searching in page %d", pageno);
+                printd (state.sock, "progress %f searching in page %d",
+                        (double) (pageno + 1) / state.pagecount,
+                        pageno);
             }
         }
         pdimprev = NULL;
@@ -855,11 +985,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
 
         drawpage = pdf_load_page (state.xref, pageno);
 
-        ctm = fz_rotate (pdim->rotate);
-
         text = fz_new_text_span (state.ctx);
         tdev = fz_new_text_device (state.ctx, text);
-        pdf_run_page (state.xref, drawpage, tdev, pdim->ctm1);
+        pdf_run_page (state.xref, drawpage, tdev, fz_identity, NULL);
         fz_free_device (tdev);
 
         nspans = 0;
@@ -912,7 +1040,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                     char errbuf[80];
                     size = regerror (ret, re, errbuf, sizeof (errbuf));
                     printd (state.sock,
-                            "T regexec error `%.*s'",
+                            "msg regexec error `%.*s'",
                             (int) size, errbuf);
                     fz_free_text_span (state.ctx, text);
                     pdf_free_page (state.ctx, drawpage);
@@ -921,12 +1049,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 }
             }
             else  {
-                int xoff, yoff;
                 fz_bbox *sb, *eb;
                 fz_point p1, p2, p3, p4;
-
-                xoff = pdim->left - pdim->bbox.x0;
-                yoff = -pdim->bbox.y0;
 
                 sb = &span->text[rm.rm_so].bbox;
                 eb = &span->text[rm.rm_eo - 1].bbox;
@@ -940,30 +1064,36 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 p4.x = sb->x0;
                 p4.y = eb->y1;
 
+                trimctm (drawpage, pdim - state.pagedims);
+                ctm = fz_concat (pdim->tctm, pdim->zoomctm);
+
                 p1 = fz_transform_point (ctm, p1);
                 p2 = fz_transform_point (ctm, p2);
                 p3 = fz_transform_point (ctm, p3);
                 p4 = fz_transform_point (ctm, p4);
 
                 if (!stop) {
-                    printd (state.sock, "F %d %d %f %f %f %f %f %f %f %f",
+                    printd (state.sock,
+                            "firstmatch %d %d %f %f %f %f %f %f %f %f",
                             pageno, 1,
-                            p1.x + xoff, p1.y + yoff,
-                            p2.x + xoff, p2.y + yoff,
-                            p3.x + xoff, p3.y + yoff,
-                            p4.x + xoff, p4.y + yoff);
+                            p1.x, p1.y,
+                            p2.x, p2.y,
+                            p3.x, p3.y,
+                            p4.x, p4.y);
 
-                    printd (state.sock, "T found at %d `%.*s' in %f sec",
-                            pageno, rm.rm_eo - rm.rm_so, &buf[rm.rm_so],
+                    printd (state.sock,
+                            "progress 1 found at %d `%.*s' in %f sec",
+                            pageno, (int) (rm.rm_eo - rm.rm_so), &buf[rm.rm_so],
                             now () - start);
                 }
                 else  {
-                    printd (state.sock, "R %d %d %f %f %f %f %f %f %f %f",
+                    printd (state.sock,
+                            "match %d %d %f %f %f %f %f %f %f %f",
                             pageno, 2,
-                            p1.x + xoff, p1.y + yoff,
-                            p2.x + xoff, p2.y + yoff,
-                            p3.x + xoff, p3.y + yoff,
-                            p4.x + xoff, p4.y + yoff);
+                            p1.x, p1.y,
+                            p2.x, p2.y,
+                            p3.x, p3.y,
+                            p4.x, p4.y);
                 }
                 stop = 1;
             }
@@ -982,9 +1112,37 @@ static void search (regex_t *re, int pageno, int y, int forward)
     }
     end = now ();
     if (!stop)  {
-        printd (state.sock, "T no matches %f sec", end - start);
+        printd (state.sock, "progress 1 no matches %f sec", end - start);
     }
-    printd (state.sock, "D");
+    printd (state.sock, "clearrects");
+}
+
+static void set_tex_params (int colorspace)
+{
+    switch (colorspace) {
+    case 0:
+        state.texiform = GL_RGBA8;
+        state.texform = GL_RGBA;
+        state.texty = GL_UNSIGNED_BYTE;
+        state.colorspace = fz_device_rgb;
+        break;
+    case 1:
+        state.texiform = GL_RGBA8;
+        state.texform = GL_BGRA;
+        state.texty = fz_is_big_endian ()
+            ? GL_UNSIGNED_INT_8_8_8_8
+            : GL_UNSIGNED_INT_8_8_8_8_REV;
+        state.colorspace = fz_device_bgr;
+        break;
+    case 2:
+        state.texiform = GL_LUMINANCE_ALPHA;
+        state.texform = GL_LUMINANCE_ALPHA;
+        state.texty = GL_UNSIGNED_BYTE;
+        state.colorspace = fz_device_gray;
+        break;
+    default:
+        errx (1, "invalid colorspce %d", colorspace);
+    }
 }
 
 static
@@ -1023,22 +1181,44 @@ mainloop (void *unused)
             password = filename + filenamelen + 1;
 
             openxref (filename, password);
+            printd (state.sock, "msg Opened %s (press h/F1 to get help)",
+                    filename);
             initpdims ();
             pdfinfo ();
             state.needoutline = 1;
         }
-        else if (!strncmp ("free", p, 4)) {
+        else if (!strncmp ("cs", p, 2)) {
+            int i, colorspace;
+
+            ret = sscanf (p + 2, " %d", &colorspace);
+            if (ret != 1) {
+                errx (1, "malformed aa `%.*s' ret=%d", len, p, ret);
+            }
+            lock ("cs");
+            set_tex_params (colorspace);
+            for (i = 0; i < state.texcount; ++i)  {
+                state.texowners[i].w = -1;
+                state.texowners[i].slice = NULL;
+            }
+            unlock ("cs");
+        }
+        else if (!strncmp ("freepage", p, 8)) {
             void *ptr;
 
-            ret = sscanf (p + 4, " %p", &ptr);
+            ret = sscanf (p + 8, " %" FMT_ptr, FMT_ptr_cast (&ptr));
             if (ret != 1) {
-                errx (1, "malformed free `%.*s' ret=%d", len, p, ret);
+                errx (1, "malformed freepage `%.*s' ret=%d", len, p, ret);
             }
-            unlinkpage (ptr);
-            if (state.pig) {
-                freepage (state.pig);
+            freepage (ptr);
+        }
+        else if (!strncmp ("freetile", p, 8)) {
+            void *ptr;
+
+            ret = sscanf (p + 8, " %" FMT_ptr, FMT_ptr_cast (&ptr));
+            if (ret != 1) {
+                errx (1, "malformed freetile `%.*s' ret=%d", len, p, ret);
             }
-            state.pig = ptr;
+            freetile (ptr);
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, ret, len2, forward;
@@ -1059,7 +1239,7 @@ mainloop (void *unused)
                 size_t size;
 
                 size = regerror (ret, &re, errbuf, sizeof (errbuf));
-                printd (state.sock, "T regcomp failed `%.*s'",
+                printd (state.sock, "msg regcomp failed `%.*s'",
                         (int) size, errbuf);
             }
             else  {
@@ -1070,7 +1250,7 @@ mainloop (void *unused)
         else if (!strncmp ("geometry", p, 8)) {
             int w, h;
 
-            printd (state.sock, "c");
+            printd (state.sock, "clear");
             ret = sscanf (p + 8, " %d %d", &w, &h);
             if (ret != 2) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
@@ -1082,63 +1262,101 @@ mainloop (void *unused)
                 int i;
                 state.w = w;
                 for (i = 0; i < state.texcount; ++i)  {
-                    state.texowners[i].block = NULL;
+                    state.texowners[i].slice = NULL;
                 }
             }
             layout ();
             process_outline ();
+            state.gen++;
             unlock ("geometry");
-            printd (state.sock, "C %d", state.pagecount);
+            printd (state.sock, "continue %d", state.pagecount);
         }
-        else if (!strncmp ("reinit", p, 6)) {
-            float rotate;
-            int proportional;
+        else if (!strncmp ("reqlayout", p, 9)) {
+            int rotate, proportional;
 
-            printd (state.sock, "c");
-            ret = sscanf (p + 6, " %f %d", &rotate, &proportional);
+            printd (state.sock, "clear");
+            ret = sscanf (p + 9, " %d %d", &rotate, &proportional);
             if (ret != 2) {
-                errx (1, "bad rotate line `%.*s' ret=%d", len, p, ret);
+                errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
-            lock ("reinit");
+            lock ("reqlayout");
             state.rotate = rotate;
             state.proportional = proportional;
+            layout ();
+            unlock ("reqlayout");
+            printd (state.sock, "continue %d", state.pagecount);
+        }
+        else if (!strncmp ("page", p, 4)) {
+            double a, b;
+            struct page *page;
+            int pageno, pindex, ret;
+
+            ret = sscanf (p + 4, " %d %d", &pageno, &pindex);
+            if (ret != 2) {
+                errx (1, "bad render line `%.*s' ret=%d", len, p, ret);
+            }
+
+            lock ("page");
+            a = now ();
+            page = loadpage (pageno, pindex);
+            b = now ();
+            unlock ("page");
+
+            printd (state.sock, "page %" FMT_ptr " %f",
+                    FMT_ptr_cast2 (page), b - a);
+        }
+        else if (!strncmp ("tile", p, 4)) {
+            int x, y, w, h, ret;
+            struct page *page;
+            struct tile *tile;
+            double a, b;
+
+            ret = sscanf (p + 4, " %" FMT_ptr " %d %d %d %d",
+                          FMT_ptr_cast (&page), &x, &y, &w, &h);
+            if (ret != 5) {
+                errx (1, "bad tile line `%.*s' ret=%d", len, p, ret);
+            }
+
+            lock ("tile");
+            a = now ();
+            tile = rendertile (page, x, y, w, h);
+            b = now ();
+            unlock ("tile");
+
+            printd (state.sock, "tile %d %d %" FMT_ptr " %u %f",
+                    x, y,
+                    FMT_ptr_cast2 (tile),
+                    tile->w * tile->h * tile->pixmap->n,
+                    b - a);
+        }
+        else if (!strncmp ("settrim", p, 7))  {
+            int trimmargins;
+            fz_bbox fuzz;
+
+            ret = sscanf (p + 7, " %d %d %d %d %d", &trimmargins,
+                          &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
+            if (ret != 5) {
+                errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
+            }
+            printd (state.sock, "clear");
+            lock ("settrim");
+            state.trimmargins = trimmargins;
+            state.needoutline = 1;
+            if (memcmp (&fuzz, &state.trimfuzz, sizeof (fuzz))) {
+                state.trimanew = 1;
+                state.trimfuzz = fuzz;
+            }
             state.pagedimcount = 0;
             free (state.pagedims);
             state.pagedims = NULL;
             initpdims ();
             layout ();
             process_outline ();
-            if (state.pig) {
-                freepage (state.pig);
-                state.pig = NULL;
-            }
-            unlock ("reinit");
-            printd (state.sock, "C %d", state.pagecount);
-        }
-        else if (!strncmp ("render", p, 6)) {
-            int pageno, pindex, w, h, ret;
-            struct page *page;
-
-            ret = sscanf (p + 6, " %d %d %d %d", &pageno, &pindex, &w, &h);
-            if (ret != 4) {
-                errx (1, "bad render line `%.*s' ret=%d", len, p, ret);
-            }
-
-            lock ("render");
-            page = render (pageno, pindex);
-            unlock ("render");
-
-            printd (state.sock, "r %d %d %d %d %d %d %p",
-                    pageno,
-                    state.w,
-                    state.h,
-                    state.rotate,
-                    state.proportional,
-                    w * h * 4,
-                    page);
+            unlock ("settrim");
+            printd (state.sock, "continue %d", state.pagecount);
         }
         else if (!strncmp ("interrupt", p, 9)) {
-            printd (state.sock, "V interrupted");
+            printd (state.sock, "vmsg interrupted");
         }
         else if (!strncmp ("quit", p, 4)) {
             return 0;
@@ -1150,9 +1368,8 @@ mainloop (void *unused)
     return 0;
 }
 
-static void showsel (struct page *page, int oy)
+static void showsel (struct page *page, int ox, int oy)
 {
-    int ox;
     fz_bbox bbox;
     fz_text_span *span;
     struct mark first, last;
@@ -1166,8 +1383,8 @@ static void showsel (struct page *page, int oy)
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
     glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
 
-    ox = -page->pixmap->x + page->pagedim.left;
-    oy = -page->pixmap->y + oy;
+    ox -= state.pagedims[page->pdimno].bounds.x0;
+    oy -= state.pagedims[page->pdimno].bounds.y0;
     for (span = first.span; span; span = span->next) {
         int i, j, k;
 
@@ -1204,22 +1421,20 @@ static void showsel (struct page *page, int oy)
     glDisable (GL_BLEND);
 }
 
-static void highlightlinks (struct page *page, int yoff)
+static void highlightlinks (struct page *page, int xoff, int yoff)
 {
-    pdf_link *link;
-    int xoff;
+    fz_link *link;
+    fz_matrix ctm;
 
     glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
     glEnable (GL_LINE_STIPPLE);
     glLineStipple (0.5, 0xcccc);
 
-    xoff =  page->pagedim.left - page->pixmap->x;
-    yoff -= page->pixmap->y;
+    ctm = fz_concat (pagectm (page), fz_translate (xoff, yoff));
 
     glBegin (GL_QUADS);
     for (link = page->drawpage->links; link; link = link->next) {
         fz_point p1, p2, p3, p4;
-        fz_matrix ctm = page->pagedim.ctm;
 
         p1.x = link->rect.x0;
         p1.y = link->rect.y0;
@@ -1238,16 +1453,16 @@ static void highlightlinks (struct page *page, int yoff)
         p3 = fz_transform_point (ctm, p3);
         p4 = fz_transform_point (ctm, p4);
 
-        switch (link->kind) {
-        case PDF_LINK_GOTO: glColor3ub (255, 0, 0); break;
-        case PDF_LINK_URI: glColor3ub (0, 0, 255); break;
+        switch (link->dest.kind) {
+        case FZ_LINK_GOTO: glColor3ub (255, 0, 0); break;
+        case FZ_LINK_URI: glColor3ub (0, 0, 255); break;
         default: glColor3ub (0, 0, 0); break;
         }
 
-        glVertex2f (p1.x + xoff, p1.y + yoff);
-        glVertex2f (p2.x + xoff, p2.y + yoff);
-        glVertex2f (p3.x + xoff, p3.y + yoff);
-        glVertex2f (p4.x + xoff, p4.y + yoff);
+        glVertex2f (p1.x, p1.y);
+        glVertex2f (p2.x, p2.y);
+        glVertex2f (p3.x, p3.y);
+        glVertex2f (p4.x, p4.y);
     }
     glEnd ();
 
@@ -1255,184 +1470,155 @@ static void highlightlinks (struct page *page, int yoff)
     glDisable (GL_LINE_STIPPLE);
 }
 
-static void upload (struct page *page, int slicenum, int blocknum)
+static void uploadslice (struct tile *tile, struct slice *slice)
 {
-    double start, end;
-    struct slice *slice = &page->slices[slicenum];
-    struct block *block = &slice->blocks[blocknum];
+    int offset;
+    struct slice *slice1;
 
-    if (block->texindex != -1
-        && state.texowners[block->texindex].block == block) {
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[block->texindex]);
+    offset = 0;
+    for (slice1 = tile->slices; slice != slice1; slice1++) {
+        offset += slice1->h * tile->w * tile->pixmap->n;
     }
-    else  {
+    if (slice->texindex != -1
+        && state.texowners[slice->texindex].slice == slice) {
+        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[slice->texindex]);
+    }
+    else {
         int subimage = 0;
-        int index = (state.texindex++ % state.texcount);
+        int texindex = state.texindex++ % state.texcount;
 
-        if (state.texowners[index].w == block->w) {
-            if (state.texowners[index].h >= slice->h ) {
+        if (state.texowners[texindex].w == tile->w) {
+            if (state.texowners[texindex].h >= slice->h) {
                 subimage = 1;
             }
             else {
-                state.texowners[index].h = slice->h;
+                state.texowners[texindex].h = slice->h;
             }
         }
         else  {
-            state.texowners[index].h = slice->h;
+            state.texowners[texindex].h = slice->h;
         }
 
-        state.texowners[index].w = block->w;
-        state.texowners[index].block = block;
-        block->texindex = index;
+        state.texowners[texindex].w = tile->w;
+        state.texowners[texindex].slice = slice;
+        slice->texindex = texindex;
 
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[block->texindex]);
-        glPixelStorei (GL_UNPACK_ROW_LENGTH, page->pixmap->w);
-
-        start = now ();
-        if (0) {
-            GLenum err = glGetError ();
-            if (err != GL_NO_ERROR) {
-                printf ("\033[0;31mERROR1 %d %d %#x\033[0m\n",
-                        block->w, slice->h, err);
-                abort ();
-            }
-        }
+        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[texindex]);
         if (subimage) {
             glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB,
                              0,
                              0,
                              0,
-                             block->w,
+                             tile->w,
                              slice->h,
                              state.texform,
                              state.texty,
-                             page->pixmap->samples + block->offset
+                             tile->pixmap->samples+offset
                 );
         }
         else {
             glTexImage2D (GL_TEXTURE_RECTANGLE_ARB,
                           0,
-                          GL_RGBA8,
-                          block->w,
+                          state.texiform,
+                          tile->w,
                           slice->h,
                           0,
                           state.texform,
                           state.texty,
-                          page->pixmap->samples + block->offset
+                          tile->pixmap->samples+offset
                 );
         }
-        if (0) {
-            GLenum err = glGetError ();
-            if (err != GL_NO_ERROR) {
-                printf ("\033[0;31mERROR %d %d %#x\033[0m\n",
-                        block->w, slice->h, err);
-                abort ();
-            }
-        }
-
-        end = now ();
-        (void) start;
-        (void) end;
-        lprintf ("%s[%d] slice=%d,%d(%d,%d) tex=%d,%d offset=%d %f sec\n",
-                 subimage ? "sub" : "img",
-                 page->pageno, slicenum, blocknum,
-                 block->w, slice->h,
-                 block->texindex,
-                 state.texids[block->texindex],
-                 block->offset,
-                 end - start);
     }
 }
 
-CAMLprim value ml_draw (value args_v, value ptr_v)
+CAMLprim value ml_drawtile (value args_v, value ptr_v)
 {
     CAMLparam2 (args_v, ptr_v);
-    int dispy = Int_val (Field (args_v, 0));
-    int h = Int_val (Field (args_v, 1));
-    int py = Int_val (Field (args_v, 2));
-    int hlinks = Bool_val (Field (args_v, 3));
+    int dispx = Int_val (Field (args_v, 0));
+    int dispy = Int_val (Field (args_v, 1));
+    int dispw = Int_val (Field (args_v, 2));
+    int disph = Int_val (Field (args_v, 3));
+    int tilex = Int_val (Field (args_v, 4));
+    int tiley = Int_val (Field (args_v, 5));
     char *s = String_val (ptr_v);
-    int ret;
-    void *ptr;
-    struct page *page;
-    int slicenum;
-    int yoff = dispy - py;
-    struct slice *slice;
-
-    ret = sscanf (s, "%p", &ptr);
-    if (ret != 1) {
-        errx (1, "cannot parse pointer `%s'", s);
-    }
-    page = ptr;
-
-    ARSERT (h >= 0 && "ml_draw wrong h");
-    ARSERT (py <= page->pixmap->h && "ml_draw wrong py");
+    struct tile *tile = parse_pointer ("ml_drawtile", s);
 
     glEnable (GL_TEXTURE_RECTANGLE_ARB);
+    {
+        int slicey, firstslice;
+        struct slice *slice;
 
-    for (slicenum = 0, slice = page->slices;
-         slicenum < page->slicecount; ++slicenum, ++slice) {
-        if (slice->h > py) {
-            break;
-        }
-        py -= slice->h;
-    }
-    h = MIN (state.h, h);
+        firstslice = tiley / state.sliceheight;
+        slice = &tile->slices[firstslice];
+        slicey = tiley % state.sliceheight;
 
-    while (h) {
-        int th, left, blocknum;
+        while (disph > 0) {
+            int dh;
 
-        ARSERT (slicenum < page->slicecount && "ml_draw wrong slicenum");
+            dh = slice->h - slicey;
+            dh = MIN (disph, dh);
+            uploadslice (tile, slice);
 
-        th = MIN (h, slice->h - py);
-        left = page->pagedim.left;
-
-        for (blocknum = 0; blocknum < page->blockcount; ++blocknum)  {
-            struct block *block = &slice->blocks[blocknum];
-
-            upload (page, slicenum, blocknum);
             glBegin (GL_QUADS);
             {
-                glTexCoord2i (0, py);
-                glVertex2i (left, dispy);
+                glTexCoord2i (tilex, slicey);
+                glVertex2i (dispx, dispy);
 
-                glTexCoord2i (block->w, py);
-                glVertex2i (left + block->w, dispy);
+                glTexCoord2i (tilex+dispw, slicey);
+                glVertex2i (dispx+dispw, dispy);
 
-                glTexCoord2i (block->w, py + th);
-                glVertex2i (left + block->w, dispy + th);
+                glTexCoord2i (tilex+dispw, slicey+dh);
+                glVertex2i (dispx+dispw, dispy+dh);
 
-                glTexCoord2i (0, py + th);
-                glVertex2i (left, dispy + th);
+                glTexCoord2i (tilex, slicey+dh);
+                glVertex2i (dispx, dispy+dh);
             }
             glEnd ();
-            left += block->w;
+
+            dispy += dh;
+            disph -= dh;
+            slice++;
+            ARSERT (!(slice - tile->slices >= tile->slicecount && disph > 0));
+            slicey = 0;
         }
-
-        h -= th;
-        py = 0;
-        dispy += th;
-        slicenum += 1;
     }
-
     glDisable (GL_TEXTURE_RECTANGLE_ARB);
-
-    showsel (page, yoff);
-    if (hlinks) highlightlinks (page, yoff);
-
     CAMLreturn (Val_unit);
 }
 
-static pdf_link *getlink (struct page *page, int x, int y)
+CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
+                               value xoff_v, value yoff_v)
+{
+    CAMLparam4 (ptr_v, hlinks_v, xoff_v, yoff_v);
+    int xoff = Int_val (xoff_v);
+    int yoff = Int_val (yoff_v);
+    char *s = String_val (ptr_v);
+    struct page *page = parse_pointer ("ml_postprocess", s);
+
+    if (Bool_val (hlinks_v)) highlightlinks (page, xoff, yoff);
+
+    if (trylock ("ml_postprocess")) {
+        goto done;
+    }
+    showsel (page, xoff, yoff);
+    unlock ("ml_postprocess");
+
+ done:
+    CAMLreturn (Val_unit);
+}
+
+static fz_link *getlink (struct page *page, int x, int y)
 {
     fz_point p;
     fz_matrix ctm;
-    pdf_link *link;
+    fz_link *link;
 
-    p.x = x + page->pixmap->x;
-    p.y = y + page->pixmap->y;
+    p.x = x;
+    p.y = y;
 
-    ctm = fz_invert_matrix (page->pagedim.ctm);
+    ctm = fz_concat (trimctm (page->drawpage, page->pdimno),
+                     state.pagedims[page->pdimno].ctm);
+    ctm = fz_invert_matrix (ctm);
     p = fz_transform_point (ctm, p);
 
     for (link = page->drawpage->links; link; link = link->next) {
@@ -1445,14 +1631,33 @@ static pdf_link *getlink (struct page *page, int x, int y)
     return NULL;
 }
 
+static void droptext (struct page *page)
+{
+    if (page->text) {
+        fz_free_text_span (state.ctx, page->text);
+        page->fmark.i = -1;
+        page->lmark.i = -1;
+        page->fmark.span = NULL;
+        page->lmark.span = NULL;
+        page->text = NULL;
+    }
+}
+
 static void ensuretext (struct page *page)
 {
+    if (state.gen != page->gen) {
+        droptext (page);
+        page->gen = state.gen;
+    }
     if (!page->text) {
         fz_device *tdev;
 
         page->text = fz_new_text_span (state.ctx);
         tdev = fz_new_text_device (state.ctx, page->text);
-        pdf_run_page (state.xref, page->drawpage, tdev, page->pagedim.ctm);
+        fz_execute_display_list (page->dlist,
+                                 tdev,
+                                 pagectm (page),
+                                 fz_infinite_bbox, NULL);
         fz_free_device (tdev);
     }
 }
@@ -1461,9 +1666,11 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal3 (ret_v, tup_v, str_v);
-    pdf_link *link;
+    fz_link *link;
     struct page *page;
     char *s = String_val (ptr_v);
+    int x = Int_val (x_v), y = Int_val (y_v);
+    struct pagedim *pdim;
 
     ret_v = Val_int (0);
     if (trylock ("ml_whatsunder")) {
@@ -1471,42 +1678,24 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     }
 
     page = parse_pointer ("ml_whatsunder", s);
-    link = getlink (page, Int_val (x_v), Int_val (y_v));
+    pdim = &state.pagedims[page->pdimno];
+    x += pdim->bounds.x0;
+    y += pdim->bounds.y0;
+    link = getlink (page, x, y);
     if (link) {
-        switch (link->kind) {
-        case PDF_LINK_GOTO:
+        switch (link->dest.kind) {
+        case FZ_LINK_GOTO:
             {
                 int pageno;
                 fz_point p;
-                fz_obj *obj;
 
-                pageno = -1;
+                pageno = link->dest.ld.gotor.page;
                 p.x = 0;
                 p.y = 0;
 
-                if (fz_is_array (link->dest)) {
-                    obj = fz_array_get (link->dest, 0);
-                    if (fz_is_indirect (obj)) {
-                        pageno = pdf_find_page_number (state.xref, obj);
-                    }
-                    else if (fz_is_int (obj)) {
-                        pageno = fz_to_int (obj);
-                    }
-
-                    if (fz_array_len (link->dest) > 3) {
-                        fz_obj *xo, *yo;
-
-                        xo = fz_array_get (link->dest, 2);
-                        yo = fz_array_get (link->dest, 3);
-                        if (!fz_is_null (xo) && !fz_is_null (yo)) {
-                            p.x = fz_to_int (xo);
-                            p.y = fz_to_int (yo);
-                            p = fz_transform_point (page->pagedim.ctm, p);
-                        }
-                    }
-                }
-                else {
-                    pageno = pdf_find_page_number (state.xref, link->dest);
+                if (link->dest.ld.gotor.flags & fz_link_flag_t_valid) {
+                    p.y = link->dest.ld.gotor.lt.y;
+                    p = fz_transform_point (pdim->lctm, p);
                 }
                 tup_v = caml_alloc_tuple (2);
                 ret_v = caml_alloc_small (1, 1);
@@ -1516,25 +1705,22 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             }
             break;
 
-        case PDF_LINK_URI:
-            str_v = caml_copy_string (fz_to_str_buf (link->dest));
+        case FZ_LINK_URI:
+            str_v = caml_copy_string (link->dest.ld.uri.uri);
             ret_v = caml_alloc_small (1, 0);
             Field (ret_v, 0) = str_v;
             break;
 
         default:
-            printd (state.sock, "T unhandled link kind %d", link->kind);
+            printd (state.sock, "msg unhandled link kind %d", link->dest.kind);
             break;
         }
     }
     else {
-        int i, x, y;
+        int i;
         fz_text_span *span;
 
         ensuretext (page);
-        x = Int_val (x_v) + page->pixmap->x;
-        y = Int_val (y_v) + page->pixmap->y;
-
         for (span = page->text; span; span = span->next) {
             for (i = 0; i < span->len; ++i) {
                 fz_bbox *b;
@@ -1580,14 +1766,15 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
+CAMLprim value ml_seltext (value ptr_v, value rect_v)
 {
-    CAMLparam4 (ptr_v, rect_v, oy_v, rect_v);
+    CAMLparam2 (ptr_v, rect_v);
     fz_bbox *b;
     struct page *page;
     fz_text_span *span;
     struct mark first, last;
-    int i, x0, x1, y0, y1, oy, left;
+    int i, x0, x1, y0, y1;
+    struct pagedim *pdim;
     char *s = String_val (ptr_v);
 
     if (trylock ("ml_seltext")) {
@@ -1597,24 +1784,19 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
     page = parse_pointer ("ml_seltext", s);
     ensuretext (page);
 
-    oy = Int_val (oy_v);
-    x0 = Int_val (Field (rect_v, 0));
-    y0 = Int_val (Field (rect_v, 1));
-    x1 = Int_val (Field (rect_v, 2));
-    y1 = Int_val (Field (rect_v, 3));
+    pdim = &state.pagedims[page->pdimno];
 
-    left = page->pagedim.left;
+    x0 = Int_val (Field (rect_v, 0)) + pdim->bounds.x0;
+    y0 = Int_val (Field (rect_v, 1)) + pdim->bounds.y0;
+    x1 = Int_val (Field (rect_v, 2)) + pdim->bounds.x0;
+    y1 = Int_val (Field (rect_v, 3)) + pdim->bounds.y0;
+
     if (0) {
         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
         glColor3ub (128, 128, 128);
         glRecti (x0, y0, x1, y1);
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
     }
-
-    x0 += page->pixmap->x - left;
-    y0 += page->pixmap->y - oy;
-    x1 += page->pixmap->x - left;
-    y1 += page->pixmap->y - oy;
 
     first.span = NULL;
     last.span = NULL;
@@ -1639,7 +1821,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v, value oy_v)
             if (0 && selected) {
                 glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
                 glColor3ub (128, 128, 128);
-                glRecti (b->x0+left, b->y0, b->x1+left, b->y1);
+                glRecti (b->x0, b->y0, b->x1, b->y1);
                 glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
             }
         }
@@ -1692,7 +1874,7 @@ static int pipespan (FILE *f, fz_text_span *span, int a, int b)
         ret = fwrite (buf, len, 1, f);
 
         if (ret != 1) {
-            printd (state.sock, "T failed to write %d bytes ret=%d: %s",
+            printd (state.sock, "msg failed to write %d bytes ret=%d: %s",
                     len, ret, strerror (errno));
             return -1;
         }
@@ -1717,7 +1899,7 @@ CAMLprim value ml_copysel (value ptr_v)
         if (state.xselpipe) {
             int ret = pclose (state.xselpipe);
             if (ret)  {
-                printd (state.sock, "T failed to close xsel pipe `%s'",
+                printd (state.sock, "msg failed to close xsel pipe `%s'",
                         strerror (errno));
             }
             state.xselpipe = NULL;
@@ -1732,7 +1914,7 @@ CAMLprim value ml_copysel (value ptr_v)
         page = parse_pointer ("ml_sopysel", s);
 
         if (!page->fmark.span || !page->lmark.span) {
-            printd (state.sock, "T nothing to copy");
+            printd (state.sock, "msg nothing to copy");
             goto unlock;
         }
 
@@ -1741,7 +1923,7 @@ CAMLprim value ml_copysel (value ptr_v)
         if (!state.xselpipe) {
             state.xselpipe = popen ("xsel -i", "w");
             if (!state.xselpipe) {
-                printd (state.sock, "T failed to open xsel pipe `%s'",
+                printd (state.sock, "msg failed to open xsel pipe `%s'",
                         strerror (errno));
             }
             else {
@@ -1763,7 +1945,8 @@ CAMLprim value ml_copysel (value ptr_v)
             }
             if (span->eol)  {
                 if (putc ('\n', f) == EOF) {
-                    printd (state.sock, "T failed break line on xsel pipe `%s'",
+                    printd (state.sock,
+                            "msg failed break line on xsel pipe `%s'",
                             strerror (errno));
                     goto close;
                 }
@@ -1792,7 +1975,7 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
         box = fz_empty_rect;
     }
     else {
-        box = state.pagedims[pagedimno].box;
+        box = state.pagedims[pagedimno].mediabox;
         unlock ("ml_getpdimrect");
     }
 
@@ -1813,8 +1996,8 @@ static double getmaxw (void)
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
         double x0, x1, w;
 
-        x0 = MIN (p->box.x0, p->box.x1);
-        x1 = MAX (p->box.x0, p->box.x1);
+        x0 = MIN (p->mediabox.x0, p->mediabox.x1);
+        x1 = MAX (p->mediabox.x0, p->mediabox.x1);
 
         w = x1 - x0;
         maxw = MAX (w, maxw);
@@ -1862,10 +2045,10 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
         double x0, x1, y0, y1, w, h, scaledh, scale;
 
-        x0 = MIN (p->box.x0, p->box.x1);
-        y0 = MIN (p->box.y0, p->box.y1);
-        x1 = MAX (p->box.x0, p->box.x1);
-        y1 = MAX (p->box.y0, p->box.y1);
+        x0 = MIN (p->mediabox.x0, p->mediabox.x1);
+        x1 = MAX (p->mediabox.x0, p->mediabox.x1);
+        y0 = MIN (p->mediabox.y0, p->mediabox.y1);
+        y1 = MAX (p->mediabox.y0, p->mediabox.y1);
 
         w = x1 - x0;
         h = y1 - y0;
@@ -1924,23 +2107,136 @@ CAMLprim value ml_measure_string (value pt_v, value string_v)
     CAMLreturn (ret_v);
 }
 
+CAMLprim value ml_getpagebox (value opaque_v)
+{
+    CAMLparam1 (opaque_v);
+    CAMLlocal1 (ret_v);
+    fz_bbox bbox;
+    fz_device *dev;
+    char *s = String_val (opaque_v);
+    struct page *page = parse_pointer ("ml_getpagebox", s);
+
+    ret_v = caml_alloc_tuple (4);
+    dev = fz_new_bbox_device (state.ctx, &bbox);
+    dev->hints |= FZ_IGNORE_SHADE;
+    pdf_run_page (state.xref, page->drawpage, dev, pagectm (page), NULL);
+    fz_free_device (dev);
+
+    Field (ret_v, 0) = Val_int (bbox.x0);
+    Field (ret_v, 1) = Val_int (bbox.y0);
+    Field (ret_v, 2) = Val_int (bbox.x1);
+    Field (ret_v, 3) = Val_int (bbox.y1);
+
+    CAMLreturn (ret_v);
+}
+
+CAMLprim value ml_setaalevel (value level_v)
+{
+    CAMLparam1 (level_v);
+
+    state.aalevel = Int_val (level_v);
+    CAMLreturn (Val_unit);
+}
+
+#if !defined _WIN32 && !defined __APPLE__
+#undef pixel
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <GL/glx.h>
+
+static void set_wm_class (int hack)
+{
+    if (hack) {
+        Display *dpy;
+        Window win;
+        XClassHint hint;
+        char *display;
+
+        display = getenv ("DISPLAY");
+        dpy = XOpenDisplay (display);
+        if (!dpy) {
+            fprintf (stderr, "XOpenDisplay `%s' failed\n",
+                     display ? display : "null");
+            return;
+        }
+        hint.res_name = "llpp";
+        hint.res_class = "llpp";
+        win = glXGetCurrentDrawable ();
+        if (win == None) {
+            fprintf (stderr, "glXGetCurrentDrawable returned None\n");
+            XCloseDisplay (dpy);
+            return;
+        }
+        XSetClassHint (dpy, win, &hint);
+        XCloseDisplay (dpy);
+    }
+}
+#else
+#define set_wm_class(h) (void) (h)
+#endif
+
+enum { piunknown, pilinux, piwindows, piosx,
+       pisun, pifreebsd, pidragonflybsd,
+       piopenbsd, pimingw, picygwin };
+
+CAMLprim value ml_platform (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    int platid = piunknown;
+
+#if defined __linux__
+    platid = pilinux;
+#elif defined __CYGWIN__
+    platid = picygwin;
+#elif defined __MINGW32__
+    platid = pimingw;
+#elif defined _WIN32
+    platid = piwindows;
+#elif defined __DragonFly__
+    platid = pidragonflybsd;
+#elif defined __FreeBSD__
+    platid = pifreebsd;
+#elif defined __OpenBSD__
+    platid = piopenbsd;
+#elif defined __sun__
+    platid = pisun;
+#elif defined __APPLE__
+    platid = piosx;
+#endif
+    CAMLreturn (Val_int (platid));
+}
+
 CAMLprim value ml_init (value sock_v, value params_v)
 {
     CAMLparam2 (sock_v, params_v);
+    CAMLlocal2 (trim_v, fuzz_v);
 #ifndef _WIN32
     int ret;
 #endif
     char *fontpath;
+    int wmclasshack;
+    int colorspace;
 
-    state.ctx = fz_new_context (&fz_alloc_default, 256<<20);
     state.rotate = Int_val (Field (params_v, 0));
     state.proportional = Bool_val (Field (params_v, 1));
-    state.texcount = Int_val (Field (params_v, 2));
-    state.sliceheight = Int_val (Field (params_v, 3));
-    state.blockwidth = Int_val (Field (params_v, 4));
-    fontpath = String_val (Field (params_v, 5));
-    state.texform = GL_RGBA;
-    state.texty = GL_UNSIGNED_BYTE;
+    trim_v = Field (params_v, 2);
+    state.texcount = Int_val (Field (params_v, 3));
+    state.sliceheight = Int_val (Field (params_v, 4));
+    state.ctx = fz_new_context (&fz_alloc_default, Field (params_v, 5));
+    colorspace = Int_val (Field (params_v, 6));
+    wmclasshack = Bool_val (Field (params_v, 7));
+    fontpath = String_val (Field (params_v, 8));
+
+    state.trimmargins = Bool_val (Field (trim_v, 0));
+    fuzz_v = Field (trim_v, 1);
+    state.trimfuzz.x0 = Int_val (Field (fuzz_v, 0));
+    state.trimfuzz.y0 = Int_val (Field (fuzz_v, 1));
+    state.trimfuzz.x1 = Int_val (Field (fuzz_v, 2));
+    state.trimfuzz.y1 = Int_val (Field (fuzz_v, 3));
+
+    set_tex_params (colorspace);
+    set_wm_class (wmclasshack);
 
     if (*fontpath) {
         state.face = load_font (fontpath);
