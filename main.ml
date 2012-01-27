@@ -83,7 +83,7 @@ and tiley = int
 and tileparams = (x * y * width * height * tilex * tiley)
 ;;
 
-external drawtile : tileparams -> string -> unit = "ml_drawtile";;
+external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 
 type mpos = int * int
 and mstate =
