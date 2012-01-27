@@ -2320,17 +2320,13 @@ CAMLprim value ml_init (value sock_v, value params_v)
 
 #ifdef _WIN32
     state.sock = Socket_val (sock_v);
-#else
-    state.sock = Int_val (sock_v);
-#endif
-
-#ifdef _WIN32
     InitializeCriticalSection (&critsec);
     state.thread = CreateThread (NULL, 0, mainloop, NULL, 0, NULL);
     if (state.thread == INVALID_HANDLE_VALUE) {
         errx (1, "CreateThread failed: %lx", GetLastError ());
     }
 #else
+    state.sock = Int_val (sock_v);
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
         errx (1, "pthread_create: %s", strerror (ret));
