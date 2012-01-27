@@ -1838,7 +1838,19 @@ let setzoom zoom =
         state.text <- Printf.sprintf "zoom is now %-5.1f" (zoom *. 100.0);
       )
 
-  | _ -> ()
+  | Some (layout, y, started) ->
+      let time =
+        match conf.maxwait with
+        | None -> 0.0
+        | Some t -> t
+      in
+      let dt = now () -. started in
+      if dt > time
+      then (
+        state.y <- y;
+        load layout;
+        G.postRedisplay "zoom maxwait";
+      )
 ;;
 
 let enterbirdseye () =
