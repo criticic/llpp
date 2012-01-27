@@ -6,6 +6,7 @@ type under =
 and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
+let dolog2 fmt = Printf.kprintf print_endline fmt;;
 let now = Unix.gettimeofday;;
 
 exception Quit;;
@@ -254,6 +255,7 @@ type conf =
     ; mutable colorspace     : colorspace
     ; mutable invert         : bool
     ; mutable colorscale     : float
+    ; mutable redirectstderr : bool
     }
 ;;
 
@@ -322,6 +324,10 @@ end;;
 type state =
     { mutable csock         : Unix.file_descr
     ; mutable ssock         : Unix.file_descr
+    ; mutable errfd         : Unix.file_descr
+    ; mutable stderr        : Unix.file_descr
+    ; mutable errmsgs       : Buffer.t
+    ; mutable newerrmsgs    : bool
     ; mutable w             : int
     ; mutable x             : int
     ; mutable y             : int
@@ -412,9 +418,10 @@ let defconf =
       | Posx -> "open \"%s\""
       | Pwindows | Pcygwin | Pmingw -> "iexplore \"%s\""
       | _ -> "")
-  ; colorspace = Rgb
-  ; invert = false
-  ; colorscale = 1.0
+  ; colorspace     = Rgb
+  ; invert         = false
+  ; colorscale     = 1.0
+  ; redirectstderr = false
   }
 ;;
 
@@ -480,6 +487,10 @@ let makehelp () =
 let state =
   { csock         = Unix.stdin
   ; ssock         = Unix.stdin
+  ; errfd         = Unix.stdin
+  ; stderr        = Unix.stderr
+  ; errmsgs       = Buffer.create 0
+  ; newerrmsgs    = false
   ; x             = 0
   ; y             = 0
   ; w             = 0
@@ -531,6 +542,22 @@ let vlog fmt =
     Printf.kprintf prerr_endline fmt
   else
     Printf.kprintf ignore fmt
+;;
+
+let redirectstderr () =
+  if conf.redirectstderr
+  then
+    let rfd, wfd = Unix.pipe () in
+    state.stderr <- Unix.dup Unix.stderr;
+    state.errfd <- rfd;
+    Unix.dup2 wfd Unix.stderr;
+  else (
+    state.newerrmsgs <- false;
+    Unix.dup2 state.stderr Unix.stderr;
+    prerr_string (Buffer.contents state.errmsgs);
+    flush stderr;
+    Buffer.clear state.errmsgs;
+  )
 ;;
 
 module G =
@@ -1337,19 +1364,29 @@ let enttext () =
     drawstring fstate.fontsize
       (if len > 0 then 8 else 2) (conf.winh - hscrollh - 5) s;
   in
-  match state.mode with
-  | Textentry ((prefix, text, _, _, _), _) ->
-      let s =
-        if len > 0
-        then
-          Printf.sprintf "%s%s_ [%s]" prefix text state.text
-        else
-          Printf.sprintf "%s%s_"  prefix text
-      in
-      drawstring s
+  let s =
+    match state.mode with
+    | Textentry ((prefix, text, _, _, _), _) ->
+        let s =
+          if len > 0
+          then
+            Printf.sprintf "%s%s_ [%s]" prefix text state.text
+          else
+            Printf.sprintf "%s%s_"  prefix text
+        in
+        s
 
-  | _ ->
-      if len > 0 then drawstring state.text
+    | _ -> state.text
+  in
+  let s =
+    if state.newerrmsgs
+    then
+      let s1 = "(press 'e' to review error messasges)" in
+      if String.length s > 0 then s ^ " " ^ s1 else s1
+    else s
+  in
+  if String.length s > 0
+  then drawstring s
 ;;
 
 let showtext c s =
@@ -1707,7 +1744,7 @@ let idle () =
       then max 0.0 (state.deadline -. now ())
       else 0.0
     in
-    let r, _, _ = Unix.select [state.csock] [] [] timeout in
+    let r, _, _ = Unix.select [state.csock; state.errfd] [] [] timeout in
     begin match r with
     | [] ->
         begin match state.autoscroll with
@@ -1727,10 +1764,33 @@ let idle () =
             state.deadline <- state.deadline +. delay;
         end;
 
-    | _ ->
-        let cmd = readcmd state.csock in
-        act cmd;
-        loop 0.0
+    | l ->
+        let rec checkfds c = function
+          | [] -> c
+          | fd :: rest when fd = state.csock ->
+              let cmd = readcmd state.csock in
+              act cmd;
+              checkfds true rest
+          | fd :: rest when fd = state.errfd ->
+              let s = String.create 80 in
+              let n = Unix.read fd s 0 80 in
+              if conf.redirectstderr
+              then (
+                Buffer.add_substring state.errmsgs s 0 n;
+                state.newerrmsgs <- true;
+                Glut.postRedisplay ();
+              )
+              else (
+                prerr_string (String.sub s 0 n);
+                flush stderr;
+              );
+              checkfds c rest
+
+          | _ ->
+              failwith "me? fail english? that's unpossible!"
+        in
+        if checkfds false l
+        then loop 0.0
     end;
   in loop 0.007
 ;;
@@ -3359,6 +3419,9 @@ let enterinfomode =
       src#bool "max fit"
         (fun () -> conf.maxhfit)
         (fun v -> conf.maxhfit <- v);
+      src#bool "redirect stderr"
+        (fun () -> conf.redirectstderr)
+        (fun v -> conf.redirectstderr <- v; redirectstderr ());
       src#string "uri launcher"
         (fun () -> conf.urilauncher)
         (fun v -> conf.urilauncher <- v);
@@ -3510,6 +3573,52 @@ let enterhelpmode =
   in fun () ->
     state.uioh <- coe (new listview ~source ~trusted:true);
     G.postRedisplay "help";
+;;
+
+let entermsgsmode =
+  let msgsource =
+    let re = Str.regexp "[\r\n]" in
+    (object (self)
+      inherit lvsourcebase
+      val mutable m_items = [||]
+
+      method getitemcount =
+        if state.newerrmsgs
+        then self#reset;
+        1 + Array.length m_items
+      method getitem n =
+        if n = 0
+        then "[Clear]", 0
+        else m_items.(n-1), 0
+
+      method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
+        ignore uioh;
+        if not cancel
+        then (
+          if active = 0
+          then Buffer.clear state.errmsgs;
+          m_qsearch <- qsearch;
+        );
+        m_active <- active;
+        m_first <- first;
+        m_pan <- pan;
+        None
+
+      method hasaction n = n = 0
+      method reset =
+        state.newerrmsgs <- false;
+        let l = Str.split re (Buffer.contents state.errmsgs) in
+        m_items <- Array.of_list l
+
+      initializer
+        m_active <- 0
+    end)
+  in fun () ->
+    state.text <- "";
+    msgsource#reset;
+    let source = (msgsource :> lvsource) in
+    state.uioh <- coe (new listview ~source ~trusted:false);
+    G.postRedisplay "msgs";
 ;;
 
 let quickbookmark ?title () =
@@ -3747,6 +3856,9 @@ let viewkeyboard key =
 
   | 'i' ->
       enterinfomode ()
+
+  | 'e' when conf.redirectstderr ->
+      entermsgsmode ()
 
   | 'm' ->
       let ondone s =
@@ -4644,6 +4756,7 @@ struct
         | "color-space" -> { c with colorspace = colorspace_of_string v }
         | "invert-colors" -> { c with invert  = bool_of_string v }
         | "brightness" -> { c with colorscale = float_of_string v }
+        | "redirectstderr" -> { c with redirectstderr = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -4731,6 +4844,7 @@ struct
     dst.colorspace     <- src.colorspace;
     dst.invert         <- src.invert;
     dst.colorscale     <- src.colorscale;
+    dst.redirectstderr <- src.redirectstderr;
   ;;
 
   let get s =
@@ -5040,6 +5154,7 @@ struct
     oC "color-space" c.colorspace dc.colorspace;
     ob "invert-colors" c.invert dc.invert;
     oF "brightness" c.colorscale dc.colorscale;
+    ob "redirectstderr" c.redirectstderr dc.redirectstderr;
     if always
     then ob "wmclass-hack" !wmclasshack false;
   ;;
@@ -5228,6 +5343,8 @@ let () =
   state.uioh <- uioh;
   setfontsize fstate.fontsize;
 
+  redirectstderr ();
+
   while true do
     try
       Glut.mainLoop ();
@@ -5239,5 +5356,16 @@ let () =
         wcmd "quit" [];
         Config.save ();
         exit 0
+
+    | exn when conf.redirectstderr ->
+        let s =
+          Printf.sprintf "exception %s\n%s"
+            (Printexc.to_string exn)
+            (Printexc.get_backtrace ())
+        in
+        ignore (try
+            Unix.single_write state.stderr s 0 (String.length s);
+          with _ -> 0);
+        exit 1
   done;
 ;;
