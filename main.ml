@@ -1849,7 +1849,6 @@ let setzoom zoom =
       then (
         state.y <- y;
         load layout;
-        G.postRedisplay "zoom maxwait";
       )
 ;;
 
