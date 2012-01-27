@@ -1380,9 +1380,13 @@ let enttext () =
   in
   let s =
     if state.newerrmsgs
-    then
-      let s1 = "(press 'e' to review error messasges)" in
-      if String.length s > 0 then s ^ " " ^ s1 else s1
+    then (
+      if not (istextentry state.mode)
+      then
+        let s1 = "(press 'e' to review error messasges)" in
+        if String.length s > 0 then s ^ " " ^ s1 else s1
+      else s
+    )
     else s
   in
   if String.length s > 0
