@@ -3441,6 +3441,18 @@ let enterinfomode =
           with exn ->
             state.text <- Printf.sprintf "bad tile size `%s': %s"
               v (Printexc.to_string exn));
+      src#int "texture count"
+        (fun () -> conf.texcount)
+        (fun v ->
+          conf.texcount <- v;
+          wcmd "texcount" [`i conf.texcount];
+        );
+      src#int "slice height"
+        (fun () -> conf.sliceheight)
+        (fun v ->
+          conf.sliceheight <- v;
+          wcmd "sliceh" [`i conf.sliceheight];
+        );
       src#int "anti-aliasing level"
         (fun () -> conf.aalevel)
         (fun v ->

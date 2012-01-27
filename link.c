@@ -1145,6 +1145,42 @@ static void set_tex_params (int colorspace)
     }
 }
 
+static void realloctexts (int texcount)
+{
+    size_t size;
+
+    if (texcount == state.texcount) return;
+
+    if (texcount < state.texcount) {
+        glDeleteTextures (state.texcount - texcount,
+                          state.texids + texcount);
+    }
+
+    size = texcount * sizeof (*state.texids);
+    state.texids = realloc (state.texids, size);
+    if (!state.texids) {
+        err (1, "realloc texids " FMT_s, size);
+    }
+
+    size = texcount * sizeof (*state.texowners);
+    state.texowners = realloc (state.texowners, size);
+    if (!state.texowners) {
+        err (1, "realloc texowners " FMT_s, size);
+    }
+    if (texcount > state.texcount) {
+        int i;
+
+        glGenTextures (texcount - state.texcount,
+                       state.texids + state.texcount);
+        for (i = state.texcount; i < texcount; ++i) {
+            state.texowners[i].w = -1;
+            state.texowners[i].slice = NULL;
+        }
+    }
+    state.texcount = texcount;
+    state.texindex = 0;
+}
+
 static
 #ifdef _WIN32
 DWORD _stdcall
@@ -1355,6 +1391,33 @@ mainloop (void *unused)
             unlock ("settrim");
             printd (state.sock, "continue %d", state.pagecount);
         }
+        else if (!strncmp ("texcount", p, 8)) {
+            int n;
+
+            ret = sscanf (p + 8, " %d", &n);
+            if (ret != 1) {
+                errx (1, "malformed texcount `%.*s' ret=%d", len, p, ret);
+            }
+            realloctexts (n);
+        }
+        else if (!strncmp ("sliceh", p, 6)) {
+            int h;
+
+            ret = sscanf (p + 6, " %d", &h);
+            if (ret != 1) {
+                errx (1, "malformed sliceh `%.*s' ret=%d", len, p, ret);
+            }
+            if (h != state.sliceheight) {
+                int i;
+
+                state.sliceheight = h;
+                for (i = 0; i < state.texcount; ++i) {
+                    state.texowners[i].w = -1;
+                    state.texowners[i].h = -1;
+                    state.texowners[i].slice = NULL;
+                }
+            }
+        }
         else if (!strncmp ("interrupt", p, 9)) {
             printd (state.sock, "vmsg interrupted");
         }
@@ -1479,7 +1542,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
     for (slice1 = tile->slices; slice != slice1; slice1++) {
         offset += slice1->h * tile->w * tile->pixmap->n;
     }
-    if (slice->texindex != -1
+    if (slice->texindex != -1 && slice->texindex < state.texcount
         && state.texowners[slice->texindex].slice == slice) {
         glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[slice->texindex]);
     }
@@ -2215,13 +2278,14 @@ CAMLprim value ml_init (value sock_v, value params_v)
     int ret;
 #endif
     char *fontpath;
+    int texcount;
     int wmclasshack;
     int colorspace;
 
     state.rotate = Int_val (Field (params_v, 0));
     state.proportional = Bool_val (Field (params_v, 1));
     trim_v = Field (params_v, 2);
-    state.texcount = Int_val (Field (params_v, 3));
+    texcount = Int_val (Field (params_v, 3));
     state.sliceheight = Int_val (Field (params_v, 4));
     state.ctx = fz_new_context (&fz_alloc_default, Field (params_v, 5));
     colorspace = Int_val (Field (params_v, 6));
@@ -2250,19 +2314,7 @@ CAMLprim value ml_init (value sock_v, value params_v)
     if (!state.face) _exit (1);
 
     fz_accelerate ();
-    state.texids = calloc (state.texcount, sizeof (*state.texids));
-    if (!state.texids) {
-        err (1, "calloc texids " FMT_s,
-             state.texcount * sizeof (*state.texids));
-    }
-
-    state.texowners = calloc (state.texcount, sizeof (*state.texowners));
-    if (!state.texowners) {
-        err (1, "calloc texowners " FMT_s,
-             state.texcount * sizeof (*state.texowners));
-    }
-
-    glGenTextures (state.texcount, state.texids);
+    realloctexts (texcount);
 
 #ifdef _WIN32
     state.sock = Socket_val (sock_v);
