@@ -1960,7 +1960,8 @@ let optentry mode _ key =
 
   | 'h' ->
       conf.maxhfit <- not conf.maxhfit;
-      state.maxy <- state.maxy + (if conf.maxhfit then -conf.winh else conf.winh);
+      state.maxy <-
+        state.maxy + (if conf.maxhfit then -conf.winh else conf.winh);
       TEdone ("maxhfit " ^ (btos conf.maxhfit))
 
   | 'c' ->
@@ -2481,7 +2482,8 @@ object (self)
           begin match self#elemunder y with
           | Some n ->
               G.postRedisplay "listview click";
-              source#exit (coe {< m_active = n >}) false n m_first m_pan m_qsearch
+              source#exit
+                (coe {< m_active = n >}) false n m_first m_pan m_qsearch
           | _ ->
               Some (coe self)
           end
@@ -2619,7 +2621,8 @@ let outlinesource usebookmarks =
     val mutable m_narrow_pattern = ""
     val mutable m_hadremovals = false
 
-    method getitemcount = Array.length m_items + (if m_hadremovals then 1 else 0)
+    method getitemcount =
+      Array.length m_items + (if m_hadremovals then 1 else 0)
 
     method getitem n =
       if n == Array.length m_items && m_hadremovals
@@ -2796,7 +2799,8 @@ let makecheckers () =
 
   let make_image () =
     let image =
-      GlPix.create `ubyte ~format:`rgb ~width:image_width ~height:image_height in
+      GlPix.create `ubyte ~format:`rgb ~width:image_width ~height:image_height
+    in
     for i = 0 to image_width - 1 do
       for j = 0 to image_height - 1 do
         Raw.sets (GlPix.to_raw image) ~pos:(3*(i*image_height+j))
