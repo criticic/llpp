@@ -161,6 +161,7 @@ struct slice {
 struct tile {
     int x, y, w, h;
     int slicecount;
+    int sliceheight;
     fz_pixmap *pixmap;
     struct slice slices[1];
 };
@@ -651,6 +652,7 @@ static struct tile *alloctile (int h)
         h -= sh;
     }
     tile->slicecount = slicecount;
+    tile->sliceheight = state.sliceheight;
     return tile;
 }
 
@@ -1611,9 +1613,9 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
         int slicey, firstslice;
         struct slice *slice;
 
-        firstslice = tiley / state.sliceheight;
+        firstslice = tiley / tile->sliceheight;
         slice = &tile->slices[firstslice];
-        slicey = tiley % state.sliceheight;
+        slicey = tiley % tile->sliceheight;
 
         while (disph > 0) {
             int dh;
