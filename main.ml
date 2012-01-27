@@ -420,6 +420,7 @@ let defconf =
 let conf = { defconf with angle = defconf.angle };;
 
 let uifontsize = ref 14;;
+let wwidth = ref nan;;
 
 let gotouri uri =
   if String.length conf.urilauncher = 0
@@ -895,12 +896,12 @@ let drawtiles l color =
             "%d[%d,%d] %f sec"
             l.pageno col row t
           in
-          let w = measurestr !uifontsize s in
+          let ww = !wwidth in
           GlMisc.push_attrib [`current];
           GlDraw.color (0.0, 0.0, 0.0);
           GlDraw.rect
             (float (x-2), float (y-2))
-            (float (x+2) +. w, float (y + !uifontsize + 2));
+            (float (x+2) +. ww, float (y + !uifontsize + 2));
           GlDraw.color (1.0, 1.0, 1.0);
           drawstring !uifontsize x (y + !uifontsize - 1) s;
           GlMisc.pop_attrib ();
@@ -2169,7 +2170,7 @@ object (self)
     Gl.enable `texture_2d;
     let fs = !uifontsize in
     let nfs = fs + 1 in
-    let ww = measurestr fs "w" in
+    let ww = !wwidth in
     let tabw = 30.0*.ww in
     let rec loop row =
       if (row - m_first) * nfs > conf.winh
@@ -3295,7 +3296,10 @@ let enterinfomode =
         );
       src#int "ui font size"
         (fun () -> !uifontsize)
-        (fun v -> uifontsize := bound v 5 100);
+        (fun v ->
+          uifontsize := bound v 5 100;
+          wwidth := measurestr !uifontsize "w";
+        );
       colorp "background color"
         (fun () -> conf.bgcolor)
         (fun v -> conf.bgcolor <- v);
@@ -5113,6 +5117,7 @@ let () =
     conf.texcount, conf.sliceheight, conf.mumemlimit, conf.colorspace,
     !Config.wmclasshack, !Config.fontpath
   );
+  wwidth := measurestr !uifontsize "w";
   state.csock <- csock;
   state.ssock <- ssock;
   state.text <- "Opening " ^ state.path;
