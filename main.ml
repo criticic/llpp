@@ -3582,14 +3582,12 @@ let enterhelpmode =
 let entermsgsmode =
   let msgsource =
     let re = Str.regexp "[\r\n]" in
-    (object (self)
+    (object
       inherit lvsourcebase
       val mutable m_items = [||]
 
-      method getitemcount =
-        if state.newerrmsgs
-        then self#reset;
-        1 + Array.length m_items
+      method getitemcount = 1 + Array.length m_items
+
       method getitem n =
         if n = 0
         then "[Clear]", 0
@@ -3608,7 +3606,9 @@ let entermsgsmode =
         m_pan <- pan;
         None
 
-      method hasaction n = n = 0
+      method hasaction n =
+        n = 0
+
       method reset =
         state.newerrmsgs <- false;
         let l = Str.split re (Buffer.contents state.errmsgs) in
@@ -3621,7 +3621,13 @@ let entermsgsmode =
     state.text <- "";
     msgsource#reset;
     let source = (msgsource :> lvsource) in
-    state.uioh <- coe (new listview ~source ~trusted:false);
+    state.uioh <- coe (object
+      inherit listview ~source ~trusted:false as super
+      method display =
+        if state.newerrmsgs
+        then msgsource#reset;
+        super#display
+    end);
     G.postRedisplay "msgs";
 ;;
 
