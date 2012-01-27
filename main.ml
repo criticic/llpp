@@ -1416,9 +1416,13 @@ let gctiles () =
           && pageh = getpageh n
           && (
             let layout =
-              if conf.preload
-              then preloadlayout state.layout
-              else state.layout
+              match state.throttle with
+              | None ->
+                  if conf.preload
+                  then preloadlayout state.layout
+                  else state.layout
+              | Some (layout, _, _) ->
+                  layout
             in
             let x = col*conf.tilew
             and y = row*conf.tileh in
@@ -1660,11 +1664,17 @@ let act cmds =
             Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                        opaque, size) state.tilelru;
 
+            let layout =
+              match state.throttle with
+              | None -> state.layout
+              | Some (layout, _, _) -> layout
+            in
+
             state.currently <- Idle;
             if   gen = state.gen
               && conf.colorspace = cs
               && conf.angle = angle
-              && tilevisible state.layout l.pageno x y
+              && tilevisible layout l.pageno x y
             then conttiling l.pageno pageopaque;
 
             begin match state.throttle with
