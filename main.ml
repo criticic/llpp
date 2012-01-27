@@ -4073,7 +4073,12 @@ let zoomrect x y x1 y1 =
   gotoy (state.y + y0);
   state.anchor <- getanchor ();
   let zoom = (float conf.winw *. conf.zoom) /. float (x1 - x0) in
-  state.x <- state.x - x0;
+  let margin =
+    if state.w < conf.winw - state.scrollw
+    then (conf.winw - state.scrollw - state.w) / 2
+    else 0
+  in
+  state.x <- margin - state.x - x0;
   setzoom zoom;
   Glut.setCursor Glut.CURSOR_INHERIT;
   state.mstate <- Mnone;
