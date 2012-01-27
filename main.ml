@@ -4768,7 +4768,7 @@ struct
             { c with scrollbarinpm = bool_of_string v }
         | "tile-width" -> { c with tilew = max 2 (int_of_string v) }
         | "tile-height" -> { c with tileh = max 2 (int_of_string v) }
-        | "memlimit" ->
+        | "mupdf-memlimit" ->
             { c with mumemlimit = max 1024 (int_of_string_with_suffix v) }
         | "checkers" -> { c with checkers = bool_of_string v }
         | "aalevel" -> { c with aalevel = max 0 (int_of_string v) }
