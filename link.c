@@ -1183,8 +1183,8 @@ mainloop (void *unused)
             openxref (filename, password);
             printd (state.sock, "msg Opened %s (press h/F1 to get help)",
                     filename);
-            initpdims ();
             pdfinfo ();
+            initpdims ();
             state.needoutline = 1;
         }
         else if (!strncmp ("cs", p, 2)) {
