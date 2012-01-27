@@ -1192,7 +1192,7 @@ mainloop (void *unused)
 
             ret = sscanf (p + 2, " %d", &colorspace);
             if (ret != 1) {
-                errx (1, "malformed aa `%.*s' ret=%d", len, p, ret);
+                errx (1, "malformed cs `%.*s' ret=%d", len, p, ret);
             }
             lock ("cs");
             set_tex_params (colorspace);
