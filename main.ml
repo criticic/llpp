@@ -1095,7 +1095,7 @@ let preloadlayout visiblepages =
   conf.presentation <- presentation;
   conf.interpagespace <- interpagespace;
   state.maxy <- maxy;
-  pages
+  pages;
 ;;
 
 let load pages =
