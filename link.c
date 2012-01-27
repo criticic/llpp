@@ -12,11 +12,11 @@
 #include <winsock2.h>
 #define fionread_arg long
 #define ssize_t int
-#define FMT_ss "%d"
+#define FMT_ss "d"
 #ifdef _WIN64
-#define FMT_s "%i64u"
+#define FMT_s "i64u"
 #else
-#define FMT_s "%u"
+#define FMT_s "u"
 #endif
 #endif
 
@@ -61,8 +61,8 @@ static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
     _exit (exitcode);
 }
 #else
-#define FMT_ss "%zd"
-#define FMT_s "%zu"
+#define FMT_ss "zd"
+#define FMT_s "zu"
 #define fionread_arg int
 #define ioctlsocket ioctl
 #define sockerr err
@@ -354,7 +354,7 @@ static void readdata (int fd, char *p, int size)
     n = recv (fd, p, size, 0);
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        sockerr (1, "recv (req %d, ret " FMT_ss ")", size, n);
+        sockerr (1, "recv (req %d, ret %" FMT_ss ")", size, n);
     }
 }
 
@@ -371,13 +371,13 @@ static void writedata (int fd, char *p, int size)
     n = send (fd, buf, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while writing length");
-        sockerr (1, "send " FMT_ss, n);
+        sockerr (1, "send %" FMT_ss, n);
     }
 
     n = send (fd, p, size, 0);
     if (n - size) {
         if (!n) errx (1, "EOF while writing data");
-        sockerr (1, "send (req %d, ret " FMT_ss ")", size, n);
+        sockerr (1, "send (req %d, ret %" FMT_ss ")", size, n);
     }
 }
 
@@ -485,7 +485,7 @@ static int readlen (int fd)
     n = recv (fd, p, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while reading length");
-        sockerr (1, "recv " FMT_ss, n);
+        sockerr (1, "recv %" FMT_ss, n);
     }
 
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
@@ -642,7 +642,7 @@ static struct tile *alloctile (int h)
     tilesize = sizeof (*tile) + ((slicecount - 1) * sizeof (struct slice));
     tile = calloc (tilesize, 1);
     if (!tile) {
-        err (1, "can not allocate tile (" FMT_s " bytes)", tilesize);
+        err (1, "can not allocate tile (%" FMT_s " bytes)", tilesize);
     }
     for (i = 0; i < slicecount; ++i) {
         int sh = MIN (h, state.sliceheight);
@@ -790,7 +790,7 @@ static void initpdims (void)
             size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
             state.pagedims = realloc (state.pagedims, size);
             if (!state.pagedims) {
-                err (1, "realloc pagedims to " FMT_s " (%d elems)",
+                err (1, "realloc pagedims to %" FMT_s " (%d elems)",
                      size, state.pagedimcount + 1);
             }
 
@@ -996,7 +996,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         }
         pspan = malloc (sizeof (void *) * nspans);
         if (!pspan) {
-            err (1, "malloc span pointers " FMT_s, sizeof (void *) * nspans);
+            err (1, "malloc span pointers %" FMT_s, sizeof (void *) * nspans);
         }
         for (i = 0, span = text; span; span = span->next, ++i) {
             pspan[i] = span;
@@ -1159,13 +1159,13 @@ static void realloctexts (int texcount)
     size = texcount * sizeof (*state.texids);
     state.texids = realloc (state.texids, size);
     if (!state.texids) {
-        err (1, "realloc texids " FMT_s, size);
+        err (1, "realloc texids %" FMT_s, size);
     }
 
     size = texcount * sizeof (*state.texowners);
     state.texowners = realloc (state.texowners, size);
     if (!state.texowners) {
-        err (1, "realloc texowners " FMT_s, size);
+        err (1, "realloc texowners %" FMT_s, size);
     }
     if (texcount > state.texcount) {
         int i;
