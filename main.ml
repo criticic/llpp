@@ -2135,15 +2135,23 @@ let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
       end;
 ;;
 
-let firstof first active =
-  let maxrows = maxoutlinerows () in
+let firstof maxrows first active =
   if first > active || abs (first - active) > maxrows - 1
   then max 0 (active - (maxrows/2))
   else first
 ;;
 
+let calcfirst maxrows first active =
+  if active > first
+  then
+    let rows = active - first in
+    if rows > maxrows then active - maxrows else first
+  else active
+;;
+
+let coe s = (s :> uioh);;
+
 class listview ~(source:lvsource) ~trusted =
-  let coe s = (s :> uioh) in
 object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
@@ -2221,6 +2229,19 @@ object (self)
     Gl.disable `blend;
     Gl.disable `texture_2d;
 
+  method updownlevel incr =
+    let len = source#getitemcount  in
+    let _, curlevel = source#getitem m_active in
+    let rec flow i =
+      if i = len then i-1 else if i = -1 then 0 else
+          let _, l = source#getitem i in
+          if l != curlevel then i else flow (i+incr)
+    in
+    let active = flow m_active in
+    let first = calcfirst (maxoutlinerows ()) m_first active in
+    G.postRedisplay "special outline updownlevel";
+    {< m_active = active; m_first = first >}
+
   method private key1 key =
     let set active first qsearch =
       coe {< m_active = active; m_first = first; m_qsearch = qsearch >}
@@ -2258,7 +2279,7 @@ object (self)
               m_active, m_first
           | Some active ->
               state.text <- m_qsearch;
-              active, firstof m_first active
+              active, firstof (maxoutlinerows ()) m_first active
         in
         G.postRedisplay "listview ctrl-r/s";
         set active first m_qsearch;
@@ -2283,7 +2304,7 @@ object (self)
                   m_active, m_first
               | Some active ->
                   state.text <- qsearch;
-                  active, firstof m_first active
+                  active, firstof (maxoutlinerows ()) m_first active
             in
             G.postRedisplay "listview backspace qsearch";
             set active first qsearch
@@ -2298,7 +2319,7 @@ object (self)
               m_active, m_first
           | Some active ->
               state.text <- pattern;
-              active, firstof m_first active
+              active, firstof (maxoutlinerows ()) m_first active
         in
         G.postRedisplay "listview qsearch add";
         set active first pattern;
@@ -2501,9 +2522,8 @@ object (self)
   method infochanged _ = ()
 end;;
 
-class outlinelistview ~source : uioh =
-  let coe o = (o :> uioh) in
-object
+class outlinelistview ~source =
+object (self)
   inherit listview ~source:(source :> lvsource) ~trusted:false as super
 
   method key key =
@@ -2527,7 +2547,8 @@ object
         source#remove m_active;
         G.postRedisplay "outline delete";
         let active = max 0 (m_active-1) in
-        coe {< m_first = firstof m_first active; m_active = active >}
+        coe {< m_first = firstof (maxoutlinerows ()) m_first active;
+               m_active = active >}
 
     | key -> super#key key
 
@@ -2547,19 +2568,6 @@ object
       G.postRedisplay "special outline navigate";
       coe {< m_active = active; m_first = first >}
     in
-    let updownlevel incr =
-      let len = source#getitemcount  in
-      let _, curlevel = source#getitem m_active in
-      let rec flow i =
-        if i = len then i-1 else if i = -1 then 0 else
-            let _, l = source#getitem i in
-            if l != curlevel then i else flow (i+incr)
-      in
-      let active = flow m_active in
-      let first = calcfirst m_first active in
-      G.postRedisplay "special outline updownlevel";
-      {< m_active = active; m_first = first >}
-    in
     match key with
     | Glut.KEY_UP        -> navigate ~-1
     | Glut.KEY_DOWN      -> navigate   1
@@ -2573,7 +2581,7 @@ object
             G.postRedisplay "special outline right";
             {< m_pan = m_pan + 1 >}
           )
-          else updownlevel 1
+          else self#updownlevel 1
         in
         coe o
 
@@ -2584,7 +2592,7 @@ object
             G.postRedisplay "special outline left";
             {< m_pan = m_pan - 1 >}
           )
-          else updownlevel ~-1
+          else self#updownlevel ~-1
         in
         coe o
 
@@ -2718,7 +2726,7 @@ let outlinesource usebookmarks =
         loop 0 ~-1 max_int
       in
       m_active <- active;
-      m_first <- firstof m_first active
+      m_first <- firstof (maxoutlinerows ()) m_first active
   end)
 ;;
 
@@ -2743,7 +2751,7 @@ let enterselector usebookmarks =
         | {pageno=pageno} :: _ -> pageno
       in
       source#reset pageno outlines;
-      state.uioh <- new outlinelistview ~source;
+      state.uioh <- coe (new outlinelistview ~source);
       G.postRedisplay "enter selector";
     )
 ;;
@@ -3028,7 +3036,7 @@ let enterinfomode =
                 end)
               in
               state.text <- "";
-              new listview ~source ~trusted:true
+              coe (new listview ~source ~trusted:true)
           )) :: m_l
 
       method caption s offset =
@@ -3366,8 +3374,8 @@ let enterinfomode =
     and prevuioh = state.uioh in
     fillsrc prevmode prevuioh;
     let source = (src :> lvsource) in
-    state.uioh <- object
-      inherit listview ~source ~trusted:true
+    state.uioh <- coe (object (self)
+      inherit listview ~source ~trusted:true as super
       val mutable m_prevmemused = 0
       method infochanged = function
         | Memused ->
@@ -3378,7 +3386,16 @@ let enterinfomode =
             )
         | Pdim -> G.postRedisplay "pdimchanged"
         | Docinfo -> fillsrc prevmode prevuioh
-    end;
+
+      method special key =
+        if Glut.getModifiers () land Glut.active_ctrl = 0
+        then
+          match key with
+          | Glut.KEY_LEFT  -> coe (self#updownlevel ~-1)
+          | Glut.KEY_RIGHT -> coe (self#updownlevel 1)
+          | _ -> super#special key
+        else super#special key
+    end);
     G.postRedisplay "info";
 ;;
 
@@ -3416,7 +3433,7 @@ let enterhelpmode =
         m_active <- -1
     end)
   in fun () ->
-    state.uioh <- new listview ~source ~trusted:true;
+    state.uioh <- coe (new listview ~source ~trusted:true);
     G.postRedisplay "help";
 ;;
 
