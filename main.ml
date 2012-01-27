@@ -420,8 +420,25 @@ let defconf =
 
 let conf = { defconf with angle = defconf.angle };;
 
-let uifontsize = ref 14;;
-let wwidth = ref nan;;
+type fontstate =
+    { mutable fontsize : int
+    ; mutable wwidth : float
+    ; mutable maxrows : int
+    }
+;;
+
+let fstate =
+  { fontsize = 14
+  ; wwidth = nan
+  ; maxrows = -1
+  }
+;;
+
+let setfontsize n =
+  fstate.fontsize <- n;
+  fstate.wwidth <- measurestr fstate.fontsize "w";
+  fstate.maxrows <- (conf.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
+;;
 
 let gotouri uri =
   if String.length conf.urilauncher = 0
@@ -896,14 +913,14 @@ let drawtiles l color =
             "%d[%d,%d] %f sec"
             l.pageno col row t
           in
-          let ww = !wwidth in
+          let ww = fstate.wwidth in
           GlMisc.push_attrib [`current];
           GlDraw.color (0.0, 0.0, 0.0);
           GlDraw.rect
             (float (x-2), float (y-2))
-            (float (x+2) +. ww, float (y + !uifontsize + 2));
+            (float (x+2) +. ww, float (y + fstate.fontsize + 2));
           GlDraw.color (1.0, 1.0, 1.0);
-          drawstring !uifontsize x (y + !uifontsize - 1) s;
+          drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
           GlMisc.pop_attrib ();
         );
 
@@ -944,7 +961,7 @@ let drawtiles l color =
               (float x, float y)
               (float (x+w), float (y+h));
         end;
-        if w > 128 && h > !uifontsize + 10
+        if w > 128 && h > fstate.fontsize + 10
         then (
           GlDraw.color (0.0, 0.0, 0.0);
           let c, r =
@@ -952,7 +969,7 @@ let drawtiles l color =
             then (col*conf.tilew, row*conf.tileh)
             else col, row
           in
-          drawstring2 !uifontsize x y "Loading %d [%d,%d]" l.pageno c r;
+          drawstring2 fstate.fontsize x y "Loading %d [%d,%d]" l.pageno c r;
         );
         GlDraw.color color;
   in
@@ -1269,6 +1286,7 @@ let reshape =
     let w = max w 2 in
     state.w <- w;
     conf.winh <- h;
+    setfontsize fstate.fontsize;
     GlMat.mode `modelview;
     GlMat.load_identity ();
 
@@ -1292,7 +1310,7 @@ let enttext () =
     in
     let rect x w =
       GlDraw.rect
-        (x, float (conf.winh - (!uifontsize + 4) - hscrollh))
+        (x, float (conf.winh - (fstate.fontsize + 4) - hscrollh))
         (x+.w, float (conf.winh - hscrollh))
     in
 
@@ -1311,7 +1329,7 @@ let enttext () =
     );
 
     GlDraw.color (1.0, 1.0, 1.0);
-    drawstring !uifontsize
+    drawstring fstate.fontsize
       (if len > 0 then 8 else 2) (conf.winh - hscrollh - 5) s;
   in
   match state.mode with
@@ -2024,8 +2042,6 @@ let optentry mode _ key =
       TEstop
 ;;
 
-let maxoutlinerows () = (conf.winh - !uifontsize - 1) / (!uifontsize + 1);;
-
 class type lvsource = object
   method getitemcount : int
   method getitem : int -> (string * int)
@@ -2136,17 +2152,17 @@ let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
       end;
 ;;
 
-let firstof maxrows first active =
-  if first > active || abs (first - active) > maxrows - 1
-  then max 0 (active - (maxrows/2))
+let firstof first active =
+  if first > active || abs (first - active) > fstate.maxrows - 1
+  then max 0 (active - (fstate.maxrows/2))
   else first
 ;;
 
-let calcfirst maxrows first active =
+let calcfirst first active =
   if active > first
   then
     let rows = active - first in
-    if rows > maxrows then active - maxrows else first
+    if rows > fstate.maxrows then active - fstate.maxrows else first
   else active
 ;;
 
@@ -2161,7 +2177,7 @@ object (self)
   val m_prev_uioh = state.uioh
 
   method private elemunder y =
-    let n = y / (!uifontsize+1) in
+    let n = y / (fstate.fontsize+1) in
     if m_first + n < source#getitemcount
     then (
       if source#hasaction (m_first + n)
@@ -2177,9 +2193,9 @@ object (self)
     GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
     GlDraw.color (1., 1., 1.);
     Gl.enable `texture_2d;
-    let fs = !uifontsize in
+    let fs = fstate.fontsize in
     let nfs = fs + 1 in
-    let ww = !wwidth in
+    let ww = fstate.wwidth in
     let tabw = 30.0*.ww in
     let rec loop row =
       if (row - m_first) * nfs > conf.winh
@@ -2239,7 +2255,7 @@ object (self)
           if l != curlevel then i else flow (i+incr)
     in
     let active = flow m_active in
-    let first = calcfirst (maxoutlinerows ()) m_first active in
+    let first = calcfirst m_first active in
     G.postRedisplay "special outline updownlevel";
     {< m_active = active; m_first = first >}
 
@@ -2280,7 +2296,7 @@ object (self)
               m_active, m_first
           | Some active ->
               state.text <- m_qsearch;
-              active, firstof (maxoutlinerows ()) m_first active
+              active, firstof m_first active
         in
         G.postRedisplay "listview ctrl-r/s";
         set active first m_qsearch;
@@ -2305,7 +2321,7 @@ object (self)
                   m_active, m_first
               | Some active ->
                   state.text <- qsearch;
-                  active, firstof (maxoutlinerows ()) m_first active
+                  active, firstof m_first active
             in
             G.postRedisplay "listview backspace qsearch";
             set active first qsearch
@@ -2320,7 +2336,7 @@ object (self)
               m_active, m_first
           | Some active ->
               state.text <- pattern;
-              active, firstof (maxoutlinerows ()) m_first active
+              active, firstof m_first active
         in
         G.postRedisplay "listview qsearch add";
         set active first pattern;
@@ -2369,7 +2385,6 @@ object (self)
     | _ -> dolog "unknown key %d" key; coe self
 
   method private special1 key =
-    let maxrows = maxoutlinerows () in
     let itemcount = source#getitemcount in
     let find start incr =
       let rec find i =
@@ -2384,12 +2399,12 @@ object (self)
       find start
     in
     let set active first =
-      let first = bound first 0 (itemcount - maxrows) in
+      let first = bound first 0 (itemcount - fstate.maxrows) in
       state.text <- "";
       coe {< m_active = active; m_first = first >}
     in
     let navigate incr =
-      let isvisible first n = n >= first && n - first <= maxrows in
+      let isvisible first n = n >= first && n - first <= fstate.maxrows in
       let active, first =
         let incr1 = if incr > 0 then 1 else -1 in
         if isvisible m_first m_active
@@ -2401,7 +2416,7 @@ object (self)
               then -1
               else find next incr1
             in
-            if next = -1 || abs (m_active - next) > maxrows
+            if next = -1 || abs (m_active - next) > fstate.maxrows
             then -1
             else next
           in
@@ -2426,7 +2441,7 @@ object (self)
             let next = m_active + incr in
             let next = bound next 0 (itemcount - 1) in
             let next = find next incr1 in
-            if next = -1 || abs (m_active - first) > maxrows
+            if next = -1 || abs (m_active - first) > fstate.maxrows
             then m_active
             else next
           in
@@ -2438,8 +2453,8 @@ object (self)
     begin match key with
     | Glut.KEY_UP        -> navigate ~-1
     | Glut.KEY_DOWN      -> navigate   1
-    | Glut.KEY_PAGE_UP   -> navigate ~-maxrows
-    | Glut.KEY_PAGE_DOWN -> navigate   maxrows
+    | Glut.KEY_PAGE_UP   -> navigate ~-(fstate.maxrows)
+    | Glut.KEY_PAGE_DOWN -> navigate   fstate.maxrows
 
     | Glut.KEY_RIGHT ->
         state.text <- "";
@@ -2457,7 +2472,7 @@ object (self)
         set active 0;
 
     | Glut.KEY_END ->
-        let first = max 0 (itemcount - maxrows) in
+        let first = max 0 (itemcount - fstate.maxrows) in
         let active = find (itemcount - 1) ~-1 in
         G.postRedisplay "listview end";
         set active first;
@@ -2490,7 +2505,7 @@ object (self)
       | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
           let len = source#getitemcount in
           let first =
-            if m_first + maxoutlinerows () >= len
+            if m_first + fstate.maxrows >= len
             then
               m_first
             else
@@ -2541,7 +2556,7 @@ object (self)
         coe {< m_first = 0; m_active = 0 >}
 
     | 12 ->                             (* ctrl-l *)
-        let first = m_active - (maxoutlinerows () / 2) in
+        let first = m_active - (fstate.maxrows / 2) in
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
 
@@ -2549,18 +2564,17 @@ object (self)
         source#remove m_active;
         G.postRedisplay "outline delete";
         let active = max 0 (m_active-1) in
-        coe {< m_first = firstof (maxoutlinerows ()) m_first active;
+        coe {< m_first = firstof m_first active;
                m_active = active >}
 
     | key -> super#key key
 
   method special key =
-    let maxrows = maxoutlinerows () in
     let calcfirst first active =
       if active > first
       then
         let rows = active - first in
-        if rows > maxrows then active - maxrows else first
+        if rows > fstate.maxrows then active - fstate.maxrows else first
       else active
     in
     let navigate incr =
@@ -2573,8 +2587,8 @@ object (self)
     match key with
     | Glut.KEY_UP        -> navigate ~-1
     | Glut.KEY_DOWN      -> navigate   1
-    | Glut.KEY_PAGE_UP   -> navigate ~-maxrows
-    | Glut.KEY_PAGE_DOWN -> navigate   maxrows
+    | Glut.KEY_PAGE_UP   -> navigate ~-(fstate.maxrows)
+    | Glut.KEY_PAGE_DOWN -> navigate   fstate.maxrows
 
     | Glut.KEY_RIGHT ->
         let o =
@@ -2604,7 +2618,7 @@ object (self)
 
     | Glut.KEY_END ->
         let active = source#getitemcount - 1 in
-        let first = max 0 (active - maxrows) in
+        let first = max 0 (active - fstate.maxrows) in
         G.postRedisplay "special outline end";
         coe {< m_active = active; m_first = first >}
 
@@ -2729,7 +2743,7 @@ let outlinesource usebookmarks =
         loop 0 ~-1 max_int
       in
       m_active <- active;
-      m_first <- firstof (maxoutlinerows ()) m_first active
+      m_first <- firstof m_first active
   end)
 ;;
 
@@ -3307,11 +3321,8 @@ let enterinfomode =
           opendoc state.path state.password;
         );
       src#int "ui font size"
-        (fun () -> !uifontsize)
-        (fun v ->
-          uifontsize := bound v 5 100;
-          wwidth := measurestr !uifontsize "w";
-        );
+        (fun () -> fstate.fontsize)
+        (fun v -> setfontsize (bound v 5 100));
       colorp "background color"
         (fun () -> conf.bgcolor)
         (fun v -> conf.bgcolor <- v);
@@ -4692,11 +4703,11 @@ struct
             | [] -> size
             | ("size", v) :: rest ->
                 let size =
-                  fromstring int_of_string spos "size" v !uifontsize in
+                  fromstring int_of_string spos "size" v fstate.fontsize in
                 getsize size rest
             | l -> getsize size l
           in
-          uifontsize := getsize !uifontsize attrs;
+          fstate.fontsize <- getsize fstate.fontsize attrs;
           if closed
           then v
           else { v with f = uifont (Buffer.create 10) }
@@ -4974,7 +4985,7 @@ struct
   ;;
 
   let save () =
-    let uifontsize = !uifontsize in
+    let uifontsize = fstate.fontsize in
     let bb = Buffer.create 32768 in
     let f (h, dc) =
       let dc = if conf.bedefault then conf else dc in
@@ -5149,13 +5160,13 @@ let () =
     conf.texcount, conf.sliceheight, conf.mumemlimit, conf.colorspace,
     !Config.wmclasshack, !Config.fontpath
   );
-  wwidth := measurestr !uifontsize "w";
   state.csock <- csock;
   state.ssock <- ssock;
   state.text <- "Opening " ^ state.path;
   setaalevel conf.aalevel;
   writeopen state.path state.password;
   state.uioh <- uioh;
+  setfontsize fstate.fontsize;
 
   while true do
     try
