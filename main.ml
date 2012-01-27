@@ -935,12 +935,12 @@ let drawtiles l color =
             "%d[%d,%d] %f sec"
             l.pageno col row t
           in
-          let ww = fstate.wwidth in
+          let w = measurestr fstate.fontsize s in
           GlMisc.push_attrib [`current];
           GlDraw.color (0.0, 0.0, 0.0);
           GlDraw.rect
             (float (x-2), float (y-2))
-            (float (x+2) +. ww, float (y + fstate.fontsize + 2));
+            (float (x+2) +. w, float (y + fstate.fontsize + 2));
           GlDraw.color (1.0, 1.0, 1.0);
           drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
           GlMisc.pop_attrib ();
