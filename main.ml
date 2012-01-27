@@ -253,6 +253,7 @@ type conf =
     ; mutable urilauncher    : string
     ; mutable colorspace     : colorspace
     ; mutable invert         : bool
+    ; mutable colorscale     : float
     }
 ;;
 
@@ -348,7 +349,6 @@ type state =
     ; mutable path          : string
     ; mutable password      : string
     ; mutable invalidated   : int
-    ; mutable colorscale    : float
     ; mutable memused       : memsize
     ; mutable gen           : gen
     ; mutable throttle      : (page list * int * float) option
@@ -414,6 +414,7 @@ let defconf =
       | _ -> "")
   ; colorspace = Rgb
   ; invert = false
+  ; colorscale = 1.0
   }
 ;;
 
@@ -488,7 +489,6 @@ let state =
       ; pat       = cbnew 1 ""
       ; pag       = cbnew 1 ""
       }
-  ; colorscale    = 1.0
   ; memused       = 0
   ; gen           = 0
   ; throttle      = None
@@ -1233,12 +1233,12 @@ let opendoc path password =
 ;;
 
 let scalecolor c =
-  let c = c *. state.colorscale in
+  let c = c *. conf.colorscale in
   (c, c, c);
 ;;
 
 let scalecolor2 (r, g, b) =
-  (r *. state.colorscale, g *. state.colorscale, b *. state.colorscale);
+  (r *. conf.colorscale, g *. conf.colorscale, b *. conf.colorscale);
 ;;
 
 let represent () =
@@ -3705,8 +3705,8 @@ let viewkeyboard key =
       reqlayout (conf.angle + (if c = '>' then 30 else -30)) conf.proportional
 
   | '[' | ']' ->
-      state.colorscale <-
-        bound (state.colorscale +. (if c = ']' then 0.1 else -0.1)) 0.0 1.0
+      conf.colorscale <-
+        bound (conf.colorscale +. (if c = ']' then 0.1 else -0.1)) 0.0 1.0
       ;
       G.postRedisplay "brightness";
 
@@ -4546,6 +4546,7 @@ struct
         | "uri-launcher" -> { c with urilauncher = unent v }
         | "color-space" -> { c with colorspace = colorspace_of_string v }
         | "invert-colors" -> { c with invert  = bool_of_string v }
+        | "brightness" -> { c with colorscale = float_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -4632,6 +4633,7 @@ struct
     dst.urilauncher    <- src.urilauncher;
     dst.colorspace     <- src.colorspace;
     dst.invert         <- src.invert;
+    dst.colorscale     <- src.colorscale;
   ;;
 
   let get s =
@@ -4854,6 +4856,9 @@ struct
     and oz s a b =
       if always || a <> b
       then Printf.bprintf bb "\n    %s='%d'" s (truncate (a*.100.))
+    and oF s a b =
+      if always || a <> b
+      then Printf.bprintf bb "\n    %s='%f'" s a
     and oc s a b =
       if always || a <> b
       then
@@ -4937,6 +4942,7 @@ struct
     os "uri-launcher" c.urilauncher dc.urilauncher;
     oC "color-space" c.colorspace dc.colorspace;
     ob "invert-colors" c.invert dc.invert;
+    oF "brightness" c.colorscale dc.colorscale;
     if always
     then ob "wmclass-hack" !wmclasshack false;
   ;;
