@@ -2250,13 +2250,13 @@ CAMLprim value ml_init (value sock_v, value params_v)
     if (!state.face) _exit (1);
 
     fz_accelerate ();
-    state.texids = calloc (state.texcount * sizeof (*state.texids), 1);
+    state.texids = calloc (state.texcount, sizeof (*state.texids));
     if (!state.texids) {
         err (1, "calloc texids " FMT_s,
              state.texcount * sizeof (*state.texids));
     }
 
-    state.texowners = calloc (state.texcount * sizeof (*state.texowners), 1);
+    state.texowners = calloc (state.texcount, sizeof (*state.texowners));
     if (!state.texowners) {
         err (1, "calloc texowners " FMT_s,
              state.texcount * sizeof (*state.texowners));
