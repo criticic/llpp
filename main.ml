@@ -4099,7 +4099,7 @@ let zoomrect x y x1 y1 =
     then (conf.winw - state.scrollw - state.w) / 2
     else 0
   in
-  state.x <- margin - state.x - x0;
+  state.x <- (state.x + margin) - x0;
   setzoom zoom;
   Glut.setCursor Glut.CURSOR_INHERIT;
   state.mstate <- Mnone;
