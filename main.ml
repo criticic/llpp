@@ -459,8 +459,13 @@ let gotouri uri =
     | None -> ()
 ;;
 
+let version () =
+  Printf.sprintf "llpp version %s (%s/%dbit, ocaml %s)" Help.version
+      (platform_to_string platform) Sys.word_size Sys.ocaml_version
+;;
+
 let makehelp () =
-  let strings = ("llpp version " ^ Help.version) :: "" :: Help.keys in
+  let strings = version () :: "" :: Help.keys in
   Array.of_list (
     let r = Str.regexp "\\(http://[^ ]+\\)" in
     List.map (fun s ->
@@ -5154,7 +5159,7 @@ let () =
          ("-v", Arg.Unit (fun () ->
            Printf.printf
              "%s\nconfiguration path: %s\n"
-             Help.version
+             (version ())
              Config.defconfpath
            ;
            exit 0), " Print version and exit");
