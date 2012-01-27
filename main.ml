@@ -751,16 +751,6 @@ let getpagedim pageno =
   f (-1, -1, -1, -1) state.pdims
 ;;
 
-let getpageh pageno =
-  let _, _, h, _ = getpagedim pageno in
-  h
-;;
-
-let getpagew pageno =
-  let _, w, _, _ = getpagedim pageno in
-  w
-;;
-
 let getpagey pageno = fst (getpageyh pageno);;
 
 let layout y sh =
@@ -1408,12 +1398,13 @@ let gctiles () =
       then
         let (k, p, s) as lruitem = Queue.pop state.tilelru in
         let n, gen, colorspace, angle, pagew, pageh, col, row = k in
+        let (_, pw, ph, _) = getpagedim n in
         if
           gen = state.gen
           && colorspace = conf.colorspace
           && angle = conf.angle
-          && pagew = getpagew n
-          && pageh = getpageh n
+          && pagew = pw
+          && pageh = ph
           && (
             let layout =
               match state.throttle with
