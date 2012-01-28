@@ -2749,6 +2749,7 @@ object (self)
     | 21 ->                             (* ctrl-u *)
         source#denarrow;
         G.postRedisplay "outline ctrl-u";
+        state.text <- "";
         coe {< m_first = 0; m_active = 0 >}
 
     | 12 ->                             (* ctrl-l *)
