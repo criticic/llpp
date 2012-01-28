@@ -200,7 +200,7 @@ struct {
     struct pagedim *pagedims;
     int pagecount;
     int pagedimcount;
-    pdf_xref *xref;
+    pdf_document *doc;
     fz_context *ctx;
     fz_glyph_cache *cache;
     int w, h;
@@ -425,9 +425,9 @@ static void openxref (char *filename, char *password)
         state.texowners[i].slice = NULL;
     }
 
-   if (state.xref) {
-        pdf_free_xref (state.xref);
-        state.xref = NULL;
+   if (state.doc) {
+        pdf_close_document (state.doc);
+        state.doc = NULL;
     }
 
     if (state.pagedims) {
@@ -437,14 +437,14 @@ static void openxref (char *filename, char *password)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
-    state.xref = pdf_open_xref (state.ctx, filename);
-    if (pdf_needs_password (state.xref)) {
-        int okay = pdf_authenticate_password (state.xref, password);
+    state.doc = pdf_open_document (state.ctx, filename);
+    if (pdf_needs_password (state.doc)) {
+        int okay = pdf_authenticate_password (state.doc, password);
         if (!okay) {
             errx (1, "invalid password");
         }
     }
-    state.pagecount = pdf_count_pages (state.xref);
+    state.pagecount = pdf_count_pages (state.doc);
 }
 
 static void pdfinfo (void)
@@ -452,9 +452,9 @@ static void pdfinfo (void)
     fz_obj *infoobj;
 
     printd (state.sock, "info PDF version\t%d.%d",
-            state.xref->version / 10, state.xref->version % 10);
+            state.doc->version / 10, state.doc->version % 10);
 
-    infoobj = fz_dict_gets (state.xref->trailer, "Info");
+    infoobj = fz_dict_gets (state.doc->trailer, "Info");
     if (infoobj) {
         int i;
         char *s;
@@ -619,10 +619,10 @@ static void *loadpage (int pageno, int pindex)
         err (1, "calloc page %d", pageno);
     }
 
-    page->drawpage = pdf_load_page (state.xref, pageno);
+    page->drawpage = pdf_load_page (state.doc, pageno);
     page->dlist = fz_new_display_list (state.ctx);
     dev = fz_new_list_device (state.ctx, page->dlist);
-    pdf_run_page (state.xref, page->drawpage, dev, fz_identity, NULL);
+    pdf_run_page (state.doc, page->drawpage, dev, fz_identity, NULL);
     fz_free_device (dev);
 
     page->pdimno = pindex;
@@ -712,13 +712,13 @@ static void initpdims (void)
         struct pagedim *p;
         fz_rect mediabox, cropbox;
 
-        pageobj = state.xref->page_objs[pageno];
+        pageobj = state.doc->page_objs[pageno];
 
         if (state.trimmargins) {
             fz_obj *obj;
             pdf_page *page;
 
-            page = pdf_load_page (state.xref, pageno);
+            page = pdf_load_page (state.doc, pageno);
             obj = fz_dict_gets (pageobj, "llpp.TrimBox");
             if (state.trimanew || !obj) {
                 fz_rect rect;
@@ -729,7 +729,7 @@ static void initpdims (void)
                 dev = fz_new_bbox_device (state.ctx, &bbox);
                 dev->hints |= FZ_IGNORE_SHADE;
                 ctm = fz_invert_matrix (page->ctm);
-                pdf_run_page (state.xref, page, dev, fz_identity, NULL);
+                pdf_run_page (state.doc, page, dev, fz_identity, NULL);
                 fz_free_device (dev);
 
                 rect.x0 = bbox.x0 + state.trimfuzz.x0;
@@ -923,7 +923,7 @@ static void process_outline (void)
     if (!state.needoutline) return;
 
     state.needoutline = 0;
-    outline = pdf_load_outline (state.xref);
+    outline = pdf_load_outline (state.doc);
     if (outline) {
         recurse_outline (outline, 0);
         fz_free_outline (outline);
@@ -985,11 +985,11 @@ static void search (regex_t *re, int pageno, int y, int forward)
         pdim = pdimprev;
     found:
 
-        drawpage = pdf_load_page (state.xref, pageno);
+        drawpage = pdf_load_page (state.doc, pageno);
 
         text = fz_new_text_span (state.ctx);
         tdev = fz_new_text_device (state.ctx, text);
-        pdf_run_page (state.xref, drawpage, tdev, fz_identity, NULL);
+        pdf_run_page (state.doc, drawpage, tdev, fz_identity, NULL);
         fz_free_device (tdev);
 
         nspans = 0;
@@ -2184,7 +2184,7 @@ CAMLprim value ml_getpagebox (value opaque_v)
     ret_v = caml_alloc_tuple (4);
     dev = fz_new_bbox_device (state.ctx, &bbox);
     dev->hints |= FZ_IGNORE_SHADE;
-    pdf_run_page (state.xref, page->drawpage, dev, pagectm (page), NULL);
+    pdf_run_page (state.doc, page->drawpage, dev, pagectm (page), NULL);
     fz_free_device (dev);
 
     Field (ret_v, 0) = Val_int (bbox.x0);

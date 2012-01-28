@@ -43,8 +43,8 @@ tp=$root/mupdf/thirdparty
 
 ccopt="-O"
 ccopt="$ccopt -I $tp/jbig2dec"
-ccopt="$ccopt -I $tp/jpeg-8c"
-ccopt="$ccopt -I $tp/freetype-2.4.4/include"
+ccopt="$ccopt -I $tp/jpeg-8d"
+ccopt="$ccopt -I $tp/freetype-2.4.8/include"
 ccopt="$ccopt -I $tp/openjpeg-1.4/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib-1.2.5"
 ccopt="$ccopt -I $root/mupdf/fitz -I $root/mupdf/pdf"

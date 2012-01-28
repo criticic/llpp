@@ -6,7 +6,7 @@ be found here[3], dependencies here[4]
 Note that MuPDF is a moving target therefore bellow is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with: 
-50dbc1a356577f3df15a876f6adb716dea29bdc5
+4623d8d77b3b971208d93b61ebcb6e2de153c110
 
 llpp also depends on OCaml[5], lablGL[6] and GLUT[7], having a C
 compiler wouldn't hurt either.
