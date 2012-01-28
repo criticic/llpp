@@ -285,6 +285,9 @@ class type uioh = object
   method motion : int -> int -> uioh
   method pmotion : int -> int -> uioh
   method infochanged : infochange -> unit
+  method scrollpw : (float * float)
+  method scrollph : (float * float)
+  method scrollcolor : (float * float * float)
 end;;
 
 type mode =
@@ -319,6 +322,9 @@ let nouioh : uioh = object (self)
   method motion _ _ = self
   method pmotion _ _ = self
   method infochanged _ = ()
+  method scrollcolor = (0., 0., 0.)
+  method scrollpw = (nan, nan)
+  method scrollph = (nan, nan)
 end;;
 
 type state =
@@ -2291,6 +2297,26 @@ let calcfirst first active =
   else active
 ;;
 
+let scrollph y maxy =
+  let sh = (float (maxy + conf.winh) /. float conf.winh) in
+  let sh = float conf.winh /. sh in
+  let sh = max sh (float conf.scrollh) in
+
+  let percent =
+    if y = state.maxy
+    then 1.0
+    else float y /. float maxy
+  in
+  let position = (float conf.winh -. sh) *. percent in
+
+  let position =
+    if position +. sh > float conf.winh
+    then float conf.winh -. sh
+    else position
+  in
+  position, sh;
+;;
+
 let coe s = (s :> uioh);;
 
 class listview ~(source:lvsource) ~trusted =
@@ -2337,7 +2363,7 @@ object (self)
             GlDraw.polygon_mode `both `line;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
             GlDraw.rect (1., float (y + 1))
-              (float (conf.winw - 1), float (y + fs + 3));
+              (float (conf.winw - conf.scrollbw - 1), float (y + fs + 3));
             GlDraw.polygon_mode `both `fill;
             GlDraw.color (1., 1., 1.);
             Gl.enable `texture_2d;
@@ -2615,9 +2641,28 @@ object (self)
     | Textentry te -> textentryspecial key te; coe self
     | _ -> self#special1 key
 
-  method button button bstate _ y =
+  method button button bstate x y =
     let opt =
       match button with
+      | Glut.LEFT_BUTTON when x > conf.winw - conf.scrollbw ->
+          G.postRedisplay "listview scroll";
+          if bstate = Glut.DOWN
+          then
+            let position, sh = self#scrollph in
+            if y > truncate position && y < truncate (position +. sh)
+            then (
+              state.mstate <- Mscrolly;
+              Some (coe self)
+            )
+            else
+              let s = float (max 0 (y - conf.scrollh)) /. float conf.winh in
+              let first = truncate (s *. float source#getitemcount) in
+              let first = min source#getitemcount first in
+              Some (coe {< m_first = first; m_active = first >})
+          else (
+            state.mstate <- Mnone;
+            Some (coe self);
+          );
       | Glut.LEFT_BUTTON when bstate = Glut.UP ->
           begin match self#elemunder y with
           | Some n ->
@@ -2646,22 +2691,47 @@ object (self)
     | None -> m_prev_uioh
     | Some uioh -> uioh
 
-  method motion _ _ = coe self
+  method motion _ y =
+    match state.mstate with
+    | Mscrolly ->
+        let s = float (max 0 (y - conf.scrollh)) /. float conf.winh in
+        let first = truncate (s *. float source#getitemcount) in
+        let first = min source#getitemcount first in
+        G.postRedisplay "listview motion";
+        coe {< m_first = first; m_active = first >}
+    | _ -> coe self
 
-  method pmotion _ y =
-    let n =
-      match self#elemunder y with
-      | None -> Glut.setCursor Glut.CURSOR_INHERIT; m_active
-      | Some n -> Glut.setCursor Glut.CURSOR_INFO; n
-    in
-    let o =
-      if n != m_active
-      then (G.postRedisplay "listview pmotion"; {< m_active = n >})
-      else self
-    in
-    coe o
+  method pmotion x y =
+    if x < conf.winw - conf.scrollbw
+    then
+      let n =
+        match self#elemunder y with
+        | None -> Glut.setCursor Glut.CURSOR_INHERIT; m_active
+        | Some n -> Glut.setCursor Glut.CURSOR_INFO; n
+      in
+      let o =
+        if n != m_active
+        then (G.postRedisplay "listview pmotion"; {< m_active = n >})
+        else self
+      in
+      coe o
+    else (
+      Glut.setCursor Glut.CURSOR_INHERIT;
+      coe self
+    )
 
   method infochanged _ = ()
+
+  method scrollpw = (0.0, 0.0)
+  method scrollph =
+    let nfs = fstate.fontsize + 1 in
+    let y = m_first * nfs in
+    let itemcount = source#getitemcount in
+    let maxi = max 0 (itemcount - fstate.maxrows) in
+    let maxy = maxi * nfs in
+    scrollph y maxy
+
+  method scrollcolor = (0.64, 0.64, 0.64)
 end;;
 
 class outlinelistview ~source =
@@ -4113,51 +4183,8 @@ let drawpage l =
   end;
 ;;
 
-let scrollph y =
-  let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
-  let sh = (float (maxy + conf.winh) /. float conf.winh) in
-  let sh = float conf.winh /. sh in
-  let sh = max sh (float conf.scrollh) in
-
-  let percent =
-    if y = state.maxy
-    then 1.0
-    else float y /. float maxy
-  in
-  let position = (float conf.winh -. sh) *. percent in
-
-  let position =
-    if position +. sh > float conf.winh
-    then float conf.winh -. sh
-    else position
-  in
-  position, sh;
-;;
-
-let scrollpw x =
-  let winw = conf.winw - state.scrollw - 1 in
-  let fwinw = float winw in
-  let sw =
-    let sw = fwinw /. float state.w  in
-    let sw = fwinw *. sw in
-    max sw (float conf.scrollh)
-  in
-  let position, sw =
-    let f = state.w+winw in
-    let r = float (winw-x) /. float f in
-    let p = fwinw *. r in
-    p-.sw/.2., sw
-  in
-  let sw =
-    if position +. sw > fwinw
-    then fwinw -. position
-    else sw
-  in
-  position, sw;
-;;
-
 let scrollindicator () =
-  GlDraw.color (0.64 , 0.64, 0.64);
+  GlDraw.color state.uioh#scrollcolor;
   GlDraw.rect
     (float (conf.winw - state.scrollw), 0.)
     (float conf.winw, float conf.winh)
@@ -4168,12 +4195,12 @@ let scrollindicator () =
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
-  let position, sh = scrollph state.y in
+  let position, sh = state.uioh#scrollph in
   GlDraw.rect
     (float (conf.winw - state.scrollw), position)
     (float conf.winw, position +. sh)
   ;
-  let position, sw = scrollpw state.x in
+  let position, sw = state.uioh#scrollpw in
   GlDraw.rect
     (position, float (conf.winh - state.hscrollh))
     (position +. sw, float conf.winh)
@@ -4252,8 +4279,8 @@ let display () =
   List.iter drawpage state.layout;
   showrects ();
   showsel ();
-  scrollindicator ();
   state.uioh#display;
+  scrollindicator ();
   begin match state.mstate with
   | Mzoomrect ((x0, y0), (x1, y1)) ->
       Gl.enable `blend;
@@ -4396,7 +4423,7 @@ let viewmouse button bstate x y =
   | Glut.LEFT_BUTTON when x > conf.winw - state.scrollw ->
       if bstate = Glut.DOWN
       then
-        let position, sh = scrollph state.y in
+        let position, sh = state.uioh#scrollph in
         if y > truncate position && y < truncate (position +. sh)
         then state.mstate <- Mscrolly
         else scrolly y
@@ -4406,7 +4433,7 @@ let viewmouse button bstate x y =
   | Glut.LEFT_BUTTON when y > conf.winh - state.hscrollh ->
       if bstate = Glut.DOWN
       then
-        let position, sw = scrollpw state.x in
+        let position, sw = state.uioh#scrollpw in
         if x > truncate position && x < truncate (position +. sw)
         then state.mstate <- Mscrollx
         else scrollx x
@@ -4693,6 +4720,33 @@ let uioh = object
     state.uioh
 
   method infochanged _ = ()
+
+  method scrollph =
+    let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
+    scrollph state.y maxy
+
+  method scrollpw =
+    let winw = conf.winw - state.scrollw - 1 in
+    let fwinw = float winw in
+    let sw =
+      let sw = fwinw /. float state.w  in
+      let sw = fwinw *. sw in
+      max sw (float conf.scrollh)
+    in
+    let position, sw =
+      let f = state.w+winw in
+      let r = float (winw-state.x) /. float f in
+      let p = fwinw *. r in
+      p-.sw/.2., sw
+    in
+    let sw =
+      if position +. sw > fwinw
+      then fwinw -. position
+      else sw
+    in
+    position, sw
+
+  method scrollcolor = (0.64, 0.64, 0.64)
 end;;
 
 module Config =
