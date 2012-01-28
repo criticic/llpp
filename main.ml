@@ -328,7 +328,7 @@ end;;
 type state =
     { mutable csock         : Unix.file_descr
     ; mutable ssock         : Unix.file_descr
-    ; mutable errfd         : Unix.file_descr
+    ; mutable errfd         : Unix.file_descr option
     ; mutable stderr        : Unix.file_descr
     ; mutable errmsgs       : Buffer.t
     ; mutable newerrmsgs    : bool
@@ -491,7 +491,7 @@ let makehelp () =
 let state =
   { csock         = Unix.stdin
   ; ssock         = Unix.stdin
-  ; errfd         = Unix.stdin
+  ; errfd         = None
   ; stderr        = Unix.stderr
   ; errmsgs       = Buffer.create 0
   ; newerrmsgs    = false
@@ -553,11 +553,17 @@ let redirectstderr () =
   then
     let rfd, wfd = Unix.pipe () in
     state.stderr <- Unix.dup Unix.stderr;
-    state.errfd <- rfd;
+    state.errfd <- Some rfd;
     Unix.dup2 wfd Unix.stderr;
   else (
     state.newerrmsgs <- false;
-    Unix.dup2 state.stderr Unix.stderr;
+    begin match state.errfd with
+    | Some fd ->
+        Unix.close fd;
+        Unix.dup2 state.stderr Unix.stderr;
+        state.errfd <- None;
+    | None -> ()
+    end;
     prerr_string (Buffer.contents state.errmsgs);
     flush stderr;
     Buffer.clear state.errmsgs;
@@ -1747,13 +1753,18 @@ let act cmds =
 
 let idle () =
   if state.deadline == nan then state.deadline <- now ();
+  let r =
+    match state.errfd with
+    | None -> [state.csock]
+    | Some fd -> [state.csock; fd]
+  in
   let rec loop delay =
     let timeout =
       if delay > 0.0
       then max 0.0 (state.deadline -. now ())
       else 0.0
     in
-    let r, _, _ = Unix.select [state.csock; state.errfd] [] [] timeout in
+    let r, _, _ = Unix.select r [] [] timeout in
     begin match r with
     | [] ->
         begin match state.autoscroll with
@@ -1780,7 +1791,7 @@ let idle () =
               let cmd = readcmd state.csock in
               act cmd;
               checkfds true rest
-          | fd :: rest when fd = state.errfd ->
+          | fd :: rest ->
               let s = String.create 80 in
               let n = Unix.read fd s 0 80 in
               if conf.redirectstderr
@@ -1794,9 +1805,6 @@ let idle () =
                 flush stderr;
               );
               checkfds c rest
-
-          | _ ->
-              failwith "me? fail english? that's unpossible!"
         in
         if checkfds false l
         then loop 0.0
