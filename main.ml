@@ -287,7 +287,6 @@ class type uioh = object
   method infochanged : infochange -> unit
   method scrollpw : (int * float * float)
   method scrollph : (int * float * float)
-  method scrollcolor : (float * float * float)
 end;;
 
 type mode =
@@ -322,7 +321,6 @@ let nouioh : uioh = object (self)
   method motion _ _ = self
   method pmotion _ _ = self
   method infochanged _ = ()
-  method scrollcolor = (0., 0., 0.)
   method scrollpw = (0, nan, nan)
   method scrollph = (0, nan, nan)
 end;;
@@ -2731,8 +2729,6 @@ object (self)
     let maxy = maxi * nfs in
     let p, h = scrollph y maxy in
     conf.scrollbw, p, h
-
-  method scrollcolor = (0.64, 0.64, 0.64)
 end;;
 
 class outlinelistview ~source =
@@ -4189,7 +4185,7 @@ let scrollindicator () =
   let sbw, ph, sh = state.uioh#scrollph in
   let sbh, pw, sw = state.uioh#scrollpw in
 
-  GlDraw.color state.uioh#scrollcolor;
+  GlDraw.color (0.64, 0.64, 0.64);
   GlDraw.rect
     (float (conf.winw - sbw), 0.)
     (float conf.winw, float conf.winh)
@@ -4749,8 +4745,6 @@ let uioh = object
       else sw
     in
     state.hscrollh, position, sw
-
-  method scrollcolor = (0.64, 0.64, 0.64)
 end;;
 
 module Config =
