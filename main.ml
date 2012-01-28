@@ -285,8 +285,8 @@ class type uioh = object
   method motion : int -> int -> uioh
   method pmotion : int -> int -> uioh
   method infochanged : infochange -> unit
-  method scrollpw : (float * float)
-  method scrollph : (float * float)
+  method scrollpw : (int * float * float)
+  method scrollph : (int * float * float)
   method scrollcolor : (float * float * float)
 end;;
 
@@ -323,8 +323,8 @@ let nouioh : uioh = object (self)
   method pmotion _ _ = self
   method infochanged _ = ()
   method scrollcolor = (0., 0., 0.)
-  method scrollpw = (nan, nan)
-  method scrollph = (nan, nan)
+  method scrollpw = (0, nan, nan)
+  method scrollph = (0, nan, nan)
 end;;
 
 type state =
@@ -2648,7 +2648,7 @@ object (self)
           G.postRedisplay "listview scroll";
           if bstate = Glut.DOWN
           then
-            let position, sh = self#scrollph in
+            let _, position, sh = self#scrollph in
             if y > truncate position && y < truncate (position +. sh)
             then (
               state.mstate <- Mscrolly;
@@ -2722,14 +2722,15 @@ object (self)
 
   method infochanged _ = ()
 
-  method scrollpw = (0.0, 0.0)
+  method scrollpw = (0, 0.0, 0.0)
   method scrollph =
     let nfs = fstate.fontsize + 1 in
     let y = m_first * nfs in
     let itemcount = source#getitemcount in
     let maxi = max 0 (itemcount - fstate.maxrows) in
     let maxy = maxi * nfs in
-    scrollph y maxy
+    let p, h = scrollph y maxy in
+    conf.scrollbw, p, h
 
   method scrollcolor = (0.64, 0.64, 0.64)
 end;;
@@ -4184,26 +4185,27 @@ let drawpage l =
 ;;
 
 let scrollindicator () =
+  let sbw, ph, sh = state.uioh#scrollph in
+  let sbh, pw, sw = state.uioh#scrollpw in
+
   GlDraw.color state.uioh#scrollcolor;
   GlDraw.rect
-    (float (conf.winw - state.scrollw), 0.)
+    (float (conf.winw - sbw), 0.)
     (float conf.winw, float conf.winh)
   ;
   GlDraw.rect
-    (0., float (conf.winh - state.hscrollh))
+    (0., float (conf.winh - sbh))
     (float (conf.winw - state.scrollw - 1), float conf.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
-  let position, sh = state.uioh#scrollph in
   GlDraw.rect
-    (float (conf.winw - state.scrollw), position)
-    (float conf.winw, position +. sh)
+    (float (conf.winw - sbw), ph)
+    (float conf.winw, ph +. sh)
   ;
-  let position, sw = state.uioh#scrollpw in
   GlDraw.rect
-    (position, float (conf.winh - state.hscrollh))
-    (position +. sw, float conf.winh)
+    (pw, float (conf.winh - sbh))
+    (pw +. sw, float conf.winh)
   ;
 ;;
 
@@ -4423,7 +4425,7 @@ let viewmouse button bstate x y =
   | Glut.LEFT_BUTTON when x > conf.winw - state.scrollw ->
       if bstate = Glut.DOWN
       then
-        let position, sh = state.uioh#scrollph in
+        let _, position, sh = state.uioh#scrollph in
         if y > truncate position && y < truncate (position +. sh)
         then state.mstate <- Mscrolly
         else scrolly y
@@ -4433,7 +4435,7 @@ let viewmouse button bstate x y =
   | Glut.LEFT_BUTTON when y > conf.winh - state.hscrollh ->
       if bstate = Glut.DOWN
       then
-        let position, sw = state.uioh#scrollpw in
+        let _, position, sw = state.uioh#scrollpw in
         if x > truncate position && x < truncate (position +. sw)
         then state.mstate <- Mscrollx
         else scrollx x
@@ -4723,7 +4725,8 @@ let uioh = object
 
   method scrollph =
     let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
-    scrollph state.y maxy
+    let p, h = scrollph state.y maxy in
+    state.scrollw, p, h
 
   method scrollpw =
     let winw = conf.winw - state.scrollw - 1 in
@@ -4744,7 +4747,7 @@ let uioh = object
       then fwinw -. position
       else sw
     in
-    position, sw
+    state.hscrollh, position, sw
 
   method scrollcolor = (0.64, 0.64, 0.64)
 end;;
