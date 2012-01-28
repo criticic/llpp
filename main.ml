@@ -2346,11 +2346,12 @@ object (self)
     let nfs = fs + 1 in
     let ww = fstate.wwidth in
     let tabw = 30.0*.ww in
+    let itemcount = source#getitemcount in
     let rec loop row =
       if (row - m_first) * nfs > conf.winh
       then ()
       else (
-        if row >= 0 && row < source#getitemcount
+        if row >= 0 && row < itemcount
         then (
           let (s, level) = source#getitem row in
           let y = (row - m_first) * nfs in
@@ -2391,7 +2392,7 @@ object (self)
         )
       )
     in
-    loop 0;
+    loop m_first;
     Gl.disable `blend;
     Gl.disable `texture_2d;
 
