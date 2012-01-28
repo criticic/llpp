@@ -26,21 +26,14 @@ let tabify s =
 
 let lines =
   let lines =
-    match (try Some (open_in Sys.argv.(1)) with _ -> None) with
-    | None -> []
-    | Some ic ->
-        let lines =
-          let rec fold accu =
-            match (try Some (input_line ic) with _ -> None) with
-            | Some line -> fold (tabify line :: accu)
-            | None -> List.rev accu
-          in
-          fold []
-        in
-        close_in ic;
-        lines
+    let rec fold accu =
+      match (try Some (input_line stdin) with _ -> None) with
+      | Some line -> fold (tabify line :: accu)
+      | None -> List.rev accu
+    in
+    fold []
   in
-  lines;
+  lines
 ;;
 
 let _ =
