@@ -4422,7 +4422,14 @@ let viewmouse button bstate x y =
       )
       else (
         match state.mstate with
-        | Mzoomrect ((x0, y0), _) -> zoomrect x0 y0 x y
+        | Mzoomrect ((x0, y0), _) ->
+            if abs (x-x0) > 10 && abs (y - y0) > 10
+            then zoomrect x0 y0 x y
+            else (
+              state.mstate <- Mnone;
+              Glut.setCursor Glut.CURSOR_INHERIT;
+              G.postRedisplay "kill accidental zoom rect";
+            )
         | _ ->
             Glut.setCursor Glut.CURSOR_INHERIT;
             state.mstate <- Mnone
