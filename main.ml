@@ -2683,7 +2683,7 @@ object (self)
       | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
           let len = source#getitemcount in
           let first =
-            if m_first + fstate.maxrows >= len
+            if n = 4 && m_first + fstate.maxrows >= len
             then
               m_first
             else
