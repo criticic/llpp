@@ -6,7 +6,6 @@ type under =
 and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
-let dolog2 fmt = Printf.kprintf print_endline fmt;;
 let now = Unix.gettimeofday;;
 
 exception Quit;;
