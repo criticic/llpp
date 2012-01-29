@@ -2923,7 +2923,7 @@ let outlinesource usebookmarks =
           )
         )
 
-    method reset pageno items =
+    method reset anchor items =
       m_hadremovals <- false;
       if m_orig_items == empty || m_prev_items != items
       then (
@@ -2932,13 +2932,15 @@ let outlinesource usebookmarks =
         then m_items <- items;
       );
       m_prev_items <- items;
+      let rely = getanchory anchor in
       let active =
         let rec loop n best bestd =
           if n = Array.length m_items
           then best
           else
-            let (_, _, (outlinepageno, _)) = m_items.(n) in
-            let d = abs (outlinepageno - pageno) in
+            let (_, _, anchor) = m_items.(n) in
+            let orely = getanchory anchor in
+            let d = abs (orely - rely) in
             if d < bestd
             then loop (n+1) n d
             else loop (n+1) best bestd
@@ -2965,12 +2967,8 @@ let enterselector usebookmarks =
     else (
       state.text <- source#greetmsg;
       Glut.setCursor Glut.CURSOR_INHERIT;
-      let pageno =
-        match state.layout with
-        | [] -> -1
-        | {pageno=pageno} :: _ -> pageno
-      in
-      source#reset pageno outlines;
+      let anchor = getanchor () in
+      source#reset anchor outlines;
       state.uioh <- coe (new outlinelistview ~source);
       G.postRedisplay "enter selector";
     )
