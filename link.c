@@ -1427,10 +1427,18 @@ mainloop (void *unused)
 CAMLprim value ml_realloctexts (value texcount_v)
 {
     CAMLparam1 (texcount_v);
-    lock ("ml_realloctexts");
+    int ok;
+
+    if (trylock ("ml_realloctexts")) {
+        ok = 0;
+        goto done;
+    }
     realloctexts (Int_val (texcount_v));
+    ok = 1;
     unlock ("ml_realloctexts");
-    CAMLreturn (Val_unit);
+
+ done:
+    CAMLreturn (Val_bool (ok));
 }
 
 static void showsel (struct page *page, int ox, int oy)
