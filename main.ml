@@ -2600,9 +2600,17 @@ object (self)
             let next = m_active + incr in
             let next = bound next 0 (itemcount - 1) in
             let next = find next incr1 in
-            if next = -1 || abs (m_active - first) > fstate.maxrows
-            then m_active
-            else next
+            let active =
+              if next = -1 || abs (m_active - first) > fstate.maxrows
+              then (
+                let active = if m_active = -1 then next else m_active in
+                active
+              )
+              else next
+            in
+            if isvisible first active
+            then active
+            else -1
           in
           active, first
       in
