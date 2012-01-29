@@ -3598,6 +3598,10 @@ let enterinfomode =
     sep ();
     src#caption "Document" 0;
     List.iter (fun (_, s) -> src#caption s 1) state.docinfo;
+    src#caption2 "Pages"
+      (fun () ->  string_of_int state.pagecount) 1;
+    src#caption2 "Dimensions"
+      (fun () -> string_of_int (List.length state.pdims)) 1;
     if conf.trimmargins
     then (
       sep ();

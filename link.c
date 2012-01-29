@@ -473,8 +473,6 @@ static void pdfinfo (void)
             fz_free (state.ctx, s);
         }
     }
-    printd (state.sock, "info Pages\t%d", state.pagecount);
-    printd (state.sock, "info Dimensions\t%d", state.pagedimcount);
     printd (state.sock, "infoend");
 }
 
