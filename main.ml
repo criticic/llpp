@@ -54,6 +54,7 @@ external postprocess : opaque -> bool -> int -> int -> unit = "ml_postprocess";;
 external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
+external realloctexts : int -> unit = "ml_realloctexts";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -3522,7 +3523,7 @@ let enterinfomode =
         (fun () -> conf.texcount)
         (fun v ->
           conf.texcount <- v;
-          wcmd "texcount" [`i conf.texcount];
+          realloctexts conf.texcount;
         );
       src#int "slice height"
         (fun () -> conf.sliceheight)

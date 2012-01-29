@@ -1393,15 +1393,6 @@ mainloop (void *unused)
             unlock ("settrim");
             printd (state.sock, "continue %d", state.pagecount);
         }
-        else if (!strncmp ("texcount", p, 8)) {
-            int n;
-
-            ret = sscanf (p + 8, " %d", &n);
-            if (ret != 1) {
-                errx (1, "malformed texcount `%.*s' ret=%d", len, p, ret);
-            }
-            realloctexts (n);
-        }
         else if (!strncmp ("sliceh", p, 6)) {
             int h;
 
@@ -1431,6 +1422,15 @@ mainloop (void *unused)
         }
     }
     return 0;
+}
+
+CAMLprim value ml_realloctexts (value texcount_v)
+{
+    CAMLparam1 (texcount_v);
+    lock ("ml_realloctexts");
+    realloctexts (Int_val (texcount_v));
+    unlock ("ml_realloctexts");
+    CAMLreturn (Val_unit);
 }
 
 static void showsel (struct page *page, int ox, int oy)
