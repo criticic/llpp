@@ -55,6 +55,7 @@ ccopt="$ccopt -include ft2build.h -D_GNU_SOURCE"
 cclib="$cclib -L$root/mupdf/build/release"
 cclib="$cclib -lmupdf -lmuxps -lfitz"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+cclib="$cclib -lX11"
 
 if test "$1" = "opt"; then
     cclib="$cclib -lpthread"
