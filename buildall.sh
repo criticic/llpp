@@ -12,13 +12,14 @@ mupdfrev=3e65ed4eb3a8aa8cd6375a7029ac3b61a35a1157
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 if ! test -d mupdf; then
-    git clone $mupdf
-    (cd mupdf; git checkout $mupdfrev)
-else
-    : #(cd mupdf; git pull $mupdf; git checkout $mupdfrev)
+    wget -nc \
+       "http://git.ghostscript.com/?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz" \
+       -O mupdf-$mupdfrev.tgz
+    tar xfz mupdf-$mupdfrev.tgz
 fi
 
-test -d mupdf/thirdparty || (wget -nc $mupdf3p && unzip -d mupdf mupdf-thirdparty.zip)
+test -d mupdf/thirdparty || \
+    (wget -nc $mupdf3p && unzip -d mupdf $(basename $mupdf3p))
 
 make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
 

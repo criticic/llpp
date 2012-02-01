@@ -13,11 +13,11 @@ compiler wouldn't hurt either.
 
 To build llpp "the easy way" one can invoke `sh buildall.sh' which
 will first attempt to automatically fetch lablGL, mupdf, mupdf's
-prerequisites and build them, then, if everything goes fine, it will
-proceed building llpp itself. Note that OCaml and GLUT still need to
-be installed separately, also, in addition to the usual suspects (i.e.
-GCC, make, binutils, OCaml) you will need `wget', `git' and `unzip'
-for this script to work.
+prerequisites[8] and build them, then, if everything goes fine, it
+will proceed building llpp itself. Note that OCaml and GLUT still need
+to be installed separately, also, in addition to the usual suspects
+(i.e.  GCC, make, binutils, OCaml) you will need `wget' and `unzip'for
+this script to work.
 
 Otherwise, provided that all prereqs are already built, one should
 invoke `sh build.sh' from the top of llpp's directory, prior to that
@@ -38,6 +38,9 @@ $ ./llpp -p password /path/to/some.password.protected.pdf
 [6] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
 [7] http://www.opengl.org/resources/libraries/glut/
     http://freeglut.sourceforge.net/
+[8] mupdf-3e65ed4eb3a8aa8cd6375a7029ac3b61a35a1157.tgz (4062576 bytes)
+    mupdf-thirdparty.zip (7288384 bytes)
+    lablgl-1.04.tar.gz (410525 bytes)
 
 Building on windows is for masochists and left as an exercise to
 the reader
