@@ -25,10 +25,11 @@ fi
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
 mupdf=/home/malc/x/rcs/git/mupdf
 cc=gcc-4.6.0
-ccopt="-std=c89 -Wall -Werror -I$mupdf/fitz -I$mupdf/pdf"
+ccopt="-std=c89 -Wall -Werror -I$mupdf/fitz -I$mupdf/pdf -I$mupdf/xps"
 ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"
-libs="-lmupdf -lfitz -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig"
+libs="-lmupdf -lmuxps -lfitz"
+libs="$libs -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig"
 ccopt="$ccopt -maltivec -O -D_GNU_SOURCE"
 
 lpath=$mupdf/build/release

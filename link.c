@@ -1,6 +1,7 @@
 /* lots of code c&p-ed directly from mupdf */
 #include <errno.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -137,6 +138,7 @@ static void NORETURN errx (int exitcode, const char *fmt, ...)
 
 #include <fitz.h>
 #include <mupdf.h>
+#include <muxps.h>
 
 #include FT_FREETYPE_H
 
@@ -177,12 +179,18 @@ struct pagedim {
     fz_matrix ctm, zoomctm, lctm, tctm;
 };
 
+enum { DPDF, DXPS };
+
 struct page {
     int gen;
+    int type;
     int pageno;
     int pdimno;
     fz_text_span *text;
-    pdf_page *drawpage;
+    union {
+        pdf_page *pdfpage;
+        xps_page *xpspage;
+    } u;
     fz_display_list *dlist;
     struct mark {
         int i;
@@ -196,11 +204,15 @@ struct page {
 
 struct {
     int sock;
+    int type;
     int sliceheight;
     struct pagedim *pagedims;
     int pagecount;
     int pagedimcount;
-    pdf_document *doc;
+    union {
+        pdf_document *pdf;
+        xps_document *xps;
+    } u;
     fz_context *ctx;
     fz_glyph_cache *cache;
     int w, h;
@@ -418,16 +430,37 @@ __attribute__ ((format (printf, 2, 3)))
 
 static void openxref (char *filename, char *password)
 {
-    int i;
+    int i, len;
 
     for (i = 0; i < state.texcount; ++i)  {
         state.texowners[i].w = -1;
         state.texowners[i].slice = NULL;
     }
 
-   if (state.doc) {
-        pdf_close_document (state.doc);
-        state.doc = NULL;
+    if (state.type == DPDF) {
+        if (state.u.pdf) {
+            pdf_close_document (state.u.pdf);
+            state.u.pdf = NULL;
+        }
+    }
+    else  {
+        if (state.u.xps) {
+            xps_close_document (state.u.xps);
+            state.u.xps = NULL;
+        }
+    }
+    len = strlen (filename);
+
+    state.type = DPDF;
+    if (len > 4) {
+        char ext[4];
+
+        ext[0] = tolower (filename[len-3]);
+        ext[1] = tolower (filename[len-2]);
+        ext[2] = tolower (filename[len-1]);
+        if (ext[0] == 'x' && ext[1] == 'p' && ext[2] == 's') {
+            state.type = DXPS;
+        }
     }
 
     if (state.pagedims) {
@@ -437,43 +470,51 @@ static void openxref (char *filename, char *password)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
-    state.doc = pdf_open_document (state.ctx, filename);
-    if (pdf_needs_password (state.doc)) {
-        int okay = pdf_authenticate_password (state.doc, password);
-        if (!okay) {
-            errx (1, "invalid password");
+    if (state.type == DPDF) {
+        state.u.pdf = pdf_open_document (state.ctx, filename);
+        if (pdf_needs_password (state.u.pdf)) {
+            int okay = pdf_authenticate_password (state.u.pdf, password);
+            if (!okay) {
+                errx (1, "invalid password");
+            }
         }
+        state.pagecount = pdf_count_pages (state.u.pdf);
     }
-    state.pagecount = pdf_count_pages (state.doc);
+    else {
+        state.u.xps = xps_open_document (state.ctx, filename);
+        state.pagecount = xps_count_pages (state.u.xps);
+    }
 }
 
 static void pdfinfo (void)
 {
-    fz_obj *infoobj;
+    if (state.type == DPDF) {
+        fz_obj *infoobj;
 
-    printd (state.sock, "info PDF version\t%d.%d",
-            state.doc->version / 10, state.doc->version % 10);
+        printd (state.sock, "info PDF version\t%d.%d",
+                state.u.pdf->version / 10, state.u.pdf->version % 10);
 
-    infoobj = fz_dict_gets (state.doc->trailer, "Info");
-    if (infoobj) {
-        int i;
-        char *s;
-        char *items[] = { "Title", "Author", "Creator",
-                          "Producer", "CreationDate" };
+        infoobj = fz_dict_gets (state.u.pdf->trailer, "Info");
+        if (infoobj) {
+            int i;
+            char *s;
+            char *items[] = { "Title", "Author", "Creator",
+                              "Producer", "CreationDate" };
 
-        for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
-            fz_obj *obj = fz_dict_gets (infoobj, items[i]);
-            s = pdf_to_utf8 (state.ctx, obj);
-            if (*s) {
-                if (i == 0) {
-                    printd (state.sock, "title %s", s);
+            for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
+                fz_obj *obj = fz_dict_gets (infoobj, items[i]);
+                s = pdf_to_utf8 (state.ctx, obj);
+                if (*s) {
+                    if (i == 0) {
+                        printd (state.sock, "title %s", s);
+                    }
+                    printd (state.sock, "info %s\t%s", items[i], s);
                 }
-                printd (state.sock, "info %s\t%s", items[i], s);
+                fz_free (state.ctx, s);
             }
-            fz_free (state.ctx, s);
         }
+        printd (state.sock, "infoend");
     }
-    printd (state.sock, "infoend");
 }
 
 static int readlen (int fd)
@@ -510,7 +551,12 @@ static void freepage (struct page *page)
     if (page->text) {
         fz_free_text_span (state.ctx, page->text);
     }
-    pdf_free_page (state.ctx, page->drawpage);
+    if (page->type == DPDF) {
+        pdf_free_page (state.ctx, page->u.pdfpage);
+    }
+    else {
+        xps_free_page (state.u.xps, page->u.xpspage);
+    }
     fz_free_display_list (state.ctx, page->dlist);
     free (page);
 }
@@ -603,8 +649,19 @@ static fz_matrix trimctm (pdf_page *page, int pindex)
 
 static fz_matrix pagectm (struct page *page)
 {
-    return fz_concat (trimctm (page->drawpage, page->pdimno),
-                      state.pagedims[page->pdimno].ctm);
+    if (page->type == DPDF) {
+        return fz_concat (trimctm (page->u.pdfpage, page->pdimno),
+                          state.pagedims[page->pdimno].ctm);
+    }
+    else {
+        fz_matrix ctm;
+        struct pagedim *pdim = &state.pagedims[page->pdimno];
+
+        ctm = state.pagedims[page->pdimno].ctm;
+        ctm = fz_concat (fz_translate (-pdim->mediabox.x0,
+                                       -pdim->mediabox.y0), ctm);
+        return ctm;
+    }
 }
 
 static void *loadpage (int pageno, int pindex)
@@ -617,15 +674,22 @@ static void *loadpage (int pageno, int pindex)
         err (1, "calloc page %d", pageno);
     }
 
-    page->drawpage = pdf_load_page (state.doc, pageno);
     page->dlist = fz_new_display_list (state.ctx);
     dev = fz_new_list_device (state.ctx, page->dlist);
-    pdf_run_page (state.doc, page->drawpage, dev, fz_identity, NULL);
+    if (state.type == DPDF) {
+        page->u.pdfpage = pdf_load_page (state.u.pdf, pageno);
+        pdf_run_page (state.u.pdf, page->u.pdfpage, dev, fz_identity, NULL);
+    }
+    else {
+        page->u.xpspage = xps_load_page (state.u.xps, pageno);
+        xps_run_page (state.u.xps, page->u.xpspage, dev, fz_identity, NULL);
+    }
     fz_free_device (dev);
 
     page->pdimno = pindex;
     page->pageno = pageno;
     page->gen = state.gen;
+    page->type = state.type;
 
     return page;
 }
@@ -708,80 +772,116 @@ static void initpdims (void)
         int rotate;
         fz_obj *pageobj;
         struct pagedim *p;
-        fz_rect mediabox, cropbox;
+        fz_rect mediabox;
 
-        pageobj = state.doc->page_objs[pageno];
+        if (state.type == DPDF) {
+            pageobj = state.u.pdf->page_objs[pageno];
 
-        if (state.trimmargins) {
-            fz_obj *obj;
-            pdf_page *page;
+            if (state.trimmargins) {
+                fz_obj *obj;
+                pdf_page *page;
 
-            page = pdf_load_page (state.doc, pageno);
-            obj = fz_dict_gets (pageobj, "llpp.TrimBox");
-            if (state.trimanew || !obj) {
+                page = pdf_load_page (state.u.pdf, pageno);
+                obj = fz_dict_gets (pageobj, "llpp.TrimBox");
+                if (state.trimanew || !obj) {
+                    fz_rect rect;
+                    fz_bbox bbox;
+                    fz_matrix ctm;
+                    fz_device *dev;
+
+                    dev = fz_new_bbox_device (state.ctx, &bbox);
+                    dev->hints |= FZ_IGNORE_SHADE;
+                    ctm = fz_invert_matrix (page->ctm);
+                    pdf_run_page (state.u.pdf, page, dev, fz_identity, NULL);
+                    fz_free_device (dev);
+
+                    rect.x0 = bbox.x0 + state.trimfuzz.x0;
+                    rect.x1 = bbox.x1 + state.trimfuzz.x1;
+                    rect.y0 = bbox.y0 + state.trimfuzz.y0;
+                    rect.y1 = bbox.y1 + state.trimfuzz.y1;
+                    rect = fz_transform_rect (ctm, rect);
+                    rect = fz_intersect_rect (rect, page->mediabox);
+
+                    if (fz_is_empty_rect (rect)) {
+                        mediabox = page->mediabox;
+                    }
+                    else {
+                        mediabox = rect;
+                    }
+
+                    obj = fz_new_array (state.ctx, 4);
+                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.x0));
+                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.y0));
+                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.x1));
+                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.y1));
+                    fz_dict_puts (pageobj, "llpp.TrimBox", obj);
+                }
+                else {
+                    mediabox.x0 = fz_to_real (fz_array_get (obj, 0));
+                    mediabox.y0 = fz_to_real (fz_array_get (obj, 1));
+                    mediabox.x1 = fz_to_real (fz_array_get (obj, 2));
+                    mediabox.y1 = fz_to_real (fz_array_get (obj, 3));
+                }
+
+                rotate = page->rotate;
+                pdf_free_page (state.ctx, page);
+
+                printd (state.sock, "progress %f Trimming %d",
+                        (double) (pageno + 1) / state.pagecount,
+                        pageno + 1);
+            }
+            else {
+                fz_rect cropbox;
+
+                mediabox = pdf_to_rect (state.ctx,
+                                        fz_dict_gets (pageobj, "MediaBox"));
+                if (fz_is_empty_rect (mediabox)) {
+                    fprintf (stderr, "cannot find page size for page %d\n",
+                             pageno+1);
+                    mediabox.x0 = 0;
+                    mediabox.y0 = 0;
+                    mediabox.x1 = 612;
+                    mediabox.y1 = 792;
+                }
+
+                cropbox = pdf_to_rect (state.ctx,
+                                       fz_dict_gets (pageobj, "CropBox"));
+                if (!fz_is_empty_rect (cropbox)) {
+                    mediabox = fz_intersect_rect (mediabox, cropbox);
+                }
+                rotate = fz_to_int (fz_dict_gets (pageobj, "Rotate"));
+            }
+        }
+        else  {
+            xps_page *page;
+
+            page = xps_load_page (state.u.xps, pageno);
+            mediabox = xps_bound_page (state.u.xps, page);
+            rotate = 0;
+            if (state.trimmargins) {
                 fz_rect rect;
                 fz_bbox bbox;
-                fz_matrix ctm;
                 fz_device *dev;
 
                 dev = fz_new_bbox_device (state.ctx, &bbox);
                 dev->hints |= FZ_IGNORE_SHADE;
-                ctm = fz_invert_matrix (page->ctm);
-                pdf_run_page (state.doc, page, dev, fz_identity, NULL);
+                xps_run_page (state.u.xps, page, dev, fz_identity, NULL);
                 fz_free_device (dev);
 
                 rect.x0 = bbox.x0 + state.trimfuzz.x0;
                 rect.x1 = bbox.x1 + state.trimfuzz.x1;
                 rect.y0 = bbox.y0 + state.trimfuzz.y0;
                 rect.y1 = bbox.y1 + state.trimfuzz.y1;
-                rect = fz_transform_rect (ctm, rect);
-                rect = fz_intersect_rect (rect, page->mediabox);
+                rect = fz_intersect_rect (rect, mediabox);
 
-                if (fz_is_empty_rect (rect)) {
-                    mediabox = page->mediabox;
-                }
-                else {
+                if (!fz_is_empty_rect (rect)) {
                     mediabox = rect;
                 }
-
-                obj = fz_new_array (state.ctx, 4);
-                fz_array_push (obj, fz_new_real (state.ctx, mediabox.x0));
-                fz_array_push (obj, fz_new_real (state.ctx, mediabox.y0));
-                fz_array_push (obj, fz_new_real (state.ctx, mediabox.x1));
-                fz_array_push (obj, fz_new_real (state.ctx, mediabox.y1));
-                fz_dict_puts (pageobj, "llpp.TrimBox", obj);
             }
-            else {
-                mediabox.x0 = fz_to_real (fz_array_get (obj, 0));
-                mediabox.y0 = fz_to_real (fz_array_get (obj, 1));
-                mediabox.x1 = fz_to_real (fz_array_get (obj, 2));
-                mediabox.y1 = fz_to_real (fz_array_get (obj, 3));
-            }
-
-            rotate = page->rotate;
-            pdf_free_page (state.ctx, page);
-
-            printd (state.sock, "progress %f Trimming %d",
+            printd (state.sock, "progress %f loading %d",
                     (double) (pageno + 1) / state.pagecount,
                     pageno + 1);
         }
-        else {
-            mediabox = pdf_to_rect (state.ctx, fz_dict_gets (pageobj, "MediaBox"));
-            if (fz_is_empty_rect (mediabox)) {
-                fprintf (stderr, "cannot find page size for page %d\n", pageno+1);
-                mediabox.x0 = 0;
-                mediabox.y0 = 0;
-                mediabox.x1 = 612;
-                mediabox.y1 = 792;
-            }
-
-            cropbox = pdf_to_rect (state.ctx, fz_dict_gets (pageobj, "CropBox"));
-            if (!fz_is_empty_rect (cropbox)) {
-                mediabox = fz_intersect_rect (mediabox, cropbox);
-            }
-            rotate = fz_to_int (fz_dict_gets (pageobj, "Rotate"));
-        }
-
         if (state.pagedimcount == 0
             || (p = &state.pagedims[state.pagedimcount-1], p->rotate != rotate)
             || memcmp (&p->mediabox, &mediabox, sizeof (mediabox))) {
@@ -921,7 +1021,12 @@ static void process_outline (void)
     if (!state.needoutline) return;
 
     state.needoutline = 0;
-    outline = pdf_load_outline (state.doc);
+    if (state.type == DPDF) {
+        outline = pdf_load_outline (state.u.pdf);
+    }
+    else {
+        outline = xps_load_outline (state.u.xps);
+    }
     if (outline) {
         recurse_outline (outline, 0);
         fz_free_outline (state.ctx, outline);
@@ -944,7 +1049,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     char buf[256];
     fz_matrix ctm;
     fz_device *tdev;
-    pdf_page *drawpage;
+    union { pdf_page *pdfpage; xps_page *xpspage; } u;
     fz_text_span *text, *span, **pspan;
     struct pagedim *pdim, *pdimprev;
     int stop = 0;
@@ -983,11 +1088,18 @@ static void search (regex_t *re, int pageno, int y, int forward)
         pdim = pdimprev;
     found:
 
-        drawpage = pdf_load_page (state.doc, pageno);
-
         text = fz_new_text_span (state.ctx);
         tdev = fz_new_text_device (state.ctx, text);
-        pdf_run_page (state.doc, drawpage, tdev, fz_identity, NULL);
+
+        if (state.type == DPDF) {
+            u.pdfpage = pdf_load_page (state.u.pdf, pageno);
+            pdf_run_page (state.u.pdf, u.pdfpage, tdev, fz_identity, NULL);
+        }
+        else {
+            u.xpspage = xps_load_page (state.u.xps, pageno);
+            xps_run_page (state.u.xps, u.xpspage, tdev, fz_identity, NULL);
+        }
+
         fz_free_device (tdev);
 
         nspans = 0;
@@ -1043,7 +1155,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
                             "msg regexec error `%.*s'",
                             (int) size, errbuf);
                     fz_free_text_span (state.ctx, text);
-                    pdf_free_page (state.ctx, drawpage);
+                    if (state.type == DPDF) {
+                        pdf_free_page (state.ctx, u.pdfpage);
+                    }
+                    else {
+                        xps_free_page (state.u.xps, u.xpspage);
+                    }
                     free (pspan);
                     return;
                 }
@@ -1064,8 +1181,13 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 p4.x = sb->x0;
                 p4.y = eb->y1;
 
-                trimctm (drawpage, pdim - state.pagedims);
-                ctm = fz_concat (pdim->tctm, pdim->zoomctm);
+                if (state.type == DPDF) {
+                    trimctm (u.pdfpage, pdim - state.pagedims);
+                    ctm = fz_concat (pdim->tctm, pdim->zoomctm);
+                }
+                else {
+                    ctm = pdim->ctm;
+                }
 
                 p1 = fz_transform_point (ctm, p1);
                 p2 = fz_transform_point (ctm, p2);
@@ -1107,7 +1229,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
             y = INT_MAX;
         }
         fz_free_text_span (state.ctx, text);
-        pdf_free_page (state.ctx, drawpage);
+        if (state.type == DPDF) {
+            pdf_free_page (state.ctx, u.pdfpage);
+        }
+        else {
+            xps_free_page (state.u.xps, u.xpspage);
+        }
         free (pspan);
     }
     end = now ();
@@ -1217,10 +1344,10 @@ mainloop (void *unused)
             password = filename + filenamelen + 1;
 
             openxref (filename, password);
-            printd (state.sock, "msg Opened %s (press h/F1 to get help)",
-                    filename);
             pdfinfo ();
             initpdims ();
+            printd (state.sock, "msg Opened %s (press h/F1 to get help)",
+                    filename);
             state.needoutline = 1;
         }
         else if (!strncmp ("cs", p, 2)) {
@@ -1497,6 +1624,10 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     fz_link *link;
     fz_matrix ctm;
 
+    if (page->type != DPDF) {
+        return;
+    }
+
     glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
     glEnable (GL_LINE_STIPPLE);
     glLineStipple (0.5, 0xcccc);
@@ -1504,7 +1635,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     ctm = fz_concat (pagectm (page), fz_translate (xoff, yoff));
 
     glBegin (GL_QUADS);
-    for (link = page->drawpage->links; link; link = link->next) {
+    for (link = page->u.pdfpage->links; link; link = link->next) {
         fz_point p1, p2, p3, p4;
 
         p1.x = link->rect.x0;
@@ -1684,15 +1815,18 @@ static fz_link *getlink (struct page *page, int x, int y)
     fz_matrix ctm;
     fz_link *link;
 
+    if (page->type != DPDF) {
+        return NULL;
+    }
     p.x = x;
     p.y = y;
 
-    ctm = fz_concat (trimctm (page->drawpage, page->pdimno),
+    ctm = fz_concat (trimctm (page->u.pdfpage, page->pdimno),
                      state.pagedims[page->pdimno].ctm);
     ctm = fz_invert_matrix (ctm);
     p = fz_transform_point (ctm, p);
 
-    for (link = page->drawpage->links; link; link = link->next) {
+    for (link = page->u.pdfpage->links; link; link = link->next) {
         if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
             if (p.y >= link->rect.y0 && p.y <= link->rect.y1) {
                 return link;
@@ -2188,11 +2322,18 @@ CAMLprim value ml_getpagebox (value opaque_v)
     struct page *page = parse_pointer ("ml_getpagebox", s);
 
     ret_v = caml_alloc_tuple (4);
-    dev = fz_new_bbox_device (state.ctx, &bbox);
-    dev->hints |= FZ_IGNORE_SHADE;
-    pdf_run_page (state.doc, page->drawpage, dev, pagectm (page), NULL);
-    fz_free_device (dev);
-
+    if (page->type == DPDF) {
+        dev = fz_new_bbox_device (state.ctx, &bbox);
+        dev->hints |= FZ_IGNORE_SHADE;
+        pdf_run_page (state.u.pdf, page->u.pdfpage, dev, pagectm (page), NULL);
+        fz_free_device (dev);
+    }
+    else {
+        dev = fz_new_bbox_device (state.ctx, &bbox);
+        dev->hints |= FZ_IGNORE_SHADE;
+        xps_run_page (state.u.xps, page->u.xpspage, dev, pagectm (page), NULL);
+        fz_free_device (dev);
+    }
     Field (ret_v, 0) = Val_int (bbox.x0);
     Field (ret_v, 1) = Val_int (bbox.y0);
     Field (ret_v, 2) = Val_int (bbox.x1);

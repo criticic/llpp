@@ -70,6 +70,14 @@ let bso name objs =
     " -L" ^ mupdflibpath ^ " " ^ libs
   in
   let o = List.map (fun s -> s ^ ".o") objs in
+  let libs = ["fitz"; "mupdf"; "muxps"] in
+  let set =
+    List.fold_left (fun set s ->
+      let l = "lib" ^ s ^ ".a" in
+      let l = Filename.concat mupdflibpath l in
+      StrSet.add l set)
+      StrSet.empty libs
+  in
   ocaml'
     cc
     ("-shared -lpthread -o " ^ so ^ mupdf_libs)
@@ -77,9 +85,7 @@ let bso name objs =
     so
     (StrSet.singleton so)
     o
-    (StrSet.add
-        (Filename.concat mupdflibpath "libfitz.a")
-        (StrSet.singleton (Filename.concat mupdflibpath "libmupdf.a")))
+    set
   ;
   so
 ;;

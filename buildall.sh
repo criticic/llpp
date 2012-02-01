@@ -48,12 +48,13 @@ ccopt="$ccopt -I $tp/jpeg-8d"
 ccopt="$ccopt -I $tp/freetype-2.4.8/include"
 ccopt="$ccopt -I $tp/openjpeg-1.4/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib-1.2.5"
-ccopt="$ccopt -I $root/mupdf/fitz -I $root/mupdf/pdf"
+ccopt="$ccopt -I $root/mupdf/fitz -I $root/mupdf/pdf -I $root/mupdf/xps"
 
 ccopt="$ccopt -include ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/mupdf/build/release"
-cclib="$cclib -lmupdf -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+cclib="$cclib -lmupdf -lmuxps -lfitz"
+cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
 
 if test "$1" = "opt"; then
     cclib="$cclib -lpthread"
