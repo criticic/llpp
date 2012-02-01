@@ -924,7 +924,7 @@ static void process_outline (void)
     outline = pdf_load_outline (state.doc);
     if (outline) {
         recurse_outline (outline, 0);
-        fz_free_outline (outline);
+        fz_free_outline (state.ctx, outline);
     }
 }
 
