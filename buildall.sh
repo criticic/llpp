@@ -49,11 +49,12 @@ ccopt="$ccopt -I $tp/freetype-2.4.8/include"
 ccopt="$ccopt -I $tp/openjpeg-1.4/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib-1.2.5"
 ccopt="$ccopt -I $root/mupdf/fitz -I $root/mupdf/pdf -I $root/mupdf/xps"
+ccopt="$ccopt -I $root/mupdf/cbz"
 
 ccopt="$ccopt -include ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/mupdf/build/release"
-cclib="$cclib -lmupdf -lmuxps -lfitz"
+cclib="$cclib -lmupdf -lmuxps -lmucbz -lfitz"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
 cclib="$cclib -lX11"
 

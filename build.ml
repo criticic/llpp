@@ -70,7 +70,7 @@ let bso name objs =
     " -L" ^ mupdflibpath ^ " " ^ libs
   in
   let o = List.map (fun s -> s ^ ".o") objs in
-  let libs = ["fitz"; "mupdf"; "muxps"] in
+  let libs = ["fitz"; "mupdf"; "muxps"; "mucbz"] in
   let set =
     List.fold_left (fun set s ->
       let l = "lib" ^ s ^ ".a" in

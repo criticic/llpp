@@ -3,9 +3,10 @@ srcpath=$(dirname $0)
 mupdf=/home/malc/x/rcs/git/mupdf
 
 mupdflibpath=$mupdf/build/release
-mupdfincpath=$mupdf/fitz:$mupdf/pdf:$mupdf/xps
+mupdfincpath=$mupdf/fitz:$mupdf/pdf:$mupdf/xps:$mupdf/cbz
 
-cclib="-lmupdf -lmuxps -lfitz -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+cclib="-lmupdf -lmuxps -lmucbz -lfitz"
+cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
 cclib="$cclib -lX11"
 ccopt="$(freetype-config --cflags) -O -include ft2build.h -D_GNU_SOURCE"
 export LIBRARY_PATH=$LIBRARY_PATH:$mupdflibpath
