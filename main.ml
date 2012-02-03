@@ -451,7 +451,7 @@ let fstate =
 let setfontsize n =
   fstate.fontsize <- n;
   fstate.wwidth <- measurestr fstate.fontsize "w";
-  fstate.maxrows <- (conf.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
+  fstate.maxrows <- conf.winh / (fstate.fontsize + 1);
 ;;
 
 let gotouri uri =
@@ -2673,6 +2673,11 @@ object (self)
             active, first
           else
             let first = min next m_first in
+            let first =
+              if abs (next - first) > fstate.maxrows
+              then first + incr
+              else first
+            in
             next, first
         else
           let first = m_first + incr in
