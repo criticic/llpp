@@ -256,6 +256,7 @@ type conf =
     ; mutable invert         : bool
     ; mutable colorscale     : float
     ; mutable redirectstderr : bool
+    ; mutable ghyllscroll    : (int * int * int) option
     }
 ;;
 
@@ -363,6 +364,7 @@ type state =
     ; mutable gen           : gen
     ; mutable throttle      : (page list * int * float) option
     ; mutable autoscroll    : int option
+    ; mutable ghyll         : ((int * int * int) * int) option -> unit
     ; mutable help          : helpitem array
     ; mutable docinfo       : (int * string) list
     ; mutable deadline      : float
@@ -426,6 +428,7 @@ let defconf =
   ; invert         = false
   ; colorscale     = 1.0
   ; redirectstderr = false
+  ; ghyllscroll    = None
   }
 ;;
 
@@ -488,6 +491,8 @@ let makehelp () =
   );
 ;;
 
+let noghyll _ = ();;
+
 let state =
   { csock         = Unix.stdin
   ; ssock         = Unix.stdin
@@ -530,6 +535,7 @@ let state =
   ; gen           = 0
   ; throttle      = None
   ; autoscroll    = None
+  ; ghyll         = noghyll
   ; help          = makehelp ()
   ; docinfo       = []
   ; deadline      = nan
@@ -1160,7 +1166,7 @@ let gotoy y =
   let y = bound y 0 state.maxy in
   let y, layout, proceed =
     match conf.maxwait with
-    | Some time ->
+    | Some time when state.ghyll == noghyll ->
         begin match state.throttle with
         | None ->
             let layout = layout y conf.winh in
@@ -1185,7 +1191,7 @@ let gotoy y =
             else -1, [], false
         end
 
-    | None ->
+    | _ ->
         let layout = layout y conf.winh in
         if true || layoutready layout
         then G.postRedisplay "gotoy ready";
@@ -1210,6 +1216,7 @@ let gotoy y =
     end;
     preload layout;
   );
+  state.ghyll <- noghyll;
 ;;
 
 let conttiling pageno opaque =
@@ -1246,14 +1253,83 @@ let getnav dir =
   getanchory anchor;
 ;;
 
+let gotoghyll y =
+  let rec scroll f n a b =
+    (* http://devmaster.net/forums/topic/9796-ease-in-ease-out-algorithm/ *)
+    let snake f a b =
+      let s x = 3.0*.x**2.0 -. 2.0*.x**3.0 in
+      if f < a
+      then s (float f /. float a)
+      else (
+        if f > b
+        then 1.0 -. s ((float (f-b) /. float (n-b)))
+        else 1.0
+      );
+    in
+    snake f a b
+  and summa f n a b =
+    (* courtesy:
+       http://integrals.wolfram.com/index.jsp?expr=3x%5E2-2x%5E3&random=false *)
+    let iv x = -.((-.2.0 +. x)*.x**3.0)/.2.0 in
+    let iv1 = iv f in
+    let ins = float a *. iv1
+    and outs = float (n-b) *. iv1 in
+    let ones = b - a in
+    ins +. outs +. float ones
+  in
+  let rec set (_N, _A, _B) y sy =
+    let sum = summa 1.0 _N _A _B in
+    let dy = float (y - sy) in
+    state.ghyll <- (
+      let n = ref 0 in
+      let y1 = ref (float sy) in
+      fun o ->
+        if !n = _N
+        then state.ghyll <- noghyll
+        else
+          let go () =
+            let s = scroll !n _N _A _B in
+            y1 := !y1 +. ((s *. dy) /. sum);
+            let g = state.ghyll in
+            gotoy_and_clear_text (truncate !y1);
+            state.ghyll <- g;
+            incr n;
+          in
+          match o with
+          | None -> go ()
+          | Some (nab, y) ->
+              if !n < _A
+              then (
+                y1 := !y1 +. dy;
+                let g = state.ghyll in
+                gotoy_and_clear_text (truncate !y1);
+                state.ghyll <- g;
+                if abs (y - state.y) > conf.scrollstep*2
+                then set nab y state.y
+                else state.ghyll <- noghyll;
+              )
+              else go ()
+    )
+  in
+  match conf.ghyllscroll with
+  | None ->
+      gotoy_and_clear_text y
+  | Some nab ->
+      if state.ghyll == noghyll
+      then set nab y state.y
+      else state.ghyll (Some (nab, y))
+;;
+
 let gotopage n top =
   let y, h = getpageyh n in
-  gotoy_and_clear_text (y + (truncate (top *. float h)));
+  let y = y + (truncate (top *. float h)) in
+  gotoghyll y
 ;;
 
 let gotopage1 n top =
   let y = getpagey n in
-  gotoy_and_clear_text (y + top);
+  let y = y + top in
+  gotoghyll y
 ;;
 
 let invalidate () =
@@ -1759,14 +1835,20 @@ let idle () =
     | Some fd -> [state.csock; fd]
   in
   let rec loop delay =
+    let deadline =
+      if state.ghyll == noghyll
+      then state.deadline
+      else now () +. 0.02
+    in
     let timeout =
       if delay > 0.0
-      then max 0.0 (state.deadline -. now ())
+      then max 0.0 (deadline -. now ())
       else 0.0
     in
     let r, _, _ = Unix.select r [] [] timeout in
     begin match r with
     | [] ->
+        state.ghyll None;
         begin match state.autoscroll with
         | Some step when step != 0 ->
             let y = state.y + step in
@@ -3108,6 +3190,24 @@ let string_with_suffix_of_int n =
     loop "" n ^ s;
 ;;
 
+let defghyllscroll = (40, 8, 32);;
+let ghyllscroll_of_string s =
+  let (n, a, b) as nab =
+    if s = "default"
+    then defghyllscroll
+    else Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b)
+  in
+  if n <= a || n <= b || a >= b
+  then failwith "invalid ghyll N,A,B (N <= A, A < B, N <= B)";
+  nab;
+;;
+
+let ghyllscroll_to_string ((n, a, b) as nab) =
+  if nab = defghyllscroll
+  then "default"
+  else Printf.sprintf "%d,%d,%d" n a b;
+;;
+
 let describe_location () =
   let f (fn, _) l =
     if fn = -1 then l.pageno, l.pageno else fn, l.pageno
@@ -3585,6 +3685,24 @@ let enterinfomode =
             state.text <- Printf.sprintf "bad time `%s': %s"
               v (Printexc.to_string exn)
         );
+      src#string "ghyll scroll"
+        (fun () ->
+          match conf.ghyllscroll with
+          | None -> ""
+          | Some nab -> ghyllscroll_to_string nab
+        )
+        (fun v ->
+          try
+            let gs =
+              if String.length v = 0
+              then None
+              else Some (ghyllscroll_of_string v)
+            in
+            conf.ghyllscroll <- gs
+          with exn ->
+            state.text <- Printf.sprintf "bad ghyll `%s': %s"
+              v (Printexc.to_string exn)
+        );
       src#colorspace "color space"
         (fun () -> colorspace_to_string conf.colorspace)
         (fun v ->
@@ -3857,7 +3975,7 @@ let viewkeyboard key =
         then (
           addnav ();
           cbput state.hists.pag (string_of_int n);
-          gotoy_and_clear_text (getpagey (n + conf.pagebias - 1))
+          gotopage1 (n + conf.pagebias - 1) 0;
         )
       in
       let pageentry text key =
@@ -4651,7 +4769,9 @@ let uioh = object
 
               | _ -> state.y
             in
-            gotoy_and_clear_text y
+            if abs (state.y - y) > conf.scrollstep*2
+            then gotoghyll y
+            else gotoy_and_clear_text y
         end
 
     | Textentry te -> textentryspecial key te
@@ -4859,6 +4979,8 @@ struct
         | "invert-colors" -> { c with invert  = bool_of_string v }
         | "brightness" -> { c with colorscale = float_of_string v }
         | "redirectstderr" -> { c with redirectstderr = bool_of_string v }
+        | "ghyllscroll" ->
+            { c with ghyllscroll = Some (ghyllscroll_of_string v) }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -4947,6 +5069,7 @@ struct
     dst.invert         <- src.invert;
     dst.colorscale     <- src.colorscale;
     dst.redirectstderr <- src.redirectstderr;
+    dst.ghyllscroll    <- src.ghyllscroll;
   ;;
 
   let get s =
@@ -5188,6 +5311,13 @@ struct
       if always || a <> b
       then
         Printf.bprintf bb "\n    %s='%s'" s (enent a 0 (String.length a))
+    and og s a b =
+      if always || a <> b
+      then
+        match a with
+        | None -> ()
+        | Some (_N, _A, _B) ->
+            Printf.bprintf bb "\n    %s='%u,%u,%u'" s _N _A _B
     and oW s a b =
       if always || a <> b
       then
@@ -5257,6 +5387,7 @@ struct
     ob "invert-colors" c.invert dc.invert;
     oF "brightness" c.colorscale dc.colorscale;
     ob "redirectstderr" c.redirectstderr dc.redirectstderr;
+    og "ghyllscroll" c.ghyllscroll dc.ghyllscroll;
     if always
     then ob "wmclass-hack" !wmclasshack false;
   ;;
