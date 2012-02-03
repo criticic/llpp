@@ -257,7 +257,7 @@ struct {
     FT_Face face;
 
     void (*closedoc) (void);
-    void (*freepage) (void **);
+    void (*freepage) (void *);
 } state;
 
 static void UNUSED debug_rect (const char *cap, fz_rect r)
@@ -459,22 +459,19 @@ static void closecbz (void)
     }
 }
 
-static void freepdfpage (void **ptr)
+static void freepdfpage (void *ptr)
 {
-    pdf_free_page (state.u.pdf, *ptr);
-    *ptr = NULL;
+    pdf_free_page (state.u.pdf, ptr);
 }
 
-static void freexpspage (void **ptr)
+static void freexpspage (void *ptr)
 {
-    xps_free_page (state.u.xps, *ptr);
-    *ptr = NULL;
+    xps_free_page (state.u.xps, ptr);
 }
 
-static void freecbzpage (void **ptr)
+static void freecbzpage (void *ptr)
 {
-    cbz_free_page (state.u.cbz, *ptr);
-    *ptr = NULL;
+    cbz_free_page (state.u.cbz, ptr);
 }
 
 static void openxref (char *filename, char *password)
@@ -608,7 +605,7 @@ static void freepage (struct page *page)
     if (page->text) {
         fz_free_text_span (state.ctx, page->text);
     }
-    state.freepage (&page->u.ptr);
+    state.freepage (page->u.ptr);
     fz_free_display_list (state.ctx, page->dlist);
     free (page);
 }
@@ -912,6 +909,7 @@ static void initpdims (void)
                 }
                 rotate = fz_to_int (fz_dict_gets (pageobj, "Rotate"));
             }
+            break;
 
         case DXPS:
             {
@@ -1253,7 +1251,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                             "msg regexec error `%.*s'",
                             (int) size, errbuf);
                     fz_free_text_span (state.ctx, text);
-                    state.freepage (&u.ptr);
+                    state.freepage (u.ptr);
                     free (pspan);
                     return;
                 }
@@ -1325,7 +1323,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
             y = INT_MAX;
         }
         fz_free_text_span (state.ctx, text);
-        state.freepage (&u.ptr);
+        state.freepage (u.ptr);
         free (pspan);
     }
     end = now ();
@@ -1712,11 +1710,21 @@ static void showsel (struct page *page, int ox, int oy)
 
 static void highlightlinks (struct page *page, int xoff, int yoff)
 {
-    fz_link *link;
     fz_matrix ctm;
+    fz_link *link, *links;
 
-    if (page->type != DPDF) {
-        return;
+    switch (page->type) {
+    case DPDF:
+        links = page->u.pdfpage->links;
+        break;
+
+    case DXPS:
+        links = page->u.xpspage->links;
+        break;
+
+    default:
+        links = NULL;
+        break;
     }
 
     glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
@@ -1726,7 +1734,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     ctm = fz_concat (pagectm (page), fz_translate (xoff, yoff));
 
     glBegin (GL_QUADS);
-    for (link = page->u.pdfpage->links; link; link = link->next) {
+    for (link = links; link; link = link->next) {
         fz_point p1, p2, p3, p4;
 
         p1.x = link->rect.x0;
@@ -1904,10 +1912,20 @@ static fz_link *getlink (struct page *page, int x, int y)
 {
     fz_point p;
     fz_matrix ctm;
-    fz_link *link;
+    fz_link *link, *links;
 
-    if (page->type != DPDF) {
-        return NULL;
+    switch (page->type) {
+    case DPDF:
+        links = page->u.pdfpage->links;
+        break;
+
+    case DXPS:
+        links = page->u.xpspage->links;
+        break;
+
+    default:
+        links = NULL;
+        break;
     }
     p.x = x;
     p.y = y;
@@ -1917,7 +1935,7 @@ static fz_link *getlink (struct page *page, int x, int y)
     ctm = fz_invert_matrix (ctm);
     p = fz_transform_point (ctm, p);
 
-    for (link = page->u.pdfpage->links; link; link = link->next) {
+    for (link = links; link; link = link->next) {
         if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
             if (p.y >= link->rect.y0 && p.y <= link->rect.y1) {
                 return link;
