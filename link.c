@@ -2549,15 +2549,15 @@ CAMLprim value ml_init (value sock_v, value params_v)
     int texcount;
     int wmclasshack;
     int colorspace;
-    int mumemlimit;
+    int mustoresize;
 
     state.rotate = Int_val (Field (params_v, 0));
     state.proportional = Bool_val (Field (params_v, 1));
     trim_v = Field (params_v, 2);
     texcount = Int_val (Field (params_v, 3));
     state.sliceheight = Int_val (Field (params_v, 4));
-    mumemlimit = Int_val (Field (params_v, 5));
-    state.ctx = fz_new_context (&fz_alloc_default, mumemlimit);
+    mustoresize = Int_val (Field (params_v, 5));
+    state.ctx = fz_new_context (&fz_alloc_default, mustoresize);
     colorspace = Int_val (Field (params_v, 6));
     wmclasshack = Bool_val (Field (params_v, 7));
     fontpath = String_val (Field (params_v, 8));

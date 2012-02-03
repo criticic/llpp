@@ -248,7 +248,7 @@ type conf =
     ; mutable scrollbarinpm  : bool
     ; mutable tilew          : int
     ; mutable tileh          : int
-    ; mutable mumemlimit     : memsize
+    ; mutable mustoresize    : memsize
     ; mutable checkers       : bool
     ; mutable aalevel        : int
     ; mutable urilauncher    : string
@@ -415,7 +415,7 @@ let defconf =
   ; scrollbarinpm  = true
   ; tilew          = 2048
   ; tileh          = 2048
-  ; mumemlimit     = 128 lsl 20
+  ; mustoresize    = 128 lsl 20
   ; checkers       = true
   ; aalevel        = 8
   ; urilauncher    =
@@ -4967,8 +4967,8 @@ struct
             { c with scrollbarinpm = bool_of_string v }
         | "tile-width" -> { c with tilew = max 2 (int_of_string v) }
         | "tile-height" -> { c with tileh = max 2 (int_of_string v) }
-        | "mupdf-memlimit" ->
-            { c with mumemlimit = max 1024 (int_of_string_with_suffix v) }
+        | "mupdf-store-size" ->
+            { c with mustoresize = max 1024 (int_of_string_with_suffix v) }
         | "checkers" -> { c with checkers = bool_of_string v }
         | "aalevel" -> { c with aalevel = max 0 (int_of_string v) }
         | "trim-margins" -> { c with trimmargins = bool_of_string v }
@@ -5059,7 +5059,7 @@ struct
     dst.scrollbarinpm  <- src.scrollbarinpm;
     dst.tilew          <- src.tilew;
     dst.tileh          <- src.tileh;
-    dst.mumemlimit     <- src.mumemlimit;
+    dst.mustoresize    <- src.mustoresize;
     dst.checkers       <- src.checkers;
     dst.aalevel        <- src.aalevel;
     dst.trimmargins    <- src.trimmargins;
@@ -5377,7 +5377,7 @@ struct
     ob "scrollbar-in-presentation" c.scrollbarinpm dc.scrollbarinpm;
     oi "tile-width" c.tilew dc.tilew;
     oi "tile-height" c.tileh dc.tileh;
-    oI "mupdf-memlimit" c.mumemlimit dc.mumemlimit;
+    oI "mupdf-store-size" c.mustoresize dc.mustoresize;
     ob "checkers" c.checkers dc.checkers;
     oi "aalevel" c.aalevel dc.aalevel;
     ob "trim-margins" c.trimmargins dc.trimmargins;
@@ -5565,7 +5565,7 @@ let () =
   setcheckers conf.checkers;
   init ssock (
     conf.angle, conf.proportional, (conf.trimmargins, conf.trimfuzz),
-    conf.texcount, conf.sliceheight, conf.mumemlimit, conf.colorspace,
+    conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
     !Config.wmclasshack, !Config.fontpath
   );
   state.csock <- csock;
