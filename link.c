@@ -552,7 +552,7 @@ static void freepage (struct page *page)
         fz_free_text_span (state.ctx, page->text);
     }
     if (page->type == DPDF) {
-        pdf_free_page (state.ctx, page->u.pdfpage);
+        pdf_free_page (state.u.pdf, page->u.pdfpage);
     }
     else {
         xps_free_page (state.u.xps, page->u.xpspage);
@@ -618,7 +618,7 @@ static void OPTIMIZE (3) clearpixmap (fz_pixmap *pixmap)
         }
         while (i < sizea) *((char *) a1 + i++) = 0xff;
     }
-    else fz_clear_pixmap_with_color (pixmap, 0xff);
+    else fz_clear_pixmap_with_color (state.ctx, pixmap, 0xff);
 }
 #else
 #define clearpixmap(p) fz_clear_pixmap_with_color (p, 0xff)
@@ -824,7 +824,7 @@ static void initpdims (void)
                 }
 
                 rotate = page->rotate;
-                pdf_free_page (state.ctx, page);
+                pdf_free_page (state.u.pdf, page);
 
                 printd (state.sock, "progress %f Trimming %d",
                         (double) (pageno + 1) / state.pagecount,
@@ -1156,7 +1156,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                             (int) size, errbuf);
                     fz_free_text_span (state.ctx, text);
                     if (state.type == DPDF) {
-                        pdf_free_page (state.ctx, u.pdfpage);
+                        pdf_free_page (state.u.pdf, u.pdfpage);
                     }
                     else {
                         xps_free_page (state.u.xps, u.xpspage);
@@ -1230,7 +1230,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         }
         fz_free_text_span (state.ctx, text);
         if (state.type == DPDF) {
-            pdf_free_page (state.ctx, u.pdfpage);
+            pdf_free_page (state.u.pdf, u.pdfpage);
         }
         else {
             xps_free_page (state.u.xps, u.xpspage);
