@@ -199,6 +199,7 @@ struct page {
         int i;
         fz_text_span *span;
     } fmark, lmark;
+    void (*freepage) (void *);
 };
 
 #if !defined _WIN32 && !defined __APPLE__
@@ -605,7 +606,7 @@ static void freepage (struct page *page)
     if (page->text) {
         fz_free_text_span (state.ctx, page->text);
     }
-    state.freepage (page->u.ptr);
+    page->freepage (page->u.ptr);
     fz_free_display_list (state.ctx, page->dlist);
     free (page);
 }
@@ -729,16 +730,19 @@ static void *loadpage (int pageno, int pindex)
     case DPDF:
         page->u.pdfpage = pdf_load_page (state.u.pdf, pageno);
         pdf_run_page (state.u.pdf, page->u.pdfpage, dev, fz_identity, NULL);
+        page->freepage = freepdfpage;
         break;
 
     case DXPS:
         page->u.xpspage = xps_load_page (state.u.xps, pageno);
         xps_run_page (state.u.xps, page->u.xpspage, dev, fz_identity, NULL);
+        page->freepage = freexpspage;
         break;
 
     case DCBZ:
         page->u.cbzpage = cbz_load_page (state.u.cbz, pageno);
         cbz_run_page (state.u.cbz, page->u.cbzpage, dev, fz_identity, NULL);
+        page->freepage = freecbzpage;
         break;
     }
     fz_free_device (dev);
