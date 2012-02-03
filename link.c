@@ -951,12 +951,12 @@ static void initpdims (void)
 
         case DCBZ:
             {
+                rotate = 0;
                 if (state.trimmargins) {
                     cbz_page *page;
 
                     page = cbz_load_page (state.u.cbz, pageno);
                     mediabox = cbz_bound_page (state.u.cbz, page);
-                    rotate = 0;
                     cbz_free_page (state.u.cbz, page);
                     printd (state.sock, "progress %f Trimming %d",
                             (double) (pageno + 1) / state.pagecount,
@@ -969,6 +969,9 @@ static void initpdims (void)
                 }
             }
             break;
+
+        default:
+            ARSERT (0 && state.type);
         }
 
         if (state.pagedimcount == 0
@@ -1198,6 +1201,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
             u.xpspage = xps_load_page (state.u.xps, pageno);
             xps_run_page (state.u.xps, u.xpspage, tdev, fz_identity, NULL);
             break;
+
+        default:
+            ARSERT (0 && state.type);
         }
 
         fz_free_device (tdev);
