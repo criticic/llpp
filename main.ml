@@ -1285,23 +1285,17 @@ let gotoghyll y =
         if n = _N
         then state.ghyll <- noghyll
         else
-          let go () =
+          let go n =
             let s = scroll n _N _A _B in
             let y1 = y1 +. ((s *. dy) /. sum) in
             gotoy_and_clear_text (truncate y1);
             state.ghyll <- gf (n+1) y1;
           in
           match o with
-          | None -> go ()
+          | None -> go n
           | Some (nab, y') ->
-              if n < _A
-              then (
-                gotoy_and_clear_text y;
-                if abs (y' - state.y) > conf.scrollstep*2
-                then set nab y' state.y
-                else state.ghyll <- noghyll;
-              )
-              else go ()
+              gotoy_and_clear_text y;
+              set nab y' y;
       in gf 0 (float state.y)
     )
   in
