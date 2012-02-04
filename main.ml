@@ -2474,7 +2474,11 @@ object (self)
 
   method updownlevel incr =
     let len = source#getitemcount  in
-    let _, curlevel = source#getitem m_active in
+    let curlevel =
+      if m_active >= 0 && m_active < len
+      then snd (source#getitem m_active)
+      else -1
+    in
     let rec flow i =
       if i = len then i-1 else if i = -1 then 0 else
           let _, l = source#getitem i in
