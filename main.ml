@@ -2362,7 +2362,6 @@ let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
 
       | TEstop ->
           onleave Cancel;
-          state.text <- "";
           G.postRedisplay "textentrykeyboard after cancel3"
 
       | TEswitch te ->
