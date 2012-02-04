@@ -364,7 +364,7 @@ type state =
     ; mutable gen           : gen
     ; mutable throttle      : (page list * int * float) option
     ; mutable autoscroll    : int option
-    ; mutable ghyll         : ((int * int * int) * int) option -> unit
+    ; mutable ghyll         : int option -> unit
     ; mutable help          : helpitem array
     ; mutable docinfo       : (int * string) list
     ; mutable deadline      : float
@@ -1282,7 +1282,7 @@ let gotoghyll y =
     let dy = float (y - sy) in
     state.ghyll <- (
       let rec gf n y1 o =
-        if n = _N
+        if n >= _N
         then state.ghyll <- noghyll
         else
           let go n =
@@ -1293,10 +1293,9 @@ let gotoghyll y =
           in
           match o with
           | None -> go n
-          | Some (nab, y') ->
-              gotoy_and_clear_text y;
-              set nab y' y;
-      in gf 0 (float state.y)
+          | Some y' -> set (_N/2, 0, 0) y' state.y
+      in
+      gf 0 (float state.y)
     )
   in
   match conf.ghyllscroll with
@@ -1305,7 +1304,7 @@ let gotoghyll y =
   | Some nab ->
       if state.ghyll == noghyll
       then set nab y state.y
-      else state.ghyll (Some (nab, y))
+      else state.ghyll (Some y)
 ;;
 
 let gotopage n top =
