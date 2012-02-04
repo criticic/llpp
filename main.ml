@@ -1281,34 +1281,28 @@ let gotoghyll y =
     let sum = summa 1.0 _N _A _B in
     let dy = float (y - sy) in
     state.ghyll <- (
-      let n = ref 0 in
-      let y1 = ref (float sy) in
-      fun o ->
-        if !n = _N
+      let rec gf n y1 o =
+        if n = _N
         then state.ghyll <- noghyll
         else
           let go () =
-            let s = scroll !n _N _A _B in
-            y1 := !y1 +. ((s *. dy) /. sum);
-            let g = state.ghyll in
-            gotoy_and_clear_text (truncate !y1);
-            state.ghyll <- g;
-            incr n;
+            let s = scroll n _N _A _B in
+            let y1 = y1 +. ((s *. dy) /. sum) in
+            gotoy_and_clear_text (truncate y1);
+            state.ghyll <- gf (n+1) y1;
           in
           match o with
           | None -> go ()
-          | Some (nab, y) ->
-              if !n < _A
+          | Some (nab, y') ->
+              if n < _A
               then (
-                y1 := !y1 +. dy;
-                let g = state.ghyll in
-                gotoy_and_clear_text (truncate !y1);
-                state.ghyll <- g;
-                if abs (y - state.y) > conf.scrollstep*2
-                then set nab y state.y
+                gotoy_and_clear_text y;
+                if abs (y' - state.y) > conf.scrollstep*2
+                then set nab y' state.y
                 else state.ghyll <- noghyll;
               )
               else go ()
+      in gf 0 (float state.y)
     )
   in
   match conf.ghyllscroll with
