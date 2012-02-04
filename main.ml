@@ -451,7 +451,7 @@ let fstate =
 let setfontsize n =
   fstate.fontsize <- n;
   fstate.wwidth <- measurestr fstate.fontsize "w";
-  fstate.maxrows <- conf.winh / (fstate.fontsize + 1);
+  fstate.maxrows <- (conf.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
 let gotouri uri =
