@@ -1733,8 +1733,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         break;
 
     default:
-        links = NULL;
-        break;
+        return;
     }
 
     glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
@@ -1934,8 +1933,7 @@ static fz_link *getlink (struct page *page, int x, int y)
         break;
 
     default:
-        links = NULL;
-        break;
+        return NULL;
     }
     p.x = x;
     p.y = y;
