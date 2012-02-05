@@ -1730,6 +1730,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
 
     case DXPS:
         links = page->u.xpspage->links;
+        links = NULL;
         break;
 
     default:
@@ -1930,6 +1931,7 @@ static fz_link *getlink (struct page *page, int x, int y)
 
     case DXPS:
         links = page->u.xpspage->links;
+        links = NULL;
         break;
 
     default:
