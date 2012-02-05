@@ -3613,7 +3613,7 @@ let enterinfomode =
       (fun v -> conf.jumpback <- v);
 
     sep ();
-    src#int "vertical margin"
+    src#int "inter-page space"
       (fun () -> conf.interpagespace)
       (fun n ->
         conf.interpagespace <- n;
