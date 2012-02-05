@@ -213,6 +213,10 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog "}";
 ;;
 
+type columns =
+    columncount * ((pdimno * x * y * (pageno * width * height * leftx)) array)
+and columncount = int and pdimno = int;;
+
 type conf =
     { mutable scrollbw       : int
     ; mutable scrollh        : int
@@ -257,6 +261,8 @@ type conf =
     ; mutable colorscale     : float
     ; mutable redirectstderr : bool
     ; mutable ghyllscroll    : (int * int * int) option
+    ; mutable columns        : columns option
+    ; mutable beyecolumns    : columncount option
     }
 ;;
 
@@ -429,6 +435,8 @@ let defconf =
   ; colorscale     = 1.0
   ; redirectstderr = false
   ; ghyllscroll    = None
+  ; columns        = None
+  ; beyecolumns    = None
   }
 ;;
 
@@ -730,6 +738,14 @@ let calcheight () =
   fh;
 ;;
 
+let calcheight () =
+  match conf.columns with
+  | None -> calcheight ()
+  | Some (_, b) ->
+      let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
+      y + h
+;;
+
 let getpageyh pageno =
   let rec f pn ph pi y l =
     match l with
@@ -754,6 +770,14 @@ let getpageyh pageno =
   f 0 0 0 0 state.pdims
 ;;
 
+let getpageyh pageno =
+  match conf.columns with
+  | None -> getpageyh pageno
+  | Some (_, b) ->
+      let (_, _, y, (_, _, h, _)) = b.(pageno) in
+      y, h
+;;
+
 let getpagedim pageno =
   let rec f ppdim l =
     match l with
@@ -769,7 +793,7 @@ let getpagedim pageno =
 
 let getpagey pageno = fst (getpageyh pageno);;
 
-let layout y sh =
+let layout1 y sh =
   let sh = sh - state.hscrollh in
   let rec f ~pageno ~pdimno ~prev ~py ~dy ~pdims ~accu =
     let ((w, h, ips, xoff) as curr), rest, pdimno, yinc =
@@ -862,6 +886,50 @@ let layout y sh =
   )
   else
     []
+;;
+
+let layoutN (_, b) y sh =
+  let sh = sh - state.hscrollh in
+  let rec fold accu n =
+    if n = Array.length b
+    then accu
+    else
+      let pdimno, dx, vy, (_, w, h, xoff) = b.(n) in
+      if (vy - y) > sh
+      then accu
+      else
+        let accu =
+          if vy + h > y
+          then
+            let pagey = max 0 (y - vy) in
+            let e =
+              { pageno = n
+              ; pagedimno = pdimno
+              ; pagew = w
+              ; pageh = h
+              ; pagex = 0
+              ; pagey = pagey
+              ; pagevw = w
+              ; pagevh = h - pagey
+              ; pagedispx = dx + xoff + state.x
+              ; pagedispy = if pagey > 0 then 0 else vy - y
+              }
+            in
+            e :: accu
+          else
+            accu
+        in
+        fold accu (n+1)
+  in
+  if state.invalidated = 0
+  then List.rev (fold [] 0)
+  else []
+;;
+
+let layout y sh =
+  match conf.columns with
+  | None -> layout1 y sh
+  | Some c -> layoutN c y sh
 ;;
 
 let clamp incr =
@@ -1354,6 +1422,48 @@ let scalecolor2 (r, g, b) =
 ;;
 
 let represent () =
+  let docolumns = function
+    | None -> ()
+    | Some (columns, _) ->
+        let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
+        let rec loop pageno pdimno pdim x y rowh pdims =
+          if pageno = state.pagecount
+          then ()
+          else
+            let pdimno, ((_, w, h, _) as pdim), pdims =
+              match pdims with
+              | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
+                  pdimno+1, pdim, rest
+              | _ ->
+                  pdimno, pdim, pdims
+            in
+            let x, y, rowh =
+              if pageno mod columns = 0
+              then 0, y + rowh + conf.interpagespace, h
+              else x + w + conf.interpagespace, y, max rowh h
+            in
+            a.(pageno) <- (pdimno, x, y, pdim);
+            loop (pageno+1) pdimno pdim x y rowh pdims
+        in
+        loop 0 ~-1 (-1,-1,-1,-1) 0 0 0 state.pdims;
+        let rec fix n rowh = if n = Array.length a then () else
+          let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(n) in
+          let rowh =
+            if n mod columns = 0
+            then h
+            else max h rowh
+          in
+          if h < rowh
+          then (
+            let y = y + (rowh - h) / 2 in
+            a.(n) <- (pdimno, x, y, pdim);
+          );
+          fix (n+1) rowh
+        in
+        fix 0 0;
+        conf.columns <- Some (columns, a);
+  in
+  docolumns conf.columns;
   state.maxy <- calcheight ();
   state.hscrollh <-
     if state.w <= conf.winw - state.scrollw
@@ -1391,6 +1501,11 @@ let reshape =
     GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
     GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
 
+    let w =
+      match conf.columns with
+      | None -> w
+      | Some (c, _) -> (w - (c-1)*conf.interpagespace) / c
+    in
     invalidate ();
     wcmd "geometry" [`i w; `i h];
 ;;
@@ -2003,6 +2118,19 @@ let setzoom zoom =
       )
 ;;
 
+let setcolumns columns =
+  if columns < 2
+  then (
+    conf.columns <- None;
+    setzoom 1.0;
+  )
+  else (
+    conf.columns <- Some (columns, [||]);
+    conf.zoom <- 1.0;
+  );
+  reshape conf.winw conf.winh;
+;;
+
 let enterbirdseye () =
   let zoom = float conf.thumbw /. float conf.winw in
   let birdseyepageno =
@@ -2032,6 +2160,13 @@ let enterbirdseye () =
   state.x <- 0;
   state.mstate <- Mnone;
   conf.maxwait <- None;
+  conf.columns <- (
+    match conf.beyecolumns with
+    | Some c ->
+        conf.zoom <- 1.0;
+        Some (c, [||])
+    | None -> None
+  );
   Glut.setCursor Glut.CURSOR_INHERIT;
   if conf.verbose
   then
@@ -2050,6 +2185,16 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   conf.interpagespace <- c.interpagespace;
   conf.maxwait <- c.maxwait;
   conf.hlinks <- c.hlinks;
+  conf.beyecolumns <- (
+    match conf.columns with
+    | Some (c, _) -> Some c
+    | None -> None
+  );
+  conf.columns <- (
+    match c.columns with
+    | Some (c, _) -> Some (c, [||])
+    | None -> None
+  );
   state.x <- leftx;
   if conf.verbose
   then
@@ -2067,8 +2212,8 @@ let togglebirdseye () =
   | _ -> ()
 ;;
 
-let upbirdseye (conf, leftx, pageno, hooverpageno, anchor) =
-  let pageno = max 0 (pageno - 1) in
+let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
+  let pageno = max 0 (pageno - incr) in
   let rec loop = function
     | [] -> gotopage1 pageno 0
     | l :: _ when l.pageno = pageno ->
@@ -2081,8 +2226,8 @@ let upbirdseye (conf, leftx, pageno, hooverpageno, anchor) =
   state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor)
 ;;
 
-let downbirdseye (conf, leftx, pageno, hooverpageno, anchor) =
-  let pageno = min (state.pagecount - 1) (pageno + 1) in
+let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
+  let pageno = min (state.pagecount - 1) (pageno + incr) in
   state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor);
   let rec loop = function
     | [] ->
@@ -3532,6 +3677,13 @@ let enterinfomode =
         | _ -> ()
       );
 
+    src#int "columns"
+      (fun () ->
+        match conf.columns with
+        | None -> 1
+        | Some (n, _) -> n)
+      (fun v -> setcolumns v);
+
     sep ();
     src#caption "Presentation mode" 0;
     src#bool "scrollbar visible"
@@ -4140,19 +4292,22 @@ let viewkeyboard key =
 
   | 'k' ->
       begin match state.mode with
-      | Birdseye beye -> upbirdseye beye
+      | Birdseye beye -> upbirdseye 1 beye
       | _ -> gotoy (clamp (-conf.scrollstep))
       end
 
   | 'j' ->
       begin match state.mode with
-      | Birdseye beye -> downbirdseye beye
+      | Birdseye beye -> downbirdseye 1 beye
       | _ -> gotoy (clamp conf.scrollstep)
       end
 
   | 'r' ->
       state.anchor <- getanchor ();
       opendoc state.path state.password
+
+  | 'v' when not conf.debug ->
+      List.iter debugl state.layout;
 
   | 'v' when conf.debug ->
       state.rects <- [];
@@ -4200,10 +4355,17 @@ let keyboard ~key ~x ~y =
   else state.uioh <- state.uioh#key key
 ;;
 
-let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
+let birdseyespecial key ((oconf, leftx, _, hooverpageno, anchor) as beye) =
+  let incr =
+    match conf.columns with
+    | None -> 1
+    | Some (c, _) -> c
+  in
   match key with
-  | Glut.KEY_UP -> upbirdseye beye
-  | Glut.KEY_DOWN -> downbirdseye beye
+  | Glut.KEY_UP -> upbirdseye incr beye
+  | Glut.KEY_DOWN -> downbirdseye incr beye
+  | Glut.KEY_LEFT -> upbirdseye 1 beye
+  | Glut.KEY_RIGHT -> downbirdseye 1 beye
 
   | Glut.KEY_PAGE_UP ->
       begin match state.layout with
@@ -4211,7 +4373,7 @@ let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
           if l.pagey != 0
           then (
             state.mode <- Birdseye (
-              conf, leftx, l.pageno, hooverpageno, anchor
+              oconf, leftx, l.pageno, hooverpageno, anchor
             );
             gotopage1 l.pageno 0;
           )
@@ -4221,7 +4383,7 @@ let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
             | [] -> gotoy (clamp (-conf.winh))
             | l :: _ ->
                 state.mode <- Birdseye (
-                  conf, leftx, l.pageno, hooverpageno, anchor
+                  oconf, leftx, l.pageno, hooverpageno, anchor
                 );
                 gotopage1 l.pageno 0
           );
@@ -4240,7 +4402,7 @@ let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
               then (
                 state.mode <-
                   Birdseye (
-                    conf, leftx, state.pagecount - 1, hooverpageno, anchor
+                    oconf, leftx, state.pagecount - 1, hooverpageno, anchor
                   );
                 G.postRedisplay "birdseye pagedown";
               )
@@ -4248,7 +4410,7 @@ let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
 
           | l :: _ ->
               state.mode <-
-                Birdseye (conf, leftx, l.pageno, hooverpageno, anchor);
+                Birdseye (oconf, leftx, l.pageno, hooverpageno, anchor);
               gotopage1 l.pageno 0;
           end
 
@@ -4256,12 +4418,12 @@ let birdseyespecial key ((conf, leftx, _, hooverpageno, anchor) as beye) =
       end;
 
   | Glut.KEY_HOME ->
-      state.mode <- Birdseye (conf, leftx, 0, hooverpageno, anchor);
+      state.mode <- Birdseye (oconf, leftx, 0, hooverpageno, anchor);
       gotopage1 0 0
 
   | Glut.KEY_END ->
       let pageno = state.pagecount - 1 in
-      state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor);
+      state.mode <- Birdseye (oconf, leftx, pageno, hooverpageno, anchor);
       if not (pagevisible state.layout pageno)
       then
         let h =
@@ -4643,12 +4805,11 @@ let birdseyemouse button bstate x y
     (conf, leftx, _, hooverpageno, anchor) =
   match button with
   | Glut.LEFT_BUTTON when bstate = Glut.UP ->
-      let margin = (conf.winw - (state.w + state.scrollw)) / 2 in
       let rec loop = function
         | [] -> ()
         | l :: rest ->
             if y > l.pagedispy && y < l.pagedispy + l.pagevh
-              && x > margin && x < margin + l.pagew
+              && x > l.pagedispx && x < l.pagedispx + l.pagevw
             then (
               leavebirdseye (conf, leftx, l.pageno, hooverpageno, anchor) false;
             )
@@ -4817,7 +4978,6 @@ let uioh = object
   method pmotion x y =
     begin match state.mode with
     | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
-        let margin = (conf.winw - (state.w + state.scrollw)) / 2 in
         let rec loop = function
           | [] ->
               if hooverpageno != -1
@@ -4827,7 +4987,7 @@ let uioh = object
               )
           | l :: rest ->
               if y > l.pagedispy && y < l.pagedispy + l.pagevh
-                && x > margin && x < margin + l.pagew
+                && x > l.pagedispx && x < l.pagedispx + l.pagevw
               then (
                 state.mode <- Birdseye (conf, leftx, pageno, l.pageno, anchor);
                 G.postRedisplay "pmotion birdseye hoover";
@@ -4976,6 +5136,10 @@ struct
         | "redirectstderr" -> { c with redirectstderr = bool_of_string v }
         | "ghyllscroll" ->
             { c with ghyllscroll = Some (ghyllscroll_of_string v) }
+        | "columns" ->
+            { c with columns = Some (max (int_of_string v) 2, [||]) }
+        | "birds-eye-columns" ->
+            { c with beyecolumns = Some (max (int_of_string v) 2) }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -5065,6 +5229,8 @@ struct
     dst.colorscale     <- src.colorscale;
     dst.redirectstderr <- src.redirectstderr;
     dst.ghyllscroll    <- src.ghyllscroll;
+    dst.columns        <- src.columns;
+    dst.beyecolumns    <- src.beyecolumns;
   ;;
 
   let get s =
@@ -5325,6 +5491,18 @@ struct
               else string_of_float f
         in
         Printf.bprintf bb "\n    %s='%s'" s v
+    and oco s a b =
+      if always || a <> b
+      then
+        match a with
+        | Some (c, _) when c > 1 -> Printf.bprintf bb "\n    %s='%d'" s c
+        | _ -> ()
+    and obeco s a b =
+      if always || a <> b
+      then
+        match a with
+        | Some c when c > 1 -> Printf.bprintf bb "\n    %s='%d'" s c
+        | _ -> ()
     in
     let w, h =
       if always
@@ -5383,6 +5561,8 @@ struct
     oF "brightness" c.colorscale dc.colorscale;
     ob "redirectstderr" c.redirectstderr dc.redirectstderr;
     og "ghyllscroll" c.ghyllscroll dc.ghyllscroll;
+    oco "columns" c.columns dc.columns;
+    obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
     if always
     then ob "wmclass-hack" !wmclasshack false;
   ;;
