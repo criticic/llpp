@@ -2122,6 +2122,7 @@ let setcolumns columns =
   if columns < 2
   then (
     conf.columns <- None;
+    state.x <- 0;
     setzoom 1.0;
   )
   else (
