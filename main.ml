@@ -918,20 +918,32 @@ let layoutN (_, b) y sh =
           if vy + h > y
           then
             let pagey = max 0 (y - vy) in
-            let e =
-              { pageno = n
-              ; pagedimno = pdimno
-              ; pagew = w
-              ; pageh = h
-              ; pagex = 0
-              ; pagey = pagey
-              ; pagevw = w
-              ; pagevh = h - pagey
-              ; pagedispx = dx + xoff + state.x
-              ; pagedispy = if pagey > 0 then 0 else vy - y
-              }
+            let pagedispy = if pagey > 0 then 0 else vy - y in
+            let pagedispx, pagex, pagevw =
+              let pdx = dx + xoff + state.x in
+              if pdx < 0
+              then 0, -pdx, w + pdx
+              else pdx, 0, min (conf.winw - state.scrollw) w
             in
-            e :: accu
+            let pagevh = h - pagey in
+            if pagedispx < conf.winw - state.scrollw && pagevw > 0 && pagevh > 0
+            then
+              let e =
+                { pageno = n
+                ; pagedimno = pdimno
+                ; pagew = w
+                ; pageh = h
+                ; pagex = pagex
+                ; pagey = pagey
+                ; pagevw = pagevw
+                ; pagevh = pagevh
+                ; pagedispx = pagedispx
+                ; pagedispy = pagedispy
+                }
+              in
+              e :: accu
+            else
+              accu
           else
             accu
         in
