@@ -758,8 +758,11 @@ let calcheight () =
   match conf.columns with
   | None -> calcheight ()
   | Some (_, b) ->
-      let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
-      y + h
+      if Array.length b > 0
+      then
+        let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
+        y + h
+      else 0
 ;;
 
 let getpageyh pageno =
