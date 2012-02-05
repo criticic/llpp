@@ -214,8 +214,11 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
 ;;
 
 type columns =
-    columncount * ((pdimno * x * y * (pageno * width * height * leftx)) array)
-and columncount = int and pdimno = int;;
+    multicol * ((pdimno * x * y * (pageno * width * height * leftx)) array)
+and multicol = columncount * covercount * covercount
+and pdimno = int
+and columncount = int
+and covercount = int;;
 
 type conf =
     { mutable scrollbw       : int
@@ -1424,7 +1427,7 @@ let scalecolor2 (r, g, b) =
 let represent () =
   let docolumns = function
     | None -> ()
-    | Some (columns, _) ->
+    | Some ((columns, coverA, coverB), _) ->
         let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
         let rec loop pageno pdimno pdim x y rowh pdims =
           if pageno = state.pagecount
@@ -1438,9 +1441,16 @@ let represent () =
                   pdimno, pdim, pdims
             in
             let x, y, rowh =
-              if pageno mod columns = 0
-              then 0, y + rowh + conf.interpagespace, h
-              else x + w + conf.interpagespace, y, max rowh h
+              if pageno = coverA - 1 || pageno = state.pagecount - coverB
+              then (
+                (conf.winw - state.scrollw - w) / 2,
+                y + rowh + conf.interpagespace, h
+              )
+              else (
+                if (pageno - coverA) mod columns = 0
+                then 0, y + rowh + conf.interpagespace, h
+                else x + w + conf.interpagespace, y, max rowh h
+              )
             in
             a.(pageno) <- (pdimno, x, y, pdim);
             loop (pageno+1) pdimno pdim x y rowh pdims
@@ -1461,7 +1471,7 @@ let represent () =
           fix (n+1) rowh
         in
         fix 0 0;
-        conf.columns <- Some (columns, a);
+        conf.columns <- Some ((columns, coverA, coverB), a);
   in
   docolumns conf.columns;
   state.maxy <- calcheight ();
@@ -1504,7 +1514,7 @@ let reshape =
     let w =
       match conf.columns with
       | None -> w
-      | Some (c, _) -> (w - (c-1)*conf.interpagespace) / c
+      | Some ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
     in
     invalidate ();
     wcmd "geometry" [`i w; `i h];
@@ -2118,7 +2128,7 @@ let setzoom zoom =
       )
 ;;
 
-let setcolumns columns =
+let setcolumns columns coverA coverB =
   if columns < 2
   then (
     conf.columns <- None;
@@ -2126,7 +2136,7 @@ let setcolumns columns =
     setzoom 1.0;
   )
   else (
-    conf.columns <- Some (columns, [||]);
+    conf.columns <- Some ((columns, coverA, coverB), [||]);
     conf.zoom <- 1.0;
   );
   reshape conf.winw conf.winh;
@@ -2165,7 +2175,7 @@ let enterbirdseye () =
     match conf.beyecolumns with
     | Some c ->
         conf.zoom <- 1.0;
-        Some (c, [||])
+        Some ((c, 0, 0), [||])
     | None -> None
   );
   Glut.setCursor Glut.CURSOR_INHERIT;
@@ -2188,7 +2198,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   conf.hlinks <- c.hlinks;
   conf.beyecolumns <- (
     match conf.columns with
-    | Some (c, _) -> Some c
+    | Some ((c, _, _), _) -> Some c
     | None -> None
   );
   conf.columns <- (
@@ -3370,6 +3380,19 @@ let describe_location () =
       (fn+1) (ln+1) state.pagecount percent
 ;;
 
+let columns_to_string (n, a, b) =
+  if a = 0 && b = 0
+  then Printf.sprintf "%d" n
+  else Printf.sprintf "%d,%d,%d" n a b;
+;;
+
+let columns_of_string s =
+  try
+    (int_of_string s, 0, 0)
+  with _ ->
+    Scanf.sscanf s "%u,%u,%u" (fun n a b -> (n, a, b));
+;;
+
 let enterinfomode =
   let btos b = if b then "\xe2\x88\x9a" else "" in
   let showextended = ref false in
@@ -3678,12 +3701,14 @@ let enterinfomode =
         | _ -> ()
       );
 
-    src#int "columns"
+    src#string "columns"
       (fun () ->
         match conf.columns with
-        | None -> 1
-        | Some (n, _) -> n)
-      (fun v -> setcolumns v);
+        | None -> "1"
+        | Some (multicol, _) -> columns_to_string multicol)
+      (fun v ->
+        let n, a, b = columns_of_string v in
+        setcolumns n a b);
 
     sep ();
     src#caption "Presentation mode" 0;
@@ -4360,7 +4385,7 @@ let birdseyespecial key ((oconf, leftx, _, hooverpageno, anchor) as beye) =
   let incr =
     match conf.columns with
     | None -> 1
-    | Some (c, _) -> c
+    | Some ((c, _, _), _) -> c
   in
   match key with
   | Glut.KEY_UP -> upbirdseye incr beye
@@ -5140,7 +5165,8 @@ struct
         | "ghyllscroll" ->
             { c with ghyllscroll = Some (ghyllscroll_of_string v) }
         | "columns" ->
-            { c with columns = Some (max (int_of_string v) 2, [||]) }
+            let nab = columns_of_string v in
+            { c with columns = Some (nab, [||]) }
         | "birds-eye-columns" ->
             { c with beyecolumns = Some (max (int_of_string v) 2) }
         | _ -> c
@@ -5498,7 +5524,8 @@ struct
       if always || a <> b
       then
         match a with
-        | Some (c, _) when c > 1 -> Printf.bprintf bb "\n    %s='%d'" s c
+        | Some ((n, a, b), _) when n > 1 ->
+            Printf.bprintf bb "\n    %s='%d,%d,%d'" s n a b
         | _ -> ()
     and obeco s a b =
       if always || a <> b
