@@ -4517,8 +4517,10 @@ let showsel () =
   | Msel ((x0, y0), (x1, y1)) ->
       let rec loop = function
         | l :: ls ->
-            if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
-              || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
+            if ((y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
+                 || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh))))
+              && ((x0 >= l.pagedispx && x0 <= (l.pagedispx + l.pagevw))
+                 || ((x1 >= l.pagedispx && x1 <= (l.pagedispx + l.pagevw))))
             then
               match getopaque l.pageno with
               | Some opaque ->
