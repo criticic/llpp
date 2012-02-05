@@ -74,6 +74,7 @@ tunables
 -t                      - set thumbnail width (pixels)
 -T                      - toggle trimming of margins
 -I                      - invert colors
+-C                      - set column count
 -f                      - toggle "what's under cursor" identification
     (only font name of the text under cursor and link target currently)
 

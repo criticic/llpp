@@ -646,6 +646,19 @@ let intentry_with_suffix text key =
       TEcont text
 ;;
 
+let columns_to_string (n, a, b) =
+  if a = 0 && b = 0
+  then Printf.sprintf "%d" n
+  else Printf.sprintf "%d,%d,%d" n a b;
+;;
+
+let columns_of_string s =
+  try
+    (int_of_string s, 0, 0)
+  with _ ->
+    Scanf.sscanf s "%u,%u,%u" (fun n a b -> (n, a, b));
+;;
+
 let writecmd fd s =
   let len = String.length s in
   let n = 4 + len in
@@ -2278,6 +2291,17 @@ let optentry mode _ key =
       in
       TEswitch ("auto scroll step: ", "", None, intentry, ondone)
 
+  | 'C' ->
+      let ondone s =
+        try
+          let n, a, b = columns_of_string s in
+          setcolumns n a b;
+        with exc ->
+          state.text <- Printf.sprintf "bad columns `%s': %s"
+            s (Printexc.to_string exc)
+      in
+      TEswitch ("columns: ", "", None, textentry, ondone)
+
   | 'Z' ->
       let ondone s =
         try
@@ -3380,19 +3404,6 @@ let describe_location () =
       (fn+1) (ln+1) state.pagecount percent
 ;;
 
-let columns_to_string (n, a, b) =
-  if a = 0 && b = 0
-  then Printf.sprintf "%d" n
-  else Printf.sprintf "%d,%d,%d" n a b;
-;;
-
-let columns_of_string s =
-  try
-    (int_of_string s, 0, 0)
-  with _ ->
-    Scanf.sscanf s "%u,%u,%u" (fun n a b -> (n, a, b));
-;;
-
 let enterinfomode =
   let btos b = if b then "\xe2\x88\x9a" else "" in
   let showextended = ref false in
@@ -4121,7 +4132,7 @@ let viewkeyboard key =
   | '-' ->
       let ondone msg = state.text <- msg in
       enttext (
-        "option [acfhilpstvAPRSZTI]: ", "", None,
+        "option [acfhilpstvACPRSZTI]: ", "", None,
         optentry state.mode, ondone
       )
 
