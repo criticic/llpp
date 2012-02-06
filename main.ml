@@ -931,7 +931,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
               then 0, -pdx, w + pdx
               else pdx, 0, min (conf.winw - state.scrollw) w
             in
-            let pagevh = h - pagey in
+            let pagevh = min (h - pagey) (sh - pagedispy) in
             if pagedispx < conf.winw - state.scrollw && pagevw > 0 && pagevh > 0
             then
               let e =
