@@ -1468,7 +1468,7 @@ let represent () =
               | _ ->
                   pdimno, pdim, pdims
             in
-            let x, y, rowh =
+            let x, y, rowh' =
               if pageno = coverA - 1 || pageno = state.pagecount - coverB
               then (
                 (conf.winw - state.scrollw - w) / 2,
@@ -1480,25 +1480,21 @@ let represent () =
                 else x + w + conf.interpagespace, y, max rowh h
               )
             in
+            let rec fixrow m = if m = pageno then () else
+                let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
+                if h < rowh
+                then (
+                  let y = y + (rowh - h) / 2 in
+                  a.(m) <- (pdimno, x, y, pdim);
+                );
+                fixrow (m+1)
+            in
+            if pageno > 1 && pageno mod columns = 0
+            then fixrow (pageno - columns);
             a.(pageno) <- (pdimno, x, y, pdim);
-            loop (pageno+1) pdimno pdim x y rowh pdims
+            loop (pageno+1) pdimno pdim x y rowh' pdims
         in
         loop 0 ~-1 (-1,-1,-1,-1) 0 0 0 state.pdims;
-        let rec fix n rowh = if n = Array.length a then () else
-          let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(n) in
-          let rowh =
-            if n mod columns = 0
-            then h
-            else max h rowh
-          in
-          if h < rowh
-          then (
-            let y = y + (rowh - h) / 2 in
-            a.(n) <- (pdimno, x, y, pdim);
-          );
-          fix (n+1) rowh
-        in
-        fix 0 0;
         conf.columns <- Some ((columns, coverA, coverB), a);
   in
   docolumns conf.columns;
