@@ -907,14 +907,17 @@ let layout1 y sh =
     []
 ;;
 
-let layoutN (_, b) y sh =
+let layoutN ((columns, coverA, coverB), b) y sh =
   let sh = sh - state.hscrollh in
   let rec fold accu n =
     if n = Array.length b
     then accu
     else
       let pdimno, dx, vy, (_, w, h, xoff) = b.(n) in
-      if (vy - y) > sh
+      if (vy - y) > sh &&
+        (n = coverA - 1
+            || n = state.pagecount - coverB
+            || (n - coverA) mod columns = columns - 1)
       then accu
       else
         let accu =
@@ -1489,7 +1492,7 @@ let represent () =
                 );
                 fixrow (m+1)
             in
-            if pageno > 1 && pageno mod columns = 0
+            if pageno > 1 && (pageno - coverA) mod columns = 0
             then fixrow (pageno - columns);
             a.(pageno) <- (pdimno, x, y, pdim);
             let x = x + w + xoff*2 + conf.interpagespace in
