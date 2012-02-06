@@ -69,6 +69,7 @@ cclib="$cclib -lmupdf -lmuxps -lmucbz -lfitz"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
 cclib="$cclib -lX11"
 
+echo Building llpp...
 if test "$1" = "opt"; then
     cclib="$cclib -lpthread"
     ocamlopt -c -o link.o -ccopt "$ccopt" $srcpath/link.c
@@ -99,3 +100,4 @@ else
         parser.cmo \
         main.cmo
 fi
+echo All done
