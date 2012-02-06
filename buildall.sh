@@ -1,6 +1,17 @@
 # builds "hard" prerequisites and llpp
 set -e
 
+jobs=1
+while getopts j: opt; do
+    case "$opt" in
+        j) jobs="$OPTARG";;
+        ?)
+        printf "usage: $0 [-j N] [opt]\n";
+        exit 1;;
+    esac
+done
+shift $((OPTIND - 1))
+
 mkdir -p 3rdp
 cd 3rdp
 root=$(pwd)
@@ -32,7 +43,7 @@ make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
             DLLDIR=$root/lib/ocaml/stublibs \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-(cd mupdf && $make build=release)
+(cd mupdf && $make -j "$jobs" build=release)
 
 cd ..
 
