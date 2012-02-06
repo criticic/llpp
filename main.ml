@@ -1461,7 +1461,7 @@ let represent () =
           if pageno = state.pagecount
           then ()
           else
-            let pdimno, ((_, w, h, _) as pdim), pdims =
+            let pdimno, ((_, w, h, xoff) as pdim), pdims =
               match pdims with
               | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
                   pdimno+1, pdim, rest
@@ -1477,7 +1477,7 @@ let represent () =
               else (
                 if (pageno - coverA) mod columns = 0
                 then 0, y + rowh + conf.interpagespace, h
-                else x + w + conf.interpagespace, y, max rowh h
+                else x, y, max rowh h
               )
             in
             let rec fixrow m = if m = pageno then () else
@@ -1492,6 +1492,7 @@ let represent () =
             if pageno > 1 && pageno mod columns = 0
             then fixrow (pageno - columns);
             a.(pageno) <- (pdimno, x, y, pdim);
+            let x = x + w + xoff*2 + conf.interpagespace in
             loop (pageno+1) pdimno pdim x y rowh' pdims
         in
         loop 0 ~-1 (-1,-1,-1,-1) 0 0 0 state.pdims;
