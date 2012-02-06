@@ -5688,10 +5688,20 @@ struct
         )
       in
 
-      let pan =
+      let pan, conf =
         match state.mode with
-        | Birdseye (_, pan, _, _, _) -> pan
-        | _ -> state.x
+        | Birdseye (c, pan, _, _, _) ->
+            let beyecolumns =
+              match conf.columns with
+              | Some ((c, _, _), _) -> Some c
+              | None -> None
+            and columns =
+              match c.columns with
+              | Some (c, _) -> Some (c, [||])
+              | None -> None
+            in
+            pan, { c with beyecolumns = beyecolumns; columns = columns }
+        | _ -> state.x, conf
       in
       let basename = Filename.basename state.path in
       adddoc basename pan (getanchor ())
