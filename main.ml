@@ -926,7 +926,11 @@ let layoutN ((columns, coverA, coverB), b) y sh =
             let pagey = max 0 (y - vy) in
             let pagedispy = if pagey > 0 then 0 else vy - y in
             let pagedispx, pagex, pagevw =
-              let pdx = dx + xoff + state.x in
+              let pdx =
+                if n = coverA - 1 || n = state.pagecount - coverB
+                then state.x + (conf.winw - state.scrollw - w) / 2
+                else dx + xoff + state.x
+              in
               if pdx < 0
               then 0, -pdx, w + pdx
               else pdx, 0, min (conf.winw - state.scrollw) w
