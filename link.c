@@ -11,7 +11,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
-#define fionread_arg long
+#define fionread_arg u_long
 #define ssize_t int
 #define FMT_ss "d"
 #ifdef _WIN64
@@ -577,7 +577,7 @@ static int readlen (int fd)
     ssize_t n;
     unsigned char p[4];
 
-    n = recv (fd, p, 4, 0);
+    n = recv (fd, (char *) p, 4, 0);
     if (n != 4) {
         if (!n) errx (1, "EOF while reading length");
         sockerr (1, "recv %" FMT_ss, n);
