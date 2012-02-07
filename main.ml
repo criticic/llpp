@@ -38,7 +38,8 @@ and colorspace     = | Rgb | Bgr | Gray
 ;;
 
 type platform = | Punknown | Plinux | Pwindows | Posx | Psun
-                | Pfreebsd | Pdragonflybsd | Popenbsd | Pmingw | Pcygwin;;
+                | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
+                | Pmingw | Pcygwin;;
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;
 external seltext : string -> (int * int * int * int) -> unit = "ml_seltext";;
@@ -64,6 +65,7 @@ let platform_to_string = function
   | Pfreebsd      -> "FreeBSD"
   | Pdragonflybsd -> "DragonflyBSD"
   | Popenbsd      -> "OpenBSD"
+  | Pnetbsd       -> "NetBSD"
   | Pcygwin       -> "Cygwin"
   | Pmingw        -> "MingW"
 ;;

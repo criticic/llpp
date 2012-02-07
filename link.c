@@ -2513,7 +2513,7 @@ static void set_wm_class (int hack)
 
 enum { piunknown, pilinux, piwindows, piosx,
        pisun, pifreebsd, pidragonflybsd,
-       piopenbsd, pimingw, picygwin };
+       piopenbsd, pinetbsd, pimingw, picygwin };
 
 CAMLprim value ml_platform (value unit_v)
 {
@@ -2534,6 +2534,8 @@ CAMLprim value ml_platform (value unit_v)
     platid = pifreebsd;
 #elif defined __OpenBSD__
     platid = piopenbsd;
+#elif defined __NetBSD__
+    platid = pinetbsd;
 #elif defined __sun__
     platid = pisun;
 #elif defined __APPLE__
