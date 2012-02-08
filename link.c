@@ -27,7 +27,7 @@
 #pragma warning (disable:4995)
 #define NORETURN __declspec (noreturn)
 #define UNUSED
-#define OPTIMIZE
+#define OPTIMIZE(n)
 #elif defined __GNUC__
 #define NORETURN __attribute__ ((noreturn))
 #define UNUSED __attribute__ ((unused))
@@ -35,7 +35,7 @@
 #else
 #define NORETURN
 #define UNUSED
-#define OPTIMIZE
+#define OPTIMIZE(n)
 #endif
 
 #ifdef __MINGW32__
