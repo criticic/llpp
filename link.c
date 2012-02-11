@@ -2196,8 +2196,8 @@ static int pipespan (FILE *f, fz_text_span *span, int a, int b)
         ret = fwrite (buf, len, 1, f);
 
         if (ret != 1) {
-            printd (state.sock, "msg failed to write %d bytes ret=%d: %s",
-                    len, ret, strerror (errno));
+            fprintf (stderr, "failed to write %d bytes ret=%d: %s\n",
+                     len, ret, strerror (errno));
             return -1;
         }
     }
@@ -2221,8 +2221,8 @@ CAMLprim value ml_copysel (value ptr_v)
         if (state.xselpipe) {
             int ret = pclose (state.xselpipe);
             if (ret)  {
-                printd (state.sock, "msg failed to close xsel pipe `%s'",
-                        strerror (errno));
+                fprintf (stderr, "failed to close xsel pipe: %s\n",
+                         strerror (errno));
             }
             state.xselpipe = NULL;
         }
@@ -2236,7 +2236,7 @@ CAMLprim value ml_copysel (value ptr_v)
         page = parse_pointer ("ml_sopysel", s);
 
         if (!page->fmark.span || !page->lmark.span) {
-            printd (state.sock, "msg nothing to copy");
+            fprintf (stderr, "nothing to copy");
             goto unlock;
         }
 
@@ -2245,8 +2245,8 @@ CAMLprim value ml_copysel (value ptr_v)
         if (!state.xselpipe) {
             state.xselpipe = popen ("xsel -i", "w");
             if (!state.xselpipe) {
-                printd (state.sock, "msg failed to open xsel pipe `%s'",
-                        strerror (errno));
+                fprintf (stderr, "failed to open xsel pipe: %s\n",
+                         strerror (errno));
             }
             else {
                 f = state.xselpipe;
@@ -2267,9 +2267,8 @@ CAMLprim value ml_copysel (value ptr_v)
             }
             if (span->eol)  {
                 if (putc ('\n', f) == EOF) {
-                    printd (state.sock,
-                            "msg failed break line on xsel pipe `%s'",
-                            strerror (errno));
+                    fprintf (stderr, "failed break line on xsel pipe: %s\n",
+                             strerror (errno));
                     goto close;
                 }
             }
