@@ -3135,7 +3135,7 @@ let outlinesource usebookmarks =
         (s, n)
 
     method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
-      ignore (uioh, first, pan, qsearch);
+      ignore (uioh, first, qsearch);
       let confrimremoval = m_hadremovals && active = Array.length m_items in
       let items =
         if String.length m_narrow_pattern = 0
@@ -3156,6 +3156,7 @@ let outlinesource usebookmarks =
         )
       )
       else m_items <- items;
+      m_pan <- pan;
       None
 
     method hasaction _ = true
