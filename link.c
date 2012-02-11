@@ -668,10 +668,10 @@ static void OPTIMIZE (3) clearpixmap (fz_pixmap *pixmap)
         }
         while (i < sizea) *((char *) a1 + i++) = 0xff;
     }
-    else fz_clear_pixmap_with_color (state.ctx, pixmap, 0xff);
+    else fz_clear_pixmap_with_value (state.ctx, pixmap, 0xff);
 }
 #else
-#define clearpixmap(p) fz_clear_pixmap_with_color (state.ctx, p, 0xff)
+#define clearpixmap(p) fz_clear_pixmap_with_value (state.ctx, p, 0xff)
 #endif
 
 static fz_matrix trimctm (pdf_page *page, int pindex)
@@ -817,7 +817,7 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
     tile->h = h;
     clearpixmap (tile->pixmap);
     dev = fz_new_draw_device (state.ctx, tile->pixmap);
-    fz_execute_display_list (page->dlist, dev, pagectm (page), bbox, NULL);
+    fz_run_display_list (page->dlist, dev, pagectm (page), bbox, NULL);
     fz_free_device (dev);
 
     return tile;
@@ -1976,10 +1976,10 @@ static void ensuretext (struct page *page)
 
         page->text = fz_new_text_span (state.ctx);
         tdev = fz_new_text_device (state.ctx, page->text);
-        fz_execute_display_list (page->dlist,
-                                 tdev,
-                                 pagectm (page),
-                                 fz_infinite_bbox, NULL);
+        fz_run_display_list (page->dlist,
+                             tdev,
+                             pagectm (page),
+                             fz_infinite_bbox, NULL);
         fz_free_device (tdev);
     }
 }
@@ -2563,7 +2563,7 @@ CAMLprim value ml_init (value sock_v, value params_v)
     texcount = Int_val (Field (params_v, 3));
     state.sliceheight = Int_val (Field (params_v, 4));
     mustoresize = Int_val (Field (params_v, 5));
-    state.ctx = fz_new_context (&fz_alloc_default, mustoresize);
+    state.ctx = fz_new_context (NULL, NULL, mustoresize);
     colorspace = Int_val (Field (params_v, 6));
     wmclasshack = Bool_val (Field (params_v, 7));
     fontpath = String_val (Field (params_v, 8));
