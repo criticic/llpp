@@ -2548,15 +2548,23 @@ CAMLprim value ml_init (value sock_v, value params_v)
 {
     CAMLparam2 (sock_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
-#ifndef _WIN32
     int ret;
-#endif
     char *fontpath;
     int texcount;
     int wmclasshack;
     int colorspace;
     int mustoresize;
 
+#ifdef _WIN32
+    WSADATA wsaData;
+    WORD wVersionRequested;
+
+    wVersionRequested = MAKEWORD (2, 0);
+    ret = WSAStartup (wVersionRequested, &wsaData);
+    if (ret) {
+        errx (1, "wsaStartup: 0x%x\n", ret);
+    }
+#endif
     state.rotate = Int_val (Field (params_v, 0));
     state.proportional = Bool_val (Field (params_v, 1));
     trim_v = Field (params_v, 2);

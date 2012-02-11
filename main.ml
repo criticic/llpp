@@ -433,7 +433,7 @@ let defconf =
       (match platform with
       | Plinux | Pfreebsd | Pdragonflybsd | Popenbsd | Psun -> "xdg-open \"%s\""
       | Posx -> "open \"%s\""
-      | Pwindows | Pcygwin | Pmingw -> "iexplore \"%s\""
+      | Pwindows | Pcygwin | Pmingw -> "start %s"
       | _ -> "")
   ; colorspace     = Rgb
   ; invert         = false
@@ -467,23 +467,51 @@ let setfontsize n =
   fstate.maxrows <- (conf.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
+let validuri s =
+  let colonpos = try String.index s ':' with Not_found -> -1 in
+  let len = String.length s in
+  if colonpos >= 0 && colonpos + 3 < len
+  then (
+    if s.[colonpos+1] = '/' && s.[colonpos+2] = '/'
+    then
+      let scheme =
+        let schemestartpos =
+          try String.rindex_from s colonpos ' '
+          with Not_found -> -1
+        in
+        String.sub s (schemestartpos+1) (colonpos-1-schemestartpos)
+      in
+      match scheme with
+      | "http" | "ftp" | "mailto" -> true
+      | _ -> false
+    else
+      false
+  )
+  else
+    false
+;;
+
 let gotouri uri =
   if String.length conf.urilauncher = 0
   then print_endline uri
-  else
-    let re = Str.regexp "%s" in
-    let command = Str.global_replace re uri conf.urilauncher in
-    let optic =
-      try Some (Unix.open_process_in command)
-      with exn ->
-        Printf.eprintf
-          "failed to execute `%s': %s\n" command (Printexc.to_string exn);
-        flush stderr;
-        None
-    in
-    match optic with
-    | Some ic -> close_in ic
-    | None -> ()
+  else (
+    if not (validuri uri)
+    then print_endline uri
+    else
+      let re = Str.regexp "%s" in
+      let command = Str.global_replace re uri conf.urilauncher in
+      let optic =
+        try Some (Unix.open_process_in command)
+        with exn ->
+          Printf.eprintf
+            "failed to execute `%s': %s\n" command (Printexc.to_string exn);
+          flush stderr;
+          None
+      in
+      match optic with
+      | Some ic -> close_in ic
+      | None -> ()
+  );
 ;;
 
 let version () =
@@ -494,14 +522,11 @@ let version () =
 let makehelp () =
   let strings = version () :: "" :: Help.keys in
   Array.of_list (
-    let r = Str.regexp "\\(http://[^ ]+\\)" in
     List.map (fun s ->
-      if (try Str.search_forward r s 0 with Not_found -> -1) >= 0
-      then
-        let uri = Str.matched_string s in
-        (s, 0, Action (fun u -> gotouri uri; u))
-      else s, 0, Noaction) strings
-  );
+      if validuri s
+      then (s, 0, Action (fun u -> gotouri s; u))
+      else (s, 0, Noaction)
+  ) strings);
 ;;
 
 let noghyll _ = ();;
@@ -686,7 +711,22 @@ let readcmd fd =
     lor (Char.code s.[3] lsl  0)
   in
   let s = String.create len in
-  let n = Unix.read fd s 0 len in
+  let n =
+    if is_windows
+    then
+      let rec loop n =
+        if n = 10
+        then failwith "EWOULDBLOCK encountered 10 times"
+        else
+          try
+            Unix.read fd s 0 len
+          with Unix.Unix_error (Unix.EWOULDBLOCK, _, _) ->
+            let _, _, _ = Unix.select [fd] [] [] 0.01 in
+            loop (n+1)
+      in loop 0
+    else
+      Unix.read fd s 0 len
+  in
   if n != len then failwith "incomplete read(data)";
   s
 ;;
