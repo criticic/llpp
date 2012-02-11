@@ -51,7 +51,7 @@
 #endif
 
 #ifdef _WIN32
-static void __declspec (noreturn) sockerr (int exitcode, const char *fmt, ...)
+static void NORETURN sockerr (int exitcode, const char *fmt, ...)
 {
     va_list ap;
 
