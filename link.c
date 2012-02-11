@@ -2562,7 +2562,7 @@ CAMLprim value ml_init (value sock_v, value params_v)
     wVersionRequested = MAKEWORD (2, 0);
     ret = WSAStartup (wVersionRequested, &wsaData);
     if (ret) {
-        errx (1, "wsaStartup: 0x%x\n", ret);
+        errx (1, "WSAStartup: 0x%x\n", ret);
     }
 #endif
     state.rotate = Int_val (Field (params_v, 0));
