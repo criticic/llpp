@@ -2596,7 +2596,6 @@ CAMLprim value ml_init (value sock_v, value params_v)
     }
     if (!state.face) _exit (1);
 
-    fz_accelerate ();
     realloctexts (texcount);
 
 #ifdef _WIN32

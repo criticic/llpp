@@ -19,10 +19,10 @@ root=$(pwd)
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf=git://git.ghostscript.com/mupdf.git
 mupdf3p=http://mupdf.com/download/mupdf-thirdparty-2012-01-27.zip
-mupdfrev=cba6fa1404cf61a6229318415801557e80c6f779
+mupdfrev=7d181099272d9c0e92c4488ceaa95b0d8bd10f1e
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
-if ! test -d mupdf; then
+if ! test -f mupdf-$mupdfrev.tgz; then
     wget -nc \
        "http://git.ghostscript.com/?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz" \
        -O mupdf-$mupdfrev.tgz
@@ -65,7 +65,7 @@ ccopt="$ccopt -I $root/mupdf/cbz"
 ccopt="$ccopt -include ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/mupdf/build/release"
-cclib="$cclib -lmupdf -lmuxps -lmucbz -lfitz"
+cclib="$cclib -lfitz"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
 cclib="$cclib -lX11"
 

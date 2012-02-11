@@ -29,7 +29,7 @@ ccopt="-std=c89 -Wall -Werror"
 ccopt="$ccopt -I$mupdf/fitz -I$mupdf/pdf -I$mupdf/xps -I$mupdf/cbz"
 ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"
-libs="-lmupdf -lmuxps -lmucbz -lfitz"
+libs="-lfitz"
 libs="$libs -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig -lX11"
 ccopt="$ccopt -maltivec -O -D_GNU_SOURCE"
 
