@@ -592,9 +592,9 @@ let state =
   ; invalidated   = 0
   ; hists         =
       { nav       = cbnew 10 (0, 0.0)
-      ; pat       = cbnew 1 ""
-      ; pag       = cbnew 1 ""
-      ; sel       = cbnew 1 ""
+      ; pat       = cbnew 10 ""
+      ; pag       = cbnew 10 ""
+      ; sel       = cbnew 10 ""
       }
   ; memused       = 0
   ; gen           = 0
