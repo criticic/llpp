@@ -2243,11 +2243,10 @@ CAMLprim value ml_copysel (value command_v, value ptr_v)
         if (state.selpipe) {
             int ret = pclose (state.selpipe);
             if (ret == -1)  {
-#ifdef __linux__
-                if (errno != ECHILD)
-#endif
+                if (errno != ECHILD) {
                     fprintf (stderr, "failed to close sel pipe: %s\n",
                              strerror (errno));
+                }
             }
             state.selpipe = NULL;
         }
