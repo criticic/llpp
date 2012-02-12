@@ -2538,37 +2538,35 @@ enum { piunknown, pilinux, piwindows, piosx,
        pisun, pifreebsd, pidragonflybsd,
        piopenbsd, pinetbsd, pimingw, picygwin };
 
+#define NOZOMBIESPLEASE
+
 CAMLprim value ml_platform (value unit_v)
 {
     CAMLparam1 (unit_v);
     int platid = piunknown;
 
 #if defined __linux__
-#define NOZOMBIESPLEASE
     platid = pilinux;
 #elif defined __CYGWIN__
+#undef NOZOMBIESPLEASE
     platid = picygwin;
 #elif defined __MINGW32__
+#undef NOZOMBIESPLEASE
     platid = pimingw;
 #elif defined _WIN32
+#undef NOZOMBIESPLEASE
     platid = piwindows;
 #elif defined __DragonFly__
-#define NOZOMBIESPLEASE
     platid = pidragonflybsd;
 #elif defined __FreeBSD__
-#define NOZOMBIESPLEASE
     platid = pifreebsd;
 #elif defined __OpenBSD__
-#define NOZOMBIESPLEASE
     platid = piopenbsd;
 #elif defined __NetBSD__
-#define NOZOMBIESPLEASE
     platid = pinetbsd;
 #elif defined __sun__
-#define NOZOMBIESPLEASE
     platid = pisun;
 #elif defined __APPLE__
-#define NOZOMBIESPLEASE
     platid = piosx;
 #endif
     CAMLreturn (Val_int (platid));
