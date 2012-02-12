@@ -2518,6 +2518,7 @@ CAMLprim value ml_platform (value unit_v)
     int platid = piunknown;
 
 #if defined __linux__
+#define NOZOMBIESPLEASE
     platid = pilinux;
 #elif defined __CYGWIN__
     platid = picygwin;
@@ -2526,20 +2527,30 @@ CAMLprim value ml_platform (value unit_v)
 #elif defined _WIN32
     platid = piwindows;
 #elif defined __DragonFly__
+#define NOZOMBIESPLEASE
     platid = pidragonflybsd;
 #elif defined __FreeBSD__
+#define NOZOMBIESPLEASE
     platid = pifreebsd;
 #elif defined __OpenBSD__
+#define NOZOMBIESPLEASE
     platid = piopenbsd;
 #elif defined __NetBSD__
+#define NOZOMBIESPLEASE
     platid = pinetbsd;
 #elif defined __sun__
+#define NOZOMBIESPLEASE
     platid = pisun;
 #elif defined __APPLE__
+#define NOZOMBIESPLEASE
     platid = piosx;
 #endif
     CAMLreturn (Val_int (platid));
 }
+
+#ifdef NOZOMBIESPLEASE
+#include <signal.h>
+#endif
 
 CAMLprim value ml_init (value sock_v, value params_v)
 {
@@ -2595,6 +2606,21 @@ CAMLprim value ml_init (value sock_v, value params_v)
     if (!state.face) _exit (1);
 
     realloctexts (texcount);
+
+#ifdef NOZOMBIESPLEASE
+    {
+        struct sigaction sa;
+
+        sa.sa_handler = SIG_DFL;
+        if (sigemptyset (&sa.sa_mask)) {
+            err (1, "sigemptyset");
+        }
+        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
+        if (sigaction (SIGCHLD, &sa, NULL)) {
+            err (1, "sigaction");
+        }
+    }
+#endif
 
 #ifdef _WIN32
     state.sock = Socket_val (sock_v);

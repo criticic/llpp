@@ -2036,7 +2036,10 @@ let idle () =
       then max 0.0 (deadline -. now ())
       else 0.0
     in
-    let r, _, _ = Unix.select r [] [] timeout in
+    let r, _, _ =
+      try Unix.select r [] [] timeout
+      with Unix.Unix_error (Unix.EINTR, _, _) -> [], [] ,[]
+    in
     begin match r with
     | [] ->
         state.ghyll None;
