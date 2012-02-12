@@ -202,8 +202,12 @@ struct page {
     void (*freepage) (void *);
 };
 
-#if !defined __APPLE__
-#define USE_XSEL
+#if defined __APPLE__
+#define SELCMD "pbcopy"
+#elif defined _WIN32 || defined __CYGWIN__
+#define SELCMD "wsel"
+#else
+#define SELCMD "xsel -i"
 #endif
 
 struct {
@@ -253,7 +257,7 @@ struct {
 #else
     pthread_t thread;
 #endif
-    FILE *xselpipe;
+    FILE *selpipe;
 
     FT_Face face;
 
@@ -2217,18 +2221,14 @@ CAMLprim value ml_copysel (value ptr_v)
 
     if (!*s)  {
     close:
-#ifdef USE_XSEL
-        if (state.xselpipe) {
-            int ret = pclose (state.xselpipe);
+        if (state.selpipe) {
+            int ret = pclose (state.selpipe);
             if (ret == -1)  {
-                fprintf (stderr, "failed to close xsel pipe: %s\n",
+                fprintf (stderr, "failed to close sel pipe: %s\n",
                          strerror (errno));
             }
-            state.xselpipe = NULL;
+            state.selpipe = NULL;
         }
-#else
-        printf ("========================================\n");
-#endif
     }
     else {
         fz_text_span *span;
@@ -2241,21 +2241,19 @@ CAMLprim value ml_copysel (value ptr_v)
         }
 
         f = stdout;
-#ifdef USE_XSEL
-        if (!state.xselpipe) {
-            state.xselpipe = popen ("xsel -i", "w");
-            if (!state.xselpipe) {
-                fprintf (stderr, "failed to open xsel pipe: %s\n",
+        if (!state.selpipe) {
+            state.selpipe = popen (SELCMD, "w");
+            if (!state.selpipe) {
+                fprintf (stderr, "failed to open sel pipe: %s\n",
                          strerror (errno));
             }
             else {
-                f = state.xselpipe;
+                f = state.selpipe;
             }
         }
         else  {
-            f = state.xselpipe;
+            f = state.selpipe;
         }
-#endif
 
         for (span = page->fmark.span;
              span && span != page->lmark.span->next;
@@ -2267,7 +2265,7 @@ CAMLprim value ml_copysel (value ptr_v)
             }
             if (span->eol)  {
                 if (putc ('\n', f) == EOF) {
-                    fprintf (stderr, "failed break line on xsel pipe: %s\n",
+                    fprintf (stderr, "failed break line on sel pipe: %s\n",
                              strerror (errno));
                     goto close;
                 }
