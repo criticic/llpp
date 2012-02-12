@@ -3,6 +3,10 @@ type under =
     | Ulinkuri of string
     | Ulinkgoto of (int * int)
     | Utext of facename
+    | Uunexpected of string
+    | Ulaunch of string
+    | Unamed of string
+    | Uremote of string
 and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
@@ -4868,6 +4872,8 @@ let viewmouse button bstate x y =
       | Ulinkuri s ->
           gotouri s
 
+      | Uremote _ | Uunexpected _ | Ulaunch _ | Unamed _ -> ()
+
       | Unone when bstate = Glut.DOWN ->
           Glut.setCursor Glut.CURSOR_CROSSHAIR;
           state.mstate <- Mpan (x, y);
@@ -5127,6 +5133,18 @@ let uioh = object
             | Utext s ->
                 if conf.underinfo then showtext 'f' ("ont: " ^ s);
                 Glut.setCursor Glut.CURSOR_TEXT
+            | Uunexpected s ->
+                if conf.underinfo then showtext 'u' ("nexpected: " ^ s);
+                Glut.setCursor Glut.CURSOR_INHERIT
+            | Ulaunch s ->
+                if conf.underinfo then showtext 'l' ("launch: " ^ s);
+                Glut.setCursor Glut.CURSOR_INHERIT
+            | Unamed s ->
+                if conf.underinfo then showtext 'n' ("named: " ^ s);
+                Glut.setCursor Glut.CURSOR_INHERIT
+            | Uremote s ->
+                if conf.underinfo then showtext 'r' ("emote: " ^ s);
+                Glut.setCursor Glut.CURSOR_INHERIT
             end
 
         | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ ->

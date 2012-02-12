@@ -2037,8 +2037,34 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             Field (ret_v, 0) = str_v;
             break;
 
+        case FZ_LINK_LAUNCH:
+            str_v = caml_copy_string (link->dest.ld.launch.file_spec);
+            ret_v = caml_alloc_small (1, 4);
+            Field (ret_v, 0) = str_v;
+            break;
+
+        case FZ_LINK_NAMED:
+            str_v = caml_copy_string (link->dest.ld.named.named);
+            ret_v = caml_alloc_small (1, 5);
+            Field (ret_v, 0) = str_v;
+            break;
+
+        case FZ_LINK_GOTOR:
+            str_v = caml_copy_string (link->dest.ld.gotor.file_spec);
+            ret_v = caml_alloc_small (1, 6);
+            Field (ret_v, 0) = str_v;
+            break;
+
         default:
-            printd (state.sock, "msg unhandled link kind %d", link->dest.kind);
+            {
+                char buf[80];
+
+                snprintf (buf, sizeof (buf),
+                          "unhandled link kind %d", link->dest.kind);
+                str_v = caml_copy_string (buf);
+                ret_v = caml_alloc_small (1, 3);
+                Field (ret_v, 0) = str_v;
+            }
             break;
         }
     }
