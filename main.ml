@@ -4926,17 +4926,21 @@ let viewmouse button bstate x y =
                 state.mstate <- Mnone
 
             | Msel ((_, y0), (_, y1)) ->
-                let f l =
-                  if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
-                    || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh)))
-                  then
-                    match getopaque l.pageno with
-                    | Some opaque ->
-                        copysel conf.selcmd opaque
-                    | _ -> ()
+                let rec loop = function
+                  | [] -> ()
+                  | l :: rest ->
+                      if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
+                        || ((y1 >= l.pagedispy
+                              && y1 <= (l.pagedispy + l.pagevh)))
+                      then
+                        match getopaque l.pageno with
+                        | Some opaque ->
+                            copysel conf.selcmd opaque;
+                            G.postRedisplay "copysel"
+                        | _ -> ()
+                      else loop rest
                 in
-                List.iter f state.layout;
-                copysel "" "";          (* ugly *)
+                loop state.layout;
                 Glut.setCursor Glut.CURSOR_INHERIT;
                 state.mstate <- Mnone;
           )

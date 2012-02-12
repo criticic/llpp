@@ -249,8 +249,6 @@ struct {
 #else
     pthread_t thread;
 #endif
-    FILE *selpipe;
-
     FT_Face face;
 
     void (*closedoc) (void);
@@ -2231,6 +2229,7 @@ CAMLprim value ml_copysel (value command_v, value ptr_v)
     CAMLparam1 (ptr_v);
     FILE *f;
     struct page *page;
+    fz_text_span *span;
     char *s = String_val (ptr_v);
     char *command = String_val (command_v);
 
@@ -2238,64 +2237,50 @@ CAMLprim value ml_copysel (value command_v, value ptr_v)
         goto done;
     }
 
-    if (!*s)  {
-    close:
-        if (state.selpipe) {
-            int ret = pclose (state.selpipe);
-            if (ret == -1)  {
-                if (errno != ECHILD) {
-                    fprintf (stderr, "failed to close sel pipe: %s\n",
-                             strerror (errno));
-                }
-            }
-            state.selpipe = NULL;
-        }
+
+    page = parse_pointer ("ml_sopysel", s);
+
+    if (!page->fmark.span || !page->lmark.span) {
+        fprintf (stderr, "nothing to copy");
+        goto unlock;
     }
-    else {
-        fz_text_span *span;
 
-        page = parse_pointer ("ml_sopysel", s);
-
-        if (!page->fmark.span || !page->lmark.span) {
-            fprintf (stderr, "nothing to copy");
-            goto unlock;
-        }
-
+    f = popen (command, "w");
+    if (!f) {
+        fprintf (stderr, "failed to open sel pipe: %s\n",
+                 strerror (errno));
         f = stdout;
-        if (!state.selpipe) {
-            state.selpipe = popen (command, "w");
-            if (!state.selpipe) {
-                fprintf (stderr, "failed to open sel pipe: %s\n",
-                         strerror (errno));
-            }
-            else {
-                f = state.selpipe;
-            }
-        }
-        else  {
-            f = state.selpipe;
-        }
+    }
 
-        for (span = page->fmark.span;
-             span && span != page->lmark.span->next;
-             span = span->next) {
-            int a = span == page->fmark.span ? page->fmark.i : 0;
-            int b = span == page->lmark.span ? page->lmark.i : span->len - 1;
-            if (pipespan (f, span, a, b))  {
+    for (span = page->fmark.span;
+         span && span != page->lmark.span->next;
+         span = span->next) {
+        int a = span == page->fmark.span ? page->fmark.i : 0;
+        int b = span == page->lmark.span ? page->lmark.i : span->len - 1;
+        if (pipespan (f, span, a, b))  {
+            goto close;
+        }
+        if (span->eol)  {
+            if (putc ('\n', f) == EOF) {
+                fprintf (stderr, "failed break line on sel pipe: %s\n",
+                         strerror (errno));
                 goto close;
             }
-            if (span->eol)  {
-                if (putc ('\n', f) == EOF) {
-                    fprintf (stderr, "failed break line on sel pipe: %s\n",
-                             strerror (errno));
-                    goto close;
-                }
+        }
+    }
+    page->lmark.span = NULL;
+    page->fmark.span = NULL;
+
+ close:
+    if (f != stdout) {
+        int ret = pclose (f);
+        if (ret == -1)  {
+            if (errno != ECHILD) {
+                fprintf (stderr, "failed to close sel pipe: %s\n",
+                         strerror (errno));
             }
         }
-        page->lmark.span = NULL;
-        page->fmark.span = NULL;
     }
-
  unlock:
     unlock ("ml_copysel");
 
