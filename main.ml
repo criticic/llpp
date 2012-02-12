@@ -494,6 +494,17 @@ let geturl s =
   else ""
 ;;
 
+let popen =
+  let shell, farg =
+    if is_windows
+    then (try Sys.getenv "COMSPEC" with Not_found -> "cmd"), "/c"
+    else "/bin/sh", "-c"
+  in
+  fun s ->
+    let args = [|shell; farg; s|] in
+    ignore (Unix.create_process shell args Unix.stdin Unix.stdout Unix.stderr)
+;;
+
 let gotouri uri =
   if String.length conf.urilauncher = 0
   then print_endline uri
@@ -504,17 +515,11 @@ let gotouri uri =
     else
       let re = Str.regexp "%s" in
       let command = Str.global_replace re url conf.urilauncher in
-      let optic =
-        try Some (Unix.open_process_in command)
-        with exn ->
-          Printf.eprintf
-            "failed to execute `%s': %s\n" command (Printexc.to_string exn);
-          flush stderr;
-          None
-      in
-      match optic with
-      | Some ic -> close_in ic
-      | None -> ()
+      try popen command
+      with exn ->
+        Printf.eprintf
+          "failed to execute `%s': %s\n" command (Printexc.to_string exn);
+        flush stderr;
   );
 ;;
 
