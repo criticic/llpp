@@ -47,7 +47,7 @@ type platform = | Punknown | Plinux | Pwindows | Posx | Psun
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;
 external seltext : string -> (int * int * int * int) -> unit = "ml_seltext";;
-external copysel : string ->  unit = "ml_copysel";;
+external copysel : string -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
@@ -272,6 +272,7 @@ type conf =
     ; mutable ghyllscroll    : (int * int * int) option
     ; mutable columns        : columns option
     ; mutable beyecolumns    : columncount option
+    ; mutable selcmd         : string
     }
 ;;
 
@@ -435,10 +436,20 @@ let defconf =
   ; aalevel        = 8
   ; urilauncher    =
       (match platform with
-      | Plinux | Pfreebsd | Pdragonflybsd | Popenbsd | Psun -> "xdg-open \"%s\""
+      | Plinux
+      | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
+      | Psun -> "xdg-open \"%s\""
       | Posx -> "open \"%s\""
       | Pwindows | Pcygwin | Pmingw -> "start %s"
-      | _ -> "")
+      | Punknown -> "echo %s")
+  ; selcmd         =
+      (match platform with
+      | Plinux
+      | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
+      | Psun  -> "xsel -i"
+      | Posx -> "pbcopy"
+      | Pwindows | Pcygwin | Pmingw -> "wsel"
+      | Punknown -> "cat")
   ; colorspace     = Rgb
   ; invert         = false
   ; colorscale     = 1.0
@@ -4908,11 +4919,11 @@ let viewmouse button bstate x y =
                   then
                     match getopaque l.pageno with
                     | Some opaque ->
-                        copysel opaque
+                        copysel conf.selcmd opaque
                     | _ -> ()
                 in
                 List.iter f state.layout;
-                copysel "";             (* ugly *)
+                copysel "" "";          (* ugly *)
                 Glut.setCursor Glut.CURSOR_INHERIT;
                 state.mstate <- Mnone;
           )

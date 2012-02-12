@@ -202,14 +202,6 @@ struct page {
     void (*freepage) (void *);
 };
 
-#if defined __APPLE__
-#define SELCMD "pbcopy"
-#elif defined _WIN32 || defined __CYGWIN__
-#define SELCMD "wsel"
-#else
-#define SELCMD "xsel -i"
-#endif
-
 struct {
     int sock;
     int type;
@@ -2234,12 +2226,13 @@ static int pipespan (FILE *f, fz_text_span *span, int a, int b)
     return 0;
 }
 
-CAMLprim value ml_copysel (value ptr_v)
+CAMLprim value ml_copysel (value command_v, value ptr_v)
 {
     CAMLparam1 (ptr_v);
     FILE *f;
     struct page *page;
     char *s = String_val (ptr_v);
+    char *command = String_val (command_v);
 
     if (trylock ("ml_copysel")) {
         goto done;
@@ -2250,8 +2243,11 @@ CAMLprim value ml_copysel (value ptr_v)
         if (state.selpipe) {
             int ret = pclose (state.selpipe);
             if (ret == -1)  {
-                fprintf (stderr, "failed to close sel pipe: %s\n",
-                         strerror (errno));
+#ifdef __linux__
+                if (errno != ECHILD)
+#endif
+                    fprintf (stderr, "failed to close sel pipe: %s\n",
+                             strerror (errno));
             }
             state.selpipe = NULL;
         }
@@ -2268,7 +2264,7 @@ CAMLprim value ml_copysel (value ptr_v)
 
         f = stdout;
         if (!state.selpipe) {
-            state.selpipe = popen (SELCMD, "w");
+            state.selpipe = popen (command, "w");
             if (!state.selpipe) {
                 fprintf (stderr, "failed to open sel pipe: %s\n",
                          strerror (errno));
