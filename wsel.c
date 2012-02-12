@@ -61,7 +61,6 @@ int main (void)
         tp,
         m
         );
-    printf ("n=%d m=%d k=%d\n", n, m, k);
     if (k != m) winerr (6, "MultiByteToWideChar %d %d", k, m);
     tp[k] = 0;
     GlobalUnlock (h);
