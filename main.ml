@@ -467,39 +467,43 @@ let setfontsize n =
   fstate.maxrows <- (conf.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
-let validuri s =
+let geturl s =
   let colonpos = try String.index s ':' with Not_found -> -1 in
   let len = String.length s in
   if colonpos >= 0 && colonpos + 3 < len
   then (
     if s.[colonpos+1] = '/' && s.[colonpos+2] = '/'
     then
+      let schemestartpos =
+        try String.rindex_from s colonpos ' '
+        with Not_found -> -1
+      in
       let scheme =
-        let schemestartpos =
-          try String.rindex_from s colonpos ' '
-          with Not_found -> -1
-        in
         String.sub s (schemestartpos+1) (colonpos-1-schemestartpos)
       in
       match scheme with
-      | "http" | "ftp" | "mailto" -> true
-      | _ -> false
-    else
-      false
+      | "http" | "ftp" | "mailto" ->
+          let epos =
+            try String.index_from s colonpos ' '
+            with Not_found -> len
+          in
+          String.sub s (schemestartpos+1) (epos-1-schemestartpos)
+      | _ -> ""
+    else ""
   )
-  else
-    false
+  else ""
 ;;
 
 let gotouri uri =
   if String.length conf.urilauncher = 0
   then print_endline uri
   else (
-    if not (validuri uri)
+    let url = geturl uri in
+    if String.length url = 0
     then print_endline uri
     else
       let re = Str.regexp "%s" in
-      let command = Str.global_replace re uri conf.urilauncher in
+      let command = Str.global_replace re url conf.urilauncher in
       let optic =
         try Some (Unix.open_process_in command)
         with exn ->
@@ -523,8 +527,9 @@ let makehelp () =
   let strings = version () :: "" :: Help.keys in
   Array.of_list (
     List.map (fun s ->
-      if validuri s
-      then (s, 0, Action (fun u -> gotouri s; u))
+      let url = geturl s in
+      if String.length url > 0
+      then (s, 0, Action (fun u -> gotouri url; u))
       else (s, 0, Noaction)
   ) strings);
 ;;
