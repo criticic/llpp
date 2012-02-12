@@ -123,7 +123,6 @@ ctrl-g,esc              - cancel
 Caveat emptor:
 
 o Selection can not cross page boundaries
-o On OSX(cocoa) and Windows selected text will be dumped to the terminal
 o Text searching is very naive
 o Most of the Ctrl keys do not work on Windows and native OSX (X11 version
   is fine though)
