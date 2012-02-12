@@ -6,7 +6,7 @@ type under =
     | Uunexpected of string
     | Ulaunch of string
     | Unamed of string
-    | Uremote of string
+    | Uremote of (string * int)
 and facename = string;;
 
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
@@ -355,6 +355,7 @@ type state =
     ; mutable scrollw       : int
     ; mutable hscrollh      : int
     ; mutable anchor        : anchor
+    ; mutable ranchors      : (string * string * anchor) list
     ; mutable maxy          : int
     ; mutable layout        : page list
     ; pagemap               : (pagemapkey, opaque) Hashtbl.t
@@ -570,6 +571,7 @@ let state =
   ; scrollw       = 0
   ; hscrollh      = 0
   ; anchor        = emptyanchor
+  ; ranchors      = []
   ; layout        = []
   ; maxy          = max_int
   ; tilelru       = Queue.create ()
@@ -4182,7 +4184,12 @@ let viewkeyboard key =
           Glut.setCursor Glut.CURSOR_INHERIT;
           G.postRedisplay "kill zoom rect";
       | _ ->
-          raise Quit
+          match state.ranchors with
+          | [] -> raise Quit
+          | (path, password, anchor) :: rest ->
+              state.ranchors <- rest;
+              state.anchor <- anchor;
+              opendoc path password
       end;
 
   | '\008' ->                           (* backspace *)
@@ -4896,7 +4903,28 @@ let viewmouse button bstate x y =
       | Ulinkuri s ->
           gotouri s
 
-      | Uremote _ | Uunexpected _ | Ulaunch _ | Unamed _ -> ()
+      | Uremote (filename, pageno) ->
+          let path =
+            if Sys.file_exists filename
+            then filename
+            else
+              let dir = Filename.dirname state.path in
+              let path = Filename.concat dir filename in
+              if Sys.file_exists path
+              then path
+              else ""
+          in
+          if String.length path > 0
+          then (
+            let anchor = getanchor () in
+            let ranchor = state.path, state.password, anchor in
+            state.anchor <- (pageno, 0.0);
+            state.ranchors <- ranchor :: state.ranchors;
+            opendoc path "";
+          )
+          else showtext '!' ("Could not find " ^ filename)
+
+      | Uunexpected _ | Ulaunch _ | Unamed _ -> ()
 
       | Unone when bstate = Glut.DOWN ->
           Glut.setCursor Glut.CURSOR_CROSSHAIR;
@@ -5170,9 +5198,10 @@ let uioh = object
             | Unamed s ->
                 if conf.underinfo then showtext 'n' ("named: " ^ s);
                 Glut.setCursor Glut.CURSOR_INHERIT
-            | Uremote s ->
-                if conf.underinfo then showtext 'r' ("emote: " ^ s);
-                Glut.setCursor Glut.CURSOR_INHERIT
+            | Uremote (filename, pageno) ->
+                if conf.underinfo then showtext 'r'
+                  (Printf.sprintf "emote: %s (%d)" filename pageno);
+                Glut.setCursor Glut.CURSOR_INFO
             end
 
         | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ ->

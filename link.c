@@ -1982,6 +1982,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal3 (ret_v, tup_v, str_v);
+    int pageno;
     fz_link *link;
     struct page *page;
     char *s = String_val (ptr_v);
@@ -2002,7 +2003,6 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
         switch (link->dest.kind) {
         case FZ_LINK_GOTO:
             {
-                int pageno;
                 fz_point p;
 
                 pageno = link->dest.ld.gotor.page;
@@ -2041,8 +2041,12 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
         case FZ_LINK_GOTOR:
             str_v = caml_copy_string (link->dest.ld.gotor.file_spec);
+            pageno = link->dest.ld.gotor.page;
+            tup_v = caml_alloc_tuple (2);
             ret_v = caml_alloc_small (1, 6);
-            Field (ret_v, 0) = str_v;
+            Field (tup_v, 0) = str_v;
+            Field (tup_v, 1) = Val_int (pageno);
+            Field (ret_v, 0) = tup_v;
             break;
 
         default:
