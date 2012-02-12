@@ -75,6 +75,7 @@ tunables
 -T                      - toggle trimming of margins
 -I                      - invert colors
 -C                      - set column count
+-x                      - set command to run on selection
 -f                      - toggle "what's under cursor" identification
     (only font name of the text under cursor and link target currently)
 

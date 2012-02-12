@@ -393,6 +393,7 @@ and hists =
     { pat : string circbuf
     ; pag : string circbuf
     ; nav : anchor circbuf
+    ; sel : string circbuf
     }
 ;;
 
@@ -593,6 +594,7 @@ let state =
       { nav       = cbnew 10 (0, 0.0)
       ; pat       = cbnew 1 ""
       ; pag       = cbnew 1 ""
+      ; sel       = cbnew 1 ""
       }
   ; memused       = 0
   ; gen           = 0
@@ -2512,6 +2514,14 @@ let optentry mode _ key =
       conf.invert <- not conf.invert;
       TEdone ("invert colors " ^ btos conf.invert)
 
+  | 'x' ->
+      let ondone s =
+        cbput state.hists.sel s;
+        conf.selcmd <- s;
+      in
+      TEswitch ("selection command: ", "", Some (onhist state.hists.sel),
+               textentry, ondone)
+
   | _ ->
       state.text <- Printf.sprintf "bad option %d `%c'" key c;
       TEstop
@@ -3977,6 +3987,9 @@ let enterinfomode =
             state.text <- Printf.sprintf "bad ghyll `%s': %s"
               v (Printexc.to_string exn)
         );
+      src#string "selection command"
+        (fun () -> conf.selcmd)
+        (fun v -> conf.selcmd <- v);
       src#colorspace "color space"
         (fun () -> colorspace_to_string conf.colorspace)
         (fun v ->
@@ -4222,7 +4235,7 @@ let viewkeyboard key =
   | '-' ->
       let ondone msg = state.text <- msg in
       enttext (
-        "option [acfhilpstvACPRSZTI]: ", "", None,
+        "option [acfhilpstvxACPRSZTIS]: ", "", None,
         optentry state.mode, ondone
       )
 
@@ -5284,6 +5297,7 @@ struct
             { c with columns = Some (nab, [||]) }
         | "birds-eye-columns" ->
             { c with beyecolumns = Some (max (int_of_string v) 2) }
+        | "selection-command" -> { c with selcmd = unent v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -5375,6 +5389,7 @@ struct
     dst.ghyllscroll    <- src.ghyllscroll;
     dst.columns        <- src.columns;
     dst.beyecolumns    <- src.beyecolumns;
+    dst.selcmd         <- src.selcmd;
   ;;
 
   let get s =
@@ -5710,6 +5725,7 @@ struct
     obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
     if always
     then ob "wmclass-hack" !wmclasshack false;
+    os "selection-command" c.selcmd dc.selcmd;
   ;;
 
   let save () =
