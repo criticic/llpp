@@ -202,7 +202,7 @@ struct page {
     void (*freepage) (void *);
 };
 
-#if !defined _WIN32 && !defined __APPLE__
+#if !defined __APPLE__
 #define USE_XSEL
 #endif
 
@@ -2220,7 +2220,7 @@ CAMLprim value ml_copysel (value ptr_v)
 #ifdef USE_XSEL
         if (state.xselpipe) {
             int ret = pclose (state.xselpipe);
-            if (ret)  {
+            if (ret == -1)  {
                 fprintf (stderr, "failed to close xsel pipe: %s\n",
                          strerror (errno));
             }
