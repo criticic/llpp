@@ -348,13 +348,12 @@ static double now (void)
 
 static int hasdata (void)
 {
-    DWORD ret;
+    BOOL okay;
+    DWORD avail;
 
-    ret = WaitForSingleObject (state.cr, 0);
-    if (ret != WAIT_OBJECT_0 && ret != WAIT_TIMEOUT) {
-        winerr (1, "hasdata, WaitForSingleObject ret=%ld", ret);
-    }
-    return ret == WAIT_OBJECT_0;
+    okay = PeekNamedPipe (state.cr, NULL, 0, NULL, &avail, NULL);
+    if (!okay) winerr (1, "PeekNamedPipe");
+    return avail > 0;
 }
 
 static void readdata (void *p, int size)
