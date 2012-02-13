@@ -2577,20 +2577,6 @@ CAMLprim value ml_platform (value unit_v)
 
 #ifdef NOZOMBIESPLEASE
 #include <signal.h>
-
-static void nozombies (void)
-{
-    struct sigaction sa;
-
-    sa.sa_handler = SIG_DFL;
-    if (sigemptyset (&sa.sa_mask)) {
-        err (1, "sigemptyset");
-    }
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
-    if (sigaction (SIGCHLD, &sa, NULL)) {
-        err (1, "sigaction");
-    }
-}
 #endif
 
 CAMLprim value ml_init (value pipe_v, value params_v)
@@ -2651,7 +2637,18 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     realloctexts (texcount);
 
 #ifdef NOZOMBIESPLEASE
-    nozombies ();
+    {
+        struct sigaction sa;
+
+        sa.sa_handler = SIG_DFL;
+        if (sigemptyset (&sa.sa_mask)) {
+            err (1, "sigemptyset");
+        }
+        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
+        if (sigaction (SIGCHLD, &sa, NULL)) {
+            err (1, "sigaction");
+        }
+    }
 #endif
 
 #ifdef _WIN32
