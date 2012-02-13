@@ -2509,35 +2509,32 @@ CAMLprim value ml_setaalevel (value level_v)
 #include <X11/Xutil.h>
 #include <GL/glx.h>
 
-static void set_wm_class (int hack)
+static void set_wm_class (void)
 {
-    if (hack) {
-        Display *dpy;
-        Window win;
-        XClassHint hint;
-        char *display;
+    Display *dpy;
+    Window win;
+    XClassHint hint;
+    char *display;
 
-        display = getenv ("DISPLAY");
-        dpy = XOpenDisplay (display);
-        if (!dpy) {
-            fprintf (stderr, "XOpenDisplay `%s' failed\n",
-                     display ? display : "null");
-            return;
-        }
-        hint.res_name = "llpp";
-        hint.res_class = "llpp";
-        win = glXGetCurrentDrawable ();
-        if (win == None) {
-            fprintf (stderr, "glXGetCurrentDrawable returned None\n");
-            XCloseDisplay (dpy);
-            return;
-        }
-        XSetClassHint (dpy, win, &hint);
-        XCloseDisplay (dpy);
+    display = getenv ("DISPLAY");
+    dpy = XOpenDisplay (display);
+    if (!dpy) {
+        fprintf (stderr, "XOpenDisplay `%s' failed\n",
+                 display ? display : "null");
+        return;
     }
+    hint.res_name = "llpp";
+    hint.res_class = "llpp";
+    win = glXGetCurrentDrawable ();
+    if (win == None) {
+        fprintf (stderr, "glXGetCurrentDrawable returned None\n");
+        XCloseDisplay (dpy);
+        return;
+    }
+    XSetClassHint (dpy, win, &hint);
+    XCloseDisplay (dpy);
 }
-#else
-#define set_wm_class(h) (void) (h)
+#define HAS_WM_CLASS_HACK
 #endif
 
 enum { piunknown, pilinux, piwindows, piosx,
@@ -2594,8 +2591,6 @@ static void nozombies (void)
         err (1, "sigaction");
     }
 }
-#else
-#define nozombies()
 #endif
 
 CAMLprim value ml_init (value pipe_v, value params_v)
@@ -2634,7 +2629,13 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     state.trimfuzz.y1 = Int_val (Field (fuzz_v, 3));
 
     set_tex_params (colorspace);
-    set_wm_class (wmclasshack);
+#ifdef HAS_WM_CLASS_HACK
+    if (wmclasshack) {
+        set_wm_class ();
+    }
+#else
+    (void) wmclasshack;
+#endif
 
     if (*fontpath) {
         state.face = load_font (fontpath);
@@ -2649,7 +2650,9 @@ CAMLprim value ml_init (value pipe_v, value params_v)
 
     realloctexts (texcount);
 
+#ifdef NOZOMBIESPLEASE
     nozombies ();
+#endif
 
 #ifdef _WIN32
     InitializeCriticalSection (&critsec);
