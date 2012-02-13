@@ -284,6 +284,16 @@ static int trylock (void *unused)
 {
     return TryEnterCriticalSection (&critsec) == 0;
 }
+
+CAMLprim value ml_seterrhandle (value handle_v)
+{
+    CAMLparam1 (handle_v);
+    if (!SetStdHandle (STD_ERROR_HANDLE, Handle_val (handle_v))) {
+        win32_maperr (GetLastError ());
+        uerror ("SetStdHandle", Nothing);
+    }
+    CAMLreturn (Val_unit);
+}
 #else
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -311,6 +321,13 @@ static int trylock (const char *cap)
         errx (1, "%s: pthread_mutex_trylock: %s", cap, strerror (ret));
     }
     return ret == EBUSY;
+}
+
+CAMLprim value ml_seterrhandle (value handle_v)
+{
+    CAMLparam1 (handle_v);
+    (void) handle_v;
+    CAMLreturn (Val_unit);
 }
 #endif
 

@@ -61,6 +61,7 @@ external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external realloctexts : int -> bool = "ml_realloctexts";;
+external seterrhandle : Unix.file_descr -> unit = "ml_seterrhandle";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -639,6 +640,7 @@ let redirectstderr () =
         state.errfd <- None;
     | None -> ()
     end;
+    seterrhandle Unix.stderr;
     prerr_string (Buffer.contents state.errmsgs);
     flush stderr;
     Buffer.clear state.errmsgs;
