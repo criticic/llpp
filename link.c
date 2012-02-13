@@ -28,6 +28,7 @@
 #define NORETURN __attribute__ ((noreturn))
 #define UNUSED __attribute__ ((unused))
 #define OPTIMIZE(n) __attribute__ ((optimize ("O"#n)))
+#define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
 #else
 #define NORETURN
 #define UNUSED
@@ -62,7 +63,8 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #else
-static void NORETURN winerr (int exitcode, const char *fmt, ...)
+static void NORETURN GCC_FMT_ATTR (2, 3)
+    winerr (int exitcode, const char *fmt, ...)
 {
     va_list ap;
     DWORD savederror = GetLastError ();
@@ -76,7 +78,8 @@ static void NORETURN winerr (int exitcode, const char *fmt, ...)
 }
 #endif
 
-static void NORETURN err (int exitcode, const char *fmt, ...)
+static void NORETURN GCC_FMT_ATTR (2, 3)
+    err (int exitcode, const char *fmt, ...)
 {
     va_list ap;
     int savederrno;
@@ -90,7 +93,8 @@ static void NORETURN err (int exitcode, const char *fmt, ...)
     _exit (exitcode);
 }
 
-static void NORETURN errx (int exitcode, const char *fmt, ...)
+static void NORETURN GCC_FMT_ATTR (2, 3)
+    errx (int exitcode, const char *fmt, ...)
 {
     va_list ap;
 
@@ -463,11 +467,7 @@ static void writedata (char *p, int size)
 }
 #endif
 
-static void
-#ifdef __GNUC__
-__attribute__ ((format (printf, 1, 2)))
-#endif
-    printd (const char *fmt, ...)
+static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 {
     int size = 200, len;
     va_list ap;
