@@ -352,12 +352,12 @@ static int hasdata (void)
 
     ret = WaitForSingleObject (state.cr, 0);
     if (ret != WAIT_OBJECT_0 && ret != WAIT_TIMEOUT) {
-        winerr (1, "hasdata, WaitForSingleObject ret=%d", ret);
+        winerr (1, "hasdata, WaitForSingleObject ret=%ld", ret);
     }
     return ret == WAIT_OBJECT_0;
 }
 
-static void readdata (char *p, int size)
+static void readdata (void *p, int size)
 {
     BOOL okay;
     DWORD nread;
