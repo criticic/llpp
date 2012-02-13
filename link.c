@@ -411,8 +411,7 @@ static double now (void)
 
 static int hasdata (void)
 {
-    int ret;
-    int avail;
+    int ret, avail;
     ret = ioctl (state.cr, FIONREAD, &avail);
     if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
     return avail > 0;
