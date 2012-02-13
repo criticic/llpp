@@ -418,21 +418,7 @@ static int hasdata (void)
     return avail > 0;
 }
 
-static int readlen (void)
-{
-    ssize_t n;
-    unsigned char p[4];
-
-    n = read (state.cr, (char *) p, 4);
-    if (n != 4) {
-        if (!n) errx (1, "EOF while reading length");
-        err (1, "read %zd", n);
-    }
-
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
-}
-
-static void readdata (char *p, int size)
+static void readdata (void *p, int size)
 {
     ssize_t n;
 
@@ -441,6 +427,14 @@ static void readdata (char *p, int size)
         if (!n) errx (1, "EOF while reading");
         err (1, "read (req %d, ret %zd)", size, n);
     }
+}
+
+static int readlen (void)
+{
+    unsigned char p[4];
+
+    readdata (p, 4);
+    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
 }
 
 static void writedata (char *p, int size)
