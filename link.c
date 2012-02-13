@@ -2302,7 +2302,6 @@ CAMLprim value ml_copysel (value command_v, value ptr_v)
         goto done;
     }
 
-
     page = parse_pointer ("ml_sopysel", s);
 
     if (!page->fmark.span || !page->lmark.span) {
