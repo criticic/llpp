@@ -2128,7 +2128,7 @@ let search pattern forward =
       Buffer.add_char b '\000';
       Buffer.contents b;
     in
-    writecmd state.sr cmd;
+    writecmd state.sw cmd;
 ;;
 
 let intentry text key =
