@@ -10,7 +10,6 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define FMT_ss "d"
 #ifdef _WIN64
 #define FMT_s "i64u"
 #else
@@ -48,7 +47,6 @@
 #endif
 
 #ifndef _WIN32
-#define FMT_ss "zd"
 #define FMT_s "zu"
 #include <unistd.h>
 #endif
@@ -362,8 +360,7 @@ static void readdata (char *p, int size)
 
     okay = ReadFile (state.cr, p, size, &nread, NULL);
     if (!okay || nread - size) {
-        err (1, "ReadFile (req %d, okay %d, ret %" FMT_ss ")",
-             size, okay, nread);
+        err (1, "ReadFile (req %d, okay %d, ret %ld)", size, okay, nread);
     }
 }
 
@@ -425,7 +422,7 @@ static int readlen (void)
     n = read (state.cr, (char *) p, 4);
     if (n != 4) {
         if (!n) errx (1, "EOF while reading length");
-        err (1, "read %" FMT_ss, n);
+        err (1, "read %zd", n);
     }
 
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
@@ -438,7 +435,7 @@ static void readdata (char *p, int size)
     n = read (state.cr, p, size);
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        err (1, "read (req %d, ret %" FMT_ss ")", size, n);
+        err (1, "read (req %d, ret %zd)", size, n);
     }
 }
 
@@ -455,13 +452,13 @@ static void writedata (char *p, int size)
     n = write (state.cr, buf, 4);
     if (n != 4) {
         if (!n) errx (1, "EOF while writing length");
-        err (1, "write %" FMT_ss, n);
+        err (1, "write %zd", n);
     }
 
     n = write (state.cr, p, size);
     if (n - size) {
         if (!n) errx (1, "EOF while writing data");
-        err (1, "write (req %d, ret %" FMT_ss ")", size, n);
+        err (1, "write (req %d, ret %zd)", size, n);
     }
 }
 #endif
