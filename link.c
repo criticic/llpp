@@ -306,8 +306,10 @@ CAMLprim value ml_seterrhandle (value is_gui_v, value handle_v)
         }
         *stderr = *_fdopen (fd, "w");
         if (!stderr) {
+            int save;
             _close (fd);
-            uerror ("_open_osfhandle", Nothing);
+            errno = save;
+            uerror ("_fd_open", Nothing);
         }
         if (setvbuf (stderr, NULL, _IONBF, 0)) {
             uerror ("stvbuf", Nothing);
