@@ -10,9 +10,6 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <winsock2.h>
-#define fionread_arg u_long
-#define ssize_t int
 #define FMT_ss "d"
 #ifdef _WIN64
 #define FMT_s "i64u"
@@ -50,23 +47,9 @@
 #define FMT_ptr_cast2(p) (p)
 #endif
 
-#ifdef _WIN32
-static void NORETURN sockerr (int exitcode, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
-    fprintf (stderr, ": wsaerror 0x%x\n", WSAGetLastError ());
-    _exit (exitcode);
-}
-#else
+#ifndef _WIN32
 #define FMT_ss "zd"
 #define FMT_s "zu"
-#define fionread_arg int
-#define ioctlsocket ioctl
-#define sockerr err
 #include <unistd.h>
 #endif
 
@@ -79,8 +62,20 @@ static void NORETURN sockerr (int exitcode, const char *fmt, ...)
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#else
+static void NORETURN winerr (int exitcode, const char *fmt, ...)
+{
+    va_list ap;
+    DWORD savederror = GetLastError ();
+
+    va_start (ap, fmt);
+    vfprintf (stderr, fmt, ap);
+    va_end (ap);
+    fprintf (stderr, ": 0x%lx\n",  savederror);
+    fflush (stderr);
+    _exit (exitcode);
+}
 #endif
 
 static void NORETURN err (int exitcode, const char *fmt, ...)
@@ -203,7 +198,11 @@ struct page {
 };
 
 struct {
-    int sock;
+#ifdef _WIN32
+    HANDLE cr, cw;
+#else
+    int cr, cw;
+#endif
     int type;
     int sliceheight;
     struct pagedim *pagedims;
@@ -332,18 +331,9 @@ static void *parse_pointer (const char *cap, const char *s)
     return ptr;
 }
 
-static int hasdata (int sock)
-{
-    int ret;
-    fionread_arg avail;
-    ret = ioctlsocket (sock, FIONREAD, &avail);
-    if (ret) sockerr (1, "hasdata: FIONREAD error ret=%d", ret);
-    return avail > 0;
-}
-
+#ifdef _WIN32
 static double now (void)
 {
-#ifdef _WIN32
     FILETIME ft;
     uint64 tmp;
 
@@ -352,28 +342,107 @@ static double now (void)
     tmp <<= 32;
     tmp |= ft.dwLowDateTime;
     return tmp * 1e-7;
+}
+
+static int hasdata (void)
+{
+    DWORD ret;
+
+    ret = WaitForSingleObject (state.cr, 0);
+    if (ret != WAIT_OBJECT_0 && ret != WAIT_TIMEOUT) {
+        winerr (1, "hasdata, WaitForSingleObject ret=%d", ret);
+    }
+    return ret == WAIT_OBJECT_0;
+}
+
+static void readdata (char *p, int size)
+{
+    BOOL okay;
+    DWORD nread;
+
+    okay = ReadFile (state.cr, p, size, &nread, NULL);
+    if (!okay || nread - size) {
+        err (1, "ReadFile (req %d, okay %d, ret %" FMT_ss ")",
+             size, okay, nread);
+    }
+}
+
+static int readlen (void)
+{
+    char p[4];
+
+    readdata (p, 4);
+    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+}
+
+static void writedata (char *p, int size)
+{
+    BOOL okay;
+    char buf[4];
+    DWORD nwritten;
+
+    buf[0] = (size >> 24) & 0xff;
+    buf[1] = (size >> 16) & 0xff;
+    buf[2] = (size >>  8) & 0xff;
+    buf[3] = (size >>  0) & 0xff;
+
+    okay = WriteFile (state.cw, buf, 4, &nwritten, NULL);
+    if (!okay || nwritten != 4) {
+        winerr (1, "WriteFile okay %d ret %ld", okay, nwritten);
+    }
+
+    okay = WriteFile (state.cw, p, size, &nwritten, NULL);
+    if (!okay || nwritten - size) {
+        winerr (1, "WriteFile (req %d, okay %d, ret %ld)",
+                size, okay, nwritten);
+    }
+}
 #else
+static double now (void)
+{
     struct timeval tv;
 
     if (gettimeofday (&tv, NULL)) {
         err (1, "gettimeofday");
     }
     return tv.tv_sec + tv.tv_usec*1e-6;
-#endif
 }
 
-static void readdata (int fd, char *p, int size)
+static int hasdata (void)
+{
+    int ret;
+    int avail;
+    ret = ioctl (state.cr, FIONREAD, &avail);
+    if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
+    return avail > 0;
+}
+
+static int readlen (void)
+{
+    ssize_t n;
+    unsigned char p[4];
+
+    n = read (state.cr, (char *) p, 4);
+    if (n != 4) {
+        if (!n) errx (1, "EOF while reading length");
+        err (1, "read %" FMT_ss, n);
+    }
+
+    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+}
+
+static void readdata (char *p, int size)
 {
     ssize_t n;
 
-    n = recv (fd, p, size, 0);
+    n = read (state.cr, p, size);
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        sockerr (1, "recv (req %d, ret %" FMT_ss ")", size, n);
+        err (1, "read (req %d, ret %" FMT_ss ")", size, n);
     }
 }
 
-static void writedata (int fd, char *p, int size)
+static void writedata (char *p, int size)
 {
     char buf[4];
     ssize_t n;
@@ -383,24 +452,25 @@ static void writedata (int fd, char *p, int size)
     buf[2] = (size >>  8) & 0xff;
     buf[3] = (size >>  0) & 0xff;
 
-    n = send (fd, buf, 4, 0);
+    n = write (state.cr, buf, 4);
     if (n != 4) {
         if (!n) errx (1, "EOF while writing length");
-        sockerr (1, "send %" FMT_ss, n);
+        err (1, "write %" FMT_ss, n);
     }
 
-    n = send (fd, p, size, 0);
+    n = write (state.cr, p, size);
     if (n - size) {
         if (!n) errx (1, "EOF while writing data");
-        sockerr (1, "send (req %d, ret %" FMT_ss ")", size, n);
+        err (1, "write (req %d, ret %" FMT_ss ")", size, n);
     }
 }
+#endif
 
 static void
 #ifdef __GNUC__
-__attribute__ ((format (printf, 2, 3)))
+__attribute__ ((format (printf, 1, 2)))
 #endif
-    printd (int fd, const char *fmt, ...)
+    printd (const char *fmt, ...)
 {
     int size = 200, len;
     va_list ap;
@@ -415,7 +485,7 @@ __attribute__ ((format (printf, 2, 3)))
         va_end (ap);
 
         if (len > -1 && len < size) {
-            writedata (fd, buf, len);
+            writedata (buf, len);
             break;
         }
 
@@ -540,7 +610,7 @@ static void pdfinfo (void)
     if (state.type == DPDF) {
         fz_obj *infoobj;
 
-        printd (state.sock, "info PDF version\t%d.%d",
+        printd ("info PDF version\t%d.%d",
                 state.u.pdf->version / 10, state.u.pdf->version % 10);
 
         infoobj = fz_dict_gets (state.u.pdf->trailer, "Info");
@@ -555,29 +625,15 @@ static void pdfinfo (void)
                 s = pdf_to_utf8 (state.ctx, obj);
                 if (*s) {
                     if (i == 0) {
-                        printd (state.sock, "title %s", s);
+                        printd ("title %s", s);
                     }
-                    printd (state.sock, "info %s\t%s", items[i], s);
+                    printd ("info %s\t%s", items[i], s);
                 }
                 fz_free (state.ctx, s);
             }
         }
-        printd (state.sock, "infoend");
+        printd ("infoend");
     }
-}
-
-static int readlen (int fd)
-{
-    ssize_t n;
-    unsigned char p[4];
-
-    n = recv (fd, (char *) p, 4, 0);
-    if (n != 4) {
-        if (!n) errx (1, "EOF while reading length");
-        sockerr (1, "recv %" FMT_ss, n);
-    }
-
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
 }
 
 static void unlinktile (struct tile *tile)
@@ -882,7 +938,7 @@ static void initpdims (void)
                 rotate = page->rotate;
                 pdf_free_page (state.u.pdf, page);
 
-                printd (state.sock, "progress %f Trimming %d",
+                printd ("progress %f Trimming %d",
                         (double) (pageno + 1) / state.pagecount,
                         pageno + 1);
             }
@@ -937,7 +993,7 @@ static void initpdims (void)
                     }
                 }
                 xps_free_page (state.u.xps, page);
-                printd (state.sock, "progress %f loading %d",
+                printd ("progress %f loading %d",
                         (double) (pageno + 1) / state.pagecount,
                         pageno + 1);
             }
@@ -952,7 +1008,7 @@ static void initpdims (void)
                     page = cbz_load_page (state.u.cbz, pageno);
                     mediabox = cbz_bound_page (state.u.cbz, page);
                     cbz_free_page (state.u.cbz, page);
-                    printd (state.sock, "progress %f Trimming %d",
+                    printd ("progress %f Trimming %d",
                             (double) (pageno + 1) / state.pagecount,
                             pageno + 1);
                 }
@@ -988,11 +1044,11 @@ static void initpdims (void)
     }
     end = now ();
     if (state.trimmargins) {
-        printd (state.sock, "progress 1 Trimmed %d pages in %f seconds",
+        printd ("progress 1 Trimmed %d pages in %f seconds",
                 state.pagecount, end - start);
     }
     else {
-        printd (state.sock, "vmsg Processed %d pages in %f seconds",
+        printd ("vmsg Processed %d pages in %f seconds",
                 state.pagecount, end - start);
     }
     state.trimanew = 0;
@@ -1059,7 +1115,7 @@ static void layout (void)
         int w = p->bounds.x1 - p->bounds.x0;
         int h = p->bounds.y1 - p->bounds.y0;
 
-        printd (state.sock, "pdim %d %d %d %d", p->pageno, w, h, p->left);
+        printd ("pdim %d %d %d %d", p->pageno, w, h, p->left);
     }
 }
 
@@ -1090,7 +1146,7 @@ static void recurse_outline (fz_outline *outline, int level)
             y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
             y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
             h = y1 - y0;
-            printd (state.sock, "o %d %d %d %d %s",
+            printd ("o %d %d %d %d %s",
                     level, dest->ld.gotor.page, top, h, outline->title);
         }
         if (outline->down) {
@@ -1155,14 +1211,13 @@ static void search (regex_t *re, int pageno, int y, int forward)
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
         if (niters++ == 5) {
             niters = 0;
-            if (hasdata (state.sock)) {
-                printd (state.sock,
-                        "progress 1 attention requested aborting search at %d",
+            if (hasdata ()) {
+                printd ("progress 1 attention requested aborting search at %d",
                         pageno);
                 stop = 1;
             }
             else {
-                printd (state.sock, "progress %f searching in page %d",
+                printd ("progress %f searching in page %d",
                         (double) (pageno + 1) / state.pagecount,
                         pageno);
             }
@@ -1251,8 +1306,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                     size_t size;
                     char errbuf[80];
                     size = regerror (ret, re, errbuf, sizeof (errbuf));
-                    printd (state.sock,
-                            "msg regexec error `%.*s'",
+                    printd ("msg regexec error `%.*s'",
                             (int) size, errbuf);
                     fz_free_text_span (state.ctx, text);
                     state.freepage (u.ptr);
@@ -1293,22 +1347,19 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 p4 = fz_transform_point (ctm, p4);
 
                 if (!stop) {
-                    printd (state.sock,
-                            "firstmatch %d %d %f %f %f %f %f %f %f %f",
+                    printd ("firstmatch %d %d %f %f %f %f %f %f %f %f",
                             pageno, 1,
                             p1.x, p1.y,
                             p2.x, p2.y,
                             p3.x, p3.y,
                             p4.x, p4.y);
 
-                    printd (state.sock,
-                            "progress 1 found at %d `%.*s' in %f sec",
+                    printd ("progress 1 found at %d `%.*s' in %f sec",
                             pageno, (int) (rm.rm_eo - rm.rm_so), &buf[rm.rm_so],
                             now () - start);
                 }
                 else  {
-                    printd (state.sock,
-                            "match %d %d %f %f %f %f %f %f %f %f",
+                    printd ("match %d %d %f %f %f %f %f %f %f %f",
                             pageno, 2,
                             p1.x, p1.y,
                             p2.x, p2.y,
@@ -1332,9 +1383,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
     }
     end = now ();
     if (!stop)  {
-        printd (state.sock, "progress 1 no matches %f sec", end - start);
+        printd ("progress 1 no matches %f sec", end - start);
     }
-    printd (state.sock, "clearrects");
+    printd ("clearrects");
 }
 
 static void set_tex_params (int colorspace)
@@ -1413,7 +1464,7 @@ mainloop (void *unused)
     int len, ret, oldlen = 0;
 
     for (;;) {
-        len = readlen (state.sock);
+        len = readlen ();
         if (len == 0) {
             errx (1, "readlen returned 0");
         }
@@ -1425,7 +1476,7 @@ mainloop (void *unused)
             }
             oldlen = len + 1;
         }
-        readdata (state.sock, p, len);
+        readdata (p, len);
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
@@ -1439,8 +1490,7 @@ mainloop (void *unused)
             openxref (filename, password);
             pdfinfo ();
             initpdims ();
-            printd (state.sock, "msg Opened %s (press h/F1 to get help)",
-                    filename);
+            printd ("msg Opened %s (press h/F1 to get help)", filename);
             state.needoutline = 1;
         }
         else if (!strncmp ("cs", p, 2)) {
@@ -1495,8 +1545,7 @@ mainloop (void *unused)
                 size_t size;
 
                 size = regerror (ret, &re, errbuf, sizeof (errbuf));
-                printd (state.sock, "msg regcomp failed `%.*s'",
-                        (int) size, errbuf);
+                printd ("msg regcomp failed `%.*s'", (int) size, errbuf);
             }
             else  {
                 search (&re, pageno, y, forward);
@@ -1506,7 +1555,7 @@ mainloop (void *unused)
         else if (!strncmp ("geometry", p, 8)) {
             int w, h;
 
-            printd (state.sock, "clear");
+            printd ("clear");
             ret = sscanf (p + 8, " %d %d", &w, &h);
             if (ret != 2) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
@@ -1525,12 +1574,12 @@ mainloop (void *unused)
             process_outline ();
             state.gen++;
             unlock ("geometry");
-            printd (state.sock, "continue %d", state.pagecount);
+            printd ("continue %d", state.pagecount);
         }
         else if (!strncmp ("reqlayout", p, 9)) {
             int rotate, proportional;
 
-            printd (state.sock, "clear");
+            printd ("clear");
             ret = sscanf (p + 9, " %d %d", &rotate, &proportional);
             if (ret != 2) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
@@ -1540,7 +1589,7 @@ mainloop (void *unused)
             state.proportional = proportional;
             layout ();
             unlock ("reqlayout");
-            printd (state.sock, "continue %d", state.pagecount);
+            printd ("continue %d", state.pagecount);
         }
         else if (!strncmp ("page", p, 4)) {
             double a, b;
@@ -1558,8 +1607,7 @@ mainloop (void *unused)
             b = now ();
             unlock ("page");
 
-            printd (state.sock, "page %" FMT_ptr " %f",
-                    FMT_ptr_cast2 (page), b - a);
+            printd ("page %" FMT_ptr " %f", FMT_ptr_cast2 (page), b - a);
         }
         else if (!strncmp ("tile", p, 4)) {
             int x, y, w, h, ret;
@@ -1579,7 +1627,7 @@ mainloop (void *unused)
             b = now ();
             unlock ("tile");
 
-            printd (state.sock, "tile %d %d %" FMT_ptr " %u %f",
+            printd ("tile %d %d %" FMT_ptr " %u %f",
                     x, y,
                     FMT_ptr_cast2 (tile),
                     tile->w * tile->h * tile->pixmap->n,
@@ -1594,7 +1642,7 @@ mainloop (void *unused)
             if (ret != 5) {
                 errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
             }
-            printd (state.sock, "clear");
+            printd ("clear");
             lock ("settrim");
             state.trimmargins = trimmargins;
             state.needoutline = 1;
@@ -1609,7 +1657,7 @@ mainloop (void *unused)
             layout ();
             process_outline ();
             unlock ("settrim");
-            printd (state.sock, "continue %d", state.pagecount);
+            printd ("continue %d", state.pagecount);
         }
         else if (!strncmp ("sliceh", p, 6)) {
             int h;
@@ -1630,7 +1678,7 @@ mainloop (void *unused)
             }
         }
         else if (!strncmp ("interrupt", p, 9)) {
-            printd (state.sock, "vmsg interrupted");
+            printd ("vmsg interrupted");
         }
         else if (!strncmp ("quit", p, 4)) {
             return 0;
@@ -2576,11 +2624,10 @@ static void nozombies (void)
 #define nozombies()
 #endif
 
-CAMLprim value ml_init (value sock_v, value params_v)
+CAMLprim value ml_init (value pipe_v, value params_v)
 {
-    CAMLparam2 (sock_v, params_v);
+    CAMLparam2 (pipe_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
-    int ret;
     char *fontpath;
     int texcount;
     int wmclasshack;
@@ -2588,14 +2635,11 @@ CAMLprim value ml_init (value sock_v, value params_v)
     int mustoresize;
 
 #ifdef _WIN32
-    WSADATA wsaData;
-    WORD wVersionRequested;
-
-    wVersionRequested = MAKEWORD (2, 0);
-    ret = WSAStartup (wVersionRequested, &wsaData);
-    if (ret) {
-        errx (1, "WSAStartup: 0x%x\n", ret);
-    }
+    state.cr = Handle_val (Field (pipe_v, 0));
+    state.cw = Handle_val (Field (pipe_v, 1));
+#else
+    state.cr = Int_val (Field (pipe_v, 0));
+    state.cw = Int_val (Field (pipe_v, 1));
 #endif
     state.rotate = Int_val (Field (params_v, 0));
     state.proportional = Bool_val (Field (params_v, 1));
@@ -2634,17 +2678,17 @@ CAMLprim value ml_init (value sock_v, value params_v)
     nozombies ();
 
 #ifdef _WIN32
-    state.sock = Socket_val (sock_v);
     InitializeCriticalSection (&critsec);
     state.thread = CreateThread (NULL, 0, mainloop, NULL, 0, NULL);
     if (state.thread == INVALID_HANDLE_VALUE) {
         errx (1, "CreateThread failed: %lx", GetLastError ());
     }
 #else
-    state.sock = Int_val (sock_v);
-    ret = pthread_create (&state.thread, NULL, mainloop, NULL);
-    if (ret) {
-        errx (1, "pthread_create: %s", strerror (ret));
+    {
+        int ret = pthread_create (&state.thread, NULL, mainloop, NULL);
+        if (ret) {
+            errx (1, "pthread_create: %s", strerror (ret));
+        }
     }
 #endif
 

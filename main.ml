@@ -45,7 +45,9 @@ type platform = | Punknown | Plinux | Pwindows | Posx | Psun
                 | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
                 | Pmingw | Pcygwin;;
 
-external init : Unix.file_descr -> params -> unit = "ml_init";;
+type pipe = (Unix.file_descr * Unix.file_descr);;
+
+external init : pipe -> params -> unit = "ml_init";;
 external seltext : string -> (int * int * int * int) -> unit = "ml_seltext";;
 external copysel : string -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
@@ -343,8 +345,8 @@ let nouioh : uioh = object (self)
 end;;
 
 type state =
-    { mutable csock         : Unix.file_descr
-    ; mutable ssock         : Unix.file_descr
+    { mutable sr            : Unix.file_descr
+    ; mutable sw            : Unix.file_descr
     ; mutable errfd         : Unix.file_descr option
     ; mutable stderr        : Unix.file_descr
     ; mutable errmsgs       : Buffer.t
@@ -559,8 +561,8 @@ let makehelp () =
 let noghyll _ = ();;
 
 let state =
-  { csock         = Unix.stdin
-  ; ssock         = Unix.stdin
+  { sr            = Unix.stdin
+  ; sw            = Unix.stdin
   ; errfd         = None
   ; stderr        = Unix.stderr
   ; errmsgs       = Buffer.create 0
@@ -740,22 +742,7 @@ let readcmd fd =
     lor (Char.code s.[3] lsl  0)
   in
   let s = String.create len in
-  let n =
-    if is_windows
-    then
-      let rec loop n =
-        if n = 10
-        then failwith "EWOULDBLOCK encountered 10 times"
-        else
-          try
-            Unix.read fd s 0 len
-          with Unix.Unix_error (Unix.EWOULDBLOCK, _, _) ->
-            let _, _, _ = Unix.select [fd] [] [] 0.01 in
-            loop (n+1)
-      in loop 0
-    else
-      Unix.read fd s 0 len
-  in
+  let n = Unix.read fd s 0 len in
   if n != len then failwith "incomplete read(data)";
   s
 ;;
@@ -783,7 +770,7 @@ let makecmd s l =
 
 let wcmd s l =
   let cmd = Buffer.contents (makecmd s l) in
-  writecmd state.csock cmd;
+  writecmd state.sw cmd;
 ;;
 
 let calcips h =
@@ -1505,7 +1492,7 @@ let invalidate () =
 ;;
 
 let writeopen path password  =
-  writecmd state.csock ("open " ^ path ^ "\000" ^ password ^ "\000");
+  writecmd state.sw ("open " ^ path ^ "\000" ^ password ^ "\000");
 ;;
 
 let opendoc path password =
@@ -2046,8 +2033,8 @@ let idle () =
   if state.deadline == nan then state.deadline <- now ();
   let r =
     match state.errfd with
-    | None -> [state.csock]
-    | Some fd -> [state.csock; fd]
+    | None -> [state.sr]
+    | Some fd -> [state.sr; fd]
   in
   let rec loop delay =
     let deadline =
@@ -2087,8 +2074,8 @@ let idle () =
     | l ->
         let rec checkfds c = function
           | [] -> c
-          | fd :: rest when fd = state.csock ->
-              let cmd = readcmd state.csock in
+          | fd :: rest when fd = state.sr ->
+              let cmd = readcmd state.sr in
               act cmd;
               checkfds true rest
           | fd :: rest ->
@@ -2141,7 +2128,7 @@ let search pattern forward =
       Buffer.add_char b '\000';
       Buffer.contents b;
     in
-    writecmd state.csock cmd;
+    writecmd state.sr cmd;
 ;;
 
 let intentry text key =
@@ -5909,29 +5896,6 @@ let () =
            || Glut.extensionSupported "GL_EXT_texture_rectangle")
   then (prerr_endline "OpenGL does not suppport rectangular textures"; exit 1);
 
-  let csock, ssock =
-    if not is_windows
-    then
-      Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0
-    else
-      let addr = Unix.ADDR_INET (Unix.inet_addr_loopback, 1337) in
-      let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-      Unix.setsockopt sock Unix.SO_REUSEADDR true;
-      Unix.bind sock addr;
-      Unix.listen sock 1;
-      let csock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-      Unix.connect csock addr;
-      let ssock, _ = Unix.accept sock in
-      Unix.close sock;
-      let opts sock =
-        Unix.setsockopt sock Unix.TCP_NODELAY true;
-        Unix.setsockopt_optint sock Unix.SO_LINGER None;
-      in
-      opts ssock;
-      opts csock;
-      ssock, csock
-  in
-
   let () = Glut.displayFunc display in
   let () = Glut.reshapeFunc reshape in
   let () = Glut.keyboardFunc keyboard in
@@ -5941,14 +5905,17 @@ let () =
   let () = Glut.motionFunc motion in
   let () = Glut.passiveMotionFunc pmotion in
 
+  let cr, sw = Unix.pipe ()
+  and sr, cw = Unix.pipe () in
+
   setcheckers conf.checkers;
-  init ssock (
+  init (cr, cw) (
     conf.angle, conf.proportional, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
     !Config.wmclasshack, !Config.fontpath
   );
-  state.csock <- csock;
-  state.ssock <- ssock;
+  state.sr <- sr;
+  state.sw <- sw;
   state.text <- "Opening " ^ state.path;
   setaalevel conf.aalevel;
   writeopen state.path state.password;
