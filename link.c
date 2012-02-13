@@ -7,6 +7,26 @@
 
 #define PIGGYBACK
 
+#ifdef _MSC_VER
+#pragma warning (disable:4244)
+#pragma warning (disable:4996)
+#pragma warning (disable:4995)
+#define NORETURN __declspec (noreturn)
+#define UNUSED
+#define OPTIMIZE(n)
+#define GCC_FMT_ATTR(a, b)
+#elif defined __GNUC__
+#define NORETURN __attribute__ ((noreturn))
+#define UNUSED __attribute__ ((unused))
+#define OPTIMIZE(n) __attribute__ ((optimize ("O"#n)))
+#define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
+#else
+#define NORETURN
+#define UNUSED
+#define OPTIMIZE(n)
+#define GCC_FMT_ATTR(a, b)
+#endif
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -35,26 +55,6 @@ static void NORETURN GCC_FMT_ATTR (2, 3)
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#endif
-
-#ifdef _MSC_VER
-#pragma warning (disable:4244)
-#pragma warning (disable:4996)
-#pragma warning (disable:4995)
-#define NORETURN __declspec (noreturn)
-#define UNUSED
-#define OPTIMIZE(n)
-#define GCC_FMT_ATTR(a, b)
-#elif defined __GNUC__
-#define NORETURN __attribute__ ((noreturn))
-#define UNUSED __attribute__ ((unused))
-#define OPTIMIZE(n) __attribute__ ((optimize ("O"#n)))
-#define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
-#else
-#define NORETURN
-#define UNUSED
-#define OPTIMIZE(n)
-#define GCC_FMT_ATTR(a, b)
 #endif
 
 #ifdef __MINGW32__
