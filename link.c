@@ -285,12 +285,33 @@ static int trylock (void *unused)
     return TryEnterCriticalSection (&critsec) == 0;
 }
 
-CAMLprim value ml_seterrhandle (value handle_v)
+CAMLprim value ml_seterrhandle (value is_gui_v, value handle_v)
 {
-    CAMLparam1 (handle_v);
+    /* http://stackoverflow.com/questions/5115569/c-win32-api-getstdhandlestd-output-handle-is-invalid-very-perplexing */
+    CAMLparam2 (is_gui_v, handle_v);
+    int fd;
+
     if (!SetStdHandle (STD_ERROR_HANDLE, Handle_val (handle_v))) {
         win32_maperr (GetLastError ());
         uerror ("SetStdHandle", Nothing);
+    }
+
+    if (Bool_val (is_gui_v)) {
+        if (stderr) {
+            fclose (stderr);
+        }
+        fd = _open_osfhandle ((intptr_t) Handle_val (handle_v), 0);
+        if (fd < 0) {
+            uerror ("_open_osfhandle", Nothing);
+        }
+        *stderr = *_fdopen (fd, "w");
+        if (!stderr) {
+            _close (fd);
+            uerror ("_open_osfhandle", Nothing);
+        }
+        if (setvbuf (stderr, NULL, _IONBF, 0)) {
+            uerror ("stvbuf", Nothing);
+        }
     }
     CAMLreturn (Val_unit);
 }
@@ -323,10 +344,11 @@ static int trylock (const char *cap)
     return ret == EBUSY;
 }
 
-CAMLprim value ml_seterrhandle (value handle_v)
+CAMLprim value ml_seterrhandle (value is_gui_v, value handle_v)
 {
-    CAMLparam1 (handle_v);
+    CAMLparam2 (is_gui_v, handle_v);
     (void) handle_v;
+    (void) is_gui_v;
     CAMLreturn (Val_unit);
 }
 #endif
@@ -2554,11 +2576,27 @@ static void set_wm_class (void)
 #define HAS_WM_CLASS_HACK
 #endif
 
-enum { piunknown, pilinux, piwindows, piosx,
-       pisun, pifreebsd, pidragonflybsd,
-       piopenbsd, pinetbsd, pimingw, picygwin };
+enum { piunknown, pilinux, piwindows, pwindowsgui, piosx,
+       pisun, pifreebsd, pidragonflybsd, piopenbsd, pinetbsd,
+       pimingw, pmingwgui, picygwin };
 
 #define NOZOMBIESPLEASE
+
+#ifdef _WIN32
+static int isgui (void)
+{
+    /* http://www.opensc.ws/c-snippets/12714-c-getprocaddressex.html
+       and MSDN */
+    char *p = (char *) GetModuleHandle (NULL);
+    if (p) {
+        IMAGE_DOS_HEADER *dh = (IMAGE_DOS_HEADER *) p;
+        IMAGE_NT_HEADERS *nh = (IMAGE_NT_HEADERS *) (p + dh->e_lfanew);
+
+        return nh->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_GUI;
+    }
+    return 0;
+}
+#endif
 
 CAMLprim value ml_platform (value unit_v)
 {
@@ -2572,10 +2610,10 @@ CAMLprim value ml_platform (value unit_v)
     platid = picygwin;
 #elif defined __MINGW32__
 #undef NOZOMBIESPLEASE
-    platid = pimingw;
+    platid = pimingw + isgui ();
 #elif defined _WIN32
 #undef NOZOMBIESPLEASE
-    platid = piwindows;
+    platid = piwindows + isgui ();
 #elif defined __DragonFly__
     platid = pidragonflybsd;
 #elif defined __FreeBSD__

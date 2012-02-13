@@ -41,9 +41,9 @@ and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
 ;;
 
-type platform = | Punknown | Plinux | Pwindows | Posx | Psun
+type platform = | Punknown | Plinux | Pwindows | Pwindowsgui | Posx | Psun
                 | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
-                | Pmingw | Pcygwin;;
+                | Pmingw | Pmingwgui| Pcygwin;;
 
 type pipe = (Unix.file_descr * Unix.file_descr);;
 
@@ -61,12 +61,13 @@ external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external realloctexts : int -> bool = "ml_realloctexts";;
-external seterrhandle : Unix.file_descr -> unit = "ml_seterrhandle";;
+external seterrhandle : bool -> Unix.file_descr -> unit = "ml_seterrhandle";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
   | Plinux        -> "Linux"
   | Pwindows      -> "Windows"
+  | Pwindowsgui   -> "Windows/GUI"
   | Posx          -> "OSX"
   | Psun          -> "Sun"
   | Pfreebsd      -> "FreeBSD"
@@ -75,13 +76,20 @@ let platform_to_string = function
   | Pnetbsd       -> "NetBSD"
   | Pcygwin       -> "Cygwin"
   | Pmingw        -> "MingW"
+  | Pmingwgui     -> "MingW/GUI"
 ;;
 
 let platform = platform ();;
 
 let is_windows =
   match platform with
-  | Pwindows | Pmingw -> true
+  | Pwindows | Pwindowsgui | Pmingw | Pmingwgui -> true
+  | _ -> false
+;;
+
+let is_gui =
+  match platform with
+  | Pwindowsgui | Pmingwgui -> true
   | _ -> false
 ;;
 
@@ -445,7 +453,7 @@ let defconf =
       | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
       | Psun -> "xdg-open \"%s\""
       | Posx -> "open \"%s\""
-      | Pwindows | Pcygwin | Pmingw -> "start %s"
+      | Pwindows | Pwindowsgui | Pcygwin | Pmingw | Pmingwgui -> "start %s"
       | Punknown -> "echo %s")
   ; selcmd         =
       (match platform with
@@ -453,7 +461,7 @@ let defconf =
       | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
       | Psun  -> "xsel -i"
       | Posx -> "pbcopy"
-      | Pwindows | Pcygwin | Pmingw -> "wsel"
+      | Pwindows | Pwindowsgui | Pcygwin | Pmingw | Pmingwgui -> "wsel"
       | Punknown -> "cat")
   ; colorspace     = Rgb
   ; invert         = false
@@ -624,26 +632,39 @@ let vlog fmt =
     Printf.kprintf ignore fmt
 ;;
 
-let redirectstderr () =
-  if conf.redirectstderr
-  then
+let () =
+  if is_gui then (
     let rfd, wfd = Unix.pipe () in
-    state.stderr <- Unix.dup Unix.stderr;
     state.errfd <- Some rfd;
+    seterrhandle true wfd;
     Unix.dup2 wfd Unix.stderr;
-  else (
-    state.newerrmsgs <- false;
-    begin match state.errfd with
-    | Some fd ->
-        Unix.close fd;
-        Unix.dup2 state.stderr Unix.stderr;
-        state.errfd <- None;
-    | None -> ()
-    end;
-    seterrhandle Unix.stderr;
-    prerr_string (Buffer.contents state.errmsgs);
-    flush stderr;
-    Buffer.clear state.errmsgs;
+  );
+;;
+
+let redirectstderr () =
+  if not is_gui
+  then (
+    if conf.redirectstderr
+    then
+      let rfd, wfd = Unix.pipe () in
+      state.stderr <- Unix.dup Unix.stderr;
+      state.errfd <- Some rfd;
+      seterrhandle false wfd;
+      Unix.dup2 wfd Unix.stderr;
+    else (
+      state.newerrmsgs <- false;
+      begin match state.errfd with
+      | Some fd ->
+          Unix.close fd;
+          seterrhandle false state.stderr;
+          Unix.dup2 state.stderr Unix.stderr;
+          state.errfd <- None;
+      | None -> ()
+      end;
+      prerr_string (Buffer.contents state.errmsgs);
+      flush stderr;
+      Buffer.clear state.errmsgs;
+    )
   )
 ;;
 
@@ -2083,7 +2104,7 @@ let idle () =
           | fd :: rest ->
               let s = String.create 80 in
               let n = Unix.read fd s 0 80 in
-              if conf.redirectstderr
+              if conf.redirectstderr || is_gui
               then (
                 Buffer.add_substring state.errmsgs s 0 n;
                 state.newerrmsgs <- true;
@@ -3882,9 +3903,11 @@ let enterinfomode =
       src#bool "max fit"
         (fun () -> conf.maxhfit)
         (fun v -> conf.maxhfit <- v);
-      src#bool "redirect stderr"
-        (fun () -> conf.redirectstderr)
-        (fun v -> conf.redirectstderr <- v; redirectstderr ());
+      if not is_gui
+      then
+        src#bool "redirect stderr"
+          (fun () -> conf.redirectstderr)
+          (fun v -> conf.redirectstderr <- v; redirectstderr ());
       src#string "uri launcher"
         (fun () -> conf.urilauncher)
         (fun v -> conf.urilauncher <- v);
@@ -4369,7 +4392,7 @@ let viewkeyboard key =
   | 'i' ->
       enterinfomode ()
 
-  | 'e' when conf.redirectstderr ->
+  | 'e' when conf.redirectstderr || is_gui ->
       entermsgsmode ()
 
   | 'm' ->
@@ -5243,9 +5266,9 @@ struct
 
   let home =
     try
-      match platform with
-      | Pwindows | Pmingw -> Sys.getenv "HOMEPATH"
-      | _ -> Sys.getenv "HOME"
+      if is_windows
+      then Sys.getenv "HOMEPATH"
+      else Sys.getenv "HOME"
     with exn ->
       prerr_endline
         ("Can not determine home directory location: " ^
@@ -5911,6 +5934,8 @@ let () =
   and sr, cw = Unix.pipe () in
 
   setcheckers conf.checkers;
+  redirectstderr ();
+
   init (cr, cw) (
     conf.angle, conf.proportional, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
@@ -5924,8 +5949,6 @@ let () =
   state.uioh <- uioh;
   setfontsize fstate.fontsize;
 
-  redirectstderr ();
-
   while true do
     try
       Glut.mainLoop ();
@@ -5938,7 +5961,7 @@ let () =
         Config.save ();
         exit 0
 
-    | exn when conf.redirectstderr ->
+    | exn when conf.redirectstderr && not is_gui ->
         let s =
           Printf.sprintf "exception %s\n%s"
             (Printexc.to_string exn)
