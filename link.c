@@ -369,7 +369,7 @@ static void readdata (char *p, int size)
 
 static int readlen (void)
 {
-    char p[4];
+    unsigned char p[4];
 
     readdata (p, 4);
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
