@@ -360,14 +360,6 @@ static void readdata (void *p, int size)
     }
 }
 
-static int readlen (void)
-{
-    unsigned char p[4];
-
-    readdata (p, 4);
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
-}
-
 static void writedata (char *p, int size)
 {
     BOOL okay;
@@ -420,14 +412,6 @@ static void readdata (void *p, int size)
     }
 }
 
-static int readlen (void)
-{
-    unsigned char p[4];
-
-    readdata (p, 4);
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
-}
-
 static void writedata (char *p, int size)
 {
     char buf[4];
@@ -451,6 +435,14 @@ static void writedata (char *p, int size)
     }
 }
 #endif
+
+static int readlen (void)
+{
+    unsigned char p[4];
+
+    readdata (p, 4);
+    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+}
 
 static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 {
