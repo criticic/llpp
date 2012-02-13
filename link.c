@@ -15,6 +15,26 @@
 #else
 #define FMT_s "u"
 #endif
+static void NORETURN GCC_FMT_ATTR (2, 3)
+    winerr (int exitcode, const char *fmt, ...)
+{
+    va_list ap;
+    DWORD savederror = GetLastError ();
+
+    va_start (ap, fmt);
+    vfprintf (stderr, fmt, ap);
+    va_end (ap);
+    fprintf (stderr, ": 0x%lx\n",  savederror);
+    fflush (stderr);
+    _exit (exitcode);
+}
+#else
+#define FMT_s "zu"
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
 #endif
 
 #ifdef _MSC_VER
@@ -49,36 +69,10 @@
 #define FMT_ptr_cast2(p) (p)
 #endif
 
-#ifndef _WIN32
-#define FMT_s "zu"
-#include <unistd.h>
-#endif
-
 #include <regex.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <limits.h>
-
-#ifndef _WIN32
-#include <pthread.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#else
-static void NORETURN GCC_FMT_ATTR (2, 3)
-    winerr (int exitcode, const char *fmt, ...)
-{
-    va_list ap;
-    DWORD savederror = GetLastError ();
-
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
-    fprintf (stderr, ": 0x%lx\n",  savederror);
-    fflush (stderr);
-    _exit (exitcode);
-}
-#endif
 
 static void NORETURN GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...)
@@ -202,11 +196,6 @@ struct page {
 };
 
 struct {
-#ifdef _WIN32
-    HANDLE cr, cw;
-#else
-    int cr, cw;
-#endif
     int type;
     int sliceheight;
     struct pagedim *pagedims;
@@ -249,8 +238,10 @@ struct {
 
 #ifdef _WIN32
     HANDLE thread;
+    HANDLE cr, cw;
 #else
     pthread_t thread;
+    int cr, cw;
 #endif
     FT_Face face;
 
