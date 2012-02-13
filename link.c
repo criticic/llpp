@@ -453,13 +453,13 @@ static void writedata (char *p, int size)
     buf[2] = (size >>  8) & 0xff;
     buf[3] = (size >>  0) & 0xff;
 
-    n = write (state.cr, buf, 4);
+    n = write (state.cw, buf, 4);
     if (n != 4) {
         if (!n) errx (1, "EOF while writing length");
         err (1, "write %zd", n);
     }
 
-    n = write (state.cr, p, size);
+    n = write (state.cw, p, size);
     if (n - size) {
         if (!n) errx (1, "EOF while writing data");
         err (1, "write (req %d, ret %zd)", size, n);
