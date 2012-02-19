@@ -632,44 +632,63 @@ let setup sock screennum w h =
 let getauth haddr dnum =
   let haddr =
     if haddr = "localhost"
-    then Unix.gethostname ()
+    then
+      try Unix.gethostname ()
+      with exn ->
+        dolog "failed to resolve `%S': %s" haddr (Printexc.to_string exn);
+        haddr
     else haddr
   in
-  let path = Filename.concat (Sys.getenv "HOME") ".Xauthority" in
-  let ic = open_in_bin path in
-  let input_string ic len =
-    let s = String.create len in
-    really_input ic s 0 len;
-    s;
-  in
-  let r16 s =
-    let rb pos = Char.code (String.get s pos) in
-    (rb 1) lor ((rb 0) lsl 8)
-  in
-  let rec find () =
-    let rs () =
-      let s = input_string ic 2 in
-      let n = r16 s in
-      input_string ic n
+  let readauth ic =
+    let input_string ic len =
+      let s = String.create len in
+      really_input ic s 0 len;
+      s;
     in
-    let family = input_string ic 2 in
-    let addr = rs () in
-    let nums = rs () in
-    let num = int_of_string nums in
-    let name = rs () in
-    let data = rs () in
+    let r16 s =
+      let rb pos = Char.code (String.get s pos) in
+      (rb 1) lor ((rb 0) lsl 8)
+    in
+    let rec find () =
+      let rs () =
+        let s = input_string ic 2 in
+        let n = r16 s in
+        input_string ic n
+      in
+      let family = input_string ic 2 in
+      let addr = rs () in
+      let nums = rs () in
+      let num = int_of_string nums in
+      let name = rs () in
+      let data = rs () in
 
-    vlog "family %S addr %S(%S) num %d(%d) name %S data %S"
-      family addr haddr num dnum name data;
-    if addr = haddr && num = dnum
-    then name, data
-    else find ()
+      vlog "family %S addr %S(%S) num %d(%d) name %S data %S"
+        family addr haddr num dnum name data;
+      if addr = haddr && num = dnum
+      then name, data
+      else find ()
+    in
+    let name, data =
+      try find () with _ -> "", ""
+    in
+    close_in ic;
+    name, data;
   in
-  let name, data =
-    try find () with _ -> "", ""
+  let path =
+    try Sys.getenv "XAUTHORITY"
+    with Not_found -> Filename.concat (Sys.getenv "HOME") ".Xauthority"
   in
-  close_in ic;
-  name, data;
+  let opt =
+    try Some (open_in_bin path)
+    with exn ->
+      dolog "failed to open X authority file `%S' : %s"
+        path
+        (Printexc.to_string exn);
+      None
+  in
+  match opt with
+  | None -> "", ""
+  | Some ic -> readauth ic
 ;;
 
 let init t w h =
