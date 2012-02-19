@@ -5835,7 +5835,7 @@ let () =
     in
     let r, _, _ =
       try Unix.select r [] [] timeout
-      with Unix.Unix_error (Unix.EINTR, _, _) -> [], [] ,[]
+      with Unix.Unix_error (Unix.EINTR, _, _) -> [], [], []
     in
     begin match r with
     | [] ->
