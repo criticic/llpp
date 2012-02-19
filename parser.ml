@@ -37,7 +37,7 @@ let enent s pos len =
       | '&' -> Buffer.add_string b "&amp;"
       | c ->
           let code = Char.code c in
-          if code < 32 || code = 127
+          if code < 32 || code > 127
           then (
             Buffer.add_string b "&#";
             Buffer.add_string b (string_of_int code);
