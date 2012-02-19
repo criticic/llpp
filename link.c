@@ -1186,17 +1186,21 @@ static void search (regex_t *re, int pageno, int y, int forward)
             else  {
                 fz_bbox *sb, *eb;
                 fz_point p1, p2, p3, p4;
-                int a, b, p;
+                int a, b, c, l;
 
-                for (a = 0, p = 0; p < rm.rm_so; a++) {
-                    p += runelen (span->text[a].c);
+                l = span->len;
+                for (a = 0, c = 0; c < rm.rm_so && a < l; a++) {
+                    c += runelen (span->text[a].c);
                 }
-                for (b = a; p < rm.rm_eo - 1; b++) {
-                    p += runelen (span->text[b].c);
+                for (b = a; c < rm.rm_eo - 1 && b < l; b++) {
+                    c += runelen (span->text[b].c);
                 }
 
-                sb = &span->text[a].bbox;
-                eb = &span->text[b].bbox;
+                if (runelen (span->text[b].c) > 1) {
+                    b = MAX (0, b-1);
+                }
+                sb = &span->text[MIN (a, l-1)].bbox;
+                eb = &span->text[MIN (b, l-1)].bbox;
 
                 p1.x = sb->x0;
                 p1.y = sb->y0;
