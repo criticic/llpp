@@ -3873,6 +3873,9 @@ let enterinfomode =
       src#bool "checkers"
         (fun () -> conf.checkers)
         (fun v -> conf.checkers <- v; setcheckers v);
+      src#bool "update cursor"
+        (fun () -> conf.updatecurs)
+        (fun v -> conf.updatecurs <- v);
       src#bool "verbose"
         (fun () -> conf.verbose)
         (fun v -> conf.verbose <- v);
@@ -5213,6 +5216,7 @@ struct
         | "birds-eye-columns" ->
             { c with beyecolumns = Some (max (int_of_string v) 2) }
         | "selection-command" -> { c with selcmd = unent v }
+        | "update-cursor" -> { c with updatecurs = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -5305,6 +5309,7 @@ struct
     dst.columns        <- src.columns;
     dst.beyecolumns    <- src.beyecolumns;
     dst.selcmd         <- src.selcmd;
+    dst.updatecurs     <- src.updatecurs;
   ;;
 
   let get s =
@@ -5639,6 +5644,7 @@ struct
     oco "columns" c.columns dc.columns;
     obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
     os "selection-command" c.selcmd dc.selcmd;
+    ob "update-cursor" c.updatecurs dc.updatecurs;
   ;;
 
   let save () =
