@@ -405,6 +405,9 @@ let readresp sock =
       );
       vlog "atom %#x" atom
 
+  | 21 ->                               (* reparent *)
+      vlog "reparent"
+
   | 22 ->                               (* configure *)
       vlog "configure";
       let w = r16 resp 20
