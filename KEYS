@@ -114,7 +114,6 @@ ctrl-g,esc              - cancel
 
 [2] text selection requires
     xsel on X11         - http://www.vergenet.net/~conrad/software/xsel/
-    wsel under Windows  - http://repo.or.cz/w/llpp.git/blob/master:/wsel.c
     pbcopy under OSX    - ships with the system
 
 [3] if the document was previously visited initial backspace will
