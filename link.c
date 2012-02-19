@@ -975,8 +975,8 @@ static void layout (void)
     }
 
     while (p-- != state.pagedims)  {
-        int w = p->bounds.x1 - p->bounds.x0;
-        int h = p->bounds.y1 - p->bounds.y0;
+        int w = p->bounds.x1;
+        int h = p->bounds.y1;
 
         printd ("pdim %d %d %d %d", p->pageno, w, h, p->left);
     }
@@ -1593,8 +1593,6 @@ static void showsel (struct page *page, int ox, int oy)
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
     glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
 
-    ox -= state.pagedims[page->pdimno].bounds.x0;
-    oy -= state.pagedims[page->pdimno].bounds.y0;
     for (span = first.span; span; span = span->next) {
         int i, j, k;
 
@@ -1915,8 +1913,6 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
     page = parse_pointer ("ml_whatsunder", s);
     pdim = &state.pagedims[page->pdimno];
-    x += pdim->bounds.x0;
-    y += pdim->bounds.y0;
     link = getlink (page, x, y);
     if (link) {
         switch (link->dest.kind) {
@@ -2039,7 +2035,6 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     fz_text_span *span;
     struct mark first, last;
     int i, x0, x1, y0, y1;
-    struct pagedim *pdim;
     char *s = String_val (ptr_v);
 
     if (trylock ("ml_seltext")) {
@@ -2049,12 +2044,10 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     page = parse_pointer ("ml_seltext", s);
     ensuretext (page);
 
-    pdim = &state.pagedims[page->pdimno];
-
-    x0 = Int_val (Field (rect_v, 0)) + pdim->bounds.x0;
-    y0 = Int_val (Field (rect_v, 1)) + pdim->bounds.y0;
-    x1 = Int_val (Field (rect_v, 2)) + pdim->bounds.x0;
-    y1 = Int_val (Field (rect_v, 3)) + pdim->bounds.y0;
+    x0 = Int_val (Field (rect_v, 0));
+    y0 = Int_val (Field (rect_v, 1));
+    x1 = Int_val (Field (rect_v, 2));
+    y1 = Int_val (Field (rect_v, 3));
 
     if (0) {
         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
