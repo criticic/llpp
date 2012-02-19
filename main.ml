@@ -256,6 +256,7 @@ type conf =
     ; mutable checkers       : bool
     ; mutable aalevel        : int
     ; mutable urilauncher    : string
+    ; mutable pathlauncher   : string
     ; mutable colorspace     : colorspace
     ; mutable invert         : bool
     ; mutable colorscale     : float
@@ -434,6 +435,7 @@ let defconf =
       | Posx -> "open \"%s\""
       | Pcygwin -> "cygstart %s"
       | Punknown -> "echo %s")
+  ; pathlauncher   = "lp \"%s\""
   ; selcmd         =
       (match platform with
       | Plinux | Pfreebsd | Pdragonflybsd
@@ -607,6 +609,20 @@ let vlog fmt =
     Printf.kprintf prerr_endline fmt
   else
     Printf.kprintf ignore fmt
+;;
+
+let launchpath () =
+  if String.length conf.pathlauncher = 0
+  then print_endline state.path
+  else (
+    let re = Str.regexp "%s" in
+    let command = Str.global_replace re state.path conf.pathlauncher in
+    try popen command
+    with exn ->
+      Printf.eprintf
+        "failed to execute `%s': %s\n" command (Printexc.to_string exn);
+      flush stderr;
+  );
 ;;
 
 let redirectstderr () =
@@ -3891,6 +3907,9 @@ let enterinfomode =
       src#string "uri launcher"
         (fun () -> conf.urilauncher)
         (fun v -> conf.urilauncher <- v);
+      src#string "path launcher"
+        (fun () -> conf.pathlauncher)
+        (fun v -> conf.pathlauncher <- v);
       src#string "tile size"
         (fun () -> Printf.sprintf "%dx%d" conf.tilew conf.tileh)
         (fun v ->
@@ -4515,6 +4534,9 @@ let viewkeyboard key mask =
   | 114 ->                              (* r *)
       state.anchor <- getanchor ();
       opendoc state.path state.password
+
+  | 76 ->                               (* L *)
+      launchpath ()
 
   | 118 when conf.debug ->              (* v *)
       state.rects <- [];
@@ -5204,6 +5226,7 @@ struct
         | "trim-margins" -> { c with trimmargins = bool_of_string v }
         | "trim-fuzz" -> { c with trimfuzz = irect_of_string v }
         | "uri-launcher" -> { c with urilauncher = unent v }
+        | "path-launcher" -> { c with pathlauncher = unent v }
         | "color-space" -> { c with colorspace = colorspace_of_string v }
         | "invert-colors" -> { c with invert  = bool_of_string v }
         | "brightness" -> { c with colorscale = float_of_string v }
@@ -5310,6 +5333,7 @@ struct
     dst.beyecolumns    <- src.beyecolumns;
     dst.selcmd         <- src.selcmd;
     dst.updatecurs     <- src.updatecurs;
+    dst.pathlauncher   <- src.pathlauncher;
   ;;
 
   let get s =
@@ -5636,6 +5660,7 @@ struct
     ob "trim-margins" c.trimmargins dc.trimmargins;
     oR "trim-fuzz" c.trimfuzz dc.trimfuzz;
     os "uri-launcher" c.urilauncher dc.urilauncher;
+    os "path-launcher" c.pathlauncher dc.pathlauncher;
     oC "color-space" c.colorspace dc.colorspace;
     ob "invert-colors" c.invert dc.invert;
     oF "brightness" c.colorscale dc.colorscale;
