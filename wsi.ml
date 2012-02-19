@@ -420,6 +420,8 @@ let readresp sock =
 
   | 21 ->                               (* reparent *)
       state.parent <- r32 resp 24;
+      state.w <- -1;
+      state.h <- -1;
       vlog "reparent"
 
   | 22 ->                               (* configure *)
