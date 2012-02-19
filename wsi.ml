@@ -14,6 +14,7 @@ external toutf8 : int -> string = "ml_keysymtoutf8";;
 
 let dolog fmt = Format.kprintf prerr_endline fmt;;
 let vlog fmt = Format.kprintf ignore fmt;;
+let vlog = dolog;;
 
 exception Quit;;
 
@@ -310,8 +311,9 @@ let sendeventreq propagate destwid mask data =
 
 let readresp sock =
   let resp = readstr sock 32 in
-  match resp.[0] with
-  | '\000' ->
+  let opcode = r8 resp 0 in
+  match opcode land lnot 0x80 with
+  | 0 ->                                (* error *)
       let s = resp in
       let code = r8 s 1
       and serial = r16 s 2
@@ -321,11 +323,11 @@ let readresp sock =
       error "code=%d serial=%d resid=%#x min=%d maj=%d\n%S"
         code serial resid min maj resp;
 
-  | '\001' ->
+  | 1 ->                                (* response *)
       let rep = Queue.pop state.fifo in
       rep resp;
 
-  | '\002' ->
+  | 2 ->                                (* key press *)
       if Array.length state.keymap > 0
       then
         let code = r8 resp  1 in
@@ -335,7 +337,7 @@ let readresp sock =
         vlog "keysym = %x %c" keysym (Char.unsafe_chr keysym);
         state.t#key keysym mask;
 
-  | '\003' ->
+  | 3 ->                                (* key release *)
       if Array.length state.keymap > 0
       then
         let code = r8 resp 1 in
@@ -345,7 +347,7 @@ let readresp sock =
         vlog "release keysym = %x %c mask %#x"
           keysym (Char.unsafe_chr keysym) mask
 
-  | '\004' ->
+  | 4 ->                                (* buttonpress *)
       let n = r8 resp 1
       and x = r16s resp 24
       and y = r16s resp 26
@@ -353,7 +355,7 @@ let readresp sock =
       state.t#mouse n true x y m;
       vlog "press %d" n
 
-  | '\005' ->
+  | 5 ->                                (* buttonrelease *)
       let n = r8 resp 1
       and x = r16s resp 24
       and y = r16s resp 26
@@ -361,7 +363,7 @@ let readresp sock =
       state.t#mouse n false x y m;
       vlog "release %d %d %d" n x y
 
-  | '\006' ->
+  | 6 ->                                (* motion *)
       let x = r16s resp 24 in
       let y = r16s resp 26 in
       let m = r16 resp 28 in
@@ -370,35 +372,31 @@ let readresp sock =
       else state.t#motion x y;
       vlog "move %dx%d => %d" x y m
 
-  | '\007' -> vlog "enter"
-  | '\008' -> vlog "leave"
-  | '\018' -> vlog "unmap";
+  | 7 -> vlog "enter"
+  | 8 -> vlog "leave"
+  | 18 -> vlog "unmap";
 
-  | '\019' ->
+  | 19 ->                               (* map *)
       if state.w > 0 && state.h > 0
       then state.t#reshape state.w state.h;
       state.t#display;
       vlog "map";
 
-  | '\012' ->
+  | 12 ->                               (* exposure *)
       vlog "exposure";
       state.t#display
 
-  | '\015' ->
+  | 15 ->                               (* visibility *)
       let vis = r8 resp 8 in
       if vis != 2 then state.t#display;
       vlog "visibility %d" vis;
 
-  | '\034' ->
+  | 34 ->                               (* mapping *)
       state.keymap <- [||];
       let s = getkeymapreq state.mink (state.maxk-state.mink-1) in
       sendwithrep sock s (updkmap sock);
 
-  | '\021' ->
-      if state.w > 0 && state.h > 0
-      then state.t#reshape state.w state.h;
-
-  | '\161' ->
+  | 33 ->                               (* clientmessage *)
       let atom = r32 resp 8 in
       if atom = state.protoatom
       then (
@@ -408,8 +406,8 @@ let readresp sock =
       );
       vlog "atom %#x" atom
 
-  | '\022'
-  | '\150' ->
+  | 22 ->                               (* configure *)
+      vlog "configure";
       let w = r16 resp 20
       and h = r16 resp 22 in
       if w != state.w || h != state.h
@@ -419,8 +417,8 @@ let readresp sock =
         state.t#reshape w h;
       );
 
-  | c ->
-      dolog "event %d %S" (Char.code c) resp
+  | n ->
+      dolog "event %d %S" n resp
 ;;
 
 let readresp sock =
