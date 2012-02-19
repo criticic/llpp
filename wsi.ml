@@ -631,24 +631,17 @@ let getauth haddr dnum =
     (rb 1) lor ((rb 0) lsl 8)
   in
   let rec find () =
+    let rs () =
+      let s = input_string ic 2 in
+      let n = r16 s in
+      input_string ic n
+    in
     let family = input_string ic 2 in
-
-    let addrlens = input_string ic 2 in
-    let addrlen = r16 addrlens in
-    let addr = input_string ic addrlen in
-
-    let numlens = input_string ic 2 in
-    let numlen = r16 numlens in
-    let num = input_string ic numlen in
-    let num = int_of_string num in
-
-    let namelens = input_string ic 2 in
-    let namelen = r16 namelens in
-    let name = input_string ic namelen in
-
-    let datalens = input_string ic 2 in
-    let datalen = r16 datalens in
-    let data = input_string ic datalen in
+    let addr = rs () in
+    let nums = rs () in
+    let num = int_of_string nums in
+    let name = rs () in
+    let data = rs () in
 
     vlog "family %S addr %S(%S) num %d(%d) name %S data %S"
       family addr haddr num dnum name data;
