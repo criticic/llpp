@@ -21,7 +21,7 @@ val setcursor : cursor -> unit;;
 val settitle : string -> unit;;
 val swapb : unit -> unit;;
 val readresp : Unix.file_descr -> unit;;
-val init : t -> Unix.file_descr;;
+val init : t -> int -> int -> Unix.file_descr;;
 val fullscreen : unit -> unit;;
 val reshape : int -> int -> unit;;
 val withalt : int -> bool;;

@@ -5820,7 +5820,7 @@ let () =
     method key c m = keyboard c m
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
-  end);
+  end) conf.winw conf.winh;
 
   if not (
     List.exists GlMisc.check_extension

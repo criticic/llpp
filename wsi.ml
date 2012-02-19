@@ -71,8 +71,8 @@ let state =
   ; fullscreen = (fun _ -> ())
   ; sock = Unix.stdin
   ; t = onot
-  ; w = 900
-  ; h = 900
+  ; w = -1
+  ; h = -1
   ; fs = false
   ; stringatom = 31
   ; parent = -1
@@ -467,7 +467,7 @@ let reshape w h =
   sendstr s state.sock;
 ;;
 
-let setup sock screennum =
+let setup sock screennum w h =
   let s = readstr sock 2 in
   let n = String.length s in
   if n != 2
@@ -525,8 +525,8 @@ let setup sock screennum =
         findscreen 0 pos
       in
       let root = r32 data pos in
-      let w = r16 data (pos+20)
-      and h = r16 data (pos+22) in
+      let rootw = r16 data (pos+20)
+      and rooth = r16 data (pos+22) in
       state.mink <- minkk;
       state.maxk <- maxkk;
       state.idbase <- idbase;
@@ -534,7 +534,7 @@ let setup sock screennum =
       vlog "screens = %d formats = %d" screens formats;
       vlog "minkk = %d maxkk = %d" minkk maxkk;
       vlog "idbase = %#x idmask = %#x" idbase idmask;
-      vlog "root=%#x %dx%d" root w h;
+      vlog "root=%#x %dx%d" root rootw rooth;
 
       let mask = 0
         + 0x00000001                    (* KeyPress *)
@@ -564,7 +564,9 @@ let setup sock screennum =
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
       let wid = state.idbase in
-      let s = createwindowreq wid root 0 0 state.w state.h 0 mask in
+      state.w <- w;
+      state.h <- h;
+      let s = createwindowreq wid root 0 0 w h 0 mask in
       sendstr s sock;
 
       let s = mapreq wid in
@@ -670,7 +672,7 @@ let getauth haddr dnum =
   name, data;
 ;;
 
-let init t =
+let init t w h =
   let d = Sys.getenv "DISPLAY" in
   let colonpos = String.index d ':' in
   let host = String.sub d 0 colonpos in
@@ -710,7 +712,7 @@ let init t =
   w16 s 8 (String.length adata);
   sendstr s fd;
   state.sock <- fd;
-  setup fd screennum;
+  setup fd screennum w h;
   state.t <- t;
   fd;
 ;;
