@@ -453,7 +453,7 @@ let reshape w h =
   sendstr s state.sock;
 ;;
 
-let setup sock _screennum =
+let setup sock screennum =
   let s = readstr sock 2 in
   let n = String.length s in
   if n != 2
@@ -488,6 +488,28 @@ let setup sock _screennum =
       let data = readstr sock (4*add-32) in
       let vendor = String.sub data 0 vlen in
       let pos = ((vlen+3) land lnot 3) + formats*8 in
+
+      if screennum >= screens
+      then error "invalid screen %d, max %d" screennum (screens-1);
+
+      let pos =
+        let s = data in
+        let rec findscreen n pos = if n = screennum then pos else
+            let pos =
+              let ndepths = r8 s (pos+39) in
+              let rec skipdepths n pos = if n = ndepths then pos else
+                  let pos =
+                    let nvisiuals = r16 s (pos+2) in
+                    pos + nvisiuals*24 + 8
+                  in
+                  skipdepths (n+1) pos
+              in
+              skipdepths n (pos+40)
+            in
+            findscreen (n+1) pos
+        in
+        findscreen 0 pos
+      in
       let root = r32 data pos in
       let w = r16 data (pos+20)
       and h = r16 data (pos+22) in
