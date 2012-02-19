@@ -264,6 +264,7 @@ type conf =
     ; mutable columns        : columns option
     ; mutable beyecolumns    : columncount option
     ; mutable selcmd         : string
+    ; mutable updatecurs     : bool
     }
 ;;
 
@@ -378,6 +379,7 @@ type state =
     ; mutable prevzoom      : float
     ; mutable progress      : float
     ; mutable redisplay     : bool
+    ; mutable mpos          : mpos
     }
 and hists =
     { pat : string circbuf
@@ -446,6 +448,7 @@ let defconf =
   ; ghyllscroll    = None
   ; columns        = None
   ; beyecolumns    = None
+  ; updatecurs     = false
   }
 ;;
 
@@ -594,6 +597,7 @@ let state =
   ; progress      = -1.0
   ; uioh          = nouioh
   ; redisplay     = false
+  ; mpos          = (-1, -1)
   }
 ;;
 
@@ -4756,6 +4760,11 @@ let display () =
   | _ -> ()
   end;
   enttext ();
+  if conf.updatecurs
+  then (
+    let mx, my = state.mpos in
+    updateunder mx my;
+  );
   Wsi.swapb ();
 ;;
 
@@ -5775,9 +5784,11 @@ let () =
     method display = display ()
     method reshape w h = reshape w h
     method mouse b d x y m = mouse b d x y m
-    method motion x y = motion x y
-    method pmotion x y = pmotion x y
+    method motion x y = state.mpos <- (x, y); motion x y
+    method pmotion x y = state.mpos <- (x, y); pmotion x y
     method key c m = keyboard c m
+    method enter x y = state.mpos <- (x, y); pmotion x y
+    method leave = state.mpos <- (-1, -1)
   end);
 
   if not (

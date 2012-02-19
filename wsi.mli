@@ -13,6 +13,8 @@ class type t = object
   method motion : int -> int -> unit
   method pmotion : int -> int -> unit
   method key : int -> int -> unit
+  method enter : int -> int -> unit
+  method leave : unit
 end;;
 
 val setcursor : cursor -> unit;;

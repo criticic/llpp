@@ -24,6 +24,8 @@ let onot = object
     method motion _ _ = ()
     method pmotion _ _ = ()
     method key _ _ = ()
+    method enter _ _ = ()
+    method leave = ()
 end;;
 
 class type t = object
@@ -33,6 +35,8 @@ class type t = object
   method motion : int -> int -> unit
   method pmotion : int -> int -> unit
   method key : int -> int -> unit
+  method enter : int -> int -> unit
+  method leave : unit
 end;;
 
 type state =
@@ -51,6 +55,7 @@ type state =
     ; mutable w : int
     ; mutable h : int
     ; mutable fs : bool
+    ; mutable parent : int
     }
 ;;
 
@@ -70,6 +75,7 @@ let state =
   ; h = 900
   ; fs = false
   ; stringatom = 31
+  ; parent = -1
   }
 ;;
 
@@ -371,12 +377,19 @@ let readresp sock =
       else state.t#motion x y;
       vlog "move %dx%d => %d" x y m
 
-  | 7 -> vlog "enter"
-  | 8 -> vlog "leave"
+  | 7 ->                                (* enter *)
+      let x = r16s resp 24
+      and y = r16s resp 26 in
+      state.t#enter x y;
+      vlog "enter %d %d" x y
+
+  | 8 ->                                (* leave *)
+      state.t#leave
+
   | 18 -> vlog "unmap";
 
   | 19 ->                               (* map *)
-      if state.w > 0 && state.h > 0
+      if state.parent = -1 && state.w > 0 && state.h > 0
       then state.t#reshape state.w state.h;
       state.t#display;
       vlog "map";
@@ -406,6 +419,7 @@ let readresp sock =
       vlog "atom %#x" atom
 
   | 21 ->                               (* reparent *)
+      state.parent <- r32 resp 24;
       vlog "reparent"
 
   | 22 ->                               (* configure *)
