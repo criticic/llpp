@@ -45,7 +45,7 @@ type state =
     ; mutable deleatom : int
     ; mutable idbase : int
     ; mutable fullscreen : (int -> unit)
-    ; mutable title : (int -> string -> unit)
+    ; mutable stringatom : int
     ; mutable t : t
     ; mutable sock : Unix.file_descr
     ; mutable w : int
@@ -64,12 +64,12 @@ let state =
   ; deleatom = -1
   ; idbase = -1
   ; fullscreen = (fun _ -> ())
-  ; title = (fun _ _ -> ())
   ; sock = Unix.stdin
   ; t = onot
   ; w = -1
   ; h = -1
   ; fs = false
+  ; stringatom = 31
   }
 ;;
 
@@ -562,17 +562,8 @@ let setup sock _screennum =
         sendstr s sock;
       ) [|34;48;50;58;128;152|];
 
-      state.title <- (fun wid s ->
-        let s = changepropreq wid 39 31 8 s in
-        sendstr s sock;
-      );
-
       sendintern sock "UTF8_STRING" false (fun resp ->
-        let atom = r32 resp 8 in
-        state.title <- (fun wid s ->
-          let s = changepropreq wid 39 atom 8 s in
-          sendstr s sock;
-        );
+        state.stringatom <- r32 resp 8;
       );
 
       sendintern sock "_NET_WM_STATE" true (fun resp ->
@@ -696,7 +687,8 @@ let init t =
 ;;
 
 let settitle s =
-  state.title state.idbase s;
+  let s = changepropreq state.idbase 39 state.stringatom 8 s in
+  sendstr s state.sock;
 ;;
 
 let setcursor cursor =
