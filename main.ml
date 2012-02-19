@@ -636,6 +636,80 @@ struct
   ;;
 end;;
 
+let getopaque pageno =
+  try Some (Hashtbl.find state.pagemap (pageno, state.gen))
+  with Not_found -> None
+;;
+
+let putopaque pageno opaque =
+  Hashtbl.replace state.pagemap (pageno, state.gen) opaque
+;;
+
+let pagetranslatepoint l x y =
+  let dy = y - l.pagedispy in
+  let y = dy + l.pagey in
+  let dx = x - l.pagedispx in
+  let x = dx + l.pagex in
+  (x, y);
+;;
+
+let getunder x y =
+  let rec f = function
+    | l :: rest ->
+        begin match getopaque l.pageno with
+        | Some opaque ->
+            let x0 = l.pagedispx in
+            let x1 = x0 + l.pagevw in
+            let y0 = l.pagedispy in
+            let y1 = y0 + l.pagevh in
+            if y >= y0 && y <= y1 && x >= x0 && x <= x1
+            then
+              let px, py = pagetranslatepoint l x y in
+              match whatsunder opaque px py with
+              | Unone -> f rest
+              | under -> under
+            else f rest
+        | _ ->
+            f rest
+        end
+    | [] -> Unone
+  in
+  f state.layout
+;;
+
+let showtext c s =
+  state.text <- Printf.sprintf "%c%s" c s;
+  G.postRedisplay "showtext";
+;;
+
+let updateunder x y =
+  match getunder x y with
+  | Unone -> Wsi.setcursor Wsi.CURSOR_INHERIT
+  | Ulinkuri uri ->
+      if conf.underinfo then showtext 'u' ("ri: " ^ uri);
+      Wsi.setcursor Wsi.CURSOR_INFO
+  | Ulinkgoto (page, _) ->
+      if conf.underinfo
+      then showtext 'p' ("age: " ^ string_of_int (page+1));
+      Wsi.setcursor Wsi.CURSOR_INFO
+  | Utext s ->
+      if conf.underinfo then showtext 'f' ("ont: " ^ s);
+      Wsi.setcursor Wsi.CURSOR_TEXT
+  | Uunexpected s ->
+      if conf.underinfo then showtext 'u' ("nexpected: " ^ s);
+      Wsi.setcursor Wsi.CURSOR_INHERIT
+  | Ulaunch s ->
+      if conf.underinfo then showtext 'l' ("launch: " ^ s);
+      Wsi.setcursor Wsi.CURSOR_INHERIT
+  | Unamed s ->
+      if conf.underinfo then showtext 'n' ("named: " ^ s);
+      Wsi.setcursor Wsi.CURSOR_INHERIT
+  | Uremote (filename, pageno) ->
+      if conf.underinfo then showtext 'r'
+        (Printf.sprintf "emote: %s (%d)" filename pageno);
+      Wsi.setcursor Wsi.CURSOR_INFO
+;;
+
 let addchar s c =
   let b = Buffer.create (String.length s + 1) in
   Buffer.add_string b s;
@@ -1019,15 +1093,6 @@ let clamp incr =
   let y = max 0 y in
   let y = min y (state.maxy - (if conf.maxhfit then conf.winh else 0)) in
   y;
-;;
-
-let getopaque pageno =
-  try Some (Hashtbl.find state.pagemap (pageno, state.gen))
-  with Not_found -> None
-;;
-
-let putopaque pageno opaque =
-  Hashtbl.replace state.pagemap (pageno, state.gen) opaque
 ;;
 
 let itertiles l f =
@@ -1655,11 +1720,6 @@ let enttext () =
   in
   if String.length s > 0
   then drawstring s
-;;
-
-let showtext c s =
-  state.text <- Printf.sprintf "%c%s" c s;
-  G.postRedisplay "showtext";
 ;;
 
 let gctiles () =
@@ -4616,14 +4676,6 @@ let scrollindicator () =
   ;
 ;;
 
-let pagetranslatepoint l x y =
-  let dy = y - l.pagedispy in
-  let y = dy + l.pagey in
-  let dx = x - l.pagedispx in
-  let x = dx + l.pagex in
-  (x, y);
-;;
-
 let showsel () =
   match state.mstate with
   | Mnone | Mscrolly | Mscrollx | Mpan _ | Mzoom _ | Mzoomrect _ ->
@@ -4705,30 +4757,6 @@ let display () =
   end;
   enttext ();
   Wsi.swapb ();
-;;
-
-let getunder x y =
-  let rec f = function
-    | l :: rest ->
-        begin match getopaque l.pageno with
-        | Some opaque ->
-            let x0 = l.pagedispx in
-            let x1 = x0 + l.pagevw in
-            let y0 = l.pagedispy in
-            let y1 = y0 + l.pagevh in
-            if y >= y0 && y <= y1 && x >= x0 && x <= x1
-            then
-              let px, py = pagetranslatepoint l x y in
-              match whatsunder opaque px py with
-              | Unone -> f rest
-              | under -> under
-            else f rest
-        | _ ->
-            f rest
-        end
-    | [] -> Unone
-  in
-  f state.layout
 ;;
 
 let zoomrect x y x1 y1 =
@@ -5053,34 +5081,7 @@ let uioh = object
 
     | View ->
         match state.mstate with
-        | Mnone ->
-            begin match getunder x y with
-            | Unone -> Wsi.setcursor Wsi.CURSOR_INHERIT
-            | Ulinkuri uri ->
-                if conf.underinfo then showtext 'u' ("ri: " ^ uri);
-                Wsi.setcursor Wsi.CURSOR_INFO
-            | Ulinkgoto (page, _) ->
-                if conf.underinfo
-                then showtext 'p' ("age: " ^ string_of_int (page+1));
-                Wsi.setcursor Wsi.CURSOR_INFO
-            | Utext s ->
-                if conf.underinfo then showtext 'f' ("ont: " ^ s);
-                Wsi.setcursor Wsi.CURSOR_TEXT
-            | Uunexpected s ->
-                if conf.underinfo then showtext 'u' ("nexpected: " ^ s);
-                Wsi.setcursor Wsi.CURSOR_INHERIT
-            | Ulaunch s ->
-                if conf.underinfo then showtext 'l' ("launch: " ^ s);
-                Wsi.setcursor Wsi.CURSOR_INHERIT
-            | Unamed s ->
-                if conf.underinfo then showtext 'n' ("named: " ^ s);
-                Wsi.setcursor Wsi.CURSOR_INHERIT
-            | Uremote (filename, pageno) ->
-                if conf.underinfo then showtext 'r'
-                  (Printf.sprintf "emote: %s (%d)" filename pageno);
-                Wsi.setcursor Wsi.CURSOR_INFO
-            end
-
+        | Mnone -> updateunder x y
         | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ ->
             ()
     end;
