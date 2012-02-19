@@ -14,7 +14,6 @@ external toutf8 : int -> string = "ml_keysymtoutf8";;
 
 let dolog fmt = Format.kprintf prerr_endline fmt;;
 let vlog fmt = Format.kprintf ignore fmt;;
-let vlog = dolog;;
 
 exception Quit;;
 
@@ -67,8 +66,8 @@ let state =
   ; fullscreen = (fun _ -> ())
   ; sock = Unix.stdin
   ; t = onot
-  ; w = -1
-  ; h = -1
+  ; w = 900
+  ; h = 900
   ; fs = false
   ; stringatom = 31
   }
@@ -546,7 +545,7 @@ let setup sock screennum =
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
       let wid = state.idbase in
-      let s = createwindowreq wid root 0 0 900 900 0 mask in
+      let s = createwindowreq wid root 0 0 state.w state.h 0 mask in
       sendstr s sock;
 
       let s = mapreq wid in
