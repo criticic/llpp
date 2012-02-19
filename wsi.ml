@@ -330,9 +330,8 @@ let readresp sock =
       then
         let code = r8 resp  1 in
         let mask = r16 resp 28 in
-        let keysym = state.keymap.(code-state.mink).(
-          if mask land 3 != 0 then 1 else 0
-        ) in
+        let index = (mask land 1) lxor ((mask land 2) lsr 1) in
+        let keysym = state.keymap.(code-state.mink).(index) in
         vlog "keysym = %x %c" keysym (Char.unsafe_chr keysym);
         state.t#key keysym mask;
 
@@ -341,9 +340,8 @@ let readresp sock =
       then
         let code = r8 resp 1 in
         let mask = r16 resp 28 in
-        let keysym = state.keymap.(code-state.mink).(
-          if mask land 3 != 0 then 1 else 0
-        ) in
+        let index = (mask land 1) lxor ((mask land 2) lsr 1) in
+        let keysym = state.keymap.(code-state.mink).(index) in
         vlog "release keysym = %x %c mask %#x"
           keysym (Char.unsafe_chr keysym) mask
 
