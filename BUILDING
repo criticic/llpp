@@ -5,19 +5,19 @@ be found here[3], dependencies here[4]
 
 Note that MuPDF is a moving target therefore bellow is the commit id
 of the git version of MuPDF that this version of llpp is known to work
-with: 
+with:
 7d181099272d9c0e92c4488ceaa95b0d8bd10f1e
 
-llpp also depends on OCaml[5], lablGL[6] and GLUT[7], having a C
-compiler wouldn't hurt either.
+llpp also depends on OCaml[5], lablGL[6], having a C compiler wouldn't
+hurt either.
 
 To build llpp "the easy way" one can invoke `sh buildall.sh' which
 will first attempt to automatically fetch lablGL, mupdf, mupdf's
-prerequisites[8] and build them, then, if everything goes fine, it
-will proceed building llpp itself. Note that OCaml and GLUT still need
-to be installed separately, also, in addition to the usual suspects
-(i.e.  GCC, make, binutils, OCaml) you will need `wget' and `unzip'for
-this script to work.
+prerequisites[7] and build them, then, if everything goes fine, it
+will proceed building llpp itself. Note that OCaml still needs to be
+installed separately, also, in addition to the usual suspects (i.e.
+GCC, make, binutils, OCaml) you will need `wget' and `unzip'for this
+script to work.
 
 Otherwise, provided that all prereqs are already built, one should
 invoke `sh build.sh' from the top of llpp's directory, prior to that
@@ -36,9 +36,7 @@ $ ./llpp -p password /path/to/some.password.protected.pdf
 [4] http://mupdf.com/download/source/mupdf-thirdparty.zip
 [5] http://caml.inria.fr/
 [6] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
-[7] http://www.opengl.org/resources/libraries/glut/
-    http://freeglut.sourceforge.net/
-[8] mupdf-7d181099272d9c0e92c4488ceaa95b0d8bd10f1e.tgz (4064792 bytes)
+[7] mupdf-7d181099272d9c0e92c4488ceaa95b0d8bd10f1e.tgz (4064792 bytes)
     mupdf-thirdparty-2012-01-27.zip (7288384 bytes)
     lablgl-1.04.tar.gz (410525 bytes)
 

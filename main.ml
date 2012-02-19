@@ -12,11 +12,9 @@ and facename = string;;
 let dolog fmt = Printf.kprintf prerr_endline fmt;;
 let now = Unix.gettimeofday;;
 
-exception Quit;;
-
 type params = (angle * proportional * trimparams
                 * texcount * sliceheight * memsize
-                * colorspace * wmclasshack * fontpath)
+                * colorspace * fontpath)
 and pageno         = int
 and width          = int
 and height         = int
@@ -35,15 +33,13 @@ and top            = float
 and fontpath       = string
 and memsize        = int
 and aalevel        = int
-and wmclasshack    = bool
 and irect          = (int * int * int * int)
 and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
 ;;
 
-type platform = | Punknown | Plinux | Pwindows | Pwindowsgui | Posx | Psun
-                | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
-                | Pmingw | Pmingwgui| Pcygwin;;
+type platform = | Punknown | Plinux | Posx | Psun | Pfreebsd
+                | Pdragonflybsd | Popenbsd | Pnetbsd | Pcygwin;;
 
 type pipe = (Unix.file_descr * Unix.file_descr);;
 
@@ -61,13 +57,11 @@ external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external realloctexts : int -> bool = "ml_realloctexts";;
-external seterrhandle : bool -> Unix.file_descr -> unit = "ml_seterrhandle";;
+external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
   | Plinux        -> "Linux"
-  | Pwindows      -> "Windows"
-  | Pwindowsgui   -> "Windows/GUI"
   | Posx          -> "OSX"
   | Psun          -> "Sun"
   | Pfreebsd      -> "FreeBSD"
@@ -75,23 +69,9 @@ let platform_to_string = function
   | Popenbsd      -> "OpenBSD"
   | Pnetbsd       -> "NetBSD"
   | Pcygwin       -> "Cygwin"
-  | Pmingw        -> "MingW"
-  | Pmingwgui     -> "MingW/GUI"
 ;;
 
 let platform = platform ();;
-
-let is_windows =
-  match platform with
-  | Pwindows | Pwindowsgui | Pmingw | Pmingwgui -> true
-  | _ -> false
-;;
-
-let is_gui =
-  match platform with
-  | Pwindowsgui | Pmingwgui -> true
-  | _ -> false
-;;
 
 type x = int
 and y = int
@@ -306,10 +286,8 @@ type infochange = | Memused | Docinfo | Pdim;;
 
 class type uioh = object
   method display : unit
-  method key : int -> uioh
-  method special : Glut.special_key_t -> uioh
-  method button :
-    Glut.button_t -> Glut.mouse_button_state_t -> int -> int -> uioh
+  method key : int -> int -> uioh
+  method button : int -> bool -> int -> int -> int -> uioh
   method motion : int -> int -> uioh
   method pmotion : int -> int -> uioh
   method infochanged : infochange -> unit
@@ -343,9 +321,8 @@ type currently =
 
 let nouioh : uioh = object (self)
   method display = ()
-  method key _ = self
-  method special _ = self
-  method button _ _ _ _ = self
+  method key _ _ = self
+  method button _ _ _ _ _ = self
   method motion _ _ = self
   method pmotion _ _ = self
   method infochanged _ = ()
@@ -356,6 +333,7 @@ end;;
 type state =
     { mutable sr            : Unix.file_descr
     ; mutable sw            : Unix.file_descr
+    ; mutable wsfd          : Unix.file_descr
     ; mutable errfd         : Unix.file_descr option
     ; mutable stderr        : Unix.file_descr
     ; mutable errmsgs       : Buffer.t
@@ -392,14 +370,14 @@ type state =
     ; mutable gen           : gen
     ; mutable throttle      : (page list * int * float) option
     ; mutable autoscroll    : int option
-    ; mutable ghyll         : int option -> unit
+    ; mutable ghyll         : (int option -> unit)
     ; mutable help          : helpitem array
     ; mutable docinfo       : (int * string) list
-    ; mutable deadline      : float
     ; mutable texid         : GlTex.texture_id option
     ; hists                 : hists
     ; mutable prevzoom      : float
     ; mutable progress      : float
+    ; mutable redisplay     : bool
     }
 and hists =
     { pat : string circbuf
@@ -449,19 +427,17 @@ let defconf =
   ; aalevel        = 8
   ; urilauncher    =
       (match platform with
-      | Plinux
-      | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
-      | Psun -> "xdg-open \"%s\""
+      | Plinux | Pfreebsd | Pdragonflybsd
+      | Popenbsd | Pnetbsd | Psun -> "xdg-open \"%s\""
       | Posx -> "open \"%s\""
-      | Pwindows | Pwindowsgui | Pcygwin | Pmingw | Pmingwgui -> "start %s"
+      | Pcygwin -> "cygstart %s"
       | Punknown -> "echo %s")
   ; selcmd         =
       (match platform with
-      | Plinux
-      | Pfreebsd | Pdragonflybsd | Popenbsd | Pnetbsd
-      | Psun  -> "xsel -i"
+      | Plinux | Pfreebsd | Pdragonflybsd
+      | Popenbsd | Pnetbsd | Psun -> "xsel -i"
       | Posx -> "pbcopy"
-      | Pwindows | Pwindowsgui | Pcygwin | Pmingw | Pmingwgui -> "wsel"
+      | Pcygwin -> "wsel"
       | Punknown -> "cat")
   ; colorspace     = Rgb
   ; invert         = false
@@ -523,11 +499,7 @@ let geturl s =
 ;;
 
 let popen =
-  let shell, farg =
-    if is_windows
-    then (try Sys.getenv "COMSPEC" with Not_found -> "cmd"), "/c"
-    else "/bin/sh", "-c"
-  in
+  let shell, farg = "/bin/sh", "-c" in
   fun s ->
     let args = [|shell; farg; s|] in
     ignore (Unix.create_process shell args Unix.stdin Unix.stdout Unix.stderr)
@@ -572,6 +544,7 @@ let noghyll _ = ();;
 let state =
   { sr            = Unix.stdin
   ; sw            = Unix.stdin
+  ; wsfd          = Unix.stdin
   ; errfd         = None
   ; stderr        = Unix.stderr
   ; errmsgs       = Buffer.create 0
@@ -616,11 +589,11 @@ let state =
   ; ghyll         = noghyll
   ; help          = makehelp ()
   ; docinfo       = []
-  ; deadline      = nan
   ; texid         = None
   ; prevzoom      = 1.0
   ; progress      = -1.0
   ; uioh          = nouioh
+  ; redisplay     = false
   }
 ;;
 
@@ -632,39 +605,25 @@ let vlog fmt =
     Printf.kprintf ignore fmt
 ;;
 
-let () =
-  if is_gui then (
-    let rfd, wfd = Unix.pipe () in
-    state.errfd <- Some rfd;
-    seterrhandle true wfd;
-    Unix.dup2 wfd Unix.stderr;
-  );
-;;
-
 let redirectstderr () =
-  if not is_gui
-  then (
-    if conf.redirectstderr
-    then
-      let rfd, wfd = Unix.pipe () in
-      state.stderr <- Unix.dup Unix.stderr;
-      state.errfd <- Some rfd;
-      seterrhandle false wfd;
-      Unix.dup2 wfd Unix.stderr;
-    else (
-      state.newerrmsgs <- false;
-      begin match state.errfd with
-      | Some fd ->
-          Unix.close fd;
-          seterrhandle false state.stderr;
-          Unix.dup2 state.stderr Unix.stderr;
-          state.errfd <- None;
-      | None -> ()
-      end;
-      prerr_string (Buffer.contents state.errmsgs);
-      flush stderr;
-      Buffer.clear state.errmsgs;
-    )
+  if conf.redirectstderr
+  then
+    let rfd, wfd = Unix.pipe () in
+    state.stderr <- Unix.dup Unix.stderr;
+    state.errfd <- Some rfd;
+    Unix.dup2 wfd Unix.stderr;
+  else (
+    state.newerrmsgs <- false;
+    begin match state.errfd with
+    | Some fd ->
+        Unix.close fd;
+        Unix.dup2 state.stderr Unix.stderr;
+        state.errfd <- None;
+    | None -> ()
+    end;
+    prerr_string (Buffer.contents state.errmsgs);
+    flush stderr;
+    Buffer.clear state.errmsgs;
   )
 ;;
 
@@ -673,7 +632,7 @@ struct
   let postRedisplay who =
     if conf.verbose
     then prerr_endline ("redisplay for " ^ who);
-    Glut.postRedisplay ();
+    state.redisplay <- true;
   ;;
 end;;
 
@@ -712,7 +671,11 @@ let colorspace_to_string = function
 ;;
 
 let intentry_with_suffix text key =
-  let c = Char.unsafe_chr key in
+  let c =
+    if key >= 32 && key < 127
+    then Char.chr key
+    else '\000'
+  in
   match Char.lowercase c with
   | '0' .. '9' ->
       let text = addchar text c in
@@ -1527,7 +1490,7 @@ let opendoc path password =
 
   setaalevel conf.aalevel;
   writeopen path password;
-  Glut.setWindowTitle ("llpp " ^ Filename.basename path);
+  Wsi.settitle ("llpp " ^ Filename.basename path);
   wcmd "geometry" [`i state.w; `i conf.winh];
 ;;
 
@@ -1821,7 +1784,7 @@ let act cmds =
       then G.postRedisplay "continue";
 
   | "title" ->
-      Glut.setWindowTitle args
+      Wsi.settitle args
 
   | "msg" ->
       showtext ' ' args
@@ -1935,7 +1898,7 @@ let act cmds =
       | _ ->
           dolog "Inconsistent loading state";
           logcurrently state.currently;
-          raise Quit;
+          exit 1
       end
 
   | "tile" ->
@@ -2004,7 +1967,7 @@ let act cmds =
       | _ ->
           dolog "Inconsistent tiling state";
           logcurrently state.currently;
-          raise Quit;
+          exit 1
       end
 
   | "pdim" ->
@@ -2052,76 +2015,6 @@ let act cmds =
       dolog "unknown cmd `%S'" cmds
 ;;
 
-let idle () =
-  if state.deadline == nan then state.deadline <- now ();
-  let r =
-    match state.errfd with
-    | None -> [state.sr]
-    | Some fd -> [state.sr; fd]
-  in
-  let rec loop delay =
-    let deadline =
-      if state.ghyll == noghyll
-      then state.deadline
-      else now () +. 0.02
-    in
-    let timeout =
-      if delay > 0.0
-      then max 0.0 (deadline -. now ())
-      else 0.0
-    in
-    let r, _, _ =
-      try Unix.select r [] [] timeout
-      with Unix.Unix_error (Unix.EINTR, _, _) -> [], [] ,[]
-    in
-    begin match r with
-    | [] ->
-        state.ghyll None;
-        begin match state.autoscroll with
-        | Some step when step != 0 ->
-            let y = state.y + step in
-            let y =
-              if y < 0
-              then state.maxy
-              else if y >= state.maxy then 0 else y
-            in
-            gotoy y;
-            if state.mode = View
-            then state.text <- "";
-            state.deadline <- state.deadline +. 0.005;
-
-        | _ ->
-            state.deadline <- state.deadline +. delay;
-        end;
-
-    | l ->
-        let rec checkfds c = function
-          | [] -> c
-          | fd :: rest when fd = state.sr ->
-              let cmd = readcmd state.sr in
-              act cmd;
-              checkfds true rest
-          | fd :: rest ->
-              let s = String.create 80 in
-              let n = Unix.read fd s 0 80 in
-              if conf.redirectstderr || is_gui
-              then (
-                Buffer.add_substring state.errmsgs s 0 n;
-                state.newerrmsgs <- true;
-                Glut.postRedisplay ();
-              )
-              else (
-                prerr_string (String.sub s 0 n);
-                flush stderr;
-              );
-              checkfds c rest
-        in
-        if checkfds false l
-        then loop 0.0
-    end;
-  in loop 0.007
-;;
-
 let onhist cb =
   let rc = cb.rc in
   let action = function
@@ -2155,7 +2048,11 @@ let search pattern forward =
 ;;
 
 let intentry text key =
-  let c = Char.unsafe_chr key in
+  let c =
+    if key >= 32 && key < 127
+    then Char.chr key
+    else '\000'
+  in
   match c with
   | '0' .. '9' ->
       let text = addchar text c in
@@ -2167,15 +2064,9 @@ let intentry text key =
 ;;
 
 let textentry text key =
-  let c = Char.unsafe_chr key in
-  match c with
-  | _ when key >= 32 && key < 127 ->
-      let text = addchar text c in
-      TEcont text
-
-  | _ ->
-      dolog "unhandled key %d char `%c'" key (Char.unsafe_chr key);
-      TEcont text
+  if key land 0xff00 = 0xff00
+  then TEcont text
+  else TEcont (text ^ Wsi.toutf8 key)
 ;;
 
 let reqlayout angle proportional =
@@ -2294,7 +2185,7 @@ let enterbirdseye () =
         Some ((c, 0, 0), [||])
     | None -> None
   );
-  Glut.setCursor Glut.CURSOR_INHERIT;
+  Wsi.setcursor Wsi.CURSOR_INHERIT;
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
@@ -2372,171 +2263,175 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
 
 let optentry mode _ key =
   let btos b = if b then "on" else "off" in
-  let c = Char.unsafe_chr key in
-  match c with
-  | 's' ->
-      let ondone s =
-        try conf.scrollstep <- int_of_string s with exc ->
-          state.text <- Printf.sprintf "bad integer `%s': %s"
-            s (Printexc.to_string exc)
-      in
-      TEswitch ("scroll step: ", "", None, intentry, ondone)
+  if key >= 32 && key < 127
+  then
+    let c = Char.chr key in
+    match c with
+    | 's' ->
+        let ondone s =
+          try conf.scrollstep <- int_of_string s with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc)
+        in
+        TEswitch ("scroll step: ", "", None, intentry, ondone)
 
-  | 'A' ->
-      let ondone s =
-        try
-          conf.autoscrollstep <- int_of_string s;
-          if state.autoscroll <> None
-          then state.autoscroll <- Some conf.autoscrollstep
-        with exc ->
-          state.text <- Printf.sprintf "bad integer `%s': %s"
-            s (Printexc.to_string exc)
-      in
-      TEswitch ("auto scroll step: ", "", None, intentry, ondone)
-
-  | 'C' ->
-      let ondone s =
-        try
-          let n, a, b = columns_of_string s in
-          setcolumns n a b;
-        with exc ->
-          state.text <- Printf.sprintf "bad columns `%s': %s"
-            s (Printexc.to_string exc)
-      in
-      TEswitch ("columns: ", "", None, textentry, ondone)
-
-  | 'Z' ->
-      let ondone s =
-        try
-          let zoom = float (int_of_string s) /. 100.0 in
-          setzoom zoom
-        with exc ->
-          state.text <- Printf.sprintf "bad integer `%s': %s"
-            s (Printexc.to_string exc)
-      in
-      TEswitch ("zoom: ", "", None, intentry, ondone)
-
-  | 't' ->
-      let ondone s =
-        try
-          conf.thumbw <- bound (int_of_string s) 2 4096;
-          state.text <-
-            Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
-          begin match mode with
-          | Birdseye beye ->
-              leavebirdseye beye false;
-              enterbirdseye ();
-          | _ -> ();
-          end
-        with exc ->
-          state.text <- Printf.sprintf "bad integer `%s': %s"
-            s (Printexc.to_string exc)
-      in
-      TEswitch ("thumbnail width: ", "", None, intentry, ondone)
-
-  | 'R' ->
-      let ondone s =
-        match try
-            Some (int_of_string s)
+    | 'A' ->
+        let ondone s =
+          try
+            conf.autoscrollstep <- int_of_string s;
+            if state.autoscroll <> None
+            then state.autoscroll <- Some conf.autoscrollstep
           with exc ->
             state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc);
-            None
-        with
-        | Some angle -> reqlayout angle conf.proportional
-        | None -> ()
-      in
-      TEswitch ("rotation: ", "", None, intentry, ondone)
+              s (Printexc.to_string exc)
+        in
+        TEswitch ("auto scroll step: ", "", None, intentry, ondone)
 
-  | 'i' ->
-      conf.icase <- not conf.icase;
-      TEdone ("case insensitive search " ^ (btos conf.icase))
+    | 'C' ->
+        let ondone s =
+          try
+            let n, a, b = columns_of_string s in
+            setcolumns n a b;
+          with exc ->
+            state.text <- Printf.sprintf "bad columns `%s': %s"
+              s (Printexc.to_string exc)
+        in
+        TEswitch ("columns: ", "", None, textentry, ondone)
 
-  | 'p' ->
-      conf.preload <- not conf.preload;
-      gotoy state.y;
-      TEdone ("preload " ^ (btos conf.preload))
+    | 'Z' ->
+        let ondone s =
+          try
+            let zoom = float (int_of_string s) /. 100.0 in
+            setzoom zoom
+          with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc)
+        in
+        TEswitch ("zoom: ", "", None, intentry, ondone)
 
-  | 'v' ->
-      conf.verbose <- not conf.verbose;
-      TEdone ("verbose " ^ (btos conf.verbose))
+    | 't' ->
+        let ondone s =
+          try
+            conf.thumbw <- bound (int_of_string s) 2 4096;
+            state.text <-
+              Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
+            begin match mode with
+            | Birdseye beye ->
+                leavebirdseye beye false;
+                enterbirdseye ();
+            | _ -> ();
+            end
+          with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc)
+        in
+        TEswitch ("thumbnail width: ", "", None, intentry, ondone)
 
-  | 'd' ->
-      conf.debug <- not conf.debug;
-      TEdone ("debug " ^ (btos conf.debug))
+    | 'R' ->
+        let ondone s =
+          match try
+              Some (int_of_string s)
+            with exc ->
+              state.text <- Printf.sprintf "bad integer `%s': %s"
+                s (Printexc.to_string exc);
+              None
+          with
+          | Some angle -> reqlayout angle conf.proportional
+          | None -> ()
+        in
+        TEswitch ("rotation: ", "", None, intentry, ondone)
 
-  | 'h' ->
-      conf.maxhfit <- not conf.maxhfit;
-      state.maxy <-
-        state.maxy + (if conf.maxhfit then -conf.winh else conf.winh);
-      TEdone ("maxhfit " ^ (btos conf.maxhfit))
+    | 'i' ->
+        conf.icase <- not conf.icase;
+        TEdone ("case insensitive search " ^ (btos conf.icase))
 
-  | 'c' ->
-      conf.crophack <- not conf.crophack;
-      TEdone ("crophack " ^ btos conf.crophack)
+    | 'p' ->
+        conf.preload <- not conf.preload;
+        gotoy state.y;
+        TEdone ("preload " ^ (btos conf.preload))
 
-  | 'a' ->
-      let s =
-        match conf.maxwait with
-        | None ->
-            conf.maxwait <- Some infinity;
-            "always wait for page to complete"
-        | Some _ ->
-            conf.maxwait <- None;
-            "show placeholder if page is not ready"
-      in
-      TEdone s
+    | 'v' ->
+        conf.verbose <- not conf.verbose;
+        TEdone ("verbose " ^ (btos conf.verbose))
 
-  | 'f' ->
-      conf.underinfo <- not conf.underinfo;
-      TEdone ("underinfo " ^ btos conf.underinfo)
+    | 'd' ->
+        conf.debug <- not conf.debug;
+        TEdone ("debug " ^ (btos conf.debug))
 
-  | 'P' ->
-      conf.savebmarks <- not conf.savebmarks;
-      TEdone ("persistent bookmarks " ^ btos conf.savebmarks)
+    | 'h' ->
+        conf.maxhfit <- not conf.maxhfit;
+        state.maxy <-
+          state.maxy + (if conf.maxhfit then -conf.winh else conf.winh);
+        TEdone ("maxhfit " ^ (btos conf.maxhfit))
 
-  | 'S' ->
-      let ondone s =
-        try
-          let pageno, py =
-            match state.layout with
-            | [] -> 0, 0
-            | l :: _ ->
-                l.pageno, l.pagey
-          in
-          conf.interpagespace <- int_of_string s;
-          state.maxy <- calcheight ();
-          let y = getpagey pageno in
-          gotoy (y + py)
-        with exc ->
-          state.text <- Printf.sprintf "bad integer `%s': %s"
-            s (Printexc.to_string exc)
-      in
-      TEswitch ("vertical margin: ", "", None, intentry, ondone)
+    | 'c' ->
+        conf.crophack <- not conf.crophack;
+        TEdone ("crophack " ^ btos conf.crophack)
 
-  | 'l' ->
-      reqlayout conf.angle (not conf.proportional);
-      TEdone ("proportional display " ^ btos conf.proportional)
+    | 'a' ->
+        let s =
+          match conf.maxwait with
+          | None ->
+              conf.maxwait <- Some infinity;
+              "always wait for page to complete"
+          | Some _ ->
+              conf.maxwait <- None;
+              "show placeholder if page is not ready"
+        in
+        TEdone s
 
-  | 'T' ->
-      settrim (not conf.trimmargins) conf.trimfuzz;
-      TEdone ("trim margins " ^ btos conf.trimmargins)
+    | 'f' ->
+        conf.underinfo <- not conf.underinfo;
+        TEdone ("underinfo " ^ btos conf.underinfo)
 
-  | 'I' ->
-      conf.invert <- not conf.invert;
-      TEdone ("invert colors " ^ btos conf.invert)
+    | 'P' ->
+        conf.savebmarks <- not conf.savebmarks;
+        TEdone ("persistent bookmarks " ^ btos conf.savebmarks)
 
-  | 'x' ->
-      let ondone s =
-        cbput state.hists.sel s;
-        conf.selcmd <- s;
-      in
-      TEswitch ("selection command: ", "", Some (onhist state.hists.sel),
-               textentry, ondone)
+    | 'S' ->
+        let ondone s =
+          try
+            let pageno, py =
+              match state.layout with
+              | [] -> 0, 0
+              | l :: _ ->
+                  l.pageno, l.pagey
+            in
+            conf.interpagespace <- int_of_string s;
+            state.maxy <- calcheight ();
+            let y = getpagey pageno in
+            gotoy (y + py)
+          with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc)
+        in
+        TEswitch ("vertical margin: ", "", None, intentry, ondone)
 
-  | _ ->
-      state.text <- Printf.sprintf "bad option %d `%c'" key c;
-      TEstop
+    | 'l' ->
+        reqlayout conf.angle (not conf.proportional);
+        TEdone ("proportional display " ^ btos conf.proportional)
+
+    | 'T' ->
+        settrim (not conf.trimmargins) conf.trimfuzz;
+        TEdone ("trim margins " ^ btos conf.trimmargins)
+
+    | 'I' ->
+        conf.invert <- not conf.invert;
+        TEdone ("invert colors " ^ btos conf.invert)
+
+    | 'x' ->
+        let ondone s =
+          cbput state.hists.sel s;
+          conf.selcmd <- s;
+        in
+        TEswitch ("selection command: ", "", Some (onhist state.hists.sel),
+                 textentry, ondone)
+
+    | _ ->
+        state.text <- Printf.sprintf "bad option %d `%c'" key c;
+        TEstop
+  else
+    TEcont state.text
 ;;
 
 class type lvsource = object
@@ -2570,48 +2465,68 @@ class virtual lvsourcebase = object
   method setqsearch s = m_qsearch <- s
 end;;
 
-let textentryspecial key = function
-  | ((c, _, (Some (action, _) as onhist), onkey, ondone), mode) ->
-      let s =
-        match key with
-        | Glut.KEY_UP    -> action HCprev
-        | Glut.KEY_DOWN  -> action HCnext
-        | Glut.KEY_HOME  -> action HCfirst
-        | Glut.KEY_END   -> action HClast
-          | _ -> state.text
-      in
-      state.mode <- Textentry ((c, s, onhist, onkey, ondone), mode);
-      G.postRedisplay "special textentry";
-  | _ -> ()
+let withoutlastutf8 s =
+  let len = String.length s in
+  if len = 0
+  then s
+  else
+    let rec find pos =
+      if pos = 0
+      then pos
+      else
+        let b = Char.code s.[pos] in
+        if b land 0b110000 = 0b11000000
+        then find (pos-1)
+        else pos-1
+    in
+    let first =
+      if Char.code s.[len-1] land 0x80 = 0
+      then len-1
+      else find (len-1)
+    in
+    String.sub s 0 first;
 ;;
 
-let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
+let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
   let enttext te =
     state.mode <- Textentry (te, onleave);
     state.text <- "";
     enttext ();
     G.postRedisplay "textentrykeyboard enttext";
   in
-  match Char.unsafe_chr key with
-  | '\008' ->                           (* backspace *)
-      let len = String.length text in
+  let histaction cmd =
+    match opthist with
+    | None -> ()
+    | Some (action, _) ->
+        state.mode <- Textentry (
+          (c, action cmd, opthist, onkey, ondone), onleave
+        );
+        G.postRedisplay "textentry histaction"
+  in
+  match key with
+  | 0xff08 ->                           (* backspace *)
+      let s = withoutlastutf8 text in
+      let len = String.length s in
       if len = 0
       then (
         onleave Cancel;
         G.postRedisplay "textentrykeyboard after cancel";
       )
       else (
-        let s = String.sub text 0 (len - 1) in
         enttext (c, s, opthist, onkey, ondone)
       )
 
-  | '\r' | '\n' ->
+  | 0xff0d ->
       ondone text;
       onleave Confirm;
       G.postRedisplay "textentrykeyboard after confirm"
 
-  | '\007'                              (* ctrl-g *)
-  | '\027' ->                           (* escape *)
+  | 0xff52 -> histaction HCprev
+  | 0xff54 -> histaction HCnext
+  | 0xff50 -> histaction HCfirst
+  | 0xff57 -> histaction HClast
+
+  | 0xff1b ->                     (* escape*)
       if String.length text = 0
       then (
         begin match opthist with
@@ -2626,9 +2541,9 @@ let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
         enttext (c, "", opthist, onkey, ondone)
       )
 
-  | '\127' -> ()                        (* delete *)
+  | 0xff9f | 0xffff -> ()               (* delete *)
 
-  | _ ->
+  | _ when key != 0 && key land 0xff00 != 0xff00 ->
       begin match onkey text key with
       | TEdone text ->
           ondone text;
@@ -2646,6 +2561,9 @@ let textentrykeyboard key ((c, text, opthist, onkey, ondone), onleave) =
           state.mode <- Textentry (te, onleave);
           G.postRedisplay "textentrykeyboard switch";
       end;
+
+  | _ ->
+      vlog "unhandled key %#x" key
 ;;
 
 let firstof first active =
@@ -2777,11 +2695,11 @@ object (self)
     in
     let active = flow m_active in
     let first = calcfirst m_first active in
-    G.postRedisplay "special outline updownlevel";
+    G.postRedisplay "outline updownlevel";
     {< m_active = active; m_first = first >}
 
-  method private key1 key =
-    let set active first qsearch =
+  method private key1 key mask =
+    let set1 active first qsearch =
       coe {< m_active = active; m_first = first; m_qsearch = qsearch >}
     in
     let search active pattern incr =
@@ -2807,105 +2725,6 @@ object (self)
         state.text <- s;
         None
     in
-    match key with
-    | 18 | 19 ->                          (* ctrl-r/ctlr-s *)
-        let incr = if key = 18 then -1 else 1 in
-        let active, first =
-          match search (m_active + incr) m_qsearch incr with
-          | None ->
-              state.text <- m_qsearch ^ " [not found]";
-              m_active, m_first
-          | Some active ->
-              state.text <- m_qsearch;
-              active, firstof m_first active
-        in
-        G.postRedisplay "listview ctrl-r/s";
-        set active first m_qsearch;
-
-    | 8 ->                                (* backspace *)
-        let len = String.length m_qsearch in
-        if len = 0
-        then coe self
-        else (
-          if len = 1
-          then (
-            state.text <- "";
-            G.postRedisplay "listview empty qsearch";
-            set m_active m_first "";
-          )
-          else
-            let qsearch = String.sub m_qsearch 0 (len - 1) in
-            let active, first =
-              match search m_active qsearch ~-1 with
-              | None ->
-                  state.text <- qsearch ^ " [not found]";
-                  m_active, m_first
-              | Some active ->
-                  state.text <- qsearch;
-                  active, firstof m_first active
-            in
-            G.postRedisplay "listview backspace qsearch";
-            set active first qsearch
-        );
-
-    | _ when key >= 32 && key < 127 ->
-        let pattern = addchar m_qsearch (Char.chr key) in
-        let active, first =
-          match search m_active pattern 1 with
-          | None ->
-              state.text <- pattern ^ " [not found]";
-              m_active, m_first
-          | Some active ->
-              state.text <- pattern;
-              active, firstof m_first active
-        in
-        G.postRedisplay "listview qsearch add";
-        set active first pattern;
-
-    | 27 ->                               (* escape *)
-        state.text <- "";
-        if String.length m_qsearch = 0
-        then (
-          G.postRedisplay "list view escape";
-          begin
-            match
-              source#exit (coe self) true m_active m_first m_pan m_qsearch
-            with
-            | None -> m_prev_uioh
-            | Some uioh -> uioh
-          end
-        )
-        else (
-          G.postRedisplay "list view kill qsearch";
-          source#setqsearch "";
-          coe {< m_qsearch = "" >}
-        )
-
-    | 13 ->                               (* enter *)
-        state.text <- "";
-        let self = {< m_qsearch = "" >} in
-        source#setqsearch "";
-        let opt =
-          G.postRedisplay "listview enter";
-          if m_active >= 0 && m_active < source#getitemcount
-          then (
-            source#exit (coe self) false m_active m_first m_pan "";
-          )
-          else (
-            source#exit (coe self) true m_active m_first m_pan "";
-          );
-        in
-        begin match opt with
-        | None -> m_prev_uioh
-        | Some uioh -> uioh
-        end
-
-    | 127 ->                            (* delete *)
-        coe self
-
-    | _ -> dolog "unknown key %d" key; coe self
-
-  method private special1 key =
     let itemcount = source#getitemcount in
     let find start incr =
       let rec find i =
@@ -2984,52 +2803,150 @@ object (self)
       G.postRedisplay "listview navigate";
       set active first;
     in
-    begin match key with
-    | Glut.KEY_UP        -> navigate ~-1
-    | Glut.KEY_DOWN      -> navigate   1
-    | Glut.KEY_PAGE_UP   -> navigate ~-(fstate.maxrows)
-    | Glut.KEY_PAGE_DOWN -> navigate   fstate.maxrows
+    match key with
+    | (0x72|0x73) when Wsi.withctrl mask -> (* ctrl-r/ctlr-s *)
+        let incr = if key = 0x72 then -1 else 1 in
+        let active, first =
+          match search (m_active + incr) m_qsearch incr with
+          | None ->
+              state.text <- m_qsearch ^ " [not found]";
+              m_active, m_first
+          | Some active ->
+              state.text <- m_qsearch;
+              active, firstof m_first active
+        in
+        G.postRedisplay "listview ctrl-r/s";
+        set1 active first m_qsearch;
 
-    | Glut.KEY_RIGHT ->
+    | 0xff08 ->                         (* backspace *)
+        if String.length m_qsearch = 0
+        then coe self
+        else (
+          let qsearch = withoutlastutf8 m_qsearch in
+          let len = String.length qsearch in
+          if len = 0
+          then (
+            state.text <- "";
+            G.postRedisplay "listview empty qsearch";
+            set1 m_active m_first "";
+          )
+          else
+            let active, first =
+              match search m_active qsearch ~-1 with
+              | None ->
+                  state.text <- qsearch ^ " [not found]";
+                  m_active, m_first
+              | Some active ->
+                  state.text <- qsearch;
+                  active, firstof m_first active
+            in
+            G.postRedisplay "listview backspace qsearch";
+            set1 active first qsearch
+        );
+
+    | key when ((key >= 32 && key < 127)
+                 || (key != 0 && key land 0xff00 != 0xff00)) ->
+        let pattern =
+          if key >= 32 && key < 127
+          then addchar m_qsearch (Char.chr key)
+          else m_qsearch ^ Wsi.toutf8 key
+        in
+        let active, first =
+          match search m_active pattern 1 with
+          | None ->
+              state.text <- pattern ^ " [not found]";
+              m_active, m_first
+          | Some active ->
+              state.text <- pattern;
+              active, firstof m_first active
+        in
+        G.postRedisplay "listview qsearch add";
+        set1 active first pattern;
+
+    | 0xff1b ->                         (* escape *)
+        state.text <- "";
+        if String.length m_qsearch = 0
+        then (
+          G.postRedisplay "list view escape";
+          begin
+            match
+              source#exit (coe self) true m_active m_first m_pan m_qsearch
+            with
+            | None -> m_prev_uioh
+            | Some uioh -> uioh
+          end
+        )
+        else (
+          G.postRedisplay "list view kill qsearch";
+          source#setqsearch "";
+          coe {< m_qsearch = "" >}
+        )
+
+    | 0xff0d ->                         (* return *)
+        state.text <- "";
+        let self = {< m_qsearch = "" >} in
+        source#setqsearch "";
+        let opt =
+          G.postRedisplay "listview enter";
+          if m_active >= 0 && m_active < source#getitemcount
+          then (
+            source#exit (coe self) false m_active m_first m_pan "";
+          )
+          else (
+            source#exit (coe self) true m_active m_first m_pan "";
+          );
+        in
+        begin match opt with
+        | None -> m_prev_uioh
+        | Some uioh -> uioh
+        end
+
+    | 0xff9f | 0xffff ->                (* delete *)
+        coe self
+
+    | 0xff52 -> navigate ~-1            (* up *)
+    | 0xff54 -> navigate   1            (* down *)
+    | 0xff55 -> navigate ~-(fstate.maxrows) (* prior *)
+    | 0xff56 -> navigate   fstate.maxrows (* next *)
+
+    | 0xff53 ->                         (* right *)
         state.text <- "";
         G.postRedisplay "listview right";
         coe {< m_pan = m_pan - 1 >}
 
-    | Glut.KEY_LEFT ->
+    | 0xff51 ->                         (* left *)
         state.text <- "";
         G.postRedisplay "listview left";
         coe {< m_pan = m_pan + 1 >}
 
-    | Glut.KEY_HOME ->
+    | 0xff50 ->                         (* home *)
         let active = find 0 1 in
         G.postRedisplay "listview home";
         set active 0;
 
-    | Glut.KEY_END ->
+    | 0xff57 ->                         (* end *)
         let first = max 0 (itemcount - fstate.maxrows) in
         let active = find (itemcount - 1) ~-1 in
         G.postRedisplay "listview end";
         set active first;
 
-    | _ -> coe self
-    end;
+    | key when (key = 0 || key land 0xff00 = 0xff00) ->
+        coe self
 
-  method key key =
+    | _ ->
+        dolog "listview unknown key %#x" key; coe self
+
+  method key key mask =
     match state.mode with
-    | Textentry te -> textentrykeyboard key te; coe self
-    | _ -> self#key1 key
+    | Textentry te -> textentrykeyboard key mask te; coe self
+    | _ -> self#key1 key mask
 
-  method special key =
-    match state.mode with
-    | Textentry te -> textentryspecial key te; coe self
-    | _ -> self#special1 key
-
-  method button button bstate x y =
+  method button button down x y _ =
     let opt =
       match button with
-      | Glut.LEFT_BUTTON when x > conf.winw - conf.scrollbw ->
+      | 1 when x > conf.winw - conf.scrollbw ->
           G.postRedisplay "listview scroll";
-          if bstate = Glut.DOWN
+          if down
           then
             let _, position, sh = self#scrollph in
             if y > truncate position && y < truncate (position +. sh)
@@ -3046,7 +2963,7 @@ object (self)
             state.mstate <- Mnone;
             Some (coe self);
           );
-      | Glut.LEFT_BUTTON when bstate = Glut.UP ->
+      | 1 when not down ->
           begin match self#elemunder y with
           | Some n ->
               G.postRedisplay "listview click";
@@ -3055,10 +2972,10 @@ object (self)
           | _ ->
               Some (coe self)
           end
-      | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
+      | n when (n == 4 || n == 5) && not down ->
           let len = source#getitemcount in
           let first =
-            if n = 4 && m_first + fstate.maxrows >= len
+            if n = 5 && m_first + fstate.maxrows >= len
             then
               m_first
             else
@@ -3089,8 +3006,8 @@ object (self)
     then
       let n =
         match self#elemunder y with
-        | None -> Glut.setCursor Glut.CURSOR_INHERIT; m_active
-        | Some n -> Glut.setCursor Glut.CURSOR_INFO; n
+        | None -> Wsi.setcursor Wsi.CURSOR_INHERIT; m_active
+        | Some n -> Wsi.setcursor Wsi.CURSOR_INFO; n
       in
       let o =
         if n != m_active
@@ -3099,7 +3016,7 @@ object (self)
       in
       coe o
     else (
-      Glut.setCursor Glut.CURSOR_INHERIT;
+      Wsi.setcursor Wsi.CURSOR_INHERIT;
       coe self
     )
 
@@ -3120,34 +3037,7 @@ class outlinelistview ~source =
 object (self)
   inherit listview ~source:(source :> lvsource) ~trusted:false as super
 
-  method key key =
-    match key with
-    | 14 ->                             (* ctrl-n *)
-        source#narrow m_qsearch;
-        G.postRedisplay "outline ctrl-n";
-        coe {< m_first = 0; m_active = 0 >}
-
-    | 21 ->                             (* ctrl-u *)
-        source#denarrow;
-        G.postRedisplay "outline ctrl-u";
-        state.text <- "";
-        coe {< m_first = 0; m_active = 0 >}
-
-    | 12 ->                             (* ctrl-l *)
-        let first = m_active - (fstate.maxrows / 2) in
-        G.postRedisplay "outline ctrl-l";
-        coe {< m_first = first >}
-
-    | 127 ->                            (* delete *)
-        source#remove m_active;
-        G.postRedisplay "outline delete";
-        let active = max 0 (m_active-1) in
-        coe {< m_first = firstof m_first active;
-               m_active = active >}
-
-    | key -> super#key key
-
-  method special key =
+  method key key mask =
     let calcfirst first active =
       if active > first
       then
@@ -3159,48 +3049,73 @@ object (self)
       let active = m_active + incr in
       let active = bound active 0 (source#getitemcount - 1) in
       let first = calcfirst m_first active in
-      G.postRedisplay "special outline navigate";
+      G.postRedisplay "outline navigate";
       coe {< m_active = active; m_first = first >}
     in
     match key with
-    | Glut.KEY_UP        -> navigate ~-1
-    | Glut.KEY_DOWN      -> navigate   1
-    | Glut.KEY_PAGE_UP   -> navigate ~-(fstate.maxrows)
-    | Glut.KEY_PAGE_DOWN -> navigate   fstate.maxrows
+    | 110 when Wsi.withctrl mask ->    (* ctrl-n *)
+        source#narrow m_qsearch;
+        G.postRedisplay "outline ctrl-n";
+        coe {< m_first = 0; m_active = 0 >}
 
-    | Glut.KEY_RIGHT ->
+    | 117 when Wsi.withctrl mask ->    (* ctrl-u *)
+        source#denarrow;
+        G.postRedisplay "outline ctrl-u";
+        state.text <- "";
+        coe {< m_first = 0; m_active = 0 >}
+
+    | 108 when Wsi.withctrl mask ->    (* ctrl-l *)
+        let first = m_active - (fstate.maxrows / 2) in
+        G.postRedisplay "outline ctrl-l";
+        coe {< m_first = first >}
+
+    | 0xff9f | 0xffff ->                (* delete *)
+        source#remove m_active;
+        G.postRedisplay "outline delete";
+        let active = max 0 (m_active-1) in
+        coe {< m_first = firstof m_first active;
+               m_active = active >}
+
+    | 0xff52 -> navigate ~-1            (* up *)
+    | 0xff54 -> navigate 1              (* down *)
+    | 0xff55 ->                         (* prior *)
+        navigate ~-(fstate.maxrows)
+    | 0xff56 ->                         (* next *)
+        navigate fstate.maxrows
+
+    | 0xff53 ->                         (* [ctrl-]right *)
         let o =
-          if Glut.getModifiers () land Glut.active_ctrl != 0
+          if Wsi.withctrl mask
           then (
-            G.postRedisplay "special outline right";
+            G.postRedisplay "outline ctrl right";
             {< m_pan = m_pan + 1 >}
           )
           else self#updownlevel 1
         in
         coe o
 
-    | Glut.KEY_LEFT ->
+    | 0xff51 ->                         (* [ctrl-]left *)
         let o =
-          if Glut.getModifiers () land Glut.active_ctrl != 0
+          if Wsi.withctrl mask
           then (
-            G.postRedisplay "special outline left";
+            G.postRedisplay "outline ctrl left";
             {< m_pan = m_pan - 1 >}
           )
           else self#updownlevel ~-1
         in
         coe o
 
-    | Glut.KEY_HOME ->
-        G.postRedisplay "special outline home";
+    | 0xff50 ->                         (* home *)
+        G.postRedisplay "outline home";
         coe {< m_first = 0; m_active = 0 >}
 
-    | Glut.KEY_END ->
+    | 0xff57 ->                         (* end *)
         let active = source#getitemcount - 1 in
         let first = max 0 (active - fstate.maxrows) in
-        G.postRedisplay "special outline end";
+        G.postRedisplay "outline end";
         coe {< m_active = active; m_first = first >}
 
-    | _ -> super#special key
+    | _ -> super#key key mask
 end
 
 let outlinesource usebookmarks =
@@ -3342,7 +3257,7 @@ let enterselector usebookmarks =
     )
     else (
       state.text <- source#greetmsg;
-      Glut.setCursor Glut.CURSOR_INHERIT;
+      Wsi.setcursor Wsi.CURSOR_INHERIT;
       let anchor = getanchor () in
       source#reset anchor outlines;
       state.uioh <- coe (new outlinelistview ~source);
@@ -3903,11 +3818,9 @@ let enterinfomode =
       src#bool "max fit"
         (fun () -> conf.maxhfit)
         (fun v -> conf.maxhfit <- v);
-      if not is_gui
-      then
-        src#bool "redirect stderr"
-          (fun () -> conf.redirectstderr)
-          (fun v -> conf.redirectstderr <- v; redirectstderr ());
+      src#bool "redirect stderr"
+        (fun () -> conf.redirectstderr)
+        (fun v -> conf.redirectstderr <- v; redirectstderr ());
       src#string "uri launcher"
         (fun () -> conf.urilauncher)
         (fun v -> conf.urilauncher <- v);
@@ -4049,14 +3962,14 @@ let enterinfomode =
         | Pdim -> G.postRedisplay "pdimchanged"
         | Docinfo -> fillsrc prevmode prevuioh
 
-      method special key =
-        if Glut.getModifiers () land Glut.active_ctrl = 0
+      method key key mask =
+        if not (Wsi.withctrl mask)
         then
           match key with
-          | Glut.KEY_LEFT  -> coe (self#updownlevel ~-1)
-          | Glut.KEY_RIGHT -> coe (self#updownlevel 1)
-          | _ -> super#special key
-        else super#special key
+          | 0xff51 -> coe (self#updownlevel ~-1)
+          | 0xff53 -> coe (self#updownlevel 1)
+          | _ -> super#key key mask
+        else super#key key mask
     end);
     G.postRedisplay "info";
 ;;
@@ -4176,10 +4089,17 @@ let quickbookmark ?title () =
 
 let doreshape w h =
   state.fullscreen <- None;
-  Glut.reshapeWindow w h;
+  Wsi.reshape w h;
 ;;
 
-let viewkeyboard key =
+let setautoscrollspeed step goingdown =
+  let incr = max 1 ((abs step) / 2) in
+  let incr = if goingdown then incr else -incr in
+  let astep = step + incr  in
+  state.autoscroll <- Some astep;
+;;
+
+let viewkeyboard key mask =
   let enttext te =
     let mode = state.mode in
     state.mode <- Textentry (te, fun _ -> state.mode <- mode);
@@ -4187,51 +4107,53 @@ let viewkeyboard key =
     enttext ();
     G.postRedisplay "view:enttext"
   in
-  let c = Char.chr key in
-  match c with
-  | '\027' | 'q' ->                     (* escape *)
+  match key with
+  | 81 ->                               (* Q *)
+      exit 0
+
+  | 0xff1b | 113 ->                     (* escape / q *)
       begin match state.mstate with
       | Mzoomrect _ ->
           state.mstate <- Mnone;
-          Glut.setCursor Glut.CURSOR_INHERIT;
+          Wsi.setcursor Wsi.CURSOR_INHERIT;
           G.postRedisplay "kill zoom rect";
       | _ ->
           match state.ranchors with
-          | [] -> raise Quit
+          | [] -> raise Wsi.Quit
           | (path, password, anchor) :: rest ->
               state.ranchors <- rest;
               state.anchor <- anchor;
               opendoc path password
       end;
 
-  | '\008' ->                           (* backspace *)
+  | 0xff08 ->                           (* backspace *)
       let y = getnav ~-1 in
       gotoy_and_clear_text y
 
-  | 'o' ->
+  | 111 ->                              (* o *)
       enteroutlinemode ()
 
-  | 'u' ->
+  | 117 ->                              (* u *)
       state.rects <- [];
       state.text <- "";
       G.postRedisplay "dehighlight";
 
-  | '/' | '?' ->
+  | 47 | 63 ->                          (* / ? *)
       let ondone isforw s =
         cbput state.hists.pat s;
         state.searchpattern <- s;
         search s isforw
       in
       let s = String.create 1 in
-      s.[0] <- c;
+      s.[0] <- Char.chr key;
       enttext (s, "", Some (onhist state.hists.pat),
-              textentry, ondone (c ='/'))
+              textentry, ondone (key = 47))
 
-  | '+' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
+  | 43 | 0xffab when Wsi.withctrl mask -> (* + *)
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
       setzoom (conf.zoom +. incr)
 
-  | '+' ->
+  | 43 | 0xffab ->                      (* + *)
       let ondone s =
         let n =
           try int_of_string s with exc ->
@@ -4247,29 +4169,33 @@ let viewkeyboard key =
       in
       enttext ("page bias: ", "", None, intentry, ondone)
 
-  | '-' when Glut.getModifiers () land Glut.active_ctrl != 0 ->
+  | 45 | 0xffad when Wsi.withctrl mask -> (* - *)
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
       setzoom (max 0.01 (conf.zoom -. decr))
 
-  | '-' ->
+  | 45 | 0xffad ->                      (* - *)
       let ondone msg = state.text <- msg in
       enttext (
         "option [acfhilpstvxACPRSZTIS]: ", "", None,
         optentry state.mode, ondone
       )
 
-  | '0' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+  | 48 when Wsi.withctrl mask ->       (* 0 *)
       setzoom 1.0
 
-  | '1' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+  | 49 when Wsi.withctrl mask ->       (* 1 *)
       let zoom = zoomforh conf.winw conf.winh state.scrollw in
       if zoom < 1.0
       then setzoom zoom
 
-  | '9' when (Glut.getModifiers () land Glut.active_ctrl != 0) ->
+  | 0xffc6 ->                           (* f9 *)
       togglebirdseye ()
 
-  | '0' .. '9' ->
+  | 57 when Wsi.withctrl mask ->       (* ctrl-9 *)
+      togglebirdseye ()
+
+  | (48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 |  57)
+      when not (Wsi.withctrl mask) ->  (* 0..9 *)
       let ondone s =
         let n =
           try int_of_string s with exc ->
@@ -4289,19 +4215,19 @@ let viewkeyboard key =
         | 'g' -> TEdone text
         | _ -> intentry text key
       in
-      let text = "x" in text.[0] <- c;
+      let text = "x" in text.[0] <- Char.chr key;
       enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone)
 
-  | 'b' ->
+  | 98 ->                               (* b *)
       state.scrollw <- if state.scrollw > 0 then 0 else conf.scrollbw;
       reshape conf.winw conf.winh;
 
-  | 'l' ->
+  | 108 ->                              (* l *)
       conf.hlinks <- not conf.hlinks;
       state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
       G.postRedisplay "toggle highlightlinks";
 
-  | 'a' ->
+  | 97 ->                               (* a *)
       begin match state.autoscroll with
       | Some step ->
           conf.autoscrollstep <- step;
@@ -4312,7 +4238,7 @@ let viewkeyboard key =
           else state.autoscroll <- Some conf.autoscrollstep
       end
 
-  | 'P' ->
+  | 80 ->                               (* P *)
       conf.presentation <- not conf.presentation;
       if conf.presentation
       then (
@@ -4327,36 +4253,36 @@ let viewkeyboard key =
       state.anchor <- getanchor ();
       represent ()
 
-  | 'f' ->
+  | 102 ->                              (* f *)
       begin match state.fullscreen with
       | None ->
           state.fullscreen <- Some (conf.winw, conf.winh);
-          Glut.fullScreen ()
+          Wsi.fullscreen ()
       | Some (w, h) ->
           state.fullscreen <- None;
           doreshape w h
       end
 
-  | 'g' ->
+  | 103 ->                              (* g *)
       gotoy_and_clear_text 0
 
-  | 'G' ->
+  | 71 ->                               (* G *)
       gotopage1 (state.pagecount - 1) 0
 
-  | 'n' ->
-      search state.searchpattern true
-
-  | 'p' | 'N' ->
+  | 112 | 78 ->                         (* p|N *)
       search state.searchpattern false
 
-  | 't' ->
+  | 110 ->                              (* n *)
+      search state.searchpattern true
+
+  | 116 ->                              (* t *)
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
           gotoy_and_clear_text (getpagey l.pageno)
       end
 
-  | ' ' ->
+  | 32 ->                               (* ' ' *)
       begin match List.rev state.layout with
       | [] -> ()
       | l :: _ ->
@@ -4364,7 +4290,7 @@ let viewkeyboard key =
           gotoy_and_clear_text (getpagey pageno)
       end
 
-  | '\127' ->                           (* del *)
+  | 0xff9f | 0xffff ->                  (* delete *)
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
@@ -4372,10 +4298,10 @@ let viewkeyboard key =
           gotoy_and_clear_text (getpagey pageno)
       end
 
-  | '=' ->
+  | 61 ->                               (* = *)
       showtext ' ' (describe_location ());
 
-  | 'w' ->
+  | 119 ->                              (* w *)
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
@@ -4383,19 +4309,19 @@ let viewkeyboard key =
           G.postRedisplay "w"
       end
 
-  | '\'' ->
+  | 39 ->                               (* ' *)
       enterbookmarkmode ()
 
-  | 'h' ->
+  | 104 ->                              (* h *)
       enterhelpmode ()
 
-  | 'i' ->
+  | 105 ->                              (* i *)
       enterinfomode ()
 
-  | 'e' when conf.redirectstderr || is_gui ->
+  | 101 when conf.redirectstderr ->     (* e *)
       entermsgsmode ()
 
-  | 'm' ->
+  | 109 ->                              (* m *)
       let ondone s =
         match state.layout with
         | l :: _ ->
@@ -4406,11 +4332,11 @@ let viewkeyboard key =
       in
       enttext ("bookmark: ", "", None, textentry, ondone)
 
-  | '~' ->
+  | 126 ->                              (* ~ *)
       quickbookmark ();
       showtext ' ' "Quick bookmark added";
 
-  | 'z' ->
+  | 122 ->                              (* z *)
       begin match state.layout with
       | l :: _ ->
           let rect = getpdimrect l.pagedimno in
@@ -4435,40 +4361,95 @@ let viewkeyboard key =
       | [] -> ()
       end
 
-  | '\000' ->                           (* ctrl-2 *)
+  | 50 when Wsi.withctrl mask ->       (* ctrl-2 *)
       let maxw = getmaxw () in
       if maxw > 0.0
       then setzoom (maxw /. float conf.winw)
 
-  | '<' | '>' ->
-      reqlayout (conf.angle + (if c = '>' then 30 else -30)) conf.proportional
+  | 60 | 62 ->                          (* < > *)
+      reqlayout (conf.angle + (if key = 60 then 30 else -30)) conf.proportional
 
-  | '[' | ']' ->
+  | 91 | 93 ->                          (* [ ] *)
       conf.colorscale <-
-        bound (conf.colorscale +. (if c = ']' then 0.1 else -0.1)) 0.0 1.0
+        bound (conf.colorscale +. (if key = 92 then 0.1 else -0.1)) 0.0 1.0
       ;
       G.postRedisplay "brightness";
 
-  | 'k' ->
-      begin match state.mode with
-      | Birdseye beye -> upbirdseye 1 beye
-      | _ -> gotoy (clamp (-conf.scrollstep))
+  | 107 | 0xff52 ->                     (* k UP *)
+      begin match state.autoscroll with
+      | None ->
+          begin match state.mode with
+          | Birdseye beye -> upbirdseye 1 beye
+          | _ ->
+              if Wsi.withctrl mask
+              then gotoy (-clamp (conf.winh/2))
+              else gotoy (clamp (-conf.scrollstep))
+          end
+      | Some n ->
+          setautoscrollspeed n false
       end
 
-  | 'j' ->
-      begin match state.mode with
-      | Birdseye beye -> downbirdseye 1 beye
-      | _ -> gotoy (clamp conf.scrollstep)
+  | 106 | 0xff54 ->                     (* j DOWN *)
+      begin match state.autoscroll with
+      | None ->
+          begin match state.mode with
+          | Birdseye beye -> downbirdseye 1 beye
+          | _ ->
+              if Wsi.withctrl mask
+              then gotoy (clamp (conf.winh/2))
+              else gotoy (clamp conf.scrollstep)
+          end
+      | Some n ->
+          setautoscrollspeed n true
       end
 
-  | 'r' ->
+  | 0xff51 | 0xff53                     (* left / right *)
+        when conf.zoom > 1.0->
+      let dx =
+        if Wsi.withctrl mask
+        then conf.winw / 2
+        else 10
+      in
+      let dx = if key = 0xff51 then dx else -dx in
+      state.x <- state.x + dx;
+      gotoy state.y
+
+  | 0xff55 ->                           (* prior *)
+      let y =
+        if Wsi.withctrl mask
+        then
+          match state.layout with
+          | [] -> state.y
+          | l :: _ -> state.y - l.pagey
+        else
+          clamp (-conf.winh)
+      in
+      gotoghyll y
+
+  | 0xff56 ->                           (* next *)
+      let y =
+        if Wsi.withctrl mask
+        then
+          match List.rev state.layout with
+          | [] -> state.y
+          | l :: _ -> getpagey l.pageno
+        else
+          clamp conf.winh
+      in
+      gotoghyll y
+
+  | 0xff50 -> gotoghyll 0
+  | 0xff57 -> gotoghyll (clamp state.maxy)
+  | 0xff53 when Wsi.withalt mask ->
+      gotoghyll (getnav ~-1)
+  | 0xff51 when Wsi.withalt mask ->
+      gotoghyll (getnav 1)
+
+  | 114 ->                              (* r *)
       state.anchor <- getanchor ();
       opendoc state.path state.password
 
-  | 'v' when not conf.debug ->
-      List.iter debugl state.layout;
-
-  | 'v' when conf.debug ->
+  | 118 when conf.debug ->              (* v *)
       state.rects <- [];
       List.iter (fun l ->
         match getopaque l.pageno with
@@ -4486,47 +4467,35 @@ let viewkeyboard key =
       G.postRedisplay "v";
 
   | _ ->
-      vlog "huh? %d %c" key (Char.chr key);
+      vlog "huh? %d" key
 ;;
 
-let birdseyekeyboard key ((_, _, pageno, _, _) as beye) =
-  match key with
-  | 27 ->                               (* escape *)
-      leavebirdseye beye true
-
-  | 12 ->                               (* ctrl-l *)
-      let y, h = getpageyh pageno in
-      let top = (conf.winh - h) / 2 in
-      gotoy (max 0 (y - top))
-
-  | 13 ->                               (* enter *)
-      leavebirdseye beye false
-
-  | _ ->
-      viewkeyboard key
-;;
-
-let keyboard ~key ~x ~y =
-  ignore x;
-  ignore y;
-  if key = 7 && not (istextentry state.mode) (* ctrl-g *)
+let keyboard key mask =
+  if (key = 103 && Wsi.withctrl mask) && not (istextentry state.mode)
   then wcmd "interrupt" []
-  else state.uioh <- state.uioh#key key
+  else state.uioh <- state.uioh#key key mask
 ;;
 
-let birdseyespecial key ((oconf, leftx, _, hooverpageno, anchor) as beye) =
+let birdseyekeyboard key mask
+    ((oconf, leftx, pageno, hooverpageno, anchor) as beye) =
   let incr =
     match conf.columns with
     | None -> 1
     | Some ((c, _, _), _) -> c
   in
   match key with
-  | Glut.KEY_UP -> upbirdseye incr beye
-  | Glut.KEY_DOWN -> downbirdseye incr beye
-  | Glut.KEY_LEFT -> upbirdseye 1 beye
-  | Glut.KEY_RIGHT -> downbirdseye 1 beye
+  | 108 when Wsi.withctrl mask ->      (* ctrl-l *)
+      let y, h = getpageyh pageno in
+      let top = (conf.winh - h) / 2 in
+      gotoy (max 0 (y - top))
+  | 0xff0d -> leavebirdseye beye false
+  | 0xff1b -> leavebirdseye beye true   (* escape *)
+  | 0xff52 -> upbirdseye incr beye      (* prior *)
+  | 0xff54 -> downbirdseye incr beye    (* next *)
+  | 0xff51 -> upbirdseye 1 beye         (* up *)
+  | 0xff53 -> downbirdseye 1 beye       (* down *)
 
-  | Glut.KEY_PAGE_UP ->
+  | 0xff55 ->
       begin match state.layout with
       | l :: _ ->
           if l.pagey != 0
@@ -4550,7 +4519,7 @@ let birdseyespecial key ((oconf, leftx, _, hooverpageno, anchor) as beye) =
       | [] -> gotoy (clamp (-conf.winh))
       end;
 
-  | Glut.KEY_PAGE_DOWN ->
+  | 0xff56 ->
       begin match List.rev state.layout with
       | l :: _ ->
           let layout = layout (state.y + conf.winh) conf.winh in
@@ -4576,11 +4545,11 @@ let birdseyespecial key ((oconf, leftx, _, hooverpageno, anchor) as beye) =
       | [] -> gotoy (clamp conf.winh)
       end;
 
-  | Glut.KEY_HOME ->
+  | 0xff50 ->
       state.mode <- Birdseye (oconf, leftx, 0, hooverpageno, anchor);
       gotopage1 0 0
 
-  | Glut.KEY_END ->
+  | 0xff57 ->
       let pageno = state.pagecount - 1 in
       state.mode <- Birdseye (oconf, leftx, pageno, hooverpageno, anchor);
       if not (pagevisible state.layout pageno)
@@ -4592,20 +4561,7 @@ let birdseyespecial key ((oconf, leftx, _, hooverpageno, anchor) as beye) =
         in
         gotoy (max 0 (getpagey pageno - (conf.winh - h - conf.interpagespace)))
       else G.postRedisplay "birdseye end";
-  | _ -> ()
-;;
-
-let setautoscrollspeed step goingdown =
-  let incr = max 1 ((abs step) / 2) in
-  let incr = if goingdown then incr else -incr in
-  let astep = step + incr  in
-  state.autoscroll <- Some astep;
-;;
-
-let special ~key ~x ~y =
-  ignore x;
-  ignore y;
-  state.uioh <- state.uioh#special key
+  | _ -> viewkeyboard key mask
 ;;
 
 let drawpage l =
@@ -4748,7 +4704,7 @@ let display () =
   | _ -> ()
   end;
   enttext ();
-  Glut.swapBuffers ();
+  Wsi.swapb ();
 ;;
 
 let getunder x y =
@@ -4789,7 +4745,7 @@ let zoomrect x y x1 y1 =
   in
   state.x <- (state.x + margin) - x0;
   setzoom zoom;
-  Glut.setCursor Glut.CURSOR_INHERIT;
+  Wsi.setcursor Wsi.CURSOR_INHERIT;
   state.mstate <- Mnone;
 ;;
 
@@ -4809,10 +4765,10 @@ let scrolly y =
   state.mstate <- Mscrolly;
 ;;
 
-let viewmouse button bstate x y =
+let viewmouse button down x y mask =
   match button with
-  | Glut.OTHER_BUTTON n when (n == 3 || n == 4) && bstate = Glut.UP ->
-      if Glut.getModifiers () land Glut.active_ctrl != 0
+  | n when (n == 4 || n == 5) && not down ->
+      if Wsi.withctrl mask
       then (
         match state.mstate with
         | Mzoom (oldn, i) ->
@@ -4822,7 +4778,7 @@ let viewmouse button bstate x y =
               then
                 let incr =
                   match n with
-                  | 4 ->
+                  | 5 ->
                       if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01
                   | _ ->
                       if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
@@ -4842,7 +4798,7 @@ let viewmouse button bstate x y =
         | Some step -> setautoscrollspeed step (n=4)
         | None ->
             let incr =
-              if n = 3
+              if n = 4
               then -conf.scrollstep
               else conf.scrollstep
             in
@@ -4851,19 +4807,19 @@ let viewmouse button bstate x y =
             gotoy_and_clear_text y
       )
 
-  | Glut.LEFT_BUTTON when Glut.getModifiers () land Glut.active_ctrl != 0 ->
-      if bstate = Glut.DOWN
+  | 1 when Wsi.withctrl mask ->
+      if down
       then (
-        Glut.setCursor Glut.CURSOR_CROSSHAIR;
+        Wsi.setcursor Wsi.CURSOR_CROSSHAIR;
         state.mstate <- Mpan (x, y)
       )
       else
         state.mstate <- Mnone
 
-  | Glut.RIGHT_BUTTON ->
-      if bstate = Glut.DOWN
+  | 3 ->
+      if down
       then (
-        Glut.setCursor Glut.CURSOR_CYCLE;
+        Wsi.setcursor Wsi.CURSOR_CYCLE;
         let p = (x, y) in
         state.mstate <- Mzoomrect (p, p)
       )
@@ -4874,16 +4830,16 @@ let viewmouse button bstate x y =
             then zoomrect x0 y0 x y
             else (
               state.mstate <- Mnone;
-              Glut.setCursor Glut.CURSOR_INHERIT;
+              Wsi.setcursor Wsi.CURSOR_INHERIT;
               G.postRedisplay "kill accidental zoom rect";
             )
         | _ ->
-            Glut.setCursor Glut.CURSOR_INHERIT;
+            Wsi.setcursor Wsi.CURSOR_INHERIT;
             state.mstate <- Mnone
       )
 
-  | Glut.LEFT_BUTTON when x > conf.winw - state.scrollw ->
-      if bstate = Glut.DOWN
+  | 1 when x > conf.winw - state.scrollw ->
+      if down
       then
         let _, position, sh = state.uioh#scrollph in
         if y > truncate position && y < truncate (position +. sh)
@@ -4892,8 +4848,8 @@ let viewmouse button bstate x y =
       else
         state.mstate <- Mnone
 
-  | Glut.LEFT_BUTTON when y > conf.winh - state.hscrollh ->
-      if bstate = Glut.DOWN
+  | 1 when y > conf.winh - state.hscrollh ->
+      if down
       then
         let _, position, sw = state.uioh#scrollpw in
         if x > truncate position && x < truncate (position +. sw)
@@ -4902,8 +4858,8 @@ let viewmouse button bstate x y =
       else
         state.mstate <- Mnone
 
-  | Glut.LEFT_BUTTON ->
-      let dest = if bstate = Glut.DOWN then getunder x y else Unone in
+  | 1 ->
+      let dest = if down then getunder x y else Unone in
       begin match dest with
       | Ulinkgoto (pageno, top) ->
           if pageno >= 0
@@ -4938,12 +4894,12 @@ let viewmouse button bstate x y =
 
       | Uunexpected _ | Ulaunch _ | Unamed _ -> ()
 
-      | Unone when bstate = Glut.DOWN ->
-          Glut.setCursor Glut.CURSOR_CROSSHAIR;
+      | Unone when down ->
+          Wsi.setcursor Wsi.CURSOR_CROSSHAIR;
           state.mstate <- Mpan (x, y);
 
       | Unone | Utext _ ->
-          if bstate = Glut.DOWN
+          if down
           then (
             if conf.angle mod 360 = 0
             then (
@@ -4962,7 +4918,7 @@ let viewmouse button bstate x y =
                 zoomrect x0 y0 x y
 
             | Mpan _ ->
-                Glut.setCursor Glut.CURSOR_INHERIT;
+                Wsi.setcursor Wsi.CURSOR_INHERIT;
                 state.mstate <- Mnone
 
             | Msel ((_, y0), (_, y1)) ->
@@ -4981,7 +4937,7 @@ let viewmouse button bstate x y =
                       else loop rest
                 in
                 loop state.layout;
-                Glut.setCursor Glut.CURSOR_INHERIT;
+                Wsi.setcursor Wsi.CURSOR_INHERIT;
                 state.mstate <- Mnone;
           )
       end
@@ -4989,10 +4945,10 @@ let viewmouse button bstate x y =
   | _ -> ()
 ;;
 
-let birdseyemouse button bstate x y
+let birdseyemouse button down x y mask
     (conf, leftx, _, hooverpageno, anchor) =
   match button with
-  | Glut.LEFT_BUTTON when bstate = Glut.UP ->
+  | 1 when down ->
       let rec loop = function
         | [] -> ()
         | l :: rest ->
@@ -5004,15 +4960,13 @@ let birdseyemouse button bstate x y
             else loop rest
       in
       loop state.layout
-  | Glut.OTHER_BUTTON _ -> viewmouse button bstate x y
-  | _ -> ()
+  | 3 -> ()
+  | _ -> viewmouse button down x y mask
 ;;
 
-let mouse bstate button x y =
-  state.uioh <- state.uioh#button button bstate x y;
+let mouse button down x y mask =
+  state.uioh <- state.uioh#button button down x y mask;
 ;;
-
-let mouse ~button ~state ~x ~y = mouse state button x y;;
 
 let motion ~x ~y =
   state.uioh <- state.uioh#motion x y
@@ -5025,107 +4979,18 @@ let pmotion ~x ~y =
 let uioh = object
   method display = ()
 
-  method key key =
+  method key key mask =
     begin match state.mode with
-    | Textentry textentry -> textentrykeyboard key textentry
-    | Birdseye birdseye -> birdseyekeyboard key birdseye
-    | View -> viewkeyboard key
+    | Textentry textentry -> textentrykeyboard key mask textentry
+    | Birdseye birdseye -> birdseyekeyboard key mask birdseye
+    | View -> viewkeyboard key mask
     end;
     state.uioh
 
-  method special key =
+  method button button bstate x y mask =
     begin match state.mode with
-    | View | (Birdseye _) when key = Glut.KEY_F9 ->
-        togglebirdseye ()
-
-    | Birdseye vals ->
-        birdseyespecial key vals
-
-    | View when key = Glut.KEY_F1 ->
-        enterhelpmode ()
-
-    | View ->
-        begin match state.autoscroll with
-        | Some step when key = Glut.KEY_DOWN || key = Glut.KEY_UP ->
-            setautoscrollspeed step (key = Glut.KEY_DOWN)
-
-        | _ ->
-            let y =
-              match key with
-              | Glut.KEY_F3        -> search state.searchpattern true; state.y
-              | Glut.KEY_UP        ->
-                  if Glut.getModifiers () land Glut.active_ctrl != 0
-                  then
-                    if Glut.getModifiers () land Glut.active_shift != 0
-                    then (setzoom state.prevzoom; state.y)
-                    else clamp (-conf.winh/2)
-                  else clamp (-conf.scrollstep)
-              | Glut.KEY_DOWN      ->
-                  if Glut.getModifiers () land Glut.active_ctrl != 0
-                  then
-                    if Glut.getModifiers () land Glut.active_shift != 0
-                    then (setzoom state.prevzoom; state.y)
-                    else clamp (conf.winh/2)
-                  else clamp (conf.scrollstep)
-              | Glut.KEY_PAGE_UP   ->
-                  if Glut.getModifiers () land Glut.active_ctrl != 0
-                  then
-                    match state.layout with
-                    | [] -> state.y
-                    | l :: _ -> state.y - l.pagey
-                  else
-                    clamp (-conf.winh)
-              | Glut.KEY_PAGE_DOWN ->
-                  if Glut.getModifiers () land Glut.active_ctrl != 0
-                  then
-                    match List.rev state.layout with
-                    | [] -> state.y
-                    | l :: _ -> getpagey l.pageno
-                  else
-                    clamp conf.winh
-              | Glut.KEY_HOME ->
-                  addnav ();
-                  0
-              | Glut.KEY_END ->
-                  addnav ();
-                  state.maxy - (if conf.maxhfit then conf.winh else 0)
-
-              | (Glut.KEY_RIGHT | Glut.KEY_LEFT) when
-                    Glut.getModifiers () land Glut.active_alt != 0 ->
-                  getnav (if key = Glut.KEY_LEFT then 1 else -1)
-
-              | Glut.KEY_RIGHT when conf.zoom > 1.0 ->
-                  let dx =
-                    if Glut.getModifiers () land Glut.active_ctrl != 0
-                    then (conf.winw / 2)
-                    else 10
-                  in
-                  state.x <- state.x - dx;
-                  state.y
-              | Glut.KEY_LEFT when conf.zoom > 1.0 ->
-                  let dx =
-                    if Glut.getModifiers () land Glut.active_ctrl != 0
-                    then (conf.winw / 2)
-                    else 10
-                  in
-                  state.x <- state.x + dx;
-                  state.y
-
-              | _ -> state.y
-            in
-            if abs (state.y - y) > conf.scrollstep*2
-            then gotoghyll y
-            else gotoy_and_clear_text y
-        end
-
-    | Textentry te -> textentryspecial key te
-    end;
-    state.uioh
-
-  method button button bstate x y =
-    begin match state.mode with
-    | View -> viewmouse button bstate x y
-    | Birdseye beye -> birdseyemouse button bstate x y beye
+    | View -> viewmouse button bstate x y mask
+    | Birdseye beye -> birdseyemouse button bstate x y mask beye
     | Textentry _ -> ()
     end;
     state.uioh
@@ -5190,30 +5055,30 @@ let uioh = object
         match state.mstate with
         | Mnone ->
             begin match getunder x y with
-            | Unone -> Glut.setCursor Glut.CURSOR_INHERIT
+            | Unone -> Wsi.setcursor Wsi.CURSOR_INHERIT
             | Ulinkuri uri ->
                 if conf.underinfo then showtext 'u' ("ri: " ^ uri);
-                Glut.setCursor Glut.CURSOR_INFO
+                Wsi.setcursor Wsi.CURSOR_INFO
             | Ulinkgoto (page, _) ->
                 if conf.underinfo
                 then showtext 'p' ("age: " ^ string_of_int (page+1));
-                Glut.setCursor Glut.CURSOR_INFO
+                Wsi.setcursor Wsi.CURSOR_INFO
             | Utext s ->
                 if conf.underinfo then showtext 'f' ("ont: " ^ s);
-                Glut.setCursor Glut.CURSOR_TEXT
+                Wsi.setcursor Wsi.CURSOR_TEXT
             | Uunexpected s ->
                 if conf.underinfo then showtext 'u' ("nexpected: " ^ s);
-                Glut.setCursor Glut.CURSOR_INHERIT
+                Wsi.setcursor Wsi.CURSOR_INHERIT
             | Ulaunch s ->
                 if conf.underinfo then showtext 'l' ("launch: " ^ s);
-                Glut.setCursor Glut.CURSOR_INHERIT
+                Wsi.setcursor Wsi.CURSOR_INHERIT
             | Unamed s ->
                 if conf.underinfo then showtext 'n' ("named: " ^ s);
-                Glut.setCursor Glut.CURSOR_INHERIT
+                Wsi.setcursor Wsi.CURSOR_INHERIT
             | Uremote (filename, pageno) ->
                 if conf.underinfo then showtext 'r'
                   (Printf.sprintf "emote: %s (%d)" filename pageno);
-                Glut.setCursor Glut.CURSOR_INFO
+                Wsi.setcursor Wsi.CURSOR_INFO
             end
 
         | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ ->
@@ -5255,7 +5120,6 @@ struct
   open Parser
 
   let fontpath = ref "";;
-  let wmclasshack = ref false;;
 
   let unent s =
     let l = String.length s in
@@ -5265,10 +5129,7 @@ struct
   ;;
 
   let home =
-    try
-      if is_windows
-      then Sys.getenv "HOMEPATH"
-      else Sys.getenv "HOME"
+    try Sys.getenv "HOME"
     with exn ->
       prerr_endline
         ("Can not determine home directory location: " ^
@@ -5329,7 +5190,6 @@ struct
         | "aalevel" -> { c with aalevel = max 0 (int_of_string v) }
         | "trim-margins" -> { c with trimmargins = bool_of_string v }
         | "trim-fuzz" -> { c with trimfuzz = irect_of_string v }
-        | "wmclass-hack" -> wmclasshack := bool_of_string v; c
         | "uri-launcher" -> { c with urilauncher = unent v }
         | "color-space" -> { c with colorspace = colorspace_of_string v }
         | "invert-colors" -> { c with invert  = bool_of_string v }
@@ -5768,8 +5628,6 @@ struct
     og "ghyllscroll" c.ghyllscroll dc.ghyllscroll;
     oco "columns" c.columns dc.columns;
     obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
-    if always
-    then ob "wmclass-hack" !wmclasshack false;
     os "selection-command" c.selcmd dc.selcmd;
   ;;
 
@@ -5912,26 +5770,30 @@ let () =
 
   Config.load ();
 
-  let _ = Glut.init Sys.argv in
-  let () = Glut.initDisplayMode ~depth:false ~double_buffer:true () in
-  let () = Glut.initWindowSize conf.winw conf.winh in
-  let _ = Glut.createWindow ("llpp " ^ Filename.basename state.path) in
+  state.wsfd <-  Wsi.init (object
+    method display = display ()
+    method reshape w h = reshape w h
+    method mouse b d x y m = mouse b d x y m
+    method motion x y = motion x y
+    method pmotion x y = pmotion x y
+    method key c m = keyboard c m
+  end);
 
-  if not (Glut.extensionSupported "GL_ARB_texture_rectangle"
-           || Glut.extensionSupported "GL_EXT_texture_rectangle")
+  if not (
+    List.exists GlMisc.check_extension
+      [ "GL_ARB_texture_rectangle"
+      ; "GL_EXT_texture_recangle"
+      ; "GL_NV_texture_rectangle" ]
+  )
   then (prerr_endline "OpenGL does not suppport rectangular textures"; exit 1);
-
-  let () = Glut.displayFunc display in
-  let () = Glut.reshapeFunc reshape in
-  let () = Glut.keyboardFunc keyboard in
-  let () = Glut.specialFunc special in
-  let () = Glut.idleFunc (Some idle) in
-  let () = Glut.mouseFunc mouse in
-  let () = Glut.motionFunc motion in
-  let () = Glut.passiveMotionFunc pmotion in
 
   let cr, sw = Unix.pipe ()
   and sr, cw = Unix.pipe () in
+
+  cloexec cr;
+  cloexec sw;
+  cloexec sr;
+  cloexec cw;
 
   setcheckers conf.checkers;
   redirectstderr ();
@@ -5939,7 +5801,7 @@ let () =
   init (cr, cw) (
     conf.angle, conf.proportional, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-    !Config.wmclasshack, !Config.fontpath
+    !Config.fontpath
   );
   state.sr <- sr;
   state.sw <- sw;
@@ -5948,28 +5810,99 @@ let () =
   writeopen state.path state.password;
   state.uioh <- uioh;
   setfontsize fstate.fontsize;
+  doreshape conf.winw conf.winh;
 
-  while true do
-    try
-      Glut.mainLoop ();
-    with
-    | Glut.BadEnum "key in special_of_int" ->
-        showtext '!' " LablGlut bug: special key not recognized";
-
-    | Quit ->
-        wcmd "quit" [];
-        Config.save ();
-        exit 0
-
-    | exn when conf.redirectstderr && not is_gui ->
-        let s =
-          Printf.sprintf "exception %s\n%s"
-            (Printexc.to_string exn)
-            (Printexc.get_backtrace ())
+  let rec loop deadline =
+    let r =
+      match state.errfd with
+      | None -> [state.sr; state.wsfd]
+      | Some fd -> [state.sr; state.wsfd; fd]
+    in
+    if state.redisplay
+    then (
+      state.redisplay <- false;
+      display ();
+    );
+    let timeout =
+      let now = now () in
+      if deadline > now
+      then (
+        if deadline = infinity
+        then ~-.1.0
+        else max 0.0 (deadline -. now)
+      )
+      else 0.0
+    in
+    let r, _, _ =
+      try Unix.select r [] [] timeout
+      with Unix.Unix_error (Unix.EINTR, _, _) -> [], [] ,[]
+    in
+    begin match r with
+    | [] ->
+        state.ghyll None;
+        let newdeadline =
+          match state.autoscroll with
+          | Some step when step != 0 ->
+              let y = state.y + step in
+              let y =
+                if y < 0
+                then state.maxy
+                else if y >= state.maxy then 0 else y
+              in
+              gotoy y;
+              if state.mode = View
+              then state.text <- "";
+              deadline +. 0.01
+          | _ ->
+              if state.ghyll == noghyll then infinity else deadline +. 0.01
         in
-        ignore (try
-            Unix.single_write state.stderr s 0 (String.length s);
-          with _ -> 0);
-        exit 1
-  done;
+        loop newdeadline
+
+    | l ->
+        let rec checkfds = function
+          | [] -> ()
+          | fd :: rest when fd = state.sr ->
+              let cmd = readcmd state.sr in
+              act cmd;
+              checkfds rest
+
+          | fd :: rest when fd = state.wsfd ->
+              Wsi.readresp fd;
+              checkfds rest
+
+          | fd :: rest ->
+              let s = String.create 80 in
+              let n = Unix.read fd s 0 80 in
+              if conf.redirectstderr
+              then (
+                Buffer.add_substring state.errmsgs s 0 n;
+                state.newerrmsgs <- true;
+                state.redisplay <- true;
+              )
+              else (
+                prerr_string (String.sub s 0 n);
+                flush stderr;
+              );
+              checkfds rest
+        in
+        checkfds l;
+        let newdeadline =
+          let deadline1 =
+            if deadline = infinity
+            then now () +. 0.01
+            else deadline
+          in
+          match state.autoscroll with
+          | Some step when step != 0 -> deadline1
+          | _ -> if state.ghyll == noghyll then infinity else deadline1
+        in
+        loop newdeadline
+    end;
+  in
+  try
+    loop infinity;
+  with Wsi.Quit ->
+    wcmd "quit" [];
+    Config.save ();
+    exit 0;
 ;;

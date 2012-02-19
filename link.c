@@ -4,18 +4,40 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
+
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
+#include <regex.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <limits.h>
+
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/gl.h>
+#endif
+
+#include <caml/fail.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+#include <caml/unixsupport.h>
+
+#include <fitz.h>
+#include <mupdf.h>
+#include <muxps.h>
+#include <mucbz.h>
+
+#include FT_FREETYPE_H
 
 #define PIGGYBACK
 
-#ifdef _MSC_VER
-#pragma warning (disable:4244)
-#pragma warning (disable:4996)
-#pragma warning (disable:4995)
-#define NORETURN __declspec (noreturn)
-#define UNUSED
-#define OPTIMIZE(n)
-#define GCC_FMT_ATTR(a, b)
-#elif defined __GNUC__
+#if defined __GNUC__
 #define NORETURN __attribute__ ((noreturn))
 #define UNUSED __attribute__ ((unused))
 #define OPTIMIZE(n) __attribute__ ((optimize ("O"#n)))
@@ -27,52 +49,11 @@
 #define GCC_FMT_ATTR(a, b)
 #endif
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#ifdef _WIN64
-#define FMT_s "i64u"
-#else
-#define FMT_s "u"
-#endif
-static void NORETURN GCC_FMT_ATTR (2, 3)
-    winerr (int exitcode, const char *fmt, ...)
-{
-    va_list ap;
-    DWORD savederror = GetLastError ();
-
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
-    fprintf (stderr, ": 0x%lx\n",  savederror);
-    fflush (stderr);
-    _exit (exitcode);
-}
-#else
 #define FMT_s "zu"
-#include <unistd.h>
-#include <pthread.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#endif
 
-#ifdef __MINGW32__
-/* some versions of MingW have non idempotent %p */
-#include <inttypes.h>
-#define FMT_ptr PRIxPTR
-#define FMT_ptr_cast(p) ((intptr_t *) (p))
-#define FMT_ptr_cast2(p) ((intptr_t) (p))
-#else
 #define FMT_ptr "p"
 #define FMT_ptr_cast(p) (p)
 #define FMT_ptr_cast2(p) (p)
-#endif
-
-#include <regex.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <limits.h>
 
 static void NORETURN GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...)
@@ -102,12 +83,6 @@ static void NORETURN GCC_FMT_ATTR (2, 3)
     _exit (exitcode);
 }
 
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
-
 #ifndef GL_TEXTURE_RECTANGLE_ARB
 #define GL_TEXTURE_RECTANGLE_ARB          0x84F5
 #endif
@@ -123,18 +98,6 @@ static void NORETURN GCC_FMT_ATTR (2, 3)
 #ifndef GL_UNSIGNED_INT_8_8_8_8_REV
 #define GL_UNSIGNED_INT_8_8_8_8_REV       0x8367
 #endif
-
-#include <caml/fail.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-#include <caml/unixsupport.h>
-
-#include <fitz.h>
-#include <mupdf.h>
-#include <muxps.h>
-#include <mucbz.h>
-
-#include FT_FREETYPE_H
 
 #if 0
 #define lprintf printf
@@ -236,13 +199,8 @@ struct {
     fz_bbox trimfuzz;
     fz_pixmap *pig;
 
-#ifdef _WIN32
-    HANDLE thread;
-    HANDLE cr, cw;
-#else
     pthread_t thread;
     int cr, cw;
-#endif
     FT_Face face;
 
     void (*closedoc) (void);
@@ -265,59 +223,6 @@ static void UNUSED debug_matrix (const char *cap, fz_matrix m)
             m.a, m.b, m.c, m.d, m.e, m.f);
 }
 
-#ifdef _WIN32
-static CRITICAL_SECTION critsec;
-
-static void lock (void *unused)
-{
-    (void) unused;
-    EnterCriticalSection (&critsec);
-}
-
-static void unlock (void *unused)
-{
-    (void) unused;
-    LeaveCriticalSection (&critsec);
-}
-
-static int trylock (void *unused)
-{
-    return TryEnterCriticalSection (&critsec) == 0;
-}
-
-CAMLprim value ml_seterrhandle (value is_gui_v, value handle_v)
-{
-    /* http://stackoverflow.com/questions/5115569/c-win32-api-getstdhandlestd-output-handle-is-invalid-very-perplexing */
-    CAMLparam2 (is_gui_v, handle_v);
-    int fd;
-
-    if (!SetStdHandle (STD_ERROR_HANDLE, Handle_val (handle_v))) {
-        win32_maperr (GetLastError ());
-        uerror ("SetStdHandle", Nothing);
-    }
-
-    if (Bool_val (is_gui_v)) {
-        if (stderr) {
-            fclose (stderr);
-        }
-        fd = _open_osfhandle ((intptr_t) Handle_val (handle_v), 0);
-        if (fd < 0) {
-            uerror ("_open_osfhandle", Nothing);
-        }
-        *stderr = *_fdopen (fd, "w");
-        if (!stderr) {
-            int save;
-            _close (fd);
-            errno = save;
-            uerror ("_fd_open", Nothing);
-        }
-        if (setvbuf (stderr, NULL, _IONBF, 0)) {
-            uerror ("stvbuf", Nothing);
-        }
-    }
-    CAMLreturn (Val_unit);
-}
-#else
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void lock (const char *cap)
@@ -346,15 +251,6 @@ static int trylock (const char *cap)
     return ret == EBUSY;
 }
 
-CAMLprim value ml_seterrhandle (value is_gui_v, value handle_v)
-{
-    CAMLparam2 (is_gui_v, handle_v);
-    (void) handle_v;
-    (void) is_gui_v;
-    CAMLreturn (Val_unit);
-}
-#endif
-
 static void *parse_pointer (const char *cap, const char *s)
 {
     int ret;
@@ -367,63 +263,6 @@ static void *parse_pointer (const char *cap, const char *s)
     return ptr;
 }
 
-#ifdef _WIN32
-static double now (void)
-{
-    FILETIME ft;
-    uint64 tmp;
-
-    GetSystemTimeAsFileTime (&ft);
-    tmp = ft.dwHighDateTime;
-    tmp <<= 32;
-    tmp |= ft.dwLowDateTime;
-    return tmp * 1e-7;
-}
-
-static int hasdata (void)
-{
-    BOOL okay;
-    DWORD avail;
-
-    okay = PeekNamedPipe (state.cr, NULL, 0, NULL, &avail, NULL);
-    if (!okay) winerr (1, "PeekNamedPipe");
-    return avail > 0;
-}
-
-static void readdata (void *p, int size)
-{
-    BOOL okay;
-    DWORD nread;
-
-    okay = ReadFile (state.cr, p, size, &nread, NULL);
-    if (!okay || nread - size) {
-        err (1, "ReadFile (req %d, okay %d, ret %ld)", size, okay, nread);
-    }
-}
-
-static void writedata (char *p, int size)
-{
-    BOOL okay;
-    char buf[4];
-    DWORD nwritten;
-
-    buf[0] = (size >> 24) & 0xff;
-    buf[1] = (size >> 16) & 0xff;
-    buf[2] = (size >>  8) & 0xff;
-    buf[3] = (size >>  0) & 0xff;
-
-    okay = WriteFile (state.cw, buf, 4, &nwritten, NULL);
-    if (!okay || nwritten != 4) {
-        winerr (1, "WriteFile okay %d ret %ld", okay, nwritten);
-    }
-
-    okay = WriteFile (state.cw, p, size, &nwritten, NULL);
-    if (!okay || nwritten - size) {
-        winerr (1, "WriteFile (req %d, okay %d, ret %ld)",
-                size, okay, nwritten);
-    }
-}
-#else
 static double now (void)
 {
     struct timeval tv;
@@ -440,6 +279,16 @@ static int hasdata (void)
     ret = ioctl (state.cr, FIONREAD, &avail);
     if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
     return avail > 0;
+}
+
+CAMLprim value ml_hasdata (value fd_v)
+{
+    CAMLparam1 (fd_v);
+    int ret, avail;
+
+    ret = ioctl (Int_val (fd_v), FIONREAD, &avail);
+    if (ret) uerror ("ioctl (FIONREAD)", Nothing);
+    CAMLreturn (Val_bool (avail > 0));
 }
 
 static void readdata (void *p, int size)
@@ -475,7 +324,6 @@ static void writedata (char *p, int size)
         err (1, "write (req %d, ret %zd)", size, n);
     }
 }
-#endif
 
 static int readlen (void)
 {
@@ -1292,7 +1140,10 @@ static void search (regex_t *re, int pageno, int y, int forward)
             span = pspan[j];
             j += forward ? 1 : -1;
             p = buf;
-            for (i = 0; i < MIN (span->len, (int) sizeof (buf) - 1); ++i) {
+            for (i = 0; i < span->len; ++i) {
+                int len;
+                char cbuf[4];
+
                 if (forward) {
                     if (span->text[i].bbox.y0 < y + 1) {
                         continue;
@@ -1303,11 +1154,14 @@ static void search (regex_t *re, int pageno, int y, int forward)
                         continue;
                     }
                 }
-                if (span->text[i].c < 256) {
-                    *p++ = span->text[i].c;
+                len = runetochar (cbuf, &span->text[i].c);
+                if (sizeof (buf) - 1 - (p - buf) > len) {
+                    int k;
+                    for (k = 0; k < len; ++k)
+                        *p++ = cbuf[k];
                 }
-                else  {
-                    *p++ = '?';
+                else {
+                    break;
                 }
             }
             if (p == buf) {
@@ -1332,9 +1186,17 @@ static void search (regex_t *re, int pageno, int y, int forward)
             else  {
                 fz_bbox *sb, *eb;
                 fz_point p1, p2, p3, p4;
+                int a, b, p;
 
-                sb = &span->text[rm.rm_so].bbox;
-                eb = &span->text[rm.rm_eo - 1].bbox;
+                for (a = 0, p = 0; p < rm.rm_so; a++) {
+                    p += runelen (span->text[a].c);
+                }
+                for (b = a; p < rm.rm_eo - 1; b++) {
+                    p += runelen (span->text[b].c);
+                }
+
+                sb = &span->text[a].bbox;
+                eb = &span->text[b].bbox;
 
                 p1.x = sb->x0;
                 p1.y = sb->y0;
@@ -1467,13 +1329,7 @@ static void realloctexts (int texcount)
     state.texindex = 0;
 }
 
-static
-#ifdef _WIN32
-DWORD _stdcall
-#else
-void *
-#endif
-mainloop (void *unused)
+static void * mainloop (void *unused)
 {
     char *p = NULL;
     int len, ret, oldlen = 0;
@@ -2542,62 +2398,85 @@ CAMLprim value ml_setaalevel (value level_v)
     CAMLreturn (Val_unit);
 }
 
-#if !defined _WIN32 && !defined __APPLE__
 #undef pixel
-#include <X11/X.h>
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
 #include <GL/glx.h>
 
-static void set_wm_class (void)
-{
+static struct {
     Display *dpy;
-    Window win;
-    XClassHint hint;
-    char *display;
+    GLXContext ctx;
+    GLXDrawable drawable;
+} glx;
 
-    display = getenv ("DISPLAY");
-    dpy = XOpenDisplay (display);
-    if (!dpy) {
-        fprintf (stderr, "XOpenDisplay `%s' failed\n",
-                 display ? display : "null");
-        return;
-    }
-    hint.res_name = "llpp";
-    hint.res_class = "llpp";
-    win = glXGetCurrentDrawable ();
-    if (win == None) {
-        fprintf (stderr, "glXGetCurrentDrawable returned None\n");
-        XCloseDisplay (dpy);
-        return;
-    }
-    XSetClassHint (dpy, win, &hint);
-    XCloseDisplay (dpy);
-}
-#define HAS_WM_CLASS_HACK
-#endif
+#include "keysym2ucs.c"
 
-enum { piunknown, pilinux, piwindows, pwindowsgui, piosx,
-       pisun, pifreebsd, pidragonflybsd, piopenbsd, pinetbsd,
-       pimingw, pmingwgui, picygwin };
-
-#define NOZOMBIESPLEASE
-
-#ifdef _WIN32
-static int isgui (void)
+CAMLprim value ml_keysymtoutf8 (value keysym_v)
 {
-    /* http://www.opensc.ws/c-snippets/12714-c-getprocaddressex.html
-       and MSDN */
-    char *p = (char *) GetModuleHandle (NULL);
-    if (p) {
-        IMAGE_DOS_HEADER *dh = (IMAGE_DOS_HEADER *) p;
-        IMAGE_NT_HEADERS *nh = (IMAGE_NT_HEADERS *) (p + dh->e_lfanew);
+    CAMLparam1 (keysym_v);
+    CAMLlocal1 (str_v);
+    KeySym keysym = Int_val (keysym_v);
+    Rune rune;
+    int len;
+    char buf[5];
 
-        return nh->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_GUI;
-    }
-    return 0;
+    rune = keysym2ucs (keysym);
+    len = runetochar (buf, &rune);
+    buf[len] = 0;
+    str_v = caml_copy_string (buf);
+    CAMLreturn (str_v);
 }
-#endif
+
+CAMLprim value ml_glx (value win_v)
+{
+    CAMLparam1 (win_v);
+    int screen;
+    XVisualInfo *visual;
+    int attributes[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
+
+    glx.dpy = XOpenDisplay (NULL);
+    if (!glx.dpy) {
+        caml_failwith ("XOpenDisplay failed");
+    }
+
+    screen = DefaultScreen (glx.dpy);
+    visual = glXChooseVisual (glx.dpy, screen, attributes);
+    if (!visual) {
+        XCloseDisplay (glx.dpy);
+        glx.dpy = NULL;
+        caml_failwith ("glXChooseVisual");
+    }
+
+    glx.ctx = glXCreateContext (glx.dpy, visual, NULL, True);
+    if (!glx.ctx) {
+        XCloseDisplay (glx.dpy);
+        XFree (visual);
+        glx.dpy = NULL;
+        caml_failwith ("glXCreateContext");
+    }
+
+    XFree (visual);
+    if (!glXMakeCurrent (glx.dpy, Int_val (win_v), glx.ctx)) {
+        glXDestroyContext (glx.dpy, glx.ctx);
+        XCloseDisplay (glx.dpy);
+        glx.dpy = NULL;
+        glx.ctx = NULL;
+        caml_failwith ("glXMakeCurrent");
+    }
+    glx.drawable = Int_val (win_v);
+
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_swapb (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    /* glXWaitGL (); */
+    glXSwapBuffers (glx.dpy, glx.drawable);
+    CAMLreturn (Val_unit);
+}
+
+enum { piunknown, pilinux, piosx, pisun, pifreebsd,
+       pidragonflybsd, piopenbsd, pinetbsd, picygwin };
 
 CAMLprim value ml_platform (value unit_v)
 {
@@ -2607,14 +2486,7 @@ CAMLprim value ml_platform (value unit_v)
 #if defined __linux__
     platid = pilinux;
 #elif defined __CYGWIN__
-#undef NOZOMBIESPLEASE
     platid = picygwin;
-#elif defined __MINGW32__
-#undef NOZOMBIESPLEASE
-    platid = pimingw + isgui ();
-#elif defined _WIN32
-#undef NOZOMBIESPLEASE
-    platid = piwindows + isgui ();
 #elif defined __DragonFly__
     platid = pidragonflybsd;
 #elif defined __FreeBSD__
@@ -2631,39 +2503,42 @@ CAMLprim value ml_platform (value unit_v)
     CAMLreturn (Val_int (platid));
 }
 
-#ifdef NOZOMBIESPLEASE
-#include <signal.h>
-#endif
+CAMLprim value ml_cloexec (value fd_v)
+{
+    CAMLparam1 (fd_v);
+    int fd = Int_val (fd_v);
+
+    if (fcntl (fd, F_SETFD, FD_CLOEXEC, 1)) {
+        uerror ("fcntl", Nothing);
+    }
+    CAMLreturn (Val_unit);
+}
 
 CAMLprim value ml_init (value pipe_v, value params_v)
 {
     CAMLparam2 (pipe_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
-    char *fontpath;
+    int ret;
     int texcount;
-    int wmclasshack;
+    char *fontpath;
     int colorspace;
     int mustoresize;
+    struct sigaction sa;
 
-#ifdef _WIN32
-    state.cr = Handle_val (Field (pipe_v, 0));
-    state.cw = Handle_val (Field (pipe_v, 1));
-#else
-    state.cr = Int_val (Field (pipe_v, 0));
-    state.cw = Int_val (Field (pipe_v, 1));
-#endif
-    state.rotate = Int_val (Field (params_v, 0));
+    state.cr           = Int_val (Field (pipe_v, 0));
+    state.cw           = Int_val (Field (pipe_v, 1));
+    state.rotate       = Int_val (Field (params_v, 0));
     state.proportional = Bool_val (Field (params_v, 1));
-    trim_v = Field (params_v, 2);
-    texcount = Int_val (Field (params_v, 3));
-    state.sliceheight = Int_val (Field (params_v, 4));
-    mustoresize = Int_val (Field (params_v, 5));
-    state.ctx = fz_new_context (NULL, NULL, mustoresize);
-    colorspace = Int_val (Field (params_v, 6));
-    wmclasshack = Bool_val (Field (params_v, 7));
-    fontpath = String_val (Field (params_v, 8));
+    trim_v             = Field (params_v, 2);
+    texcount           = Int_val (Field (params_v, 3));
+    state.sliceheight  = Int_val (Field (params_v, 4));
+    mustoresize        = Int_val (Field (params_v, 5));
+    colorspace         = Int_val (Field (params_v, 6));
+    fontpath           = String_val (Field (params_v, 7));
 
-    state.trimmargins = Bool_val (Field (trim_v, 0));
+    state.ctx          = fz_new_context (NULL, NULL, mustoresize);
+    state.trimmargins  = Bool_val (Field (trim_v, 0));
+
     fuzz_v = Field (trim_v, 1);
     state.trimfuzz.x0 = Int_val (Field (fuzz_v, 0));
     state.trimfuzz.y0 = Int_val (Field (fuzz_v, 1));
@@ -2671,13 +2546,6 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     state.trimfuzz.y1 = Int_val (Field (fuzz_v, 3));
 
     set_tex_params (colorspace);
-#ifdef HAS_WM_CLASS_HACK
-    if (wmclasshack) {
-        set_wm_class ();
-    }
-#else
-    (void) wmclasshack;
-#endif
 
     if (*fontpath) {
         state.face = load_font (fontpath);
@@ -2692,35 +2560,19 @@ CAMLprim value ml_init (value pipe_v, value params_v)
 
     realloctexts (texcount);
 
-#ifdef NOZOMBIESPLEASE
-    {
-        struct sigaction sa;
+    sa.sa_handler = SIG_DFL;
+    if (sigemptyset (&sa.sa_mask)) {
+        err (1, "sigemptyset");
+    }
+    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
+    if (sigaction (SIGCHLD, &sa, NULL)) {
+        err (1, "sigaction");
+    }
 
-        sa.sa_handler = SIG_DFL;
-        if (sigemptyset (&sa.sa_mask)) {
-            err (1, "sigemptyset");
-        }
-        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
-        if (sigaction (SIGCHLD, &sa, NULL)) {
-            err (1, "sigaction");
-        }
+    ret = pthread_create (&state.thread, NULL, mainloop, NULL);
+    if (ret) {
+        errx (1, "pthread_create: %s", strerror (ret));
     }
-#endif
-
-#ifdef _WIN32
-    InitializeCriticalSection (&critsec);
-    state.thread = CreateThread (NULL, 0, mainloop, NULL, 0, NULL);
-    if (state.thread == INVALID_HANDLE_VALUE) {
-        errx (1, "CreateThread failed: %lx", GetLastError ());
-    }
-#else
-    {
-        int ret = pthread_create (&state.thread, NULL, mainloop, NULL);
-        if (ret) {
-            errx (1, "pthread_create: %s", strerror (ret));
-        }
-    }
-#endif
 
     CAMLreturn (Val_unit);
 }

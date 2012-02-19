@@ -25,15 +25,21 @@ let libs = getdef "libs" "";;
 let boc flags src =
   let o = src ^ ".o" in
   let c = src ^ ".c" in
+  let d =
+    (* Since we are using ocaml instead of gcc to compile this
+       the dep scanning passs is not done, hence this cludge *)
+    List.fold_left
+      (fun s p -> StrSet.add (Filename.concat srcdir p) s)
+      StrSet.empty
+      ["glfont.c"; "keysym2ucs.c"]
+  in
   ocaml
     "ocamlc.opt"
     ("-cc '" ^ cc ^ "' -ccopt '" ^ flags ^ " " ^ ccopt ^ " -o " ^ o ^ "'")
     o
     (StrSet.singleton o)
     [Filename.concat srcdir c]
-    (* Since we are using ocaml instead of gcc to compile this
-       the dep scanning passs is not done, hence this cludge *)
-    (StrSet.singleton (Filename.concat srcdir "glfont.c"))
+    d
   ;
 ;;
 
@@ -120,7 +126,7 @@ let () =
   let prog name cmos =
     ocaml
       "ocamlc.opt"
-      ("-g -I +lablGL lablgl.cma lablglut.cma str.cma unix.cma -dllpath "
+      ("-g -I +lablGL lablgl.cma str.cma unix.cma -dllpath "
         ^ Sys.getcwd ())
       name
       (StrSet.singleton name)
@@ -132,7 +138,7 @@ let () =
     cmopp ~flags:"-g -w A-7-6-4 -I +lablGL -thread" ~dirname name;
     (name ^ ".cmo")
   in
-  let cmos = so :: List.map mkcmo ["help"; "parser"; "main"] in
+  let cmos = so :: List.map mkcmo ["help"; "parser"; "wsi"; "main"] in
   prog "llpp" cmos;
 ;;
 

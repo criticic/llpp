@@ -125,5 +125,3 @@ Caveat emptor:
 
 o Selection can not cross page boundaries
 o Text searching is very naive
-o Most of the Ctrl keys do not work on Windows and native OSX (X11 version
-  is fine though)

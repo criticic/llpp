@@ -36,7 +36,7 @@ make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
 
 (cd lablGL-1.04 \
     && cat Makefile.config.linux.mdk > Makefile.config \
-    && $make glut glutopt \
+    && $make lib libopt \
     && $make install \
             BINDIR=$root/bin \
             LIBDIR=$root/lib/ocaml \
@@ -74,30 +74,36 @@ if test "$1" = "opt"; then
     cclib="$cclib -lpthread"
     ocamlopt -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     ocamlopt -c -o help.cmx help.ml
+    ocamlopt -c -o wsi.cmi $srcpath/wsi.mli
+    ocamlopt -c -o wsi.cmx $srcpath/wsi.ml
     ocamlopt -c -o parser.cmx $srcpath/parser.ml
     ocamlopt -c -o main.cmx -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
     ocamlopt -o llpp \
     -I $root/lib/ocaml/lablGL \
-    str.cmxa unix.cmxa lablgl.cmxa lablglut.cmxa \
+    str.cmxa unix.cmxa lablgl.cmxa \
     link.o \
     -cclib "$cclib" \
     help.cmx \
     parser.cmx \
+    wsi.cmx \
     main.cmx
 else
     ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     ocamlc -c -o help.cmo help.ml
+    ocamlc -c -o wsi.cmi $srcpath/wsi.mli
+    ocamlc -c -o wsi.cmo $srcpath/wsi.ml
     ocamlc -c -o parser.cmo $srcpath/parser.ml
     ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
     ocamlc -custom -o llpp \
         -I $root/lib/ocaml/lablGL \
-        str.cma unix.cma lablgl.cma lablglut.cma \
+        str.cma unix.cma lablgl.cma \
         link.o \
         -cclib "$cclib" \
         help.cmo \
         parser.cmo \
+        wsi.cmo \
         main.cmo
 fi
 echo All done
