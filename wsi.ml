@@ -382,9 +382,13 @@ let readresp sock =
       state.t#display;
       vlog "map";
 
+  | '\012' ->
+      vlog "exposure";
+      state.t#display
+
   | '\015' ->
       let vis = r8 resp 8 in
-      if vis = 0 then state.t#display;
+      if vis != 2 then state.t#display;
       vlog "visibility %d" vis;
 
   | '\034' ->
@@ -512,7 +516,7 @@ let setup sock _screennum =
         (* + 0x00001000 *)              (* Button5Motion *)
         + 0x00002000                    (* ButtonMotion *)
         (* + 0x00004000 *)              (* KeymapState *)
-        (* + 0x00008000 *)              (* Exposure *)
+        + 0x00008000                    (* Exposure *)
         + 0x00010000                    (* VisibilityChange *)
         + 0x00020000                    (* StructureNotify *)
         (* + 0x00040000 *)              (* ResizeRedirect *)
