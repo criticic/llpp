@@ -31,7 +31,8 @@ ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"
 libs="-lfitz"
 libs="$libs -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lfontconfig -lX11"
-ccopt="$ccopt -maltivec -O -D_GNU_SOURCE"
+#ccopt="$ccopt -maltivec -O -D_GNU_SOURCE"
+ccopt="$ccopt -maltivec -D_GNU_SOURCE"
 
 lpath=$mupdf/build/release
 
