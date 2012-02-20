@@ -4490,15 +4490,19 @@ let viewkeyboard key mask =
       end
 
   | 0xff51 | 0xff53                     (* left / right *)
-        when conf.zoom > 1.0->
-      let dx =
-        if Wsi.withctrl mask
-        then conf.winw / 2
-        else 10
-      in
-      let dx = if key = 0xff51 then dx else -dx in
-      state.x <- state.x + dx;
-      gotoy_and_clear_text state.y
+        when Wsi.withctrl mask && conf.zoom > 1.0 ->
+        let dx =
+          if Wsi.withctrl mask
+          then conf.winw / 2
+          else 10
+        in
+        let dx = if key = 0xff51 then dx else -dx in
+        state.x <- state.x + dx;
+        gotoy_and_clear_text state.y
+
+  | 0xff51 | 0xff53 when mask = 0 ->    (* left / right *)
+      state.text <- "";
+      G.postRedisplay "lef/right"
 
   | 0xff55 ->                           (* prior *)
       let y =
