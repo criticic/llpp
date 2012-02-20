@@ -372,7 +372,7 @@ let readresp sock =
       let x = r16s resp 24 in
       let y = r16s resp 26 in
       let m = r16 resp 28 in
-      if m = 0
+      if m land 0x1f00 = 0
       then state.t#pmotion x y
       else state.t#motion x y;
       vlog "move %dx%d => %d" x y m
