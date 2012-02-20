@@ -3132,19 +3132,20 @@ object (self)
       G.postRedisplay "outline navigate";
       coe {< m_active = active; m_first = first >}
     in
+    let ctrl = Wsi.withctrl mask in
     match key with
-    | 110 when Wsi.withctrl mask ->    (* ctrl-n *)
+    | 110 when ctrl ->                  (* ctrl-n *)
         source#narrow m_qsearch;
         G.postRedisplay "outline ctrl-n";
         coe {< m_first = 0; m_active = 0 >}
 
-    | 117 when Wsi.withctrl mask ->    (* ctrl-u *)
+    | 117 when ctrl ->                  (* ctrl-u *)
         source#denarrow;
         G.postRedisplay "outline ctrl-u";
         state.text <- "";
         coe {< m_first = 0; m_active = 0 >}
 
-    | 108 when Wsi.withctrl mask ->    (* ctrl-l *)
+    | 108 when ctrl ->                  (* ctrl-l *)
         let first = m_active - (fstate.maxrows / 2) in
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
@@ -3165,7 +3166,7 @@ object (self)
 
     | 0xff53 ->                         (* [ctrl-]right *)
         let o =
-          if Wsi.withctrl mask
+          if ctrl
           then (
             G.postRedisplay "outline ctrl right";
             {< m_pan = m_pan + 1 >}
@@ -3176,7 +3177,7 @@ object (self)
 
     | 0xff51 ->                         (* [ctrl-]left *)
         let o =
-          if Wsi.withctrl mask
+          if ctrl
           then (
             G.postRedisplay "outline ctrl left";
             {< m_pan = m_pan - 1 >}
@@ -4193,6 +4194,7 @@ let viewkeyboard key mask =
     enttext ();
     G.postRedisplay "view:enttext"
   in
+  let ctrl = Wsi.withctrl mask in
   match key with
   | 81 ->                               (* Q *)
       exit 0
@@ -4235,7 +4237,7 @@ let viewkeyboard key mask =
       enttext (s, "", Some (onhist state.hists.pat),
               textentry, ondone (key = 47))
 
-  | 43 | 0xffab when Wsi.withctrl mask -> (* + *)
+  | 43 | 0xffab when ctrl ->            (* ctrl-+ *)
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
       setzoom (conf.zoom +. incr)
 
@@ -4255,7 +4257,7 @@ let viewkeyboard key mask =
       in
       enttext ("page bias: ", "", None, intentry, ondone)
 
-  | 45 | 0xffad when Wsi.withctrl mask -> (* - *)
+  | 45 | 0xffad when ctrl ->            (* ctrl-- *)
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
       setzoom (max 0.01 (conf.zoom -. decr))
 
@@ -4266,10 +4268,10 @@ let viewkeyboard key mask =
         optentry state.mode, ondone
       )
 
-  | 48 when Wsi.withctrl mask ->       (* 0 *)
+  | 48 when ctrl ->                     (* ctrl-0 *)
       setzoom 1.0
 
-  | 49 when Wsi.withctrl mask ->       (* 1 *)
+  | 49 when ctrl ->                     (* 1 *)
       let zoom = zoomforh conf.winw conf.winh state.scrollw in
       if zoom < 1.0
       then setzoom zoom
@@ -4277,11 +4279,11 @@ let viewkeyboard key mask =
   | 0xffc6 ->                           (* f9 *)
       togglebirdseye ()
 
-  | 57 when Wsi.withctrl mask ->       (* ctrl-9 *)
+  | 57 when ctrl ->                     (* ctrl-9 *)
       togglebirdseye ()
 
   | (48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 |  57)
-      when not (Wsi.withctrl mask) ->  (* 0..9 *)
+      when not  ctrl ->                      (* 0..9 *)
       let ondone s =
         let n =
           try int_of_string s with exc ->
@@ -4447,7 +4449,7 @@ let viewkeyboard key mask =
       | [] -> ()
       end
 
-  | 50 when Wsi.withctrl mask ->       (* ctrl-2 *)
+  | 50 when ctrl ->                     (* ctrl-2 *)
       let maxw = getmaxw () in
       if maxw > 0.0
       then setzoom (maxw /. float conf.winw)
@@ -4467,8 +4469,8 @@ let viewkeyboard key mask =
           begin match state.mode with
           | Birdseye beye -> upbirdseye 1 beye
           | _ ->
-              if Wsi.withctrl mask
-              then gotoy (-clamp (conf.winh/2))
+              if ctrl
+              then gotoy (clamp ~-(conf.winh/2))
               else gotoy (clamp (-conf.scrollstep))
           end
       | Some n ->
@@ -4481,7 +4483,7 @@ let viewkeyboard key mask =
           begin match state.mode with
           | Birdseye beye -> downbirdseye 1 beye
           | _ ->
-              if Wsi.withctrl mask
+              if ctrl
               then gotoy_and_clear_text (clamp (conf.winh/2))
               else gotoy_and_clear_text (clamp conf.scrollstep)
           end
@@ -4489,24 +4491,25 @@ let viewkeyboard key mask =
           setautoscrollspeed n true
       end
 
-  | 0xff51 | 0xff53                     (* left / right *)
-        when Wsi.withctrl mask && conf.zoom > 1.0 ->
+  | 0xff51 | 0xff53 when conf.zoom > 1.0 -> (* left / right *)
+      if conf.zoom > 1.0
+      then
         let dx =
-          if Wsi.withctrl mask
+          if ctrl
           then conf.winw / 2
           else 10
         in
         let dx = if key = 0xff51 then dx else -dx in
         state.x <- state.x + dx;
         gotoy_and_clear_text state.y
-
-  | 0xff51 | 0xff53 when mask = 0 ->    (* left / right *)
-      state.text <- "";
-      G.postRedisplay "lef/right"
+      else (
+        state.text <- "";
+        G.postRedisplay "lef/right"
+      )
 
   | 0xff55 ->                           (* prior *)
       let y =
-        if Wsi.withctrl mask
+        if ctrl
         then
           match state.layout with
           | [] -> state.y
@@ -4518,7 +4521,7 @@ let viewkeyboard key mask =
 
   | 0xff56 ->                           (* next *)
       let y =
-        if Wsi.withctrl mask
+        if ctrl
         then
           match List.rev state.layout with
           | [] -> state.y
