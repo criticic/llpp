@@ -4,8 +4,7 @@
 set -e
 
 h=$(readlink -f $(dirname $0))
-r=$(readlink -f $h/..)
-t=$r/tbs
+t=$(readlink -f ..)/tbs
 d=MD5
 
 export OCAMLRUNPARAM=b
@@ -24,15 +23,20 @@ fi
 
 mupdf=/home/malc/x/rcs/svn/sumatrapdf-read-only/mupdf
 mupdf=/home/malc/x/rcs/git/mupdf
-cc=gcc-4.6.0
 ccopt="-std=c89 -Wall -Werror"
 ccopt="$ccopt -I$mupdf/fitz -I$mupdf/pdf -I$mupdf/xps -I$mupdf/cbz"
 ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"
 libs="-lfitz"
 libs="$libs -lopenjpeg -ljbig2dec -ljpeg -lz -lfreetype -lX11"
+if test $(hostname) = "linmac"; then
+cc=gcc-4.6.0
 #ccopt="$ccopt -maltivec -O -D_GNU_SOURCE"
 ccopt="$ccopt -maltivec -D_GNU_SOURCE"
+else
+cc=cc
+ccopt="$ccopt -O -D_GNU_SOURCE -fPIC"
+fi
 
 lpath=$mupdf/build/release
 
