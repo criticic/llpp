@@ -692,7 +692,12 @@ let getauth haddr dnum =
 ;;
 
 let init t w h =
-  let d = Sys.getenv "DISPLAY" in
+  let d =
+    try Sys.getenv "DISPLAY"
+    with exn ->
+      error "Could not get DISPLAY evironment variable: %s"
+        (Printexc.to_string exn)
+  in
   let colonpos = String.index d ':' in
   let host = String.sub d 0 colonpos in
   let dispnum, screennum =
