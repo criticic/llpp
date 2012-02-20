@@ -39,6 +39,3 @@ $ ./llpp -p password /path/to/some.password.protected.pdf
 [7] mupdf-7d181099272d9c0e92c4488ceaa95b0d8bd10f1e.tgz (4064792 bytes)
     mupdf-thirdparty-2012-01-27.zip (7288384 bytes)
     lablgl-1.04.tar.gz (410525 bytes)
-
-Building on windows is for masochists and left as an exercise to
-the reader
