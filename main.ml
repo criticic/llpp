@@ -3059,7 +3059,7 @@ object (self)
             then
               m_first
             else
-              let first = m_first + (if n == 3 then -1 else 1) in
+              let first = m_first + (if n == 4 then -1 else 1) in
               bound first 0 (len - 1)
           in
           G.postRedisplay "listview wheel";
