@@ -4461,7 +4461,7 @@ let viewkeyboard key mask =
       ;
       G.postRedisplay "brightness";
 
-  | 107 | 0xff52 ->                     (* k UP *)
+  | 107 | 0xff52 ->                     (* k up *)
       begin match state.autoscroll with
       | None ->
           begin match state.mode with
@@ -4475,7 +4475,7 @@ let viewkeyboard key mask =
           setautoscrollspeed n false
       end
 
-  | 106 | 0xff54 ->                     (* j DOWN *)
+  | 106 | 0xff54 ->                     (* j down *)
       begin match state.autoscroll with
       | None ->
           begin match state.mode with
