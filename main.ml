@@ -4358,7 +4358,7 @@ let viewkeyboard key mask =
   | 112 | 78 ->                         (* p|N *)
       search state.searchpattern false
 
-  | 110 ->                              (* n *)
+  | 110 | 0xffc0 ->                     (* n|F3 *)
       search state.searchpattern true
 
   | 116 ->                              (* t *)
@@ -4398,7 +4398,7 @@ let viewkeyboard key mask =
   | 39 ->                               (* ' *)
       enterbookmarkmode ()
 
-  | 104 ->                              (* h *)
+  | 104 | 0xffbe ->                     (* h|F1 *)
       enterhelpmode ()
 
   | 105 ->                              (* i *)
