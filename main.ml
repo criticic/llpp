@@ -4459,7 +4459,7 @@ let viewkeyboard key mask =
 
   | 91 | 93 ->                          (* [ ] *)
       conf.colorscale <-
-        bound (conf.colorscale +. (if key = 92 then 0.1 else -0.1)) 0.0 1.0
+        bound (conf.colorscale +. (if key = 93 then 0.1 else -0.1)) 0.0 1.0
       ;
       G.postRedisplay "brightness";
 
