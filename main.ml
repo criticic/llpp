@@ -4482,8 +4482,8 @@ let viewkeyboard key mask =
           | Birdseye beye -> downbirdseye 1 beye
           | _ ->
               if Wsi.withctrl mask
-              then gotoy (clamp (conf.winh/2))
-              else gotoy (clamp conf.scrollstep)
+              then gotoy_and_clear_text (clamp (conf.winh/2))
+              else gotoy_and_clear_text (clamp conf.scrollstep)
           end
       | Some n ->
           setautoscrollspeed n true
@@ -4498,7 +4498,7 @@ let viewkeyboard key mask =
       in
       let dx = if key = 0xff51 then dx else -dx in
       state.x <- state.x + dx;
-      gotoy state.y
+      gotoy_and_clear_text state.y
 
   | 0xff55 ->                           (* prior *)
       let y =
