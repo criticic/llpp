@@ -5891,20 +5891,22 @@ let () =
     | [] ->
         state.ghyll None;
         let newdeadline =
-          match state.autoscroll with
-          | Some step when step != 0 ->
-              let y = state.y + step in
-              let y =
-                if y < 0
-                then state.maxy
-                else if y >= state.maxy then 0 else y
-              in
-              gotoy y;
-              if state.mode = View
-              then state.text <- "";
-              deadline +. 0.01
-          | _ ->
-              if state.ghyll == noghyll then infinity else deadline +. 0.01
+          if state.ghyll == noghyll
+          then
+            match state.autoscroll with
+            | Some step when step != 0 ->
+                let y = state.y + step in
+                let y =
+                  if y < 0
+                  then state.maxy
+                  else if y >= state.maxy then 0 else y
+                in
+                gotoy y;
+                if state.mode = View
+                then state.text <- "";
+                deadline +. 0.01
+            | _ -> infinity
+          else deadline +. 0.01
         in
         loop newdeadline
 
