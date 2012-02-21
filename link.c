@@ -2467,7 +2467,6 @@ CAMLprim value ml_glx (value win_v)
 CAMLprim value ml_swapb (value unit_v)
 {
     CAMLparam1 (unit_v);
-    /* glXWaitGL (); */
     glXSwapBuffers (glx.dpy, glx.drawable);
     CAMLreturn (Val_unit);
 }
