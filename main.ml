@@ -5208,12 +5208,25 @@ struct
   let key_of_string =
     let r = Str.regexp "-" in
     fun s ->
-      let elems = Str.split r s in
-      List.fold_left (fun (k, m) s ->
-        let m1 = modifier_of_string s in
-        if m1 = 0
-        then (Wsi.namekey s, m)
-        else (k, m lor m1)) (0, 0) elems
+      let elems = Str.full_split r s in
+      let f n k m =
+        let g s =
+          let m1 = modifier_of_string s in
+          if m1 = 0
+          then (Wsi.namekey s, m)
+          else (k, m lor m1)
+        in function
+        | Str.Delim s when n land 1 = 0 -> g s
+        | Str.Text s -> g s
+        | Str.Delim _ -> (k, m)
+      in
+      let rec loop n k m = function
+        | [] -> (k, m)
+        | x :: xs ->
+            let k, m = f n k m x in
+            loop (n+1) k m xs
+      in
+      loop 0 0 0 elems
   ;;
 
   let keys_of_string =
