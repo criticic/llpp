@@ -34,5 +34,6 @@ val altmask : int;;
 val shiftmask : int;;
 val ctrlmask : int;;
 val keyname : int -> string;;
+val namekey : string -> int;;
 
 exception Quit;;

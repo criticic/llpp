@@ -5197,33 +5197,6 @@ struct
       ""
   ;;
 
-  let keysym_of_string s =
-    let l = String.length s in
-    if l = 1
-    then Char.code s.[0]
-    else
-      match String.lowercase s with
-      | "space"                        -> 0x20
-      | "return"                       -> 0x13
-      | "tab"                          -> 9
-      | "left"                         -> 0xff51
-      | "right"                        -> 0xff53
-      | "home"                         -> 0xff50
-      | "end"                          -> 0xff57
-      | "delete" | "del"               -> 0xffff
-      | "escape" | "esc"               -> 0xff1b
-      | "prior" | "pageup" | "pgup"    -> 0xff55
-      | "next" | "pagedown" | "pgdown" -> 0xff56
-      | "backspace"                    -> 0xff08
-      | s ->
-          if s.[0] = 'f'
-          then
-            if l = 2 && (match s.[1] with | '0' .. '9' -> true | _ -> false)
-            then 0xffbd + int_of_string (String.sub s 1 1)
-            else int_of_string s
-          else int_of_string s
-  ;;
-
   let modifier_of_string = function
     | "alt" -> Wsi.altmask
     | "shift" -> Wsi.shiftmask
@@ -5239,7 +5212,7 @@ struct
       List.fold_left (fun (k, m) s ->
         let m1 = modifier_of_string s in
         if m1 = 0
-        then (keysym_of_string s, m)
+        then (Wsi.namekey s, m)
         else (k, m lor m1)) (0, 0) elems
   ;;
 

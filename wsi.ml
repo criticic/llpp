@@ -774,41 +774,53 @@ let withctrl mask = mask land ctrlmask != 0;;
 let withshift mask = mask land shiftmask != 0;;
 let withmeta mask = mask land metamask != 0;;
 
+let xlatt, xlatf =
+  let t = Hashtbl.create 20
+  and f = Hashtbl.create 20 in
+  let add n nl k =
+    List.iter (fun s -> Hashtbl.add t s k) (n::nl);
+    Hashtbl.add f k n
+  in
+  let addc c =
+    let s = String.create 1 in
+    s.[0] <- c;
+    add s [] (Char.code c)
+  in
+  let addcr a b =
+    let an = Char.code a and bn = Char.code b in
+    for i = an to bn do addc (Char.chr i) done;
+  in
+  addcr '0' '9';
+  addcr 'a' 'z';
+  addcr 'A' 'Z';
+  String.iter addc "`~!@#$%^&*()-_=+\\|[{]};:,./?";
+  for i = 0 to 29 do add ("f" ^ string_of_int (i+1)) [] (0xffbe + i) done;
+  add "space" [] 0x20;
+  add "return" ["ret"; "enter"] 0x13;
+  add "tab" [] 9;
+  add "left" [] 0xff51;
+  add "right" [] 0xff53;
+  add "home" [] 0xff50;
+  add "end" [] 0xff57;
+  add "delete" ["del"] 0xffff;
+  add "escape" ["esc"] 0xff1b;
+  add "pgup" ["pageup"] 0xff55;
+  add "pgdown" ["pagedown"] 0xff56;
+  add "backspace" [] 0xff08;
+  add "up" [] 0xff52;
+  add "down" [] 0xff54;
+  t, f;
+;;
+
 let keyname k =
-  if k > 0 && k < 128
-  then
-    match Char.chr k with
-    | '0'..'9'
-    | 'a'..'z'
-    | 'A'..'Z'
-    | '!' | '@' | '#' | '$' | '%'
-    | '^' | '*' | '(' | ')' | '-'
-    | '_' | '+' | '=' | '|' | '\\'
-    | '[' | ']' | '{' | '}' | ':'
-    | ';' | '<' | ',' | '>' | '.'
-    | '?' | '/' ->
-        let s = "x" in
-        s.[0] <- Char.chr k;
-        s
-    | _ -> string_of_int k
-  else (
-    if k >= 0xffbe && k <= 0xffe0
-    then
-      "F" ^ string_of_int (k - 0xffbe)
-    else
-      match k with
-      | 0x20   -> "space"
-      | 0x13   -> "return"
-      | 9      -> "tab"
-      | 0xff51 -> "left"
-      | 0xff53 -> "right"
-      | 0xff50 -> "home"
-      | 0xff57 -> "ed"
-      | 0xffff -> "delete"
-      | 0xff1b -> "escape"
-      | 0xff55 -> "pgup"
-      | 0xff56 -> "pgdown"
-      | 0xff08 -> "backspace"
-      | _ -> string_of_int k
-  )
+  try Hashtbl.find xlatf k
+  with Not_found -> string_of_int k;
+;;
+
+let namekey name =
+  try Hashtbl.find xlatt name
+  with Not_found ->
+    if String.length name = 1
+    then Char.code name.[0]
+    else error "can not find keysym for %S" name;
 ;;
