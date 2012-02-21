@@ -796,7 +796,7 @@ let xlatt, xlatf =
   String.iter addc "`~!@#$%^&*()-_=+\\|[{]};:,./?";
   for i = 0 to 29 do add ("f" ^ string_of_int (i+1)) [] (0xffbe + i) done;
   add "space" [] 0x20;
-  add "return" ["ret"; "enter"] 0x13;
+  add "return" ["ret"; "enter"] 0xff0d;
   add "tab" [] 0xff09;
   add "left" [] 0xff51;
   add "right" [] 0xff53;
