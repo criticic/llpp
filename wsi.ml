@@ -764,6 +764,51 @@ let fullscreen () =
   state.fullscreen state.idbase;
 ;;
 
-let withalt mask = mask land 8 != 0;;
-let withctrl mask = mask land 4 != 0;;
-let withshift mask = mask land 1 != 0;;
+let metamask = 0x40;;
+let altmask = 8;;
+let shiftmask = 1;;
+let ctrlmask = 4;;
+
+let withalt mask = mask land altmask != 0;;
+let withctrl mask = mask land ctrlmask != 0;;
+let withshift mask = mask land shiftmask != 0;;
+let withmeta mask = mask land metamask != 0;;
+
+let keyname k =
+  if k > 0 && k < 128
+  then
+    match Char.chr k with
+    | '0'..'9'
+    | 'a'..'z'
+    | 'A'..'Z'
+    | '!' | '@' | '#' | '$' | '%'
+    | '^' | '*' | '(' | ')' | '-'
+    | '_' | '+' | '=' | '|' | '\\'
+    | '[' | ']' | '{' | '}' | ':'
+    | ';' | '<' | ',' | '>' | '.'
+    | '?' | '/' ->
+        let s = "x" in
+        s.[0] <- Char.chr k;
+        s
+    | _ -> string_of_int k
+  else (
+    if k >= 0xffbe && k <= 0xffe0
+    then
+      "F" ^ string_of_int (k - 0xffbe)
+    else
+      match k with
+      | 0x20   -> "space"
+      | 0x13   -> "return"
+      | 9      -> "tab"
+      | 0xff51 -> "left"
+      | 0xff53 -> "right"
+      | 0xff50 -> "home"
+      | 0xff57 -> "ed"
+      | 0xffff -> "delete"
+      | 0xff1b -> "escape"
+      | 0xff55 -> "pgup"
+      | 0xff56 -> "pgdown"
+      | 0xff08 -> "backspace"
+      | _ -> string_of_int k
+  )
+;;

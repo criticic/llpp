@@ -38,6 +38,17 @@ and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
 ;;
 
+type keymap =
+    | KMinsrt of key
+    | KMinsrl of key list
+    | KMmulti of key list * key list
+and key = int * int
+and keyhash = (key, keymap) Hashtbl.t
+and keystate =
+    | KSnone
+    | KSinto of (key list * key list)
+;;
+
 type platform = | Punknown | Plinux | Posx | Psun | Pfreebsd
                 | Pdragonflybsd | Popenbsd | Pnetbsd | Pcygwin;;
 
@@ -266,6 +277,7 @@ type conf =
     ; mutable beyecolumns    : columncount option
     ; mutable selcmd         : string
     ; mutable updatecurs     : bool
+    ; mutable keyhash        : keyhash
     }
 ;;
 
@@ -381,6 +393,7 @@ type state =
     ; mutable progress      : float
     ; mutable redisplay     : bool
     ; mutable mpos          : mpos
+    ; mutable keystate      : keystate
     }
 and hists =
     { pat : string circbuf
@@ -451,6 +464,7 @@ let defconf =
   ; columns        = None
   ; beyecolumns    = None
   ; updatecurs     = false
+  ; keyhash        = Hashtbl.create 1
   }
 ;;
 
@@ -600,6 +614,7 @@ let state =
   ; uioh          = nouioh
   ; redisplay     = false
   ; mpos          = (-1, -1)
+  ; keystate      = KSnone
   }
 ;;
 
@@ -5163,6 +5178,9 @@ struct
 
   let fontpath = ref "";;
 
+  module KeyMap =
+    Map.Make (struct type t = (int * int) let compare = compare end);;
+
   let unent s =
     let l = String.length s in
     let b = Buffer.create l in
@@ -5177,6 +5195,59 @@ struct
         ("Can not determine home directory location: " ^
             Printexc.to_string exn);
       ""
+  ;;
+
+  let keysym_of_string s =
+    let l = String.length s in
+    if l = 1
+    then Char.code s.[0]
+    else
+      match String.lowercase s with
+      | "space"                        -> 0x20
+      | "return"                       -> 0x13
+      | "tab"                          -> 9
+      | "left"                         -> 0xff51
+      | "right"                        -> 0xff53
+      | "home"                         -> 0xff50
+      | "end"                          -> 0xff57
+      | "delete" | "del"               -> 0xffff
+      | "escape" | "esc"               -> 0xff1b
+      | "prior" | "pageup" | "pgup"    -> 0xff55
+      | "next" | "pagedown" | "pgdown" -> 0xff56
+      | "backspace"                    -> 0xff08
+      | s ->
+          if s.[0] = 'f'
+          then
+            if l = 2 && (match s.[1] with | '0' .. '9' -> true | _ -> false)
+            then 0xffbd + int_of_string (String.sub s 1 1)
+            else int_of_string s
+          else int_of_string s
+  ;;
+
+  let modifier_of_string = function
+    | "alt" -> Wsi.altmask
+    | "shift" -> Wsi.shiftmask
+    | "ctrl" | "control" -> Wsi.ctrlmask
+    | "meta" -> Wsi.metamask
+    | _ -> 0
+  ;;
+
+  let key_of_string =
+    let r = Str.regexp "-" in
+    fun s ->
+      let elems = Str.split r s in
+      List.fold_left (fun (k, m) s ->
+        let m1 = modifier_of_string s in
+        if m1 = 0
+        then (keysym_of_string s, m)
+        else (k, m lor m1)) (0, 0) elems
+  ;;
+
+  let keys_of_string =
+    let r = Str.regexp "[ \t]" in
+    fun s ->
+      let elems = Str.split r s in
+      List.map key_of_string elems
   ;;
 
   let config_of c attrs =
@@ -5294,6 +5365,16 @@ struct
     fold "" "0" "0" "0" attrs
   ;;
 
+  let map_of attrs =
+    let rec fold rs ls = function
+      | ("out", v) :: rest -> fold v ls rest
+      | ("in", v) :: rest -> fold rs v rest
+      | _ :: rest -> fold ls rs rest
+      | [] -> ls, rs
+    in
+    fold "" "" attrs
+  ;;
+
   let setconf dst src =
     dst.scrollbw       <- src.scrollbw;
     dst.scrollh        <- src.scrollh;
@@ -5341,6 +5422,7 @@ struct
     dst.selcmd         <- src.selcmd;
     dst.updatecurs     <- src.updatecurs;
     dst.pathlauncher   <- src.pathlauncher;
+    dst.keyhash        <- src.keyhash;
   ;;
 
   let get s =
@@ -5366,7 +5448,7 @@ struct
           setconf dc c;
           if closed
           then v
-          else { v with f = skip "defaults" (fun () -> v) }
+          else { v with f = defaults }
 
       | Vopen ("ui-font", attrs, closed) ->
           let rec getsize size = function
@@ -5400,6 +5482,28 @@ struct
       | Vclose "llppconfig" ->  { v with f = toplevel }
       | Vclose _ -> error "unexpected close in llppconfig" s spos
 
+    and defaults v t spos _ =
+      match t with
+      | Vdata | Vcdata -> v
+      | Vend -> error "unexpected end of input in defaults" s spos
+      | Vopen ("keymap", _, closed) ->
+          if closed
+          then v
+          else
+            let ret keymap =
+              KeyMap.iter (Hashtbl.replace dc.keyhash) keymap;
+              defaults
+            in
+            { v with f = pkeymap ret KeyMap.empty }
+
+      | Vopen (_, _, _) ->
+          error "unexpected subelement in defaults" s spos
+
+      | Vclose "defaults" ->
+          { v with f = llppconfig }
+
+      | Vclose _ -> error "unexpected close in defaults" s spos
+
     and uifont b v t spos epos =
       match t with
       | Vdata | Vcdata ->
@@ -5423,6 +5527,16 @@ struct
           then v
           else { v with f = pbookmarks path pan anchor c bookmarks }
 
+      | Vopen ("keymap", _, closed) ->
+          if closed
+          then v
+          else
+            let ret keymap =
+              KeyMap.iter (Hashtbl.replace c.keyhash) keymap;
+              doc path pan anchor c bookmarks
+            in
+            { v with f = pkeymap ret KeyMap.empty }
+
       | Vopen (_, _, _) ->
           error "unexpected subelement in doc" s spos
 
@@ -5431,6 +5545,34 @@ struct
           { v with f = llppconfig }
 
       | Vclose _ -> error "unexpected close in doc" s spos
+
+    and pkeymap ret keymap v t spos _ =
+      match t with
+      | Vdata | Vcdata -> v
+      | Vend -> error "unexpected end of input in keymap" s spos
+      | Vopen ("map", attrs, closed) ->
+          let r, l = map_of attrs in
+          let kss = fromstring keys_of_string spos "in" r [] in
+          let lss = fromstring keys_of_string spos "out" l [] in
+          let keymap =
+            match kss with
+            | [] -> keymap
+            | ks :: [] -> KeyMap.add ks (KMinsrl lss) keymap
+            | ks :: rest -> KeyMap.add ks (KMmulti (rest, lss)) keymap
+          in
+          if closed
+          then { v with f = pkeymap ret keymap }
+          else
+            let f () = v in
+            { v with f = skip "map" f }
+
+      | Vopen _ ->
+          error "unexpected subelement in keymap" s spos
+
+      | Vclose "keymap" ->
+          { v with f = ret keymap }
+
+      | Vclose _ -> error "unexpected close in keymap" s spos
 
     and pbookmarks path pan anchor c bookmarks v t spos _ =
       match t with
@@ -5679,6 +5821,53 @@ struct
     ob "update-cursor" c.updatecurs dc.updatecurs;
   ;;
 
+  let add_keymaps bb always dc c =
+    if always || dc.keyhash <> c.keyhash
+    then (
+      Buffer.add_string bb "<keymap>\n";
+      Hashtbl.iter (fun i o ->
+        let addkm (k, m) =
+          if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
+          if Wsi.withalt m   then Buffer.add_string bb "alt-";
+          if Wsi.withshift m then Buffer.add_string bb "shift-";
+          if Wsi.withmeta m  then Buffer.add_string bb "meta-";
+          Buffer.add_string bb (Wsi.keyname k);
+        in
+        let addkms l =
+          let rec loop = function
+            | [] -> ()
+            | km :: [] -> addkm km
+            | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
+          in
+          loop l
+        in
+        Buffer.add_string bb "<map in='";
+        addkm i;
+        match o with
+        | KMinsrt km ->
+            Buffer.add_char bb '\'';
+            Buffer.add_string bb " out='";
+            addkm km;
+            Buffer.add_string bb "'/>\n"
+
+        | KMinsrl kms ->
+            Buffer.add_char bb '\'';
+            Buffer.add_string bb " out='";
+            addkms kms;
+            Buffer.add_string bb "'/>\n"
+
+        | KMmulti (ins, kms) ->
+            Buffer.add_char bb ' ';
+            addkms ins;
+            Buffer.add_char bb '\'';
+            Buffer.add_string bb " out='";
+            addkms kms;
+            Buffer.add_string bb "'/>\n"
+      ) c.keyhash;
+      Buffer.add_string bb "</keymap>";
+    );
+  ;;
+
   let save () =
     let uifontsize = fstate.fontsize in
     let bb = Buffer.create 32768 in
@@ -5699,7 +5888,15 @@ struct
 
       Buffer.add_string bb "<defaults ";
       add_attrs bb true dc dc;
-      Buffer.add_string bb "/>\n";
+      if Hashtbl.length dc.keyhash > 0
+      then (
+        Buffer.add_string bb ">\n";
+        add_keymaps bb true dc dc;
+        Buffer.add_string bb "\n</defaults>\n";
+      )
+      else (
+        Buffer.add_string bb "/>\n";
+      );
 
       let adddoc path pan anchor c bookmarks =
         if bookmarks == [] && c = dc && anchor = emptyanchor
@@ -5722,6 +5919,7 @@ struct
           then Printf.bprintf bb " pan='%d'" pan;
 
           add_attrs bb false dc c;
+          add_keymaps bb false dc c;
 
           begin match bookmarks with
           | [] -> Buffer.add_string bb "/>\n"
@@ -5824,7 +6022,26 @@ let () =
     method mouse b d x y m = mouse b d x y m
     method motion x y = state.mpos <- (x, y); motion x y
     method pmotion x y = state.mpos <- (x, y); pmotion x y
-    method key c m = keyboard c m
+    method key k m =
+      match state.keystate with
+      | KSnone ->
+          begin
+            match
+              try Hashtbl.find conf.keyhash (k, m)
+              with Not_found -> KMinsrt (k, m)
+            with
+              | KMinsrt (k, m) -> keyboard k m
+              | KMinsrl l -> List.iter (fun (k, m) -> keyboard k m) l
+              | KMmulti (l, r) -> state.keystate <- KSinto (l, r)
+          end
+      | KSinto ((k', m') :: [], insrt) when k'=k && m' land m = m' ->
+          List.iter (fun (k, m) -> keyboard k m) insrt;
+          state.keystate <- KSnone
+      | KSinto ((k', m') :: keys, insrt) when k'=k && m' land m = m' ->
+          state.keystate <- KSinto (keys, insrt)
+      | _ ->
+          state.keystate <- KSnone
+
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
   end) conf.winw conf.winh;
