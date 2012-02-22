@@ -480,6 +480,11 @@ let defconf =
   }
 ;;
 
+let findkeyhash c name =
+  try List.assoc name c.keyhashes
+  with Not_found -> failwith ("invalid mode name `" ^ name ^ "'")
+;;
+
 let conf = { defconf with angle = defconf.angle };;
 
 type fontstate =
@@ -3147,7 +3152,7 @@ object (self)
   inherit listview
     ~source:(source :> lvsource)
     ~trusted:false
-    ~modehash:(List.assoc "outline" conf.keyhashes)
+    ~modehash:(findkeyhash conf "outline")
     as super
 
   method key key mask =
@@ -3678,7 +3683,7 @@ let enterinfomode =
                 end)
               in
               state.text <- "";
-              let modehash = List.assoc "info" conf.keyhashes in
+              let modehash = findkeyhash conf "info" in
               coe (new listview ~source ~trusted:true ~modehash)
           )) :: m_l
 
@@ -4070,7 +4075,7 @@ let enterinfomode =
     and prevuioh = state.uioh in
     fillsrc prevmode prevuioh;
     let source = (src :> lvsource) in
-    let modehash = List.assoc "info" conf.keyhashes in
+    let modehash = findkeyhash conf "info" in
     state.uioh <- coe (object (self)
       inherit listview ~source ~trusted:true ~modehash as super
       val mutable m_prevmemused = 0
@@ -4130,7 +4135,7 @@ let enterhelpmode =
         m_active <- -1
     end)
   in fun () ->
-    let modehash = List.assoc "help" conf.keyhashes in
+    let modehash = findkeyhash conf "help" in
     state.uioh <- coe (new listview ~source ~trusted:true ~modehash);
     G.postRedisplay "help";
 ;;
@@ -4177,7 +4182,7 @@ let entermsgsmode =
     state.text <- "";
     msgsource#reset;
     let source = (msgsource :> lvsource) in
-    let modehash = List.assoc "listview" conf.keyhashes in
+    let modehash = findkeyhash conf "listview" in
     state.uioh <- coe (object
       inherit listview ~source ~trusted:false ~modehash as super
       method display =
@@ -5200,7 +5205,7 @@ let uioh = object
       | Birdseye _ -> "birdseye"
       | View -> "global"
     in
-    List.assoc modename conf.keyhashes
+    findkeyhash conf modename
 end;;
 
 module Config =
@@ -5511,7 +5516,7 @@ struct
           then v
           else
             let ret keymap =
-              let h = List.assoc modename dc.keyhashes in
+              let h = findkeyhash dc modename in
               KeyMap.iter (Hashtbl.replace h) keymap;
               defaults
             in
@@ -5557,7 +5562,7 @@ struct
           then v
           else
             let ret keymap =
-              let h = List.assoc modename c.keyhashes in
+              let h = findkeyhash c modename in
               KeyMap.iter (Hashtbl.replace h) keymap;
               doc path pan anchor c bookmarks
             in
@@ -6041,7 +6046,7 @@ let () =
 
   Config.load ();
 
-  let globalkeyhash = List.assoc "global" conf.keyhashes in
+  let globalkeyhash = findkeyhash conf "global" in
   state.wsfd <-  Wsi.init (object
     method display = display ()
     method reshape w h = reshape w h
