@@ -4505,6 +4505,9 @@ let viewkeyboard key mask =
       ;
       G.postRedisplay "brightness";
 
+  | 0xff54 | 0xff52 when ctrl && Wsi.withshift mask ->
+      setzoom state.prevzoom
+
   | 107 | 0xff52 ->                     (* k up *)
       begin match state.autoscroll with
       | None ->
