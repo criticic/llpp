@@ -5858,64 +5858,70 @@ struct
 
   let keymapsbuf always dc c =
     let bb = Buffer.create 16 in
-    List.iter (fun (modename, h) ->
-      let dh = findkeyhash dc modename in
-      if always || h <> dh
-      then (
-        if Hashtbl.length h > 0
-        then (
-          Printf.bprintf bb "<keymap mode='%s'>\n" modename;
-          Hashtbl.iter (fun i o ->
-            let isdifferent = always ||
-              try
-                let dO = Hashtbl.find dh i in
-                dO <> o
-              with Not_found -> true
-            in
-            if isdifferent
-            then
-              let addkm (k, m) =
-                if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
-                if Wsi.withalt m   then Buffer.add_string bb "alt-";
-                if Wsi.withshift m then Buffer.add_string bb "shift-";
-                if Wsi.withmeta m  then Buffer.add_string bb "meta-";
-                Buffer.add_string bb (Wsi.keyname k);
-              in
-              let addkms l =
-                let rec loop = function
-                  | [] -> ()
-                  | km :: [] -> addkm km
-                  | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
+    let rec loop = function
+      | [] -> ()
+      | (modename, h) :: rest ->
+          let dh = findkeyhash dc modename in
+          if always || h <> dh
+          then (
+            if Hashtbl.length h > 0
+            then (
+              if Buffer.length bb > 0
+              then Buffer.add_char bb '\n';
+              Printf.bprintf bb "<keymap mode='%s'>\n" modename;
+              Hashtbl.iter (fun i o ->
+                let isdifferent = always ||
+                  try
+                    let dO = Hashtbl.find dh i in
+                    dO <> o
+                  with Not_found -> true
                 in
-                loop l
-              in
-              Buffer.add_string bb "<map in='";
-              addkm i;
-              match o with
-              | KMinsrt km ->
-                  Buffer.add_char bb '\'';
-                  Buffer.add_string bb " out='";
-                  addkm km;
-                  Buffer.add_string bb "'/>\n"
+                if isdifferent
+                then
+                  let addkm (k, m) =
+                    if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
+                    if Wsi.withalt m   then Buffer.add_string bb "alt-";
+                    if Wsi.withshift m then Buffer.add_string bb "shift-";
+                    if Wsi.withmeta m  then Buffer.add_string bb "meta-";
+                    Buffer.add_string bb (Wsi.keyname k);
+                  in
+                  let addkms l =
+                    let rec loop = function
+                      | [] -> ()
+                      | km :: [] -> addkm km
+                      | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
+                    in
+                    loop l
+                  in
+                  Buffer.add_string bb "<map in='";
+                  addkm i;
+                  match o with
+                  | KMinsrt km ->
+                      Buffer.add_char bb '\'';
+                      Buffer.add_string bb " out='";
+                      addkm km;
+                      Buffer.add_string bb "'/>\n"
 
-              | KMinsrl kms ->
-                  Buffer.add_char bb '\'';
-                  Buffer.add_string bb " out='";
-                  addkms kms;
-                  Buffer.add_string bb "'/>\n"
+                  | KMinsrl kms ->
+                      Buffer.add_char bb '\'';
+                      Buffer.add_string bb " out='";
+                      addkms kms;
+                      Buffer.add_string bb "'/>\n"
 
-              | KMmulti (ins, kms) ->
-                  Buffer.add_char bb ' ';
-                  addkms ins;
-                  Buffer.add_char bb '\'';
-                  Buffer.add_string bb " out='";
-                  addkms kms;
-                  Buffer.add_string bb "'/>\n"
-          ) h;
-          Buffer.add_string bb "</keymap>";
-        );
-      );
-    ) c.keyhashes;
+                  | KMmulti (ins, kms) ->
+                      Buffer.add_char bb ' ';
+                      addkms ins;
+                      Buffer.add_char bb '\'';
+                      Buffer.add_string bb " out='";
+                      addkms kms;
+                      Buffer.add_string bb "'/>\n"
+              ) h;
+              Buffer.add_string bb "</keymap>";
+            );
+          );
+          loop rest
+    in
+    loop c.keyhashes;
     bb;
   ;;
 
