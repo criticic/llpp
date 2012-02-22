@@ -2675,7 +2675,7 @@ let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
       end;
 
   | _ ->
-      vlog "unhandled key %#x" key
+      vlog "unhandled key %s" (Wsi.keyname key)
 ;;
 
 let firstof first active =
@@ -4605,7 +4605,7 @@ let viewkeyboard key mask =
       G.postRedisplay "v";
 
   | _ ->
-      vlog "huh? %d" key
+      vlog "huh? %s" (Wsi.keyname key)
 ;;
 
 let keyboard key mask =

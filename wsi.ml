@@ -814,7 +814,7 @@ let xlatt, xlatf =
 
 let keyname k =
   try Hashtbl.find xlatf k
-  with Not_found -> string_of_int k;
+  with Not_found -> Printf.sprintf "%#x" k;
 ;;
 
 let namekey name =
