@@ -5272,6 +5272,10 @@ struct
       List.map key_of_string elems
   ;;
 
+  let copykeyhashes c =
+    List.map (fun (k, v) -> k, Hashtbl.copy v) c.keyhashes;
+  ;;
+
   let config_of c attrs =
     let apply c k v =
       try
@@ -5352,7 +5356,7 @@ struct
           let c = apply c k v in
           fold c rest
     in
-    fold c attrs;
+    fold { c with keyhashes = copykeyhashes c } attrs;
   ;;
 
   let fromstring f pos n v d =
@@ -5444,7 +5448,7 @@ struct
     dst.selcmd         <- src.selcmd;
     dst.updatecurs     <- src.updatecurs;
     dst.pathlauncher   <- src.pathlauncher;
-    dst.keyhashes      <- src.keyhashes;
+    dst.keyhashes      <- copykeyhashes src;
   ;;
 
   let get s =
@@ -5852,56 +5856,67 @@ struct
     ob "update-cursor" c.updatecurs dc.updatecurs;
   ;;
 
-  let add_keymaps bb always dc c =
-    if always || dc.keyhashes <> c.keyhashes
-    then (
-      List.iter (fun (modename, h) ->
+  let keymapsbuf always dc c =
+    let bb = Buffer.create 16 in
+    List.iter (fun (modename, h) ->
+      let dh = findkeyhash dc modename in
+      if always || h <> dh
+      then (
         if Hashtbl.length h > 0
         then (
           Printf.bprintf bb "<keymap mode='%s'>\n" modename;
           Hashtbl.iter (fun i o ->
-            let addkm (k, m) =
-              if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
-              if Wsi.withalt m   then Buffer.add_string bb "alt-";
-              if Wsi.withshift m then Buffer.add_string bb "shift-";
-              if Wsi.withmeta m  then Buffer.add_string bb "meta-";
-              Buffer.add_string bb (Wsi.keyname k);
+            let isdifferent = always ||
+              try
+                let dO = Hashtbl.find dh i in
+                dO <> o
+              with Not_found -> true
             in
-            let addkms l =
-              let rec loop = function
-                | [] -> ()
-                | km :: [] -> addkm km
-                | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
+            if isdifferent
+            then
+              let addkm (k, m) =
+                if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
+                if Wsi.withalt m   then Buffer.add_string bb "alt-";
+                if Wsi.withshift m then Buffer.add_string bb "shift-";
+                if Wsi.withmeta m  then Buffer.add_string bb "meta-";
+                Buffer.add_string bb (Wsi.keyname k);
               in
-              loop l
-            in
-            Buffer.add_string bb "<map in='";
-            addkm i;
-            match o with
-            | KMinsrt km ->
-                Buffer.add_char bb '\'';
-                Buffer.add_string bb " out='";
-                addkm km;
-                Buffer.add_string bb "'/>\n"
+              let addkms l =
+                let rec loop = function
+                  | [] -> ()
+                  | km :: [] -> addkm km
+                  | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
+                in
+                loop l
+              in
+              Buffer.add_string bb "<map in='";
+              addkm i;
+              match o with
+              | KMinsrt km ->
+                  Buffer.add_char bb '\'';
+                  Buffer.add_string bb " out='";
+                  addkm km;
+                  Buffer.add_string bb "'/>\n"
 
-            | KMinsrl kms ->
-                Buffer.add_char bb '\'';
-                Buffer.add_string bb " out='";
-                addkms kms;
-                Buffer.add_string bb "'/>\n"
+              | KMinsrl kms ->
+                  Buffer.add_char bb '\'';
+                  Buffer.add_string bb " out='";
+                  addkms kms;
+                  Buffer.add_string bb "'/>\n"
 
-            | KMmulti (ins, kms) ->
-                Buffer.add_char bb ' ';
-                addkms ins;
-                Buffer.add_char bb '\'';
-                Buffer.add_string bb " out='";
-                addkms kms;
-                Buffer.add_string bb "'/>\n"
+              | KMmulti (ins, kms) ->
+                  Buffer.add_char bb ' ';
+                  addkms ins;
+                  Buffer.add_char bb '\'';
+                  Buffer.add_string bb " out='";
+                  addkms kms;
+                  Buffer.add_string bb "'/>\n"
           ) h;
-          Buffer.add_string bb "</keymap>\n";
+          Buffer.add_string bb "</keymap>";
         );
-      ) c.keyhashes;
-    );
+      );
+    ) c.keyhashes;
+    bb;
   ;;
 
   let save () =
@@ -5924,9 +5939,14 @@ struct
 
       Buffer.add_string bb "<defaults ";
       add_attrs bb true dc dc;
-      Buffer.add_string bb ">\n";
-      add_keymaps bb true dc dc;
-      Buffer.add_string bb "</defaults>\n";
+      let kb = keymapsbuf true dc dc in
+      if Buffer.length kb > 0
+      then (
+        Buffer.add_string bb ">\n";
+        Buffer.add_buffer bb kb;
+        Buffer.add_string bb "\n</defaults>\n";
+      )
+      else Buffer.add_string bb "/>\n";
 
       let adddoc path pan anchor c bookmarks =
         if bookmarks == [] && c = dc && anchor = emptyanchor
@@ -5949,10 +5969,17 @@ struct
           then Printf.bprintf bb " pan='%d'" pan;
 
           add_attrs bb false dc c;
-          add_keymaps bb false dc c;
+          let kb = keymapsbuf false dc c in
 
           begin match bookmarks with
-          | [] -> Buffer.add_string bb "/>\n"
+          | [] ->
+              if Buffer.length kb > 0
+              then (
+                Buffer.add_string bb ">\n";
+                Buffer.add_buffer bb kb;
+                Buffer.add_string bb "</doc>\n";
+              )
+              else Buffer.add_string bb "/>\n"
           | _ ->
               Buffer.add_string bb ">\n<bookmarks>\n";
               List.iter (fun (title, _level, (page, rely)) ->
@@ -5967,7 +5994,13 @@ struct
                 ;
                 Buffer.add_string bb "/>\n";
               ) bookmarks;
-              Buffer.add_string bb "</bookmarks>\n</doc>\n";
+              Buffer.add_string bb "</bookmarks>";
+              if Buffer.length kb > 0
+              then (
+                Buffer.add_string bb "\n";
+                Buffer.add_buffer bb kb;
+              );
+              Buffer.add_string bb "\n</doc>\n";
           end;
         )
       in
