@@ -277,7 +277,7 @@ type conf =
     ; mutable beyecolumns    : columncount option
     ; mutable selcmd         : string
     ; mutable updatecurs     : bool
-    ; mutable keyhash        : keyhash
+    ; mutable keyhashes      : (string * keyhash) list
     }
 ;;
 
@@ -307,6 +307,7 @@ class type uioh = object
   method infochanged : infochange -> unit
   method scrollpw : (int * float * float)
   method scrollph : (int * float * float)
+  method modehash : keyhash
 end;;
 
 type mode =
@@ -333,6 +334,7 @@ type currently =
     | Outlining of outline list
 ;;
 
+let emptykeyhash = Hashtbl.create 0;;
 let nouioh : uioh = object (self)
   method display = ()
   method key _ _ = self
@@ -342,6 +344,7 @@ let nouioh : uioh = object (self)
   method infochanged _ = ()
   method scrollpw = (0, nan, nan)
   method scrollph = (0, nan, nan)
+  method modehash = emptykeyhash
 end;;
 
 type state =
@@ -464,7 +467,16 @@ let defconf =
   ; columns        = None
   ; beyecolumns    = None
   ; updatecurs     = false
-  ; keyhash        = Hashtbl.create 1
+  ; keyhashes      =
+      let mk n = (n, Hashtbl.create 1) in
+      [ mk "global"
+      ; mk "info"
+      ; mk "help"
+      ; mk "outline"
+      ; mk "listview"
+      ; mk "birdseye"
+      ; mk "textentry"
+      ]
   }
 ;;
 
@@ -2697,7 +2709,7 @@ let scrollph y maxy =
 
 let coe s = (s :> uioh);;
 
-class listview ~(source:lvsource) ~trusted =
+class listview ~(source:lvsource) ~trusted ~modehash =
 object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
@@ -3126,11 +3138,17 @@ object (self)
     let maxy = maxi * nfs in
     let p, h = scrollph y maxy in
     conf.scrollbw, p, h
+
+  method modehash = modehash
 end;;
 
 class outlinelistview ~source =
 object (self)
-  inherit listview ~source:(source :> lvsource) ~trusted:false as super
+  inherit listview
+    ~source:(source :> lvsource)
+    ~trusted:false
+    ~modehash:(List.assoc "outline" conf.keyhashes)
+    as super
 
   method key key mask =
     let calcfirst first active =
@@ -3660,7 +3678,8 @@ let enterinfomode =
                 end)
               in
               state.text <- "";
-              coe (new listview ~source ~trusted:true)
+              let modehash = List.assoc "info" conf.keyhashes in
+              coe (new listview ~source ~trusted:true ~modehash)
           )) :: m_l
 
       method caption s offset =
@@ -4051,8 +4070,9 @@ let enterinfomode =
     and prevuioh = state.uioh in
     fillsrc prevmode prevuioh;
     let source = (src :> lvsource) in
+    let modehash = List.assoc "info" conf.keyhashes in
     state.uioh <- coe (object (self)
-      inherit listview ~source ~trusted:true as super
+      inherit listview ~source ~trusted:true ~modehash as super
       val mutable m_prevmemused = 0
       method infochanged = function
         | Memused ->
@@ -4110,7 +4130,8 @@ let enterhelpmode =
         m_active <- -1
     end)
   in fun () ->
-    state.uioh <- coe (new listview ~source ~trusted:true);
+    let modehash = List.assoc "help" conf.keyhashes in
+    state.uioh <- coe (new listview ~source ~trusted:true ~modehash);
     G.postRedisplay "help";
 ;;
 
@@ -4156,8 +4177,9 @@ let entermsgsmode =
     state.text <- "";
     msgsource#reset;
     let source = (msgsource :> lvsource) in
+    let modehash = List.assoc "listview" conf.keyhashes in
     state.uioh <- coe (object
-      inherit listview ~source ~trusted:false as super
+      inherit listview ~source ~trusted:false ~modehash as super
       method display =
         if state.newerrmsgs
         then msgsource#reset;
@@ -5170,6 +5192,15 @@ let uioh = object
       else sw
     in
     state.hscrollh, position, sw
+
+  method modehash =
+    let modename =
+      match state.mode with
+      | Textentry _ -> "textentry"
+      | Birdseye _ -> "birdseye"
+      | View -> "global"
+    in
+    List.assoc modename conf.keyhashes
 end;;
 
 module Config =
@@ -5408,7 +5439,7 @@ struct
     dst.selcmd         <- src.selcmd;
     dst.updatecurs     <- src.updatecurs;
     dst.pathlauncher   <- src.pathlauncher;
-    dst.keyhash        <- src.keyhash;
+    dst.keyhashes      <- src.keyhashes;
   ;;
 
   let get s =
@@ -5472,12 +5503,16 @@ struct
       match t with
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in defaults" s spos
-      | Vopen ("keymap", _, closed) ->
+      | Vopen ("keymap", attrs, closed) ->
+          let modename =
+            try List.assoc "mode" attrs
+            with Not_found -> "global" in
           if closed
           then v
           else
             let ret keymap =
-              KeyMap.iter (Hashtbl.replace dc.keyhash) keymap;
+              let h = List.assoc modename dc.keyhashes in
+              KeyMap.iter (Hashtbl.replace h) keymap;
               defaults
             in
             { v with f = pkeymap ret KeyMap.empty }
@@ -5513,12 +5548,17 @@ struct
           then v
           else { v with f = pbookmarks path pan anchor c bookmarks }
 
-      | Vopen ("keymap", _, closed) ->
+      | Vopen ("keymap", attrs, closed) ->
+          let modename =
+            try List.assoc "mode" attrs
+            with Not_found -> "global"
+          in
           if closed
           then v
           else
             let ret keymap =
-              KeyMap.iter (Hashtbl.replace c.keyhash) keymap;
+              let h = List.assoc modename c.keyhashes in
+              KeyMap.iter (Hashtbl.replace h) keymap;
               doc path pan anchor c bookmarks
             in
             { v with f = pkeymap ret KeyMap.empty }
@@ -5808,49 +5848,54 @@ struct
   ;;
 
   let add_keymaps bb always dc c =
-    if always || dc.keyhash <> c.keyhash
+    if always || dc.keyhashes <> c.keyhashes
     then (
-      Buffer.add_string bb "<keymap>\n";
-      Hashtbl.iter (fun i o ->
-        let addkm (k, m) =
-          if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
-          if Wsi.withalt m   then Buffer.add_string bb "alt-";
-          if Wsi.withshift m then Buffer.add_string bb "shift-";
-          if Wsi.withmeta m  then Buffer.add_string bb "meta-";
-          Buffer.add_string bb (Wsi.keyname k);
-        in
-        let addkms l =
-          let rec loop = function
-            | [] -> ()
-            | km :: [] -> addkm km
-            | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
-          in
-          loop l
-        in
-        Buffer.add_string bb "<map in='";
-        addkm i;
-        match o with
-        | KMinsrt km ->
-            Buffer.add_char bb '\'';
-            Buffer.add_string bb " out='";
-            addkm km;
-            Buffer.add_string bb "'/>\n"
+      List.iter (fun (modename, h) ->
+        if Hashtbl.length h > 0
+        then (
+          Printf.bprintf bb "<keymap mode='%s'>\n" modename;
+          Hashtbl.iter (fun i o ->
+            let addkm (k, m) =
+              if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
+              if Wsi.withalt m   then Buffer.add_string bb "alt-";
+              if Wsi.withshift m then Buffer.add_string bb "shift-";
+              if Wsi.withmeta m  then Buffer.add_string bb "meta-";
+              Buffer.add_string bb (Wsi.keyname k);
+            in
+            let addkms l =
+              let rec loop = function
+                | [] -> ()
+                | km :: [] -> addkm km
+                | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
+              in
+              loop l
+            in
+            Buffer.add_string bb "<map in='";
+            addkm i;
+            match o with
+            | KMinsrt km ->
+                Buffer.add_char bb '\'';
+                Buffer.add_string bb " out='";
+                addkm km;
+                Buffer.add_string bb "'/>\n"
 
-        | KMinsrl kms ->
-            Buffer.add_char bb '\'';
-            Buffer.add_string bb " out='";
-            addkms kms;
-            Buffer.add_string bb "'/>\n"
+            | KMinsrl kms ->
+                Buffer.add_char bb '\'';
+                Buffer.add_string bb " out='";
+                addkms kms;
+                Buffer.add_string bb "'/>\n"
 
-        | KMmulti (ins, kms) ->
-            Buffer.add_char bb ' ';
-            addkms ins;
-            Buffer.add_char bb '\'';
-            Buffer.add_string bb " out='";
-            addkms kms;
-            Buffer.add_string bb "'/>\n"
-      ) c.keyhash;
-      Buffer.add_string bb "</keymap>";
+            | KMmulti (ins, kms) ->
+                Buffer.add_char bb ' ';
+                addkms ins;
+                Buffer.add_char bb '\'';
+                Buffer.add_string bb " out='";
+                addkms kms;
+                Buffer.add_string bb "'/>\n"
+          ) h;
+          Buffer.add_string bb "</keymap>\n";
+        );
+      ) c.keyhashes;
     );
   ;;
 
@@ -5874,15 +5919,9 @@ struct
 
       Buffer.add_string bb "<defaults ";
       add_attrs bb true dc dc;
-      if Hashtbl.length dc.keyhash > 0
-      then (
-        Buffer.add_string bb ">\n";
-        add_keymaps bb true dc dc;
-        Buffer.add_string bb "\n</defaults>\n";
-      )
-      else (
-        Buffer.add_string bb "/>\n";
-      );
+      Buffer.add_string bb ">\n";
+      add_keymaps bb true dc dc;
+      Buffer.add_string bb "</defaults>\n";
 
       let adddoc path pan anchor c bookmarks =
         if bookmarks == [] && c = dc && anchor = emptyanchor
@@ -6002,6 +6041,7 @@ let () =
 
   Config.load ();
 
+  let globalkeyhash = List.assoc "global" conf.keyhashes in
   state.wsfd <-  Wsi.init (object
     method display = display ()
     method reshape w h = reshape w h
@@ -6011,14 +6051,18 @@ let () =
     method key k m =
       match state.keystate with
       | KSnone ->
+          let km = k, m in
           begin
             match
-              try Hashtbl.find conf.keyhash (k, m)
-              with Not_found -> KMinsrt (k, m)
+              try Hashtbl.find globalkeyhash km
+              with Not_found ->
+                let modehash = state.uioh#modehash in
+                try Hashtbl.find modehash km
+                with Not_found -> KMinsrt (k, m)
             with
-              | KMinsrt (k, m) -> keyboard k m
-              | KMinsrl l -> List.iter (fun (k, m) -> keyboard k m) l
-              | KMmulti (l, r) -> state.keystate <- KSinto (l, r)
+            | KMinsrt (k, m) -> keyboard k m
+            | KMinsrl l -> List.iter (fun (k, m) -> keyboard k m) l
+            | KMmulti (l, r) -> state.keystate <- KSinto (l, r)
           end
       | KSinto ((k', m') :: [], insrt) when k'=k && m' land m = m' ->
           List.iter (fun (k, m) -> keyboard k m) insrt;
