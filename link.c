@@ -2096,7 +2096,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
             found = &page->slinks[slinkindex];
             for (i = slinkindex + 1; i < page->slinkcount; ++i) {
                 slink = &page->slinks[i];
-                if (slink->bbox.y0 > found->bbox.y0) {
+                if (slink->bbox.y0 >= found->bbox.y0) {
                     found = slink;
                     break;
                 }
@@ -2108,7 +2108,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
             found = &page->slinks[slinkindex];
             for (i = slinkindex - 1; i >= 0; --i) {
                 slink = &page->slinks[i];
-                if (slink->bbox.y0 < found->bbox.y0) {
+                if (slink->bbox.y0 <= found->bbox.y0) {
                     found = slink;
                     break;
                 }
