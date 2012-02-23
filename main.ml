@@ -2960,13 +2960,8 @@ object (self)
             set1 active first qsearch
         );
 
-    | key when ((key >= 32 && key < 127)
-                 || (key != 0 && key land 0xff00 != 0xff00)) ->
-        let pattern =
-          if key >= 32 && key < 127
-          then addchar m_qsearch (Char.chr key)
-          else m_qsearch ^ Wsi.toutf8 key
-        in
+    | key when (key != 0 && key land 0xff00 != 0xff00) ->
+        let pattern = m_qsearch ^ Wsi.toutf8 key in
         let active, first =
           match search m_active pattern 1 with
           | None ->
