@@ -19,7 +19,7 @@ root=$(pwd)
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf=git://git.ghostscript.com/mupdf.git
 mupdf3p=http://mupdf.com/download/mupdf-thirdparty-2012-01-27.zip
-mupdfrev=7d181099272d9c0e92c4488ceaa95b0d8bd10f1e
+mupdfrev=c732cd69db005902289829867a71e0d271809aba
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 if ! test -f mupdf-$mupdfrev.tgz; then
