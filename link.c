@@ -137,7 +137,6 @@ struct pagedim {
 };
 
 struct slink  {
-    char *text;
     fz_bbox bbox;
     fz_link *link;
 };
@@ -1921,46 +1920,6 @@ static int compareslinks (const void *l, const void *r)
     return ls->bbox.y0 - rs->bbox.y0;
 }
 
-static char *regiontext (struct page *page, fz_bbox bbox)
-{
-    char *buf = NULL;
-    fz_text_span *span;
-    int bufcap = 0, buflen = 0;
-
-    ensuretext (page);
-    for (span = page->text; span; span = span->next) {
-        int i;
-
-        for (i = 0; i < span->len; ++i) {
-            fz_bbox b, tb;
-
-            tb = span->text[i].bbox;
-            b = fz_intersect_bbox (bbox, tb);
-            if (fz_is_empty_bbox (b)) {
-                int len;
-                char utf8[4];
-
-                len = runetochar (utf8, &span->text[i].c);
-                if (buflen + len + 1 >= bufcap) {
-                    size_t size;
-                    bufcap = bufcap + len + 1;
-                    size = bufcap;
-                    buf = realloc (buf, size);
-                    if (!buf) {
-                        err (1, "realloc %" FMT_s, size);
-                    }
-                }
-                memcpy (buf + buflen, utf8, len);
-                buflen += len;
-            }
-        }
-    }
-    if (buf) {
-        buf[buflen] = 0;
-    }
-    return buf;
-}
-
 static void ensureslinks (struct page *page)
 {
     fz_matrix ctm;
@@ -2000,7 +1959,6 @@ static void ensureslinks (struct page *page)
             page->slinks[i].link = link;
             page->slinks[i].bbox =
                 fz_round_rect (fz_transform_rect (ctm, link->rect));
-            page->slinks[i].text = regiontext (page, page->slinks[i].bbox);
         }
         qsort (page->slinks, count, slinksize, compareslinks);
     }
