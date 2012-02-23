@@ -126,7 +126,7 @@ let readstr sock n =
   s;
 ;;
 
-let sendstr s ?(pos=0) ?(len=String.length s) sock =
+let sendstr1 s pos len sock =
   vlog "%d => %S" state.seq s;
   state.seq <- state.seq + 1;
   let n = Unix.send sock s pos len [] in
@@ -160,7 +160,7 @@ let updkmap sock resp =
 
 let sendwithrep sock s f =
   Queue.push f state.fifo;
-  sendstr s sock;
+  sendstr1 s 0 (String.length s) sock;
 ;;
 
 let padcatl ss =
@@ -452,6 +452,11 @@ let readresp sock =
   loop ();
 ;;
 
+let sendstr s ?(pos=0) ?(len=String.length s) sock =
+  sendstr1 s pos len sock;
+  if hasdata sock then readresp sock;
+;;
+
 let hexstr s =
   let b = Buffer.create 16 in
   String.iter (fun c ->
@@ -739,7 +744,7 @@ let init t w h =
   w16 s 4 0;
   w16 s 6 (String.length aname);
   w16 s 8 (String.length adata);
-  sendstr s fd;
+  sendstr1 s 0 (String.length s) fd;
   state.sock <- fd;
   setup fd screennum w h;
   state.t <- t;
