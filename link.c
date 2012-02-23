@@ -1850,10 +1850,12 @@ static fz_link *getlink (struct page *page, int x, int y)
 
     switch (page->type) {
     case DPDF:
+        ctm = trimctm (page->u.pdfpage, page->pdimno);
         links = page->u.pdfpage->links;
         break;
 
     case DXPS:
+        ctm = fz_identity;
         links = page->u.xpspage->links;
         break;
 
@@ -1863,8 +1865,7 @@ static fz_link *getlink (struct page *page, int x, int y)
     p.x = x;
     p.y = y;
 
-    ctm = fz_concat (trimctm (page->u.pdfpage, page->pdimno),
-                     state.pagedims[page->pdimno].ctm);
+    ctm = fz_concat (ctm, state.pagedims[page->pdimno].ctm);
     ctm = fz_invert_matrix (ctm);
     p = fz_transform_point (ctm, p);
 
