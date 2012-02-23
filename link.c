@@ -2048,6 +2048,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
                 dir = Int_val (Field (pos_v, 2));
 
                 if (dir >= 0) {
+                    dir = 1;
                     first_index = 0;
                     last_index = page->slinkcount;
                 }
