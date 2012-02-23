@@ -2040,7 +2040,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
         switch (dirtag) {
         case dir_first_visible:
             {
-                int x0, y0, dir;
+                int x0, y0, dir, first_index, last_index;
 
                 pos_v = Field (dir_v, 0);
                 x0 = Int_val (Field (pos_v, 0));
@@ -2048,21 +2048,19 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
                 dir = Int_val (Field (pos_v, 2));
 
                 if (dir >= 0) {
-                    for (i = 0; i < page->slinkcount; ++i) {
-                        slink = &page->slinks[i];
-                        if (slink->bbox.y0 >= y0 && slink->bbox.x0 >= x0) {
-                            found = slink;
-                            break;
-                        }
-                    }
+                    first_index = 0;
+                    last_index = page->slinkcount;
                 }
                 else {
-                    for (i = page->slinkcount - 1; i >= 0; --i) {
-                        slink = &page->slinks[i];
-                        if (slink->bbox.y0 >= y0 && slink->bbox.x0 >= x0) {
-                            found = slink;
-                            break;
-                        }
+                    first_index = page->slinkcount - 1;
+                    last_index = -1;
+                }
+
+                for (i = first_index; i != last_index; i += dir) {
+                    slink = &page->slinks[i];
+                    if (slink->bbox.y0 >= y0 && slink->bbox.x0 >= x0) {
+                        found = slink;
+                        break;
                     }
                 }
             }
