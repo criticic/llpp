@@ -28,6 +28,7 @@ val withalt : int -> bool;;
 val withctrl : int -> bool;;
 val withshift : int -> bool;;
 val withmeta : int -> bool;;
+val withnone : int -> bool;;
 val toutf8 : int -> string;;
 val metamask : int;;
 val altmask : int;;

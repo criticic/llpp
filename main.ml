@@ -4515,8 +4515,8 @@ let viewkeyboard key mask =
           | Birdseye beye -> upbirdseye 1 beye
           | _ ->
               if ctrl
-              then gotoy (clamp ~-(conf.winh/2))
-              else gotoy (clamp (-conf.scrollstep))
+              then gotoy_and_clear_text (clamp ~-(conf.winh/2))
+              else gotoy_and_clear_text (clamp (-conf.scrollstep))
           end
       | Some n ->
           setautoscrollspeed n false
@@ -4536,7 +4536,7 @@ let viewkeyboard key mask =
           setautoscrollspeed n true
       end
 
-  | 0xff51 | 0xff53 when conf.zoom > 1.0 -> (* left / right *)
+  | 0xff51 | 0xff53 when Wsi.withnone mask -> (* left / right *)
       if conf.zoom > 1.0
       then
         let dx =

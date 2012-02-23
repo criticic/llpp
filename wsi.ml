@@ -779,6 +779,7 @@ let withalt mask = mask land altmask != 0;;
 let withctrl mask = mask land ctrlmask != 0;;
 let withshift mask = mask land shiftmask != 0;;
 let withmeta mask = mask land metamask != 0;;
+let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0;;
 
 let xlatt, xlatf =
   let t = Hashtbl.create 20
