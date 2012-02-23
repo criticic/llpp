@@ -4667,27 +4667,23 @@ let linknavkeyboard key mask (linknav, pattern) =
         else
           let opt, dir =
             match key with
-            | 0xff50 ->                     (* home *)
+            | 0xff50 ->                 (* home *)
                 Some (findlink opaque LDfirst), -1
 
-            | 0xff57 ->                     (* end *)
+            | 0xff57 ->                 (* end *)
                 Some (findlink opaque LDlast), 1
 
-            | 0xff51 | 0xff53 ->            (* left right *)
-                let ld, dir =
-                  if key = 0xff51
-                  then LDleft n, -1
-                  else LDright n, 1
-                in
-                Some (findlink opaque ld), dir
+            | 0xff51 ->                 (* left *)
+                Some (findlink opaque (LDleft n)), -1
 
-            | 0xff52 | 0xff54 ->            (* up down *)
-                let ld, dir =
-                  if key = 0xff52
-                  then LDup n, -1
-                  else LDdown n, 1
-                in
-                Some (findlink opaque ld), dir
+            | 0xff53 ->                 (* right *)
+                Some (findlink opaque (LDright n)), 1
+
+            | 0xff52 ->                 (* up *)
+                Some (findlink opaque (LDup n)), -1
+
+            | 0xff54 ->                 (* down *)
+                Some (findlink opaque (LDdown n)), 1
 
             | _ -> None, 0
           in
