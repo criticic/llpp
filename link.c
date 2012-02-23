@@ -136,6 +136,11 @@ struct pagedim {
     fz_matrix ctm, zoomctm, lctm, tctm;
 };
 
+struct slink  {
+    fz_bbox bbox;
+    fz_link *link;
+};
+
 enum { DPDF, DXPS, DCBZ };
 
 struct page {
@@ -151,6 +156,8 @@ struct page {
         cbz_page *cbzpage;
     } u;
     fz_display_list *dlist;
+    int slinkcount;
+    struct slink *slinks;
     struct mark {
         int i;
         fz_text_span *span;
@@ -518,6 +525,9 @@ static void freepage (struct page *page)
 {
     if (page->text) {
         fz_free_text_span (state.ctx, page->text);
+    }
+    if (page->slinks) {
+        free (page->slinks);
     }
     page->freepage (page->u.ptr);
     fz_free_display_list (state.ctx, page->dlist);
@@ -1899,11 +1909,317 @@ static void ensuretext (struct page *page)
     }
 }
 
+static int compareslinks (const void *l, const void *r)
+{
+    struct slink const *ls = l;
+    struct slink const *rs = r;
+    if (ls->bbox.y0 == rs->bbox.y0) {
+        return rs->bbox.x0 - rs->bbox.x0;
+    }
+    return ls->bbox.y0 - rs->bbox.y0;
+}
+
+static void ensureslinks (struct page *page)
+{
+    fz_matrix ctm;
+    int i, count = 0;
+    size_t slinksize = sizeof (*page->slinks);
+    fz_link *link, *links;
+
+    if (page->slinks) return;
+
+    switch (page->type) {
+    case DPDF:
+        links = page->u.pdfpage->links;
+        ctm = fz_concat (trimctm (page->u.pdfpage, page->pdimno),
+                         state.pagedims[page->pdimno].ctm);
+        break;
+
+    case DXPS:
+        links = page->u.xpspage->links;
+        ctm = state.pagedims[page->pdimno].ctm;
+        break;
+
+    default:
+        return;
+    }
+
+    for (link = links; link; link = link->next) {
+        count++;
+    }
+    if (count > 0) {
+        page->slinkcount = count;
+        page->slinks = calloc (count, slinksize);
+        if (!page->slinks) {
+            err (1, "realloc slinks %d", count);
+        }
+
+        for (i = 0, link = links; link; ++i, link = link->next) {
+            page->slinks[i].link = link;
+            page->slinks[i].bbox =
+                fz_round_rect (fz_transform_rect (ctm, link->rect));
+        }
+        qsort (page->slinks, count, slinksize, compareslinks);
+    }
+}
+
+CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
+{
+    CAMLparam2 (start_page_v, dir_v);
+    CAMLlocal1 (ret_v);
+    int i, dir = Int_val (dir_v);
+    int start_page = Int_val (start_page_v);
+    int end_page = dir > 0 ? state.pagecount : -1;
+
+    ret_v = Val_int (0);
+    if (!(state.type == DPDF || state.type == DXPS))  {
+        goto done;
+    }
+
+    lock ("ml_findpage_with_links");
+    for (i = start_page + dir; i != end_page; i += dir) {
+        int found;
+
+        switch (state.type) {
+        case DPDF:
+            {
+                pdf_page *page = pdf_load_page (state.u.pdf, i);
+                found = !!page->links;
+                freepdfpage (page);
+            }
+            break;
+        case DXPS:
+            {
+                xps_page *page = xps_load_page (state.u.xps, i);
+                found = !!page->links;
+                freexpspage (page);
+            }
+            break;
+
+        default:
+            ARSERT ("invalid document type");
+        }
+
+        if (found) {
+            ret_v = caml_alloc_small (1, 1);
+            Field (ret_v, 0) = Val_int (i);
+            goto unlock;
+        }
+    }
+ unlock:
+    unlock ("ml_findpage_with_links");
+
+ done:
+    CAMLreturn (ret_v);
+}
+
+enum { dir_first, dir_last};
+enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
+
+CAMLprim value ml_findlink (value ptr_v, value dir_v)
+{
+    CAMLparam2 (ptr_v, dir_v);
+    CAMLlocal3 (ret_v, tup_v, pos_v);
+    struct page *page;
+    int dirtag, i, slinkindex;
+    struct slink *found = NULL ,*slink;
+    char *s = String_val (ptr_v);
+
+    lock ("ml_findlink");
+
+    page = parse_pointer ("ml_findlink", s);
+    ensureslinks (page);
+
+    ret_v = Val_int (0);
+    if (Is_block (dir_v)) {
+        dirtag = Tag_val (dir_v);
+        switch (dirtag) {
+        case dir_first_visible:
+            {
+                int x0, y0;
+
+                pos_v = Field (dir_v, 0);
+                x0 = Int_val (Field (pos_v, 0));
+                y0 = Int_val (Field (pos_v, 1));
+
+                for (i = 0; i < page->slinkcount; i++) {
+                    slink = &page->slinks[i];
+                    if (slink->bbox.y0 >= y0 && slink->bbox.x0 >= x0) {
+                        found = slink;
+                        break;
+                    }
+                }
+            }
+            break;
+
+        case dir_left:
+            slinkindex = Int_val (Field (dir_v, 0));
+            found = &page->slinks[slinkindex];
+            for (i = slinkindex - 1; i >= 0; --i) {
+                slink = &page->slinks[i];
+                if (slink->bbox.x0 < found->bbox.x0) {
+                    found = slink;
+                    break;
+                }
+            }
+            break;
+
+        case dir_right:
+            slinkindex = Int_val (Field (dir_v, 0));
+            found = &page->slinks[slinkindex];
+            for (i = slinkindex + 1; i < page->slinkcount; ++i) {
+                slink = &page->slinks[i];
+                if (slink->bbox.x0 > found->bbox.x0) {
+                    found = slink;
+                    break;
+                }
+            }
+            break;
+
+        case dir_down:
+            slinkindex = Int_val (Field (dir_v, 0));
+            found = &page->slinks[slinkindex];
+            for (i = slinkindex + 1; i < page->slinkcount; ++i) {
+                slink = &page->slinks[i];
+                if (slink->bbox.y0 > found->bbox.y0) {
+                    found = slink;
+                    break;
+                }
+            }
+            break;
+
+        case dir_up:
+            slinkindex = Int_val (Field (dir_v, 0));
+            found = &page->slinks[slinkindex];
+            for (i = slinkindex - 1; i >= 0; --i) {
+                slink = &page->slinks[i];
+                if (slink->bbox.y0 < found->bbox.y0) {
+                    found = slink;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    else {
+        dirtag = Int_val (dir_v);
+        switch (dirtag) {
+        case dir_first:
+            found = page->slinks;
+            break;
+
+        case dir_last:
+            if (page->slinks) {
+                found = page->slinks + (page->slinkcount - 1);
+            }
+            break;
+        }
+    }
+    if (found) {
+        tup_v = caml_alloc_tuple (5);
+        ret_v = caml_alloc_small (2, 1);
+        Field (tup_v, 0) = Val_int (found - page->slinks);
+        Field (tup_v, 1) = Val_int (found->bbox.x0);
+        Field (tup_v, 2) = Val_int (found->bbox.y0);
+        Field (tup_v, 3) = Val_int (found->bbox.x1);
+        Field (tup_v, 4) = Val_int (found->bbox.y1);
+        Field (ret_v, 0) = tup_v;
+    }
+
+    unlock ("ml_findlink");
+    CAMLreturn (ret_v);
+}
+
+enum  { uuri, ugoto, utext, uunexpected, ulaunch, unamed, uremote };
+
+#define LINKTOVAL                                                       \
+{                                                                       \
+    int pageno;                                                         \
+                                                                        \
+    switch (link->dest.kind) {                                          \
+    case FZ_LINK_GOTO:                                                  \
+        {                                                               \
+            fz_point p;                                                 \
+                                                                        \
+            pageno = link->dest.ld.gotor.page;                          \
+            p.x = 0;                                                    \
+            p.y = 0;                                                    \
+                                                                        \
+            if (link->dest.ld.gotor.flags & fz_link_flag_t_valid) {     \
+                p.y = link->dest.ld.gotor.lt.y;                         \
+                p = fz_transform_point (pdim->lctm, p);                 \
+            }                                                           \
+            tup_v = caml_alloc_tuple (2);                               \
+            ret_v = caml_alloc_small (1, ugoto);                        \
+            Field (tup_v, 0) = Val_int (pageno);                        \
+            Field (tup_v, 1) = Val_int (p.y);                           \
+            Field (ret_v, 0) = tup_v;                                   \
+        }                                                               \
+        break;                                                          \
+                                                                        \
+    case FZ_LINK_URI:                                                   \
+        str_v = caml_copy_string (link->dest.ld.uri.uri);               \
+        ret_v = caml_alloc_small (1, uuri);                             \
+        Field (ret_v, 0) = str_v;                                       \
+        break;                                                          \
+                                                                        \
+    case FZ_LINK_LAUNCH:                                                \
+        str_v = caml_copy_string (link->dest.ld.launch.file_spec);      \
+        ret_v = caml_alloc_small (1, ulaunch);                          \
+        Field (ret_v, 0) = str_v;                                       \
+        break;                                                          \
+                                                                        \
+    case FZ_LINK_NAMED:                                                 \
+        str_v = caml_copy_string (link->dest.ld.named.named);           \
+        ret_v = caml_alloc_small (1, unamed);                           \
+        Field (ret_v, 0) = str_v;                                       \
+        break;                                                          \
+                                                                        \
+    case FZ_LINK_GOTOR:                                                 \
+        str_v = caml_copy_string (link->dest.ld.gotor.file_spec);       \
+        pageno = link->dest.ld.gotor.page;                              \
+        tup_v = caml_alloc_tuple (2);                                   \
+        ret_v = caml_alloc_small (1, uremote);                          \
+        Field (tup_v, 0) = str_v;                                       \
+        Field (tup_v, 1) = Val_int (pageno);                            \
+        Field (ret_v, 0) = tup_v;                                       \
+        break;                                                          \
+                                                                        \
+    default:                                                            \
+        {                                                               \
+            char buf[80];                                               \
+                                                                        \
+            snprintf (buf, sizeof (buf),                                \
+                      "unhandled link kind %d", link->dest.kind);       \
+            str_v = caml_copy_string (buf);                             \
+            ret_v = caml_alloc_small (1, uunexpected);                  \
+            Field (ret_v, 0) = str_v;                                   \
+        }                                                               \
+        break;                                                          \
+    }                                                                   \
+}
+
+CAMLprim value ml_getlink (value ptr_v, value n_v)
+{
+    CAMLparam2 (ptr_v, n_v);
+    CAMLlocal3 (ret_v, tup_v, str_v);
+    fz_link *link;
+    struct page *page;
+    struct pagedim *pdim;
+    char *s = String_val (ptr_v);
+
+    ret_v = Val_int (0);
+    page = parse_pointer ("ml_getlink", s);
+    pdim = &state.pagedims[page->pdimno];
+    link = page->slinks[Int_val (n_v)].link;
+    LINKTOVAL;
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal3 (ret_v, tup_v, str_v);
-    int pageno;
     fz_link *link;
     struct page *page;
     char *s = String_val (ptr_v);
@@ -1919,67 +2235,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     pdim = &state.pagedims[page->pdimno];
     link = getlink (page, x, y);
     if (link) {
-        switch (link->dest.kind) {
-        case FZ_LINK_GOTO:
-            {
-                fz_point p;
-
-                pageno = link->dest.ld.gotor.page;
-                p.x = 0;
-                p.y = 0;
-
-                if (link->dest.ld.gotor.flags & fz_link_flag_t_valid) {
-                    p.y = link->dest.ld.gotor.lt.y;
-                    p = fz_transform_point (pdim->lctm, p);
-                }
-                tup_v = caml_alloc_tuple (2);
-                ret_v = caml_alloc_small (1, 1);
-                Field (tup_v, 0) = Val_int (pageno);
-                Field (tup_v, 1) = Val_int (p.y);
-                Field (ret_v, 0) = tup_v;
-            }
-            break;
-
-        case FZ_LINK_URI:
-            str_v = caml_copy_string (link->dest.ld.uri.uri);
-            ret_v = caml_alloc_small (1, 0);
-            Field (ret_v, 0) = str_v;
-            break;
-
-        case FZ_LINK_LAUNCH:
-            str_v = caml_copy_string (link->dest.ld.launch.file_spec);
-            ret_v = caml_alloc_small (1, 4);
-            Field (ret_v, 0) = str_v;
-            break;
-
-        case FZ_LINK_NAMED:
-            str_v = caml_copy_string (link->dest.ld.named.named);
-            ret_v = caml_alloc_small (1, 5);
-            Field (ret_v, 0) = str_v;
-            break;
-
-        case FZ_LINK_GOTOR:
-            str_v = caml_copy_string (link->dest.ld.gotor.file_spec);
-            pageno = link->dest.ld.gotor.page;
-            tup_v = caml_alloc_tuple (2);
-            ret_v = caml_alloc_small (1, 6);
-            Field (tup_v, 0) = str_v;
-            Field (tup_v, 1) = Val_int (pageno);
-            Field (ret_v, 0) = tup_v;
-            break;
-
-        default:
-            {
-                char buf[80];
-
-                snprintf (buf, sizeof (buf),
-                          "unhandled link kind %d", link->dest.kind);
-                str_v = caml_copy_string (buf);
-                ret_v = caml_alloc_small (1, 3);
-                Field (ret_v, 0) = str_v;
-            }
-            break;
-        }
+        LINKTOVAL;
     }
     else {
         int i;
@@ -2017,7 +2273,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                     if (str_v == 0) {
                         str_v = caml_copy_string (n2);
                     }
-                    ret_v = caml_alloc_small (1, 2);
+                    ret_v = caml_alloc_small (1, utext);
                     Field (ret_v, 0) = str_v;
                     goto unlock;
                 }

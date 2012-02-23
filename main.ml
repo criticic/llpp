@@ -38,6 +38,24 @@ and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
 ;;
 
+type link =
+    | Lnone
+    | Lfound of (int * int * int * int * int)
+and linkdir =
+    | LDfirst
+    | LDlast
+    | LDfirstvisible of (int * int)
+    | LDleft of int
+    | LDright of int
+    | LDdown of int
+    | LDup of int
+;;
+
+type pagewithlinks =
+    | Pwlnotfound
+    | Pwl of int
+;;
+
 type keymap =
     | KMinsrt of key
     | KMinsrl of key list
@@ -69,6 +87,9 @@ external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external realloctexts : int -> bool = "ml_realloctexts";;
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
+external findlink : opaque -> linkdir -> link = "ml_findlink";;
+external getlink : opaque -> int -> under = "ml_getlink";;
+external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -314,6 +335,7 @@ type mode =
     | Birdseye of (conf * leftx * pageno * pageno * anchor)
     | Textentry of (textentry * onleave)
     | View
+    | LinkNav of ((page * opaque * int) * (int * int * int * int)) option
 and onleave = leavetextentrystatus -> unit
 and leavetextentrystatus = | Cancel | Confirm
 and helpitem = string * int * action
@@ -476,6 +498,7 @@ let defconf =
       ; mk "listview"
       ; mk "birdseye"
       ; mk "textentry"
+      ; mk "links"
       ]
   }
 ;;
@@ -1452,6 +1475,25 @@ let gotoy y =
                 conf, leftx, l.pageno, hooverpageno, anchor
               )
         );
+    | LinkNav _ ->
+        let linknav =
+          let rec loop = function
+            | [] -> None
+            | l :: rest ->
+                match getopaque l.pageno with
+                | None -> loop rest
+                | Some opaque ->
+                    let link =
+                      findlink opaque (LDfirstvisible (l.pagex, l.pagey))
+                    in
+                    match link with
+                    | Lnone -> loop rest
+                    | Lfound (n, x0, y0, x1, y1) ->
+                        Some ((l, opaque, n), (x0, y0, x1, y1))
+          in
+          loop state.layout
+        in
+        state.mode <- LinkNav linknav
     | _ -> ()
     end;
     preload layout;
@@ -4200,6 +4242,10 @@ let viewkeyboard key mask =
   | 81 ->                               (* Q *)
       exit 0
 
+  | 0xff63 ->                           (* insert *)
+      state.mode <- LinkNav None;
+      gotoy state.y;
+
   | 0xff1b | 113 ->                     (* escape / q *)
       begin match state.mstate with
       | Mzoomrect _ ->
@@ -4570,6 +4616,130 @@ let viewkeyboard key mask =
       vlog "huh? %s" (Wsi.keyname key)
 ;;
 
+let gotounder = function
+  | Ulinkgoto (pageno, top) ->
+      if pageno >= 0
+      then (
+        addnav ();
+        gotopage1 pageno top;
+      )
+
+  | Ulinkuri s ->
+      gotouri s
+
+  | Uremote (filename, pageno) ->
+      let path =
+        if Sys.file_exists filename
+        then filename
+        else
+          let dir = Filename.dirname state.path in
+          let path = Filename.concat dir filename in
+          if Sys.file_exists path
+          then path
+          else ""
+      in
+      if String.length path > 0
+      then (
+        let anchor = getanchor () in
+        let ranchor = state.path, state.password, anchor in
+        state.anchor <- (pageno, 0.0);
+        state.ranchors <- ranchor :: state.ranchors;
+        opendoc path "";
+      )
+      else showtext '!' ("Could not find " ^ filename)
+
+  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
+;;
+
+let linknavkeyboard key mask linknav =
+  if key = 0xff63
+  then (
+    state.mode <- View;
+    G.postRedisplay "leave linknav"
+  )
+  else
+    begin match if state.currently = Idle then linknav else None with
+    | None -> viewkeyboard key mask
+    | Some ((l, opaque, n), _) ->
+        if key = 0xff0d
+        then
+          let under = getlink opaque n in
+          gotounder under;
+          state.mode <- View;
+        else
+          let opt, dir =
+            match key with
+            | 0xff50 ->                     (* home *)
+                Some (findlink opaque LDfirst), 1
+
+            | 0xff57 ->                     (* end *)
+                Some (findlink opaque LDlast), -1
+
+            | 0xff51 | 0xff53 ->            (* left right *)
+                let ld, dir =
+                  if key = 0xff51
+                  then LDleft n, -1
+                  else LDright n, 1
+                in
+                Some (findlink opaque ld), dir
+
+            | 0xff52 | 0xff54 ->            (* up down *)
+                let ld, dir =
+                  if key = 0xff52
+                  then LDup n, -1
+                  else LDdown n, 1
+                in
+                Some (findlink opaque ld), dir
+
+            | _ -> None, 0
+          in
+          begin match opt with
+          | Some Lnone ->
+              begin match findpwl l.pageno dir with
+              | Pwlnotfound -> ()
+              | Pwl pageno ->
+                  state.mode <- LinkNav None;
+                  let y, h = getpageyh pageno in
+                  let y =
+                    if dir < 0
+                    then y + h - conf.winh
+                    else y
+                  in
+                  gotoy y;
+              end;
+
+          | Some (Lfound (m, x0, y0, x1, y1)) ->
+              if y0 < l.pagey || l.pagedispy + (y0 - l.pagey) > conf.winh
+              then (
+                state.mode <- LinkNav None;
+                gotoy (state.y + (y0 - l.pagey))
+              )
+              else (
+                if m = n
+                then (
+                  match findpwl l.pageno dir with
+                  | Pwlnotfound -> ()
+                  | Pwl pageno ->
+                      state.mode <- LinkNav None;
+                      let y, h = getpageyh pageno in
+                      let y =
+                        if dir < 0
+                        then y + h - conf.winh
+                        else y
+                      in
+                      gotoy y;
+                )
+                else
+                  let r = x0, y0, x1, y1 in
+                  state.mode <- LinkNav (Some ((l, opaque, m), r));
+                  G.postRedisplay "linknav up"
+              )
+          | None ->
+              viewkeyboard key mask
+          end;
+    end;
+;;
+
 let keyboard key mask =
   if (key = 103 && Wsi.withctrl mask) && not (istextentry state.mode)
   then wcmd "interrupt"
@@ -4668,6 +4838,7 @@ let drawpage l =
   let color =
     match state.mode with
     | Textentry _ -> scalecolor 0.4
+    | LinkNav _
     | View -> scalecolor 1.0
     | Birdseye (_, _, pageno, hooverpageno, _) ->
         if l.pageno = hooverpageno
@@ -4748,7 +4919,7 @@ let showsel () =
       loop state.layout
 ;;
 
-let showrects () =
+let showrects rects =
   Gl.enable `blend;
   GlDraw.color (0.0, 0.0, 1.0) ~alpha:0.5;
   GlDraw.polygon_mode `both `fill;
@@ -4771,7 +4942,7 @@ let showrects () =
           GlDraw.ends ();
         )
       ) state.layout
-    ) state.rects
+    ) rects
   ;
   Gl.disable `blend;
 ;;
@@ -4780,7 +4951,18 @@ let display () =
   GlClear.color (scalecolor2 conf.bgcolor);
   GlClear.clear [`color];
   List.iter drawpage state.layout;
-  showrects ();
+  let rects =
+    match state.mode with
+    | LinkNav (Some ((page, _, _), (x0, y0, x1, y1))) ->
+        (page.pageno, 5, (
+          float x0, float y0,
+          float x1, float y0,
+          float x1, float y1,
+          float x0, float y1)
+        ) :: state.rects
+    | _ -> state.rects
+  in
+  showrects rects;
   showsel ();
   state.uioh#display;
   scrollindicator ();
@@ -5057,11 +5239,13 @@ let uioh = object
     | Textentry textentry -> textentrykeyboard key mask textentry
     | Birdseye birdseye -> birdseyekeyboard key mask birdseye
     | View -> viewkeyboard key mask
+    | LinkNav linknav -> linknavkeyboard key mask linknav
     end;
     state.uioh
 
   method button button bstate x y mask =
     begin match state.mode with
+    | LinkNav _
     | View -> viewmouse button bstate x y mask
     | Birdseye beye -> birdseyemouse button bstate x y mask beye
     | Textentry _ -> ()
@@ -5071,7 +5255,7 @@ let uioh = object
   method motion x y =
     begin  match state.mode with
     | Textentry _ -> ()
-    | View | Birdseye _ ->
+    | View | Birdseye _ | LinkNav _ ->
         match state.mstate with
         | Mzoom _ | Mnone -> ()
 
@@ -5124,6 +5308,7 @@ let uioh = object
 
     | Textentry _ -> ()
 
+    | LinkNav _
     | View ->
         match state.mstate with
         | Mnone -> updateunder x y
@@ -5163,6 +5348,7 @@ let uioh = object
   method modehash =
     let modename =
       match state.mode with
+      | LinkNav _ -> "links"
       | Textentry _ -> "textentry"
       | Birdseye _ -> "birdseye"
       | View -> "global"

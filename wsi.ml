@@ -813,6 +813,7 @@ let xlatt, xlatf =
   add "right" [] 0xff53;
   add "home" [] 0xff50;
   add "end" [] 0xff57;
+  add "insert" ["ins"] 0xff63;
   add "delete" ["del"] 0xffff;
   add "escape" ["esc"] 0xff1b;
   add "pgup" ["pageup"] 0xff55;

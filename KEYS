@@ -24,6 +24,8 @@ g, G                    - go to first/last page
 t                       - align top of the screen with the top of the page
 space                   - go to the next page
 delete                  - go to the previous page
+insert                  - toggle link navigation mode
+return                  - (in link navigation mode) follow link
 =                       - show current position
 w                       - change height to encompass all of the page
 o                       - switch to outline mode
