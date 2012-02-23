@@ -4670,10 +4670,10 @@ let linknavkeyboard key mask linknav =
           let opt, dir =
             match key with
             | 0xff50 ->                     (* home *)
-                Some (findlink opaque LDfirst), 1
+                Some (findlink opaque LDfirst), -1
 
             | 0xff57 ->                     (* end *)
-                Some (findlink opaque LDlast), -1
+                Some (findlink opaque LDlast), 1
 
             | 0xff51 | 0xff53 ->            (* left right *)
                 let ld, dir =
