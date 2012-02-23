@@ -338,7 +338,7 @@ type mode =
     | Birdseye of (conf * leftx * pageno * pageno * anchor)
     | Textentry of (textentry * onleave)
     | View
-    | LinkNav of (linktarget * string)
+    | LinkNav of linktarget
 and onleave = leavetextentrystatus -> unit
 and leavetextentrystatus = | Cancel | Confirm
 and helpitem = string * int * action
@@ -1481,7 +1481,7 @@ let gotoy y =
                 conf, leftx, l.pageno, hooverpageno, anchor
               )
         );
-    | LinkNav ((Ltgendir dir as lt, pattern)) ->
+    | LinkNav (Ltgendir dir as lt) ->
         let linknav =
           let rec loop = function
             | [] -> lt
@@ -1500,7 +1500,7 @@ let gotoy y =
           in
           loop state.layout
         in
-        state.mode <- LinkNav (linknav, pattern)
+        state.mode <- LinkNav linknav
     | _ -> ()
     end;
     preload layout;
@@ -4245,7 +4245,7 @@ let viewkeyboard key mask =
       exit 0
 
   | 0xff63 ->                           (* insert *)
-      state.mode <- LinkNav (Ltgendir 0, "");
+      state.mode <- LinkNav (Ltgendir 0);
       gotoy state.y;
 
   | 0xff1b | 113 ->                     (* escape / q *)
@@ -4653,7 +4653,7 @@ let gotounder = function
   | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
 ;;
 
-let linknavkeyboard key mask (linknav, pattern) =
+let linknavkeyboard key mask linknav =
   if key = 0xff63
   then (
     state.mode <- View;
@@ -4697,7 +4697,7 @@ let linknavkeyboard key mask (linknav, pattern) =
               begin match findpwl l.pageno dir with
               | Pwlnotfound -> ()
               | Pwl pageno ->
-                  state.mode <- LinkNav (Ltgendir dir, pattern);
+                  state.mode <- LinkNav (Ltgendir dir);
                   let y, h = getpageyh pageno in
                   let y =
                     if dir < 0
@@ -4711,7 +4711,7 @@ let linknavkeyboard key mask (linknav, pattern) =
               if y0 < l.pagey
                 || l.pagedispy + (y1 - l.pagey) > conf.winh - state.hscrollh
               then (
-                state.mode <- LinkNav ((Ltgendir 0), pattern);
+                state.mode <- LinkNav (Ltgendir 0);
                 gotoy (state.y + (y0 - l.pagey))
               )
               else (
@@ -4720,7 +4720,7 @@ let linknavkeyboard key mask (linknav, pattern) =
                   match findpwl l.pageno dir with
                   | Pwlnotfound -> ()
                   | Pwl pageno ->
-                      state.mode <- LinkNav ((Ltgendir dir), pattern);
+                      state.mode <- LinkNav (Ltgendir dir);
                       let y, h = getpageyh pageno in
                       let y =
                         if dir < 0
@@ -4731,12 +4731,11 @@ let linknavkeyboard key mask (linknav, pattern) =
                 )
                 else
                   let r = x0, y0, x1, y1 in
-                  state.mode <- LinkNav (
-                    (Ltexact ((l, opaque, m), r)), pattern
-                  );
+                  state.mode <- LinkNav (Ltexact ((l, opaque, m), r));
                   G.postRedisplay "linknav up"
               )
           | None ->
+              state.mode <- LinkNav (Ltgendir 0);
               viewkeyboard key mask
           end;
     end;
@@ -4955,7 +4954,7 @@ let display () =
   List.iter drawpage state.layout;
   let rects =
     match state.mode with
-    | LinkNav ((Ltexact ((page, _, _), (x0, y0, x1, y1))), _) ->
+    | LinkNav (Ltexact ((page, _, _), (x0, y0, x1, y1))) ->
         (page.pageno, 5, (
           float x0, float y0,
           float x1, float y0,
