@@ -4708,7 +4708,8 @@ let linknavkeyboard key mask (linknav, pattern) =
               end;
 
           | Some (Lfound (m, x0, y0, x1, y1)) ->
-              if y0 < l.pagey || l.pagedispy + (y1 - l.pagey) > conf.winh
+              if y0 < l.pagey
+                || l.pagedispy + (y1 - l.pagey) > conf.winh - state.hscrollh
               then (
                 state.mode <- LinkNav ((Ltgendir 0), pattern);
                 gotoy (state.y + (y0 - l.pagey))
