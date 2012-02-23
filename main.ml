@@ -829,20 +829,6 @@ let columns_of_string s =
     Scanf.sscanf s "%u,%u,%u" (fun n a b -> (n, a, b));
 ;;
 
-let writecmd fd s =
-  let len = String.length s in
-  let n = 4 + len in
-  let b = Buffer.create n in
-  Buffer.add_char b (Char.chr ((len lsr 24) land 0xff));
-  Buffer.add_char b (Char.chr ((len lsr 16) land 0xff));
-  Buffer.add_char b (Char.chr ((len lsr  8) land 0xff));
-  Buffer.add_char b (Char.chr ((len lsr  0) land 0xff));
-  Buffer.add_string b s;
-  let s' = Buffer.contents b in
-  let n' = Unix.write fd s' 0 n in
-  if n' != n then failwith "write failed";
-;;
-
 let readcmd fd =
   let s = "xxxx" in
   let n = Unix.read fd s 0 4 in
@@ -859,30 +845,23 @@ let readcmd fd =
   s
 ;;
 
-let makecmd s l =
-  let b = Buffer.create 10 in
-  Buffer.add_string b s;
-  let rec combine = function
-    | [] -> b
-    | x :: xs ->
-        Buffer.add_char b ' ';
-        let s =
-          match x with
-          | `b b -> if b then "1" else "0"
-          | `s s -> s
-          | `i i -> string_of_int i
-          | `f f -> string_of_float f
-          | `I f -> string_of_int (truncate f)
-        in
-        Buffer.add_string b s;
-        combine xs;
-  in
-  combine l;
-;;
+let btod b = if b then 1 else 0;;
 
-let wcmd s l =
-  let cmd = Buffer.contents (makecmd s l) in
-  writecmd state.sw cmd;
+let wcmd fmt =
+  let b = Buffer.create 16 in
+  Buffer.add_string b "llll";
+  Printf.kbprintf
+    (fun b ->
+      let s = Buffer.contents b in
+      let n = String.length s in
+      let len = n - 4 in
+      s.[0] <- Char.chr ((len lsr 24) land 0xff);
+      s.[1] <- Char.chr ((len lsr 16) land 0xff);
+      s.[2] <- Char.chr ((len lsr  8) land 0xff);
+      s.[3] <- Char.chr (len land 0xff);
+      let n' = Unix.write state.sw s 0 n in
+      if n' != n then failwith "write failed";
+    ) b fmt;
 ;;
 
 let calcips h =
@@ -1338,13 +1317,7 @@ let tilepage n p layout =
                     let h = l.pageh - y in
                     min h conf.tileh
                   in
-                  wcmd "tile"
-                    [`s p
-                    ;`i x
-                    ;`i y
-                    ;`i w
-                    ;`i h
-                    ];
+                  wcmd "tile %s %d %d %d %d" p x y w h;
                   state.currently <-
                     Tiling (
                       l, p, conf.colorspace, conf.angle, state.gen, col, row,
@@ -1390,7 +1363,7 @@ let load pages =
       | l :: rest ->
           begin match getopaque l.pageno with
           | None ->
-              wcmd "page" [`i l.pageno; `i l.pagedimno];
+              wcmd "page %d %d" l.pageno l.pagedimno;
               state.currently <- Loading (l, state.gen);
           | Some opaque ->
               tilepage l.pageno opaque pages;
@@ -1595,7 +1568,7 @@ let invalidate () =
 ;;
 
 let writeopen path password  =
-  writecmd state.sw ("open " ^ path ^ "\000" ^ password ^ "\000");
+  wcmd "open %s\000%s\000" path password;
 ;;
 
 let opendoc path password =
@@ -1608,7 +1581,7 @@ let opendoc path password =
   setaalevel conf.aalevel;
   writeopen path password;
   Wsi.settitle ("llpp " ^ Filename.basename path);
-  wcmd "geometry" [`i state.w; `i conf.winh];
+  wcmd "geometry %d %d" state.w conf.winh;
 ;;
 
 let scalecolor c =
@@ -1710,7 +1683,7 @@ let reshape =
       | Some ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
     in
     invalidate ();
-    wcmd "geometry" [`i w; `i h];
+    wcmd "geometry %d %d" w h;
 ;;
 
 let enttext () =
@@ -1807,7 +1780,7 @@ let gctiles () =
           )
         then Queue.push lruitem state.tilelru
         else (
-          wcmd "freetile" [`s p];
+          wcmd "freetile %s" p;
           state.memused <- state.memused - s;
           state.uioh#infochanged Memused;
           Hashtbl.remove state.tilemap k;
@@ -1820,7 +1793,7 @@ let gctiles () =
 
 let flushtiles () =
   Queue.iter (fun (k, p, s) ->
-    wcmd "freetile" [`s p];
+    wcmd "freetile %s" p;
     state.memused <- state.memused - s;
     state.uioh#infochanged Memused;
     Hashtbl.remove state.tilemap k;
@@ -1981,7 +1954,7 @@ let act cmds =
                   Hashtbl.fold (fun ((pageno, _) as key) opaque accu ->
                     if not (IntSet.mem pageno set)
                     then (
-                      wcmd "freepage" [`s opaque];
+                      wcmd "freepage %s" opaque;
                       key :: accu
                     )
                     else accu
@@ -2029,7 +2002,7 @@ let act cmds =
 
           if tilew != conf.tilew || tileh != conf.tileh
           then (
-            wcmd "freetile" [`s opaque];
+            wcmd "freetile %s" opaque;
             state.currently <- Idle;
             load state.layout;
           )
@@ -2147,16 +2120,8 @@ let search pattern forward =
       | l :: _ ->
           l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
     in
-    let cmd =
-      let b = makecmd "search"
-        [`b conf.icase; `i pn; `i py; `i (if forward then 1 else 0)]
-      in
-      Buffer.add_char b ',';
-      Buffer.add_string b pattern;
-      Buffer.add_char b '\000';
-      Buffer.contents b;
-    in
-    writecmd state.sw cmd;
+    wcmd "search %d %d %d %d,%s\000"
+      (btod conf.icase) pn py (btod forward) pattern;
 ;;
 
 let intentry text key =
@@ -2188,7 +2153,7 @@ let reqlayout angle proportional =
       conf.angle <- angle mod 360;
       conf.proportional <- proportional;
       invalidate ();
-      wcmd "reqlayout" [`i conf.angle; `b proportional];
+      wcmd "reqlayout %d %d" conf.angle (btod proportional);
   | _ -> ()
 ;;
 
@@ -2198,15 +2163,9 @@ let settrim trimmargins trimfuzz =
   conf.trimfuzz <- trimfuzz;
   let x0, y0, x1, y1 = trimfuzz in
   invalidate ();
-  wcmd "settrim" [
-    `b conf.trimmargins;
-    `i x0;
-    `i y0;
-    `i x1;
-    `i y1;
-  ];
+  wcmd "settrim %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Hashtbl.iter (fun _ opaque ->
-    wcmd "freepage" [`s opaque];
+    wcmd "freepage %s" opaque;
   ) state.pagemap;
   Hashtbl.clear state.pagemap;
 ;;
@@ -3972,7 +3931,7 @@ let enterinfomode =
         (fun () -> conf.sliceheight)
         (fun v ->
           conf.sliceheight <- v;
-          wcmd "sliceh" [`i conf.sliceheight];
+          wcmd "sliceh %d" conf.sliceheight;
         );
       src#int "anti-aliasing level"
         (fun () -> conf.aalevel)
@@ -4047,7 +4006,7 @@ let enterinfomode =
         (fun () -> colorspace_to_string conf.colorspace)
         (fun v ->
           conf.colorspace <- colorspace_of_int v;
-          wcmd "cs" [`i v];
+          wcmd "cs %d" v;
           load state.layout;
         )
     );
@@ -4613,7 +4572,7 @@ let viewkeyboard key mask =
 
 let keyboard key mask =
   if (key = 103 && Wsi.withctrl mask) && not (istextentry state.mode)
-  then wcmd "interrupt" []
+  then wcmd "interrupt"
   else state.uioh <- state.uioh#key key mask
 ;;
 
@@ -6248,7 +6207,7 @@ let () =
   try
     loop infinity;
   with Wsi.Quit ->
-    wcmd "quit" [];
+    wcmd "quit";
     Config.save ();
     exit 0;
 ;;
