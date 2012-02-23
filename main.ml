@@ -1,3 +1,5 @@
+exception Quit;;
+
 type under =
     | Unone
     | Ulinkuri of string
@@ -4254,7 +4256,7 @@ let viewkeyboard key mask =
           G.postRedisplay "kill zoom rect";
       | _ ->
           match state.ranchors with
-          | [] -> raise Wsi.Quit
+          | [] -> raise Quit
           | (path, password, anchor) :: rest ->
               state.ranchors <- rest;
               state.anchor <- anchor;
@@ -6265,6 +6267,7 @@ let () =
 
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
+    method quit = raise Quit
   end) conf.winw conf.winh;
 
   if not (
@@ -6391,7 +6394,7 @@ let () =
   in
   try
     loop infinity;
-  with Wsi.Quit ->
+  with Quit ->
     wcmd "quit";
     Config.save ();
     exit 0;

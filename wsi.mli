@@ -15,6 +15,7 @@ class type t = object
   method key : int -> int -> unit
   method enter : int -> int -> unit
   method leave : unit
+  method quit : unit
 end;;
 
 val setcursor : cursor -> unit;;
@@ -36,5 +37,3 @@ val shiftmask : int;;
 val ctrlmask : int;;
 val keyname : int -> string;;
 val namekey : string -> int;;
-
-exception Quit;;

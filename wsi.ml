@@ -26,6 +26,7 @@ let onot = object
     method key _ _ = ()
     method enter _ _ = ()
     method leave = ()
+    method quit = exit 0
 end;;
 
 class type t = object
@@ -37,6 +38,7 @@ class type t = object
   method key : int -> int -> unit
   method enter : int -> int -> unit
   method leave : unit
+  method quit : unit
 end;;
 
 type state =
