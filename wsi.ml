@@ -121,7 +121,6 @@ let readstr sock n =
       ignore (Unix.select [sock] [] [] 0.01);
       loop (pos + m) (n - m)
     )
-      (* error "read %d returned %d" n m; *)
   in
   loop 0 n;
   s;
