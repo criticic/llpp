@@ -2026,12 +2026,15 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     struct slink *found = NULL ,*slink;
     char *s = String_val (ptr_v);
 
-    lock ("ml_findlink");
+    if (trylock ("ml_findlink")) {
+        ret_v = Val_int (0);
+        goto done;
+    }
 
     page = parse_pointer ("ml_findlink", s);
     ensureslinks (page);
 
-    ret_v = Val_int (0);
+    ret_v = Val_int (1);
     if (Is_block (dir_v)) {
         dirtag = Tag_val (dir_v);
         switch (dirtag) {
@@ -2140,6 +2143,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     }
 
     unlock ("ml_findlink");
+ done:
     CAMLreturn (ret_v);
 }
 

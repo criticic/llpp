@@ -39,7 +39,8 @@ and colorspace     = | Rgb | Bgr | Gray
 ;;
 
 type link =
-    | Lnone
+    | Lnolock
+    | Lnotfound
     | Lfound of (int * int * int * int * int)
 and linkdir =
     | LDfirst
@@ -1490,7 +1491,8 @@ let gotoy y =
                       findlink opaque (LDfirstvisible (l.pagex, l.pagey, dir))
                     in
                     match link with
-                    | Lnone -> loop rest
+                    | Lnolock -> showtext '!' "failed to acquire lock"; lt
+                    | Lnotfound -> loop rest
                     | Lfound (n, x0, y0, x1, y1) ->
                         Ltexact ((l, opaque, n), (x0, y0, x1, y1))
           in
@@ -4688,7 +4690,8 @@ let linknavkeyboard key mask (linknav, pattern) =
             | _ -> None, 0
           in
           begin match opt with
-          | Some Lnone ->
+          | Some Lnolock -> showtext '!' "failed to acquire lock";
+          | Some Lnotfound ->
               begin match findpwl l.pageno dir with
               | Pwlnotfound -> ()
               | Pwl pageno ->
