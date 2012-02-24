@@ -6050,22 +6050,19 @@ struct
                   addkm i;
                   match o with
                   | KMinsrt km ->
-                      Buffer.add_char bb '\'';
-                      Buffer.add_string bb " out='";
+                      Buffer.add_string bb "' out='";
                       addkm km;
                       Buffer.add_string bb "'/>\n"
 
                   | KMinsrl kms ->
-                      Buffer.add_char bb '\'';
-                      Buffer.add_string bb " out='";
+                      Buffer.add_string bb "' out='";
                       addkms kms;
                       Buffer.add_string bb "'/>\n"
 
                   | KMmulti (ins, kms) ->
                       Buffer.add_char bb ' ';
                       addkms ins;
-                      Buffer.add_char bb '\'';
-                      Buffer.add_string bb " out='";
+                      Buffer.add_string bb "' out='";
                       addkms kms;
                       Buffer.add_string bb "'/>\n"
               ) h;
