@@ -643,7 +643,7 @@ let setup sock screennum w h =
 
 let getauth haddr dnum =
   let haddr =
-    if haddr = "localhost"
+    if haddr = "localhost" || String.length haddr = 0
     then
       try Unix.gethostname ()
       with exn ->
