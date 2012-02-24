@@ -15,8 +15,6 @@ external toutf8 : int -> string = "ml_keysymtoutf8";;
 let dolog fmt = Format.kprintf prerr_endline fmt;;
 let vlog fmt = Format.kprintf ignore fmt;;
 
-exception Quit;;
-
 let onot = object
   method display         = ()
   method reshape _ _     = ()
@@ -423,7 +421,7 @@ let rec readresp sock =
       then (
         let atom = r32 resp 12 in
         if atom = state.deleatom
-        then raise Quit;
+        then state.t#quit;
       );
       vlog "atom %#x" atom
 
