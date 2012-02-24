@@ -2200,6 +2200,12 @@ let reqlayout angle proportional =
   | None ->
       if state.invalidated = 0 then state.anchor <- getanchor ();
       conf.angle <- angle mod 360;
+      if conf.angle != 0
+      then (
+        match state.mode with
+        | LinkNav _ -> state.mode <- View
+        | _ -> ()
+      );
       conf.proportional <- proportional;
       invalidate ();
       wcmd "reqlayout %d %d" conf.angle (btod proportional);
@@ -4245,8 +4251,12 @@ let viewkeyboard key mask =
       exit 0
 
   | 0xff63 ->                           (* insert *)
-      state.mode <- LinkNav (Ltgendir 0);
-      gotoy state.y;
+      if conf.angle mod 360 = 0
+      then (
+        state.mode <- LinkNav (Ltgendir 0);
+        gotoy state.y;
+      )
+      else showtext '!' "Keyboard link naviagtion does not work under rotation"
 
   | 0xff1b | 113 ->                     (* escape / q *)
       begin match state.mstate with
