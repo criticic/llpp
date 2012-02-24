@@ -710,10 +710,15 @@ let getauth haddr dnum =
   in
   let path =
     try Sys.getenv "XAUTHORITY"
-    with Not_found -> Filename.concat (Sys.getenv "HOME") ".Xauthority"
+    with Not_found ->
+      try Filename.concat (Sys.getenv "HOME") ".Xauthority"
+      with Not_found -> ""
   in
   let opt =
-    try Some (open_in_bin path)
+    try
+      if String.length path = 0
+      then None
+      else Some (open_in_bin path)
     with exn ->
       dolog "failed to open X authority file `%S' : %s"
         path
