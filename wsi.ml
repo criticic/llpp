@@ -614,28 +614,32 @@ let setup sock screennum w h =
         sendstr s sock;
       ) [|34;48;50;58;128;152|];
 
-      sendintern sock "UTF8_STRING" false (fun resp ->
-        state.stringatom <- r32 resp 8;
+      sendintern sock "UTF8_STRING" true (fun resp ->
+        let atom = r32 resp 8 in
+        if atom != 0 then state.stringatom <- atom;
       );
 
       sendintern sock "_NET_WM_STATE" true (fun resp ->
         let nwmsatom = r32 resp 8 in
-        sendintern sock "_NET_WM_STATE_FULLSCREEN" true (fun resp ->
-          let fsatom = r32 resp 8 in
+        if nwmsatom != 0
+        then
+          sendintern sock "_NET_WM_STATE_FULLSCREEN" true (fun resp ->
+            let fsatom = r32 resp 8 in
+            if fsatom != 0
+            then
+              state.fullscreen <-
+                (fun wid ->
+                  let data = String.make 20 '\000' in
+                  state.fs <- not state.fs;
+                  w32 data 0 (if state.fs then 1 else 0);
+                  w32 data 4 fsatom;
 
-          state.fullscreen <-
-            (fun wid ->
-              let data = String.make 20 '\000' in
-              state.fs <- not state.fs;
-              w32 data 0 (if state.fs then 1 else 0);
-              w32 data 4 fsatom;
-
-              let cm = clientmessage 32 0 wid nwmsatom data in
-              let s = sendeventreq 0 root 0x180000 cm in
-              sendstr s sock;
-              ()
+                  let cm = clientmessage 32 0 wid nwmsatom data in
+                  let s = sendeventreq 0 root 0x180000 cm in
+                  sendstr s sock;
+                  ()
+                );
           );
-        );
       );
 
   | c ->
