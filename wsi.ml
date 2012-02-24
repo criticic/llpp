@@ -581,6 +581,8 @@ let setup sock screennum w h =
       let s = createwindowreq wid root 0 0 w h 0 mask in
       sendstr s sock;
 
+      glx wid;
+
       let s = mapreq wid in
       sendstr s sock;
 
@@ -635,7 +637,6 @@ let setup sock screennum w h =
           );
         );
       );
-      glx wid
 
   | c ->
       error "unknown conection setup response %d" (Char.code c)
