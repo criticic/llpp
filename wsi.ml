@@ -857,5 +857,5 @@ let namekey name =
   with Not_found ->
     if String.length name = 1
     then Char.code name.[0]
-    else error "can not find keysym for %S" name;
+    else int_of_string name;
 ;;
