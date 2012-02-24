@@ -4553,7 +4553,7 @@ let viewkeyboard key mask =
           setautoscrollspeed n true
       end
 
-  | 0xff51 | 0xff53 when Wsi.withnone mask -> (* left / right *)
+  | 0xff51 | 0xff53 when not (Wsi.withalt mask) -> (* left / right *)
       if conf.zoom > 1.0
       then
         let dx =
