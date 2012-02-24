@@ -346,7 +346,7 @@ and action =
     | Noaction
     | Action of (uioh -> uioh)
 and linktarget =
-    | Ltexact of ((page * opaque * int) * (int * int * int * int))
+    | Ltexact of ((pageno * int) * (int * int * int * int))
     | Ltgendir of int
 ;;
 
@@ -1496,7 +1496,7 @@ let gotoy y =
                     | Lnolock -> showtext '!' "failed to acquire lock"; lt
                     | Lnotfound -> loop rest
                     | Lfound (n, x0, y0, x1, y1) ->
-                        Ltexact ((l, opaque, n), (x0, y0, x1, y1))
+                        Ltexact ((l.pageno, n), (x0, y0, x1, y1))
           in
           loop state.layout
         in
@@ -4664,15 +4664,16 @@ let gotounder = function
 ;;
 
 let linknavkeyboard key mask linknav =
-  if key = 0xff63
-  then (
-    state.mode <- View;
-    G.postRedisplay "leave linknav"
-  )
-  else
-    begin match linknav with
-    | Ltgendir _ -> viewkeyboard key mask
-    | Ltexact ((l, opaque, n), _) ->
+  let getpage pageno =
+    let rec loop = function
+      | [] -> None
+      | l :: _ when l.pageno = pageno -> Some l
+      | _ :: rest -> loop rest
+    in loop state.layout
+  in
+  let doexact (pageno, n) =
+    match getopaque pageno, getpage pageno with
+    | Some opaque, Some l ->
         if key = 0xff0d
         then
           let under = getlink opaque n in
@@ -4719,37 +4720,47 @@ let linknavkeyboard key mask linknav =
               end;
 
           | Some (Lfound (m, x0, y0, x1, y1)) ->
-              if y0 < l.pagey
-                || l.pagedispy + (y1 - l.pagey) > conf.winh - state.hscrollh
+              if m = n
               then (
-                state.mode <- LinkNav (Ltgendir 0);
-                gotoy (state.y + (y0 - l.pagey))
+                match findpwl l.pageno dir with
+                | Pwlnotfound -> ()
+                | Pwl pageno ->
+                    state.mode <- LinkNav (Ltgendir dir);
+                    let y, h = getpageyh pageno in
+                    let y =
+                      if dir < 0
+                      then y + h - conf.winh
+                      else y
+                    in
+                    gotoy y;
               )
               else (
-                if m = n
-                then (
-                  match findpwl l.pageno dir with
-                  | Pwlnotfound -> ()
-                  | Pwl pageno ->
-                      state.mode <- LinkNav (Ltgendir dir);
-                      let y, h = getpageyh pageno in
-                      let y =
-                        if dir < 0
-                        then y + h - conf.winh
-                        else y
-                      in
-                      gotoy y;
-                )
-                else
-                  let r = x0, y0, x1, y1 in
-                  state.mode <- LinkNav (Ltexact ((l, opaque, m), r));
-                  G.postRedisplay "linknav up"
+                if y0 < l.pagey
+                then gotopage1 l.pageno y0
+                else (
+                  if y1 - l.pagey > l.pagevh
+                  then gotopage1 l.pageno (y1 - conf.winh - state.hscrollh)
+                  else G.postRedisplay "linknav";
+                );
+                let r = x0, y0, x1, y1 in
+                state.mode <- LinkNav (Ltexact ((l.pageno, m), r));
               )
+
           | None ->
               state.mode <- LinkNav (Ltgendir 0);
               viewkeyboard key mask
           end;
-    end;
+    | _ -> viewkeyboard key mask
+  in
+  if key = 0xff63
+  then (
+    state.mode <- View;
+    G.postRedisplay "leave linknav"
+  )
+  else
+    match linknav with
+    | Ltgendir _ -> viewkeyboard key mask
+    | Ltexact (exact, _) -> doexact exact
 ;;
 
 let keyboard key mask =
@@ -4958,8 +4969,8 @@ let display () =
   List.iter drawpage state.layout;
   let rects =
     match state.mode with
-    | LinkNav (Ltexact ((page, _, _), (x0, y0, x1, y1))) ->
-        (page.pageno, 5, (
+    | LinkNav (Ltexact ((pageno, _), (x0, y0, x1, y1))) ->
+        (pageno, 5, (
           float x0, float y0,
           float x1, float y0,
           float x1, float y1,
