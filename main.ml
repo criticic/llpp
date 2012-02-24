@@ -4676,6 +4676,7 @@ let linknavkeyboard key mask linknav =
         if key = 0xff0d
         then
           let under = getlink opaque n in
+          G.postRedisplay "link gotounder";
           gotounder under;
           state.mode <- View;
         else
