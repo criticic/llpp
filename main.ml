@@ -6303,6 +6303,7 @@ let () =
   state.text <- "Opening " ^ state.path;
   setaalevel conf.aalevel;
   writeopen state.path state.password;
+  Wsi.settitle ("llpp " ^ Filename.basename state.path);
   state.uioh <- uioh;
   setfontsize fstate.fontsize;
   doreshape conf.winw conf.winh;
