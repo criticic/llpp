@@ -4913,16 +4913,9 @@ let showsel () =
             then
               match getopaque l.pageno with
               | Some opaque ->
-                  let dx, dy = pagetranslatepoint l 0 0 in
-                  let x0 = x0 + dx
-                  and y0 = y0 + dy
-                  and x1 = x1 + dx
-                  and y1 = y1 + dy in
-                  GlMat.mode `modelview;
-                  GlMat.push ();
-                  GlMat.translate ~x:(float ~-dx) ~y:(float ~-dy) ();
+                  let x0, y0 = pagetranslatepoint l x0 y0 in
+                  let x1, y1 = pagetranslatepoint l x1 y1 in
                   seltext opaque (x0, y0, x1, y1);
-                  GlMat.pop ();
               | _ -> ()
             else loop ls
         | [] -> ()

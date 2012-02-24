@@ -985,8 +985,12 @@ static void layout (void)
     }
 
     while (p-- != state.pagedims)  {
-        int w = p->bounds.x1;
-        int h = p->bounds.y1;
+        int x0 = MIN (p->bounds.x0, p->bounds.x1);
+        int y0 = MIN (p->bounds.y0, p->bounds.y1);
+        int x1 = MAX (p->bounds.x0, p->bounds.x1);
+        int y1 = MAX (p->bounds.y0, p->bounds.y1);
+        int w = x1 - x0;
+        int h = y1 - y0;
 
         printd ("pdim %d %d %d %d", p->pageno, w, h, p->left);
     }
@@ -1607,6 +1611,8 @@ static void showsel (struct page *page, int ox, int oy)
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
     glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
 
+    ox += state.pagedims[page->pdimno].bounds.x0;
+    oy += state.pagedims[page->pdimno].bounds.y0;
     for (span = first.span; span; span = span->next) {
         int i, j, k;
 
@@ -1665,6 +1671,8 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     glEnable (GL_LINE_STIPPLE);
     glLineStipple (0.5, 0xcccc);
 
+    xoff -= state.pagedims[page->pdimno].bounds.x0;
+    yoff -= state.pagedims[page->pdimno].bounds.y0;
     ctm = fz_concat (pagectm (page), fz_translate (xoff, yoff));
 
     glBegin (GL_QUADS);
@@ -2249,6 +2257,8 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
     page = parse_pointer ("ml_whatsunder", s);
     pdim = &state.pagedims[page->pdimno];
+    x += pdim->bounds.x0;
+    y += pdim->bounds.y0;
     link = getlink (page, x, y);
     if (link) {
         LINKTOVAL;
@@ -2310,6 +2320,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     struct page *page;
     fz_text_span *span;
     struct mark first, last;
+    struct pagedim *pdim;
     int i, x0, x1, y0, y1;
     char *s = String_val (ptr_v);
 
@@ -2320,10 +2331,11 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     page = parse_pointer ("ml_seltext", s);
     ensuretext (page);
 
-    x0 = Int_val (Field (rect_v, 0));
-    y0 = Int_val (Field (rect_v, 1));
-    x1 = Int_val (Field (rect_v, 2));
-    y1 = Int_val (Field (rect_v, 3));
+    pdim = &state.pagedims[page->pdimno];
+    x0 = Int_val (Field (rect_v, 0)) + pdim->bounds.x0;;
+    y0 = Int_val (Field (rect_v, 1)) + pdim->bounds.y0;
+    x1 = Int_val (Field (rect_v, 2)) + pdim->bounds.x0;
+    y1 = Int_val (Field (rect_v, 3)) + pdim->bounds.y0;
 
     if (0) {
         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
