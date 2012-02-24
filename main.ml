@@ -4514,7 +4514,7 @@ let viewkeyboard key mask =
       then setzoom (maxw /. float conf.winw)
 
   | 60 | 62 ->                          (* < > *)
-      reqlayout (conf.angle + (if key = 60 then 30 else -30)) conf.proportional
+      reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.proportional
 
   | 91 | 93 ->                          (* [ ] *)
       conf.colorscale <-
