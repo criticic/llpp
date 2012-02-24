@@ -1477,6 +1477,7 @@ static void * mainloop (void *unused)
             state.rotate = rotate;
             state.proportional = proportional;
             layout ();
+            state.gen += 1;
             unlock ("reqlayout");
             printd ("continue %d", state.pagecount);
         }
