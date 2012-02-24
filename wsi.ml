@@ -51,6 +51,7 @@ type state =
     ; mutable deleatom : int
     ; mutable idbase : int
     ; mutable fullscreen : (int -> unit)
+    ; mutable setwmname : (string -> unit)
     ; mutable stringatom : int
     ; mutable t : t
     ; mutable sock : Unix.file_descr
@@ -71,6 +72,7 @@ let state =
   ; deleatom = -1
   ; idbase = -1
   ; fullscreen = (fun _ -> ())
+  ; setwmname = (fun _ -> ())
   ; sock = Unix.stdin
   ; t = onot
   ; w = -1
@@ -323,7 +325,7 @@ let getkeysym code mask =
   else keysym
 ;;
 
-let readresp sock =
+let rec readresp sock =
   let resp = readstr sock 32 in
   let opcode = r8 resp 0 in
   match opcode land lnot 0x80 with
@@ -616,7 +618,23 @@ let setup sock screennum w h =
 
       sendintern sock "UTF8_STRING" true (fun resp ->
         let atom = r32 resp 8 in
-        if atom != 0 then state.stringatom <- atom;
+        if atom != 0
+        then state.stringatom <- atom;
+      );
+
+      let setwmname s =
+        let s = changepropreq state.idbase 39 state.stringatom 8 s in
+        sendstr s state.sock;
+      in
+      state.setwmname <- setwmname;
+      sendintern sock "_NET_WM_NAME" true (fun resp ->
+        let atom = r32 resp 8 in
+        if atom != 0
+        then state.setwmname <- (fun s ->
+          setwmname s;
+          let s = changepropreq state.idbase atom state.stringatom 8 s in
+          sendstr s state.sock;
+        );
       );
 
       sendintern sock "_NET_WM_STATE" true (fun resp ->
@@ -759,8 +777,7 @@ let init t w h =
 ;;
 
 let settitle s =
-  let s = changepropreq state.idbase 39 state.stringatom 8 s in
-  sendstr s state.sock;
+  state.setwmname s;
 ;;
 
 let setcursor cursor =
