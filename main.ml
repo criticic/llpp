@@ -1619,10 +1619,6 @@ let invalidate () =
   state.invalidated <- state.invalidated + 1;
 ;;
 
-let writeopen path password  =
-  wcmd "open %s\000%s\000" path password;
-;;
-
 let opendoc path password =
   invalidate ();
   state.path <- path;
@@ -1631,8 +1627,8 @@ let opendoc path password =
   state.docinfo <- [];
 
   setaalevel conf.aalevel;
-  writeopen path password;
   Wsi.settitle ("llpp " ^ Filename.basename path);
+  wcmd "open %s\000%s\000" path password;
   wcmd "geometry %d %d" state.w conf.winh;
 ;;
 
@@ -6317,9 +6313,7 @@ let () =
   state.sr <- sr;
   state.sw <- sw;
   state.text <- "Opening " ^ state.path;
-  setaalevel conf.aalevel;
-  writeopen state.path state.password;
-  Wsi.settitle ("llpp " ^ Filename.basename state.path);
+  opendoc state.path state.password;
   state.uioh <- uioh;
   setfontsize fstate.fontsize;
   doreshape conf.winw conf.winh;
