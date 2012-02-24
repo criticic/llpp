@@ -1474,10 +1474,12 @@ static void * mainloop (void *unused)
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
             lock ("reqlayout");
+            if (state.rotate != rotate || state.proportional != proportional) {
+                state.gen += 1;
+            }
             state.rotate = rotate;
             state.proportional = proportional;
             layout ();
-            state.gen += 1;
             unlock ("reqlayout");
             printd ("continue %d", state.pagecount);
         }
