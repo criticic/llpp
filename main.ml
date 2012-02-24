@@ -4703,12 +4703,11 @@ let linknavkeyboard key mask linknav =
 
             | _ -> None, 0
           in
-          begin match opt with
-          | Some Lnolock -> showtext '!' "failed to acquire lock";
-          | Some Lnotfound ->
-              begin match findpwl l.pageno dir with
-              | Pwlnotfound -> ()
-              | Pwl pageno ->
+          let pwl l dir =
+            begin match findpwl l.pageno dir with
+            | Pwlnotfound -> ()
+            | Pwl pageno ->
+                let notfound dir =
                   state.mode <- LinkNav (Ltgendir dir);
                   let y, h = getpageyh pageno in
                   let y =
@@ -4716,24 +4715,31 @@ let linknavkeyboard key mask linknav =
                     then y + h - conf.winh
                     else y
                   in
-                  gotoy y;
-              end;
-
+                  gotoy y
+                in
+                begin match getopaque pageno, getpage pageno with
+                | Some opaque, Some _ ->
+                    let link =
+                      let ld = if dir > 0 then LDfirst else LDlast in
+                      findlink opaque ld
+                    in
+                    begin match link with
+                    | Lfound (m, x0, y0, x1, y1) ->
+                        let r = x0, y0, x1, y1 in
+                        state.mode <- LinkNav (Ltexact ((pageno, m), r));
+                        G.postRedisplay "linknav jpage";
+                    | _ -> notfound dir
+                    end;
+                | _ -> notfound dir
+                end;
+            end;
+          in
+          begin match opt with
+          | Some Lnolock -> showtext '!' "failed to acquire lock";
+          | Some Lnotfound -> pwl l dir;
           | Some (Lfound (m, x0, y0, x1, y1)) ->
               if m = n
-              then (
-                match findpwl l.pageno dir with
-                | Pwlnotfound -> ()
-                | Pwl pageno ->
-                    state.mode <- LinkNav (Ltgendir dir);
-                    let y, h = getpageyh pageno in
-                    let y =
-                      if dir < 0
-                      then y + h - conf.winh
-                      else y
-                    in
-                    gotoy y;
-              )
+              then pwl l dir
               else (
                 if y0 < l.pagey
                 then gotopage1 l.pageno y0
