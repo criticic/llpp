@@ -655,7 +655,6 @@ let setup sock screennum w h =
                   let cm = clientmessage 32 0 wid nwmsatom data in
                   let s = sendeventreq 0 root 0x180000 cm in
                   sendstr s sock;
-                  ()
                 );
           );
       );
