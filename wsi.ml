@@ -18,68 +18,68 @@ let vlog fmt = Format.kprintf ignore fmt;;
 exception Quit;;
 
 let onot = object
-    method display = ()
-    method reshape _ _ = ()
-    method mouse _ _ _ _ _ = ()
-    method motion _ _ = ()
-    method pmotion _ _ = ()
-    method key _ _ = ()
-    method enter _ _ = ()
-    method leave = ()
-    method quit = exit 0
+  method display         = ()
+  method reshape _ _     = ()
+  method mouse _ _ _ _ _ = ()
+  method motion _ _      = ()
+  method pmotion _ _     = ()
+  method key _ _         = ()
+  method enter _ _       = ()
+  method leave           = ()
+  method quit            = exit 0
 end;;
 
 class type t = object
   method display : unit
   method reshape : int -> int -> unit
-  method mouse : int -> bool -> int -> int -> int -> unit
-  method motion : int -> int -> unit
+  method mouse   : int -> bool -> int -> int -> int -> unit
+  method motion  : int -> int -> unit
   method pmotion : int -> int -> unit
-  method key : int -> int -> unit
-  method enter : int -> int -> unit
-  method leave : unit
-  method quit : unit
+  method key     : int -> int -> unit
+  method enter   : int -> int -> unit
+  method leave   : unit
+  method quit    : unit
 end;;
 
 type state =
-    { mutable mink : int
-    ; mutable maxk : int
-    ; mutable keymap : int array array
-    ; fifo : (string -> unit) Queue.t
-    ; mutable seq : int
-    ; mutable protoatom : int
-    ; mutable deleatom : int
-    ; mutable idbase : int
+    { mutable mink       : int
+    ; mutable maxk       : int
+    ; mutable keymap     : int array array
+    ; fifo               : (string -> unit) Queue.t
+    ; mutable seq        : int
+    ; mutable protoatom  : int
+    ; mutable deleatom   : int
+    ; mutable idbase     : int
     ; mutable fullscreen : (int -> unit)
-    ; mutable setwmname : (string -> unit)
+    ; mutable setwmname  : (string -> unit)
     ; mutable stringatom : int
-    ; mutable t : t
-    ; mutable sock : Unix.file_descr
-    ; mutable w : int
-    ; mutable h : int
-    ; mutable fs : bool
-    ; mutable parent : int
+    ; mutable t          : t
+    ; mutable sock       : Unix.file_descr
+    ; mutable w          : int
+    ; mutable h          : int
+    ; mutable fs         : bool
+    ; mutable parent     : int
     }
 ;;
 
 let state =
-  { mink = max_int
-  ; maxk = min_int
-  ; keymap = [||]
-  ; fifo = Queue.create ()
-  ; seq = 0
-  ; protoatom = -1
-  ; deleatom = -1
-  ; idbase = -1
+  { mink       = max_int
+  ; maxk       = min_int
+  ; keymap     = [||]
+  ; fifo       = Queue.create ()
+  ; seq        = 0
+  ; protoatom  = -1
+  ; deleatom   = -1
+  ; idbase     = -1
   ; fullscreen = (fun _ -> ())
-  ; setwmname = (fun _ -> ())
-  ; sock = Unix.stdin
-  ; t = onot
-  ; w = -1
-  ; h = -1
-  ; fs = false
+  ; setwmname  = (fun _ -> ())
+  ; sock       = Unix.stdin
+  ; t          = onot
+  ; w          = -1
+  ; h          = -1
+  ; fs         = false
   ; stringatom = 31
-  ; parent = -1
+  ; parent     = -1
   }
 ;;
 
