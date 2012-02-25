@@ -5008,6 +5008,17 @@ let display () =
   Wsi.swapb ();
 ;;
 
+let display () =
+  if state.invalidated = 0
+  then display ()
+  else (
+    GlFunc.draw_buffer `front;
+    GlClear.color (scalecolor2 conf.bgcolor);
+    GlClear.clear [`color];
+    GlFunc.draw_buffer `back;
+  );
+;;
+
 let zoomrect x y x1 y1 =
   let x0 = min x x1
   and x1 = max x x1
