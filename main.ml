@@ -1607,11 +1607,6 @@ let gotopage n top =
   gotoghyll y
 ;;
 
-let gotoy_and_clear_text y =
-  gotoghyll y;
-  if not conf.verbose then state.text <- "";
-;;
-
 let gotopage1 n top =
   let y = getpagey n in
   let y = y + top in
