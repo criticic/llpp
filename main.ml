@@ -1489,7 +1489,14 @@ let gotoy y =
                 | None -> loop rest
                 | Some opaque ->
                     let link =
-                      findlink opaque (LDfirstvisible (l.pagex, l.pagey, dir))
+                      let ld =
+                        if dir = 0
+                        then LDfirstvisible (l.pagex, l.pagey, dir)
+                        else (
+                          if dir > 0 then LDfirst else LDlast
+                        )
+                      in
+                      findlink opaque ld
                     in
                     match link with
                     | Lnotfound -> loop rest
