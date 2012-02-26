@@ -992,7 +992,7 @@ let getpagey pageno = fst (getpageyh pageno);;
 
 let nogeomcmds cmds =
   match cmds with
-  | _, [] -> true
+  | s, [] -> String.length s = 0
   | _ -> false
 ;;
 
