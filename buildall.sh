@@ -35,7 +35,8 @@ test -d mupdf/thirdparty || \
 make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
 
 (cd lablGL-1.04 \
-    && sed '17cXLIBS = -lX11' Makefile.config.linux.mdk > Makefile.config \
+    && sed '17c\
+XLIBS = -lX11' Makefile.config.linux.mdk > Makefile.config \
     && $make lib libopt \
     && $make install \
             BINDIR=$root/bin \
