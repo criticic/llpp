@@ -6288,6 +6288,9 @@ let () =
 
   let globalkeyhash = findkeyhash conf "global" in
   state.wsfd <-  Wsi.init (object
+    method expose =
+      if nogeomcmds state.geomcmds
+      then display ()
     method display = display ()
     method reshape w h = reshape w h
     method mouse b d x y m = mouse b d x y m

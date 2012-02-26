@@ -17,6 +17,7 @@ let vlog fmt = Format.kprintf ignore fmt;;
 
 let onot = object
   method display         = ()
+  method expose          = ()
   method reshape _ _     = ()
   method mouse _ _ _ _ _ = ()
   method motion _ _      = ()
@@ -29,6 +30,7 @@ end;;
 
 class type t = object
   method display : unit
+  method expose  : unit
   method reshape : int -> int -> unit
   method mouse   : int -> bool -> int -> int -> int -> unit
   method motion  : int -> int -> unit
@@ -403,7 +405,7 @@ let rec readresp sock =
 
   | 12 ->                               (* exposure *)
       vlog "exposure";
-      state.t#display
+      state.t#expose
 
   | 15 ->                               (* visibility *)
       let vis = r8 resp 8 in

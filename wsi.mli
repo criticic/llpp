@@ -8,6 +8,7 @@ type cursor =
 
 class type t = object
   method display : unit
+  method expose : unit
   method reshape : int -> int -> unit
   method mouse : int -> bool -> int -> int -> int -> unit
   method motion : int -> int -> unit
