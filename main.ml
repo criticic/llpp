@@ -1522,6 +1522,11 @@ let gotoy y =
     preload layout;
   );
   state.ghyll <- noghyll;
+  if conf.updatecurs
+  then (
+    let mx, my = state.mpos in
+    updateunder mx my;
+  );
 ;;
 
 let conttiling pageno opaque =
@@ -5034,11 +5039,6 @@ let display () =
   end;
   enttext ();
   scrollindicator ();
-  if conf.updatecurs
-  then (
-    let mx, my = state.mpos in
-    updateunder mx my;
-  );
   Wsi.swapb ();
 ;;
 
