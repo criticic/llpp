@@ -792,6 +792,27 @@ let updateunder x y =
       Wsi.setcursor Wsi.CURSOR_INFO
 ;;
 
+let showlinktype under =
+  if conf.hlinks
+  then
+    match under with
+    | Unone -> ()
+    | Ulinkuri uri ->
+        showtext 'u' ("ri: " ^ uri)
+    | Ulinkgoto (page, _) ->
+        showtext 'p' ("age: " ^ string_of_int (page+1));
+    | Utext s ->
+        showtext 'f' ("ont: " ^ s);
+    | Uunexpected s ->
+        showtext 'u' ("nexpected: " ^ s);
+    | Ulaunch s ->
+        showtext 'l' ("launch: " ^ s);
+    | Unamed s ->
+        showtext 'n' ("named: " ^ s);
+    | Uremote (filename, pageno) ->
+        showtext 'r' (Printf.sprintf "emote: %s (%d)" filename pageno);
+;;
+
 let addchar s c =
   let b = Buffer.create (String.length s + 1) in
   Buffer.add_string b s;
@@ -1512,6 +1533,7 @@ let gotoy y =
                     match link with
                     | Lnotfound -> loop rest
                     | Lfound (n, x0, y0, x1, y1) ->
+                        showlinktype (getlink opaque n);
                         Ltexact ((l.pageno, n), (x0, y0, x1, y1))
           in
           loop state.layout
@@ -4767,6 +4789,7 @@ let linknavkeyboard key mask linknav =
                     begin match link with
                     | Lfound (m, x0, y0, x1, y1) ->
                         let r = x0, y0, x1, y1 in
+                        showlinktype (getlink opaque m);
                         state.mode <- LinkNav (Ltexact ((pageno, m), r));
                         G.postRedisplay "linknav jpage";
                     | _ -> notfound dir
@@ -4789,6 +4812,7 @@ let linknavkeyboard key mask linknav =
                   else G.postRedisplay "linknav";
                 );
                 let r = x0, y0, x1, y1 in
+                showlinktype (getlink opaque m);
                 state.mode <- LinkNav (Ltexact ((l.pageno, m), r));
               )
 
