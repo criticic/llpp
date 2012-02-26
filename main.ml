@@ -781,7 +781,7 @@ let updateunder x y =
       if conf.underinfo then showtext 'u' ("nexpected: " ^ s);
       Wsi.setcursor Wsi.CURSOR_INHERIT
   | Ulaunch s ->
-      if conf.underinfo then showtext 'l' ("launch: " ^ s);
+      if conf.underinfo then showtext 'l' ("aunch: " ^ s);
       Wsi.setcursor Wsi.CURSOR_INHERIT
   | Unamed s ->
       if conf.underinfo then showtext 'n' ("amed: " ^ s);
@@ -806,7 +806,7 @@ let showlinktype under =
     | Uunexpected s ->
         showtext 'u' ("nexpected: " ^ s);
     | Ulaunch s ->
-        showtext 'l' ("launch: " ^ s);
+        showtext 'l' ("aunch: " ^ s);
     | Unamed s ->
         showtext 'n' ("amed: " ^ s);
     | Uremote (filename, pageno) ->
