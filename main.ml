@@ -604,6 +604,7 @@ let makehelp () =
 ;;
 
 let noghyll _ = ();;
+let firstgeomcmds = "", [];;
 
 let state =
   { sr            = Unix.stdin
@@ -639,7 +640,7 @@ let state =
   ; bookmarks     = []
   ; path          = ""
   ; password      = ""
-  ; geomcmds      = "", []
+  ; geomcmds      = firstgeomcmds
   ; hists         =
       { nav       = cbnew 10 (0, 0.0)
       ; pat       = cbnew 10 ""
@@ -1726,37 +1727,34 @@ let represent () =
   | _ -> gotoanchor state.anchor
 ;;
 
-let reshape =
-  let firsttime = ref true in
-  fun ~w ~h ->
-    GlDraw.viewport 0 0 w h;
-    if nogeomcmds state.geomcmds && not !firsttime
-    then state.anchor <- getanchor ();
+let reshape w h =
+  GlDraw.viewport 0 0 w h;
+  if state.geomcmds != firstgeomcmds && nogeomcmds state.geomcmds
+  then state.anchor <- getanchor ();
 
-    firsttime := false;
-    conf.winw <- w;
-    let w = truncate (float w *. conf.zoom) - state.scrollw in
-    let w = max w 2 in
-    conf.winh <- h;
-    setfontsize fstate.fontsize;
-    GlMat.mode `modelview;
-    GlMat.load_identity ();
+  conf.winw <- w;
+  let w = truncate (float w *. conf.zoom) - state.scrollw in
+  let w = max w 2 in
+  conf.winh <- h;
+  setfontsize fstate.fontsize;
+  GlMat.mode `modelview;
+  GlMat.load_identity ();
 
-    GlMat.mode `projection;
-    GlMat.load_identity ();
-    GlMat.rotate ~x:1.0 ~angle:180.0 ();
-    GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
-    GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
+  GlMat.mode `projection;
+  GlMat.load_identity ();
+  GlMat.rotate ~x:1.0 ~angle:180.0 ();
+  GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
+  GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
 
-    invalidate "geometry"
-      (fun () ->
-        state.w <- w;
-        let w =
-          match conf.columns with
-          | None -> w
-          | Some ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
-        in
-        wcmd "geometry %d %d" w h);
+  invalidate "geometry"
+    (fun () ->
+      state.w <- w;
+      let w =
+        match conf.columns with
+        | None -> w
+        | Some ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
+      in
+      wcmd "geometry %d %d" w h);
 ;;
 
 let enttext () =
