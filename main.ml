@@ -793,7 +793,7 @@ let updateunder x y =
 ;;
 
 let showlinktype under =
-  if conf.hlinks
+  if conf.underinfo
   then
     match under with
     | Unone -> ()
