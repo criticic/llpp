@@ -784,7 +784,7 @@ let updateunder x y =
       if conf.underinfo then showtext 'l' ("launch: " ^ s);
       Wsi.setcursor Wsi.CURSOR_INHERIT
   | Unamed s ->
-      if conf.underinfo then showtext 'n' ("named: " ^ s);
+      if conf.underinfo then showtext 'n' ("amed: " ^ s);
       Wsi.setcursor Wsi.CURSOR_INHERIT
   | Uremote (filename, pageno) ->
       if conf.underinfo then showtext 'r'
@@ -808,7 +808,7 @@ let showlinktype under =
     | Ulaunch s ->
         showtext 'l' ("launch: " ^ s);
     | Unamed s ->
-        showtext 'n' ("named: " ^ s);
+        showtext 'n' ("amed: " ^ s);
     | Uremote (filename, pageno) ->
         showtext 'r' (Printf.sprintf "emote: %s (%d)" filename pageno);
 ;;
