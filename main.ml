@@ -162,6 +162,7 @@ let cbnew n v =
 let drawstring size x y s =
   Gl.enable `blend;
   Gl.enable `texture_2d;
+  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   ignore (drawstr size x y s);
   Gl.disable `blend;
   Gl.disable `texture_2d;
@@ -5025,7 +5026,6 @@ let display () =
   | Mzoomrect ((x0, y0), (x1, y1)) ->
       Gl.enable `blend;
       GlDraw.color (0.3, 0.3, 0.3) ~alpha:0.5;
-      GlDraw.polygon_mode `both `fill;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
       GlDraw.rect (float x0, float y0)
         (float x1, float y1);
