@@ -81,6 +81,7 @@ tunables
 -C                      - set column count
 -x                      - set command to run on selection
 -f                      - toggle "what's under cursor" identification
+                        - (or "what's currently selected" in link navigation mode)
     (only font name of the text under cursor and link target currently)
 
 bird's eye mode
