@@ -1557,8 +1557,8 @@ let conttiling pageno opaque =
 ;;
 
 let gotoy_and_clear_text y =
-  gotoy y;
   if not conf.verbose then state.text <- "";
+  gotoy y;
 ;;
 
 let getanchor () =
