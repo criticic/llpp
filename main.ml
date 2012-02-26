@@ -5023,7 +5023,6 @@ let display () =
   showrects rects;
   showsel ();
   state.uioh#display;
-  scrollindicator ();
   begin match state.mstate with
   | Mzoomrect ((x0, y0), (x1, y1)) ->
       Gl.enable `blend;
@@ -5036,6 +5035,7 @@ let display () =
   | _ -> ()
   end;
   enttext ();
+  scrollindicator ();
   if conf.updatecurs
   then (
     let mx, my = state.mpos in
