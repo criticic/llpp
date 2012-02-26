@@ -830,7 +830,7 @@ let xlatt, xlatf =
   addcr '0' '9';
   addcr 'a' 'z';
   addcr 'A' 'Z';
-  String.iter addc "`~!@#$%^&*()-_=+\\|[{]};:,./?";
+  String.iter addc "`~!@#$%^&*()-_=+\\|[{]};:,./<>?";
   for i = 0 to 29 do add ("f" ^ string_of_int (i+1)) [] (0xffbe + i) done;
   add "space" [] 0x20;
   add "return" ["ret"; "enter"] 0xff0d;
