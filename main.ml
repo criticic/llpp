@@ -409,7 +409,7 @@ type state =
     ; mutable bookmarks     : outline list
     ; mutable path          : string
     ; mutable password      : string
-    ; mutable invalidated   : int
+    ; mutable geomcmds      : (string * ((string * (unit -> unit)) list))
     ; mutable memused       : memsize
     ; mutable gen           : gen
     ; mutable throttle      : (page list * int * float) option
@@ -639,7 +639,7 @@ let state =
   ; bookmarks     = []
   ; path          = ""
   ; password      = ""
-  ; invalidated   = 0
+  ; geomcmds      = "", []
   ; hists         =
       { nav       = cbnew 10 (0, 0.0)
       ; pat       = cbnew 10 ""
@@ -883,6 +883,7 @@ let wcmd fmt =
       let s = Buffer.contents b in
       let n = String.length s in
       let len = n - 4 in
+      (* dolog "wcmd %S" (String.sub s 4 len); *)
       s.[0] <- Char.chr ((len lsr 24) land 0xff);
       s.[1] <- Char.chr ((len lsr 16) land 0xff);
       s.[2] <- Char.chr ((len lsr  8) land 0xff);
@@ -989,6 +990,12 @@ let getpagedim pageno =
 
 let getpagey pageno = fst (getpageyh pageno);;
 
+let nogeomcmds cmds =
+  match cmds with
+  | _, [] -> true
+  | _ -> false
+;;
+
 let layout1 y sh =
   let sh = sh - state.hscrollh in
   let rec f ~pageno ~pdimno ~prev ~py ~dy ~pdims ~accu =
@@ -1066,7 +1073,7 @@ let layout1 y sh =
           ~pdims:rest
           ~accu
   in
-  if state.invalidated = 0
+  if nogeomcmds state.geomcmds
   then (
     let accu =
       f
@@ -1136,7 +1143,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
         in
         fold accu (n+1)
   in
-  if state.invalidated = 0
+  if nogeomcmds state.geomcmds
   then List.rev (fold [] 0)
   else []
 ;;
@@ -1358,7 +1365,8 @@ let tilepage n p layout =
 
     | [] -> ()
   in
-  if state.invalidated = 0 then loop layout;
+  if nogeomcmds state.geomcmds
+  then loop layout;
 ;;
 
 let preloadlayout visiblepages =
@@ -1399,7 +1407,8 @@ let load pages =
           end;
       | _ -> ()
   in
-  if state.invalidated = 0 then loop pages
+  if nogeomcmds state.geomcmds
+  then loop pages
 ;;
 
 let preload pages =
@@ -1613,16 +1622,27 @@ let gotopage1 n top =
   gotoghyll y
 ;;
 
-let invalidate () =
+let invalidate s f =
   state.layout <- [];
   state.pdims <- [];
   state.rects <- [];
   state.rects1 <- [];
-  state.invalidated <- state.invalidated + 1;
+  match state.geomcmds with
+  | ps, [] when String.length ps = 0 ->
+      f ();
+      state.geomcmds <- s, [];
+
+  | ps, [] ->
+      state.geomcmds <- ps, [s, f];
+
+  | ps, (s', _) :: rest when s' = s ->
+      state.geomcmds <- ps, ((s, f) :: rest);
+
+  | ps, cmds ->
+      state.geomcmds <- ps, ((s, f) :: cmds);
 ;;
 
 let opendoc path password =
-  invalidate ();
   state.path <- path;
   state.password <- password;
   state.gen <- state.gen + 1;
@@ -1631,7 +1651,9 @@ let opendoc path password =
   setaalevel conf.aalevel;
   Wsi.settitle ("llpp " ^ Filename.basename path);
   wcmd "open %s\000%s\000" path password;
-  wcmd "geometry %d %d" state.w conf.winh;
+  invalidate "reqlayout"
+    (fun () ->
+      wcmd "reqlayout %d %d" conf.angle (btod conf.proportional));
 ;;
 
 let scalecolor c =
@@ -1708,14 +1730,13 @@ let reshape =
   let firsttime = ref true in
   fun ~w ~h ->
     GlDraw.viewport 0 0 w h;
-    if state.invalidated = 0 && not !firsttime
+    if nogeomcmds state.geomcmds && not !firsttime
     then state.anchor <- getanchor ();
 
     firsttime := false;
     conf.winw <- w;
     let w = truncate (float w *. conf.zoom) - state.scrollw in
     let w = max w 2 in
-    state.w <- w;
     conf.winh <- h;
     setfontsize fstate.fontsize;
     GlMat.mode `modelview;
@@ -1727,13 +1748,15 @@ let reshape =
     GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
     GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
 
-    let w =
-      match conf.columns with
-      | None -> w
-      | Some ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
-    in
-    invalidate ();
-    wcmd "geometry %d %d" w h;
+    invalidate "geometry"
+      (fun () ->
+        state.w <- w;
+        let w =
+          match conf.columns with
+          | None -> w
+          | Some ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
+        in
+        wcmd "geometry %d %d" w h);
 ;;
 
 let enttext () =
@@ -1906,15 +1929,25 @@ let act cmds =
           exit 1;
       in
       state.pagecount <- n;
-      state.invalidated <- state.invalidated - 1;
       begin match state.currently with
       | Outlining l ->
           state.currently <- Idle;
           state.outlines <- Array.of_list (List.rev l)
       | _ -> ()
       end;
-      if state.invalidated = 0
-      then represent ();
+
+      let cur, cmds = state.geomcmds in
+      if String.length cur = 0
+      then failwith "umpossible";
+
+      begin match List.rev cmds with
+      | [] ->
+          state.geomcmds <- "", [];
+          represent ();
+      | (s, f) :: rest ->
+          f ();
+          state.geomcmds <- s, List.rev rest;
+      end;
       if conf.maxwait = None
       then G.postRedisplay "continue";
 
@@ -2199,7 +2232,8 @@ let textentry text key =
 let reqlayout angle proportional =
   match state.throttle with
   | None ->
-      if state.invalidated = 0 then state.anchor <- getanchor ();
+      if nogeomcmds state.geomcmds
+      then state.anchor <- getanchor ();
       conf.angle <- angle mod 360;
       if conf.angle != 0
       then (
@@ -2208,18 +2242,20 @@ let reqlayout angle proportional =
         | _ -> ()
       );
       conf.proportional <- proportional;
-      invalidate ();
-      wcmd "reqlayout %d %d" conf.angle (btod proportional);
+      invalidate "reqlayout"
+        (fun () -> wcmd "reqlayout %d %d" conf.angle (btod proportional));
   | _ -> ()
 ;;
 
 let settrim trimmargins trimfuzz =
-  if state.invalidated = 0 then state.anchor <- getanchor ();
+  if nogeomcmds state.geomcmds
+  then state.anchor <- getanchor ();
   conf.trimmargins <- trimmargins;
   conf.trimfuzz <- trimfuzz;
   let x0, y0, x1, y1 = trimfuzz in
-  invalidate ();
-  wcmd "settrim %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
+  invalidate "settrim"
+    (fun () ->
+      wcmd "settrim %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1);
   Hashtbl.iter (fun _ opaque ->
     wcmd "freepage %s" opaque;
   ) state.pagemap;
@@ -5009,7 +5045,7 @@ let display () =
 ;;
 
 let display () =
-  if state.invalidated = 0
+  if nogeomcmds state.geomcmds
   then display ()
   else (
     GlFunc.draw_buffer `front;
