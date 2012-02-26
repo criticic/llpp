@@ -1480,6 +1480,8 @@ static void * mainloop (void *unused)
             state.rotate = rotate;
             state.proportional = proportional;
             layout ();
+            process_outline ();
+            state.gen++;
             unlock ("reqlayout");
             printd ("continue %d", state.pagecount);
         }
