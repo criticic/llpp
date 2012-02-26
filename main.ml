@@ -4807,8 +4807,9 @@ let linknavkeyboard key mask linknav =
                 if y0 < l.pagey
                 then gotopage1 l.pageno y0
                 else (
-                  if y1 - l.pagey > l.pagevh
-                  then gotopage1 l.pageno (y1 - conf.winh - state.hscrollh)
+                  let d = fstate.fontsize + 1 in
+                  if y1 - l.pagey > l.pagevh - d
+                  then gotopage1 l.pageno (y1 - conf.winh - state.hscrollh + d)
                   else G.postRedisplay "linknav";
                 );
                 let r = x0, y0, x1, y1 in
