@@ -656,7 +656,6 @@ let setup sock screennum w h =
       let completed = ref false in
       sendwithrep sock s (fun resp ->
         glx wid;
-        
         let w = r16 resp 16
         and h = r16 resp 18 in
         state.w <- w;
