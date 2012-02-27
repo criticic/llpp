@@ -12,7 +12,7 @@ ccopt="$(freetype-config --cflags) -O -include ft2build.h -D_GNU_SOURCE"
 export LIBRARY_PATH=$LIBRARY_PATH:$mupdflibpath
 export CPATH=$CPATH:$mupdfincpath
 
-sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
+sh $srcpath/mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
 ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
 ocamlc -c -o help.cmo help.ml

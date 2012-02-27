@@ -50,7 +50,7 @@ cd ..
 
 srcpath=$(dirname $0)
 
-sh mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
+sh $srcpath/mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
 tp=$root/mupdf/thirdparty
 
