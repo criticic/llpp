@@ -73,14 +73,15 @@ cclib="$cclib -lX11"
 echo Building llpp...
 if test "$1" = "opt"; then
     cclib="$cclib -lpthread"
-    ocamlopt -c -o link.o -ccopt "$ccopt" $srcpath/link.c
-    ocamlopt -c -o help.cmx help.ml
-    ocamlopt -c -o wsi.cmi $srcpath/wsi.mli
-    ocamlopt -c -o wsi.cmx $srcpath/wsi.ml
-    ocamlopt -c -o parser.cmx $srcpath/parser.ml
-    ocamlopt -c -o main.cmx -I $root/lib/ocaml/lablGL $srcpath/main.ml
+    test -x $(type -p ocamlopt.opt) && comp=ocamlopt.opt || comp=ocamlopt
+    $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
+    $comp -c -o help.cmx help.ml
+    $comp -c -o wsi.cmi $srcpath/wsi.mli
+    $comp -c -o wsi.cmx $srcpath/wsi.ml
+    $comp -c -o parser.cmx $srcpath/parser.ml
+    $comp -c -o main.cmx -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
-    ocamlopt -o llpp                    \
+    $comp -o llpp                       \
         -I $root/lib/ocaml/lablGL       \
         str.cmxa unix.cmxa lablgl.cmxa  \
         link.o                          \
@@ -90,14 +91,15 @@ if test "$1" = "opt"; then
         wsi.cmx                         \
         main.cmx
 else
-    ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
-    ocamlc -c -o help.cmo help.ml
-    ocamlc -c -o wsi.cmi $srcpath/wsi.mli
-    ocamlc -c -o wsi.cmo $srcpath/wsi.ml
-    ocamlc -c -o parser.cmo $srcpath/parser.ml
-    ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
+    test -x $(type -p ocamlc.opt) && comp=ocamlc.opt || comp=ocamlc
+    $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
+    $comp -c -o help.cmo help.ml
+    $comp -c -o wsi.cmi $srcpath/wsi.mli
+    $comp -c -o wsi.cmo $srcpath/wsi.ml
+    $comp -c -o parser.cmo $srcpath/parser.ml
+    $comp -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
-    ocamlc -custom -o llpp           \
+    $comp -custom -o llpp            \
         -I $root/lib/ocaml/lablGL    \
         str.cma unix.cma lablgl.cma  \
         link.o                       \
