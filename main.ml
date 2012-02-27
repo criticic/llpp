@@ -1774,9 +1774,15 @@ let reshape w h =
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
   GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
 
+  let relx =
+    if conf.zoom <= 1.0
+    then 0.0
+    else float state.x /. float state.w
+  in
   invalidate "geometry"
     (fun () ->
       state.w <- w;
+      state.x <- truncate (relx *. float w);
       let w =
         match conf.columns with
         | None -> w
@@ -2295,18 +2301,8 @@ let setzoom zoom =
       if zoom <> conf.zoom
       then (
         state.prevzoom <- conf.zoom;
-        let relx =
-          if zoom <= 1.0
-          then (state.x <- 0; 0.0)
-          else float state.x /. float state.w
-        in
         conf.zoom <- zoom;
         reshape conf.winw conf.winh;
-        if zoom > 1.0
-        then (
-          let x = relx *. float state.w in
-          state.x <- truncate x;
-        );
         state.text <- Printf.sprintf "zoom is now %-5.1f" (zoom *. 100.0);
       )
 
