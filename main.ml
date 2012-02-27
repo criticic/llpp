@@ -659,7 +659,7 @@ let state =
   ; prevzoom      = 1.0
   ; progress      = -1.0
   ; uioh          = nouioh
-  ; redisplay     = false
+  ; redisplay     = true
   ; mpos          = (-1, -1)
   ; keystate      = KSnone
   }
@@ -6384,7 +6384,6 @@ let () =
   state.uioh <- uioh;
   setfontsize fstate.fontsize;
   reshape winw winh;
-  display ();
 
   let rec loop deadline =
     let r =
