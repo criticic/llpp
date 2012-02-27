@@ -58,7 +58,6 @@ type state =
     ; mutable w          : int
     ; mutable h          : int
     ; mutable fs         : bool
-    ; mutable parent     : int
     }
 ;;
 
@@ -79,7 +78,6 @@ let state =
   ; h          = -1
   ; fs         = false
   ; stringatom = 31
-  ; parent     = -1
   }
 ;;
 
@@ -209,6 +207,12 @@ let createwindowreq wid parent x y w h bw mask =
   w32 s 24 0;
   w32 s 28 0x800;                       (* eventmask *)
   w32 s 32 mask;
+  s;
+;;
+
+let getgeometryreq wid =
+  let s = "\014u\002\000dddd" in
+  w32 s 4 wid;
   s;
 ;;
 
@@ -398,9 +402,6 @@ let rec readresp sock =
   | 18 -> vlog "unmap";
 
   | 19 ->                               (* map *)
-      if state.parent = -1 && state.w > 0 && state.h > 0
-      then state.t#reshape state.w state.h;
-      state.t#display;
       vlog "map";
 
   | 12 ->                               (* exposure *)
@@ -428,15 +429,12 @@ let rec readresp sock =
       vlog "atom %#x" atom
 
   | 21 ->                               (* reparent *)
-      state.parent <- r32 resp 24;
-      state.w <- -1;
-      state.h <- -1;
       vlog "reparent"
 
   | 22 ->                               (* configure *)
-      vlog "configure";
       let w = r16 resp 20
       and h = r16 resp 22 in
+      vlog "configure %d %d %d %d" state.w state.h w h;
       if w != state.w || h != state.h
       then (
         state.w <- w;
@@ -578,12 +576,8 @@ let setup sock screennum w h =
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
       let wid = state.idbase in
-      state.w <- w;
-      state.h <- h;
       let s = createwindowreq wid root 0 0 w h 0 mask in
       sendstr s sock;
-
-      glx wid;
 
       let s = mapreq wid in
       sendstr s sock;
@@ -658,6 +652,29 @@ let setup sock screennum w h =
                 );
           );
       );
+      let s = getgeometryreq wid in
+      let completed = ref false in
+      sendwithrep sock s (fun resp ->
+        glx wid;
+        
+        let w = r16 resp 16
+        and h = r16 resp 18 in
+        state.w <- w;
+        state.h <- h;
+        completed := true;
+      );
+      let now = Unix.gettimeofday in
+      let deadline = now () +. 2.0 in
+      let rec readtillcompletion () =
+        let r, _, _ = Unix.select [sock] [] [] (deadline -. now ()) in
+        match r with
+        | [] -> readtillcompletion ()
+        | _ ->
+            readresp sock;
+            if not !completed
+            then readtillcompletion ()
+      in
+      readtillcompletion ();
 
   | c ->
       error "unknown conection setup response %d" (Char.code c)
@@ -777,7 +794,7 @@ let init t w h =
   state.sock <- fd;
   setup fd screennum w h;
   state.t <- t;
-  fd;
+  fd, state.w, state.h;
 ;;
 
 let settitle s =

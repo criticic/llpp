@@ -6312,7 +6312,7 @@ let () =
   Config.load ();
 
   let globalkeyhash = findkeyhash conf "global" in
-  state.wsfd <-  Wsi.init (object
+  let wsfd, winw, winh = Wsi.init (object
     method expose =
       if nogeomcmds state.geomcmds
       then display ()
@@ -6348,7 +6348,9 @@ let () =
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
     method quit = raise Quit
-  end) conf.winw conf.winh;
+  end) conf.winw conf.winh in
+
+  state.wsfd <- wsfd;
 
   if not (
     List.exists GlMisc.check_extension
@@ -6380,7 +6382,8 @@ let () =
   opendoc state.path state.password;
   state.uioh <- uioh;
   setfontsize fstate.fontsize;
-  doreshape conf.winw conf.winh;
+  reshape winw winh;
+  display ();
 
   let rec loop deadline =
     let r =
