@@ -6322,9 +6322,10 @@ let () =
     method motion x y = state.mpos <- (x, y); motion x y
     method pmotion x y = state.mpos <- (x, y); pmotion x y
     method key k m =
+      let masc = m land (Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask) in
       match state.keystate with
       | KSnone ->
-          let km = k, m in
+          let km = k, masc in
           begin
             match
               try Hashtbl.find globalkeyhash km
@@ -6337,10 +6338,10 @@ let () =
             | KMinsrl l -> List.iter (fun (k, m) -> keyboard k m) l
             | KMmulti (l, r) -> state.keystate <- KSinto (l, r)
           end
-      | KSinto ((k', m') :: [], insrt) when k'=k && m' land m = m' ->
+      | KSinto ((k', m') :: [], insrt) when k'=k && m' land masc = m' ->
           List.iter (fun (k, m) -> keyboard k m) insrt;
           state.keystate <- KSnone
-      | KSinto ((k', m') :: keys, insrt) when k'=k && m' land m = m' ->
+      | KSinto ((k', m') :: keys, insrt) when k'=k && m' land masc = m' ->
           state.keystate <- KSinto (keys, insrt)
       | _ ->
           state.keystate <- KSnone
