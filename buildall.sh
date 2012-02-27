@@ -80,15 +80,15 @@ if test "$1" = "opt"; then
     ocamlopt -c -o parser.cmx $srcpath/parser.ml
     ocamlopt -c -o main.cmx -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
-    ocamlopt -o llpp \
-    -I $root/lib/ocaml/lablGL \
-    str.cmxa unix.cmxa lablgl.cmxa \
-    link.o \
-    -cclib "$cclib" \
-    help.cmx \
-    parser.cmx \
-    wsi.cmx \
-    main.cmx
+    ocamlopt -o llpp                    \
+        -I $root/lib/ocaml/lablGL       \
+        str.cmxa unix.cmxa lablgl.cmxa  \
+        link.o                          \
+        -cclib "$cclib"                 \
+        help.cmx                        \
+        parser.cmx                      \
+        wsi.cmx                         \
+        main.cmx
 else
     ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     ocamlc -c -o help.cmo help.ml
@@ -97,14 +97,14 @@ else
     ocamlc -c -o parser.cmo $srcpath/parser.ml
     ocamlc -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
-    ocamlc -custom -o llpp \
-        -I $root/lib/ocaml/lablGL \
-        str.cma unix.cma lablgl.cma \
-        link.o \
-        -cclib "$cclib" \
-        help.cmo \
-        parser.cmo \
-        wsi.cmo \
+    ocamlc -custom -o llpp           \
+        -I $root/lib/ocaml/lablGL    \
+        str.cma unix.cma lablgl.cma  \
+        link.o                       \
+        -cclib "$cclib"              \
+        help.cmo                     \
+        parser.cmo                   \
+        wsi.cmo                      \
         main.cmo
 fi
 echo All done
