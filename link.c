@@ -55,6 +55,7 @@
 #define FMT_ptr_cast(p) (p)
 #define FMT_ptr_cast2(p) (p)
 
+
 static void NORETURN GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...)
 {
@@ -478,12 +479,12 @@ static void openxref (char *filename, char *password)
 static void pdfinfo (void)
 {
     if (state.type == DPDF) {
-        fz_obj *infoobj;
+        pdf_obj *infoobj;
 
         printd ("info PDF version\t%d.%d",
                 state.u.pdf->version / 10, state.u.pdf->version % 10);
 
-        infoobj = fz_dict_gets (state.u.pdf->trailer, "Info");
+        infoobj = pdf_dict_gets (state.u.pdf->trailer, "Info");
         if (infoobj) {
             int i;
             char *s;
@@ -491,7 +492,7 @@ static void pdfinfo (void)
                               "Producer", "CreationDate" };
 
             for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
-                fz_obj *obj = fz_dict_gets (infoobj, items[i]);
+                pdf_obj *obj = pdf_dict_gets (infoobj, items[i]);
                 s = pdf_to_utf8 (state.ctx, obj);
                 if (*s) {
                     if (i == 0) {
@@ -754,20 +755,19 @@ static void initpdims (void)
     start = now ();
     for (pageno = 0; pageno < state.pagecount; ++pageno) {
         int rotate;
-        fz_obj *pageobj;
         struct pagedim *p;
         fz_rect mediabox;
 
         switch (state.type) {
-        case DPDF:
-            pageobj = state.u.pdf->page_objs[pageno];
+        case DPDF: {
+            pdf_obj *pageobj = state.u.pdf->page_objs[pageno];
 
             if (state.trimmargins) {
-                fz_obj *obj;
+                pdf_obj *obj;
                 pdf_page *page;
 
                 page = pdf_load_page (state.u.pdf, pageno);
-                obj = fz_dict_gets (pageobj, "llpp.TrimBox");
+                obj = pdf_dict_gets (pageobj, "llpp.TrimBox");
                 if (state.trimanew || !obj) {
                     fz_rect rect;
                     fz_bbox bbox;
@@ -794,18 +794,18 @@ static void initpdims (void)
                         mediabox = rect;
                     }
 
-                    obj = fz_new_array (state.ctx, 4);
-                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.x0));
-                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.y0));
-                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.x1));
-                    fz_array_push (obj, fz_new_real (state.ctx, mediabox.y1));
-                    fz_dict_puts (pageobj, "llpp.TrimBox", obj);
+                    obj = pdf_new_array (state.ctx, 4);
+                    pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.x0));
+                    pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.y0));
+                    pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.x1));
+                    pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.y1));
+                    pdf_dict_puts (pageobj, "llpp.TrimBox", obj);
                 }
                 else {
-                    mediabox.x0 = fz_to_real (fz_array_get (obj, 0));
-                    mediabox.y0 = fz_to_real (fz_array_get (obj, 1));
-                    mediabox.x1 = fz_to_real (fz_array_get (obj, 2));
-                    mediabox.y1 = fz_to_real (fz_array_get (obj, 3));
+                    mediabox.x0 = pdf_to_real (pdf_array_get (obj, 0));
+                    mediabox.y0 = pdf_to_real (pdf_array_get (obj, 1));
+                    mediabox.x1 = pdf_to_real (pdf_array_get (obj, 2));
+                    mediabox.y1 = pdf_to_real (pdf_array_get (obj, 3));
                 }
 
                 rotate = page->rotate;
@@ -819,7 +819,7 @@ static void initpdims (void)
                 fz_rect cropbox;
 
                 mediabox = pdf_to_rect (state.ctx,
-                                        fz_dict_gets (pageobj, "MediaBox"));
+                                        pdf_dict_gets (pageobj, "MediaBox"));
                 if (fz_is_empty_rect (mediabox)) {
                     fprintf (stderr, "cannot find page size for page %d\n",
                              pageno+1);
@@ -830,13 +830,14 @@ static void initpdims (void)
                 }
 
                 cropbox = pdf_to_rect (state.ctx,
-                                       fz_dict_gets (pageobj, "CropBox"));
+                                       pdf_dict_gets (pageobj, "CropBox"));
                 if (!fz_is_empty_rect (cropbox)) {
                     mediabox = fz_intersect_rect (mediabox, cropbox);
                 }
-                rotate = fz_to_int (fz_dict_gets (pageobj, "Rotate"));
+                rotate = pdf_to_int (pdf_dict_gets (pageobj, "Rotate"));
             }
             break;
+        }
 
         case DXPS:
             {
