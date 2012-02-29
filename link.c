@@ -55,7 +55,6 @@
 #define FMT_ptr_cast(p) (p)
 #define FMT_ptr_cast2(p) (p)
 
-
 static void NORETURN GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...)
 {
