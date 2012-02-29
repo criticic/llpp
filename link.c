@@ -177,7 +177,6 @@ struct {
         cbz_document *cbz;
     } u;
     fz_context *ctx;
-    fz_glyph_cache *cache;
     int w, h;
 
     int texindex;
