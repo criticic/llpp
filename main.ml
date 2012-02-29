@@ -1796,6 +1796,7 @@ let enttext () =
   let drawstring s =
     let hscrollh =
       match state.mode with
+      | Textentry _
       | View -> state.hscrollh
       | _ -> 0
     in
