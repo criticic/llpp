@@ -2815,10 +2815,10 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     colorspace         = Int_val (Field (params_v, 6));
     fontpath           = String_val (Field (params_v, 7));
 
-    state.ctx          = fz_new_context (NULL, NULL, mustoresize);
-    state.trimmargins  = Bool_val (Field (trim_v, 0));
+    state.ctx = fz_new_context (NULL, NULL, mustoresize);
 
-    fuzz_v = Field (trim_v, 1);
+    state.trimmargins = Bool_val (Field (trim_v, 0));
+    fuzz_v            = Field (trim_v, 1);
     state.trimfuzz.x0 = Int_val (Field (fuzz_v, 0));
     state.trimfuzz.y0 = Int_val (Field (fuzz_v, 1));
     state.trimfuzz.x1 = Int_val (Field (fuzz_v, 2));
