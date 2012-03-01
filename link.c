@@ -2255,7 +2255,7 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
     struct slink *slink;
     char *s = String_val (ptr_v);
 
-    page = parse_pointer ("ml_getlink", s);
+    page = parse_pointer ("ml_getlinkrect", s);
     ensureslinks (page);
 
     slink = &page->slinks[Int_val (n_v)];
