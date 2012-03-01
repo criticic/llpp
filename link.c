@@ -2047,7 +2047,7 @@ enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
 CAMLprim value ml_findlink (value ptr_v, value dir_v)
 {
     CAMLparam2 (ptr_v, dir_v);
-    CAMLlocal3 (ret_v, tup_v, pos_v);
+    CAMLlocal2 (ret_v, pos_v);
     struct page *page;
     int dirtag, i, slinkindex;
     struct slink *found = NULL ,*slink;
@@ -2153,14 +2153,8 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
         }
     }
     if (found) {
-        tup_v = caml_alloc_tuple (5);
         ret_v = caml_alloc_small (2, 1);
-        Field (tup_v, 0) = Val_int (found - page->slinks);
-        Field (tup_v, 1) = Val_int (found->bbox.x0);
-        Field (tup_v, 2) = Val_int (found->bbox.y0);
-        Field (tup_v, 3) = Val_int (found->bbox.x1);
-        Field (tup_v, 4) = Val_int (found->bbox.y1);
-        Field (ret_v, 0) = tup_v;
+        Field (ret_v, 0) = Val_int (found - page->slinks);
     }
 
     CAMLreturn (ret_v);
@@ -2250,6 +2244,26 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     pdim = &state.pagedims[page->pdimno];
     link = page->slinks[Int_val (n_v)].link;
     LINKTOVAL;
+    CAMLreturn (ret_v);
+}
+
+CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
+{
+    CAMLparam2 (ptr_v, n_v);
+    CAMLlocal1 (ret_v);
+    struct page *page;
+    struct slink *slink;
+    char *s = String_val (ptr_v);
+
+    page = parse_pointer ("ml_getlink", s);
+    ensureslinks (page);
+
+    slink = &page->slinks[Int_val (n_v)];
+    ret_v = caml_alloc_tuple (4);
+    Field (ret_v, 0) = Val_int (slink->bbox.x0);
+    Field (ret_v, 1) = Val_int (slink->bbox.y0);
+    Field (ret_v, 2) = Val_int (slink->bbox.x1);
+    Field (ret_v, 3) = Val_int (slink->bbox.y1);
     CAMLreturn (ret_v);
 }
 

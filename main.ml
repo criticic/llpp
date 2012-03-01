@@ -42,7 +42,7 @@ and colorspace     = | Rgb | Bgr | Gray
 
 type link =
     | Lnotfound
-    | Lfound of (int * int * int * int * int)
+    | Lfound of int
 and linkdir =
     | LDfirst
     | LDlast
@@ -91,6 +91,7 @@ external realloctexts : int -> bool = "ml_realloctexts";;
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;
 external getlink : opaque -> int -> under = "ml_getlink";;
+external getlinkrect : opaque -> int -> irect  = "ml_getlinkrect";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
 
 let platform_to_string = function
@@ -346,7 +347,7 @@ and action =
     | Noaction
     | Action of (uioh -> uioh)
 and linktarget =
-    | Ltexact of ((pageno * int) * (int * int * int * int))
+    | Ltexact of (pageno * int)
     | Ltgendir of int
 ;;
 
@@ -1532,9 +1533,9 @@ let gotoy y =
                     in
                     match link with
                     | Lnotfound -> loop rest
-                    | Lfound (n, x0, y0, x1, y1) ->
+                    | Lfound n ->
                         showlinktype (getlink opaque n);
-                        Ltexact ((l.pageno, n), (x0, y0, x1, y1))
+                        Ltexact (l.pageno, n)
           in
           loop state.layout
         in
@@ -1948,10 +1949,6 @@ let act cmds =
   | "clear" ->
       state.uioh#infochanged Pdim;
       state.pdims <- [];
-      begin match state.mode with
-      | LinkNav (Ltexact _) -> state.mode <- LinkNav (Ltgendir 0)
-      | _ -> ()
-      end;
 
   | "clearrects" ->
       state.rects <- state.rects1;
@@ -4788,10 +4785,9 @@ let linknavkeyboard key mask linknav =
                       findlink opaque ld
                     in
                     begin match link with
-                    | Lfound (m, x0, y0, x1, y1) ->
-                        let r = x0, y0, x1, y1 in
+                    | Lfound m ->
                         showlinktype (getlink opaque m);
-                        state.mode <- LinkNav (Ltexact ((pageno, m), r));
+                        state.mode <- LinkNav (Ltexact (pageno, m));
                         G.postRedisplay "linknav jpage";
                     | _ -> notfound dir
                     end;
@@ -4801,10 +4797,11 @@ let linknavkeyboard key mask linknav =
           in
           begin match opt with
           | Some Lnotfound -> pwl l dir;
-          | Some (Lfound (m, x0, y0, x1, y1)) ->
+          | Some (Lfound m) ->
               if m = n
               then pwl l dir
               else (
+                let _, y0, _, y1 = getlinkrect opaque m in
                 if y0 < l.pagey
                 then gotopage1 l.pageno y0
                 else (
@@ -4813,9 +4810,8 @@ let linknavkeyboard key mask linknav =
                   then gotopage1 l.pageno (y1 - conf.winh - state.hscrollh + d)
                   else G.postRedisplay "linknav";
                 );
-                let r = x0, y0, x1, y1 in
                 showlinktype (getlink opaque m);
-                state.mode <- LinkNav (Ltexact ((l.pageno, m), r));
+                state.mode <- LinkNav (Ltexact (l.pageno, m));
               )
 
           | None ->
@@ -4832,7 +4828,7 @@ let linknavkeyboard key mask linknav =
   else
     match linknav with
     | Ltgendir _ -> viewkeyboard key mask
-    | Ltexact (exact, _) -> doexact exact
+    | Ltexact exact -> doexact exact
 ;;
 
 let keyboard key mask =
@@ -5041,13 +5037,18 @@ let display () =
   List.iter drawpage state.layout;
   let rects =
     match state.mode with
-    | LinkNav (Ltexact ((pageno, _), (x0, y0, x1, y1))) ->
-        (pageno, 5, (
-          float x0, float y0,
-          float x1, float y0,
-          float x1, float y1,
-          float x0, float y1)
-        ) :: state.rects
+    | LinkNav (Ltexact (pageno, linkno)) ->
+        begin match getopaque pageno with
+        | Some opaque ->
+            let x0, y0, x1, y1 = getlinkrect opaque linkno in
+            (pageno, 5, (
+              float x0, float y0,
+              float x1, float y0,
+              float x1, float y1,
+              float x0, float y1)
+            ) :: state.rects
+        | None -> state.rects
+        end
     | _ -> state.rects
   in
   showrects rects;
