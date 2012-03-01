@@ -12,6 +12,10 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
+#ifdef __CYGWIN__
+#include <cygwin/socket.h>      /* FIONREAD */
+#endif
+
 #include <regex.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -425,9 +429,9 @@ static void openxref (char *filename, char *password)
     if (len > 4) {
         char ext[4];
 
-        ext[0] = tolower (filename[len-3]);
-        ext[1] = tolower (filename[len-2]);
-        ext[2] = tolower (filename[len-1]);
+        ext[0] = tolower ((int) filename[len-3]);
+        ext[1] = tolower ((int) filename[len-2]);
+        ext[2] = tolower ((int) filename[len-1]);
 
         /**/ if (ext[0] == 'x' && ext[1] == 'p' && ext[2] == 's') {
             state.type = DXPS;
@@ -2830,7 +2834,9 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     char *fontpath;
     int colorspace;
     int mustoresize;
+#ifndef __CYGWIN__
     struct sigaction sa;
+#endif
 
     state.cr           = Int_val (Field (pipe_v, 0));
     state.cw           = Int_val (Field (pipe_v, 1));
@@ -2867,6 +2873,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
 
     realloctexts (texcount);
 
+#ifndef __CYGWIN__
     sa.sa_handler = SIG_DFL;
     if (sigemptyset (&sa.sa_mask)) {
         err (1, "sigemptyset");
@@ -2875,6 +2882,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     if (sigaction (SIGCHLD, &sa, NULL)) {
         err (1, "sigaction");
     }
+#endif
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
