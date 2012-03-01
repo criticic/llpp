@@ -441,6 +441,7 @@ let rec readresp sock =
         state.h <- h;
         state.t#reshape w h;
       );
+      state.t#display
 
   | n ->
       dolog "event %d %S" n resp
