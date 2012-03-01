@@ -1903,10 +1903,20 @@ static void droptext (struct page *page)
     }
 }
 
+static void dropslinks (struct page *page)
+{
+    if (page->slinks) {
+        free (page->slinks);
+        page->slinks = NULL;
+        page->slinkcount = 0;
+    }
+}
+
 static void ensuretext (struct page *page)
 {
     if (state.gen != page->gen) {
         droptext (page);
+        dropslinks (page);
         page->gen = state.gen;
     }
     if (!page->text) {
@@ -1939,6 +1949,11 @@ static void ensureslinks (struct page *page)
     size_t slinksize = sizeof (*page->slinks);
     fz_link *link, *links;
 
+    if (state.gen != page->gen) {
+        droptext (page);
+        dropslinks (page);
+        page->gen = state.gen;
+    }
     if (page->slinks) return;
 
     switch (page->type) {
