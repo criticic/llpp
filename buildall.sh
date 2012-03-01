@@ -10,7 +10,7 @@ while getopts j: opt; do
         exit 1;;
     esac
 done
-shift $((OPTIND - 1))
+shift $(($OPTIND - 1))
 
 mkdir -p 3rdp
 cd 3rdp
@@ -31,7 +31,11 @@ fi
 test -d mupdf/thirdparty || \
     (wget -nc $mupdf3p && unzip -d mupdf $(basename $mupdf3p))
 
-make=$(gmake -v >/dev/null 2>&1 && echo gmake || echo make)
+executable_p() {
+    command -v $1 >/dev/null 2>&1
+}
+
+executable_p gmake && make=gmake || make=make
 
 (cd lablGL-1.04 \
     && sed '17c\
@@ -72,7 +76,7 @@ cclib="$cclib -lX11"
 echo Building llpp...
 if test "$1" = "opt"; then
     cclib="$cclib -lpthread"
-    test -x $(type -p ocamlopt.opt) && comp=ocamlopt.opt || comp=ocamlopt
+    executable_p ocamlopt.opt && comp=ocamlopt.opt || comp=ocamlopt
     $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     $comp -c -o help.cmx help.ml
     $comp -c -o wsi.cmi $srcpath/wsi.mli
@@ -90,7 +94,7 @@ if test "$1" = "opt"; then
         wsi.cmx                         \
         main.cmx
 else
-    test -x $(type -p ocamlc.opt) && comp=ocamlc.opt || comp=ocamlc
+    executable_p ocamlc.opt && comp=ocamlc.opt || comp=ocamlc
     $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
     $comp -c -o help.cmo help.ml
     $comp -c -o wsi.cmi $srcpath/wsi.mli
