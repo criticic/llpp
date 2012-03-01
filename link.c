@@ -161,6 +161,7 @@ struct page {
     } u;
     fz_display_list *dlist;
     int slinkcount;
+    int slinkindexbase;
     struct slink *slinks;
     struct mark {
         int i;
@@ -1657,6 +1658,8 @@ static void showsel (struct page *page, int ox, int oy)
     glDisable (GL_BLEND);
 }
 
+#include "glfont.c"
+
 static void highlightlinks (struct page *page, int xoff, int yoff)
 {
     fz_matrix ctm;
@@ -1719,6 +1722,122 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
 
     glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
     glDisable (GL_LINE_STIPPLE);
+}
+
+static int compareslinks (const void *l, const void *r)
+{
+    struct slink const *ls = l;
+    struct slink const *rs = r;
+    if (ls->bbox.y0 == rs->bbox.y0) {
+        return rs->bbox.x0 - rs->bbox.x0;
+    }
+    return ls->bbox.y0 - rs->bbox.y0;
+}
+
+static void droptext (struct page *page)
+{
+    if (page->text) {
+        fz_free_text_span (state.ctx, page->text);
+        page->fmark.i = -1;
+        page->lmark.i = -1;
+        page->fmark.span = NULL;
+        page->lmark.span = NULL;
+        page->text = NULL;
+    }
+}
+
+static void dropslinks (struct page *page)
+{
+    if (page->slinks) {
+        free (page->slinks);
+        page->slinks = NULL;
+        page->slinkcount = 0;
+    }
+}
+
+static void ensureslinks (struct page *page)
+{
+    fz_matrix ctm;
+    int i, count = 0;
+    size_t slinksize = sizeof (*page->slinks);
+    fz_link *link, *links;
+
+    if (state.gen != page->gen) {
+        droptext (page);
+        dropslinks (page);
+        page->gen = state.gen;
+    }
+    if (page->slinks) return;
+
+    switch (page->type) {
+    case DPDF:
+        links = page->u.pdfpage->links;
+        ctm = fz_concat (trimctm (page->u.pdfpage, page->pdimno),
+                         state.pagedims[page->pdimno].ctm);
+        break;
+
+    case DXPS:
+        links = page->u.xpspage->links;
+        ctm = state.pagedims[page->pdimno].ctm;
+        break;
+
+    default:
+        return;
+    }
+
+    for (link = links; link; link = link->next) {
+        count++;
+    }
+    if (count > 0) {
+        page->slinkcount = count;
+        page->slinks = calloc (count, slinksize);
+        if (!page->slinks) {
+            err (1, "realloc slinks %d", count);
+        }
+
+        for (i = 0, link = links; link; ++i, link = link->next) {
+            page->slinks[i].link = link;
+            page->slinks[i].bbox =
+                fz_round_rect (fz_transform_rect (ctm, link->rect));
+        }
+        qsort (page->slinks, count, slinksize, compareslinks);
+    }
+}
+
+static void highlightslinks (struct page *page, int xoff, int yoff, int noff)
+{
+    int i;
+    char buf[40];
+    struct slink *slink;
+    double x0, y0, x1, y1, w;
+
+    ensureslinks (page);
+    glColor3ub (0xc3, 0xb0, 0x91);
+    for (i = 0; i < page->slinkcount; ++i) {
+        slink = &page->slinks[i];
+
+        snprintf (buf, sizeof (buf), "%d", i + noff);
+        x0 = slink->bbox.x0 + xoff - 5;
+        y1 = slink->bbox.y0 + yoff - 5;
+        y0 = y1 + 22;
+        w = measure_string (state.face, 12, buf);
+        x1 = x0 + w + 10;
+        glRectd (x0, y0, x1, y1);
+    }
+
+    glEnable (GL_BLEND);
+    glEnable (GL_TEXTURE_2D);
+    glColor3ub (0, 0, 0);
+    for (i = 0; i < page->slinkcount; ++i) {
+        slink = &page->slinks[i];
+
+        snprintf (buf, sizeof (buf), "%d", i + noff);
+        x0 = slink->bbox.x0 + xoff;
+        y0 = slink->bbox.y0 + yoff + 12;
+        draw_string (state.face, 12, x0, y0, buf);
+    }
+    glDisable (GL_TEXTURE_2D);
+    glDisable (GL_BLEND);
 }
 
 static void uploadslice (struct tile *tile, struct slice *slice)
@@ -1838,24 +1957,32 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
 }
 
 CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
-                               value xoff_v, value yoff_v)
+                               value xoff_v, value yoff_v,
+                               value noff_v)
 {
-    CAMLparam4 (ptr_v, hlinks_v, xoff_v, yoff_v);
+    CAMLparam5 (ptr_v, hlinks_v, xoff_v, yoff_v, noff_v);
     int xoff = Int_val (xoff_v);
     int yoff = Int_val (yoff_v);
+    int noff = Int_val (noff_v);
     char *s = String_val (ptr_v);
+    int hlmask = Int_val (hlinks_v);
     struct page *page = parse_pointer ("ml_postprocess", s);
 
-    if (Bool_val (hlinks_v)) highlightlinks (page, xoff, yoff);
-
+    if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (trylock ("ml_postprocess")) {
+        noff = 0;
         goto done;
+    }
+    page->slinkindexbase = noff;
+    if (hlmask & 2) {
+        highlightslinks (page, xoff, yoff, noff);
+        noff = page->slinkcount;
     }
     showsel (page, xoff, yoff);
     unlock ("ml_postprocess");
 
  done:
-    CAMLreturn (Val_unit);
+    CAMLreturn (Val_int (noff));
 }
 
 static fz_link *getlink (struct page *page, int x, int y)
@@ -1895,27 +2022,6 @@ static fz_link *getlink (struct page *page, int x, int y)
     return NULL;
 }
 
-static void droptext (struct page *page)
-{
-    if (page->text) {
-        fz_free_text_span (state.ctx, page->text);
-        page->fmark.i = -1;
-        page->lmark.i = -1;
-        page->fmark.span = NULL;
-        page->lmark.span = NULL;
-        page->text = NULL;
-    }
-}
-
-static void dropslinks (struct page *page)
-{
-    if (page->slinks) {
-        free (page->slinks);
-        page->slinks = NULL;
-        page->slinkcount = 0;
-    }
-}
-
 static void ensuretext (struct page *page)
 {
     if (state.gen != page->gen) {
@@ -1933,65 +2039,6 @@ static void ensuretext (struct page *page)
                              pagectm (page),
                              fz_infinite_bbox, NULL);
         fz_free_device (tdev);
-    }
-}
-
-static int compareslinks (const void *l, const void *r)
-{
-    struct slink const *ls = l;
-    struct slink const *rs = r;
-    if (ls->bbox.y0 == rs->bbox.y0) {
-        return rs->bbox.x0 - rs->bbox.x0;
-    }
-    return ls->bbox.y0 - rs->bbox.y0;
-}
-
-static void ensureslinks (struct page *page)
-{
-    fz_matrix ctm;
-    int i, count = 0;
-    size_t slinksize = sizeof (*page->slinks);
-    fz_link *link, *links;
-
-    if (state.gen != page->gen) {
-        droptext (page);
-        dropslinks (page);
-        page->gen = state.gen;
-    }
-    if (page->slinks) return;
-
-    switch (page->type) {
-    case DPDF:
-        links = page->u.pdfpage->links;
-        ctm = fz_concat (trimctm (page->u.pdfpage, page->pdimno),
-                         state.pagedims[page->pdimno].ctm);
-        break;
-
-    case DXPS:
-        links = page->u.xpspage->links;
-        ctm = state.pagedims[page->pdimno].ctm;
-        break;
-
-    default:
-        return;
-    }
-
-    for (link = links; link; link = link->next) {
-        count++;
-    }
-    if (count > 0) {
-        page->slinkcount = count;
-        page->slinks = calloc (count, slinksize);
-        if (!page->slinks) {
-            err (1, "realloc slinks %d", count);
-        }
-
-        for (i = 0, link = links; link; ++i, link = link->next) {
-            page->slinks[i].link = link;
-            page->slinks[i].bbox =
-                fz_round_rect (fz_transform_rect (ctm, link->rect));
-        }
-        qsort (page->slinks, count, slinksize, compareslinks);
     }
 }
 
@@ -2248,6 +2295,28 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     pdim = &state.pagedims[page->pdimno];
     link = page->slinks[Int_val (n_v)].link;
     LINKTOVAL;
+    CAMLreturn (ret_v);
+}
+
+CAMLprim value ml_getlink2 (value ptr_v, value n_v)
+{
+    CAMLparam2 (ptr_v, n_v);
+    CAMLlocal3 (ret_v, tup_v, str_v);
+    int linkno;
+    fz_link *link;
+    struct page *page;
+    struct pagedim *pdim;
+    char *s = String_val (ptr_v);
+
+    ret_v = Val_int (0);
+    page = parse_pointer ("ml_getlink2", s);
+    ensureslinks (page);
+    linkno = Int_val (n_v) - page->slinkindexbase;
+    if (linkno >= 0 && linkno < page->slinkcount) {
+        pdim = &state.pagedims[page->pdimno];
+        link = page->slinks[linkno].link;
+        LINKTOVAL;
+    }
     CAMLreturn (ret_v);
 }
 
@@ -2637,8 +2706,6 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     ret_v = caml_copy_double (zoom);
     CAMLreturn (ret_v);
 }
-
-#include "glfont.c"
 
 CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
 {

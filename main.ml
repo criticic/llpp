@@ -83,7 +83,8 @@ external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
 external getmaxw : unit -> float = "ml_getmaxw";;
-external postprocess : opaque -> bool -> int -> int -> unit = "ml_postprocess";;
+external postprocess : opaque -> int -> int -> int -> int -> int =
+    "ml_postprocess";;
 external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
@@ -91,6 +92,7 @@ external realloctexts : int -> bool = "ml_realloctexts";;
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;
 external getlink : opaque -> int -> under = "ml_getlink";;
+external getlink2 : opaque -> int -> under = "ml_getlink2";;
 external getlinkrect : opaque -> int -> irect  = "ml_getlinkrect";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
 
@@ -426,6 +428,7 @@ type state =
     ; mutable redisplay     : bool
     ; mutable mpos          : mpos
     ; mutable keystate      : keystate
+    ; mutable glinks         : bool
     }
 and hists =
     { pat : string circbuf
@@ -663,6 +666,7 @@ let state =
   ; redisplay     = true
   ; mpos          = (-1, -1)
   ; keystate      = KSnone
+  ; glinks        = false
   }
 ;;
 
@@ -4318,6 +4322,41 @@ let setautoscrollspeed step goingdown =
   state.autoscroll <- Some astep;
 ;;
 
+let gotounder = function
+  | Ulinkgoto (pageno, top) ->
+      if pageno >= 0
+      then (
+        addnav ();
+        gotopage1 pageno top;
+      )
+
+  | Ulinkuri s ->
+      gotouri s
+
+  | Uremote (filename, pageno) ->
+      let path =
+        if Sys.file_exists filename
+        then filename
+        else
+          let dir = Filename.dirname state.path in
+          let path = Filename.concat dir filename in
+          if Sys.file_exists path
+          then path
+          else ""
+      in
+      if String.length path > 0
+      then (
+        let anchor = getanchor () in
+        let ranchor = state.path, state.password, anchor in
+        state.anchor <- (pageno, 0.0);
+        state.ranchors <- ranchor :: state.ranchors;
+        opendoc path "";
+      )
+      else showtext '!' ("Could not find " ^ filename)
+
+  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
+;;
+
 let viewkeyboard key mask =
   let enttext te =
     let mode = state.mode in
@@ -4454,6 +4493,48 @@ let viewkeyboard key mask =
       conf.hlinks <- not conf.hlinks;
       state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
       G.postRedisplay "toggle highlightlinks";
+
+  | 70 ->                               (* F *)
+      state.glinks <- true;
+      let ondone s =
+        let n =
+          try int_of_string s with exc ->
+            state.text <- Printf.sprintf "bad integer `%s': %s"
+              s (Printexc.to_string exc);
+            -1
+        in
+        if n >= 0
+        then (
+          let rec loop = function
+            | [] -> ()
+            | l :: rest ->
+                match getopaque l.pageno with
+                | None -> loop rest
+                | Some opaque ->
+                    match getlink2 opaque n with
+                    | Unone -> loop rest
+                    | under ->
+                        addnav ();
+                        cbput state.hists.pag s;
+                        gotounder under;
+          in
+          loop state.layout;
+        )
+      in
+      let onkey text key =
+        match Char.unsafe_chr key with
+        | 'g' -> TEdone text
+        | _ -> intentry text key
+      in
+      let mode = state.mode in
+      state.mode <- Textentry (
+        (":", "", Some (onhist state.hists.pag), onkey, ondone),
+        fun _ ->
+          state.glinks <- false;
+          state.mode <- mode
+      );
+      state.text <- "";
+      G.postRedisplay "view:enttext"
 
   | 97 ->                               (* a *)
       begin match state.autoscroll with
@@ -4709,41 +4790,6 @@ let viewkeyboard key mask =
       vlog "huh? %s" (Wsi.keyname key)
 ;;
 
-let gotounder = function
-  | Ulinkgoto (pageno, top) ->
-      if pageno >= 0
-      then (
-        addnav ();
-        gotopage1 pageno top;
-      )
-
-  | Ulinkuri s ->
-      gotouri s
-
-  | Uremote (filename, pageno) ->
-      let path =
-        if Sys.file_exists filename
-        then filename
-        else
-          let dir = Filename.dirname state.path in
-          let path = Filename.concat dir filename in
-          if Sys.file_exists path
-          then path
-          else ""
-      in
-      if String.length path > 0
-      then (
-        let anchor = getanchor () in
-        let ranchor = state.path, state.password, anchor in
-        state.anchor <- (pageno, 0.0);
-        state.ranchors <- ranchor :: state.ranchors;
-        opendoc path "";
-      )
-      else showtext '!' ("Could not find " ^ filename)
-
-  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
-;;
-
 let linknavkeyboard key mask linknav =
   let getpage pageno =
     let rec loop = function
@@ -4943,7 +4989,7 @@ let birdseyekeyboard key mask
   | _ -> viewkeyboard key mask
 ;;
 
-let drawpage l =
+let drawpage l linkindexbase =
   let color =
     match state.mode with
     | Textentry _ -> scalecolor 0.4
@@ -4965,9 +5011,13 @@ let drawpage l =
       then
         let x = l.pagedispx - l.pagex
         and y = l.pagedispy - l.pagey in
-        postprocess opaque conf.hlinks x y;
+        let hlmask = (if conf.hlinks then 1 else 0)
+          + (if state.glinks && not (isbirdseye state.mode) then 2 else 0)
+        in
+        postprocess opaque hlmask x y linkindexbase;
+      else 0
 
-  | _ -> ()
+  | _ -> 0
   end;
 ;;
 
@@ -5052,7 +5102,13 @@ let showrects rects =
 let display () =
   GlClear.color (scalecolor2 conf.bgcolor);
   GlClear.clear [`color];
-  List.iter drawpage state.layout;
+  let rec loop linkindexbase = function
+    | l :: rest ->
+        let linkindexbase = linkindexbase + drawpage l linkindexbase in
+        loop linkindexbase rest
+    | [] -> ()
+  in
+  loop 0 state.layout;
   let rects =
     match state.mode with
     | LinkNav (Ltexact (pageno, linkno)) ->
