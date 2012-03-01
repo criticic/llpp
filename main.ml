@@ -1503,6 +1503,26 @@ let gotoy y =
     state.y <- y;
     state.layout <- layout;
     begin match state.mode with
+    | LinkNav (Ltexact (pageno, linkno)) ->
+        let rec loop = function
+          | [] ->
+              state.mode <- LinkNav (Ltgendir 0)
+          | l :: _ when l.pageno = pageno ->
+              begin match getopaque pageno with
+              | None ->
+                  state.mode <- LinkNav (Ltgendir 0)
+              | Some opaque ->
+                  let x0, y0, x1, y1 = getlinkrect opaque linkno in
+                  if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
+                           && y0 >= l.pagey && y1 <= l.pagey + l.pagevh)
+                  then state.mode <- LinkNav (Ltgendir 0)
+              end
+          | _ :: rest -> loop rest
+        in
+        loop layout
+    | _ -> ()
+    end;
+    begin match state.mode with
     | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
         if not (pagevisible layout pageno)
         then (
@@ -4814,9 +4834,7 @@ let linknavkeyboard key mask linknav =
                 state.mode <- LinkNav (Ltexact (l.pageno, m));
               )
 
-          | None ->
-              state.mode <- LinkNav (Ltgendir 0);
-              viewkeyboard key mask
+          | None -> viewkeyboard key mask
           end;
     | _ -> viewkeyboard key mask
   in
