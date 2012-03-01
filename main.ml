@@ -1948,6 +1948,10 @@ let act cmds =
   | "clear" ->
       state.uioh#infochanged Pdim;
       state.pdims <- [];
+      begin match state.mode with
+      | LinkNav (Ltexact _) -> state.mode <- LinkNav (Ltgendir 0)
+      | _ -> ()
+      end;
 
   | "clearrects" ->
       state.rects <- state.rects1;

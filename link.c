@@ -2246,6 +2246,7 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
 
     ret_v = Val_int (0);
     page = parse_pointer ("ml_getlink", s);
+    ensureslinks (page);
     pdim = &state.pagedims[page->pdimno];
     link = page->slinks[Int_val (n_v)].link;
     LINKTOVAL;
