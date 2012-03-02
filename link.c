@@ -21,11 +21,7 @@
 #include <stdarg.h>
 #include <limits.h>
 
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#else
 #include <GL/gl.h>
-#endif
 
 #include <caml/fail.h>
 #include <caml/alloc.h>
