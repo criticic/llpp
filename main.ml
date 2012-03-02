@@ -6427,7 +6427,7 @@ let () =
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
     method quit = raise Quit
-  end) conf.winw conf.winh in
+  end) conf.winw conf.winh (platform = Posx) in
 
   state.wsfd <- wsfd;
 

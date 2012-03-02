@@ -786,7 +786,7 @@ let getauth haddr dnum =
   | Some ic -> readauth ic
 ;;
 
-let init t w h =
+let init t w h osx =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
@@ -807,9 +807,13 @@ let init t w h =
   in
   let aname, adata = getauth host dispnum in
   let fd =
-    if String.length host = 0 || host = "unix"
+    if osx || String.length host = 0 || host = "unix"
     then
-      let addr = Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum) in
+      let addr =
+        if osx
+        then Unix.ADDR_UNIX d
+        else Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum)
+      in
       let fd = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
       Unix.connect fd addr;
       fd
