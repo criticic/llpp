@@ -6458,10 +6458,9 @@ let () =
   state.sr <- sr;
   state.sw <- sw;
   state.text <- "Opening " ^ state.path;
+  reshape winw winh;
   opendoc state.path state.password;
   state.uioh <- uioh;
-  setfontsize fstate.fontsize;
-  reshape winw winh;
 
   let rec loop deadline =
     let r =
