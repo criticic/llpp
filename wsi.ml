@@ -55,10 +55,15 @@ type state =
     ; mutable stringatom : int
     ; mutable t          : t
     ; mutable sock       : Unix.file_descr
+    ; mutable x          : int
+    ; mutable y          : int
     ; mutable w          : int
     ; mutable h          : int
-    ; mutable fs         : bool
+    ; mutable fs         : fs
     }
+and fs =
+    | NoFs
+    | Fs of (int * int * int * int)
 ;;
 
 let state =
@@ -74,9 +79,11 @@ let state =
   ; setwmname  = (fun _ -> ())
   ; sock       = Unix.stdin
   ; t          = onot
+  ; x          = -1
+  ; y          = -1
   ; w          = -1
   ; h          = -1
-  ; fs         = false
+  ; fs         = NoFs
   ; stringatom = 31
   }
 ;;
@@ -432,15 +439,22 @@ let rec readresp sock =
       vlog "reparent"
 
   | 22 ->                               (* configure *)
-      let w = r16 resp 20
+      let x = r16s resp 16
+      and y = r16s resp 18
+      and w = r16 resp 20
       and h = r16 resp 22 in
-      vlog "configure %d %d %d %d" state.w state.h w h;
+      vlog "configure cur [%d %d %d %d] conf [%d %d %d %d]"
+        state.x state.y state.w state.h
+        x y w h
+      ;
       if w != state.w || h != state.h
       then (
-        state.w <- w;
-        state.h <- h;
         state.t#reshape w h;
       );
+      state.w <- w;
+      state.h <- h;
+      state.x <- x;
+      state.y <- y;
       state.t#display
 
   | n ->
@@ -468,16 +482,14 @@ let hexstr s =
 ;;
 
 let reshape w h =
-  if state.fs
+  if state.fs = NoFs
   then
-    state.fullscreen state.idbase
-  ;
-  let s = "wwuuhhuu" in
-  w32 s 0 w;
-  w32 s 4 h;
-  let s = configurewindowreq state.idbase 0x000c s in
-  vlog "reshape %d %s %d" state.seq (hexstr s) (String.length s);
-  sendstr s state.sock;
+    let s = "wwuuhhuu" in
+    w32 s 0 w;
+    w32 s 4 h;
+    let s = configurewindowreq state.idbase 0x000c s in
+    sendstr s state.sock;
+  else state.fullscreen state.idbase
 ;;
 
 let setup sock screennum w h =
@@ -634,12 +646,24 @@ let setup sock screennum w h =
 
       state.fullscreen <- (fun wid ->
         let s = "xxuuyyuuwwuuhhuu" in
-        w32 s 0 0;
-        w32 s 4 0;
-        w32 s 8 rootw;
-        w32 s 12 rooth;
-        let s = configurewindowreq wid 0x000f s in
-        sendstr s state.sock;
+        match state.fs with
+        | NoFs ->
+            w32 s 0 0;
+            w32 s 4 0;
+            w32 s 8 rootw;
+            w32 s 12 rooth;
+            let s = configurewindowreq wid 0x000f s in
+            sendstr s state.sock;
+            state.fs <- Fs (state.x, state.y, state.w, state.h);
+
+        | Fs (x, y, w, h) ->
+            w32 s 0 x;
+            w32 s 4 y;
+            w32 s 8 w;
+            w32 s 12 h;
+            let s = configurewindowreq wid 0x000f s in
+            sendstr s state.sock;
+            state.fs <- NoFs;
       );
 
       sendintern sock "_NET_WM_STATE" true (fun resp ->
@@ -653,13 +677,18 @@ let setup sock screennum w h =
               state.fullscreen <-
                 (fun wid ->
                   let data = String.make 20 '\000' in
-                  state.fs <- not state.fs;
-                  w32 data 0 (if state.fs then 1 else 0);
+                  let fs, f =
+                    match state.fs with
+                    | NoFs -> Fs (-1, -1, -1, -1), 1
+                    | Fs _ -> NoFs, 0
+                  in
+                  w32 data 0 f;
                   w32 data 4 fsatom;
 
                   let cm = clientmessage 32 0 wid nwmsatom data in
                   let s = sendeventreq 0 root 0x180000 cm in
                   sendstr s sock;
+                  state.fs <- fs;
                 );
           );
       );
