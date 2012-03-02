@@ -92,8 +92,8 @@ external realloctexts : int -> bool = "ml_realloctexts";;
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;
 external getlink : opaque -> int -> under = "ml_getlink";;
-external getlink2 : opaque -> int -> under = "ml_getlink2";;
 external getlinkrect : opaque -> int -> irect  = "ml_getlinkrect";;
+external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
 
 let platform_to_string = function
@@ -4505,20 +4505,23 @@ let viewkeyboard key mask =
         in
         if n >= 0
         then (
-          let rec loop = function
+          let rec loop n = function
             | [] -> ()
             | l :: rest ->
                 match getopaque l.pageno with
-                | None -> loop rest
+                | None -> loop n rest
                 | Some opaque ->
-                    match getlink2 opaque n with
-                    | Unone -> loop rest
-                    | under ->
-                        addnav ();
-                        cbput state.hists.pag s;
-                        gotounder under;
+                    let m = getlinkcount opaque in
+                    if n < m
+                    then (
+                      let under = getlink opaque n in
+                      addnav ();
+                      cbput state.hists.pag s;
+                      gotounder under;
+                    )
+                    else loop (n-m) rest
           in
-          loop state.layout;
+          loop n state.layout;
         )
       in
       let onkey text key =

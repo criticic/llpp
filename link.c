@@ -157,7 +157,6 @@ struct page {
     } u;
     fz_display_list *dlist;
     int slinkcount;
-    int slinkindexbase;
     struct slink *slinks;
     struct mark {
         int i;
@@ -1966,7 +1965,6 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         noff = 0;
         goto done;
     }
-    page->slinkindexbase = noff;
     if (hlmask & 2) {
         highlightslinks (page, xoff, yoff, noff);
         noff = page->slinkcount;
@@ -2291,26 +2289,14 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_getlink2 (value ptr_v, value n_v)
+CAMLprim value ml_getlinkcount (value ptr_v)
 {
-    CAMLparam2 (ptr_v, n_v);
-    CAMLlocal3 (ret_v, tup_v, str_v);
-    int linkno;
-    fz_link *link;
+    CAMLparam1 (ptr_v);
     struct page *page;
-    struct pagedim *pdim;
     char *s = String_val (ptr_v);
 
-    ret_v = Val_int (0);
-    page = parse_pointer ("ml_getlink2", s);
-    ensureslinks (page);
-    linkno = Int_val (n_v) - page->slinkindexbase;
-    if (linkno >= 0 && linkno < page->slinkcount) {
-        pdim = &state.pagedims[page->pdimno];
-        link = page->slinks[linkno].link;
-        LINKTOVAL;
-    }
-    CAMLreturn (ret_v);
+    page = parse_pointer ("ml_getlinkcount", s);
+    CAMLreturn (Val_int (page->slinkcount));
 }
 
 CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
