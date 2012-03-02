@@ -632,15 +632,16 @@ let setup sock screennum w h =
         );
       );
 
-      state.fullscreen <- (fun _ ->
+      state.fullscreen <- (fun wid ->
         let s = "xxuuyyuuwwuuhhuu" in
         w32 s 0 0;
         w32 s 4 0;
         w32 s 8 rootw;
         w32 s 12 rooth;
-        let s = configurewindowreq state.idbase 0x000f s in
+        let s = configurewindowreq wid 0x000f s in
         sendstr s state.sock;
       );
+
       sendintern sock "_NET_WM_STATE" true (fun resp ->
         let nwmsatom = r32 resp 8 in
         if nwmsatom != 0
