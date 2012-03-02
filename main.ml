@@ -6555,7 +6555,6 @@ let () =
   try
     loop infinity;
   with Quit ->
-    wcmd "quit";
     Config.save ();
     exit 0;
 ;;
