@@ -4516,7 +4516,6 @@ let viewkeyboard key mask =
                     then (
                       let under = getlink opaque n in
                       addnav ();
-                      cbput state.hists.pag s;
                       gotounder under;
                     )
                     else loop (n-m) rest
