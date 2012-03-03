@@ -4549,6 +4549,9 @@ let viewkeyboard key mask =
           else state.autoscroll <- Some conf.autoscrollstep
       end
 
+  | 112 when ctrl ->                    (* ctrl-p *)
+      launchpath ()
+
   | 80 ->                               (* P *)
       conf.presentation <- not conf.presentation;
       if conf.presentation
@@ -4767,9 +4770,6 @@ let viewkeyboard key mask =
   | 114 ->                              (* r *)
       state.anchor <- getanchor ();
       opendoc state.path state.password
-
-  | 76 ->                               (* L *)
-      launchpath ()
 
   | 118 when conf.debug ->              (* v *)
       state.rects <- [];
