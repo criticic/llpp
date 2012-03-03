@@ -1101,22 +1101,17 @@ let layout1 y sh =
           ~pdims:rest
           ~accu
   in
-  if nogeomcmds state.geomcmds
-  then (
-    let accu =
-      f
-        ~pageno:0
-        ~pdimno:~-1
-        ~prev:(0,0,0,0)
-        ~py:0
-        ~dy:0
-        ~pdims:state.pdims
-        ~accu:[]
-    in
-    List.rev accu
-  )
-  else
-    []
+  let accu =
+    f
+      ~pageno:0
+      ~pdimno:~-1
+      ~prev:(0,0,0,0)
+      ~py:0
+      ~dy:0
+      ~pdims:state.pdims
+      ~accu:[]
+  in
+  List.rev accu
 ;;
 
 let layoutN ((columns, coverA, coverB), b) y sh =
@@ -1171,15 +1166,16 @@ let layoutN ((columns, coverA, coverB), b) y sh =
         in
         fold accu (n+1)
   in
-  if nogeomcmds state.geomcmds
-  then List.rev (fold [] 0)
-  else []
+  List.rev (fold [] 0)
 ;;
 
 let layout y sh =
-  match conf.columns with
-  | None -> layout1 y sh
-  | Some c -> layoutN c y sh
+  if nogeomcmds state.geomcmds
+  then
+    match conf.columns with
+    | None -> layout1 y sh
+    | Some c -> layoutN c y sh
+  else []
 ;;
 
 let clamp incr =
