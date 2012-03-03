@@ -111,8 +111,8 @@ static FT_Face load_font(char *fontname)
 
         code = FT_New_Face (g_freetype_lib, fontname, 0, &face);
         if (code) {
-            fprintf (stderr, "failed to load font `%s'\n", fontname);
-            return NULL;
+                fprintf (stderr, "failed to load font `%s'\n", fontname);
+                return NULL;
         }
 
         FT_Select_Charmap(face, ft_encoding_unicode);
@@ -132,8 +132,8 @@ static FT_Face load_builtin_font(void *base, int len)
 
         code = FT_New_Memory_Face(g_freetype_lib, base, len, 0, &face);
         if (code) {
-            fprintf (stderr, "failed to load builtin font\n");
-            return NULL;
+                fprintf (stderr, "failed to load builtin font\n");
+                return NULL;
         }
 
         FT_Select_Charmap(face, ft_encoding_unicode);
