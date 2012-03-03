@@ -38,8 +38,7 @@ executable_p() {
 executable_p gmake && make=gmake || make=make
 
 (cd lablGL-1.04 \
-    && sed '17c\
-XLIBS = -lX11' Makefile.config.linux.mdk > Makefile.config \
+    && sed 17d Makefile.config.linux.mdk > Makefile.config \
     && $make lib libopt \
     && $make install \
             BINDIR=$root/bin \
