@@ -1192,31 +1192,35 @@ let layoutS (columns, b) y sh =
     if n = Array.length b
     then accu
     else
-      let pdimno, px, vy, (_, pw, h, xoff) = b.(n) in
+      let pdimno, px, vy, (_, pagew, pageh, xoff) = b.(n) in
       if (vy - y) > sh
       then accu
       else
         let accu =
-          if vy + h > y
+          if vy + pageh > y
           then
             let x = xoff + state.x in
             let pagey = max 0 (y - vy) in
             let pagedispy = if pagey > 0 then 0 else vy - y in
             let pagedispx, pagex =
               if x < 0
-              then 0, px - x
+              then 0, max 0 (px + x)
               else x, px
             in
-            let w = pw/columns in
-            let pagevw = min (w - (pagex mod w)) (conf.winw - state.scrollw) in
-            let pagevh = min (h - pagey) (sh - pagedispy) in
+            let pagevw =
+              let vw = conf.winw - pagedispx - state.scrollw in
+              let pw = pagew - pagex in
+              min vw pw
+            in
+            let pagevw = min pagevw (pagew/columns) in
+            let pagevh = min (pageh - pagey) (sh - pagedispy) in
             if pagevw > 0 && pagevh > 0
             then
               let e =
                 { pageno = n/columns
                 ; pagedimno = pdimno
-                ; pagew = pw
-                ; pageh = h
+                ; pagew = pagew
+                ; pageh = pageh
                 ; pagex = pagex
                 ; pagey = pagey
                 ; pagevw = pagevw
@@ -1260,12 +1264,6 @@ let itertiles l f =
   let col = l.pagex / conf.tilew in
   let row = l.pagey / conf.tileh in
 
-  let vw =
-    let a = l.pagew - l.pagex in
-    let b = conf.winw - state.scrollw in
-    min a b
-  and vh = l.pagevh in
-
   let rec rowloop row y0 dispy h =
     if h = 0
     then ()
@@ -1283,12 +1281,12 @@ let itertiles l f =
           colloop (col+1) 0 (dispx+dw) (w-dw)
         )
       in
-      colloop col tilex l.pagedispx vw;
+      colloop col tilex l.pagedispx l.pagevw;
       rowloop (row+1) 0 (dispy+dh) (h-dh)
     )
   in
-  if vw > 0 && vh > 0
-  then rowloop row tiley l.pagedispy vh;
+  if l.pagevw > 0 && l.pagevh > 0
+  then rowloop row tiley l.pagedispy l.pagevh;
 ;;
 
 let gettileopaque l col row =
@@ -4066,7 +4064,7 @@ let enterinfomode =
         match conf.columns with
         | Csingle -> "1"
         | Cmulti (multi, _) -> multicolumns_to_string multi
-        | Csplit (count, _) -> string_of_int count
+        | Csplit (count, _) -> "-" ^ string_of_int count
       )
       (fun v ->
         let n, a, b = multicolumns_of_string v in
