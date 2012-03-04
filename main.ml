@@ -5271,38 +5271,11 @@ let viewmouse button down x y mask =
   | 1 ->
       let dest = if down then getunder x y else Unone in
       begin match dest with
-      | Ulinkgoto (pageno, top) ->
-          if pageno >= 0
-          then (
-            addnav ();
-            gotopage1 pageno top;
-          )
-
-      | Ulinkuri s ->
-          gotouri s
-
-      | Uremote (filename, pageno) ->
-          let path =
-            if Sys.file_exists filename
-            then filename
-            else
-              let dir = Filename.dirname state.path in
-              let path = Filename.concat dir filename in
-              if Sys.file_exists path
-              then path
-              else ""
-          in
-          if String.length path > 0
-          then (
-            let anchor = getanchor () in
-            let ranchor = state.path, state.password, anchor in
-            state.anchor <- (pageno, 0.0);
-            state.ranchors <- ranchor :: state.ranchors;
-            opendoc path "";
-          )
-          else showtext '!' ("Could not find " ^ filename)
-
-      | Uunexpected _ | Ulaunch _ | Unamed _ -> ()
+      | Ulinkgoto _
+      | Ulinkuri _
+      | Uremote _
+      | Uunexpected _ | Ulaunch _ | Unamed _ ->
+          gotounder dest
 
       | Unone when down ->
           Wsi.setcursor Wsi.CURSOR_CROSSHAIR;
