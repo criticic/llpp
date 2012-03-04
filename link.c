@@ -701,6 +701,42 @@ static struct tile *alloctile (int h)
     return tile;
 }
 
+struct obs {
+    int cured;
+    fz_bbox b;
+};
+
+static void obs_fill_image (fz_device *dev, fz_image *image, fz_matrix ctm,
+                            float alpha)
+{
+    struct obs *obs = dev->user;
+
+    if (!obs->cured && fabs (1.0 - alpha) < 1e6) {
+        fz_bbox b = fz_round_rect (fz_transform_rect (ctm, fz_unit_rect));
+        b = fz_intersect_bbox (b, obs->b);
+        obs->cured = b.x0 == obs->b.x0
+            && b.x1 == obs->b.x1
+            && b.y0 == obs->b.y0
+            && b.y1 == obs->b.y1;
+    }
+}
+
+static int obscured (struct page *page, fz_bbox bbox)
+{
+    fz_device dev;
+    struct obs obs;
+
+    memset (&dev, 0, sizeof (dev));
+    memset (&obs, 0, sizeof (obs));
+    dev.hints = 0;
+    dev.flags = 0;
+    dev.user = &obs;
+    dev.fill_image = obs_fill_image;
+    obs.b = bbox;
+    fz_run_display_list (page->dlist, &dev, pagectm (page), bbox, NULL);
+    return obs.cured;
+}
+
 static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
 {
     fz_bbox bbox;
@@ -737,7 +773,9 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
 
     tile->w = w;
     tile->h = h;
-    clearpixmap (tile->pixmap);
+    if ((w < 128 && h < 128) || !obscured (page, bbox)) {
+        clearpixmap (tile->pixmap);
+    }
     dev = fz_new_draw_device (state.ctx, tile->pixmap);
     fz_run_display_list (page->dlist, dev, pagectm (page), bbox, NULL);
     fz_free_device (dev);
