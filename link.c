@@ -1834,6 +1834,20 @@ static void ensureslinks (struct page *page)
     }
 }
 
+/* slightly tweaked fmt_ulong by D.J. Bernstein */
+static void fmt_linkn (char *s, unsigned int u)
+{
+  unsigned int len; unsigned int q;
+  int zma = 'z' - 'a' + 1;
+  len = 1; q = u;
+  while (q > zma - 1) { ++len; q /= zma; }
+  if (s) {
+    s += len;
+    do { *--s = 'a' + (u % zma); u /= zma; } while(u); /* handles u == 0 */
+  }
+  s[len] = 0;
+}
+
 static void highlightslinks (struct page *page, int xoff, int yoff, int noff)
 {
     int i;
@@ -1846,7 +1860,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff, int noff)
     for (i = 0; i < page->slinkcount; ++i) {
         slink = &page->slinks[i];
 
-        snprintf (buf, sizeof (buf), "%d", i + noff);
+        fmt_linkn (buf, i + noff);
         x0 = slink->bbox.x0 + xoff - 5;
         y1 = slink->bbox.y0 + yoff - 5;
         y0 = y1 + 22;
@@ -1861,7 +1875,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff, int noff)
     for (i = 0; i < page->slinkcount; ++i) {
         slink = &page->slinks[i];
 
-        snprintf (buf, sizeof (buf), "%d", i + noff);
+        fmt_linkn (buf, i + noff);
         x0 = slink->bbox.x0 + xoff;
         y0 = slink->bbox.y0 + yoff + 12;
         draw_string (state.face, 12, x0, y0, buf);

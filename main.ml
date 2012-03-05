@@ -4615,12 +4615,13 @@ let viewkeyboard key mask =
 
   | 70 ->                               (* F *)
       state.glinks <- true;
+      let a = Char.code 'a' and z = Char.code 'z' in
       let ondone s =
         let n =
-          try int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc);
-            -1
+          let rec loop pos n = if pos = String.length s then n else
+              let m = Char.code s.[pos] - a in
+              loop (pos+1) (n*(z-a+1) + m)
+          in loop 0 0
         in
         if n >= 0
         then (
@@ -4643,9 +4644,13 @@ let viewkeyboard key mask =
         )
       in
       let onkey text key =
-        match Char.unsafe_chr key with
-        | 'g' -> TEdone text
-        | _ -> intentry text key
+        if (key >= a && key <= z)
+        then
+          let c = Char.unsafe_chr key in
+          let text = addchar text c in
+          TEcont text
+        else
+          TEcont text
       in
       let mode = state.mode in
       state.mode <- Textentry (
