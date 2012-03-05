@@ -1876,7 +1876,8 @@ let represent () =
 
 let reshape w h =
   GlDraw.viewport 0 0 w h;
-  if state.geomcmds != firstgeomcmds && nogeomcmds state.geomcmds
+  let firsttime = state.geomcmds == firstgeomcmds in
+  if not firsttime && nogeomcmds state.geomcmds
   then state.anchor <- getanchor ();
 
   conf.winw <- w;
@@ -1901,7 +1902,8 @@ let reshape w h =
   invalidate "geometry"
     (fun () ->
       state.w <- w;
-      state.x <- truncate (relx *. float w);
+      if not firsttime
+      then state.x <- truncate (relx *. float w);
       let w =
         match conf.columns with
         | Csingle -> w
