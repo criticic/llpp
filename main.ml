@@ -1204,7 +1204,7 @@ let layoutS (columns, b) y sh =
             let pagedispy = if pagey > 0 then 0 else vy - y in
             let pagedispx, pagex =
               if x < 0
-              then 0, max 0 (px + x)
+              then 0, px - x
               else x, px
             in
             let pagevw =
@@ -1408,12 +1408,17 @@ let tilevisible1 l x y =
 ;;
 
 let tilevisible layout n x y =
-  let rec findpageinlayout = function
-    | l :: _ when l.pageno = n -> tilevisible1 l x y
-    | _ :: rest -> findpageinlayout rest
+  let rec findpageinlayout m = function
+    | l :: rest when l.pageno = n ->
+        tilevisible1 l x y || (
+          match conf.columns with
+          | Csplit (c, _) when c > m -> findpageinlayout (m+1) rest
+          | _ -> false
+        )
+    | _ :: rest -> findpageinlayout 0 rest
     | [] -> false
   in
-  findpageinlayout layout
+  findpageinlayout 0 layout;
 ;;
 
 let tileready l x y =
