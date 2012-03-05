@@ -1203,9 +1203,18 @@ let layoutS (columns, b) y sh =
             let pagey = max 0 (y - vy) in
             let pagedispy = if pagey > 0 then 0 else vy - y in
             let pagedispx, pagex =
-              if x < 0
-              then 0, px - x
-              else x, px
+              if px = 0
+              then (
+                if x < 0
+                then 0, -x
+                else x, 0
+              )
+              else (
+                let px = px - x in
+                if px < 0
+                then -px, 0
+                else 0, px
+              )
             in
             let pagevw =
               let vw = conf.winw - pagedispx - state.scrollw in
