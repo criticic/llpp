@@ -1012,7 +1012,10 @@ let getpageyh pageno =
   | Cmulti (_, b) ->
       let (_, _, y, (_, _, h, _)) = b.(pageno) in
       y, h
-  | Csplit _ -> getpageyh pageno
+  | Csplit (c, b) ->
+      let n = pageno*c in
+      let (_, _, y, (_, _, h, _)) = b.(n) in
+      y, h
 ;;
 
 let getpagedim pageno =
