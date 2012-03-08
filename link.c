@@ -2932,9 +2932,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     char *fontpath;
     int colorspace;
     int mustoresize;
-#ifndef __CYGWIN__
     struct sigaction sa;
-#endif
 
     state.cr           = Int_val (Field (pipe_v, 0));
     state.cw           = Int_val (Field (pipe_v, 1));
@@ -2971,16 +2969,19 @@ CAMLprim value ml_init (value pipe_v, value params_v)
 
     realloctexts (texcount);
 
-#ifndef __CYGWIN__
+#ifdef __CYGWIN__
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+#else
     sa.sa_handler = SIG_DFL;
+    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
+#endif
     if (sigemptyset (&sa.sa_mask)) {
         err (1, "sigemptyset");
     }
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
     if (sigaction (SIGCHLD, &sa, NULL)) {
         err (1, "sigaction");
     }
-#endif
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
