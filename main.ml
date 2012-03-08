@@ -486,7 +486,7 @@ let defconf =
       | Plinux | Pfreebsd | Pdragonflybsd
       | Popenbsd | Pnetbsd | Psun -> "xdg-open \"%s\""
       | Posx -> "open \"%s\""
-      | Pcygwin -> "cygstart %s"
+      | Pcygwin -> "cygstart \"%s\""
       | Punknown -> "echo %s")
   ; pathlauncher   = "lp \"%s\""
   ; selcmd         =
