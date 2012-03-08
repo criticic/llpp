@@ -2839,8 +2839,8 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
 CAMLprim value ml_glx (value win_v)
 {
     CAMLparam1 (win_v);
-    int screen;
     XVisualInfo *visual;
+    int screen, wid = Int_val (win_v);
     int attributes[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
 
     glx.dpy = XOpenDisplay (NULL);
@@ -2865,14 +2865,14 @@ CAMLprim value ml_glx (value win_v)
     }
 
     XFree (visual);
-    if (!glXMakeCurrent (glx.dpy, Int_val (win_v), glx.ctx)) {
+    if (!glXMakeCurrent (glx.dpy, wid, glx.ctx)) {
         glXDestroyContext (glx.dpy, glx.ctx);
         XCloseDisplay (glx.dpy);
         glx.dpy = NULL;
         glx.ctx = NULL;
         caml_failwith ("glXMakeCurrent");
     }
-    glx.drawable = Int_val (win_v);
+    glx.drawable = wid;
 
     CAMLreturn (Val_unit);
 }
