@@ -76,7 +76,7 @@ type pipe = (Unix.file_descr * Unix.file_descr);;
 
 external init : pipe -> params -> unit = "ml_init";;
 external seltext : string -> (int * int * int * int) -> unit = "ml_seltext";;
-external copysel : string -> opaque -> unit = "ml_copysel";;
+external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
@@ -95,6 +95,7 @@ external getlink : opaque -> int -> under = "ml_getlink";;
 external getlinkrect : opaque -> int -> irect  = "ml_getlinkrect";;
 external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
+external popen : string -> (Unix.file_descr * int) list -> unit  = "ml_popen";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -572,13 +573,6 @@ let geturl s =
   else ""
 ;;
 
-let popen =
-  let shell, farg = "/bin/sh", "-c" in
-  fun s ->
-    let args = [|shell; farg; s|] in
-    ignore (Unix.create_process shell args Unix.stdin Unix.stdout Unix.stderr)
-;;
-
 let gotouri uri =
   if String.length conf.urilauncher = 0
   then print_endline uri
@@ -589,7 +583,7 @@ let gotouri uri =
     else
       let re = Str.regexp "%s" in
       let command = Str.global_replace re url conf.urilauncher in
-      try popen command
+      try popen command []
       with exn ->
         Printf.eprintf
           "failed to execute `%s': %s\n" command (Printexc.to_string exn);
@@ -689,7 +683,7 @@ let launchpath () =
   else (
     let re = Str.regexp "%s" in
     let command = Str.global_replace re state.path conf.pathlauncher in
-    try popen command
+    try popen command []
     with exn ->
       Printf.eprintf
         "failed to execute `%s': %s\n" command (Printexc.to_string exn);
@@ -5457,7 +5451,10 @@ let viewmouse button down x y mask =
                       then
                         match getopaque l.pageno with
                         | Some opaque ->
-                            copysel conf.selcmd opaque;
+                            let r, w = Unix.pipe () in
+                            popen conf.selcmd [r, 0; w, -1];
+                            copysel w opaque;
+                            Unix.close r;
                             G.postRedisplay "copysel"
                         | _ -> ()
                       else loop rest
