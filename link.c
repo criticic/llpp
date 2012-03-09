@@ -2559,6 +2559,96 @@ static int pipespan (FILE *f, fz_text_span *span, int a, int b)
     return 0;
 }
 
+#ifdef __linux__
+#include <spawn.h>
+
+static FILE *lpopen (char *command, char * UNUSED unused)
+{
+    FILE *f;
+    int ret;
+    pid_t pid;
+    int pipefd[2];
+    const char *func;
+    posix_spawnattr_t attr;
+    posix_spawn_file_actions_t fa;
+    char *argv[] = { "/bin/sh", "-c", NULL, NULL };
+
+    argv[2] = command;
+
+    if ((ret = pipe (pipefd)) != 0) {
+        fprintf (stderr, "pipe error=%d\n", errno);
+        return NULL;
+    }
+
+    if ((ret = posix_spawn_file_actions_init (&fa)) != 0) {
+        func = "posix_spawn_file_actions_init";
+    fail:
+        fprintf (stderr, "%s: %s\n", func, strerror (ret));
+        if (pipefd[0] >= 0 && close (pipefd[0])) {
+            fprintf (stderr, "close pipe/r: %s\n", strerror (errno));
+        }
+        if (pipefd[1] >= 0 && close (pipefd[1])) {
+            fprintf (stderr, "close pipe/w: %s\n", strerror (errno));
+        }
+        return NULL;
+    }
+
+    if ((ret = posix_spawn_file_actions_adddup2 (&fa, pipefd[0], 0)) != 0) {
+        func = "posix_spawn_file_actions_adddup2";
+        goto fail;
+    }
+
+    if ((ret = posix_spawn_file_actions_addclose (&fa, pipefd[1])) != 0) {
+        func = "posix_spawn_file_actions_addclose";
+        goto fail;
+    }
+
+    if ((ret = posix_spawnattr_init (&attr)) != 0) {
+        func = "posix_spawnattr_init";
+        goto fail;
+    }
+
+    if ((ret = posix_spawnattr_setflags (&attr, POSIX_SPAWN_USEVFORK)) != 0) {
+        func = "posix_spawnattr_setflags POSIX_SPAWN_USEVFORK";
+        goto fail;
+    }
+
+    if ((ret = posix_spawn (&pid, "/bin/sh", &fa, &attr, argv, environ))) {
+        func = "posix_spawn";
+        goto fail;
+    }
+
+    ret = close (pipefd[0]);
+    pipefd[0] = -1;
+
+    if (ret) {
+        func = "close pipe/r";
+        ret = errno;
+        goto fail;
+    }
+
+    f = fdopen (pipefd[1], "w");
+    if (!f) {
+        int saved_errno = errno;
+        fprintf (stderr, "fdopen %d: %s\n", pipefd[1], strerror (errno));
+        if ((ret = kill (pid, SIGQUIT))) {
+            fprintf (stderr, "kill %ld: %s\n",
+                     (long) pid, strerror (errno));
+        }
+        ret = saved_errno;
+        func = "fdopen";
+        goto fail;
+    }
+
+    return f;
+}
+#define POPEN lpopen
+#define PCLOSE fclose
+#else
+#define POPEN popen
+#define PCLOSE pclose
+#endif
+
 CAMLprim value ml_copysel (value command_v, value ptr_v)
 {
     CAMLparam1 (ptr_v);
@@ -2579,7 +2669,7 @@ CAMLprim value ml_copysel (value command_v, value ptr_v)
         goto unlock;
     }
 
-    f = popen (command, "w");
+    f = POPEN (command, "w");
     if (!f) {
         fprintf (stderr, "failed to open sel pipe: %s\n",
                  strerror (errno));
@@ -2607,7 +2697,7 @@ CAMLprim value ml_copysel (value command_v, value ptr_v)
 
  close:
     if (f != stdout) {
-        int ret = pclose (f);
+        int ret = PCLOSE (f);
         if (ret == -1)  {
             if (errno != ECHILD) {
                 fprintf (stderr, "failed to close sel pipe: %s\n",
