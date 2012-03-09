@@ -5451,12 +5451,37 @@ let viewmouse button down x y mask =
                       then
                         match getopaque l.pageno with
                         | Some opaque ->
-                            let r, w = Unix.pipe () in
-                            popen conf.selcmd [r, 0; w, -1];
-                            copysel w opaque;
-                            Unix.close r;
-                            G.postRedisplay "copysel"
-                        | _ -> ()
+                            begin
+                              match
+                                try Some (Unix.pipe ())
+                                with exn ->
+                                  dolog "can not create sel pipe: %s"
+                                    (Printexc.to_string exn);
+                                  None
+                              with
+                              | None -> ()
+                              | Some (r, w) ->
+                                  let doclose what fd =
+                                    try Unix.close fd
+                                    with exn ->
+                                      dolog "%s close failed: %s"
+                                        what (Printexc.to_string exn)
+                                  in
+                                  let docopysel r w =
+                                    copysel w opaque;
+                                    doclose "pipe/r" r;
+                                    G.postRedisplay "copysel"
+                                  in
+                                  try
+                                    popen conf.selcmd [r, 0; w, -1];
+                                    docopysel r w;
+                                  with exn ->
+                                    dolog "can not exectute %S: %s"
+                                      conf.selcmd (Printexc.to_string exn);
+                                    doclose "pipe/r" r;
+                                    doclose "pipe/w" w;
+                            end
+                        | None -> ()
                       else loop rest
                 in
                 loop state.layout;
