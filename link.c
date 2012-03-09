@@ -2576,7 +2576,7 @@ static FILE *lpopen (char *command, char * UNUSED unused)
     argv[2] = command;
 
     if ((ret = pipe (pipefd)) != 0) {
-        fprintf (stderr, "pipe error=%d\n", errno);
+        fprintf (stderr, "pipe: %s\n", strerror (errno));
         return NULL;
     }
 
