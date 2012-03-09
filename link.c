@@ -2580,17 +2580,31 @@ static FILE *lpopen (char *command, char * UNUSED unused)
         return NULL;
     }
 
-    if ((ret = posix_spawn_file_actions_init (&fa)) != 0) {
-        func = "posix_spawn_file_actions_init";
+    f = fdopen (pipefd[1], "w");
+    if (!f) {
+        ret = errno;
+        func = "fdopen";
     fail:
         fprintf (stderr, "%s: %s\n", func, strerror (ret));
         if (pipefd[0] >= 0 && close (pipefd[0])) {
             fprintf (stderr, "close pipe/r: %s\n", strerror (errno));
         }
-        if (pipefd[1] >= 0 && close (pipefd[1])) {
-            fprintf (stderr, "close pipe/w: %s\n", strerror (errno));
+        if (f) {
+            if (fclose (f))  {
+                fprintf (stderr, "fclose pipe/w: %s\n", strerror (errno));
+            }
+        }
+        else {
+            if (pipefd[1] >= 0 && close (pipefd[1])) {
+                fprintf (stderr, "close pipe/w: %s\n", strerror (errno));
+            }
         }
         return NULL;
+    }
+
+    if ((ret = posix_spawn_file_actions_init (&fa)) != 0) {
+        func = "posix_spawn_file_actions_init";
+        goto fail;
     }
 
     if ((ret = posix_spawn_file_actions_adddup2 (&fa, pipefd[0], 0)) != 0) {
@@ -2624,19 +2638,6 @@ static FILE *lpopen (char *command, char * UNUSED unused)
     if (ret) {
         func = "close pipe/r";
         ret = errno;
-        goto fail;
-    }
-
-    f = fdopen (pipefd[1], "w");
-    if (!f) {
-        int saved_errno = errno;
-        fprintf (stderr, "fdopen %d: %s\n", pipefd[1], strerror (errno));
-        if ((ret = kill (pid, SIGQUIT))) {
-            fprintf (stderr, "kill %ld: %s\n",
-                     (long) pid, strerror (errno));
-        }
-        ret = saved_errno;
-        func = "fdopen";
         goto fail;
     }
 
