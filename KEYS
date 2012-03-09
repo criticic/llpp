@@ -41,7 +41,7 @@ z                       - crop
 r                       - reload document
 P                       - "presentation" mode
 a                       - autoscroll
-ctrl-p                  - launch a command with the document path as an argument
+Ctrl-p                  - launch a command with the document path as an argument
 <,>                     - rotate
 [,]                     - decrease/increase page brightness
 Ctrl-g                  - interrupt search
