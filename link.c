@@ -2599,6 +2599,7 @@ static FILE *lpopen (char *command, char * UNUSED unused)
                 fprintf (stderr, "close pipe/w: %s\n", strerror (errno));
             }
         }
+        errno = ret;
         return NULL;
     }
 
