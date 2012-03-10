@@ -2616,6 +2616,16 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     if ((ret = posix_spawn (NULL, "/bin/sh", &fa, &attr, argv, environ))) {
         unix_error (ret, "posix_spawn", command_v);
     }
+
+    if ((ret = posix_spawnattr_destroy (&attr)) != 0) {
+        fprintf (stderr, "posix_spawnattr_destroy: %s\n", strerror (ret));
+    }
+
+    if ((ret = posix_spawn_file_actions_destroy (&fa)) != 0) {
+        fprintf (stderr, "posix_spawn_file_actions_destroy: %s\n",
+                 strerror (ret));
+    }
+
     CAMLreturn (Val_unit);
 }
 #endif
