@@ -982,12 +982,21 @@ let calcheight () =
 let calcheight () =
   match conf.columns with
   | Csingle -> calcheight ()
-  | Cmulti (_, b) ->
-      if Array.length b > 0
-      then
-        let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
-        y + h
-      else 0
+  | Cmulti ((c, _, _), b) ->
+      let rec loop y h n =
+        if n < 0
+        then loop y h (n+1)
+        else (
+          if n = Array.length b
+          then y + h
+          else
+            let (_, _, y', (_, _, h', _)) = b.(n) in
+            let y = min y y'
+            and h = max h h' in
+            loop y h (n+1)
+        )
+      in
+      loop max_int 0 (((Array.length b - 1) / c) * c)
   | Csplit (_, b) ->
       if Array.length b > 0
       then
@@ -1819,8 +1828,17 @@ let represent () =
     | Cmulti ((columns, coverA, coverB), _) ->
         let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
         let rec loop pageno pdimno pdim x y rowh pdims =
+          let rec fixrow m = if m = pageno then () else
+              let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
+              if h < rowh
+              then (
+                let y = y + (rowh - h) / 2 in
+                a.(m) <- (pdimno, x, y, pdim);
+              );
+              fixrow (m+1)
+          in
           if pageno = state.pagecount
-          then ()
+          then fixrow (((pageno - 1) / columns) * columns)
           else
             let pdimno, ((_, w, h, xoff) as pdim), pdims =
               match pdims with
@@ -1840,15 +1858,6 @@ let represent () =
                 then 0, y + rowh + conf.interpagespace, h
                 else x, y, max rowh h
               )
-            in
-            let rec fixrow m = if m = pageno then () else
-                let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
-                if h < rowh
-                then (
-                  let y = y + (rowh - h) / 2 in
-                  a.(m) <- (pdimno, x, y, pdim);
-                );
-                fixrow (m+1)
             in
             if pageno > 1 && (pageno - coverA) mod columns = 0
             then fixrow (pageno - columns);
