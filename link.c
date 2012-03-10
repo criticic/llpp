@@ -2,7 +2,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <spawn.h>
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -15,6 +14,8 @@
 
 #ifdef __CYGWIN__
 #include <cygwin/socket.h>      /* FIONREAD */
+#else
+#include <spawn.h>
 #endif
 
 #include <regex.h>
@@ -2560,6 +2561,12 @@ static int pipespan (FILE *f, fz_text_span *span, int a, int b)
     return 0;
 }
 
+#ifdef __CYGWIN__
+value ml_popen (value UNUSED u1, value UNUSED u2)
+{
+    caml_failwith ("ml_popen not implemented under Cygwin");
+}
+#else
 CAMLprim value ml_popen (value command_v, value fds_v)
 {
     CAMLparam2 (command_v, fds_v);
@@ -2607,6 +2614,7 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     }
     CAMLreturn (Val_unit);
 }
+#endif
 
 CAMLprim value ml_copysel (value fd_v, value ptr_v)
 {

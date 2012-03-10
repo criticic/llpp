@@ -111,6 +111,26 @@ let platform_to_string = function
 
 let platform = platform ();;
 
+let popen cmd fda =
+  if platform = Pcygwin
+  then (
+    let sh = "/bin/sh" in
+    let args = [|sh; "-c"; cmd|] in
+    let rec std si so se = function
+      | [] -> si, so, se
+      | (fd, 0) :: rest -> std fd so se rest
+      | (fd, -1) :: rest ->
+          Unix.set_close_on_exec fd;
+          std si so se rest
+      | (_, n) :: _ ->
+          failwith ("unexpected fdn in cygwin popen " ^ string_of_int n)
+    in
+    let si, so, se = std Unix.stdin Unix.stdout Unix.stderr fda in
+    ignore (Unix.create_process sh args si so se)
+  )
+  else popen cmd fda;
+;;
+
 type x = int
 and y = int
 and tilex = int
