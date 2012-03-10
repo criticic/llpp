@@ -39,6 +39,10 @@
 
 #define PIGGYBACK
 
+#ifndef __USE_GNU
+extern char **environ;
+#endif
+
 #if defined __GNUC__
 #define NORETURN __attribute__ ((noreturn))
 #define UNUSED __attribute__ ((unused))
@@ -2584,10 +2588,12 @@ CAMLprim value ml_popen (value command_v, value fds_v)
         unix_error (ret, "posix_spawnattr_init", Nothing);
     }
 
+#ifdef __linux__
     if ((ret = posix_spawnattr_setflags (&attr, POSIX_SPAWN_USEVFORK)) != 0) {
         unix_error (ret, "posix_spawnattr_setflags POSIX_SPAWN_USEVFORK",
                     Nothing);
     }
+#endif
 
     for (l_v = fds_v; l_v != Val_int (0); l_v = Field (l_v, 1)) {
         int fd1, fd2;
