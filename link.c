@@ -2620,6 +2620,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     FILE *f;
     struct page *page;
     fz_text_span *span;
+    int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
 
     if (trylock ("ml_copysel")) {
@@ -2633,15 +2634,11 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
         goto unlock;
     }
 
-    f = fdopen (Int_val (fd_v), "w");
+    f = fdopen (fd, "w");
     if (!f) {
         fprintf (stderr, "failed to fopen sel pipe: %s\n",
                  strerror (errno));
         f = stdout;
-        if (close (Int_val (fd_v))) {
-            fprintf (stderr, "failed to close sel pipe: %s\n",
-                     strerror (errno));
-        }
     }
 
     for (span = page->fmark.span;
@@ -2666,6 +2663,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
  close:
     if (f != stdout) {
         int ret = fclose (f);
+        fd = -1;
         if (ret == -1)  {
             if (errno != ECHILD) {
                 fprintf (stderr, "failed to close sel pipe: %s\n",
@@ -2677,6 +2675,12 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     unlock ("ml_copysel");
 
  done:
+    if (fd >= 0) {
+        if (close (fd)) {
+            fprintf (stderr, "failed to close sel pipe: %s\n",
+                     strerror (errno));
+        }
+    }
     CAMLreturn (Val_unit);
 }
 
