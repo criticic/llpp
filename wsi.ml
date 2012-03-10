@@ -776,9 +776,11 @@ let getauth haddr dnum =
       then None
       else Some (open_in_bin path)
     with exn ->
-      dolog "failed to open X authority file `%S' : %s"
-        path
-        (Printexc.to_string exn);
+      if Sys.file_exists path
+      then
+        dolog "failed to open X authority file `%S' : %s"
+          path
+          (Printexc.to_string exn);
       None
   in
   match opt with
