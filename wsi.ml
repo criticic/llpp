@@ -779,8 +779,7 @@ let getauth haddr dnum =
       if Sys.file_exists path
       then
         dolog "failed to open X authority file `%S' : %s"
-          path
-          (Printexc.to_string exn);
+          path (Printexc.to_string exn);
       None
   in
   match opt with
