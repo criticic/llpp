@@ -150,7 +150,8 @@ struct slink  {
 enum { DPDF, DXPS, DCBZ };
 
 struct page {
-    int gen;
+    int tgen;
+    int sgen;
     int type;
     int pageno;
     int pdimno;
@@ -677,7 +678,8 @@ static void *loadpage (int pageno, int pindex)
 
     page->pdimno = pindex;
     page->pageno = pageno;
-    page->gen = state.gen;
+    page->sgen = state.gen;
+    page->tgen = state.gen;
     page->type = state.type;
 
     return page;
@@ -1798,10 +1800,9 @@ static void ensureslinks (struct page *page)
     size_t slinksize = sizeof (*page->slinks);
     fz_link *link, *links;
 
-    if (state.gen != page->gen) {
-        droptext (page);
+    if (state.gen != page->sgen) {
         dropslinks (page);
-        page->gen = state.gen;
+        page->sgen = state.gen;
     }
     if (page->slinks) return;
 
@@ -2073,10 +2074,9 @@ static fz_link *getlink (struct page *page, int x, int y)
 
 static void ensuretext (struct page *page)
 {
-    if (state.gen != page->gen) {
+    if (state.gen != page->tgen) {
         droptext (page);
-        dropslinks (page);
-        page->gen = state.gen;
+        page->tgen = state.gen;
     }
     if (!page->text) {
         fz_device *tdev;
@@ -2154,9 +2154,13 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     char *s = String_val (ptr_v);
 
     page = parse_pointer ("ml_findlink", s);
+    ret_v = Val_int (0);
+    if (trylock ("ml_findlink")) {
+        goto done;
+    }
+
     ensureslinks (page);
 
-    ret_v = Val_int (0);
     if (Is_block (dir_v)) {
         dirtag = Tag_val (dir_v);
         switch (dirtag) {
@@ -2257,6 +2261,8 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
         Field (ret_v, 0) = Val_int (found - page->slinks);
     }
 
+    unlock ("ml_findlink");
+ done:
     CAMLreturn (ret_v);
 }
 
@@ -2339,11 +2345,18 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     char *s = String_val (ptr_v);
 
     ret_v = Val_int (0);
+    if (trylock ("ml_getlink")) {
+        goto done;
+    }
+
     page = parse_pointer ("ml_getlink", s);
     ensureslinks (page);
     pdim = &state.pagedims[page->pdimno];
     link = page->slinks[Int_val (n_v)].link;
     LINKTOVAL;
+
+    unlock ("ml_getlink");
+ done:
     CAMLreturn (ret_v);
 }
 
@@ -2366,14 +2379,24 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
     char *s = String_val (ptr_v);
 
     page = parse_pointer ("ml_getlinkrect", s);
+    ret_v = caml_alloc_tuple (4);
+    if (trylock ("ml_getlinkrect")) {
+        Field (ret_v, 0) = Val_int (0);
+        Field (ret_v, 1) = Val_int (0);
+        Field (ret_v, 2) = Val_int (0);
+        Field (ret_v, 3) = Val_int (0);
+        goto done;
+    }
     ensureslinks (page);
 
     slink = &page->slinks[Int_val (n_v)];
-    ret_v = caml_alloc_tuple (4);
     Field (ret_v, 0) = Val_int (slink->bbox.x0);
     Field (ret_v, 1) = Val_int (slink->bbox.y0);
     Field (ret_v, 2) = Val_int (slink->bbox.x1);
     Field (ret_v, 3) = Val_int (slink->bbox.y1);
+    unlock ("ml_getlinkrect");
+
+ done:
     CAMLreturn (ret_v);
 }
 
