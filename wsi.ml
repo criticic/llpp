@@ -419,7 +419,7 @@ let rec readresp sock =
 
   | 15 ->                               (* visibility *)
       let vis = r8 resp 8 in
-      if vis != 2 then state.t#display;
+      if vis != 2 then state.t#expose;
       vlog "visibility %d" vis;
 
   | 34 ->                               (* mapping *)
@@ -457,7 +457,7 @@ let rec readresp sock =
       state.h <- h;
       state.x <- x;
       state.y <- y;
-      state.t#display
+      state.t#expose
 
   | n ->
       dolog "event %d %S" n resp
