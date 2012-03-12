@@ -60,6 +60,7 @@ type state =
     ; mutable w          : int
     ; mutable h          : int
     ; mutable fs         : fs
+    ; mutable curcurs    : cursor
     }
 and fs =
     | NoFs
@@ -85,6 +86,7 @@ let state =
   ; h          = -1
   ; fs         = NoFs
   ; stringatom = 31
+  ; curcurs    = CURSOR_INHERIT
   }
 ;;
 
@@ -846,17 +848,20 @@ let settitle s =
 ;;
 
 let setcursor cursor =
-  let n =
-    match cursor with
-    | CURSOR_INHERIT -> -1
-    | CURSOR_INFO -> 3
-    | CURSOR_CYCLE -> 2
-    | CURSOR_CROSSHAIR -> 0
-    | CURSOR_TEXT -> 5
-  in
-  let s = s32 (if n = -1 then 0 else state.idbase+2+n) in
-  let s = changewindowattributesreq state.idbase (*cursor*)0x4000 s in
-  sendstr s state.sock;
+  if cursor != state.curcurs
+  then
+    let n =
+      match cursor with
+      | CURSOR_INHERIT -> -1
+      | CURSOR_INFO -> 3
+      | CURSOR_CYCLE -> 2
+      | CURSOR_CROSSHAIR -> 0
+      | CURSOR_TEXT -> 5
+    in
+    let s = s32 (if n = -1 then 0 else state.idbase+2+n) in
+    let s = changewindowattributesreq state.idbase (*cursor*)0x4000 s in
+    sendstr s state.sock;
+    state.curcurs <- cursor;
 ;;
 
 let fullscreen () =
