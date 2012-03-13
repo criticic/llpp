@@ -3008,6 +3008,16 @@ CAMLprim value ml_swapb (value unit_v)
     CAMLreturn (Val_unit);
 }
 
+CAMLprim value ml_glxsync (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    if (glx.dpy && glx.ctx) {
+        glXWaitX ();
+        glXWaitGL ();
+    }
+    CAMLreturn (Val_unit);
+}
+
 enum { piunknown, pilinux, piosx, pisun, pifreebsd,
        pidragonflybsd, piopenbsd, pinetbsd, picygwin };
 

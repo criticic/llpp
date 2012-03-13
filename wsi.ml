@@ -8,6 +8,7 @@ type cursor =
 
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external glx : int -> unit = "ml_glx";;
+external glxsync : unit -> unit = "ml_glxsync";;
 external swapb : unit -> unit = "ml_swapb";;
 external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
 external toutf8 : int -> string = "ml_keysymtoutf8";;
@@ -449,6 +450,7 @@ let rec readresp sock =
         state.x state.y state.w state.h
         x y w h
       ;
+      glxsync ();
       if w != state.w || h != state.h
       then (
         state.t#reshape w h;
