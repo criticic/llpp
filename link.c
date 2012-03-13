@@ -2615,7 +2615,7 @@ CAMLprim value ml_popen (value command_v, value fds_v)
         goto fail1;
     }
 
-#ifdef __linux__
+#ifdef POSIX_SPAWN_USEVFORK
     if ((ret = posix_spawnattr_setflags (&attr, POSIX_SPAWN_USEVFORK)) != 0) {
         msg =  "posix_spawnattr_setflags POSIX_SPAWN_USEVFORK";
         earg_v = Nothing;
