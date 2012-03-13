@@ -2598,7 +2598,9 @@ CAMLprim value ml_popen (value command_v, value fds_v)
 {
     CAMLparam2 (command_v, fds_v);
     CAMLlocal2 (l_v, tup_v);
-    int ret;
+    char *msg;
+    value earg_v;
+    int ret, ret2;
     posix_spawnattr_t attr;
     posix_spawn_file_actions_t fa;
     char *argv[] = { "/bin/sh", "-c", String_val (command_v), NULL };
@@ -2608,13 +2610,16 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     }
 
     if ((ret = posix_spawnattr_init (&attr)) != 0) {
-        unix_error (ret, "posix_spawnattr_init", Nothing);
+        msg = "posix_spawnattr_init";
+        earg_v = Nothing;
+        goto fail1;
     }
 
 #ifdef __linux__
     if ((ret = posix_spawnattr_setflags (&attr, POSIX_SPAWN_USEVFORK)) != 0) {
-        unix_error (ret, "posix_spawnattr_setflags POSIX_SPAWN_USEVFORK",
-                    Nothing);
+        msg =  "posix_spawnattr_setflags POSIX_SPAWN_USEVFORK";
+        earg_v = Nothing;
+        goto fail;
     }
 #endif
 
@@ -2626,18 +2631,24 @@ CAMLprim value ml_popen (value command_v, value fds_v)
         fd2 = Int_val (Field (tup_v, 1));
         if (fd2 < 0) {
             if ((ret = posix_spawn_file_actions_addclose (&fa, fd1)) != 0) {
-                unix_error (ret, "posix_spawn_file_actions_addclose", tup_v);
+                msg = "posix_spawn_file_actions_addclose";
+                earg_v = tup_v;
+                goto fail;
             }
         }
         else {
             if ((ret = posix_spawn_file_actions_adddup2 (&fa, fd1, fd2)) != 0) {
-                unix_error (ret, "posix_spawn_file_actions_adddup2", tup_v);
+                msg = "posix_spawn_file_actions_adddup2";
+                earg_v = tup_v;
+                goto fail;
             }
         }
     }
 
     if ((ret = posix_spawn (NULL, "/bin/sh", &fa, &attr, argv, environ))) {
-        unix_error (ret, "posix_spawn", command_v);
+        msg = "posix_spawn";
+        earg_v = Nothing;
+        goto fail;
     }
 
     if ((ret = posix_spawnattr_destroy (&attr)) != 0) {
@@ -2650,6 +2661,18 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     }
 
     CAMLreturn (Val_unit);
+
+ fail1:
+    if ((ret2 = posix_spawn_file_actions_destroy (&fa)) != 0) {
+        fprintf (stderr, "posix_spawn_file_actions_destroy: %s\n",
+                 strerror (ret2));
+    }
+ fail:
+    if ((ret2 = posix_spawnattr_destroy (&attr)) != 0) {
+        fprintf (stderr, "posix_spawnattr_destroy: %s\n", strerror (ret2));
+    }
+
+    unix_error (ret, msg, earg_v);
 }
 #endif
 
