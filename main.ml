@@ -6564,6 +6564,12 @@ let () =
     method expose =
       if nogeomcmds state.geomcmds
       then display ()
+      else (
+        GlFunc.draw_buffer `front;
+        GlClear.color (scalecolor2 conf.bgcolor);
+        GlClear.clear [`color];
+        GlFunc.draw_buffer `back;
+      )
     method display = display ()
     method reshape w h = reshape w h
     method mouse b d x y m = mouse b d x y m
