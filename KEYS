@@ -24,6 +24,7 @@ p, N                    - .................. (backward)
 g, G                    - go to first/last page
 t                       - align top of the screen with the top of the page
 F                       - go to numbered link
+y                       - select link and paste its description to the clipboard
 space                   - go to the next page
 delete                  - go to the previous page
 insert                  - toggle link navigation mode

@@ -788,15 +788,27 @@ let showtext c s =
   G.postRedisplay "showtext";
 ;;
 
+let undertext = function
+  | Unone -> "none"
+  | Ulinkuri s -> s
+  | Ulinkgoto (pageno, _) -> Printf.sprintf "%s: page %d" state.path (pageno+1)
+  | Utext s -> "font: " ^ s
+  | Uunexpected s -> "unexpected: " ^ s
+  | Ulaunch s -> "launch: " ^ s
+  | Unamed s -> "named: " ^ s
+  | Uremote (filename, pageno) ->
+      Printf.sprintf "%s: page %d" filename (pageno+1)
+;;
+
 let updateunder x y =
   match getunder x y with
   | Unone -> Wsi.setcursor Wsi.CURSOR_INHERIT
   | Ulinkuri uri ->
       if conf.underinfo then showtext 'u' ("ri: " ^ uri);
       Wsi.setcursor Wsi.CURSOR_INFO
-  | Ulinkgoto (page, _) ->
+  | Ulinkgoto (pageno, _) ->
       if conf.underinfo
-      then showtext 'p' ("age: " ^ string_of_int (page+1));
+      then showtext 'p' ("age: " ^ string_of_int (pageno+1));
       Wsi.setcursor Wsi.CURSOR_INFO
   | Utext s ->
       if conf.underinfo then showtext 'f' ("ont: " ^ s);
@@ -812,7 +824,7 @@ let updateunder x y =
       Wsi.setcursor Wsi.CURSOR_INHERIT
   | Uremote (filename, pageno) ->
       if conf.underinfo then showtext 'r'
-        (Printf.sprintf "emote: %s (%d)" filename pageno);
+        (Printf.sprintf "emote: %s (%d)" filename (pageno+1));
       Wsi.setcursor Wsi.CURSOR_INFO
 ;;
 
@@ -821,20 +833,9 @@ let showlinktype under =
   then
     match under with
     | Unone -> ()
-    | Ulinkuri uri ->
-        showtext 'u' ("ri: " ^ uri)
-    | Ulinkgoto (page, _) ->
-        showtext 'p' ("age: " ^ string_of_int (page+1));
-    | Utext s ->
-        showtext 'f' ("ont: " ^ s);
-    | Uunexpected s ->
-        showtext 'u' ("nexpected: " ^ s);
-    | Ulaunch s ->
-        showtext 'l' ("aunch: " ^ s);
-    | Unamed s ->
-        showtext 'n' ("amed: " ^ s);
-    | Uremote (filename, pageno) ->
-        showtext 'r' (Printf.sprintf "emote: %s (%d)" filename pageno);
+    | under ->
+        let s = undertext under in
+        showtext ' ' s
 ;;
 
 let addchar s c =
@@ -2411,6 +2412,49 @@ let intentry text key =
   | _ ->
       state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
       TEcont text
+;;
+
+let linknentry text key =
+  let c =
+    if key >= 32 && key < 127
+    then Char.chr key
+    else '\000'
+  in
+  match c with
+  | 'a' .. 'z' ->
+      let text = addchar text c in
+      TEcont text
+
+  | _ ->
+      state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
+      TEcont text
+;;
+
+let linkndone f s =
+  if String.length s > 0
+  then (
+    let n =
+      let rec loop pos n = if pos = String.length s then n else
+          let m = Char.code s.[pos] - 97 in
+          loop (pos+1) (n*26 + m)
+      in loop 0 0
+    in
+    let rec loop n = function
+      | [] -> ()
+      | l :: rest ->
+          match getopaque l.pageno with
+          | None -> loop n rest
+          | Some opaque ->
+              let m = getlinkcount opaque in
+              if n < m
+              then (
+                let under = getlink opaque n in
+                f under
+              )
+              else loop (n-m) rest
+    in
+    loop n state.layout;
+  )
 ;;
 
 let textentry text key =
@@ -4652,52 +4696,75 @@ let viewkeyboard key mask =
 
   | 70 ->                               (* F *)
       state.glinks <- true;
-      let a = Char.code 'a' and z = Char.code 'z' in
-      let ondone s =
-        let n =
-          let rec loop pos n = if pos = String.length s then n else
-              let m = Char.code s.[pos] - a in
-              loop (pos+1) (n*(z-a+1) + m)
-          in loop 0 0
-        in
-        if n >= 0
-        then (
-          let rec loop n = function
-            | [] -> ()
-            | l :: rest ->
-                match getopaque l.pageno with
-                | None -> loop n rest
-                | Some opaque ->
-                    let m = getlinkcount opaque in
-                    if n < m
-                    then (
-                      let under = getlink opaque n in
-                      addnav ();
-                      gotounder under;
-                    )
-                    else loop (n-m) rest
-          in
-          loop n state.layout;
-        )
-      in
-      let onkey text key =
-        if (key >= a && key <= z)
-        then
-          let c = Char.unsafe_chr key in
-          let text = addchar text c in
-          TEcont text
-        else
-          TEcont text
-      in
       let mode = state.mode in
       state.mode <- Textentry (
-        (":", "", Some (onhist state.hists.pag), onkey, ondone),
+        (":", "", None, linknentry, linkndone (fun under ->
+          addnav ();
+          gotounder under
+        )
+        ), fun _ ->
+          state.glinks <- false;
+          state.mode <- mode
+      );
+      state.text <- "";
+      G.postRedisplay "view:linkent(F)"
+
+  | 121 ->                              (* y *)
+      state.glinks <- true;
+      let mode = state.mode in
+      state.mode <- Textentry (
+        (":", "", None, linknentry, linkndone (fun under ->
+          let rw =
+            try
+              Some (Unix.pipe ())
+            with exn ->
+              showtext '!' (Printf.sprintf "pipe failed: %s"
+                               (Printexc.to_string exn));
+              None
+          in
+          match rw with
+          | Some (r, w) ->
+              begin try
+                  popen conf.selcmd [r, 0; w, -1]
+                with exn ->
+                  showtext '!'
+                    (Printf.sprintf "failed to execute %s: %s"
+                        conf.selcmd (Printexc.to_string exn))
+              end;
+              let clo cap fd =
+                try Unix.close fd
+                with exn ->
+                  showtext '!' (Printf.sprintf "failed to close %s: %s"
+                                   cap (Printexc.to_string exn))
+              in
+              let s = undertext under in
+              (try
+                  let l = String.length s in
+                  let n = Unix.write w s 0 l in
+                  if n != l
+                  then
+                    showtext '!'
+                      (Printf.sprintf
+                          "failed to write %d characters to sel pipe, wrote %d"
+                          l n
+                      )
+                with exn ->
+                  showtext '!'
+                    (Printf.sprintf "failed to write to sel pipe: %s"
+                        (Printexc.to_string exn)
+                    )
+              );
+              clo "pipe/r" r;
+              clo "pipe/w" w;
+          | None -> ()
+        )
+        ),
         fun _ ->
           state.glinks <- false;
           state.mode <- mode
       );
       state.text <- "";
-      G.postRedisplay "view:enttext"
+      G.postRedisplay "view:linkent"
 
   | 97 ->                               (* a *)
       begin match state.autoscroll with
