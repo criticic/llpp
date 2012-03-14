@@ -6567,7 +6567,7 @@ let () =
   let globalkeyhash = findkeyhash conf "global" in
   let wsfd, winw, winh = Wsi.init (object
     method expose =
-      if nogeomcmds state.geomcmds
+      if nogeomcmds state.geomcmds || platform == Posx
       then display ()
       else (
         GlFunc.draw_buffer `front;
