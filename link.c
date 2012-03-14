@@ -1855,7 +1855,8 @@ static void fmt_linkn (char *s, unsigned int u)
   s[len] = 0;
 }
 
-static void highlightslinks (struct page *page, int xoff, int yoff, int noff)
+static void highlightslinks (struct page *page, int xoff, int yoff,
+                             int noff, char *targ, int tlen)
 {
     int i;
     char buf[40];
@@ -1865,27 +1866,31 @@ static void highlightslinks (struct page *page, int xoff, int yoff, int noff)
     ensureslinks (page);
     glColor3ub (0xc3, 0xb0, 0x91);
     for (i = 0; i < page->slinkcount; ++i) {
-        slink = &page->slinks[i];
-
         fmt_linkn (buf, i + noff);
-        x0 = slink->bbox.x0 + xoff - 5;
-        y1 = slink->bbox.y0 + yoff - 5;
-        y0 = y1 + 22;
-        w = measure_string (state.face, 12, buf);
-        x1 = x0 + w + 10;
-        glRectd (x0, y0, x1, y1);
+        if (!tlen || !strncmp (targ, buf, tlen)) {
+            slink = &page->slinks[i];
+
+            x0 = slink->bbox.x0 + xoff - 5;
+            y1 = slink->bbox.y0 + yoff - 5;
+            y0 = y1 + 22;
+            w = measure_string (state.face, 12, buf);
+            x1 = x0 + w + 10;
+            glRectd (x0, y0, x1, y1);
+        }
     }
 
     glEnable (GL_BLEND);
     glEnable (GL_TEXTURE_2D);
     glColor3ub (0, 0, 0);
     for (i = 0; i < page->slinkcount; ++i) {
-        slink = &page->slinks[i];
-
         fmt_linkn (buf, i + noff);
-        x0 = slink->bbox.x0 + xoff;
-        y0 = slink->bbox.y0 + yoff + 12;
-        draw_string (state.face, 12, x0, y0, buf);
+        if (!tlen || !strncmp (targ, buf, tlen)) {
+            slink = &page->slinks[i];
+
+            x0 = slink->bbox.x0 + xoff;
+            y0 = slink->bbox.y0 + yoff + 12;
+            draw_string (state.face, 12, x0, y0, buf);
+        }
     }
     glDisable (GL_TEXTURE_2D);
     glDisable (GL_BLEND);
@@ -2009,12 +2014,14 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
 
 CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
                                value xoff_v, value yoff_v,
-                               value noff_v)
+                               value li_v)
 {
-    CAMLparam5 (ptr_v, hlinks_v, xoff_v, yoff_v, noff_v);
+    CAMLparam5 (ptr_v, hlinks_v, xoff_v, yoff_v, li_v);
     int xoff = Int_val (xoff_v);
     int yoff = Int_val (yoff_v);
-    int noff = Int_val (noff_v);
+    int noff = Int_val (Field (li_v, 0));
+    char *targ = String_val (Field (li_v, 1));
+    int tlen = caml_string_length (Field (li_v, 1));
     char *s = String_val (ptr_v);
     int hlmask = Int_val (hlinks_v);
     struct page *page = parse_pointer ("ml_postprocess", s);
@@ -2025,7 +2032,7 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         goto done;
     }
     if (hlmask & 2) {
-        highlightslinks (page, xoff, yoff, noff);
+        highlightslinks (page, xoff, yoff, noff, targ, tlen);
         noff = page->slinkcount;
     }
     showsel (page, xoff, yoff);

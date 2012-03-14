@@ -83,7 +83,7 @@ external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
 external getmaxw : unit -> float = "ml_getmaxw";;
-external postprocess : opaque -> int -> int -> int -> int -> int =
+external postprocess : opaque -> int -> int -> int -> (int * string) -> int =
     "ml_postprocess";;
 external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
@@ -5178,7 +5178,12 @@ let drawpage l linkindexbase =
         let hlmask = (if conf.hlinks then 1 else 0)
           + (if state.glinks && not (isbirdseye state.mode) then 2 else 0)
         in
-        postprocess opaque hlmask x y linkindexbase;
+        let s =
+          match state.mode with
+          | Textentry ((_, s, _, _, _), _) when state.glinks -> s
+          | _ -> ""
+        in
+        postprocess opaque hlmask x y (linkindexbase, s);
       else 0
 
   | _ -> 0
