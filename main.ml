@@ -248,6 +248,7 @@ type page =
     ; pagevh    : int
     ; pagedispx : int
     ; pagedispy : int
+    ; pagecol   : int
     }
 ;;
 
@@ -257,6 +258,7 @@ let debugl l =
   dolog "  vWxH    %dx%d" l.pagevw l.pagevh;
   dolog "  pagex,y %d,%d" l.pagex l.pagey;
   dolog "  dispx,y %d,%d" l.pagedispx l.pagedispy;
+  dolog "  column  %d" l.pagecol;
   dolog "}";
 ;;
 
@@ -1182,6 +1184,7 @@ let layout1 y sh =
           ; pagevh = pagevh - off
           ; pagedispx = dx
           ; pagedispy = dy + off
+          ; pagecol = 0
           }
         in
         let accu = e :: accu in
@@ -1253,6 +1256,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
                 ; pagevh = pagevh
                 ; pagedispx = pagedispx
                 ; pagedispy = pagedispy
+                ; pagecol = 0
                 }
               in
               e :: accu
@@ -1316,6 +1320,7 @@ let layoutS (columns, b) y sh =
                 ; pagevh = pagevh
                 ; pagedispx = pagedispx
                 ; pagedispy = pagedispy
+                ; pagecol = n mod columns
                 }
               in
               e :: accu
@@ -1745,7 +1750,9 @@ let gotoy_and_clear_text y =
 let getanchor () =
   match state.layout with
   | []     -> emptyanchor
-  | l :: _ -> (l.pageno, float l.pagey /. float l.pageh)
+  | l :: _ ->
+      let coloff = l.pagecol * l.pageh in
+      (l.pageno, (float l.pagey +. float coloff) /. float l.pageh)
 ;;
 
 let getanchory (n, top) =
