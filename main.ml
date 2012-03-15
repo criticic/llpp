@@ -4243,8 +4243,8 @@ let enterinfomode =
         (fun v ->
           try
             let w, h = Scanf.sscanf v "%dx%d" (fun w h -> w, h) in
-            conf.tileh <- max 64 w;
-            conf.tilew <- max 64 h;
+            conf.tilew <- max 64 w;
+            conf.tileh <- max 64 h;
             flushtiles ();
           with exn ->
             state.text <- Printf.sprintf "bad tile size `%s': %s"
