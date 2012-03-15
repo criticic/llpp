@@ -1567,7 +1567,7 @@ let preloadlayout visiblepages =
   state.maxy <- calcheight ();
   let y =
     match visiblepages with
-    | [] -> 0
+    | [] -> if state.y >= maxy then maxy else 0
     | l :: _ -> getpagey l.pageno + l.pagey
   in
   let y = if y < conf.winh then 0 else y - conf.winh in
