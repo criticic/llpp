@@ -2825,8 +2825,7 @@ let optentry mode _ key =
 
     | 'h' ->
         conf.maxhfit <- not conf.maxhfit;
-        state.maxy <-
-          state.maxy + (if conf.maxhfit then -conf.winh else conf.winh);
+        state.maxy <- calcheight ();
         TEdone ("maxhfit " ^ (btos conf.maxhfit))
 
     | 'c' ->
