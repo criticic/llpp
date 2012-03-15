@@ -1955,7 +1955,9 @@ let enttext () =
     let hscrollh =
       match state.mode with
       | Textentry _
-      | View -> state.hscrollh
+      | View ->
+          let h, _, _ = state.uioh#scrollpw in
+          h
       | _ -> 0
     in
     let rect x w =
