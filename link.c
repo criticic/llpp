@@ -1850,7 +1850,8 @@ static void fmt_linkn (char *s, unsigned int u)
   while (q > zma - 1) { ++len; q /= zma; }
   if (s) {
     s += len;
-    do { *--s = 'a' + (u % zma); u /= zma; } while(u); /* handles u == 0 */
+    do { *--s = 'a' + (u % zma) - (u < zma && len > 1); u /= zma; } while(u);
+    /* handles u == 0 */
   }
   s[len] = 0;
 }

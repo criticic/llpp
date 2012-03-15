@@ -2436,8 +2436,9 @@ let linkndone f s =
   if String.length s > 0
   then (
     let n =
-      let rec loop pos n = if pos = String.length s then n else
-          let m = Char.code s.[pos] - 97 in
+      let l = String.length s in
+      let rec loop pos n = if pos = l then n else
+          let m = Char.code s.[pos] - (if pos = 0 && l > 1 then 96 else 97) in
           loop (pos+1) (n*26 + m)
       in loop 0 0
     in
