@@ -711,20 +711,73 @@ let launchpath () =
   );
 ;;
 
+module Ne = struct
+  type 'a t = | Res of 'a | Exn of exn;;
+
+  let pipe () =
+    try Res (Unix.pipe ())
+    with exn -> Exn exn
+  ;;
+
+  let clo fd f =
+    try Unix.close fd
+    with exn -> f (Printexc.to_string exn)
+  ;;
+
+  let dup fd =
+    try Res (Unix.dup fd)
+    with exn -> Exn exn
+  ;;
+
+  let dup2 fd1 fd2 =
+    try Res (Unix.dup2 fd1 fd2)
+    with exn -> Exn exn
+  ;;
+end;;
+
 let redirectstderr () =
+  let clofail what errmsg = dolog "failed to close %s: %s" what errmsg in
   if conf.redirectstderr
   then
-    let rfd, wfd = Unix.pipe () in
-    state.stderr <- Unix.dup Unix.stderr;
-    state.errfd <- Some rfd;
-    Unix.dup2 wfd Unix.stderr;
+    match Ne.pipe () with
+    | Ne.Exn exn ->
+        dolog "failed to create stderr redirection pipes: %s"
+          (Printexc.to_string exn)
+
+    | Ne.Res (r, w) ->
+        begin match Ne.dup Unix.stderr with
+        | Ne.Exn exn ->
+            dolog "failed to dup stderr: %s" (Printexc.to_string exn);
+            Ne.clo r (clofail "pipe/r");
+            Ne.clo w (clofail "pipe/w");
+
+        | Ne.Res dupstderr ->
+            begin match Ne.dup2 w Unix.stderr with
+            | Ne.Exn exn ->
+                dolog "failed to dup2 to stderr: %s"
+                  (Printexc.to_string exn);
+                Ne.clo dupstderr (clofail "stderr duplicate");
+                Ne.clo r (clofail "redir pipe/r");
+                Ne.clo w (clofail "redir pipe/w");
+
+            | Ne.Res () ->
+                state.stderr <- dupstderr;
+                state.errfd <- Some r;
+            end;
+        end
   else (
     state.newerrmsgs <- false;
     begin match state.errfd with
     | Some fd ->
-        Unix.close fd;
-        Unix.dup2 state.stderr Unix.stderr;
-        state.errfd <- None;
+        begin match Ne.dup2 state.stderr Unix.stderr with
+        | Ne.Exn exn ->
+            dolog "failed to dup2 original stderr: %s"
+              (Printexc.to_string exn)
+        | Ne.Res () ->
+            Ne.clo fd (clofail "dup of stderr");
+            Unix.dup2 state.stderr Unix.stderr;
+            state.errfd <- None;
+        end;
     | None -> ()
     end;
     prerr_string (Buffer.contents state.errmsgs);
@@ -4717,16 +4770,11 @@ let viewkeyboard key mask =
       let mode = state.mode in
       state.mode <- Textentry (
         (":", "", None, linknentry, linkndone (fun under ->
-          let rw =
-            try
-              Some (Unix.pipe ())
-            with exn ->
+          match Ne.pipe () with
+          | Ne.Exn exn ->
               showtext '!' (Printf.sprintf "pipe failed: %s"
                                (Printexc.to_string exn));
-              None
-          in
-          match rw with
-          | Some (r, w) ->
+          | Ne.Res (r, w) ->
               begin try
                   popen conf.selcmd [r, 0; w, -1]
                 with exn ->
@@ -4735,10 +4783,9 @@ let viewkeyboard key mask =
                         conf.selcmd (Printexc.to_string exn))
               end;
               let clo cap fd =
-                try Unix.close fd
-                with exn ->
-                  showtext '!' (Printf.sprintf "failed to close %s: %s"
-                                   cap (Printexc.to_string exn))
+                Ne.clo fd (fun msg ->
+                  showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
+                )
               in
               let s = undertext under in
               (try
@@ -4759,7 +4806,6 @@ let viewkeyboard key mask =
               );
               clo "pipe/r" r;
               clo "pipe/w" w;
-          | None -> ()
         )
         ),
         fun _ ->
@@ -5556,20 +5602,16 @@ let viewmouse button down x y mask =
                         match getopaque l.pageno with
                         | Some opaque ->
                             begin
-                              match
-                                try Some (Unix.pipe ())
-                                with exn ->
-                                  dolog "can not create sel pipe: %s"
-                                    (Printexc.to_string exn);
-                                  None
-                              with
-                              | None -> ()
-                              | Some (r, w) ->
+                              match Ne.pipe () with
+                              | Ne.Exn exn ->
+                                  showtext '!'
+                                    (Printf.sprintf
+                                        "can not create sel pipe: %s"
+                                        (Printexc.to_string exn));
+                              | Ne.Res (r, w) ->
                                   let doclose what fd =
-                                    try Unix.close fd
-                                    with exn ->
-                                      dolog "%s close failed: %s"
-                                        what (Printexc.to_string exn)
+                                    Ne.clo fd (fun msg ->
+                                      dolog "%s close failed: %s" what msg)
                                   in
                                   let docopysel r w =
                                     copysel w opaque;
@@ -5579,6 +5621,7 @@ let viewmouse button down x y mask =
                                   try
                                     popen conf.selcmd [r, 0; w, -1];
                                     docopysel r w;
+                                    doclose "pipe/r" r;
                                   with exn ->
                                     dolog "can not exectute %S: %s"
                                       conf.selcmd (Printexc.to_string exn);
@@ -6692,8 +6735,19 @@ let () =
   )
   then (prerr_endline "OpenGL does not suppport rectangular textures"; exit 1);
 
-  let cr, sw = Unix.pipe ()
-  and sr, cw = Unix.pipe () in
+  let cr, sw =
+    match Ne.pipe () with
+    | Ne.Exn exn ->
+        Printf.eprintf "pipe/crsw failed: %s" (Printexc.to_string exn);
+        exit 1
+    | Ne.Res rw -> rw
+  and sr, cw =
+    match Ne.pipe () with
+    | Ne.Exn exn ->
+        Printf.eprintf "pipe/srcw failed: %s" (Printexc.to_string exn);
+        exit 1
+    | Ne.Res rw -> rw
+  in
 
   cloexec cr;
   cloexec sw;
