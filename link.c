@@ -2810,7 +2810,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                     if (pipespan (f, span, a, b))  {
                         goto close;
                     }
-                    if (span == line->spans + span->len - 1)  {
+                    if (span == line->spans + line->len - 1)  {
                         if (putc ('\n', f) == EOF) {
                             fprintf (stderr,
                                      "failed break line on sel pipe: %s\n",
