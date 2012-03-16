@@ -5619,15 +5619,11 @@ let viewmouse button down x y mask =
                                     Ne.clo fd (fun msg ->
                                       dolog "%s close failed: %s" what msg)
                                   in
-                                  let docopysel r w =
-                                    copysel w opaque;
-                                    doclose "pipe/r" r;
-                                    G.postRedisplay "copysel"
-                                  in
                                   try
                                     popen conf.selcmd [r, 0; w, -1];
-                                    docopysel r w;
+                                    copysel w opaque;
                                     doclose "pipe/r" r;
+                                    G.postRedisplay "copysel";
                                   with exn ->
                                     dolog "can not exectute %S: %s"
                                       conf.selcmd (Printexc.to_string exn);
