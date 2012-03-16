@@ -17,19 +17,20 @@ cd 3rdp
 root=$(pwd)
 
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
-mupdf3p=http://mupdf.com/download/mupdf-thirdparty-2012-01-27.zip
-mupdfrev=bbfe635555dce16858403706e2031dd3bfa1a9f1
+mupdf3p=http://mupdf.com/download/mupdf-thirdparty-2012-03-07.zip
+mupdfrev=22bbb6e6d3bcd01b164e91ecf500dc9d7305269e
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
-if ! test -f mupdf-$mupdfrev.tgz; then
+
+mudir=mupdf-${mupdfrev:0:7}
+if ! test -d $mudir; then
     wget -nc \
        "http://git.ghostscript.com/?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz" \
-       -O mupdf-$mupdfrev.tgz
-    tar xfz mupdf-$mupdfrev.tgz
+       -O mupdf-$mupdfrev.tgz && tar -xzf mupdf-$mupdfrev.tgz
 fi
 
-test -d mupdf/thirdparty || \
-    (wget -nc $mupdf3p && unzip -d mupdf $(basename $mupdf3p))
+test -d $mudir/thirdparty || \
+    (wget -nc $mupdf3p && unzip -d $mudir $(basename $mupdf3p))
 
 executable_p() {
     command -v $1 >/dev/null 2>&1
@@ -46,7 +47,7 @@ executable_p gmake && make=gmake || make=make
             DLLDIR=$root/lib/ocaml/stublibs \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-(cd mupdf && $make -j "$jobs" build=release)
+(cd $mudir && $make -j "$jobs" build=release)
 
 cd ..
 
@@ -54,7 +55,7 @@ srcpath=$(dirname $0)
 
 sh $srcpath/mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
-tp=$root/mupdf/thirdparty
+tp=$root/$mudir/thirdparty
 
 ccopt="-O"
 ccopt="$ccopt -I $tp/jbig2dec"
@@ -62,12 +63,12 @@ ccopt="$ccopt -I $tp/jpeg-8d"
 ccopt="$ccopt -I $tp/freetype-2.4.8/include"
 ccopt="$ccopt -I $tp/openjpeg-1.4/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib-1.2.5"
-ccopt="$ccopt -I $root/mupdf/fitz -I $root/mupdf/pdf -I $root/mupdf/xps"
-ccopt="$ccopt -I $root/mupdf/cbz"
+ccopt="$ccopt -I $root/$mudir/fitz -I $root/$mudir/pdf -I $root/$mudir/xps"
+ccopt="$ccopt -I $root/$mudir/cbz"
 
-ccopt="$ccopt -include ft2build.h -D_GNU_SOURCE"
+ccopt="$ccopt -include $tp/freetype-2.4.8/include/ft2build.h -D_GNU_SOURCE"
 
-cclib="$cclib -L$root/mupdf/build/release"
+cclib="$cclib -L$root/$mudir/build/release"
 cclib="$cclib -lfitz"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
 cclib="$cclib -lX11"

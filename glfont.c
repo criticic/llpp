@@ -119,7 +119,7 @@ static FT_Face load_font(char *fontname)
         return face;
 }
 
-static FT_Face load_builtin_font(void *base, int len)
+static FT_Face UNUSED load_builtin_font(void *base, int len)
 {
         FT_Face face;
         int code;
@@ -308,7 +308,7 @@ static float measure_string(FT_Face face, float fsize, char *str)
 
         while (*str)
         {
-                str += chartorune(&ucs, str);
+                str += fz_chartorune(&ucs, str);
                 gid = FT_Get_Char_Index(face, ucs);
                 FT_Get_Advance(face, gid, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING, &advance);
                 w += advance / 65536.0;
@@ -334,7 +334,7 @@ static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
 
         while (*str)
         {
-                str += chartorune(&ucs, str);
+                str += fz_chartorune(&ucs, str);
                 gid = FT_Get_Char_Index(face, ucs);
                 x += draw_glyph(face, size, gid, x, y);
                 FT_Get_Kerning(face, left, gid, FT_KERNING_UNFITTED, &kern);
