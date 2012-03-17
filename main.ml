@@ -6575,7 +6575,7 @@ struct
               then (
                 Buffer.add_string bb ">\n";
                 Buffer.add_buffer bb kb;
-                Buffer.add_string bb "</doc>\n";
+                Buffer.add_string bb "\n</doc>\n";
               )
               else Buffer.add_string bb "/>\n"
           | _ ->
