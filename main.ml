@@ -4781,35 +4781,39 @@ let viewkeyboard key mask =
               showtext '!' (Printf.sprintf "pipe failed: %s"
                                (Printexc.to_string exn));
           | Ne.Res (r, w) ->
-              begin try
-                  popen conf.selcmd [r, 0; w, -1]
+              let popened =
+                try popen conf.selcmd [r, 0; w, -1]; true
                 with exn ->
                   showtext '!'
                     (Printf.sprintf "failed to execute %s: %s"
-                        conf.selcmd (Printexc.to_string exn))
-              end;
+                        conf.selcmd (Printexc.to_string exn));
+                  false
+              in
               let clo cap fd =
                 Ne.clo fd (fun msg ->
                   showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
                 )
               in
               let s = undertext under in
-              (try
-                  let l = String.length s in
-                  let n = Unix.write w s 0 l in
-                  if n != l
-                  then
+              if popened
+              then
+                (try
+                    let l = String.length s in
+                    let n = Unix.write w s 0 l in
+                    if n != l
+                    then
+                      showtext '!'
+                        (Printf.sprintf
+                            "failed to write %d characters to sel pipe, wrote %d"
+                            l n
+                        )
+                  with exn ->
                     showtext '!'
-                      (Printf.sprintf
-                          "failed to write %d characters to sel pipe, wrote %d"
-                          l n
+                      (Printf.sprintf "failed to write to sel pipe: %s"
+                          (Printexc.to_string exn)
                       )
-                with exn ->
-                  showtext '!'
-                    (Printf.sprintf "failed to write to sel pipe: %s"
-                        (Printexc.to_string exn)
-                    )
-              );
+                )
+              else dolog "%s" s;
               clo "pipe/r" r;
               clo "pipe/w" w;
         )
