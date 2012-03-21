@@ -1882,79 +1882,80 @@ let scalecolor2 (r, g, b) =
   (r *. conf.colorscale, g *. conf.colorscale, b *. conf.colorscale);
 ;;
 
-let represent () =
-  let docolumns = function
-    | Csingle -> ()
+let docolumns = function
+  | Csingle -> ()
 
-    | Cmulti ((columns, coverA, coverB), _) ->
-        let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
-        let rec loop pageno pdimno pdim x y rowh pdims =
-          let rec fixrow m = if m = pageno then () else
-              let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
-              if h < rowh
-              then (
-                let y = y + (rowh - h) / 2 in
-                a.(m) <- (pdimno, x, y, pdim);
-              );
-              fixrow (m+1)
+  | Cmulti ((columns, coverA, coverB), _) ->
+      let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
+      let rec loop pageno pdimno pdim x y rowh pdims =
+        let rec fixrow m = if m = pageno then () else
+            let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
+            if h < rowh
+            then (
+              let y = y + (rowh - h) / 2 in
+              a.(m) <- (pdimno, x, y, pdim);
+            );
+            fixrow (m+1)
+        in
+        if pageno = state.pagecount
+        then fixrow (((pageno - 1) / columns) * columns)
+        else
+          let pdimno, ((_, w, h, xoff) as pdim), pdims =
+            match pdims with
+            | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
+                pdimno+1, pdim, rest
+            | _ ->
+                pdimno, pdim, pdims
           in
-          if pageno = state.pagecount
-          then fixrow (((pageno - 1) / columns) * columns)
-          else
-            let pdimno, ((_, w, h, xoff) as pdim), pdims =
-              match pdims with
-              | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
-                  pdimno+1, pdim, rest
-              | _ ->
-                  pdimno, pdim, pdims
+          let x, y, rowh' =
+            if pageno = coverA - 1 || pageno = state.pagecount - coverB
+            then (
+              (conf.winw - state.scrollw - w) / 2,
+              y + rowh + conf.interpagespace, h
+            )
+            else (
+              if (pageno - coverA) mod columns = 0
+              then 0, y + rowh + conf.interpagespace, h
+              else x, y, max rowh h
+            )
             in
-            let x, y, rowh' =
-              if pageno = coverA - 1 || pageno = state.pagecount - coverB
-              then (
-                (conf.winw - state.scrollw - w) / 2,
-                y + rowh + conf.interpagespace, h
-              )
-              else (
-                if (pageno - coverA) mod columns = 0
-                then 0, y + rowh + conf.interpagespace, h
-                else x, y, max rowh h
-              )
-            in
-            if pageno > 1 && (pageno - coverA) mod columns = 0
-            then fixrow (pageno - columns);
-            a.(pageno) <- (pdimno, x, y, pdim);
-            let x = x + w + xoff*2 + conf.interpagespace in
-            loop (pageno+1) pdimno pdim x y rowh' pdims
-        in
-        loop 0 ~-1 (-1,-1,-1,-1) 0 0 0 state.pdims;
-        conf.columns <- Cmulti ((columns, coverA, coverB), a);
+          if pageno > 1 && (pageno - coverA) mod columns = 0
+          then fixrow (pageno - columns);
+          a.(pageno) <- (pdimno, x, y, pdim);
+          let x = x + w + xoff*2 + conf.interpagespace in
+          loop (pageno+1) pdimno pdim x y rowh' pdims
+      in
+      loop 0 ~-1 (-1,-1,-1,-1) 0 0 0 state.pdims;
+      conf.columns <- Cmulti ((columns, coverA, coverB), a);
 
-    | Csplit (c, _) ->
-        let a = Array.make (state.pagecount*c) (-1, -1, -1, (-1, -1, -1, -1)) in
-        let rec loop pageno pdimno pdim y pdims =
-          if pageno = state.pagecount
-          then ()
-          else
-            let pdimno, ((_, w, h, _) as pdim), pdims =
-              match pdims with
-              | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
-                  pdimno+1, pdim, rest
-              | _ ->
-                  pdimno, pdim, pdims
-            in
-            let cw = w / c in
-            let rec loop1 n x y =
-              if n = c then y else (
-                a.(pageno*c + n) <- (pdimno, x, y, pdim);
-                loop1 (n+1) (x+cw) (y + h + conf.interpagespace)
-              )
-            in
-            let y = loop1 0 0 y in
-            loop (pageno+1) pdimno pdim y pdims
-        in
-        loop 0 ~-1 (-1,-1,-1,-1) 0 state.pdims;
-        conf.columns <- Csplit (c, a);
-  in
+  | Csplit (c, _) ->
+      let a = Array.make (state.pagecount*c) (-1, -1, -1, (-1, -1, -1, -1)) in
+      let rec loop pageno pdimno pdim y pdims =
+        if pageno = state.pagecount
+        then ()
+        else
+          let pdimno, ((_, w, h, _) as pdim), pdims =
+            match pdims with
+            | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
+                pdimno+1, pdim, rest
+            | _ ->
+                pdimno, pdim, pdims
+          in
+          let cw = w / c in
+          let rec loop1 n x y =
+            if n = c then y else (
+              a.(pageno*c + n) <- (pdimno, x, y, pdim);
+              loop1 (n+1) (x+cw) (y + h + conf.interpagespace)
+            )
+          in
+          let y = loop1 0 0 y in
+          loop (pageno+1) pdimno pdim y pdims
+      in
+      loop 0 ~-1 (-1,-1,-1,-1) 0 state.pdims;
+      conf.columns <- Csplit (c, a);
+;;
+
+let represent () =
   docolumns conf.columns;
   state.maxy <- calcheight ();
   state.hscrollh <-
@@ -2862,6 +2863,7 @@ let optentry mode _ key =
                   l.pageno, l.pagey
             in
             conf.interpagespace <- int_of_string s;
+            docolumns conf.columns;
             state.maxy <- calcheight ();
             let y = getpagey pageno in
             gotoy (y + py)
@@ -4146,6 +4148,7 @@ let enterinfomode =
       (fun () -> conf.interpagespace)
       (fun n ->
         conf.interpagespace <- n;
+        docolumns conf.columns;
         let pageno, py =
           match state.layout with
           | [] -> 0, 0
