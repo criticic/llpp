@@ -1208,6 +1208,13 @@ static int matchspan (regex_t *re, fz_text_span *span, fz_matrix ctm,
     }
 }
 
+static int compareblocks (const void *l, const void *r)
+{
+    fz_text_block const *ls = l;
+    fz_text_block const* rs = r;
+    return ls->bbox.y0 - rs->bbox.y0;
+}
+
 /* wishful thinking function */
 static void search (regex_t *re, int pageno, int y, int forward)
 {
@@ -1276,6 +1283,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
             ARSERT (0 && state.type);
         }
 
+        qsort (text->blocks, text->len, sizeof (*text->blocks), compareblocks);
         fz_free_device (tdev);
 
         for (j = 0; j < text->len; ++j) {
@@ -2130,6 +2138,8 @@ static void ensuretext (struct page *page)
                              tdev,
                              pagectm (page),
                              fz_infinite_bbox, NULL);
+        qsort (page->text->blocks, page->text->len,
+               sizeof (*page->text->blocks), compareblocks);
         fz_free_device (tdev);
     }
 }
