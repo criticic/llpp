@@ -83,8 +83,8 @@ external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
 external getmaxw : unit -> float = "ml_getmaxw";;
-external postprocess : opaque -> int -> int -> int -> (int * string) -> int =
-    "ml_postprocess";;
+external postprocess :
+  opaque -> int -> int -> int -> (int * string * int) -> int = "ml_postprocess";;
 external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
@@ -329,6 +329,7 @@ type conf =
     ; mutable selcmd         : string
     ; mutable updatecurs     : bool
     ; mutable keyhashes      : (string * keyhash) list
+    ; mutable hfsize         : int
     }
 and columns =
     | Csingle
@@ -527,6 +528,7 @@ let defconf =
   ; columns        = Csingle
   ; beyecolumns    = None
   ; updatecurs     = false
+  ; hfsize = 12
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -4337,6 +4339,9 @@ let enterinfomode =
       src#int "ui font size"
         (fun () -> fstate.fontsize)
         (fun v -> setfontsize (bound v 5 100));
+      src#int "hint font size"
+        (fun () -> conf.hfsize)
+        (fun v -> conf.hfsize <- bound v 5 100);
       colorp "background color"
         (fun () -> conf.bgcolor)
         (fun v -> conf.bgcolor <- v);
@@ -5312,7 +5317,7 @@ let drawpage l linkindexbase =
           | Textentry ((_, s, _, _, _), _) when state.glinks -> s
           | _ -> ""
         in
-        postprocess opaque hlmask x y (linkindexbase, s);
+        postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
       else 0
 
   | _ -> 0
@@ -5944,6 +5949,7 @@ struct
             { c with beyecolumns = Some (max (int_of_string v) 2) }
         | "selection-command" -> { c with selcmd = unent v }
         | "update-cursor" -> { c with updatecurs = bool_of_string v }
+        | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6049,6 +6055,7 @@ struct
     dst.updatecurs     <- src.updatecurs;
     dst.pathlauncher   <- src.pathlauncher;
     dst.keyhashes      <- copykeyhashes src;
+    dst.hfsize         <- src.hfsize;
   ;;
 
   let get s =
@@ -6456,6 +6463,7 @@ struct
     obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
     os "selection-command" c.selcmd dc.selcmd;
     ob "update-cursor" c.updatecurs dc.updatecurs;
+    oi "hint-font-size" c.hfsize dc.hfsize;
   ;;
 
   let keymapsbuf always dc c =

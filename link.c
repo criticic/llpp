@@ -1898,7 +1898,7 @@ static void fmt_linkn (char *s, unsigned int u)
 }
 
 static void highlightslinks (struct page *page, int xoff, int yoff,
-                             int noff, char *targ, int tlen)
+                             int noff, char *targ, int tlen, int hfsize)
 {
     int i;
     char buf[40];
@@ -1914,8 +1914,8 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
 
             x0 = slink->bbox.x0 + xoff - 5;
             y1 = slink->bbox.y0 + yoff - 5;
-            y0 = y1 + 22;
-            w = measure_string (state.face, 12, buf);
+            y0 = y1 + 10 + hfsize;
+            w = measure_string (state.face, hfsize, buf);
             x1 = x0 + w + 10;
             glRectd (x0, y0, x1, y1);
         }
@@ -1930,8 +1930,8 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
             slink = &page->slinks[i];
 
             x0 = slink->bbox.x0 + xoff;
-            y0 = slink->bbox.y0 + yoff + 12;
-            draw_string (state.face, 12, x0, y0, buf);
+            y0 = slink->bbox.y0 + yoff + hfsize;
+            draw_string (state.face, hfsize, x0, y0, buf);
         }
     }
     glDisable (GL_TEXTURE_2D);
@@ -2065,6 +2065,7 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     int noff = Int_val (Field (li_v, 0));
     char *targ = String_val (Field (li_v, 1));
     int tlen = caml_string_length (Field (li_v, 1));
+    int hfsize = Int_val (Field (li_v, 2));
     char *s = String_val (ptr_v);
     int hlmask = Int_val (hlinks_v);
     struct page *page = parse_pointer ("ml_postprocess", s);
@@ -2075,7 +2076,7 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         goto done;
     }
     if (hlmask & 2) {
-        highlightslinks (page, xoff, yoff, noff, targ, tlen);
+        highlightslinks (page, xoff, yoff, noff, targ, tlen, hfsize);
         noff = page->slinkcount;
     }
     showsel (page, xoff, yoff);
