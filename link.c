@@ -1922,6 +1922,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
     }
 
     glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable (GL_TEXTURE_2D);
     glColor3ub (0, 0, 0);
     for (i = 0; i < page->slinkcount; ++i) {
