@@ -539,6 +539,7 @@ let defconf =
       ; mk "birdseye"
       ; mk "textentry"
       ; mk "links"
+      ; mk "view"
       ]
   }
 ;;
@@ -5806,7 +5807,7 @@ let uioh = object
       | LinkNav _ -> "links"
       | Textentry _ -> "textentry"
       | Birdseye _ -> "birdseye"
-      | View -> "global"
+      | View -> "view"
     in
     findkeyhash conf modename
 end;;
