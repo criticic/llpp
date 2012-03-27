@@ -6719,10 +6719,10 @@ let () =
           let km = k, mascm in
           begin
             match
-              try Hashtbl.find globalkeyhash km
+              let modehash = state.uioh#modehash in
+              try Hashtbl.find modehash km
               with Not_found ->
-                let modehash = state.uioh#modehash in
-                try Hashtbl.find modehash km
+                try Hashtbl.find globalkeyhash km
                 with Not_found -> KMinsrt (k, m)
             with
             | KMinsrt (k, m) -> keyboard k m
