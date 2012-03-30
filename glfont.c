@@ -61,6 +61,7 @@ static int g_cache_h = CACHESIZE;
 static int g_cache_row_y = 0;
 static int g_cache_row_x = 0;
 static int g_cache_row_h = 0;
+static int g_use_kern = 0;
 
 static void init_font_cache(void)
 {
@@ -299,7 +300,6 @@ static float measure_string(FT_Face face, float fsize, char *str)
 {
         int size = fsize * 64;
         FT_Fixed advance;
-        FT_Vector kern;
         Rune ucs, gid;
         float w = 0.0;
         int left = 0;
@@ -312,8 +312,12 @@ static float measure_string(FT_Face face, float fsize, char *str)
                 gid = FT_Get_Char_Index(face, ucs);
                 FT_Get_Advance(face, gid, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING, &advance);
                 w += advance / 65536.0;
-                FT_Get_Kerning(face, left, gid, FT_KERNING_UNFITTED, &kern);
-                w += kern.x / 64.0;
+                if (g_use_kern) {
+                    FT_Vector kern;
+
+                    FT_Get_Kerning(face, left, gid, FT_KERNING_UNFITTED, &kern);
+                    w += kern.x / 64.0;
+                }
                 left = gid;
         }
 
@@ -323,7 +327,6 @@ static float measure_string(FT_Face face, float fsize, char *str)
 static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
 {
         int size = fsize * 64;
-        FT_Vector kern;
         Rune ucs, gid;
         int left = 0;
 
@@ -337,8 +340,12 @@ static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
                 str += fz_chartorune(&ucs, str);
                 gid = FT_Get_Char_Index(face, ucs);
                 x += draw_glyph(face, size, gid, x, y);
-                FT_Get_Kerning(face, left, gid, FT_KERNING_UNFITTED, &kern);
-                x += kern.x / 64.0;
+                if (g_use_kern) {
+                    FT_Vector kern;
+
+                    FT_Get_Kerning(face, left, gid, FT_KERNING_UNFITTED, &kern);
+                    x += kern.x / 64.0;
+                }
                 left = gid;
         }
 
