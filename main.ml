@@ -2679,13 +2679,13 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
     match conf.columns with
     | Cmulti ((c, _, _), _) -> Some c
     | Csingle -> None
-    | Csplit _ -> assert false
+    | Csplit _ -> failwith "leaving bird's eye split mode"
   );
   conf.columns <- (
     match c.columns with
     | Cmulti (c, _) -> Cmulti (c, [||])
     | Csingle -> Csingle
-    | Csplit _ -> failwith "leaving bird's eye split mode"
+    | Csplit (c, _) -> Csplit (c, [||])
   );
   state.x <- leftx;
   if conf.verbose
