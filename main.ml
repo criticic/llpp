@@ -1303,12 +1303,18 @@ let layoutS (columns, b) y sh =
                 else 0, px
               )
             in
+            let pagecolw = pagew/columns in
+            let pagedispx =
+              if pagecolw < conf.winw
+              then pagedispx + ((conf.winw - state.scrollw - pagecolw) / 2)
+              else pagedispx
+            in
             let pagevw =
               let vw = conf.winw - pagedispx - state.scrollw in
               let pw = pagew - pagex in
               min vw pw
             in
-            let pagevw = min pagevw (pagew/columns) in
+            let pagevw = min pagevw pagecolw in
             let pagevh = min (pageh - pagey) (sh - pagedispy) in
             if pagevw > 0 && pagevh > 0
             then
