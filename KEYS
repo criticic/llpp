@@ -42,6 +42,7 @@ z                       - crop
 r                       - reload document
 P                       - "presentation" mode
 a                       - autoscroll
+c                       - switch to previous column layout
 Ctrl-p                  - launch a command with the document path as an argument
 <,>                     - rotate
 [,]                     - decrease/increase page brightness

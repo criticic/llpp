@@ -458,7 +458,8 @@ type state =
     ; mutable redisplay     : bool
     ; mutable mpos          : mpos
     ; mutable keystate      : keystate
-    ; mutable glinks         : bool
+    ; mutable glinks        : bool
+    ; mutable prevcolumns   : (columns * float) option
     }
 and hists =
     { pat : string circbuf
@@ -692,6 +693,7 @@ let state =
   ; mpos          = (-1, -1)
   ; keystate      = KSnone
   ; glinks        = false
+  ; prevcolumns   = None
   }
 ;;
 
@@ -2597,6 +2599,7 @@ let setzoom zoom =
 ;;
 
 let setcolumns mode columns coverA coverB =
+  state.prevcolumns <- Some (conf.columns, conf.zoom);
   if columns < 0
   then (
     if isbirdseye mode
@@ -4992,6 +4995,22 @@ let viewkeyboard key mask =
         bound (conf.colorscale +. (if key = 93 then 0.1 else -0.1)) 0.0 1.0
       ;
       G.postRedisplay "brightness";
+
+  | 99 when state.mode = View ->        (* c *)
+      let (c, a, b), z =
+        match state.prevcolumns with
+        | None -> (1, 0, 0), 1.0
+        | Some (columns, z)  ->
+            let cab =
+              match columns with
+              | Csplit (c, _) -> -c, 0, 0
+              | Cmulti ((c, a, b), _) -> c, a, b
+              | Csingle -> 1, 0, 0
+            in
+            cab, z
+      in
+      setcolumns View c a b;
+      setzoom z;
 
   | 0xff54 | 0xff52 when ctrl && Wsi.withshift mask ->
       setzoom state.prevzoom
