@@ -1308,7 +1308,7 @@ let layoutS (columns, b) y sh =
             in
             let pagecolw = pagew/columns in
             let pagedispx =
-              if pagecolw < conf.winw
+              if not conf.fullsplit && pagecolw < conf.winw
               then pagedispx + ((conf.winw - state.scrollw - pagecolw) / 2)
               else pagedispx
             in
