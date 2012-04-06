@@ -77,7 +77,6 @@ tunables
 -l                      - toggle proportional display
 -Z                      - set zoom (percent)
 -A                      - set auto scroll step (pixels)
--F                      - toggle full split
 -t                      - set thumbnail width (pixels)
 -T                      - toggle trimming of margins
 -I                      - invert colors

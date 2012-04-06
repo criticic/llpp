@@ -331,7 +331,6 @@ type conf =
     ; mutable updatecurs     : bool
     ; mutable keyhashes      : (string * keyhash) list
     ; mutable hfsize         : int
-    ; mutable fullsplit      : bool
     }
 and columns =
     | Csingle
@@ -531,7 +530,6 @@ let defconf =
   ; beyecolumns    = None
   ; updatecurs     = false
   ; hfsize = 12
-  ; fullsplit = false
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1308,7 +1306,7 @@ let layoutS (columns, b) y sh =
             in
             let pagecolw = pagew/columns in
             let pagedispx =
-              if not conf.fullsplit && pagecolw < conf.winw
+              if pagecolw < conf.winw
               then pagedispx + ((conf.winw - state.scrollw - pagecolw) / 2)
               else pagedispx
             in
@@ -1317,11 +1315,7 @@ let layoutS (columns, b) y sh =
               let pw = pagew - pagex in
               min vw pw
             in
-            let pagevw =
-              if conf.fullsplit
-              then pagevw
-              else min pagevw pagecolw
-            in
+            let pagevw = min pagevw pagecolw in
             let pagevh = min (pageh - pagey) (sh - pagedispy) in
             if pagevw > 0 && pagevh > 0
             then
@@ -2909,11 +2903,6 @@ let optentry mode _ key =
         TEswitch ("selection command: ", "", Some (onhist state.hists.sel),
                  textentry, ondone, true)
 
-    | 'F' ->
-        conf.fullsplit <- not conf.fullsplit;
-        gotoy state.y;
-        TEdone ("full split " ^ btos conf.fullsplit)
-
     | _ ->
         state.text <- Printf.sprintf "bad option %d `%c'" key c;
         TEstop
@@ -4310,9 +4299,6 @@ let enterinfomode =
       src#bool "verbose"
         (fun () -> conf.verbose)
         (fun v -> conf.verbose <- v);
-      src#bool "full split"
-        (fun () -> conf.fullsplit)
-        (fun v -> conf.fullsplit <- v; gotoy state.y);
       src#bool "invert colors"
         (fun () -> conf.invert)
         (fun v -> conf.invert <- v);
@@ -5973,7 +5959,6 @@ struct
         | "selection-command" -> { c with selcmd = unent v }
         | "update-cursor" -> { c with updatecurs = bool_of_string v }
         | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
-        | "full-split" -> { c with fullsplit = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6080,7 +6065,6 @@ struct
     dst.pathlauncher   <- src.pathlauncher;
     dst.keyhashes      <- copykeyhashes src;
     dst.hfsize         <- src.hfsize;
-    dst.fullsplit      <- src.fullsplit;
   ;;
 
   let get s =
@@ -6489,7 +6473,6 @@ struct
     os "selection-command" c.selcmd dc.selcmd;
     ob "update-cursor" c.updatecurs dc.updatecurs;
     oi "hint-font-size" c.hfsize dc.hfsize;
-    ob "full-split" c.fullsplit dc.fullsplit;
   ;;
 
   let keymapsbuf always dc c =
