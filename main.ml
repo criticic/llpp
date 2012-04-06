@@ -150,12 +150,13 @@ and mstate =
     | Mnone
 ;;
 
-type textentry = string * string * onhist option * onkey * ondone
+type textentry = string * string * onhist option * onkey * ondone * cancelonempty
 and onkey = string -> int -> te
 and ondone = string -> unit
 and histcancel = unit -> unit
 and onhist = ((histcmd -> string) * histcancel)
 and histcmd = HCnext | HCprev | HCfirst | HClast
+and cancelonempty = bool
 and te =
     | TEstop
     | TEdone of string
@@ -2062,7 +2063,7 @@ let enttext () =
   in
   let s =
     match state.mode with
-    | Textentry ((prefix, text, _, _, _), _) ->
+    | Textentry ((prefix, text, _, _, _, _), _) ->
         let s =
           if len > 0
           then
@@ -2753,7 +2754,7 @@ let optentry mode _ key =
             state.text <- Printf.sprintf "bad integer `%s': %s"
               s (Printexc.to_string exc)
         in
-        TEswitch ("scroll step: ", "", None, intentry, ondone)
+        TEswitch ("scroll step: ", "", None, intentry, ondone, true)
 
     | 'A' ->
         let ondone s =
@@ -2765,7 +2766,7 @@ let optentry mode _ key =
             state.text <- Printf.sprintf "bad integer `%s': %s"
               s (Printexc.to_string exc)
         in
-        TEswitch ("auto scroll step: ", "", None, intentry, ondone)
+        TEswitch ("auto scroll step: ", "", None, intentry, ondone, true)
 
     | 'C' ->
         let mode = state.mode in
@@ -2777,7 +2778,7 @@ let optentry mode _ key =
             state.text <- Printf.sprintf "bad columns `%s': %s"
               s (Printexc.to_string exc)
         in
-        TEswitch ("columns: ", "", None, textentry, ondone)
+        TEswitch ("columns: ", "", None, textentry, ondone, true)
 
     | 'Z' ->
         let ondone s =
@@ -2788,7 +2789,7 @@ let optentry mode _ key =
             state.text <- Printf.sprintf "bad integer `%s': %s"
               s (Printexc.to_string exc)
         in
-        TEswitch ("zoom: ", "", None, intentry, ondone)
+        TEswitch ("zoom: ", "", None, intentry, ondone, true)
 
     | 't' ->
         let ondone s =
@@ -2806,7 +2807,7 @@ let optentry mode _ key =
             state.text <- Printf.sprintf "bad integer `%s': %s"
               s (Printexc.to_string exc)
         in
-        TEswitch ("thumbnail width: ", "", None, intentry, ondone)
+        TEswitch ("thumbnail width: ", "", None, intentry, ondone, true)
 
     | 'R' ->
         let ondone s =
@@ -2820,7 +2821,7 @@ let optentry mode _ key =
           | Some angle -> reqlayout angle conf.proportional
           | None -> ()
         in
-        TEswitch ("rotation: ", "", None, intentry, ondone)
+        TEswitch ("rotation: ", "", None, intentry, ondone, true)
 
     | 'i' ->
         conf.icase <- not conf.icase;
@@ -2886,7 +2887,7 @@ let optentry mode _ key =
             state.text <- Printf.sprintf "bad integer `%s': %s"
               s (Printexc.to_string exc)
         in
-        TEswitch ("vertical margin: ", "", None, intentry, ondone)
+        TEswitch ("vertical margin: ", "", None, intentry, ondone, true)
 
     | 'l' ->
         reqlayout conf.angle (not conf.proportional);
@@ -2906,7 +2907,7 @@ let optentry mode _ key =
           conf.selcmd <- s;
         in
         TEswitch ("selection command: ", "", Some (onhist state.hists.sel),
-                 textentry, ondone)
+                 textentry, ondone, true)
 
     | 'F' ->
         conf.fullsplit <- not conf.fullsplit;
@@ -2973,7 +2974,8 @@ let withoutlastutf8 s =
     String.sub s 0 first;
 ;;
 
-let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
+let textentrykeyboard
+    key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
   let enttext te =
     state.mode <- Textentry (te, onleave);
     state.text <- "";
@@ -2985,7 +2987,7 @@ let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
     | None -> ()
     | Some (action, _) ->
         state.mode <- Textentry (
-          (c, action cmd, opthist, onkey, ondone), onleave
+          (c, action cmd, opthist, onkey, ondone, cancelonempty), onleave
         );
         G.postRedisplay "textentry histaction"
   in
@@ -2993,13 +2995,13 @@ let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
   | 0xff08 ->                           (* backspace *)
       let s = withoutlastutf8 text in
       let len = String.length s in
-      if onkey != linknentry && len = 0
+      if cancelonempty && len = 0
       then (
         onleave Cancel;
         G.postRedisplay "textentrykeyboard after cancel";
       )
       else (
-        enttext (c, s, opthist, onkey, ondone)
+        enttext (c, s, opthist, onkey, ondone, cancelonempty)
       )
 
   | 0xff0d ->
@@ -3024,7 +3026,7 @@ let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
         G.postRedisplay "textentrykeyboard after cancel2"
       )
       else (
-        enttext (c, "", opthist, onkey, ondone)
+        enttext (c, "", opthist, onkey, ondone, cancelonempty)
       )
 
   | 0xff9f | 0xffff -> ()               (* delete *)
@@ -3037,7 +3039,7 @@ let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
           G.postRedisplay "textentrykeyboard after confirm2";
 
       | TEcont text ->
-          enttext (c, text, opthist, onkey, ondone);
+          enttext (c, text, opthist, onkey, ondone, cancelonempty);
 
       | TEstop ->
           onleave Cancel;
@@ -3965,7 +3967,7 @@ let enterinfomode =
                     s (Printexc.to_string exn)
               in
               state.text <- "";
-              let te = name ^ ": ", "", None, intentry, ondone in
+              let te = name ^ ": ", "", None, intentry, ondone, true in
               state.mode <- Textentry (te, leave m_prev_mode);
               u
           )) :: m_l
@@ -3982,7 +3984,7 @@ let enterinfomode =
               in
               state.text <- "";
               let te =
-                name ^ ": ", "", None, intentry_with_suffix, ondone
+                name ^ ": ", "", None, intentry_with_suffix, ondone, true
               in
               state.mode <- Textentry (te, leave m_prev_mode);
               u
@@ -4013,7 +4015,7 @@ let enterinfomode =
                 if c <> invalid
                 then set c;
               in
-              let te = name ^ ": ", "", None, textentry, ondone in
+              let te = name ^ ": ", "", None, textentry, ondone, true in
               state.text <- color_to_string (get ());
               state.mode <- Textentry (te, leave m_prev_mode);
               u
@@ -4024,7 +4026,7 @@ let enterinfomode =
           (name, `string get, 1, Action (
             fun u ->
               let ondone s = set s in
-              let te = name ^ ": ", "", None, textentry, ondone in
+              let te = name ^ ": ", "", None, textentry, ondone, true in
               state.mode <- Textentry (te, leave m_prev_mode);
               u
           )) :: m_l
@@ -4705,7 +4707,7 @@ let viewkeyboard key mask =
       let s = String.create 1 in
       s.[0] <- Char.chr key;
       enttext (s, "", Some (onhist state.hists.pat),
-              textentry, ondone (key = 47))
+              textentry, ondone (key = 47), true)
 
   | 43 | 0xffab when ctrl ->            (* ctrl-+ *)
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
@@ -4725,7 +4727,7 @@ let viewkeyboard key mask =
           state.text <- "page bias is now " ^ string_of_int n;
         )
       in
-      enttext ("page bias: ", "", None, intentry, ondone)
+      enttext ("page bias: ", "", None, intentry, ondone, true)
 
   | 45 | 0xffad when ctrl ->            (* ctrl-- *)
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
@@ -4735,7 +4737,7 @@ let viewkeyboard key mask =
       let ondone msg = state.text <- msg in
       enttext (
         "option [acfhilpstvxACFPRSZTIS]: ", "", None,
-        optentry state.mode, ondone
+        optentry state.mode, ondone, true
       )
 
   | 48 when ctrl ->                     (* ctrl-0 *)
@@ -4774,7 +4776,7 @@ let viewkeyboard key mask =
         | _ -> intentry text key
       in
       let text = "x" in text.[0] <- Char.chr key;
-      enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone)
+      enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone, true)
 
   | 98 ->                               (* b *)
       state.scrollw <- if state.scrollw > 0 then 0 else conf.scrollbw;
@@ -4792,7 +4794,7 @@ let viewkeyboard key mask =
         (":", "", None, linknentry, linkndone (fun under ->
           addnav ();
           gotounder under
-        )
+        ), false
         ), fun _ ->
           state.glinks <- false;
           state.mode <- mode
@@ -4845,7 +4847,7 @@ let viewkeyboard key mask =
               else dolog "%s" s;
               clo "pipe/r" r;
               clo "pipe/w" w;
-        )
+        ), false
         ),
         fun _ ->
           state.glinks <- false;
@@ -4960,7 +4962,7 @@ let viewkeyboard key mask =
             :: state.bookmarks
         | _ -> ()
       in
-      enttext ("bookmark: ", "", None, textentry, ondone)
+      enttext ("bookmark: ", "", None, textentry, ondone, true)
 
   | 126 ->                              (* ~ *)
       quickbookmark ();
@@ -5335,7 +5337,7 @@ let drawpage l linkindexbase =
         in
         let s =
           match state.mode with
-          | Textentry ((_, s, _, _, _), _) when state.glinks -> s
+          | Textentry ((_, s, _, _, _, _), _) when state.glinks -> s
           | _ -> ""
         in
         postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
