@@ -2993,7 +2993,7 @@ let textentrykeyboard key _mask ((c, text, opthist, onkey, ondone), onleave) =
   | 0xff08 ->                           (* backspace *)
       let s = withoutlastutf8 text in
       let len = String.length s in
-      if len = 0
+      if onkey != linknentry && len = 0
       then (
         onleave Cancel;
         G.postRedisplay "textentrykeyboard after cancel";
