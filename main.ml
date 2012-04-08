@@ -5331,23 +5331,27 @@ let drawpage l linkindexbase =
         )
   in
   drawtiles l color;
-  begin match getopaque l.pageno with
-  | Some opaque ->
-      if tileready l l.pagex l.pagey
-      then
-        let x = l.pagedispx - l.pagex
-        and y = l.pagedispy - l.pagey in
-        let hlmask = (if conf.hlinks then 1 else 0)
-          + (if state.glinks && not (isbirdseye state.mode) then 2 else 0)
-        in
-        let s =
-          match state.mode with
-          | Textentry ((_, s, _, _, _, _), _) when state.glinks -> s
-          | _ -> ""
-        in
-        postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
-      else 0
+  begin match conf.columns with
+  | Csingle | Cmulti _ ->
+      begin match getopaque l.pageno with
+      | Some opaque ->
+          if tileready l l.pagex l.pagey
+          then
+            let x = l.pagedispx - l.pagex
+            and y = l.pagedispy - l.pagey in
+            let hlmask = (if conf.hlinks then 1 else 0)
+              + (if state.glinks && not (isbirdseye state.mode) then 2 else 0)
+            in
+            let s =
+              match state.mode with
+              | Textentry ((_, s, _, _, _, _), _) when state.glinks -> s
+              | _ -> ""
+            in
+            postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
+          else 0
 
+      | _ -> 0
+      end;
   | _ -> 0
   end;
 ;;
