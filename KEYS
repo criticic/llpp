@@ -76,13 +76,13 @@ tunables
 -P                      - toggle persistent bookmarks
 -h                      - toggle maxfit
 -l                      - toggle proportional display
--Z                      - set zoom (percent)
--A                      - set auto scroll step (pixels)
--t                      - set thumbnail width (pixels)
+-Z<number>              - set zoom (percent)
+-A<number>              - set auto scroll step (pixels)
+-t<number>              - set thumbnail width (pixels)
 -T                      - toggle trimming of margins
 -I                      - invert colors
--C                      - set column count
--x                      - set command to run on selection
+-C<number>              - set column count
+-x<string>              - set command to run on selection
 -f                      - toggle "what's under cursor" identification
                         - (or "what's currently selected" in link navigation mode)
     (only font name of the text under cursor and link target currently)
