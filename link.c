@@ -799,8 +799,8 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
 
 static void initpdims (void)
 {
-    int pageno;
     double start, end;
+    int pageno, trim, show;
 
     start = now ();
     for (pageno = 0; pageno < state.pagecount; ++pageno) {
@@ -818,7 +818,8 @@ static void initpdims (void)
 
                 page = pdf_load_page (state.u.pdf, pageno);
                 obj = pdf_dict_gets (pageobj, "llpp.TrimBox");
-                if (state.trimanew || !obj) {
+                trim = state.trimanew || !obj;
+                if (trim) {
                     fz_rect rect;
                     fz_bbox bbox;
                     fz_matrix ctm;
@@ -861,9 +862,12 @@ static void initpdims (void)
                 rotate = page->rotate;
                 pdf_free_page (state.u.pdf, page);
 
-                printd ("progress %f Trimming %d",
-                        (double) (pageno + 1) / state.pagecount,
-                        pageno + 1);
+                show = trim ? pageno % 5 == 0 : pageno % 20 == 0;
+                if (show) {
+                    printd ("progress %f Trimming %d",
+                            (double) (pageno + 1) / state.pagecount,
+                            pageno + 1);
+                }
             }
             else {
                 fz_rect cropbox;
