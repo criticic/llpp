@@ -2766,7 +2766,6 @@ let optentry mode _ key =
         TEswitch ("auto scroll step: ", "", None, intentry, ondone, true)
 
     | 'C' ->
-        let mode = state.mode in
         let ondone s =
           try
             let n, a, b = multicolumns_of_string s in
