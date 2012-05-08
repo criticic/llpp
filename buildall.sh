@@ -18,8 +18,8 @@ root=$(pwd)
 
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf3p=http://mupdf.com/download/mupdf-thirdparty-2012-04-23.zip
-mupdfrev=af5a6088a3c3e4d61f84d2c93a8968c04069864d
-mudir=mupdf-af5a608
+mupdfrev=434f54a053dd8ebd55fb70b9ce1eba45882f6fc4
+mudir=mupdf-434f54a
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 
