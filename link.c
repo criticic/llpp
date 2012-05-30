@@ -569,7 +569,6 @@ static void freetile (struct tile *tile)
 #include <altivec.h>
 
 static int cacheline32bytes;
-extern char **environ;
 
 static void __attribute__ ((constructor)) clcheck (void)
 {
