@@ -5669,7 +5669,7 @@ let viewmouse button down x y mask =
                                     doclose "pipe/r" r;
                                     G.postRedisplay "copysel";
                                   with exn ->
-                                    dolog "can not exectute %S: %s"
+                                    dolog "can not execute %S: %s"
                                       conf.selcmd (Printexc.to_string exn);
                                     doclose "pipe/r" r;
                                     doclose "pipe/w" w;
