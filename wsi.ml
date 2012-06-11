@@ -128,6 +128,8 @@ let readstr sock n =
   let s = String.create n in
   let rec loop pos n =
     let m = Unix.read sock s pos n in
+    if m = 0
+    then state.t#quit;
     if n != m
     then (
       ignore (Unix.select [sock] [] [] 0.01);
