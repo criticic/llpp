@@ -2734,8 +2734,8 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     CAMLparam2 (command_v, fds_v);
     CAMLlocal2 (l_v, tup_v);
     int ret;
-    value earg_v;
     char *msg = NULL;
+    value earg_v = Nothing;
     posix_spawnattr_t attr;
     posix_spawn_file_actions_t fa;
     char *argv[] = { "/bin/sh", "-c", String_val (command_v), NULL };
@@ -2746,14 +2746,12 @@ CAMLprim value ml_popen (value command_v, value fds_v)
 
     if ((ret = posix_spawnattr_init (&attr)) != 0) {
         msg = "posix_spawnattr_init";
-        earg_v = Nothing;
         goto fail;
     }
 
 #ifdef POSIX_SPAWN_USEVFORK
     if ((ret = posix_spawnattr_setflags (&attr, POSIX_SPAWN_USEVFORK)) != 0) {
         msg =  "posix_spawnattr_setflags POSIX_SPAWN_USEVFORK";
-        earg_v = Nothing;
         goto fail;
     }
 #endif
@@ -2782,7 +2780,6 @@ CAMLprim value ml_popen (value command_v, value fds_v)
 
     if ((ret = posix_spawn (NULL, "/bin/sh", &fa, &attr, argv, environ))) {
         msg = "posix_spawn";
-        earg_v = Nothing;
         goto fail;
     }
 
