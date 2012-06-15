@@ -755,6 +755,7 @@ static int obscured (struct page *page, fz_bbox bbox)
     dev.hints = 0;
     dev.flags = 0;
     dev.user = &obs;
+    dev.ctx = state.ctx;
     dev.fill_image = obs_fill_image;
     obs.b = bbox;
     fz_run_display_list (page->dlist, &dev, pagectm (page), bbox, NULL);
