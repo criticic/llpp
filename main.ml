@@ -6732,10 +6732,8 @@ let () =
       if nogeomcmds state.geomcmds || platform == Posx
       then display ()
       else (
-        GlFunc.draw_buffer `front;
         GlClear.color (scalecolor2 conf.bgcolor);
         GlClear.clear [`color];
-        GlFunc.draw_buffer `back;
       )
     method display = display ()
     method reshape w h = reshape w h
