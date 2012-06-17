@@ -4436,6 +4436,10 @@ let enterinfomode =
         (fun () -> string_of_int (List.length state.pdims)) 1;
     );
 
+    sep ();
+    src#caption "OpenGL" 0;
+    src#caption (Printf.sprintf "Vendor\t%s" (GlMisc.get_string `vendor)) 1;
+    src#caption (Printf.sprintf "Renderer\t%s" (GlMisc.get_string `renderer)) 1;
     src#reset prevmode prevuioh;
   in
   fun () ->
