@@ -122,6 +122,12 @@ let r32 s pos =
   (u lsl 16) lor l
 ;;
 
+let exntos = function
+  | Unix.Unix_error (e, s, a) -> Printf.sprintf "%s(%s):%s(%d)"
+      s a (Unix.error_message e) (Obj.magic e)
+  | exn -> Printexc.to_string exn;
+;;
+
 let error fmt = Printf.kprintf failwith fmt;;
 
 let readstr sock n =
@@ -731,7 +737,7 @@ let getauth haddr dnum =
     then
       try Unix.gethostname ()
       with exn ->
-        dolog "failed to resolve `%S': %s" haddr (Printexc.to_string exn);
+        dolog "failed to resolve `%S': %s" haddr (exntos exn);
         haddr
     else haddr
   in
@@ -785,7 +791,7 @@ let getauth haddr dnum =
       if Sys.file_exists path
       then
         dolog "failed to open X authority file `%S' : %s"
-          path (Printexc.to_string exn);
+          path (exntos exn);
       None
   in
   match opt with
@@ -797,40 +803,77 @@ let init t w h osx =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
-      error "Could not get DISPLAY evironment variable: %s"
-        (Printexc.to_string exn)
+      error "could not get DISPLAY evironment variable: %s"
+        (exntos exn)
   in
-  let colonpos = String.index d ':' in
-  let host = String.sub d 0 colonpos in
-  let dispnum, screennum =
-    try
-      let dotpos = String.index_from d (colonpos + 1) '.' in
-      let disp = String.sub d (colonpos + 1) (dotpos - colonpos - 1) in
-      let screen = String.sub d (dotpos + 1) (String.length d - dotpos - 1) in
-      int_of_string disp, int_of_string screen
-    with Not_found ->
-      let disp = String.sub d (colonpos + 1) (String.length d - colonpos - 1) in
-      int_of_string disp, 0
+  let getnum w b e =
+    if b = e
+    then error "invalid DISPLAY(%s) %S" w d
+    else
+      let s = String.sub d b (e - b) in
+      try int_of_string s
+      with exn ->
+        error "invalid DISPLAY %S can not parse %s(%S): %s"
+          d w s (exntos exn)
   in
+  let rec phost pos =
+    if pos = String.length d
+    then String.sub d 0 pos, (0, 0)
+    else (
+      if d.[pos] = ':'
+      then
+        let rec pdispnum pos1 =
+          if pos1 = String.length d
+          then getnum "display number" (pos+1) pos1, 0
+          else
+            match d.[pos1] with
+            | '.' ->
+                let dispnum = getnum "display number" (pos+1) pos1 in
+                let rec pscreennum pos2 =
+                  if pos2 = String.length d
+                  then getnum "screen number" (pos1+1) pos2
+                  else
+                    match d.[pos2] with
+                    | '0' .. '9' -> pscreennum (pos2+1)
+                    | _ ->
+                        error "invalid DISPLAY %S, cannot parse screen number" d
+                in
+                dispnum, pscreennum (pos1+1)
+            | '0' .. '9' -> pdispnum (pos1+1)
+            | _ ->
+                error "invalid DISPLAY %S, cannot parse display number" d
+        in
+        String.sub d 0 pos, pdispnum (pos+1)
+      else phost (pos+1)
+    )
+  in
+  let host, (dispnum, screennum) = phost 0 in
   let aname, adata = getauth host dispnum in
   let fd =
-    if osx || String.length host = 0 || host = "unix"
-    then
-      let addr =
-        if osx
-        then Unix.ADDR_UNIX d
-        else Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum)
-      in
-      let fd = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-      Unix.connect fd addr;
-      fd
-    else
-      let h = Unix.gethostbyname host in
-      let addr = h.Unix.h_addr_list.(0) in
-      let port = 6000 + dispnum in
-      let fd = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-      Unix.connect fd (Unix.ADDR_INET (addr, port));
-      fd
+    let fd, addr =
+      if osx || String.length host = 0 || host = "unix"
+      then
+        let addr =
+          if osx
+          then Unix.ADDR_UNIX d
+          else Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum)
+        in
+        let fd = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+        fd, addr
+      else
+        let h =
+          try Unix.gethostbyname host
+          with exn ->
+            error "cannot resolve %S: %s" host (exntos exn)
+        in
+        let addr = h.Unix.h_addr_list.(0) in
+        let port = 6000 + dispnum in
+        let fd = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+        fd, (Unix.ADDR_INET (addr, port))
+    in
+    try Unix.connect fd addr; fd
+    with exn ->
+      error "failed to connect to X: %s" (exntos exn)
   in
   cloexec fd;
   let s = "luMMmmnndduu" in
