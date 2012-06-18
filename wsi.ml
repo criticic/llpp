@@ -818,7 +818,7 @@ let init t w h osx =
   in
   let rec phost pos =
     if pos = String.length d
-    then String.sub d 0 pos, (0, 0)
+    then error "invalid DISPLAY %S no display number specified" d
     else (
       if d.[pos] = ':'
       then
