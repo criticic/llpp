@@ -3848,16 +3848,12 @@ let string_with_suffix_of_int n =
   then "0"
   else
     let n, s =
-      if n = 0
-      then 0, ""
+      if n land ((1 lsl 20) - 1) = 0
+      then n lsr 20, "M"
       else (
-        if n land ((1 lsl 20) - 1) = 0
-        then n lsr 20, "M"
-        else (
-          if n land ((1 lsl 10) - 1) = 0
-          then n lsr 10, "K"
-          else n, ""
-        )
+        if n land ((1 lsl 10) - 1) = 0
+        then n lsr 10, "K"
+        else n, ""
       )
     in
     let rec loop s n =
