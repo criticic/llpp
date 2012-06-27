@@ -5565,7 +5565,7 @@ let viewmouse button down x y mask =
       )
 
   | n when (n = 6 || n = 7) && not down && canpan () ->
-      state.x <- state.x + (if n = 7 then -1 else 1) * conf.hscrollstep;
+      state.x <- state.x + (if n = 7 then -2 else 2) * conf.hscrollstep;
       gotoy_and_clear_text state.y
 
   | 1 when Wsi.withctrl mask ->
