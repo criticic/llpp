@@ -1449,9 +1449,9 @@ let drawtiles l color =
           let lh = conf.winh - y in
           min lh h
         in
-        Gl.enable `texture_2d;
         begin match state.texid with
         | Some id ->
+            Gl.enable `texture_2d;
             GlTex.bind_texture `texture_2d id;
             let x0 = float x
             and y0 = float y
