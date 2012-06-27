@@ -289,6 +289,7 @@ type conf =
     ; mutable verbose        : bool
     ; mutable debug          : bool
     ; mutable scrollstep     : int
+    ; mutable hscrollstep    : int
     ; mutable maxhfit        : bool
     ; mutable crophack       : bool
     ; mutable autoscrollstep : int
@@ -478,6 +479,7 @@ let defconf =
   ; verbose        = false
   ; debug          = false
   ; scrollstep     = 24
+  ; hscrollstep    = 24
   ; maxhfit        = true
   ; crophack       = false
   ; autoscrollstep = 2
@@ -3458,6 +3460,10 @@ object (self)
           in
           G.postRedisplay "listview wheel";
           Some (coe {< m_first = first >})
+      | n when (n = 6 || n = 7) && not down ->
+          let inc = m_first + (if n = 7 then -1 else 1) in
+          G.postRedisplay "listview hwheel";
+          Some (coe {< m_pan = m_pan + inc >})
       | _ ->
           Some (coe self)
     in
@@ -4177,6 +4183,10 @@ let enterinfomode =
       (fun () -> conf.scrollstep)
       (fun n -> conf.scrollstep <- n);
 
+    src#int "horizontal scroll step"
+      (fun () -> conf.hscrollstep)
+      (fun v -> conf.hscrollstep <- v);
+
     src#int "auto scroll step"
       (fun () ->
         match state.autoscroll with
@@ -4414,7 +4424,7 @@ let enterinfomode =
           conf.colorspace <- colorspace_of_int v;
           wcmd "cs %d" v;
           load state.layout;
-        )
+        );
     );
 
     sep ();
@@ -5554,6 +5564,10 @@ let viewmouse button down x y mask =
             gotoy_and_clear_text y
       )
 
+  | n when (n = 6 || n = 7) && not down && canpan () ->
+      state.x <- state.x + (if n = 7 then -1 else 1) * conf.hscrollstep;
+      gotoy_and_clear_text state.y
+
   | 1 when Wsi.withctrl mask ->
       if down
       then (
@@ -5921,6 +5935,8 @@ struct
         | "preload" -> { c with preload = bool_of_string v }
         | "page-bias" -> { c with pagebias = int_of_string v }
         | "scroll-step" -> { c with scrollstep = max 1 (int_of_string v) }
+        | "horizontal-scroll-step" ->
+            { c with hscrollstep = max (int_of_string v) 1 }
         | "auto-scroll-step" ->
             { c with autoscrollstep = max 0 (int_of_string v) }
         | "max-height-fit" -> { c with maxhfit = bool_of_string v }
@@ -6088,6 +6104,7 @@ struct
     dst.pathlauncher   <- src.pathlauncher;
     dst.keyhashes      <- copykeyhashes src;
     dst.hfsize         <- src.hfsize;
+    dst.hscrollstep    <- src.hscrollstep;
   ;;
 
   let get s =
@@ -6496,6 +6513,7 @@ struct
     os "selection-command" c.selcmd dc.selcmd;
     ob "update-cursor" c.updatecurs dc.updatecurs;
     oi "hint-font-size" c.hfsize dc.hfsize;
+    oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
   ;;
 
   let keymapsbuf always dc c =
