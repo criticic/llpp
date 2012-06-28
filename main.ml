@@ -92,10 +92,10 @@ external realloctexts : int -> bool = "ml_realloctexts";;
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;
 external getlink : opaque -> int -> under = "ml_getlink";;
-external getlinkrect : opaque -> int -> irect  = "ml_getlinkrect";;
+external getlinkrect : opaque -> int -> irect = "ml_getlinkrect";;
 external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
-external popen : string -> (Unix.file_descr * int) list -> unit  = "ml_popen";;
+external popen : string -> (Unix.file_descr * int) list -> unit = "ml_popen";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -5983,7 +5983,7 @@ struct
         | "uri-launcher" -> { c with urilauncher = unent v }
         | "path-launcher" -> { c with pathlauncher = unent v }
         | "color-space" -> { c with colorspace = colorspace_of_string v }
-        | "invert-colors" -> { c with invert  = bool_of_string v }
+        | "invert-colors" -> { c with invert = bool_of_string v }
         | "brightness" -> { c with colorscale = float_of_string v }
         | "redirectstderr" -> { c with redirectstderr = bool_of_string v }
         | "ghyllscroll" ->
