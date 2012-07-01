@@ -1665,6 +1665,9 @@ static void * mainloop (void *unused)
         else if (!strncmp ("interrupt", p, 9)) {
             printd ("vmsg interrupted");
         }
+        else if (!strncmp ("quit", p, 4)) {
+            return 0;
+        }
         else {
             errx (1, "unknown command %.*s", len, p);
         }
