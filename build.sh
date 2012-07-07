@@ -7,7 +7,7 @@ mupdfincpath=$mupdf/fitz:$mupdf/pdf:$mupdf/xps:$mupdf/cbz
 
 cclib="-lfitz"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
-cclib="$cclib -lX11"
+cclib="$cclib -lX11 -lpthread"
 ccopt="$(freetype-config --cflags) -O -include ft2build.h -D_GNU_SOURCE"
 export LIBRARY_PATH=$LIBRARY_PATH:$mupdflibpath
 export CPATH=$CPATH:$mupdfincpath

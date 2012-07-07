@@ -70,7 +70,7 @@ ccopt="$ccopt -include $tp/freetype-2.4.9/include/ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/$mudir/build/release"
 cclib="$cclib -lfitz"
-cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype"
+cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
 cclib="$cclib -lX11"
 
 echo Building llpp...
