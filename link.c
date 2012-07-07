@@ -311,10 +311,15 @@ static void readdata (void *p, int size)
 {
     ssize_t n;
 
+ again:
     n = read (state.cr, p, size);
+    if (n < 0) {
+        if (errno == EINTR) goto again;
+        err (1, "read (req %d, ret %zd)", size, n);
+    }
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        err (1, "read (req %d, ret %zd)", size, n);
+        errx (1, "read (req %d, ret %zd)", size, n);
     }
 }
 
@@ -1664,9 +1669,6 @@ static void * mainloop (void *unused)
         }
         else if (!strncmp ("interrupt", p, 9)) {
             printd ("vmsg interrupted");
-        }
-        else if (!strncmp ("quit", p, 4)) {
-            return 0;
         }
         else {
             errx (1, "unknown command %.*s", len, p);
@@ -3204,15 +3206,6 @@ CAMLprim value ml_cloexec (value fd_v)
     if (fcntl (fd, F_SETFD, FD_CLOEXEC, 1)) {
         uerror ("fcntl", Nothing);
     }
-    CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_join (value unit_v)
-{
-    CAMLparam1 (unit_v);
-    void *vret;
-    int ret = pthread_join (state.thread, &vret);
-    if (ret) errx (1, "pthread_join: %s", strerror (ret));
     CAMLreturn (Val_unit);
 }
 
