@@ -3207,6 +3207,15 @@ CAMLprim value ml_cloexec (value fd_v)
     CAMLreturn (Val_unit);
 }
 
+CAMLprim value ml_join (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    void *vret;
+    int ret = pthread_join (state.thread, &vret);
+    if (ret) errx (1, "pthread_join: %s", strerror (ret));
+    CAMLreturn (Val_unit);
+}
+
 CAMLprim value ml_init (value pipe_v, value params_v)
 {
     CAMLparam2 (pipe_v, params_v);

@@ -96,6 +96,7 @@ external getlinkrect : opaque -> int -> irect = "ml_getlinkrect";;
 external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
 external popen : string -> (Unix.file_descr * int) list -> unit = "ml_popen";;
+external join : unit -> unit = "ml_join";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -6928,5 +6929,5 @@ let () =
   with Quit ->
     wcmd "quit";
     Config.save ();
-    exit 0;
+    join ();
 ;;
