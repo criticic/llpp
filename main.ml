@@ -3528,7 +3528,12 @@ object (self)
       if active > first
       then
         let rows = active - first in
-        if rows > fstate.maxrows then active - fstate.maxrows else first
+        let maxrows =
+          if String.length state.text = 0
+          then fstate.maxrows
+          else fstate.maxrows - 2
+        in
+        if rows > maxrows then active - maxrows else first
       else active
     in
     let navigate incr =
