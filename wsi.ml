@@ -201,7 +201,7 @@ let padcat s1 s2 = padcatl [s1; s2];;
 let internreq name onlyifexists =
   let s = "\016\000\000\000\000\000\000\000" in
   let s = padcat s name in
-  w8 s 1 (if onlyifexists then 1 else 0);
+  if onlyifexists then w8 s 1 1;
   w16 s 2 (String.length s / 4);
   w16 s 4 (String.length name);
   s;
