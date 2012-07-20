@@ -45,6 +45,9 @@
 extern char **environ;
 #endif
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
 #if defined __GNUC__
 #define NORETURN __attribute__ ((noreturn))
 #define UNUSED __attribute__ ((unused))
@@ -362,7 +365,7 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 
     buf = malloc (size);
     for (;;) {
-        if (!buf) err (errno, "malloc for temp buf (%d bytes) failed", size);
+        if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size);
 
         va_start (ap, fmt);
         len = vsnprintf (buf, size, fmt, ap);
