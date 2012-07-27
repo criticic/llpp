@@ -290,12 +290,6 @@ let createglyphcursorreq fid cid cindex =
   s;
 ;;
 
-let mapwindowreq wid =
-  let s = "\008u\002\000wwww" in
-  w32 s 4 wid;
-  s;
-;;
-
 let changewindowattributesreq wid mask attrs =
   let s = "\002ullwwwwmmmm" in
   let s = padcat s attrs in
@@ -347,7 +341,7 @@ let getkeysym code mask =
   else keysym
 ;;
 
-let rec readresp sock =
+let readresp sock =
   let resp = readstr sock 32 in
   let opcode = r8 resp 0 in
   match opcode land lnot 0x80 with
@@ -484,13 +478,6 @@ let readresp sock =
 let sendstr s ?(pos=0) ?(len=String.length s) sock =
   sendstr1 s pos len sock;
   if hasdata sock then readresp sock;
-;;
-
-let hexstr s =
-  let b = Buffer.create 16 in
-  String.iter (fun c ->
-    Buffer.add_string b (Printf.sprintf "%02x" (Char.code c))) s;
-  Buffer.contents b;
 ;;
 
 let reshape w h =

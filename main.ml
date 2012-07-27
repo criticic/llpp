@@ -1788,7 +1788,7 @@ let getnav dir =
 ;;
 
 let gotoghyll y =
-  let rec scroll f n a b =
+  let scroll f n a b =
     (* http://devmaster.net/forums/topic/9796-ease-in-ease-out-algorithm/ *)
     let snake f a b =
       let s x = 3.0*.x**2.0 -. 2.0*.x**3.0 in
