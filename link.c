@@ -1378,11 +1378,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
 static void set_tex_params (int colorspace)
 {
     union {
+        unsigned char b;
         unsigned int s;
-        unsigned char b[4];
-    } endianness = {0};
-    endianness.s = 0;
-    endianness.b[0] = 1;
+    } endianness = {1};
 
     switch (colorspace) {
     case 0:
@@ -1394,7 +1392,7 @@ static void set_tex_params (int colorspace)
     case 1:
         state.texiform = GL_RGBA8;
         state.texform = GL_BGRA;
-        state.texty = endianness.s > 0xff
+        state.texty = endianness.s > 1
             ? GL_UNSIGNED_INT_8_8_8_8
             : GL_UNSIGNED_INT_8_8_8_8_REV;
         state.colorspace = fz_device_bgr;
