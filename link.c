@@ -2753,7 +2753,7 @@ CAMLprim value ml_popen (value command_v, value fds_v)
 
     if ((ret = posix_spawnattr_init (&attr)) != 0) {
         msg = "posix_spawnattr_init";
-        goto fail;
+        goto fail1;
     }
 
 #ifdef POSIX_SPAWN_USEVFORK
@@ -2795,6 +2795,7 @@ CAMLprim value ml_popen (value command_v, value fds_v)
         fprintf (stderr, "posix_spawnattr_destroy: %s\n", strerror (ret));
     }
 
+ fail1:
     if ((ret = posix_spawn_file_actions_destroy (&fa)) != 0) {
         fprintf (stderr, "posix_spawn_file_actions_destroy: %s\n",
                  strerror (ret));
