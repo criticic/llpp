@@ -3135,14 +3135,13 @@ CAMLprim value ml_glx (value win_v)
     }
 
     glx.ctx = glXCreateContext (glx.dpy, visual, NULL, True);
+    XFree (visual);
     if (!glx.ctx) {
         XCloseDisplay (glx.dpy);
-        XFree (visual);
         glx.dpy = NULL;
         caml_failwith ("glXCreateContext");
     }
 
-    XFree (visual);
     if (!glXMakeCurrent (glx.dpy, wid, glx.ctx)) {
         glXDestroyContext (glx.dpy, glx.ctx);
         XCloseDisplay (glx.dpy);
