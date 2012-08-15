@@ -4921,16 +4921,41 @@ let viewkeyboard key mask =
       begin match List.rev state.layout with
       | [] -> ()
       | l :: _ ->
-          let pageno = min (l.pageno+1) (state.pagecount-1) in
-          gotoy_and_clear_text (getpagey pageno)
+          match conf.columns with
+          | Csingle | Cmulti _ ->
+              let pageno = min (l.pageno+1) (state.pagecount-1) in
+              gotoy_and_clear_text (getpagey pageno)
+          | Csplit (n, _) ->
+              if l.pageno < state.pagecount - 1 || l.pagecol < n - 1
+              then
+                let pagey, pageh = getpageyh l.pageno in
+                let pagey = pagey + pageh * l.pagecol in
+                gotoy_and_clear_text (pagey + pageh + conf.interpagespace)
       end
 
   | 0xff9f | 0xffff ->                  (* delete *)
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
-          let pageno = max 0 (l.pageno-1) in
-          gotoy_and_clear_text (getpagey pageno)
+          match conf.columns with
+          | Csingle | Cmulti _ ->
+              let pageno = max 0 (l.pageno-1) in
+              gotoy_and_clear_text (getpagey pageno)
+          | Csplit (n, _) ->
+              let y =
+                if l.pagecol = 0
+                then
+                  if l.pageno = 0
+                  then l.pagey
+                  else
+                    let pageno = max 0 (l.pageno-1) in
+                    let pagey, pageh = getpageyh pageno in
+                    pagey + (n-1)*pageh
+                else
+                  let pagey, pageh = getpageyh l.pageno in
+                  pagey + pageh * (l.pagecol-1)
+              in
+              gotoy_and_clear_text y
       end
 
   | 61 ->                               (* = *)
