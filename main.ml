@@ -4930,7 +4930,8 @@ let viewkeyboard key mask =
               then
                 let pagey, pageh = getpageyh l.pageno in
                 let pagey = pagey + pageh * l.pagecol in
-                gotoy_and_clear_text (pagey + pageh + conf.interpagespace)
+                let ips = if l.pagecol = 0 then 0 else conf.interpagespace in
+                gotoy_and_clear_text (pagey + pageh + ips)
       end
 
   | 0xff9f | 0xffff ->                  (* delete *)
@@ -4953,7 +4954,7 @@ let viewkeyboard key mask =
                     pagey + (n-1)*pageh
                 else
                   let pagey, pageh = getpageyh l.pageno in
-                  pagey + pageh * (l.pagecol-1)
+                  pagey + pageh * (l.pagecol-1) - conf.interpagespace
               in
               gotoy_and_clear_text y
       end
