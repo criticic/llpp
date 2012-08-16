@@ -4746,7 +4746,7 @@ let viewkeyboard key mask =
   | 48 when ctrl ->                     (* ctrl-0 *)
       setzoom 1.0
 
-  | 49 when ctrl ->                     (* 1 *)
+  | 49 when ctrl ->                     (* ctrl-1 *)
       let zoom = zoomforh conf.winw conf.winh state.scrollw in
       if zoom < 1.0
       then setzoom zoom
