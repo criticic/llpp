@@ -2971,7 +2971,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     double winh = Int_val (winh_v);
     double dw = Int_val (dw_v);
     double cols = Int_val (cols_v);
-    double pw = 1.0, ph = 1.0, num, den;
+    double pw = 1.0, ph = 1.0, aspect;
 
     if (trylock ("ml_zoom_for_height")) {
         goto done;
@@ -2983,11 +2983,14 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
         double x0, x1, y0, y1, w, h, scaledh, scale;
+        fz_rect rect;
 
-        x0 = MIN (p->mediabox.x0, p->mediabox.x1);
-        x1 = MAX (p->mediabox.x0, p->mediabox.x1);
-        y0 = MIN (p->mediabox.y0, p->mediabox.y1);
-        y1 = MAX (p->mediabox.y0, p->mediabox.y1);
+        rect = fz_transform_rect (fz_rotate (p->rotate + state.rotate),
+                                  p->mediabox);
+        x0 = MIN (rect.x0, rect.x1);
+        x1 = MAX (rect.x0, rect.x1);
+        y0 = MIN (rect.y0, rect.y1);
+        y1 = MAX (rect.y0, rect.y1);
 
         w = (x1 - x0) / cols;
         h = y1 - y0;
@@ -3008,9 +3011,8 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
         }
     }
 
-    num = (winh * pw) + (ph * dw);
-    den = ph * winw;
-    zoom = num / den;
+    aspect = pw / ph;
+    zoom = (winh * aspect + dw) / winw;
 
     unlock ("ml_zoom_for_height");
  done:
