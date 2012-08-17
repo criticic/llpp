@@ -79,7 +79,7 @@ external seltext : string -> (int * int * int * int) -> unit = "ml_seltext";;
 external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
-external zoomforh : int -> int -> int -> float = "ml_zoom_for_height";;
+external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
 external getmaxw : unit -> float = "ml_getmaxw";;
@@ -4747,7 +4747,12 @@ let viewkeyboard key mask =
       setzoom 1.0
 
   | 49 when ctrl ->                     (* ctrl-1 *)
-      let zoom = zoomforh conf.winw conf.winh state.scrollw in
+      let cols =
+        match conf.columns with
+        | Csingle | Cmulti _ -> 1
+        | Csplit (n, _) -> n
+      in
+      let zoom = zoomforh conf.winw conf.winh state.scrollw cols in
       if zoom < 1.0
       then setzoom zoom
 

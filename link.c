@@ -2958,7 +2958,8 @@ CAMLprim value ml_getmaxw (value unit_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
+CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
+                                   value dw_v, value cols_v)
 {
     CAMLparam3 (winw_v, winh_v, dw_v);
     CAMLlocal1 (ret_v);
@@ -2969,6 +2970,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     double winw = Int_val (winw_v);
     double winh = Int_val (winh_v);
     double dw = Int_val (dw_v);
+    double cols = Int_val (cols_v);
     double pw = 1.0, ph = 1.0, num, den;
 
     if (trylock ("ml_zoom_for_height")) {
@@ -2976,7 +2978,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
     }
 
     if (state.proportional) {
-        maxw = getmaxw ();
+        maxw = getmaxw () / cols;
     }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
@@ -2987,7 +2989,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v, value dw_v)
         y0 = MIN (p->mediabox.y0, p->mediabox.y1);
         y1 = MAX (p->mediabox.y0, p->mediabox.y1);
 
-        w = x1 - x0;
+        w = (x1 - x0) / cols;
         h = y1 - y0;
 
         if (state.proportional) {
