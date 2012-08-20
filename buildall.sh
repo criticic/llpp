@@ -17,7 +17,7 @@ cd 3rdp
 root=$(pwd)
 
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
-mupdf3p=http://mupdf.com/download/mupdf-thirdparty-2012-04-23.zip
+mupdf3p=http://mupdf.com/download/archive/mupdf-thirdparty-2012-04-23.zip
 mupdfrev=a606f714258677688c67e9561b87cc70f9e9b6b0
 mudir=mupdf-a606f71
 
