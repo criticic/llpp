@@ -263,7 +263,6 @@ static void unlock (const char *cap)
 static int trylock (const char *cap)
 {
     int ret = pthread_mutex_trylock (&mutex);
-
     if (ret && ret != EBUSY) {
         errx (1, "%s: pthread_mutex_trylock: %s", cap, strerror (ret));
     }
