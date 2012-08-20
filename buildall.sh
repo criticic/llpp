@@ -77,39 +77,39 @@ echo Building llpp...
 if test "$1" = "opt"; then
     cclib="$cclib -lpthread"
     executable_p ocamlopt.opt && comp=ocamlopt.opt || comp=ocamlopt
-    $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
-    $comp -c -o help.cmx help.ml
-    $comp -c -o wsi.cmi $srcpath/wsi.mli
-    $comp -c -o wsi.cmx $srcpath/wsi.ml
-    $comp -c -o parser.cmx $srcpath/parser.ml
-    $comp -c -o main.cmx -I $root/lib/ocaml/lablGL $srcpath/main.ml
-
-    $comp -o llpp                       \
-        -I $root/lib/ocaml/lablGL       \
-        str.cmxa unix.cmxa lablgl.cmxa  \
-        link.o                          \
-        -cclib "$cclib"                 \
-        help.cmx                        \
-        parser.cmx                      \
-        wsi.cmx                         \
-        main.cmx
+    cmsuf=.cmx
+    dolink() {
+        $comp -o llpp                      \
+            -I $root/lib/ocaml/lablGL      \
+            str.cmxa unix.cmxa lablgl.cmxa \
+            link.o                         \
+            -cclib "$cclib"                \
+            help.cmx                       \
+            parser.cmx                     \
+            wsi.cmx                        \
+            main.cmx
+    }
 else
     executable_p ocamlc.opt && comp=ocamlc.opt || comp=ocamlc
-    $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
-    $comp -c -o help.cmo help.ml
-    $comp -c -o wsi.cmi $srcpath/wsi.mli
-    $comp -c -o wsi.cmo $srcpath/wsi.ml
-    $comp -c -o parser.cmo $srcpath/parser.ml
-    $comp -c -o main.cmo -I $root/lib/ocaml/lablGL $srcpath/main.ml
-
-    $comp -custom -o llpp            \
-        -I $root/lib/ocaml/lablGL    \
-        str.cma unix.cma lablgl.cma  \
-        link.o                       \
-        -cclib "$cclib"              \
-        help.cmo                     \
-        parser.cmo                   \
-        wsi.cmo                      \
-        main.cmo
+    dolink() {
+        $comp -custom -o llpp            \
+            -I $root/lib/ocaml/lablGL    \
+            str.cma unix.cma lablgl.cma  \
+            link.o                       \
+            -cclib "$cclib"              \
+            help.cmo                     \
+            parser.cmo                   \
+            wsi.cmo                      \
+            main.cmo
+    }
 fi
+
+$comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
+$comp -c -o help.$cmsuf help.ml
+$comp -c -o wsi.cmi $srcpath/wsi.mli
+$comp -c -o wsi.$cmsuf $srcpath/wsi.ml
+$comp -c -o parser.$cmsuf $srcpath/parser.ml
+$comp -c -o main.$cmsuf -I $root/lib/ocaml/lablGL $srcpath/main.ml
+dolink
+
 echo All done
