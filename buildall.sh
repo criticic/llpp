@@ -17,9 +17,9 @@ cd 3rdp
 root=$(pwd)
 
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
-mupdf3p=http://mupdf.com/download/archive/mupdf-thirdparty-2012-04-23.zip
-mupdfrev=a606f714258677688c67e9561b87cc70f9e9b6b0
-mudir=mupdf-a606f71
+mupdf3p=http://mupdf.com/download/archive/mupdf-thirdparty-2012-08-14.zip
+mupdfrev=6e7b3abc34267f351810bb7b01dafa9586cdd9c8
+mudir=mupdf-6e7b3ab
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 
@@ -60,13 +60,13 @@ tp=$root/$mudir/thirdparty
 ccopt="-O"
 ccopt="$ccopt -I $tp/jbig2dec"
 ccopt="$ccopt -I $tp/jpeg-8d"
-ccopt="$ccopt -I $tp/freetype-2.4.9/include"
+ccopt="$ccopt -I $tp/freetype-2.4.10/include"
 ccopt="$ccopt -I $tp/openjpeg-1.4/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib-1.2.5"
 ccopt="$ccopt -I $root/$mudir/fitz -I $root/$mudir/pdf -I $root/$mudir/xps"
 ccopt="$ccopt -I $root/$mudir/cbz"
 
-ccopt="$ccopt -include $tp/freetype-2.4.9/include/ft2build.h -D_GNU_SOURCE"
+ccopt="$ccopt -include $tp/freetype-2.4.10/include/ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/$mudir/build/release"
 cclib="$cclib -lfitz"

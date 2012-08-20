@@ -6,7 +6,7 @@ be found here[3], dependencies here[4]
 Note that MuPDF is a moving target therefore bellow is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
-a606f714258677688c67e9561b87cc70f9e9b6b0
+6e7b3abc34267f351810bb7b01dafa9586cdd9c8
 
 llpp also depends on OCaml[5], lablGL[6], having a C compiler wouldn't
 hurt either.
@@ -36,6 +36,6 @@ $ ./llpp -p password /path/to/some.password.protected.pdf
 [4] http://mupdf.com/download/source/mupdf-thirdparty.zip
 [5] http://caml.inria.fr/
 [6] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
-[7] mupdf-a606f714258677688c67e9561b87cc70f9e9b6b0.tgz (4242429 bytes)
-    mupdf-thirdparty-2012-04-23.zip (6890659 bytes)
+[7] mupdf-6e7b3abc34267f351810bb7b01dafa9586cdd9c8.tgz (4252623 bytes)
+    mupdf-thirdparty-2012-08-14.zip (6944385 bytes)
     lablgl-1.04.tar.gz (410525 bytes)
