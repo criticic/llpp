@@ -91,6 +91,7 @@ if test "$1" = "opt"; then
     }
 else
     executable_p ocamlc.opt && comp=ocamlc.opt || comp=ocamlc
+    cmsuf=.cmo
     dolink() {
         $comp -custom -o llpp            \
             -I $root/lib/ocaml/lablGL    \
