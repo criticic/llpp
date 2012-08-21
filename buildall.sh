@@ -76,7 +76,7 @@ cclib="$cclib -lX11"
 echo Building llpp...
 if test "$1" = "opt"; then
     executable_p ocamlopt.opt && comp=ocamlopt.opt || comp=ocamlopt
-    cmsuf=.cmx
+    cmsuf=cmx
     dolink() {
         $comp -o llpp                      \
             -I $root/lib/ocaml/lablGL      \
@@ -90,7 +90,7 @@ if test "$1" = "opt"; then
     }
 else
     executable_p ocamlc.opt && comp=ocamlc.opt || comp=ocamlc
-    cmsuf=.cmo
+    cmsuf=cmo
     dolink() {
         $comp -custom -o llpp            \
             -I $root/lib/ocaml/lablGL    \
