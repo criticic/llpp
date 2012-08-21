@@ -75,7 +75,6 @@ cclib="$cclib -lX11"
 
 echo Building llpp...
 if test "$1" = "opt"; then
-    cclib="$cclib -lpthread"
     executable_p ocamlopt.opt && comp=ocamlopt.opt || comp=ocamlopt
     cmsuf=.cmx
     dolink() {
@@ -83,7 +82,7 @@ if test "$1" = "opt"; then
             -I $root/lib/ocaml/lablGL      \
             str.cmxa unix.cmxa lablgl.cmxa \
             link.o                         \
-            -cclib "$cclib"                \
+            -cclib "$cclib -lpthread"      \
             help.cmx                       \
             parser.cmx                     \
             wsi.cmx                        \
