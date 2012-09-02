@@ -120,7 +120,7 @@ static FT_Face load_font(char *fontname)
         return face;
 }
 
-static FT_Face UNUSED load_builtin_font(void *base, int len)
+static FT_Face UNUSED_ATTR load_builtin_font(void *base, int len)
 {
         FT_Face face;
         int code;
@@ -141,7 +141,7 @@ static FT_Face UNUSED load_builtin_font(void *base, int len)
         return face;
 }
 
-static void UNUSED free_font(FT_Face face)
+static void UNUSED_ATTR free_font(FT_Face face)
 {
         clear_font_cache();
         FT_Done_Face(face);

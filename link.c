@@ -49,14 +49,14 @@ extern char **environ;
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 #if defined __GNUC__
-#define NORETURN __attribute__ ((noreturn))
-#define UNUSED __attribute__ ((unused))
-#define OPTIMIZE(n) __attribute__ ((optimize ("O"#n)))
+#define NORETURN_ATTR __attribute__ ((noreturn))
+#define UNUSED_ATTR __attribute__ ((unused))
+#define OPTIMIZE_ATTR(n) __attribute__ ((optimize ("O"#n)))
 #define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
 #else
-#define NORETURN
-#define UNUSED
-#define OPTIMIZE(n)
+#define NORETURN_ATTR
+#define UNUSED_ATTR
+#define OPTIMIZE_ATTR(n)
 #define GCC_FMT_ATTR(a, b)
 #endif
 
@@ -66,7 +66,7 @@ extern char **environ;
 #define FMT_ptr_cast(p) (p)
 #define FMT_ptr_cast2(p) (p)
 
-static void NORETURN GCC_FMT_ATTR (2, 3)
+static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...)
 {
     va_list ap;
@@ -81,7 +81,7 @@ static void NORETURN GCC_FMT_ATTR (2, 3)
     _exit (exitcode);
 }
 
-static void NORETURN GCC_FMT_ATTR (2, 3)
+static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
     errx (int exitcode, const char *fmt, ...)
 {
     va_list ap;
@@ -226,17 +226,17 @@ struct {
     void (*freepage) (void *);
 } state;
 
-static void UNUSED debug_rect (const char *cap, fz_rect r)
+static void UNUSED_ATTR debug_rect (const char *cap, fz_rect r)
 {
     printf ("%s(rect) %.2f,%.2f,%.2f,%.2f\n", cap, r.x0, r.y0, r.x1, r.y1);
 }
 
-static void UNUSED debug_bbox (const char *cap, fz_bbox r)
+static void UNUSED_ATTR debug_bbox (const char *cap, fz_bbox r)
 {
     printf ("%s(bbox) %d,%d,%d,%d\n", cap, r.x0, r.y0, r.x1, r.y1);
 }
 
-static void UNUSED debug_matrix (const char *cap, fz_matrix m)
+static void UNUSED_ATTR debug_matrix (const char *cap, fz_matrix m)
 {
     printf ("%s(matrix) %.2f,%.2f,%.2f,%.2f %.2f %.2f\n", cap,
             m.a, m.b, m.c, m.d, m.e, m.f);
@@ -592,7 +592,7 @@ static void __attribute__ ((constructor)) clcheck (void)
     }
 }
 
-static void OPTIMIZE (3) clearpixmap (fz_pixmap *pixmap)
+static void OPTIMIZE_ATTR (3) clearpixmap (fz_pixmap *pixmap)
 {
     if (cacheline32bytes) {
         intptr_t a1, a2, diff;
@@ -2711,7 +2711,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     CAMLreturn (Val_unit);
 }
 
-static int UNUSED pipespan (FILE *f, fz_text_span *span, int a, int b)
+static int UNUSED_ATTR pipespan (FILE *f, fz_text_span *span, int a, int b)
 {
     char buf[4];
     int i, len, ret;
@@ -2730,7 +2730,7 @@ static int UNUSED pipespan (FILE *f, fz_text_span *span, int a, int b)
 }
 
 #ifdef __CYGWIN__
-value ml_popen (value UNUSED u1, value UNUSED u2)
+value ml_popen (value UNUSED_ATTR u1, value UNUSED_ATTR u2)
 {
     caml_failwith ("ml_popen not implemented under Cygwin");
 }
