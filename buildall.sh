@@ -40,12 +40,13 @@ executable_p gmake && make=gmake || make=make
 
 (cd lablGL-1.04 \
     && sed 17d Makefile.config.linux.mdk > Makefile.config \
-    && $make lib libopt \
+    && $make lib $(test "$1" = opt && echo libopt) \
     && $make install \
             BINDIR=$root/bin \
             LIBDIR=$root/lib/ocaml \
             DLLDIR=$root/lib/ocaml/stublibs \
             INSTALLDIR=$root/lib/ocaml/lablGL)
+exit
 
 (cd $mudir && $make -j "$jobs" build=release)
 
