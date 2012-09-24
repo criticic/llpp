@@ -46,7 +46,6 @@ executable_p gmake && make=gmake || make=make
             LIBDIR=$root/lib/ocaml \
             DLLDIR=$root/lib/ocaml/stublibs \
             INSTALLDIR=$root/lib/ocaml/lablGL)
-exit
 
 (cd $mudir && $make -j "$jobs" build=release)
 
