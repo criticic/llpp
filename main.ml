@@ -6870,6 +6870,7 @@ let () =
   opendoc state.path state.password;
   state.uioh <- uioh;
 
+  GlTex.env (`mode `replace);
   let rec loop deadline =
     let r =
       match state.errfd with
