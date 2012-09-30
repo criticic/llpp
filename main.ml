@@ -4653,6 +4653,12 @@ let canpan () =
   | _ -> conf.zoom > 1.0
 ;;
 
+let adjust_brightness () =
+  if conf.colorscale = 1.0
+  then GlTex.env (`mode `replace)
+  else GlTex.env (`mode `modulate);
+;;
+
 let viewkeyboard key mask =
   let enttext te =
     let mode = state.mode in
@@ -5039,9 +5045,7 @@ let viewkeyboard key mask =
       conf.colorscale <-
         bound (conf.colorscale +. (if key = 93 then 0.1 else -0.1)) 0.0 1.0
       ;
-      if conf.colorscale = 1.0
-      then GlTex.env (`mode `replace)
-      else GlTex.env (`mode `modulate);
+      adjust_brightness ();
       G.postRedisplay "brightness";
 
   | 99 when state.mode = View ->        (* c *)
@@ -6873,7 +6877,7 @@ let () =
   opendoc state.path state.password;
   state.uioh <- uioh;
 
-  GlTex.env (`mode `replace);
+  adjust_brightness ();
   let rec loop deadline =
     let r =
       match state.errfd with
