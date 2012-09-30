@@ -5039,6 +5039,9 @@ let viewkeyboard key mask =
       conf.colorscale <-
         bound (conf.colorscale +. (if key = 93 then 0.1 else -0.1)) 0.0 1.0
       ;
+      if conf.colorscale = 1.0
+      then GlTex.env (`mode `replace)
+      else GlTex.env (`mode `modulate);
       G.postRedisplay "brightness";
 
   | 99 when state.mode = View ->        (* c *)
