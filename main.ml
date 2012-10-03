@@ -4929,7 +4929,7 @@ let viewkeyboard key mask =
       end
 
   | 32 ->                               (* ' ' *)
-      begin match List.rev state.layout with
+      begin match state.layout with
       | [] -> ()
       | l :: _ ->
           match conf.columns with
