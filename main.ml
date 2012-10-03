@@ -4713,7 +4713,7 @@ let viewkeyboard key mask =
       enttext (s, "", Some (onhist state.hists.pat),
               textentry, ondone (key = 47), true)
 
-  | 43 | 0xffab when ctrl ->            (* ctrl-+ *)
+  | 43 | 0xffab | 61 when ctrl ->       (* ctrl-+  or  ctrl-=*)
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
       setzoom (conf.zoom +. incr)
 
