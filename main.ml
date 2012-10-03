@@ -1766,7 +1766,8 @@ let getanchor () =
   | []     -> emptyanchor
   | l :: _ ->
       let coloff = l.pagecol * l.pageh in
-      (l.pageno, (float l.pagey +. float coloff) /. float l.pageh)
+      (l.pageno,
+      (float (l.pagey - l.pagedispy) +. float coloff) /. float l.pageh)
 ;;
 
 let getanchory (n, top) =
