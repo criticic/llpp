@@ -1585,7 +1585,7 @@ let preloadlayout visiblepages =
     | l :: _ -> getpagey l.pageno + l.pagey
   in
   let y = if y < conf.winh then 0 else y - conf.winh in
-  let h = state.y - y + conf.winh*3 in
+  let h = conf.winh*3 in
   let pages = layout y h in
   conf.presentation <- presentation;
   conf.interpagespace <- interpagespace;
