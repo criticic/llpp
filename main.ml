@@ -3164,7 +3164,7 @@ object (self)
     Gl.disable `texture_2d;
 
   method updownlevel incr =
-    let len = source#getitemcount  in
+    let len = source#getitemcount in
     let curlevel =
       if m_active >= 0 && m_active < len
       then snd (source#getitem m_active)
@@ -4609,7 +4609,7 @@ let doreshape w h =
 let setautoscrollspeed step goingdown =
   let incr = max 1 ((abs step) / 2) in
   let incr = if goingdown then incr else -incr in
-  let astep = step + incr  in
+  let astep = step + incr in
   state.autoscroll <- Some astep;
 ;;
 
@@ -4713,7 +4713,7 @@ let viewkeyboard key mask =
       enttext (s, "", Some (onhist state.hists.pat),
               textentry, ondone (key = 47), true)
 
-  | 43 | 0xffab | 61 when ctrl ->       (* ctrl-+  or  ctrl-=*)
+  | 43 | 0xffab | 61 when ctrl ->       (* ctrl-+ or ctrl-=*)
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
       setzoom (conf.zoom +. incr)
 
@@ -4764,7 +4764,7 @@ let viewkeyboard key mask =
       togglebirdseye ()
 
   | (48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 |  57)
-      when not  ctrl ->                      (* 0..9 *)
+      when not ctrl ->                  (* 0..9 *)
       let ondone s =
         let n =
           try int_of_string s with exc ->
@@ -5799,7 +5799,7 @@ let uioh = object
     state.uioh
 
   method motion x y =
-    begin  match state.mode with
+    begin match state.mode with
     | Textentry _ -> ()
     | View | Birdseye _ | LinkNav _ ->
         match state.mstate with
@@ -5875,7 +5875,7 @@ let uioh = object
     let winw = conf.winw - state.scrollw - 1 in
     let fwinw = float winw in
     let sw =
-      let sw = fwinw /. float state.w  in
+      let sw = fwinw /. float state.w in
       let sw = fwinw *. sw in
       max sw (float conf.scrollh)
     in
@@ -6633,7 +6633,7 @@ struct
     let bb = Buffer.create 32768 in
     let f (h, dc) =
       let dc = if conf.bedefault then conf else dc in
-      Buffer.add_string  bb "<llppconfig>\n";
+      Buffer.add_string bb "<llppconfig>\n";
 
       if String.length !fontpath > 0
       then
