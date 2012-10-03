@@ -4929,7 +4929,7 @@ let viewkeyboard key mask =
       | l :: rest ->
           match conf.columns with
           | Csingle | Cmulti _ ->
-              if rest == [] && l.pageh > l.pagey + l.pagevh
+              if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
               then
                 let y = clamp conf.winh in
                 gotoy_and_clear_text y
@@ -4951,7 +4951,7 @@ let viewkeyboard key mask =
       | l :: _ ->
           match conf.columns with
           | Csingle | Cmulti _ ->
-              if l.pagey != 0
+              if conf.presentation && l.pagey != 0
               then
                 gotoy_and_clear_text (clamp ~-(conf.winh))
               else
