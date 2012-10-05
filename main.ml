@@ -332,6 +332,7 @@ type conf =
     ; mutable updatecurs     : bool
     ; mutable keyhashes      : (string * keyhash) list
     ; mutable hfsize         : int
+    ; mutable pgscale        : float
     }
 and columns =
     | Csingle
@@ -532,7 +533,8 @@ let defconf =
   ; columns        = Csingle
   ; beyecolumns    = None
   ; updatecurs     = false
-  ; hfsize = 12
+  ; hfsize         = 12
+  ; pgscale        = 1.0
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -554,6 +556,8 @@ let findkeyhash c name =
 ;;
 
 let conf = { defconf with angle = defconf.angle };;
+
+let pgscale h = truncate (float h *. conf.pgscale);;
 
 type fontstate =
     { mutable fontsize : int
@@ -4359,6 +4363,18 @@ let enterinfomode =
           state.anchor <- getanchor ();
           opendoc state.path state.password;
         );
+      src#string "page scroll scaling factor"
+        (fun () -> string_of_float conf.pgscale)
+        (fun v ->
+          try
+            let s = float_of_string v in
+            conf.pgscale <- s
+          with exn ->
+            state.text <- Printf.sprintf
+              "bad page scroll scaling factor `%s': %s"
+              v (Printexc.to_string exn)
+        )
+      ;
       src#int "ui font size"
         (fun () -> fstate.fontsize)
         (fun v -> setfontsize (bound v 5 100));
@@ -5122,7 +5138,7 @@ let viewkeyboard key mask =
           | [] -> state.y
           | l :: _ -> state.y - l.pagey
         else
-          clamp (-conf.winh)
+          clamp (pgscale (-conf.winh))
       in
       gotoghyll y
 
@@ -5134,7 +5150,7 @@ let viewkeyboard key mask =
           | [] -> state.y
           | l :: _ -> getpagey l.pageno
         else
-          clamp conf.winh
+          clamp (pgscale conf.winh)
       in
       gotoghyll y
 
@@ -6044,6 +6060,7 @@ struct
         | "selection-command" -> { c with selcmd = unent v }
         | "update-cursor" -> { c with updatecurs = bool_of_string v }
         | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
+        | "page-scroll-scale" -> { c with pgscale = float_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6151,6 +6168,7 @@ struct
     dst.keyhashes      <- copykeyhashes src;
     dst.hfsize         <- src.hfsize;
     dst.hscrollstep    <- src.hscrollstep;
+    dst.pgscale        <- src.pgscale;
   ;;
 
   let get s =
@@ -6560,6 +6578,7 @@ struct
     ob "update-cursor" c.updatecurs dc.updatecurs;
     oi "hint-font-size" c.hfsize dc.hfsize;
     oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
+    oF "page-scroll-scale" c.pgscale dc.pgscale;
   ;;
 
   let keymapsbuf always dc c =
