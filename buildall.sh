@@ -18,8 +18,8 @@ root=$(pwd)
 
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf3p=http://mupdf.com/download/archive/mupdf-thirdparty-2012-08-14.zip
-mupdfrev=6e7b3abc34267f351810bb7b01dafa9586cdd9c8
-mudir=mupdf-6e7b3ab
+mupdfrev=a1a37ae36043d8dba89cecfa345119ad32f81b9e
+mudir=mupdf-a1a37ae
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 
@@ -38,16 +38,21 @@ executable_p() {
 
 executable_p gmake && make=gmake || make=make
 
-(cd lablGL-1.04 \
-    && sed 17d Makefile.config.linux.mdk > Makefile.config \
-    && $make lib $(test "$1" = opt && echo libopt) \
-    && $make install \
-            BINDIR=$root/bin \
-            LIBDIR=$root/lib/ocaml \
-            DLLDIR=$root/lib/ocaml/stublibs \
+(cd lablGL-1.04                                             \
+    && sed 17d Makefile.config.linux.mdk > Makefile.config  \
+    && $make lib $(test "$1" = opt && echo libopt)          \
+    && $make install                                        \
+            BINDIR=$root/bin                                \
+            LIBDIR=$root/lib/ocaml                          \
+            DLLDIR=$root/lib/ocaml/stublibs                 \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-(cd $mudir && $make -j "$jobs" build=release)
+(cd $mudir && $make -j "$jobs" build=release        \
+    FREETYPE_DIR=thirdparty/freetype-2.4.10         \
+    JBIG2DEC_DIR=thirdparty/jbig2dec                \
+    JPEG_DIR=thirdparty/jpeg-9                      \
+    OPENJPEG_DIR=thirdparty/openjpeg-1.5.0-patched  \
+    ZLIB_DIR=thirdparty/zlib-1.2.7)
 
 cd ..
 

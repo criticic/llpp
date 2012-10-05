@@ -513,7 +513,7 @@ static void pdfinfo (void)
 
             for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
                 pdf_obj *obj = pdf_dict_gets (infoobj, items[i]);
-                s = pdf_to_utf8 (state.ctx, obj);
+                s = pdf_to_utf8 (state.u.pdf, obj);
                 if (*s) {
                     if (i == 0) {
                         printd ("title %s", s);
