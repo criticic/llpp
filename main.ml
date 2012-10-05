@@ -4947,7 +4947,7 @@ let viewkeyboard key mask =
           | Csingle | Cmulti _ ->
               if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
               then
-                let y = clamp conf.winh in
+                let y = clamp (pgscale conf.winh) in
                 gotoy_and_clear_text y
               else
                 let pageno = min (l.pageno+1) (state.pagecount-1) in
@@ -4969,7 +4969,7 @@ let viewkeyboard key mask =
           | Csingle | Cmulti _ ->
               if conf.presentation && l.pagey != 0
               then
-                gotoy_and_clear_text (clamp ~-(conf.winh))
+                gotoy_and_clear_text (clamp (pgscale ~-(conf.winh)))
               else
                 let pageno = max 0 (l.pageno-1) in
                 gotoy_and_clear_text (getpagey pageno)
