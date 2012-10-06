@@ -29,8 +29,8 @@ if ! test -d $mudir; then
        -O mupdf-$mupdfrev.tgz && tar -xzf mupdf-$mupdfrev.tgz
 fi
 
-test -d $mudir/thirdparty || \
-    (wget -nc $mupdf3p && unzip -d $mudir $(basename $mupdf3p))
+test -d $mudir/thirdparty && test -e $(basename $mupdf3p) || \
+    (wget -nc $mupdf3p && unzip -o -d $mudir $(basename $mupdf3p))
 
 executable_p() {
     command -v $1 >/dev/null 2>&1
