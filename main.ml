@@ -1579,21 +1579,18 @@ let tilepage n p layout =
 let preloadlayout visiblepages =
   let presentation = conf.presentation in
   let interpagespace = conf.interpagespace in
-  let maxy = state.maxy in
   conf.presentation <- false;
   conf.interpagespace <- 0;
-  state.maxy <- calcheight ();
   let y =
     match visiblepages with
-    | [] -> if state.y >= maxy then maxy else 0
-    | l :: _ -> getpagey l.pageno + l.pagey
+    | [] -> if state.y >= state.maxy then state.maxy else 0
+    | l :: _ -> getpagey l.pageno + (l.pagey - min 0 l.pagedispy)
   in
   let y = if y < conf.winh then 0 else y - conf.winh in
   let h = conf.winh*3 in
   let pages = layout y h in
   conf.presentation <- presentation;
   conf.interpagespace <- interpagespace;
-  state.maxy <- maxy;
   pages;
 ;;
 
