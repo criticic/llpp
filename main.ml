@@ -16,7 +16,7 @@ let now = Unix.gettimeofday;;
 
 type params = (angle * proportional * trimparams
                 * texcount * sliceheight * memsize
-                * colorspace * fontpath)
+                * colorspace * fontpath * trimcachepath)
 and pageno         = int
 and width          = int
 and height         = int
@@ -33,6 +33,7 @@ and sliceheight    = int
 and gen            = int
 and top            = float
 and fontpath       = string
+and trimcachepath  = string
 and memsize        = int
 and aalevel        = int
 and irect          = (int * int * int * int)
@@ -6778,6 +6779,7 @@ struct
 end;;
 
 let () =
+  let trimcachepath = ref "" in
   Arg.parse
     (Arg.align
         [("-p", Arg.String (fun s -> state.password <- s) ,
@@ -6788,6 +6790,9 @@ let () =
 
          ("-c", Arg.String (fun s -> Config.confpath := s),
          "<path> Set path to the configuration file");
+
+         ("-tcf", Arg.String (fun s -> trimcachepath := s),
+         "<path> Set path to the trim cache file");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
@@ -6887,7 +6892,7 @@ let () =
   init (cr, cw) (
     conf.angle, conf.proportional, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-    !Config.fontpath
+    !Config.fontpath, !trimcachepath
   );
   state.sr <- sr;
   state.sw <- sw;

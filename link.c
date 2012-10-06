@@ -224,6 +224,8 @@ struct {
 
     void (*closedoc) (void);
     void (*freepage) (void *);
+
+    char *trimcachepath;
 } state;
 
 static void UNUSED_ATTR debug_rect (const char *cap, fz_rect r)
@@ -819,8 +821,18 @@ static void initpdims (void)
 {
     double start, end;
     int pageno, trim, show;
+    FILE *trimf = NULL;
+    int trimw = 0;
 
     start = now ();
+
+    if (state.trimmargins && state.trimcachepath) {
+        trimf = fopen (state.trimcachepath, "rb");
+        if (!trimf) {
+            trimf = fopen (state.trimcachepath, "wb");
+            trimw = 1;
+        }
+    }
     for (pageno = 0; pageno < state.pagecount; ++pageno) {
         int rotate = 0;
         struct pagedim *p;
@@ -952,7 +964,7 @@ static void initpdims (void)
         case DCBZ:
             {
                 rotate = 0;
-                if (state.trimmargins) {
+                if (state.trimmargins && trimw) {
                     cbz_page *page;
 
                     page = cbz_load_page (state.u.cbz, pageno);
@@ -961,11 +973,25 @@ static void initpdims (void)
                     printd ("progress %f Trimming %d",
                             (double) (pageno + 1) / state.pagecount,
                             pageno + 1);
+                    if (trimf) {
+                        int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
+                        if (n - 1)  {
+                            err (1, "fwrite trim mediabox");
+                        }
+                    }
                 }
                 else {
-                    mediabox.x0 = mediabox.y0 = 0;
-                    mediabox.x1 = 900;
-                    mediabox.y1 = 900;
+                    if (trimf) {
+                        int n = fread (&mediabox, sizeof (mediabox), 1, trimf);
+                        if (n - 1) {
+                            err (1, "fread trim mediabox");
+                        }
+                    }
+                    else {
+                        mediabox.x0 = mediabox.y0 = 0;
+                        mediabox.x1 = 900;
+                        mediabox.y1 = 900;
+                    }
                 }
             }
             break;
@@ -1002,6 +1028,11 @@ static void initpdims (void)
                 state.pagecount, end - start);
     }
     state.trimanew = 0;
+    if (trimf) {
+        if (fclose (trimf)) {
+            err (1, "fclose");
+        }
+    }
 }
 
 static void layout (void)
@@ -3154,6 +3185,11 @@ CAMLprim value ml_glx (value win_v)
     }
     glx.drawable = wid;
 
+    if (0) {
+        int (*f) (int) =
+            (int (*) (int)) glXGetProcAddress ((GLubyte *) "glXSwapIntervalMESA");
+        printf ("sync %d\n", f (0));
+    }
     CAMLreturn (Val_unit);
 }
 
@@ -3224,16 +3260,17 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     int mustoresize;
     struct sigaction sa;
 
-    state.cr           = Int_val (Field (pipe_v, 0));
-    state.cw           = Int_val (Field (pipe_v, 1));
-    state.rotate       = Int_val (Field (params_v, 0));
-    state.proportional = Bool_val (Field (params_v, 1));
-    trim_v             = Field (params_v, 2);
-    texcount           = Int_val (Field (params_v, 3));
-    state.sliceheight  = Int_val (Field (params_v, 4));
-    mustoresize        = Int_val (Field (params_v, 5));
-    colorspace         = Int_val (Field (params_v, 6));
-    fontpath           = String_val (Field (params_v, 7));
+    state.cr            = Int_val (Field (pipe_v, 0));
+    state.cw            = Int_val (Field (pipe_v, 1));
+    state.rotate        = Int_val (Field (params_v, 0));
+    state.proportional  = Bool_val (Field (params_v, 1));
+    trim_v              = Field (params_v, 2);
+    texcount            = Int_val (Field (params_v, 3));
+    state.sliceheight   = Int_val (Field (params_v, 4));
+    mustoresize         = Int_val (Field (params_v, 5));
+    colorspace          = Int_val (Field (params_v, 6));
+    fontpath            = String_val (Field (params_v, 7));
+    state.trimcachepath = String_val (Field (params_v, 8));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
 
