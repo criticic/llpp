@@ -5303,6 +5303,7 @@ let birdseyekeyboard key mask
     | Cmulti ((c, _, _), _) -> c
     | Csplit _ -> failwith "bird's eye split mode"
   in
+  let pgh layout = List.fold_left (fun m l -> max l.pageh m) conf.winh layout in
   match key with
   | 108 when Wsi.withctrl mask ->      (* ctrl-l *)
       let y, h = getpageyh pageno in
@@ -5326,7 +5327,7 @@ let birdseyekeyboard key mask
             gotopage1 l.pageno 0;
           )
           else (
-            let layout = layout (state.y-conf.winh) conf.winh in
+            let layout = layout (state.y-conf.winh) (pgh state.layout) in
             match layout with
             | [] -> gotoy (clamp (-conf.winh))
             | l :: _ ->
@@ -5342,7 +5343,7 @@ let birdseyekeyboard key mask
   | 0xff56 ->                           (* next *)
       begin match List.rev state.layout with
       | l :: _ ->
-          let layout = layout (state.y + conf.winh) conf.winh in
+          let layout = layout (state.y + (pgh state.layout)) conf.winh in
           begin match layout with
           | [] ->
               let incr = l.pageh - l.pagevh in
