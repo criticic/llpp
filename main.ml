@@ -5310,12 +5310,12 @@ let birdseyekeyboard key mask
       gotoy (max 0 (y - top))
   | 0xff0d -> leavebirdseye beye false
   | 0xff1b -> leavebirdseye beye true   (* escape *)
-  | 0xff52 -> upbirdseye incr beye      (* prior *)
-  | 0xff54 -> downbirdseye incr beye    (* next *)
-  | 0xff51 -> upbirdseye 1 beye         (* up *)
-  | 0xff53 -> downbirdseye 1 beye       (* down *)
+  | 0xff52 -> upbirdseye incr beye      (* up *)
+  | 0xff54 -> downbirdseye incr beye    (* down *)
+  | 0xff51 -> upbirdseye 1 beye         (* left *)
+  | 0xff53 -> downbirdseye 1 beye       (* right *)
 
-  | 0xff55 ->
+  | 0xff55 ->                           (* prior *)
       begin match state.layout with
       | l :: _ ->
           if l.pagey != 0
@@ -5339,7 +5339,7 @@ let birdseyekeyboard key mask
       | [] -> gotoy (clamp (-conf.winh))
       end;
 
-  | 0xff56 ->
+  | 0xff56 ->                           (* next *)
       begin match List.rev state.layout with
       | l :: _ ->
           let layout = layout (state.y + conf.winh) conf.winh in
@@ -5365,11 +5365,11 @@ let birdseyekeyboard key mask
       | [] -> gotoy (clamp conf.winh)
       end;
 
-  | 0xff50 ->
+  | 0xff50 ->                           (* home *)
       state.mode <- Birdseye (oconf, leftx, 0, hooverpageno, anchor);
       gotopage1 0 0
 
-  | 0xff57 ->
+  | 0xff57 ->                           (* end *)
       let pageno = state.pagecount - 1 in
       state.mode <- Birdseye (oconf, leftx, pageno, hooverpageno, anchor);
       if not (pagevisible state.layout pageno)
