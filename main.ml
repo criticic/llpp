@@ -1012,7 +1012,7 @@ let calcips h =
   if conf.presentation
   then
     let d = conf.winh - h in
-    max 0 ((d + 1) / 2)
+    max conf.interpagespace ((d + 1) / 2)
   else
     conf.interpagespace
 ;;
