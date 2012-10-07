@@ -2137,6 +2137,11 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     int hlmask = Int_val (hlinks_v);
     struct page *page = parse_pointer ("ml_postprocess", s);
 
+    if (!page->u.ptr) {
+        /* deal with loadpage failed pages */
+        goto done;
+    }
+
     if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (trylock ("ml_postprocess")) {
         noff = 0;
