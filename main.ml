@@ -4862,7 +4862,7 @@ let viewkeyboard key mask =
       | l :: _ ->
           match conf.columns with
           | Csingle _ | Cmulti _ ->
-              if conf.presentation && (l.pagey != 0 || l.pagedispy < 0)
+              if conf.presentation && l.pagey != 0
               then
                 gotoy_and_clear_text (clamp (pgscale ~-(conf.winh)))
               else
