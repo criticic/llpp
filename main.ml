@@ -274,6 +274,7 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
 ;;
 
 type multicolumns = multicol * pagegeom
+and singlecolumn = pagegeom
 and splitcolumns = columncount * pagegeom
 and pagegeom = ((pdimno * x * y * (pageno * width * height * leftx)) array)
 and multicol = columncount * covercount * covercount
@@ -336,7 +337,7 @@ type conf =
     ; mutable pgscale        : float
     }
 and columns =
-    | Csingle
+    | Csingle of singlecolumn
     | Cmulti of multicolumns
     | Csplit of splitcolumns
 ;;
@@ -531,7 +532,7 @@ let defconf =
   ; colorscale     = 1.0
   ; redirectstderr = false
   ; ghyllscroll    = None
-  ; columns        = Csingle
+  ; columns        = Csingle [||]
   ; beyecolumns    = None
   ; updatecurs     = false
   ; hfsize         = 12
@@ -1019,38 +1020,7 @@ let calcips h =
 ;;
 
 let calcheight () =
-  let rec f pn ph pi fh l =
-    match l with
-    | (n, _, h, _) :: rest ->
-        let ips = calcips h in
-        let fh =
-          if conf.presentation
-          then fh+ips
-          else (
-            if isbirdseye state.mode && pn = 0
-            then fh + ips
-            else fh
-          )
-        in
-        let fh = fh + ((n - pn) * (ph + pi)) in
-        f n h ips fh rest;
-
-    | [] ->
-        let inc =
-          if conf.presentation || (isbirdseye state.mode && pn = 0)
-          then 0
-          else -pi
-        in
-        let fh = fh + ((state.pagecount - pn) * (ph + pi)) + inc in
-        max 0 fh
-  in
-  let fh = f 0 0 0 0 state.pdims in
-  fh;
-;;
-
-let calcheight () =
   match conf.columns with
-  | Csingle -> calcheight ()
   | Cmulti ((c, _, _), b) ->
       let rec loop y h n =
         if n < 0
@@ -1066,6 +1036,12 @@ let calcheight () =
         )
       in
       loop max_int 0 (((Array.length b - 1) / c) * c)
+  | Csingle b ->
+      if Array.length b > 0
+      then
+        let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
+        y + h + (if conf.presentation then calcips h else 0)
+      else 0
   | Csplit (_, b) ->
       if Array.length b > 0
       then
@@ -1075,32 +1051,16 @@ let calcheight () =
 ;;
 
 let getpageyh pageno =
-  let rec f pn ph pi y l =
-    match l with
-    | (n, _, h, _) :: rest ->
-        let ips = calcips h in
-        if n >= pageno
-        then
-          let h = if n = pageno then h else ph in
-          if conf.presentation && n = pageno
-          then
-            y + (pageno - pn) * (ph + pi) + pi, h
-          else
-            y + (pageno - pn) * (ph + pi), h
-        else
-          let y = y + (if conf.presentation then pi else 0) in
-          let y = y + (n - pn) * (ph + pi) in
-          f n h ips y rest
-
-    | [] ->
-        y + (pageno - pn) * (ph + pi), ph
-  in
-  f 0 0 0 0 state.pdims
-;;
-
-let getpageyh pageno =
+  let pageno = bound pageno 0 state.pagecount in
   match conf.columns with
-  | Csingle -> getpageyh pageno
+  | Csingle b ->
+      let (_, _, y, (_, _, h, _)) = b.(pageno) in
+      let y =
+        if conf.presentation
+        then y - calcips h
+        else y
+      in
+      y, h
   | Cmulti (_, b) ->
       let (_, _, y, (_, _, h, _)) = b.(pageno) in
       y, h
@@ -1131,95 +1091,58 @@ let nogeomcmds cmds =
   | _ -> false
 ;;
 
-let layout1 y sh =
+let layout1 b y sh =
   let sh = sh - state.hscrollh in
-  let rec f ~pageno ~pdimno ~prev ~py ~dy ~pdims ~accu =
-    let ((w, h, ips, xoff) as curr), rest, pdimno, yinc =
-      match pdims with
-      | (pageno', w, h, xoff) :: rest when pageno' = pageno ->
-          let ips = calcips h in
-          let yinc =
-            if conf.presentation || (isbirdseye state.mode && pageno = 0)
-            then ips
-            else 0
-          in
-          (w, h, ips, xoff), rest, pdimno + 1, yinc
-      | _ ->
-          prev, pdims, pdimno, 0
-    in
-    let dy = dy + yinc in
-    let py = py + yinc in
-    if pageno = state.pagecount || dy >= sh
-    then
-      accu
+  let rec fold accu n =
+    if n = Array.length b
+    then accu
     else
-      let vy = y + dy in
-      if py + h <= vy - yinc
-      then
-        let py = py + h + ips in
-        let dy = max 0 (py - y) in
-        f ~pageno:(pageno+1)
-          ~pdimno
-          ~prev:curr
-          ~py
-          ~dy
-          ~pdims:rest
-          ~accu
+      let pdimno, dx, vy, (_, w, h, xoff) = b.(n) in
+      if (vy - y) > sh
+      then accu
       else
-        let pagey = vy - py in
-        let pagevh = h - pagey in
-        let pagevh = min (sh - dy) pagevh in
-        let off = if yinc > 0 then py - vy else 0 in
-        let py = py + h + ips in
-        let pagex, dx =
-          let xoff = xoff +
-            if state.w < conf.winw - state.scrollw
-            then (conf.winw - state.scrollw - state.w) / 2
-            else 0
-          in
-          let dispx = xoff + state.x in
-          if dispx < 0
-          then (-dispx, 0)
-          else (0, dispx)
+        let accu =
+          if vy + h > y
+          then
+            let pagey = max 0 (y - vy) in
+            let pagedispy = if pagey > 0 then 0 else vy - y in
+            let pagedispx, pagex =
+              let pdx = dx + xoff + state.x in
+              if pdx < 0
+              then 0, -pdx
+              else pdx, 0
+            in
+            let pagevw =
+              let vw = conf.winw - state.scrollw - pagedispx in
+              let pw = w - pagex in
+              min vw pw
+            in
+            let pagevh = min (h - pagey) (sh - pagedispy) in
+            if pagevw > 0 && pagevh > 0
+            then
+              let e =
+                { pageno = n
+                ; pagedimno = pdimno
+                ; pagew = w
+                ; pageh = h
+                ; pagex = pagex
+                ; pagey = pagey
+                ; pagevw = pagevw
+                ; pagevh = pagevh
+                ; pagedispx = pagedispx
+                ; pagedispy = pagedispy
+                ; pagecol = 0
+                }
+              in
+              e :: accu
+            else
+              accu
+          else
+            accu
         in
-        let pagevw =
-          let lw = w - pagex in
-          min lw (conf.winw - state.scrollw)
-        in
-        let e =
-          { pageno = pageno
-          ; pagedimno = pdimno
-          ; pagew = w
-          ; pageh = h
-          ; pagex = pagex
-          ; pagey = pagey + off
-          ; pagevw = pagevw
-          ; pagevh = pagevh - off
-          ; pagedispx = dx
-          ; pagedispy = dy + off
-          ; pagecol = 0
-          }
-        in
-        let accu = e :: accu in
-        f ~pageno:(pageno+1)
-          ~pdimno
-          ~prev:curr
-          ~py
-          ~dy:(dy+pagevh+ips)
-          ~pdims:rest
-          ~accu
+        fold accu (n+1)
   in
-  let accu =
-    f
-      ~pageno:0
-      ~pdimno:~-1
-      ~prev:(0,0,0,0)
-      ~py:0
-      ~dy:0
-      ~pdims:state.pdims
-      ~accu:[]
-  in
-  List.rev accu
+  List.rev (fold [] 0)
 ;;
 
 let layoutN ((columns, coverA, coverB), b) y sh =
@@ -1357,7 +1280,7 @@ let layout y sh =
   if nogeomcmds state.geomcmds
   then
     match conf.columns with
-    | Csingle -> layout1 y sh
+    | Csingle b -> layout1 b y sh
     | Cmulti c -> layoutN c y sh
     | Csplit s -> layoutS s y sh
   else []
@@ -1900,7 +1823,31 @@ let scalecolor2 (r, g, b) =
 ;;
 
 let docolumns = function
-  | Csingle -> ()
+  | Csingle _ ->
+      let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
+      let rec loop pageno pdimno pdim y ph pdims =
+        if pageno = state.pagecount
+        then ()
+        else
+          let pdimno, ((_, w, h, xoff) as pdim), pdims =
+            match pdims with
+            | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
+                pdimno+1, pdim, rest
+            | _ ->
+                pdimno, pdim, pdims
+          in
+          let x = (conf.winw - state.scrollw - w) / 2 - xoff in
+          let y = y +
+            (if conf.presentation
+            then (if pageno = 0 then calcips h else calcips ph + calcips h)
+              else (if pageno = 0 then 0 else calcips h)
+            )
+          in
+          a.(pageno) <- (pdimno, x, y, pdim);
+          loop (pageno+1) pdimno pdim (y + h) h pdims
+      in
+      loop 0 ~-1 (-1,-1,-1,-1) 0 0 state.pdims;
+      conf.columns <- Csingle a;
 
   | Cmulti ((columns, coverA, coverB), _) ->
       let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
@@ -2020,7 +1967,7 @@ let reshape w h =
       then state.x <- truncate (relx *. float w);
       let w =
         match conf.columns with
-        | Csingle -> w
+        | Csingle _ -> w
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
@@ -2618,7 +2565,7 @@ let setcolumns mode columns coverA coverB =
   else (
     if columns < 2
     then (
-      conf.columns <- Csingle;
+      conf.columns <- Csingle [||];
       state.x <- 0;
       setzoom 1.0;
     )
@@ -2664,7 +2611,7 @@ let enterbirdseye () =
     | Some c ->
         conf.zoom <- 1.0;
         Cmulti ((c, 0, 0), [||])
-    | None -> Csingle
+    | None -> Csingle [||]
   );
   Wsi.setcursor Wsi.CURSOR_INHERIT;
   if conf.verbose
@@ -2687,13 +2634,13 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   conf.beyecolumns <- (
     match conf.columns with
     | Cmulti ((c, _, _), _) -> Some c
-    | Csingle -> None
+    | Csingle _ -> None
     | Csplit _ -> failwith "leaving bird's eye split mode"
   );
   conf.columns <- (
     match c.columns with
     | Cmulti (c, _) -> Cmulti (c, [||])
-    | Csingle -> Csingle
+    | Csingle _ -> Csingle [||]
     | Csplit (c, _) -> Csplit (c, [||])
   );
   state.x <- leftx;
@@ -4240,7 +4187,7 @@ let enterinfomode =
     src#string "columns"
       (fun () ->
         match conf.columns with
-        | Csingle -> "1"
+        | Csingle _ -> "1"
         | Cmulti (multi, _) -> multicolumns_to_string multi
         | Csplit (count, _) -> "-" ^ string_of_int count
       )
@@ -4279,9 +4226,9 @@ let enterinfomode =
     src#caption "Layout" 0;
     src#caption2 "Dimension"
       (fun () ->
-        Printf.sprintf "%dx%d (virtual %dx%d)"
+        Printf.sprintf "%dx%d (virtual %dx%d) [pos %d]"
           conf.winw conf.winh
-          state.w state.maxy)
+          state.w state.maxy state.y)
       1;
     if conf.debug
     then
@@ -4764,7 +4711,7 @@ let viewkeyboard key mask =
   | 49 when ctrl ->                     (* ctrl-1 *)
       let cols =
         match conf.columns with
-        | Csingle | Cmulti _ -> 1
+        | Csingle _ | Cmulti _ -> 1
         | Csplit (n, _) -> n
       in
       let zoom = zoomforh conf.winw conf.winh state.scrollw cols in
@@ -4942,7 +4889,7 @@ let viewkeyboard key mask =
       | [] -> ()
       | l :: rest ->
           match conf.columns with
-          | Csingle | Cmulti _ ->
+          | Csingle _ | Cmulti _ ->
               if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
               then
                 let y = clamp (pgscale conf.winh) in
@@ -4964,7 +4911,7 @@ let viewkeyboard key mask =
       | [] -> ()
       | l :: _ ->
           match conf.columns with
-          | Csingle | Cmulti _ ->
+          | Csingle _ | Cmulti _ ->
               if conf.presentation && (l.pagey != 0 || l.pagedispy < 0)
               then
                 gotoy_and_clear_text (clamp (pgscale ~-(conf.winh)))
@@ -5074,7 +5021,7 @@ let viewkeyboard key mask =
               match columns with
               | Csplit (c, _) -> -c, 0, 0
               | Cmulti ((c, a, b), _) -> c, a, b
-              | Csingle -> 1, 0, 0
+              | Csingle _ -> 1, 0, 0
             in
             cab, z
       in
@@ -5299,7 +5246,7 @@ let birdseyekeyboard key mask
     ((oconf, leftx, pageno, hooverpageno, anchor) as beye) =
   let incr =
     match conf.columns with
-    | Csingle -> 1
+    | Csingle _ -> 1
     | Cmulti ((c, _, _), _) -> c
     | Csplit _ -> failwith "bird's eye split mode"
   in
@@ -5409,7 +5356,7 @@ let drawpage l linkindexbase =
         and y = l.pagedispy - l.pagey in
         let hlmask =
           match conf.columns with
-          | Csingle | Cmulti _ ->
+          | Csingle _ | Cmulti _ ->
               (if conf.hlinks then 1 else 0)
               + (if state.glinks
                   && not (isbirdseye state.mode) then 2 else 0)
@@ -6738,12 +6685,12 @@ struct
             let beyecolumns =
               match conf.columns with
               | Cmulti ((c, _, _), _) -> Some c
-              | Csingle -> None
+              | Csingle _ -> None
               | Csplit _ -> None
             and columns =
               match c.columns with
               | Cmulti (c, _) -> Cmulti (c, [||])
-              | Csingle -> Csingle
+              | Csingle _ -> Csingle [||]
               | Csplit _ -> failwith "quit from bird's eye while split"
             in
             pan, { c with beyecolumns = beyecolumns; columns = columns }
