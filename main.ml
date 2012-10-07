@@ -6418,15 +6418,6 @@ struct
         | Some wh -> wh
         | None -> c.winw, c.winh
     in
-    let zoom, presentation, interpagespace, maxwait =
-      if always
-      then dc.zoom, dc.presentation, dc.interpagespace, dc.maxwait
-      else
-        match state.mode with
-        | Birdseye (bc, _, _, _, _) ->
-            bc.zoom, bc.presentation, bc.interpagespace, bc.maxwait
-        | _ -> c.zoom, c.presentation, c.interpagespace, c.maxwait
-    in
     oi "width" w dc.winw;
     oi "height" h dc.winh;
     oi "scroll-bar-width" c.scrollbw dc.scrollbw;
@@ -6438,12 +6429,12 @@ struct
     oi "auto-scroll-step" c.autoscrollstep dc.autoscrollstep;
     ob "max-height-fit" c.maxhfit dc.maxhfit;
     ob "crop-hack" c.crophack dc.crophack;
-    oW "throttle" maxwait dc.maxwait;
+    oW "throttle" c.maxwait dc.maxwait;
     ob "highlight-links" c.hlinks dc.hlinks;
     ob "under-cursor-info" c.underinfo dc.underinfo;
-    oi "vertical-margin" interpagespace dc.interpagespace;
-    oz "zoom" zoom dc.zoom;
-    ob "presentation" presentation dc.presentation;
+    oi "vertical-margin" c.interpagespace dc.interpagespace;
+    oz "zoom" c.zoom dc.zoom;
+    ob "presentation" c.presentation dc.presentation;
     oi "rotation-angle" c.angle dc.angle;
     ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
     ob "proportional-display" c.proportional dc.proportional;
@@ -6648,11 +6639,22 @@ struct
       in
       let basename = Filename.basename state.path in
       adddoc basename pan (getanchor ())
-        { conf with
-          autoscrollstep =
+        (let conf =
+          let autoscrollstep =
             match state.autoscroll with
             | Some step -> step
-            | None -> conf.autoscrollstep }
+            | None -> conf.autoscrollstep
+          in
+          match state.mode with
+          | Birdseye (bc, _, _, _, _) ->
+              { conf with
+                zoom = bc.zoom;
+                presentation = bc.presentation;
+                interpagespace = bc.interpagespace;
+                maxwait = bc.maxwait;
+                autoscrollstep = autoscrollstep }
+          | _ -> { conf with autoscrollstep = autoscrollstep }
+          in conf)
         (if conf.savebmarks then state.bookmarks else []);
 
       Hashtbl.iter (fun path (c, bookmarks, x, y) ->
