@@ -2040,6 +2040,15 @@ let enttext () =
 
 let gctiles () =
   let len = Queue.length state.tilelru in
+  let layout = lazy (
+    match state.throttle with
+    | None ->
+        if conf.preload
+        then preloadlayout state.layout
+        else state.layout
+    | Some (layout, _, _) ->
+        layout
+  ) in
   let rec loop qpos =
     if state.memused <= conf.memlimit
     then ()
@@ -2056,18 +2065,9 @@ let gctiles () =
           && pagew = pw
           && pageh = ph
           && (
-            let layout =
-              match state.throttle with
-              | None ->
-                  if conf.preload
-                  then preloadlayout state.layout
-                  else state.layout
-              | Some (layout, _, _) ->
-                  layout
-            in
             let x = col*conf.tilew
             and y = row*conf.tileh in
-            tilevisible layout n x y
+            tilevisible (Lazy.force_val layout) n x y
           )
         then Queue.push lruitem state.tilelru
         else (
