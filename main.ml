@@ -1829,10 +1829,13 @@ let docolumns = function
             )
             else (
               if (pageno - coverA) mod columns = 0
-              then 0, y + rowh + conf.interpagespace, h
+              then (
+                (conf.winw - state.scrollw - state.w) / 2,
+                y + rowh + (if pageno = 0 then 0 else conf.interpagespace), h
+              )
               else x, y, max rowh h
             )
-            in
+          in
           if pageno > 1 && (pageno - coverA) mod columns = 0
           then fixrow (pageno - columns);
           a.(pageno) <- (pdimno, x, y, pdim);
