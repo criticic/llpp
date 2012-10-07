@@ -1091,60 +1091,6 @@ let nogeomcmds cmds =
   | _ -> false
 ;;
 
-let layout1 b y sh =
-  let sh = sh - state.hscrollh in
-  let rec fold accu n =
-    if n = Array.length b
-    then accu
-    else
-      let pdimno, dx, vy, (_, w, h, xoff) = b.(n) in
-      if (vy - y) > sh
-      then accu
-      else
-        let accu =
-          if vy + h > y
-          then
-            let pagey = max 0 (y - vy) in
-            let pagedispy = if pagey > 0 then 0 else vy - y in
-            let pagedispx, pagex =
-              let pdx = dx + xoff + state.x in
-              if pdx < 0
-              then 0, -pdx
-              else pdx, 0
-            in
-            let pagevw =
-              let vw = conf.winw - state.scrollw - pagedispx in
-              let pw = w - pagex in
-              min vw pw
-            in
-            let pagevh = min (h - pagey) (sh - pagedispy) in
-            if pagevw > 0 && pagevh > 0
-            then
-              let e =
-                { pageno = n
-                ; pagedimno = pdimno
-                ; pagew = w
-                ; pageh = h
-                ; pagex = pagex
-                ; pagey = pagey
-                ; pagevw = pagevw
-                ; pagevh = pagevh
-                ; pagedispx = pagedispx
-                ; pagedispy = pagedispy
-                ; pagecol = 0
-                }
-              in
-              e :: accu
-            else
-              accu
-          else
-            accu
-        in
-        fold accu (n+1)
-  in
-  List.rev (fold [] 0)
-;;
-
 let layoutN ((columns, coverA, coverB), b) y sh =
   let sh = sh - state.hscrollh in
   let rec fold accu n =
@@ -1280,7 +1226,7 @@ let layout y sh =
   if nogeomcmds state.geomcmds
   then
     match conf.columns with
-    | Csingle b -> layout1 b y sh
+    | Csingle b -> layoutN ((1, 0, 0), b) y sh
     | Cmulti c -> layoutN c y sh
     | Csplit s -> layoutS s y sh
   else []
