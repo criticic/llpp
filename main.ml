@@ -1782,7 +1782,12 @@ let docolumns = function
             | _ ->
                 pdimno, pdim, pdims
           in
-          let x = (conf.winw - state.scrollw - w) / 2 - xoff in
+          let x =
+            let vw = conf.winw - state.scrollw in
+            if vw > w
+            then (conf.winw - state.scrollw - w) / 2 - xoff
+            else 0
+          in
           let y = y +
             (if conf.presentation
             then (if pageno = 0 then calcips h else calcips ph + calcips h)
