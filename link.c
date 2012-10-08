@@ -596,9 +596,10 @@ static void __attribute__ ((constructor)) clcheck (void)
 
 static void OPTIMIZE_ATTR (3) clearpixmap (fz_pixmap *pixmap)
 {
-    if (cacheline32bytes) {
+    size_t size = pixmap->w * pixmap->h * pixmap->n;
+    if (cacheline32bytes && size > 32) {
         intptr_t a1, a2, diff;
-        size_t sizea, i, size = pixmap->w * pixmap->h * pixmap->n;
+        size_t sizea, i;
         vector unsigned char v = vec_splat_u8 (-1);
         vector unsigned char *p;
 
