@@ -4175,9 +4175,9 @@ let enterinfomode =
     src#caption "Layout" 0;
     src#caption2 "Dimension"
       (fun () ->
-        Printf.sprintf "%dx%d (virtual %dx%d) [pos %d]"
+        Printf.sprintf "%dx%d (virtual %dx%d)"
           conf.winw conf.winh
-          state.w state.maxy state.y)
+          state.w state.maxy)
       1;
     if conf.debug
     then
