@@ -1052,7 +1052,7 @@ let calcheight () =
 ;;
 
 let getpageyh pageno =
-  let pageno = bound pageno 0 state.pagecount in
+  let pageno = bound pageno 0 (state.pagecount-1) in
   match conf.columns with
   | Csingle b ->
       let (_, _, y, (_, _, h, _)) = b.(pageno) in
