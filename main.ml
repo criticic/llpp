@@ -5048,11 +5048,13 @@ let viewkeyboard key mask =
       in
       gotoghyll y
 
-  | 0xff50 -> gotoghyll 0
-  | 0xff57 -> gotoghyll (clamp state.maxy)
-  | 0xff53 when Wsi.withalt mask ->
+  | 0xff50 ->                           (* home *)
+      gotoghyll 0
+  | 0xff57 ->                           (* end *)
+      gotoghyll (clamp state.maxy)
+  | 0xff53 when Wsi.withalt mask ->     (* right *)
       gotoghyll (getnav ~-1)
-  | 0xff51 when Wsi.withalt mask ->
+  | 0xff51 when Wsi.withalt mask ->     (* left *)
       gotoghyll (getnav 1)
 
   | 114 ->                              (* r *)
