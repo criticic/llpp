@@ -6377,7 +6377,7 @@ struct
       then Printf.bprintf bb "\n    %s='%s'" s (string_with_suffix_of_int a)
     and oz s a b =
       if always || a <> b
-      then Printf.bprintf bb "\n    %s='%d'" s (truncate (a*.100.))
+      then Printf.bprintf bb "\n    %s='%g'" s (a*.100.)
     and oF s a b =
       if always || a <> b
       then Printf.bprintf bb "\n    %s='%f'" s a
