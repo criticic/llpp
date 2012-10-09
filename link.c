@@ -735,6 +735,7 @@ static struct tile *alloctile (int h)
     return tile;
 }
 
+#ifdef OBSCURED_OPT
 struct obs {
     int cured;
     fz_bbox b;
@@ -771,6 +772,10 @@ static int obscured (struct page *page, fz_bbox bbox)
     fz_run_display_list (page->dlist, &dev, pagectm (page), bbox, NULL);
     return obs.cured;
 }
+#define OBSCURED obscured
+#else
+#define OBSCURED(a, b) 0
+#endif
 
 static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
 {
@@ -808,7 +813,7 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
 
     tile->w = w;
     tile->h = h;
-    if (!page->u.ptr || ((w < 128 && h < 128) || !obscured (page, bbox))) {
+    if (!page->u.ptr || ((w < 128 && h < 128) || !OBSCURED (page, bbox))) {
         clearpixmap (tile->pixmap);
     }
     dev = fz_new_draw_device (state.ctx, tile->pixmap);
