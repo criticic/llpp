@@ -2619,7 +2619,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
       (100.0*.conf.zoom)
   ;
   reshape conf.winw conf.winh;
-  state.anchor <- if goback then anchor else (pageno, 0.0, 0.0);
+  state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
 ;;
 
 let togglebirdseye () =
