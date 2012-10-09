@@ -32,6 +32,7 @@ and texcount       = int
 and sliceheight    = int
 and gen            = int
 and top            = float
+and dtop           = float
 and fontpath       = string
 and trimcachepath  = string
 and memsize        = int
@@ -342,7 +343,7 @@ and columns =
     | Csplit of splitcolumns
 ;;
 
-type anchor = pageno * top;;
+type anchor = pageno * top * dtop;;
 
 type outline = string * int * anchor;;
 
@@ -355,7 +356,7 @@ type tilemapkey = pageno * gen * colorspace * angle * width * height * col * row
 and row = int
 and col = int;;
 
-let emptyanchor = (0, 0.0);;
+let emptyanchor = (0, 0.0, 0.0);;
 
 type infochange = | Memused | Docinfo | Pdim;;
 
@@ -681,7 +682,7 @@ let state =
   ; password      = ""
   ; geomcmds      = firstgeomcmds
   ; hists         =
-      { nav       = cbnew 10 (0, 0.0)
+      { nav       = cbnew 10 emptyanchor
       ; pat       = cbnew 10 ""
       ; pag       = cbnew 10 ""
       ; sel       = cbnew 10 ""
@@ -1632,18 +1633,37 @@ let gotoy_and_clear_text y =
   gotoy y;
 ;;
 
+let getanchor1 l =
+  let top =
+    let coloff = l.pagecol * l.pageh in
+    float (l.pagey + coloff) /. float l.pageh
+  in
+  let dtop =
+    if l.pagedispy = 0
+    then
+      0.0
+    else
+      if conf.presentation
+      then float l.pagedispy /. float (calcips l.pageh)
+      else float l.pagedispy /. float conf.interpagespace
+  in
+  (l.pageno, top, dtop)
+;;
+
 let getanchor () =
   match state.layout with
   | []     -> emptyanchor
-  | l :: _ ->
-      let coloff = l.pagecol * l.pageh in
-      (l.pageno,
-      (float (l.pagey - l.pagedispy) +. float coloff) /. float l.pageh)
+  | l :: _ -> getanchor1 l
 ;;
 
-let getanchory (n, top) =
+let getanchory (n, top, dtop) =
   let y, h = getpageyh n in
-  y + (truncate (top *. float h));
+  if conf.presentation
+  then
+    let ips = calcips h in
+    y + truncate (top*.float h -. dtop*.float ips) + ips;
+  else
+    y + truncate (top*.float h -. dtop*.float conf.interpagespace)
 ;;
 
 let gotoanchor anchor =
@@ -2328,7 +2348,7 @@ let act cmds =
           exit 1;
       in
       let s = String.sub args pos (String.length args - pos) in
-      let outline = (s, l, (n, float t /. float h)) in
+      let outline = (s, l, (n, float t /. float h, 0.0)) in
       begin match state.currently with
         | Outlining outlines ->
             state.currently <- Outlining (outline :: outlines)
@@ -2599,7 +2619,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
       (100.0*.conf.zoom)
   ;
   reshape conf.winw conf.winh;
-  state.anchor <- if goback then anchor else (pageno, 0.0);
+  state.anchor <- if goback then anchor else (pageno, 0.0, 0.0);
 ;;
 
 let togglebirdseye () =
@@ -4506,9 +4526,7 @@ let quickbookmark ?title () =
               tm.Unix.tm_min
         | Some title -> title
       in
-      state.bookmarks <-
-        (title, 0, (l.pageno, float l.pagey /. float l.pageh))
-      :: state.bookmarks
+      state.bookmarks <- (title, 0, getanchor1 l) :: state.bookmarks
 ;;
 
 let doreshape w h =
@@ -4549,7 +4567,7 @@ let gotounder = function
       then (
         let anchor = getanchor () in
         let ranchor = state.path, state.password, anchor in
-        state.anchor <- (pageno, 0.0);
+        state.anchor <- (pageno, 0.0, 0.0);
         state.ranchors <- ranchor :: state.ranchors;
         opendoc path "";
       )
@@ -4910,10 +4928,7 @@ let viewkeyboard key mask =
   | 109 ->                              (* m *)
       let ondone s =
         match state.layout with
-        | l :: _ ->
-            state.bookmarks <-
-              (s, 0, (l.pageno, float l.pagey /. float l.pageh))
-            :: state.bookmarks
+        | l :: _ -> state.bookmarks <- (s, 0, getanchor1 l) :: state.bookmarks
         | _ -> ()
       in
       enttext ("bookmark: ", "", None, textentry, ondone, true)
@@ -5983,26 +5998,28 @@ struct
   ;;
 
   let bookmark_of attrs =
-    let rec fold title page rely = function
-      | ("title", v) :: rest -> fold v page rely rest
-      | ("page", v) :: rest -> fold title v rely rest
-      | ("rely", v) :: rest -> fold title page v rest
-      | _ :: rest -> fold title page rely rest
-      | [] -> title, page, rely
+    let rec fold title page rely visy = function
+      | ("title", v) :: rest -> fold v page rely visy rest
+      | ("page", v) :: rest -> fold title v rely visy rest
+      | ("rely", v) :: rest -> fold title page v visy rest
+      | ("visy", v) :: rest -> fold title page rely v rest
+      | _ :: rest -> fold title page rely visy rest
+      | [] -> title, page, rely, visy
     in
-    fold "invalid" "0" "0" attrs
+    fold "invalid" "0" "0" "0" attrs
   ;;
 
   let doc_of attrs =
-    let rec fold path page rely pan = function
-      | ("path", v) :: rest -> fold v page rely pan rest
-      | ("page", v) :: rest -> fold path v rely pan rest
-      | ("rely", v) :: rest -> fold path page v pan rest
-      | ("pan", v) :: rest -> fold path page rely v rest
-      | _ :: rest -> fold path page rely pan rest
-      | [] -> path, page, rely, pan
+    let rec fold path page rely pan visy = function
+      | ("path", v) :: rest -> fold v page rely pan visy rest
+      | ("page", v) :: rest -> fold path v rely pan visy rest
+      | ("rely", v) :: rest -> fold path page v pan visy rest
+      | ("pan", v) :: rest -> fold path page rely v visy rest
+      | ("visy", v) :: rest -> fold path page rely pan v rest
+      | _ :: rest -> fold path page rely pan visy rest
+      | [] -> path, page, rely, pan, visy
     in
-    fold "" "0" "0" "0" attrs
+    fold "" "0" "0" "0" "0" attrs
   ;;
 
   let map_of attrs =
@@ -6108,13 +6125,14 @@ struct
           else { v with f = uifont (Buffer.create 10) }
 
       | Vopen ("doc", attrs, closed) ->
-          let pathent, spage, srely, span = doc_of attrs in
+          let pathent, spage, srely, span, svisy = doc_of attrs in
           let path = unent pathent
           and pageno = fromstring int_of_string spos "page" spage 0
           and rely = fromstring float_of_string spos "rely" srely 0.0
-          and pan = fromstring int_of_string spos "pan" span 0 in
+          and pan = fromstring int_of_string spos "pan" span 0
+          and visy = fromstring float_of_string spos "visy" svisy 0.0 in
           let c = config_of dc attrs in
-          let anchor = (pageno, rely) in
+          let anchor = (pageno, rely, visy) in
           if closed
           then (Hashtbl.add h path (c, [], pan, anchor); v)
           else { v with f = doc path pan anchor c [] }
@@ -6231,10 +6249,13 @@ struct
       | Vdata | Vcdata -> v
       | Vend -> error "unexpected end of input in bookmarks" s spos
       | Vopen ("item", attrs, closed) ->
-          let titleent, spage, srely = bookmark_of attrs in
+          let titleent, spage, srely, svisy = bookmark_of attrs in
           let page = fromstring int_of_string spos "page" spage 0
-          and rely = fromstring float_of_string spos "rely" srely 0.0 in
-          let bookmarks = (unent titleent, 0, (page, rely)) :: bookmarks in
+          and rely = fromstring float_of_string spos "rely" srely 0.0
+          and visy = fromstring float_of_string spos "visy" svisy 0.0 in
+          let bookmarks =
+            (unent titleent, 0, (page, rely, visy)) :: bookmarks
+          in
           if closed
           then { v with f = pbookmarks path pan anchor c bookmarks }
           else
@@ -6330,7 +6351,7 @@ struct
       let pc, pb, px, pa =
         try
           Hashtbl.find h (Filename.basename state.path)
-        with Not_found -> dc, [], 0, (0, 0.0)
+        with Not_found -> dc, [], 0, emptyanchor
       in
       setconf defconf dc;
       setconf conf pc;
@@ -6573,11 +6594,15 @@ struct
 
           if anchor <> emptyanchor
           then (
-            let n, y = anchor in
+            let n, rely, visy = anchor in
             Printf.bprintf bb " page='%d'" n;
-            if y > 1e-6
+            if rely > 1e-6
             then
-              Printf.bprintf bb " rely='%f'" y
+              Printf.bprintf bb " rely='%f'" rely
+            ;
+            if visy > 1e-6
+            then
+              Printf.bprintf bb " visy='%f'" visy
             ;
           );
 
@@ -6598,7 +6623,7 @@ struct
               else Buffer.add_string bb "/>\n"
           | _ ->
               Buffer.add_string bb ">\n<bookmarks>\n";
-              List.iter (fun (title, _level, (page, rely)) ->
+              List.iter (fun (title, _level, (page, rely, visy)) ->
                 Printf.bprintf bb
                   "<item title='%s' page='%d'"
                   (enent title 0 (String.length title))
@@ -6607,6 +6632,10 @@ struct
                 if rely > 1e-6
                 then
                   Printf.bprintf bb " rely='%f'" rely
+                ;
+                if visy > 1e-6
+                then
+                  Printf.bprintf bb " visy='%f'" visy
                 ;
                 Buffer.add_string bb "/>\n";
               ) bookmarks;
@@ -6658,9 +6687,9 @@ struct
           in conf)
         (if conf.savebmarks then state.bookmarks else []);
 
-      Hashtbl.iter (fun path (c, bookmarks, x, y) ->
+      Hashtbl.iter (fun path (c, bookmarks, x, anchor) ->
         if basename <> path
-        then adddoc path x y c bookmarks
+        then adddoc path x anchor c bookmarks
       ) h;
       Buffer.add_string bb "</llppconfig>";
     in
