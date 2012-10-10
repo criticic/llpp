@@ -974,7 +974,10 @@ let multicolumns_of_string s =
   try
     (int_of_string s, 0, 0)
   with _ ->
-    Scanf.sscanf s "%u,%u,%u" (fun n a b -> (n, a, b));
+    Scanf.sscanf s "%u,%u,%u" (fun n a b ->
+      if a > 1 || b > 1
+      then failwith "subtly broken"; (n, a, b)
+    );
 ;;
 
 let readcmd fd =
