@@ -1487,8 +1487,8 @@ let page_of_y y =
   r;
 ;;
 
-let preloadlayout _ =
-  let y = if state.y < conf.winh then 0 else state.y - conf.winh in
+let preloadlayout y =
+  let y = if y < conf.winh then 0 else y - conf.winh in
   let h = conf.winh*3 in
   layout y h;
 ;;
@@ -1517,7 +1517,7 @@ let load pages =
 let preload pages =
   load pages;
   if conf.preload && state.currently = Idle
-  then load (preloadlayout pages);
+  then load (preloadlayout state.y);
 ;;
 
 let layoutready layout =
@@ -1653,7 +1653,7 @@ let gotoy y =
 
 let conttiling pageno opaque =
   tilepage pageno opaque
-    (if conf.preload then preloadlayout state.layout else state.layout)
+    (if conf.preload then preloadlayout state.y else state.layout)
 ;;
 
 let gotoy_and_clear_text y =
@@ -2053,7 +2053,7 @@ let gctiles () =
     match state.throttle with
     | None ->
         if conf.preload
-        then preloadlayout state.layout
+        then preloadlayout state.y
         else state.layout
     | Some (layout, _, _) ->
         layout
@@ -2250,7 +2250,7 @@ let act cmds =
           | None ->
               let preloadedpages =
                 if conf.preload
-                then preloadlayout state.layout
+                then preloadlayout state.y
                 else state.layout
               in
               let evict () =
