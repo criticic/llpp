@@ -1447,22 +1447,50 @@ let tilepage n p layout =
   then loop layout;
 ;;
 
-let preloadlayout visiblepages =
-  let presentation = conf.presentation in
-  let interpagespace = conf.interpagespace in
-  conf.presentation <- false;
-  conf.interpagespace <- 0;
-  let y =
-    match visiblepages with
-    | [] -> if state.y >= state.maxy then state.maxy else 0
-    | l :: _ -> getpagey l.pageno + (l.pagey - min 0 l.pagedispy)
+let page_of_y y =
+  let b =
+    match conf.columns with
+    | Csingle b -> b
+    | Cmulti (_, b) -> b
+    | Csplit (_, b) -> b
   in
-  let y = if y < conf.winh then 0 else y - conf.winh in
+  let rec bsearch nmin nmax =
+    if nmin > nmax
+    then -1
+    else
+      let n = (nmax + nmin) / 2 in
+      let _, _, vy, (_, h, _, _) = b.(n) in
+      let y0, y1 =
+        if conf.presentation
+        then
+          let ips = calcips h in
+          let y0 = vy - ips in
+          let y1 = vy + h + ips in
+          y0, y1
+        else (
+          if n = 0
+          then 0, vy + h + conf.interpagespace
+          else
+            let y0 = vy - conf.interpagespace in
+            y0, y0 + h
+        )
+      in
+      if y >= y0 && y < y1
+      then n
+      else (
+        if y > y0
+        then bsearch (n+1) nmax
+        else bsearch nmin (n-1)
+      )
+  in
+  let r = bsearch 0 (state.pagecount-1) in
+  r;
+;;
+
+let preloadlayout _ =
+  let y = if state.y < conf.winh then 0 else state.y - conf.winh in
   let h = conf.winh*3 in
-  let pages = layout y h in
-  conf.presentation <- presentation;
-  conf.interpagespace <- interpagespace;
-  pages;
+  layout y h;
 ;;
 
 let load pages =
@@ -1652,8 +1680,20 @@ let getanchor1 l =
 
 let getanchor () =
   match state.layout with
-  | []     -> emptyanchor
   | l :: _ -> getanchor1 l
+  | []     ->
+      let n = page_of_y state.y in
+      let y, h = getpageyh n in
+      let dy = y - state.y in
+      let dtop =
+        if conf.presentation
+        then
+          let ips = calcips h in
+          float (dy + ips) /. float ips
+        else
+          float dy /. float conf.interpagespace
+      in
+      (n, 0.0, dtop)
 ;;
 
 let getanchory (n, top, dtop) =
@@ -6600,7 +6640,7 @@ struct
             then
               Printf.bprintf bb " rely='%f'" rely
             ;
-            if visy > 1e-6
+            if abs_float visy > 1e-6
             then
               Printf.bprintf bb " visy='%f'" visy
             ;
@@ -6633,7 +6673,7 @@ struct
                 then
                   Printf.bprintf bb " rely='%f'" rely
                 ;
-                if visy > 1e-6
+                if abs_float visy > 1e-6
                 then
                   Printf.bprintf bb " visy='%f'" visy
                 ;
