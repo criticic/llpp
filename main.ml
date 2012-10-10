@@ -3884,6 +3884,20 @@ let describe_location () =
       (fn+1) (ln+1) state.pagecount percent
 ;;
 
+let setpresentationmode v =
+  let (n, _, _) = getanchor () in
+  let _, h = getpageyh n in
+  state.anchor <- (n, 0.0, float (calcips h));
+  conf.presentation <- v;
+  if conf.presentation
+  then (
+    if not conf.scrollbarinpm
+    then state.scrollw <- 0;
+  )
+  else state.scrollw <- conf.scrollbw;
+  represent ();
+;;
+
 let enterinfomode =
   let btos b = if b then "\xe2\x88\x9a" else "" in
   let showextended = ref false in
@@ -4091,10 +4105,7 @@ let enterinfomode =
 
     src#bool "presentation mode"
       (fun () -> conf.presentation)
-      (fun v ->
-        conf.presentation <- v;
-        state.anchor <- getanchor ();
-        represent ());
+      (fun v -> setpresentationmode v);
 
     src#bool "ignore case in searches"
       (fun () -> conf.icase)
@@ -4857,19 +4868,9 @@ let viewkeyboard key mask =
       launchpath ()
 
   | 80 ->                               (* P *)
-      conf.presentation <- not conf.presentation;
-      if conf.presentation
-      then (
-        if not conf.scrollbarinpm
-        then state.scrollw <- 0;
-      )
-      else
-        state.scrollw <- conf.scrollbw;
-
+      setpresentationmode (not conf.presentation);
       showtext ' ' ("presentation mode " ^
                        if conf.presentation then "on" else "off");
-      state.anchor <- getanchor ();
-      represent ()
 
   | 102 ->                              (* f *)
       begin match state.fullscreen with
