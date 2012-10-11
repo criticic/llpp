@@ -1155,7 +1155,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
         in
         fold accu (n+1)
   in
-  List.rev (fold [] 0)
+  List.rev (fold [] 0);
 ;;
 
 let layoutS (columns, b) y sh =
@@ -1464,7 +1464,7 @@ let page_of_y y =
     then -1
     else
       let n = (nmax + nmin) / 2 in
-      let _, _, vy, (_, h, _, _) = b.(n) in
+      let _, _, vy, (_, _, h, _) = b.(n) in
       let y0, y1 =
         if conf.presentation
         then
