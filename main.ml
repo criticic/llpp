@@ -1106,7 +1106,7 @@ let page_of_y y =
   in
   let rec bsearch nmin nmax =
     if nmin > nmax
-    then -1
+    then bound nmin 0 (state.pagecount-1)
     else
       let n = (nmax + nmin) / 2 in
       let _, _, vy, (_, _, h, _) = b.(n) in
