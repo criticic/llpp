@@ -6404,16 +6404,19 @@ struct
         )
       with
       | Some ic ->
-          begin try
+          let success =
+            try
               f (do_load get ic)
             with exn ->
               prerr_endline
                 ("Error loading configuation from `" ^ !confpath ^ "': " ^
                     Printexc.to_string exn);
-          end;
+              false
+          in
           close_in ic;
+          success
 
-      | None -> ()
+      | None -> false
     else
       f (Hashtbl.create 0, defconf)
   ;;
@@ -6433,6 +6436,7 @@ struct
       if conf.jumpback
       then state.anchor <- pa;
       cbput state.hists.nav pa;
+      true
     in
     load1 f
   ;;
@@ -6765,9 +6769,9 @@ struct
         then adddoc path x anchor c bookmarks
       ) h;
       Buffer.add_string bb "</llppconfig>";
+      true;
     in
-    load1 f;
-    if Buffer.length bb > 0
+    if load1 f && Buffer.length bb > 0
     then
       try
         let tmp = !confpath ^ ".tmp" in
@@ -6812,7 +6816,8 @@ let () =
   if String.length state.path = 0
   then (prerr_endline "file name missing"; exit 1);
 
-  Config.load ();
+  if not (Config.load ())
+  then prerr_endline "failed to load configuration";
 
   let globalkeyhash = findkeyhash conf "global" in
   let wsfd, winw, winh = Wsi.init (object
