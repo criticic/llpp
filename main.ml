@@ -6768,7 +6768,7 @@ struct
         if basename <> path
         then adddoc path x anchor c bookmarks
       ) h;
-      Buffer.add_string bb "</llppconfig>";
+      Buffer.add_string bb "</llppconfig>\n";
       true;
     in
     if load1 f && Buffer.length bb > 0
