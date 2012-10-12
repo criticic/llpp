@@ -3195,12 +3195,6 @@ CAMLprim value ml_glx (value win_v)
         caml_failwith ("glXMakeCurrent");
     }
     glx.drawable = wid;
-
-    if (0) {
-        int (*f) (int) =
-            (int (*) (int)) glXGetProcAddress ((GLubyte *) "glXSwapIntervalMESA");
-        printf ("sync %d\n", f (0));
-    }
     CAMLreturn (Val_unit);
 }
 
