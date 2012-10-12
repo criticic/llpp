@@ -87,7 +87,7 @@ if test "$1" = "opt"; then
             -I $root/lib/ocaml/lablGL      \
             str.cmxa unix.cmxa lablgl.cmxa \
             link.o                         \
-            -cclib "$cclib -lpthread"      \
+            -cclib "$cclib"                \
             help.cmx                       \
             parser.cmx                     \
             wsi.cmx                        \
