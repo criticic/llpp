@@ -3168,7 +3168,7 @@ CAMLprim value ml_glx (value win_v)
 
     glx.dpy = XOpenDisplay (NULL);
     if (!glx.dpy) {
-        caml_failwith ("XOpenDisplay failed");
+        caml_failwith ("XOpenDisplay");
     }
 
     screen = DefaultScreen (glx.dpy);
