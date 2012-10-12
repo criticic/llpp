@@ -1060,20 +1060,29 @@ let getpageyh pageno =
   let pageno = bound pageno 0 (state.pagecount-1) in
   match conf.columns with
   | Csingle b ->
-      let (_, _, y, (_, _, h, _)) = b.(pageno) in
-      let y =
-        if conf.presentation
-        then y - calcips h
-        else y
-      in
-      y, h
+      if Array.length b = 0
+      then 0, 0
+      else
+        let (_, _, y, (_, _, h, _)) = b.(pageno) in
+        let y =
+          if conf.presentation
+          then y - calcips h
+          else y
+        in
+        y, h
   | Cmulti (_, b) ->
-      let (_, _, y, (_, _, h, _)) = b.(pageno) in
-      y, h
+      if Array.length b = 0
+      then 0, 0
+      else
+        let (_, _, y, (_, _, h, _)) = b.(pageno) in
+        y, h
   | Csplit (c, b) ->
-      let n = pageno*c in
-      let (_, _, y, (_, _, h, _)) = b.(n) in
-      y, h
+      if Array.length b = 0
+      then 0, 0
+      else
+        let n = pageno*c in
+        let (_, _, y, (_, _, h, _)) = b.(n) in
+        y, h
 ;;
 
 let getpagedim pageno =
