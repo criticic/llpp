@@ -20,17 +20,16 @@ lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf3p=http://mupdf.com/download/archive/mupdf-thirdparty-2012-08-14.zip
 mupdfrev=a1a37ae36043d8dba89cecfa345119ad32f81b9e
 mudir=mupdf-a1a37ae
+mutgz=mupdf-$mupdfrev.tgz
+muurl="http://git.ghostscript.com/?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 
-if ! test -d $mudir; then
-    wget -nc \
-       "http://git.ghostscript.com/?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz" \
-       -O mupdf-$mupdfrev.tgz && tar -xzf mupdf-$mupdfrev.tgz
-fi
-
-test -d $mudir/thirdparty && test -e $(basename $mupdf3p) || \
-    (wget -nc $mupdf3p && unzip -o -d $mudir $(basename $mupdf3p))
+test -e $mutgz || wget -nc $muurl -O $mutgz
+test -e $(basename $mupdf3p) || wget -nc $mupdf3p
+test -d $mudir || tar -xzf $(basename $mutgz)
+test -d $mudir/thirdparty/openjpeg-1.5.0-patched || \
+    unzip -o -d $mudir $(basename $mupdf3p)
 
 executable_p() {
     command -v $1 >/dev/null 2>&1
