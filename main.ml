@@ -1120,7 +1120,7 @@ let page_of_y y =
       let n = (nmax + nmin) / 2 in
       let _, _, vy, (_, _, h, _) = b.(n) in
       let y0, y1 =
-        if conf.presentation
+        if c = 1 && conf.presentation
         then
           let ips = calcips h in
           let y0 = vy - ips in
