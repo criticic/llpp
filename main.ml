@@ -4681,7 +4681,7 @@ let viewkeyboard key mask =
         state.mode <- LinkNav (Ltgendir 0);
         gotoy state.y;
       )
-      else showtext '!' "Keyboard link naviagtion does not work under rotation"
+      else showtext '!' "Keyboard link navigation does not work under rotation"
 
   | 0xff1b | 113 ->                     (* escape / q *)
       begin match state.mstate with
