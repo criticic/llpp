@@ -4676,7 +4676,7 @@ let viewkeyboard key mask =
       exit 0
 
   | 0xff63 ->                           (* insert *)
-      if conf.angle mod 360 = 0
+      if conf.angle mod 360 = 0 && not (isbirdseye state.mode)
       then (
         state.mode <- LinkNav (Ltgendir 0);
         gotoy state.y;
