@@ -4926,13 +4926,16 @@ let viewkeyboard key mask =
       | [] -> ()
       | l :: rest ->
           match conf.columns with
-          | Csingle _ | Cmulti _ ->
+          | Csingle _ ->
               if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
               then
                 let y = clamp (pgscale conf.winh) in
                 gotoy_and_clear_text y
               else
                 let pageno = min (l.pageno+1) (state.pagecount-1) in
+                gotoy_and_clear_text (getpagey pageno)
+          | Cmulti ((c, _, _), _) ->
+                let pageno = min (l.pageno+c) (state.pagecount-1) in
                 gotoy_and_clear_text (getpagey pageno)
           | Csplit (n, _) ->
               if l.pageno < state.pagecount - 1 || l.pagecol < n - 1
@@ -4948,13 +4951,16 @@ let viewkeyboard key mask =
       | [] -> ()
       | l :: _ ->
           match conf.columns with
-          | Csingle _ | Cmulti _ ->
+          | Csingle _ ->
               if conf.presentation && l.pagey != 0
               then
                 gotoy_and_clear_text (clamp (pgscale ~-(conf.winh)))
               else
                 let pageno = max 0 (l.pageno-1) in
                 gotoy_and_clear_text (getpagey pageno)
+          | Cmulti ((c, _, _), _) ->
+              let pageno = max 0 (l.pageno-c) in
+              gotoy_and_clear_text (getpagey pageno)
           | Csplit (n, _) ->
               let y =
                 if l.pagecol = 0
