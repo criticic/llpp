@@ -1049,7 +1049,7 @@ let calcheight () =
       if Array.length b > 0
       then
         let y, h = rowyh cl b (Array.length b - 1) in
-        y + h
+        y + h + (if conf.presentation then calcips h else 0)
       else 0
   | Csingle b ->
       if Array.length b > 0
@@ -1082,7 +1082,14 @@ let getpageyh pageno =
   | Cmulti (cl, b) ->
       if Array.length b = 0
       then 0, 0
-      else rowyh cl b pageno
+      else
+        let y, h = rowyh cl b pageno in
+        let y =
+          if conf.presentation
+          then y - calcips h
+          else y
+        in
+        y, h
   | Csplit (c, b) ->
       if Array.length b = 0
       then 0, 0
@@ -1127,7 +1134,7 @@ let page_of_y y =
       let n = (nmax + nmin) / 2 in
       let vy, h = rowyh cl b n in
       let y0, y1 =
-        if c = 1 && conf.presentation
+        if conf.presentation
         then
           let ips = calcips h in
           let y0 = vy - ips in
@@ -1912,15 +1919,28 @@ let docolumns = function
           let x, y, rowh' =
             if pageno = coverA - 1 || pageno = state.pagecount - coverB
             then (
-              (conf.winw - state.scrollw - w) / 2,
-              y + rowh + conf.interpagespace, h
+              let x = (conf.winw - state.scrollw - w) / 2 in
+              x, y + calcips h + rowh, h
             )
             else (
               if (pageno - coverA) mod columns = 0
               then (
-                (if conf.multicenter then
-                  (conf.winw - state.scrollw - state.w) / 2 else 0),
-                y + rowh + (if pageno = 0 then 0 else conf.interpagespace), h
+                let x =
+                  if conf.multicenter
+                  then (conf.winw - state.scrollw - state.w) / 2
+                  else 0
+                in
+                let y =
+                  if conf.presentation
+                  then
+                    let ips = calcips h in
+                    if pageno = 0
+                    then y + ips
+                    else y + calcips rowh + ips
+                  else
+                    y + (if pageno = 0 then 0 else conf.interpagespace)
+                in
+                x, y + rowh, h
               )
               else x, y, max rowh h
             )
@@ -4942,6 +4962,11 @@ let viewkeyboard key mask =
                 let pageno = min (l.pageno+1) (state.pagecount-1) in
                 gotoy_and_clear_text (getpagey pageno)
           | Cmulti ((c, _, _), _) ->
+              if conf.presentation && l.pageh > l.pagey + l.pagevh
+              then
+                let y = clamp (pgscale conf.winh) in
+                gotoy_and_clear_text y
+              else
                 let pageno = min (l.pageno+c) (state.pagecount-1) in
                 gotoy_and_clear_text (getpagey pageno)
           | Csplit (n, _) ->
