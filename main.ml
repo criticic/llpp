@@ -1025,31 +1025,32 @@ let calcips h =
     conf.interpagespace
 ;;
 
+let rowyh (c, coverA, coverB) b n =
+  if c = 1 || (n < coverA || n > state.pagecount - coverB)
+  then
+    let _, _, vy, (_, _, h, _) = b.(n) in
+    (vy, h)
+  else
+    let n' = n - coverA in
+    let d = n' mod c in
+    let s = n - d in
+    let e = min state.pagecount (s + c) in
+    let rec find m miny maxh = if m = e then miny, maxh else
+        let _, _, y, (_, _, h, _) = b.(m) in
+        let miny = min miny y in
+        let maxh = max maxh h in
+        find (m+1) miny maxh
+    in find s max_int 0
+;;
+
 let calcheight () =
   match conf.columns with
-  | Cmulti ((c, _, coverB), b) ->
-      if coverB > 0
+  | Cmulti ((_, _, _) as cl, b) ->
+      if Array.length b > 0
       then
-        if Array.length b > 0
-        then
-          let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
-          y + h
-        else 0
-      else
-        let rec loop y h n =
-          if n < 0
-          then loop y h (n+1)
-          else (
-            if n = Array.length b
-            then y + h
-            else
-              let (_, _, y', (_, _, h', _)) = b.(n) in
-              let y = min y y'
-              and h = max h h' in
-              loop y h (n+1)
-          )
-        in
-        loop max_int 0 (((Array.length b - 1) / c) * c)
+        let y, h = rowyh cl b (Array.length b - 1) in
+        y + h
+      else 0
   | Csingle b ->
       if Array.length b > 0
       then
@@ -1062,24 +1063,6 @@ let calcheight () =
         let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
         y + h
       else 0
-;;
-
-let rowyh (c, coverA, coverB) b n =
-  if c = 1 || (n < coverA || n > state.pagecount - coverB)
-  then
-    let _, _, vy, (_, _, h, _) = b.(n) in
-    (vy, h)
-  else
-    let n' = n - coverA in
-    let d = n' mod c in
-    let s = n - d in
-    let e = s + c in
-    let rec find m miny maxh = if m = e then miny, maxh else
-        let _, _, y, (_, _, h, _) = b.(m) in
-        let miny = min miny y in
-        let maxh = max maxh h in
-        find (m+1) miny maxh
-    in find s max_int 0
 ;;
 
 let getpageyh pageno =
