@@ -4989,8 +4989,13 @@ let viewkeyboard key mask =
               else
                 let pageno = max 0 (l.pageno-1) in
                 gotoy_and_clear_text (getpagey pageno)
-          | Cmulti ((c, _, _), _) ->
-              let pageno = max 0 (l.pageno-c) in
+          | Cmulti ((c, _, coverB), _) ->
+              let decr =
+                if l.pageno = state.pagecount - coverB
+                then 1
+                else c
+              in
+              let pageno = max 0 (l.pageno-decr) in
               gotoy_and_clear_text (getpagey pageno)
           | Csplit (n, _) ->
               let y =
