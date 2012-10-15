@@ -1070,7 +1070,8 @@ let rowyh (c, coverA, coverB) b n =
     let _, _, vy, (_, _, h, _) = b.(n) in
     (vy, h)
   else
-    let d = n mod c in
+    let n' = n - coverA in
+    let d = n' mod c in
     let s = n - d in
     let e = s + c in
     let rec find m miny maxh = if m = e then miny, maxh else
