@@ -1064,6 +1064,23 @@ let calcheight () =
       else 0
 ;;
 
+let rowyh (c, coverA, coverB) b n =
+  if c = 1 || (n < coverA || n > state.pagecount - coverB)
+  then
+    let _, _, vy, (_, _, h, _) = b.(n) in
+    (vy, h)
+  else
+    let d = n mod c in
+    let s = n - d in
+    let e = s + c in
+    let rec find m miny maxh = if m = e then miny, maxh else
+        let _, _, y, (_, _, h, _) = b.(m) in
+        let miny = min miny y in
+        let maxh = max maxh h in
+        find (m+1) miny maxh
+    in find s max_int 0
+;;
+
 let getpageyh pageno =
   let pageno = bound pageno 0 (state.pagecount-1) in
   match conf.columns with
@@ -1078,12 +1095,10 @@ let getpageyh pageno =
           else y
         in
         y, h
-  | Cmulti (_, b) ->
+  | Cmulti (cl, b) ->
       if Array.length b = 0
       then 0, 0
-      else
-        let (_, _, y, (_, _, h, _)) = b.(pageno) in
-        y, h
+      else rowyh cl b pageno
   | Csplit (c, b) ->
       if Array.length b = 0
       then 0, 0
@@ -1115,7 +1130,7 @@ let nogeomcmds cmds =
 ;;
 
 let page_of_y y =
-  let (c, coverA, coverB), b =
+  let ((c, coverA, coverB) as cl), b =
     match conf.columns with
     | Csingle b -> (1, 0, 0), b
     | Cmulti (c, b) -> c, b
@@ -1126,7 +1141,7 @@ let page_of_y y =
     then bound nmin 0 (state.pagecount-1)
     else
       let n = (nmax + nmin) / 2 in
-      let _, _, vy, (_, _, h, _) = b.(n) in
+      let vy, h = rowyh cl b n in
       let y0, y1 =
         if c = 1 && conf.presentation
         then
