@@ -1026,7 +1026,7 @@ let calcips h =
 ;;
 
 let rowyh (c, coverA, coverB) b n =
-  if c = 1 || (n < coverA || n > state.pagecount - coverB)
+  if c = 1 || (n < coverA || n >= state.pagecount - coverB)
   then
     let _, _, vy, (_, _, h, _) = b.(n) in
     (vy, h)
