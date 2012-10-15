@@ -1017,12 +1017,8 @@ let wcmd fmt =
 ;;
 
 let calcips h =
-  if conf.presentation
-  then
-    let d = conf.winh - h in
-    max conf.interpagespace ((d + 1) / 2)
-  else
-    conf.interpagespace
+  let d = conf.winh - h in
+  max conf.interpagespace ((d + 1) / 2)
 ;;
 
 let rowyh (c, coverA, coverB) b n =
@@ -1885,7 +1881,7 @@ let docolumns = function
           let y = y +
             (if conf.presentation
             then (if pageno = 0 then calcips h else calcips ph + calcips h)
-              else (if pageno = 0 then 0 else calcips h)
+              else (if pageno = 0 then 0 else conf.interpagespace)
             )
           in
           a.(pageno) <- (pdimno, x, y, pdim);
@@ -1920,7 +1916,9 @@ let docolumns = function
             if pageno = coverA - 1 || pageno = state.pagecount - coverB
             then (
               let x = (conf.winw - state.scrollw - w) / 2 in
-              x, y + calcips h + rowh, h
+              let ips =
+                if conf.presentation then calcips h else conf.interpagespace in
+              x, y + ips + rowh, h
             )
             else (
               if (pageno - coverA) mod columns = 0
@@ -3934,7 +3932,8 @@ let describe_location () =
 let setpresentationmode v =
   let (n, _, _) = getanchor () in
   let _, h = getpageyh n in
-  state.anchor <- (n, 0.0, float (calcips h));
+  let ips = if conf.presentation then calcips h else conf.interpagespace in
+  state.anchor <- (n, 0.0, float ips);
   conf.presentation <- v;
   if conf.presentation
   then (
