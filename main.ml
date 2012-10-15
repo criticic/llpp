@@ -1027,21 +1027,29 @@ let calcips h =
 
 let calcheight () =
   match conf.columns with
-  | Cmulti ((c, _, _), b) ->
-      let rec loop y h n =
-        if n < 0
-        then loop y h (n+1)
-        else (
-          if n = Array.length b
-          then y + h
-          else
-            let (_, _, y', (_, _, h', _)) = b.(n) in
-            let y = min y y'
-            and h = max h h' in
-            loop y h (n+1)
-        )
-      in
-      loop max_int 0 (((Array.length b - 1) / c) * c)
+  | Cmulti ((c, _, coverB), b) ->
+      if coverB > 0
+      then
+        if Array.length b > 0
+        then
+          let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
+          y + h
+        else 0
+      else
+        let rec loop y h n =
+          if n < 0
+          then loop y h (n+1)
+          else (
+            if n = Array.length b
+            then y + h
+            else
+              let (_, _, y', (_, _, h', _)) = b.(n) in
+              let y = min y y'
+              and h = max h h' in
+              loop y h (n+1)
+          )
+        in
+        loop max_int 0 (((Array.length b - 1) / c) * c)
   | Csingle b ->
       if Array.length b > 0
       then
