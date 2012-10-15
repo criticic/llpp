@@ -1794,7 +1794,7 @@ let gotoghyll y =
           in
           match o with
           | None -> go n
-          | Some y' -> set (_N/2, 0, 0) y' state.y
+          | Some y' -> set (_N/2, 1, 1) y' state.y
       in
       gf 0 (float state.y)
     )
