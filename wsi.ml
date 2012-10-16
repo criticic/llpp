@@ -747,18 +747,32 @@ let getauth haddr dnum =
       let family = input_string ic 2 in
       let addr = rs () in
       let nums = rs () in
-      let num = int_of_string nums in
+      let optnum =
+        try Some (int_of_string nums)
+        with exn ->
+          dolog
+            "display number(%S) is not an integer (corrupt .Xauthority?): %s"
+            nums (exntos exn);
+          None
+      in
       let name = rs () in
       let data = rs () in
 
-      vlog "family %S addr %S(%S) num %d(%d) name %S data %S"
-        family addr haddr num dnum name data;
-      if addr = haddr && num = dnum
-      then name, data
-      else find ()
+      vlog "family %S addr %S(%S) num %S(%d) name %S data %S"
+        family addr haddr nums dnum name data;
+      match optnum  with
+      | Some num when addr = haddr && num = dnum ->
+          name, data
+      | _ -> find ()
     in
     let name, data =
-      try find () with _ -> "", ""
+      try find ()
+      with
+      | End_of_file -> "", ""
+      | exn ->
+        dolog "exception while reading .Xauthority data: %s"
+          (exntos exn);
+        "", ""
     in
     close_in ic;
     name, data;
