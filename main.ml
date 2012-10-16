@@ -5741,13 +5741,19 @@ let viewmouse button down x y mask =
                 Wsi.setcursor Wsi.CURSOR_INHERIT;
                 state.mstate <- Mnone
 
-            | Msel ((_, y0), (_, y1)) ->
+            | Msel ((x0, y0), (x1, y1)) ->
                 let rec loop = function
                   | [] -> ()
                   | l :: rest ->
-                      if (y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
-                        || ((y1 >= l.pagedispy
-                              && y1 <= (l.pagedispy + l.pagevh)))
+                      let inside =
+                        let a0 = l.pagedispy in
+                        let a1 = a0 + l.pagevh in
+                        let b0 = l.pagedispx in
+                        let b1 = b0 + l.pagevw in
+                        ((y0 >= a0 && y0 <= a1) || (y1 >= a0 && y1 <= a1))
+                        && ((x0 >= b0 && x0 <= b1) || (x1 >= b0 && x1 <= b1))
+                      in
+                      if inside
                       then
                         match getopaque l.pageno with
                         | Some opaque ->
