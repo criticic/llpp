@@ -728,6 +728,12 @@ let getauth haddr dnum =
         haddr
     else haddr
   in
+  let path =
+    try Sys.getenv "XAUTHORITY"
+    with Not_found ->
+      try Filename.concat (Sys.getenv "HOME") ".Xauthority"
+      with Not_found -> ""
+  in
   let readauth ic =
     let input_string ic len =
       let s = String.create len in
@@ -751,8 +757,8 @@ let getauth haddr dnum =
         try Some (int_of_string nums)
         with exn ->
           dolog
-            "display number(%S) is not an integer (corrupt .Xauthority?): %s"
-            nums (exntos exn);
+            "display number(%S) is not an integer (corrupt %S?): %s"
+            nums path (exntos exn);
           None
       in
       let name = rs () in
@@ -770,18 +776,12 @@ let getauth haddr dnum =
       with
       | End_of_file -> "", ""
       | exn ->
-        dolog "exception while reading .Xauthority data: %s"
-          (exntos exn);
+        dolog "exception while reading X authority data (%S): %s"
+          path (exntos exn);
         "", ""
     in
     close_in ic;
     name, data;
-  in
-  let path =
-    try Sys.getenv "XAUTHORITY"
-    with Not_found ->
-      try Filename.concat (Sys.getenv "HOME") ".Xauthority"
-      with Not_found -> ""
   in
   let opt =
     try
