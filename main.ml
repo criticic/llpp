@@ -3654,7 +3654,7 @@ let outlinesource usebookmarks =
         if not confrimremoval
         then(
           let _, _, anchor = m_items.(active) in
-          gotoanchor anchor;
+          gotoghyll (getanchory anchor);
           m_items <- items;
         )
         else (
@@ -4725,8 +4725,7 @@ let viewkeyboard key mask =
       end;
 
   | 0xff08 ->                           (* backspace *)
-      let y = getnav ~-1 in
-      gotoy_and_clear_text y
+      gotoghyll (getnav ~-1)
 
   | 111 ->                              (* o *)
       enteroutlinemode ()
@@ -4956,25 +4955,25 @@ let viewkeyboard key mask =
               if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
               then
                 let y = clamp (pgscale conf.winh) in
-                gotoy_and_clear_text y
+                gotoghyll y
               else
                 let pageno = min (l.pageno+1) (state.pagecount-1) in
-                gotoy_and_clear_text (getpagey pageno)
+                gotoghyll (getpagey pageno)
           | Cmulti ((c, _, _), _) ->
               if conf.presentation && l.pageh > l.pagey + l.pagevh
               then
                 let y = clamp (pgscale conf.winh) in
-                gotoy_and_clear_text y
+                gotoghyll y
               else
                 let pageno = min (l.pageno+c) (state.pagecount-1) in
-                gotoy_and_clear_text (getpagey pageno)
+                gotoghyll (getpagey pageno)
           | Csplit (n, _) ->
               if l.pageno < state.pagecount - 1 || l.pagecol < n - 1
               then
                 let pagey, pageh = getpageyh l.pageno in
                 let pagey = pagey + pageh * l.pagecol in
                 let ips = if l.pagecol = 0 then 0 else conf.interpagespace in
-                gotoy_and_clear_text (pagey + pageh + ips)
+                gotoghyll (pagey + pageh + ips)
       end
 
   | 0xff9f | 0xffff ->                  (* delete *)
@@ -4985,10 +4984,10 @@ let viewkeyboard key mask =
           | Csingle _ ->
               if conf.presentation && l.pagey != 0
               then
-                gotoy_and_clear_text (clamp (pgscale ~-(conf.winh)))
+                gotoghyll (clamp (pgscale ~-(conf.winh)))
               else
                 let pageno = max 0 (l.pageno-1) in
-                gotoy_and_clear_text (getpagey pageno)
+                gotoghyll (getpagey pageno)
           | Cmulti ((c, _, coverB), _) ->
               let decr =
                 if l.pageno = state.pagecount - coverB
@@ -4996,7 +4995,7 @@ let viewkeyboard key mask =
                 else c
               in
               let pageno = max 0 (l.pageno-decr) in
-              gotoy_and_clear_text (getpagey pageno)
+              gotoghyll (getpagey pageno)
           | Csplit (n, _) ->
               let y =
                 if l.pagecol = 0
@@ -5011,7 +5010,7 @@ let viewkeyboard key mask =
                   let pagey, pageh = getpageyh l.pageno in
                   pagey + pageh * (l.pagecol-1) - conf.interpagespace
               in
-              gotoy_and_clear_text y
+              gotoghyll y
       end
 
   | 61 ->                               (* = *)
