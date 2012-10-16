@@ -47,7 +47,7 @@ Ctrl-p                  - launch a command with the document path as an argument
 <,>                     - rotate
 [,]                     - decrease/increase page brightness
 Ctrl-g                  - interrupt search
-Ctrl-+ or Ctrl-=        - zoom in
+Ctrl-+/Ctrl-=           - zoom in
 Ctrl--                  - zoom out
 Ctrl-0                  - fit page width and reset panning
 Ctrl-1                  - fit page height
