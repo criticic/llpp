@@ -336,7 +336,6 @@ type conf =
     ; mutable keyhashes      : (string * keyhash) list
     ; mutable hfsize         : int
     ; mutable pgscale        : float
-    ; mutable multicenter    : bool
     }
 and columns =
     | Csingle of singlecolumn
@@ -539,7 +538,6 @@ let defconf =
   ; updatecurs     = false
   ; hfsize         = 12
   ; pgscale        = 1.0
-  ; multicenter    = false
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1923,11 +1921,7 @@ let docolumns = function
             else (
               if (pageno - coverA) mod columns = 0
               then (
-                let x =
-                  if conf.multicenter
-                  then (conf.winw - state.scrollw - state.w) / 2
-                  else 0
-                in
+                let x = max 0 (conf.winw - state.scrollw - state.w) / 2 in
                 let y =
                   if conf.presentation
                   then
@@ -4404,9 +4398,6 @@ let enterinfomode =
       src#bool "crop hack"
         (fun () -> conf.crophack)
         (fun v -> conf.crophack <- v);
-      src#bool "multi column centering"
-        (fun () -> conf.multicenter)
-        (fun v -> conf.multicenter <- v; represent ());
       src#string "trim fuzz"
         (fun () -> irect_to_string conf.trimfuzz)
         (fun v ->
@@ -6090,7 +6081,6 @@ struct
         | "update-cursor" -> { c with updatecurs = bool_of_string v }
         | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
         | "page-scroll-scale" -> { c with pgscale = float_of_string v }
-        | "multi-column-centering" -> { c with multicenter = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6201,7 +6191,6 @@ struct
     dst.hfsize         <- src.hfsize;
     dst.hscrollstep    <- src.hscrollstep;
     dst.pgscale        <- src.pgscale;
-    dst.multicenter    <- src.multicenter;
   ;;
 
   let get s =
@@ -6611,7 +6600,6 @@ struct
     oi "hint-font-size" c.hfsize dc.hfsize;
     oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
     oF "page-scroll-scale" c.pgscale dc.pgscale;
-    ob "multi-column-centering" c.multicenter dc.multicenter;
   ;;
 
   let keymapsbuf always dc c =
