@@ -5131,7 +5131,7 @@ let viewkeyboard key mask =
         let dx =
           if ctrl
           then conf.winw / 2
-          else 10
+          else conf.hscrollstep
         in
         let dx = if key = 0xff51 then dx else -dx in
         state.x <- state.x + dx;
