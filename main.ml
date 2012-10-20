@@ -1926,9 +1926,7 @@ let docolumns = function
                   if conf.presentation
                   then
                     let ips = calcips h in
-                    if pageno = 0
-                    then y + ips
-                    else y + calcips rowh + ips
+                    y + (if pageno = 0 then 0 else calcips rowh + ips)
                   else
                     y + (if pageno = 0 then 0 else conf.interpagespace)
                 in
@@ -1937,8 +1935,27 @@ let docolumns = function
               else x, y, max rowh h
             )
           in
-          if pageno > 1 && (pageno - coverA) mod columns = 0
-          then fixrow (pageno - columns);
+          let y =
+            if pageno > 1 && (pageno - coverA) mod columns = 0
+            then (
+              let y =
+                if pageno = columns && conf.presentation
+                then (
+                  let ips = calcips rowh in
+                  for i = 0 to pred columns
+                  do
+                    let (pdimno, x, y, pdim) = a.(i) in
+                    a.(i) <- (pdimno, x, y+ips, pdim)
+                  done;
+                  y+ips;
+                )
+                else y
+              in
+              fixrow (pageno - columns);
+              y
+            )
+            else y
+          in
           a.(pageno) <- (pdimno, x, y, pdim);
           let x = x + w + xoff*2 + conf.interpagespace in
           loop (pageno+1) pdimno pdim x y rowh' pdims
