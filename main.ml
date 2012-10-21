@@ -4705,30 +4705,15 @@ let viewkeyboard key mask =
     G.postRedisplay "view:enttext"
   in
   let ctrl = Wsi.withctrl mask in
-  let rowtootall pageno (columns, coverA, coverB) =
+  let existsinrow pageno (columns, coverA, coverB) p =
     let last = ((pageno - coverA) mod columns) + columns in
     let rec any = function
       | [] -> false
       | l :: rest ->
           if l.pageno = coverA - 1 || l.pageno = state.pagecount - coverB
-          then l.pageh > l.pagey + l.pagevh
+          then p l
           else (
-            if l.pageh <= l.pagey + l.pagevh
-            then (if l.pageno = last then false else any rest)
-            else true
-          )
-    in
-    any state.layout
-  in
-  let rowtootall2 pageno (columns, coverA, coverB) =
-    let last = ((pageno - coverA) mod columns) + columns in
-    let rec any = function
-      | [] -> false
-      | l :: rest ->
-          if l.pageno = coverA - 1 || l.pageno = state.pagecount - coverB
-          then l.pagey != 0
-          else (
-            if l.pagey = 0
+            if not (p l)
             then (if l.pageno = last then false else any rest)
             else true
           )
@@ -4998,7 +4983,9 @@ let viewkeyboard key mask =
                 let pageno = min (l.pageno+1) (state.pagecount-1) in
                 gotoghyll (getpagey pageno)
           | Cmulti ((c, _, _) as cl, _) ->
-              if conf.presentation && rowtootall l.pageno cl
+              if conf.presentation
+                && (existsinrow l.pageno cl
+                       (fun l -> l.pageh > l.pagey + l.pagevh))
               then
                 let y = clamp (pgscale conf.winh) in
                 gotoghyll y
@@ -5027,7 +5014,8 @@ let viewkeyboard key mask =
                 let pageno = max 0 (l.pageno-1) in
                 gotoghyll (getpagey pageno)
           | Cmulti ((c, _, coverB) as cl, _) ->
-              if conf.presentation && rowtootall2 l.pageno cl
+              if conf.presentation &&
+                (existsinrow l.pageno cl (fun l -> l.pagey != 0))
               then
                 gotoghyll (clamp (pgscale ~-(conf.winh)))
               else
