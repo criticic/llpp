@@ -4536,8 +4536,8 @@ let enterhelpmode =
       inherit lvsourcebase
       method getitemcount = Array.length state.help
       method getitem n =
-        let s, n, _ = state.help.(n) in
-        (s, n)
+        let s, l, _ = state.help.(n) in
+        (s, l)
 
       method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
         let optuioh =
