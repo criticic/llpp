@@ -3135,7 +3135,7 @@ object (self)
     let tabw = 30.0*.ww in
     let itemcount = source#getitemcount in
     let rec loop row =
-      if (row - m_first) * nfs > conf.winh
+      if (row - m_first) > fstate.maxrows
       then ()
       else (
         if row >= 0 && row < itemcount
