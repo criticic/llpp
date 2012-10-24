@@ -3578,7 +3578,7 @@ object (self)
         coe {< m_first = 0; m_active = 0 >}
 
     | 108 when ctrl ->                  (* ctrl-l *)
-        let first = m_active - (fstate.maxrows / 2) in
+        let first = max 0 (m_active - (fstate.maxrows / 2)) in
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
 
