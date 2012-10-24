@@ -214,7 +214,7 @@ let cbgetg b circular dir =
           else rc
         )
       )
-      else max 0 (min rc (b.len-1))
+      else bound rc 0 (b.len-1)
     in
     b.rc <- rc;
     b.store.(rc);
