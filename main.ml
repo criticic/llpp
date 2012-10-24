@@ -186,23 +186,6 @@ let cbnew n v =
   }
 ;;
 
-let drawstring size x y s =
-  Gl.enable `blend;
-  Gl.enable `texture_2d;
-  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
-  ignore (drawstr size x y s);
-  Gl.disable `blend;
-  Gl.disable `texture_2d;
-;;
-
-let drawstring1 size x y s =
-  drawstr size x y s;
-;;
-
-let drawstring2 size x y fmt =
-  Printf.kprintf (drawstring size (x+1) (y+size+1)) fmt
-;;
-
 let cbcap b = Array.length b.store;;
 
 let cbput b v =
@@ -239,6 +222,23 @@ let cbgetg b circular dir =
 
 let cbget b = cbgetg b false;;
 let cbgetc b = cbgetg b true;;
+
+let drawstring size x y s =
+  Gl.enable `blend;
+  Gl.enable `texture_2d;
+  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+  ignore (drawstr size x y s);
+  Gl.disable `blend;
+  Gl.disable `texture_2d;
+;;
+
+let drawstring1 size x y s =
+  drawstr size x y s;
+;;
+
+let drawstring2 size x y fmt =
+  Printf.kprintf (drawstring size (x+1) (y+size+1)) fmt
+;;
 
 type page =
     { pageno    : int
