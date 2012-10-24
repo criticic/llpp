@@ -209,7 +209,7 @@ let cbgetg b circular dir =
         if rc = -1
         then b.len-1
         else (
-          if rc = b.len
+          if rc >= b.len
           then 0
           else rc
         )
