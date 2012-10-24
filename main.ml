@@ -4950,12 +4950,6 @@ let viewkeyboard key mask =
           doreshape w h
       end
 
-  | 103 ->                              (* g *)
-      gotoy_and_clear_text 0
-
-  | 71 ->                               (* G *)
-      gotopage1 (state.pagecount - 1) 0
-
   | 112 | 78 ->                         (* p|N *)
       search state.searchpattern false
 
@@ -5204,9 +5198,9 @@ let viewkeyboard key mask =
       in
       gotoghyll y
 
-  | 0xff50 ->                           (* home *)
+  | 103 | 0xff50 ->                     (* g home *)
       gotoghyll 0
-  | 0xff57 ->                           (* end *)
+  | 71 | 0xff57 ->                      (* G end *)
       gotoghyll (clamp state.maxy)
   | 0xff53 when Wsi.withalt mask ->     (* right *)
       gotoghyll (getnav ~-1)
