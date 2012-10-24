@@ -5201,10 +5201,11 @@ let viewkeyboard key mask =
       gotoghyll 0
   | 71 | 0xff57 ->                      (* G end *)
       gotoghyll (clamp state.maxy)
-  | 0xff53 when Wsi.withalt mask ->     (* right *)
-      gotoghyll (getnav ~-1)
-  | 0xff51 when Wsi.withalt mask ->     (* left *)
+
+  | 0xff53 when Wsi.withalt mask ->     (* alt-right *)
       gotoghyll (getnav 1)
+  | 0xff51 when Wsi.withalt mask ->     (* alt-left *)
+      gotoghyll (getnav ~-1)
 
   | 114 ->                              (* r *)
       state.anchor <- getanchor ();
