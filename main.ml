@@ -1406,10 +1406,10 @@ let drawtiles l color =
             and x1 = float (x+w)
             and y1 = float (y+h) in
 
-            let tw = float w /. 64.0
-            and th = float h /. 64.0 in
-            let tx0 = float tilex /. 64.0
-            and ty0 = float tiley /. 64.0 in
+            let tw = float w /. 16.0
+            and th = float h /. 16.0 in
+            let tx0 = float tilex /. 16.0
+            and ty0 = float tiley /. 16.0 in
             let tx1 = tx0 +. tw
             and ty1 = ty0 +. th in
             GlDraw.begins `quads;
@@ -3813,23 +3813,8 @@ let makecheckers () =
   (* Appropriated from lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had
      following to say:
      converted by Issac Trotts.  July 25, 2002 *)
-  let image_height = 64
-  and image_width = 64 in
-
-  let make_image () =
-    let image =
-      GlPix.create `ubyte ~format:`rgb ~width:image_width ~height:image_height
-    in
-    for i = 0 to image_width - 1 do
-      for j = 0 to image_height - 1 do
-        Raw.sets (GlPix.to_raw image) ~pos:(3*(i*image_height+j))
-          (if (i land 8 ) lxor (j land 8) = 0
-          then [|255;255;255|] else [|200;200;200|])
-      done
-    done;
-    image
-  in
-  let image = make_image () in
+  let image = GlPix.create `ubyte ~format:`luminance ~width:2 ~height:2 in
+  Raw.sets_string (GlPix.to_raw image) ~pos:0 "\255\200\200\255";
   let id = GlTex.gen_texture () in
   GlTex.bind_texture `texture_2d id;
   GlPix.store (`unpack_alignment 1);
