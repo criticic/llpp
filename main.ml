@@ -4841,12 +4841,10 @@ let viewkeyboard key mask =
       state.glinks <- true;
       let mode = state.mode in
       state.mode <- Textentry (
-        (
-          ":", "", None, linknentry, linkndone (fun under -> gotounder under),
-          false
-        ),  fun _ ->
+        (":", "", None, linknentry, linkndone gotounder, false),
+        (fun _ ->
           state.glinks <- false;
-          state.mode <- mode
+          state.mode <- mode)
       );
       state.text <- "";
       G.postRedisplay "view:linkent(F)"
