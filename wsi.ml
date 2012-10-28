@@ -491,6 +491,28 @@ let reshape w h =
   else state.fullscreen state.idbase
 ;;
 
+let syncsendwithrep sock secstowait s f =
+  let completed = ref false in
+  sendwithrep sock s (fun resp -> f resp; completed := true);
+  let now = Unix.gettimeofday in
+  let deadline = now () +. secstowait in
+  let rec readtillcompletion () =
+    let r, _, _ = Unix.select [sock] [] [] (deadline -. now ()) in
+    match r with
+    | [] -> readtillcompletion ()
+    | _ ->
+        readresp sock;
+        if not !completed
+        then readtillcompletion ()
+  in
+  readtillcompletion ();
+;;
+
+let syncsendintern sock secstowait s onlyifexists f =
+  let s = internreq s onlyifexists in
+  syncsendwithrep sock secstowait s f;
+;;
+
 let setup sock screennum w h =
   let s = readstr sock 2 in
   let n = String.length s in
@@ -591,12 +613,6 @@ let setup sock screennum w h =
       let s = createwindowreq wid root 0 0 w h 0 mask in
       sendstr s sock;
 
-      let s = mapreq wid in
-      sendstr s sock;
-
-      let s = getkeymapreq state.mink (state.maxk-state.mink) in
-      sendwithrep sock s (updkmap sock);
-
       sendintern sock "WM_PROTOCOLS" false (fun resp ->
         state.protoatom <- r32 resp 8;
         sendintern sock "WM_DELETE_WINDOW" false (fun resp ->
@@ -607,12 +623,18 @@ let setup sock screennum w h =
         );
       );
 
-      sendintern sock "WM_CLASS" false (fun resp ->
+      syncsendintern sock 2.0 "WM_CLASS" false (fun resp ->
         let atom = r32 resp 8 in
         let llpp = "llpp\000llpp\000" in
         let s = changepropreq wid atom 31 8 llpp in
         sendstr s sock;
       );
+
+      let s = mapreq wid in
+      sendstr s sock;
+
+      let s = getkeymapreq state.mink (state.maxk-state.mink) in
+      sendwithrep sock s (updkmap sock);
 
       let s = openfontreq (wid+1) "cursor" in
       sendstr s sock;
@@ -692,27 +714,13 @@ let setup sock screennum w h =
           );
       );
       let s = getgeometryreq wid in
-      let completed = ref false in
-      sendwithrep sock s (fun resp ->
+      syncsendwithrep sock 2.0 s (fun resp ->
         glx wid;
         let w = r16 resp 16
         and h = r16 resp 18 in
         state.w <- w;
         state.h <- h;
-        completed := true;
       );
-      let now = Unix.gettimeofday in
-      let deadline = now () +. 2.0 in
-      let rec readtillcompletion () =
-        let r, _, _ = Unix.select [sock] [] [] (deadline -. now ()) in
-        match r with
-        | [] -> readtillcompletion ()
-        | _ ->
-            readresp sock;
-            if not !completed
-            then readtillcompletion ()
-      in
-      readtillcompletion ();
 
   | c ->
       error "unknown conection setup response %d" (Char.code c)
