@@ -499,7 +499,7 @@ let syncsendwithrep sock secstowait s f =
   let rec readtillcompletion () =
     let r, _, _ = Unix.select [sock] [] [] (deadline -. now ()) in
     match r with
-    | [] -> readtillcompletion ()
+    | [] -> error "didn't get X response in %f seconds, aborting" secstowait
     | _ ->
         readresp sock;
         if not !completed
