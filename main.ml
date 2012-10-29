@@ -6960,6 +6960,9 @@ let () =
   opendoc state.path state.password;
   state.uioh <- uioh;
 
+  Sys.set_signal Sys.sighup
+    (Sys.Signal_handle (fun _ -> opendoc state.path state.password));
+
   let rec loop deadline =
     let r =
       match state.errfd with
