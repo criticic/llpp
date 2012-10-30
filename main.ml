@@ -1860,6 +1860,11 @@ let opendoc path password =
       wcmd "reqlayout %d %d" conf.angle (btod conf.proportional));
 ;;
 
+let reload () =
+    state.anchor <- getanchor ();
+    opendoc state.path state.password;
+;;
+
 let scalecolor c =
   let c = c *. conf.colorscale in
   (c, c, c);
@@ -5196,8 +5201,7 @@ let viewkeyboard key mask =
       gotoghyll (getnav ~-1)
 
   | 114 ->                              (* r *)
-      state.anchor <- getanchor ();
-      opendoc state.path state.password
+      reload ()
 
   | 118 when conf.debug ->              (* v *)
       state.rects <- [];
@@ -6965,8 +6969,7 @@ let () =
   opendoc state.path state.password;
   state.uioh <- uioh;
 
-  Sys.set_signal Sys.sighup
-    (Sys.Signal_handle (fun _ -> opendoc state.path state.password));
+  Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
 
   let rec loop deadline =
     let r =
