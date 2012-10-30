@@ -1838,12 +1838,20 @@ let invalidate s f =
       state.geomcmds <- ps, ((s, f) :: cmds);
 ;;
 
+let flushpages () =
+  Hashtbl.iter (fun _ opaque ->
+    wcmd "freepage %s" opaque;
+  ) state.pagemap;
+  Hashtbl.clear state.pagemap;
+;;
+
 let opendoc path password =
   state.path <- path;
   state.password <- password;
   state.gen <- state.gen + 1;
   state.docinfo <- [];
 
+  flushpages ();
   setaalevel conf.aalevel;
   Wsi.settitle ("llpp " ^ Filename.basename path);
   wcmd "open %s\000%s\000" path password;
@@ -2589,10 +2597,7 @@ let settrim trimmargins trimfuzz =
   invalidate "settrim"
     (fun () ->
       wcmd "settrim %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1);
-  Hashtbl.iter (fun _ opaque ->
-    wcmd "freepage %s" opaque;
-  ) state.pagemap;
-  Hashtbl.clear state.pagemap;
+  flushpages ();
 ;;
 
 let setzoom zoom =
