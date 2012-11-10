@@ -62,6 +62,7 @@ type state =
     ; mutable h          : int
     ; mutable fs         : fs
     ; mutable curcurs    : cursor
+    ; mutable il3s       : int
     }
 and fs =
     | NoFs
@@ -88,6 +89,7 @@ let state =
   ; fs         = NoFs
   ; stringatom = 31
   ; curcurs    = CURSOR_INHERIT
+  ; il3s       = 0
   }
 ;;
 
@@ -336,9 +338,18 @@ let sendeventreq propagate destwid mask data =
 let getkeysym code mask =
   let index = (mask land 1) lxor ((mask land 2) lsr 1) in
   let keysym = state.keymap.(code-state.mink).(index) in
-  if index = 1 && keysym = 0
-  then state.keymap.(code-state.mink).(0)
-  else keysym
+  if keysym = 0xfe03
+  then (
+    state.il3s <- state.il3s lxor 4;
+    0
+  )
+  else (
+    let index = index + state.il3s in
+    let keysym = state.keymap.(code-state.mink).(index) in
+    if index = 1 && keysym = 0
+    then state.keymap.(code-state.mink).(0)
+    else keysym
+  )
 ;;
 
 let readresp sock =
@@ -365,7 +376,8 @@ let readresp sock =
         let code = r8 resp  1 in
         let mask = r16 resp 28 in
         let keysym = getkeysym code mask in
-        vlog "keysym = %x %c" keysym (Char.unsafe_chr keysym);
+        vlog "keysym = %x %c mask %#x code %d"
+          keysym (Char.unsafe_chr keysym) mask code;
         state.t#key keysym mask;
 
   | 3 ->                                (* key release *)
@@ -374,8 +386,8 @@ let readresp sock =
         let code = r8 resp 1 in
         let mask = r16 resp 28 in
         let keysym = getkeysym code mask in
-        vlog "release keysym = %x %c mask %#x"
-          keysym (Char.unsafe_chr keysym) mask
+        vlog "release keysym = %x %c mask %#x code %#d"
+          keysym (Char.unsafe_chr keysym) mask code
 
   | 4 ->                                (* buttonpress *)
       let n = r8 resp 1
@@ -584,7 +596,7 @@ let setup sock screennum w h =
 
       let mask = 0
         + 0x00000001                    (* KeyPress *)
-        (* + 0x00000002 *)              (* KeyRelease *)
+        + 0x00000002                    (* KeyRelease *)
         + 0x00000004                    (* ButtonPress *)
         + 0x00000008                    (* ButtonRelease *)
         + 0x00000010                    (* EnterWindow *)
