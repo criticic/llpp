@@ -62,7 +62,6 @@ type state =
     ; mutable h          : int
     ; mutable fs         : fs
     ; mutable curcurs    : cursor
-    ; mutable il3s       : int
     }
 and fs =
     | NoFs
@@ -89,7 +88,6 @@ let state =
   ; fs         = NoFs
   ; stringatom = 31
   ; curcurs    = CURSOR_INHERIT
-  ; il3s       = 0
   }
 ;;
 
@@ -337,19 +335,11 @@ let sendeventreq propagate destwid mask data =
 
 let getkeysym code mask =
   let index = (mask land 1) lxor ((mask land 2) lsr 1) in
+  let index = index lor ((mask land 0x80) lsr 5) in
   let keysym = state.keymap.(code-state.mink).(index) in
-  if keysym = 0xfe03
-  then (
-    state.il3s <- state.il3s lxor 4;
-    0
-  )
-  else (
-    let index = index + state.il3s in
-    let keysym = state.keymap.(code-state.mink).(index) in
-    if index = 1 && keysym = 0
-    then state.keymap.(code-state.mink).(0)
-    else keysym
-  )
+  if index = 1 && keysym = 0
+  then state.keymap.(code-state.mink).(0)
+  else keysym
 ;;
 
 let readresp sock =
@@ -596,7 +586,7 @@ let setup sock screennum w h =
 
       let mask = 0
         + 0x00000001                    (* KeyPress *)
-        + 0x00000002                    (* KeyRelease *)
+        (* + 0x00000002 *)              (* KeyRelease *)
         + 0x00000004                    (* ButtonPress *)
         + 0x00000008                    (* ButtonRelease *)
         + 0x00000010                    (* EnterWindow *)
