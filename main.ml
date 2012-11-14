@@ -4734,12 +4734,18 @@ let viewkeyboard key mask =
           Wsi.setcursor Wsi.CURSOR_INHERIT;
           G.postRedisplay "kill zoom rect";
       | _ ->
-          match state.ranchors with
-          | [] -> raise Quit
-          | (path, password, anchor) :: rest ->
-              state.ranchors <- rest;
-              state.anchor <- anchor;
-              opendoc path password
+          begin match state.mode with
+          | LinkNav _ ->
+              state.mode <- View;
+              G.postRedisplay "esc leave linknav"
+          | _ ->
+              match state.ranchors with
+              | [] -> raise Quit
+              | (path, password, anchor) :: rest ->
+                  state.ranchors <- rest;
+                  state.anchor <- anchor;
+                  opendoc path password
+          end;
       end;
 
   | 0xff08 ->                           (* backspace *)
