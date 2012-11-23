@@ -1523,6 +1523,7 @@ static char *mbtoutf8 (char *s)
         p += fz_runetochar (p, tmp[i]);
     }
     *p = 0;
+    free (tmp);
     return r;
 }
 
