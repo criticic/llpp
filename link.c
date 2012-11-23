@@ -1525,6 +1525,24 @@ static char *mbtoutf8 (char *s)
     return r;
 }
 
+CAMLprim value ml_mbtoutf8 (value s_v)
+{
+    CAMLparam1 (s_v);
+    CAMLlocal1 (ret_v);
+    char *s, *r;
+
+    s = String_val (s_v);
+    r = mbtoutf8 (s);
+    if (r == s) {
+        ret_v = s_v;
+    }
+    else {
+        ret_v = caml_copy_string (r);
+        free (r);
+    }
+    CAMLreturn (ret_v);
+}
+
 static void * mainloop (void *unused)
 {
     char *p = NULL;

@@ -98,6 +98,7 @@ external getlinkrect : opaque -> int -> irect = "ml_getlinkrect";;
 external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
 external popen : string -> (Unix.file_descr * int) list -> unit = "ml_popen";;
+external mbtoutf8 : string -> string = "ml_mbtoutf8";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -1853,7 +1854,7 @@ let opendoc path password =
 
   flushpages ();
   setaalevel conf.aalevel;
-  Wsi.settitle ("llpp " ^ Filename.basename path);
+  Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename path)));
   wcmd "open %s\000%s\000" path password;
   invalidate "reqlayout"
     (fun () ->
