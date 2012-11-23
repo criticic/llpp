@@ -1513,7 +1513,7 @@ static char *mbtoutf8 (char *s)
         len += fz_runelen (tmp[i]);
     }
 
-    p = r = malloc (len);
+    p = r = malloc (len + 1);
     if (!r) {
         free (tmp);
         return s;
@@ -1522,6 +1522,7 @@ static char *mbtoutf8 (char *s)
     for (i = 0; i < ret; ++i) {
         p += fz_runetochar (p, tmp[i]);
     }
+    *p = 0;
     return r;
 }
 
