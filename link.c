@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <wchar.h>
 
 #include <unistd.h>
 #include <pthread.h>
@@ -1480,6 +1481,50 @@ static void realloctexts (int texcount)
     state.texindex = 0;
 }
 
+static char *mbtoutf8 (char *s)
+{
+    char *p, *r;
+    wchar_t *tmp;
+    size_t i, ret, len;
+
+    len = mbstowcs (NULL, s, strlen (s));
+    if (len == 0) {
+        return s;
+    }
+    else {
+        if (len == (size_t) -1)  {
+            return s;
+        }
+    }
+
+    tmp = malloc (len * sizeof (wchar_t));
+    if (!tmp) {
+        return s;
+    }
+
+    ret = mbstowcs (tmp, s, len);
+    if (ret == (size_t) -1) {
+        free (tmp);
+        return s;
+    }
+
+    len = 0;
+    for (i = 0; i < ret; ++i) {
+        len += fz_runelen (tmp[i]);
+    }
+
+    p = r = malloc (len);
+    if (!r) {
+        free (tmp);
+        return s;
+    }
+
+    for (i = 0; i < ret; ++i) {
+        p += fz_runetochar (p, tmp[i]);
+    }
+    return r;
+}
+
 static void * mainloop (void *unused)
 {
     char *p = NULL;
@@ -1505,6 +1550,7 @@ static void * mainloop (void *unused)
             size_t filenamelen;
             char *password;
             char *filename = p + 5;
+            char *utf8filename;
 
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
@@ -1512,7 +1558,11 @@ static void * mainloop (void *unused)
             openxref (filename, password);
             pdfinfo ();
             initpdims ();
-            printd ("msg Opened %s (press h/F1 to get help)", filename);
+            utf8filename = mbtoutf8 (filename);
+            printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
+            if (utf8filename != filename) {
+                free (utf8filename);
+            }
             state.needoutline = 1;
         }
         else if (!strncmp ("cs", p, 2)) {
