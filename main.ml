@@ -6971,7 +6971,7 @@ let () =
   );
   state.sr <- sr;
   state.sw <- sw;
-  state.text <- "Opening " ^ state.path;
+  state.text <- "Opening " ^ (mbtoutf8 state.path);
   reshape winw winh;
   opendoc state.path state.password;
   state.uioh <- uioh;
