@@ -16,7 +16,8 @@ let now = Unix.gettimeofday;;
 
 type params = (angle * proportional * trimparams
                 * texcount * sliceheight * memsize
-                * colorspace * fontpath * trimcachepath)
+                * colorspace * fontpath * trimcachepath
+                * haspbo)
 and pageno         = int
 and width          = int
 and height         = int
@@ -40,6 +41,7 @@ and aalevel        = int
 and irect          = (int * int * int * int)
 and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
+and haspbo         = bool
 ;;
 
 type link =
@@ -99,6 +101,10 @@ external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl: int -> int -> pagewithlinks = "ml_find_page_with_links"
 external popen : string -> (Unix.file_descr * int) list -> unit = "ml_popen";;
 external mbtoutf8 : string -> string = "ml_mbtoutf8";;
+external getpbo : width -> height -> colorspace -> string = "ml_getpbo";;
+external freepbo : string -> unit = "ml_freepbo";;
+external unmappbo : string -> unit = "ml_unmappbo";;
+external pbousable : unit -> bool = "ml_pbo_usable";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -337,6 +343,7 @@ type conf =
     ; mutable keyhashes      : (string * keyhash) list
     ; mutable hfsize         : int
     ; mutable pgscale        : float
+    ; mutable usepbo         : bool
     }
 and columns =
     | Csingle of singlecolumn
@@ -539,6 +546,7 @@ let defconf =
   ; updatecurs     = false
   ; hfsize         = 12
   ; pgscale        = 1.0
+  ; usepbo         = false
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1504,7 +1512,12 @@ let tilepage n p layout =
                     let h = l.pageh - y in
                     min h conf.tileh
                   in
-                  wcmd "tile %s %d %d %d %d" p x y w h;
+                  let pbo =
+                    if conf.usepbo
+                    then getpbo w h conf.colorspace
+                    else "0"
+                  in
+                  wcmd "tile %s %d %d %d %d %s" p x y w h pbo;
                   state.currently <-
                     Tiling (
                       l, p, conf.colorspace, conf.angle, state.gen, col, row,
@@ -2156,6 +2169,7 @@ let gctiles () =
           )
         then Queue.push lruitem state.tilelru
         else (
+          freepbo p;
           wcmd "freetile %s" p;
           state.memused <- state.memused - s;
           state.uioh#infochanged Memused;
@@ -2386,6 +2400,7 @@ let act cmds =
       | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
           vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
 
+          unmappbo opaque;
           if tilew != conf.tilew || tileh != conf.tileh
           then (
             wcmd "freetile %s" opaque;
@@ -4471,6 +4486,11 @@ let enterinfomode =
           wcmd "cs %d" v;
           load state.layout;
         );
+      if pbousable ()
+      then
+        src#bool "use PBO"
+          (fun () -> conf.usepbo)
+          (fun v -> conf.usepbo <- v);
     );
 
     sep ();
@@ -6113,6 +6133,7 @@ struct
         | "update-cursor" -> { c with updatecurs = bool_of_string v }
         | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
         | "page-scroll-scale" -> { c with pgscale = float_of_string v }
+        | "use-pbo" -> { c with usepbo = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6223,6 +6244,7 @@ struct
     dst.hfsize         <- src.hfsize;
     dst.hscrollstep    <- src.hscrollstep;
     dst.pgscale        <- src.pgscale;
+    dst.usepbo         <- src.usepbo;
   ;;
 
   let get s =
@@ -6632,6 +6654,7 @@ struct
     oi "hint-font-size" c.hfsize dc.hfsize;
     oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
     oF "page-scroll-scale" c.pgscale dc.pgscale;
+    ob "use-pbo" c.usepbo dc.usepbo;
   ;;
 
   let keymapsbuf always dc c =
@@ -6967,7 +6990,8 @@ let () =
   init (cr, cw) (
     conf.angle, conf.proportional, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-    !Config.fontpath, !trimcachepath
+    !Config.fontpath, !trimcachepath,
+    GlMisc.check_extension "GL_ARB_pixel_buffer_object"
   );
   state.sr <- sr;
   state.sw <- sw;

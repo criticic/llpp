@@ -133,6 +133,7 @@ struct tile {
     int x, y, w, h;
     int slicecount;
     int sliceheight;
+    struct pbo *pbo;
     fz_pixmap *pixmap;
     struct slice slices[1];
 };
@@ -227,7 +228,21 @@ struct {
     void (*freepage) (void *);
 
     char *trimcachepath;
+
+    int pbo_usable;
+    void (*glBindBufferARB) (GLenum, GLuint);
+    void (*glUnmapBufferARB) (GLenum);
+    void *(*glMapBufferARB) (GLenum, GLenum);
+    void (*glBufferDataARB) (GLenum, GLsizei, void *, GLenum);
+    void (*glGenBuffersARB) (GLsizei, GLuint *);
+    void (*glDeleteBuffersARB) (GLsizei, GLuint *);
 } state;
+
+struct pbo {
+    GLuint id;
+    void *ptr;
+    size_t size;
+};
 
 static void UNUSED_ATTR debug_rect (const char *cap, fz_rect r)
 {
@@ -564,14 +579,16 @@ static void freepage (struct page *page)
 static void freetile (struct tile *tile)
 {
     unlinktile (tile);
+    if (!tile->pbo) {
 #ifndef PIGGYBACK
-    fz_drop_pixmap (state.ctx, tile->pixmap);
+        fz_drop_pixmap (state.ctx, tile->pixmap);
 #else
-    if (state.pig) {
-        fz_drop_pixmap (state.ctx, state.pig);
-    }
-    state.pig = tile->pixmap;
+        if (state.pig) {
+            fz_drop_pixmap (state.ctx, state.pig);
+        }
+        state.pig = tile->pixmap;
 #endif
+    }
     free (tile);
 }
 
@@ -778,7 +795,8 @@ static int obscured (struct page *page, fz_bbox bbox)
 #define OBSCURED(a, b) 0
 #endif
 
-static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
+static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
+                                struct pbo *pbo)
 {
     fz_bbox bbox;
     fz_device *dev;
@@ -808,8 +826,16 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
         state.pig = NULL;
     }
     if (!tile->pixmap) {
-        tile->pixmap =
-            fz_new_pixmap_with_bbox (state.ctx, state.colorspace, bbox);
+        if (pbo) {
+            tile->pixmap =
+                fz_new_pixmap_with_bbox_and_data (state.ctx, state.colorspace,
+                                                  bbox, pbo->ptr);
+            tile->pbo = pbo;
+        }
+        else {
+            tile->pixmap =
+                fz_new_pixmap_with_bbox (state.ctx, state.colorspace, bbox);
+        }
     }
 
     tile->w = w;
@@ -1711,16 +1737,17 @@ static void * mainloop (void *unused)
             struct page *page;
             struct tile *tile;
             double a, b;
+            void *data;
 
-            ret = sscanf (p + 4, " %" FMT_ptr " %d %d %d %d",
-                          FMT_ptr_cast (&page), &x, &y, &w, &h);
-            if (ret != 5) {
+            ret = sscanf (p + 4, " %" FMT_ptr " %d %d %d %d %" FMT_ptr,
+                          FMT_ptr_cast (&page), &x, &y, &w, &h, &data);
+            if (ret != 6) {
                 errx (1, "bad tile line `%.*s' ret=%d", len, p, ret);
             }
 
             lock ("tile");
             a = now ();
-            tile = rendertile (page, x, y, w, h);
+            tile = rendertile (page, x, y, w, h, data);
             b = now ();
             unlock ("tile");
 
@@ -2086,6 +2113,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
 {
     int offset;
     struct slice *slice1;
+    unsigned char *texdata;
 
     offset = 0;
     for (slice1 = tile->slices; slice != slice1; slice1++) {
@@ -2116,6 +2144,13 @@ static void uploadslice (struct tile *tile, struct slice *slice)
         slice->texindex = texindex;
 
         glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[texindex]);
+        if (tile->pbo) {
+            state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
+            texdata = 0;
+        }
+        else {
+            texdata = tile->pixmap->samples;
+        }
         if (subimage) {
             glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB,
                              0,
@@ -2125,7 +2160,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
                              slice->h,
                              state.texform,
                              state.texty,
-                             tile->pixmap->samples+offset
+                             texdata+offset
                 );
         }
         else {
@@ -2137,8 +2172,11 @@ static void uploadslice (struct tile *tile, struct slice *slice)
                           0,
                           state.texform,
                           state.texty,
-                          tile->pixmap->samples+offset
+                          texdata+offset
                 );
+        }
+        if (tile->pbo) {
+            state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
         }
     }
 }
@@ -3324,6 +3362,135 @@ CAMLprim value ml_cloexec (value fd_v)
     CAMLreturn (Val_unit);
 }
 
+CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
+{
+    CAMLparam2 (w_v, h_v);
+    CAMLlocal1 (ret_v);
+    struct pbo *pbo;
+    int w = Int_val (w_v);
+    int h = Int_val (h_v);
+    int cs = Int_val (cs_v);
+
+    if (state.pbo_usable) {
+        pbo = calloc (sizeof (*pbo), 1);
+        if (!pbo) {
+            err (1, "calloc pbo");
+        }
+
+        switch (cs) {
+        case 0:
+        case 1:
+            pbo->size = w*h*4;
+            break;
+        case 2:
+            pbo->size = w*h*2;
+            break;
+        default:
+            errx (1, "ml_getpbo: invalid colorspace %d", cs);
+        }
+
+        state.glGenBuffersARB (1, &pbo->id);
+        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, pbo->id);
+        state.glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, pbo->size,
+                               NULL, GL_STREAM_DRAW);
+        pbo->ptr = state.glMapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB,
+                                         GL_READ_WRITE);
+        if (!pbo->ptr) {
+            fprintf (stderr, "glMapBufferARB failed: %#x", glGetError ());
+            state.glDeleteBuffersARB (1, &pbo->id);
+            free (pbo);
+            ret_v = caml_copy_string ("0");
+        }
+        else {
+            int res;
+            char *s;
+
+            res = snprintf (NULL, 0, "%" FMT_ptr, pbo);
+            if (res < 0) {
+                err (1, "snprintf %" FMT_ptr " failed", pbo);
+            }
+            s = malloc (res+1);
+            if (!s) {
+                err (1, "malloc %d bytes failed", res+1);
+            }
+            res = sprintf (s, "%" FMT_ptr, pbo);
+            if (res < 0) {
+                err (1, "sprintf %" FMT_ptr " failed", pbo);
+            }
+            ret_v = caml_copy_string (s);
+            free (s);
+        }
+        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+    }
+    else {
+        ret_v = caml_copy_string ("0");
+    }
+    CAMLreturn (ret_v);
+}
+
+CAMLprim value ml_freepbo (value s_v)
+{
+    CAMLparam1 (s_v);
+    char *s = String_val (s_v);
+    struct tile *tile = parse_pointer ("ml_freepbo", s);
+
+    if (tile->pbo) {
+        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
+        state.glUnmapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB);
+        state.glDeleteBuffersARB (1, &tile->pbo->id);
+        tile->pbo->id = -1;
+        tile->pbo->ptr = NULL;
+        tile->pbo->size = -1;
+    }
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_unmappbo (value s_v)
+{
+    CAMLparam1 (s_v);
+    char *s = String_val (s_v);
+    struct tile *tile = parse_pointer ("ml_unmappbo", s);
+
+    if (tile->pbo) {
+        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
+        state.glUnmapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB);
+        tile->pbo->ptr = NULL;
+        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+    }
+    CAMLreturn (Val_unit);
+}
+
+static void setuppbo (void)
+{
+#define GGPA(n) *(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n)
+    GGPA (glBindBufferARB);
+    if (state.glBindBufferARB) {
+        GGPA (glUnmapBufferARB);
+        if (state.glUnmapBufferARB) {
+            GGPA (glMapBufferARB);
+            if (state.glMapBufferARB) {
+                GGPA (glBufferDataARB);
+                if (state.glBufferDataARB) {
+                    GGPA (glGenBuffersARB);
+                    if (state.glGenBuffersARB) {
+                        GGPA (glDeleteBuffersARB);
+                        if (state.glDeleteBuffersARB) {
+                            state.pbo_usable = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+#undef GGPA
+}
+
+CAMLprim value ml_pbo_usable (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    CAMLreturn (Val_bool (state.pbo_usable));
+}
+
 CAMLprim value ml_init (value pipe_v, value params_v)
 {
     CAMLparam2 (pipe_v, params_v);
@@ -3333,6 +3500,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     char *fontpath;
     int colorspace;
     int mustoresize;
+    int haspboext;
     struct sigaction sa;
 
     state.cr            = Int_val (Field (pipe_v, 0));
@@ -3346,6 +3514,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
     state.trimcachepath = strdup (String_val (Field (params_v, 8)));
+    haspboext           = Bool_val (Field (params_v, 9));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
 
@@ -3370,6 +3539,10 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     if (!state.face) _exit (1);
 
     realloctexts (texcount);
+
+    if (haspboext) {
+        setuppbo ();
+    }
 
 #ifdef __CYGWIN__
     sa.sa_handler = SIG_IGN;
