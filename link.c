@@ -3395,6 +3395,7 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
                                NULL, GL_STREAM_DRAW);
         pbo->ptr = state.glMapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB,
                                          GL_READ_WRITE);
+        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
         if (!pbo->ptr) {
             fprintf (stderr, "glMapBufferARB failed: %#x", glGetError ());
             state.glDeleteBuffersARB (1, &pbo->id);
@@ -3420,7 +3421,6 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
             ret_v = caml_copy_string (s);
             free (s);
         }
-        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
     else {
         ret_v = caml_copy_string ("0");
