@@ -589,6 +589,9 @@ static void freetile (struct tile *tile)
         state.pig = tile->pixmap;
 #endif
     }
+    else {
+        free (tile->pbo);
+    }
     free (tile);
 }
 
@@ -3435,8 +3438,6 @@ CAMLprim value ml_freepbo (value s_v)
     struct tile *tile = parse_pointer ("ml_freepbo", s);
 
     if (tile->pbo) {
-        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
-        state.glUnmapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB);
         state.glDeleteBuffersARB (1, &tile->pbo->id);
         tile->pbo->id = -1;
         tile->pbo->ptr = NULL;
