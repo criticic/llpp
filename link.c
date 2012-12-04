@@ -591,6 +591,7 @@ static void freetile (struct tile *tile)
     }
     else {
         free (tile->pbo);
+        fz_drop_pixmap (state.ctx, tile->pixmap);
     }
     free (tile);
 }
