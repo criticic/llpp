@@ -231,7 +231,7 @@ struct {
 
     int pbo_usable;
     void (*glBindBufferARB) (GLenum, GLuint);
-    void (*glUnmapBufferARB) (GLenum);
+    GLboolean (*glUnmapBufferARB) (GLenum);
     void *(*glMapBufferARB) (GLenum, GLenum);
     void (*glBufferDataARB) (GLenum, GLsizei, void *, GLenum);
     void (*glGenBuffersARB) (GLsizei, GLuint *);
@@ -3455,7 +3455,9 @@ CAMLprim value ml_unmappbo (value s_v)
 
     if (tile->pbo) {
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
-        state.glUnmapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB);
+        if (state.glUnmapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB) == GL_FALSE) {
+            errx (1, "glUnmapBufferARB failed: %#x\n", glGetError ());
+        }
         tile->pbo->ptr = NULL;
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
