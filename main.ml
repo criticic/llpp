@@ -3002,9 +3002,9 @@ let withoutlastutf8 s =
       then pos
       else
         let b = Char.code s.[pos] in
-        if b land 0b110000 = 0b11000000
-        then find (pos-1)
-        else pos-1
+        if b land 0b11000000 = 0b11000000
+        then pos
+        else find (pos-1)
     in
     let first =
       if Char.code s.[len-1] land 0x80 = 0
