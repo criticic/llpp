@@ -62,6 +62,7 @@ type state =
     ; mutable h          : int
     ; mutable fs         : fs
     ; mutable curcurs    : cursor
+    ; mutable capslmask  : int
     }
 and fs =
     | NoFs
@@ -88,6 +89,7 @@ let state =
   ; fs         = NoFs
   ; stringatom = 31
   ; curcurs    = CURSOR_INHERIT
+  ; capslmask  = 0
   }
 ;;
 
@@ -174,6 +176,43 @@ let updkmap sock resp =
       in
       loop2 k 0;
       loop (i+1);
+  in
+  loop 0;
+;;
+
+let updmodmap sock resp =
+  let n = r8 resp 1 in
+  let len = r16 resp 4 in
+  let data =
+    if len > 0
+    then readstr sock (len*4)
+    else ""
+  in
+  let modmap = Array.make_matrix 8 n 0xffffff in
+  let rec loop l = if l = 8 then () else
+      let p = l*n in
+      let rec loop1 m = if m = n then () else
+          let p = p+m in
+          let code = r8 data p in
+          modmap.(l).(m) <- code;
+          if l = 1
+          then (
+            let ki = code - state.mink in
+            if ki >= 0
+            then
+              let a = state.keymap.(ki) in
+              let rec capsloop i = if i = Array.length a || i > 3 then () else
+                  let s = a.(i) in
+                  if s = 0xffe5
+                  then state.capslmask <- 2
+                  else capsloop (i+1)
+              in
+              capsloop 0;
+          );
+          loop1 (m+1)
+      in
+      loop1 0;
+      loop (l+1)
   in
   loop 0;
 ;;
@@ -333,8 +372,13 @@ let sendeventreq propagate destwid mask data =
   s;
 ;;
 
+let getmodifiermappingreq () =
+  let s = "\119u\001\000" in
+  s;
+;;
+
 let getkeysym code mask =
-  let index = (mask land 1) lxor ((mask land 2) lsr 1) in
+  let index = (mask land 1) lxor ((mask land state.capslmask) lsr 1) in
   let index = index lor ((mask land 0x80) lsr 5) in
   let keysym = state.keymap.(code-state.mink).(index) in
   if index = 1 && keysym = 0
@@ -431,6 +475,10 @@ let readresp sock =
       state.keymap <- [||];
       let s = getkeymapreq state.mink (state.maxk-state.mink-1) in
       sendwithrep sock s (updkmap sock);
+      state.capslmask <- 0;
+      let s = getmodifiermappingreq () in
+      sendwithrep sock s (updmodmap sock);
+
 
   | 33 ->                               (* clientmessage *)
       let atom = r32 resp 8 in
@@ -637,6 +685,9 @@ let setup sock screennum w h =
 
       let s = getkeymapreq state.mink (state.maxk-state.mink) in
       sendwithrep sock s (updkmap sock);
+
+      let s = getmodifiermappingreq () in
+      sendwithrep sock s (updmodmap sock);
 
       let s = openfontreq (wid+1) "cursor" in
       sendstr s sock;

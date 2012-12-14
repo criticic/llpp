@@ -3071,7 +3071,11 @@ let textentrykeyboard
 
   | 0xff9f | 0xffff -> ()               (* delete *)
 
-  | _ when key != 0 && key land 0xff00 != 0xff00 ->
+  | _ when key != 0
+      && key land 0xff00 != 0xff00      (* keyboard *)
+      && key land 0xfe00 != 0xfe00      (* xkb *)
+      && key land 0xfd00 != 0xfd00      (* 3270 *)
+      ->
       begin match onkey text key with
       | TEdone text ->
           ondone text;
