@@ -386,8 +386,8 @@ let getkeysym code mask =
   in
   let index = (1 lsl msh) + shinc in
   let keysym = state.keymap.(code-state.mink).(index) in
-  if index = 1 && keysym = 0
-  then state.keymap.(code-state.mink).(0)
+  if shinc = 1 && keysym = 0
+  then state.keymap.(code-state.mink).(index - 1)
   else keysym
 ;;
 
