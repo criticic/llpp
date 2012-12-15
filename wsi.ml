@@ -378,15 +378,12 @@ let getmodifiermappingreq () =
 ;;
 
 let getkeysym code mask =
-  let shinc = (mask land 1) lxor ((mask land state.capslmask) lsr 1) in
-  let msh = ((mask land 0x10) lsr 4)
-    + ((mask land 0x20) lsr 5)
-    + ((mask land 0x40) lsr 6)
-    + ((mask land 0x80) lsr 7)
-  in
-  let index = (1 lsl msh) + shinc in
+  let shift = (mask land 1) lxor ((mask land state.capslmask) lsr 1) in
+  let mod3 = if mask land 0x80 = 0x80 then 4 else 0 in
+  let mod4 = if mask land 0x20 = 0x20 then 8 else 0 in
+  let index = mod3 + mod4 + shift in
   let keysym = state.keymap.(code-state.mink).(index) in
-  if shinc = 1 && keysym = 0
+  if index land 1 = 1 && keysym = 0
   then state.keymap.(code-state.mink).(index - 1)
   else keysym
 ;;
