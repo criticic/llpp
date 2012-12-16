@@ -222,12 +222,10 @@ let updmodmap sock resp =
                 let a = state.keymap.(ki) in
                 let rec lloop i = if i = Array.length a || i > 3 then () else
                     let s = a.(i) in
-                    begin match s with
-                    | 0xfe03 -> state.levl3mask <- 0x80
-                    | 0xfe11 -> state.levl5mask <- 0x20
-                    | _ -> ()
-                    end;
-                    lloop (i+1);
+                    match s with
+                    | 0xfe03 -> state.levl3mask <- 1 lsl l
+                    | 0xfe11 -> state.levl5mask <- 1 lsl l
+                    | _ -> lloop (i+1)
                 in
                 lloop 0;
             )
@@ -402,10 +400,11 @@ let getmodifiermappingreq () =
 
 let getkeysym code mask =
   let shift = (mask land 1) lxor ((mask land state.capslmask) lsr 1) in
-  let mod3 = (mask land state.levl3mask) != 0 in
-  let mod4 = (mask land state.levl5mask) != 0 in
-  let index = shift +
-    if mod3 then (if mod4 then 8 else 4) else (if mod4 then 6 else 0)
+  let index =
+    let l3 = (mask land state.levl3mask) != 0 in
+    let l4 = (mask land state.levl5mask) != 0 in
+    shift +
+      if l3 then (if l4 then 8 else 4) else (if l4 then 6 else 0)
   in
   let keysym = state.keymap.(code-state.mink).(index) in
   if index land 1 = 1 && keysym = 0
