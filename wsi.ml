@@ -63,6 +63,7 @@ type state =
     ; mutable fs         : fs
     ; mutable curcurs    : cursor
     ; mutable capslmask  : int
+    ; mutable numlmask   : int
     ; mutable levl3mask  : int
     ; mutable levl5mask  : int
     }
@@ -92,6 +93,7 @@ let state =
   ; stringatom = 31
   ; curcurs    = CURSOR_INHERIT
   ; capslmask  = 0
+  ; numlmask   = 0
   ; levl3mask  = 0
   ; levl5mask  = 0
   }
@@ -225,6 +227,7 @@ let updmodmap sock resp =
                     match s with
                     | 0xfe03 -> state.levl3mask <- 1 lsl l
                     | 0xfe11 -> state.levl5mask <- 1 lsl l
+                    | 0xff7f -> state.numlmask  <- 1 lsl l
                     | _ -> lloop (i+1)
                 in
                 lloop 0;
@@ -399,17 +402,29 @@ let getmodifiermappingreq () =
 ;;
 
 let getkeysym code mask =
-  let shift = (mask land 1) lxor ((mask land state.capslmask) lsr 1) in
-  let index =
-    let l3 = (mask land state.levl3mask) != 0 in
-    let l4 = (mask land state.levl5mask) != 0 in
-    shift +
-      if l3 then (if l4 then 8 else 4) else (if l4 then 6 else 0)
-  in
-  let keysym = state.keymap.(code-state.mink).(index) in
-  if index land 1 = 1 && keysym = 0
-  then state.keymap.(code-state.mink).(index - 1)
-  else keysym
+  let pkpk = state.keymap.(code-state.mink).(0) in
+  if (pkpk >= 0xff80 && pkpk <= 0xffbd)
+    || (pkpk >= 0x11000000 && pkpk <= 0x1100ffff)
+  then (
+    if mask land state.numlmask != 0
+    then
+      let keysym = state.keymap.(code-state.mink).(1) in
+      if keysym = 0 then pkpk else keysym
+    else pkpk
+  )
+  else (
+    let shift = (mask land 1) lxor ((mask land state.capslmask) lsr 1) in
+    let index =
+      let l3 = (mask land state.levl3mask) != 0 in
+      let l4 = (mask land state.levl5mask) != 0 in
+      shift +
+        if l3 then (if l4 then 8 else 4) else (if l4 then 6 else 0)
+    in
+    let keysym = state.keymap.(code-state.mink).(index) in
+    if index land 1 = 1 && keysym = 0
+    then state.keymap.(code-state.mink).(index - 1)
+    else keysym
+  )
 ;;
 
 let readresp sock =
@@ -504,6 +519,7 @@ let readresp sock =
       state.capslmask <- 0;
       state.levl3mask <- 0;
       state.levl5mask <- 0;
+      state.numlmask  <- 0;
       let s = getmodifiermappingreq () in
       sendwithrep sock s (updmodmap sock);
 

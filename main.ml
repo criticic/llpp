@@ -3016,6 +3016,10 @@ let withoutlastutf8 s =
 
 let textentrykeyboard
     key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
+  let key =
+    if key >= 0xffb0 && key <= 0xffb9
+    then key - 0xffb0 + 48 else key
+  in
   let enttext te =
     state.mode <- Textentry (te, onleave);
     state.text <- "";
@@ -3044,15 +3048,15 @@ let textentrykeyboard
         enttext (c, s, opthist, onkey, ondone, cancelonempty)
       )
 
-  | 0xff0d ->
+  | 0xff0d | 0xff8d ->                  (* (kp) enter *)
       ondone text;
       onleave Confirm;
       G.postRedisplay "textentrykeyboard after confirm"
 
-  | 0xff52 -> histaction HCprev
-  | 0xff54 -> histaction HCnext
-  | 0xff50 -> histaction HCfirst
-  | 0xff57 -> histaction HClast
+  | 0xff52 | 0xff97 -> histaction HCprev (* (kp) up *)
+  | 0xff54 | 0xff99 -> histaction HCnext (* (kp) down *)
+  | 0xff50 | 0xff95 -> histaction HCfirst (* (kp) home) *)
+  | 0xff57 | 0xff9c -> histaction HClast (* (kp) end *)
 
   | 0xff1b ->                     (* escape*)
       if String.length text = 0
@@ -3409,7 +3413,7 @@ object (self)
           coe {< m_qsearch = "" >}
         )
 
-    | 0xff0d ->                         (* return *)
+    | 0xff0d | 0xff8d ->                (* (kp) enter *)
         state.text <- "";
         let self = {< m_qsearch = "" >} in
         source#setqsearch "";
@@ -3428,30 +3432,30 @@ object (self)
         | Some uioh -> uioh
         end
 
-    | 0xff9f | 0xffff ->                (* delete *)
+    | 0xff9f | 0xffff ->                (* (kp) delete *)
         coe self
 
-    | 0xff52 -> navigate ~-1            (* up *)
-    | 0xff54 -> navigate   1            (* down *)
-    | 0xff55 -> navigate ~-(fstate.maxrows) (* prior *)
-    | 0xff56 -> navigate   fstate.maxrows (* next *)
+    | 0xff52 | 0xff97 -> navigate ~-1   (* (kp) up *)
+    | 0xff54 | 0xff99 -> navigate   1   (* (kp) down *)
+    | 0xff55 | 0xff9a -> navigate ~-(fstate.maxrows) (* (kp) prior *)
+    | 0xff56 | 0xff9b -> navigate   fstate.maxrows (* (kp) next *)
 
-    | 0xff53 ->                         (* right *)
+    | 0xff53 | 0xff98 ->                (* (kp) right *)
         state.text <- "";
         G.postRedisplay "listview right";
         coe {< m_pan = m_pan - 1 >}
 
-    | 0xff51 ->                         (* left *)
+    | 0xff51 | 0xff96 ->                (* (kp) left *)
         state.text <- "";
         G.postRedisplay "listview left";
         coe {< m_pan = m_pan + 1 >}
 
-    | 0xff50 ->                         (* home *)
+    | 0xff50 | 0xff95 ->                (* (kp) home *)
         let active = find 0 1 in
         G.postRedisplay "listview home";
         set active 0;
 
-    | 0xff57 ->                         (* end *)
+    | 0xff57 | 0xff9c ->                (* (kp) end *)
         let first = max 0 (itemcount - fstate.maxrows) in
         let active = find (itemcount - 1) ~-1 in
         G.postRedisplay "listview end";
@@ -3612,21 +3616,21 @@ object (self)
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
 
-    | 0xff9f | 0xffff ->                (* delete *)
+    | 0xff9f | 0xffff ->                (* (kp) delete *)
         source#remove m_active;
         G.postRedisplay "outline delete";
         let active = max 0 (m_active-1) in
         coe {< m_first = firstof m_first active;
                m_active = active >}
 
-    | 0xff52 -> navigate ~-1            (* up *)
-    | 0xff54 -> navigate 1              (* down *)
-    | 0xff55 ->                         (* prior *)
+    | 0xff52 | 0xff97 -> navigate ~-1   (* (kp) up *)
+    | 0xff54 | 0xff99 -> navigate 1     (* (kp) down *)
+    | 0xff55 | 0xff9a ->                (* (kp) prior *)
         navigate ~-(fstate.maxrows)
-    | 0xff56 ->                         (* next *)
+    | 0xff56 | 0xff9b ->                (* (kp) next *)
         navigate fstate.maxrows
 
-    | 0xff53 ->                         (* [ctrl-]right *)
+    | 0xff53 | 0xff98 ->                (* [ctrl-] (kp) right *)
         let o =
           if ctrl
           then (
@@ -3637,7 +3641,7 @@ object (self)
         in
         coe o
 
-    | 0xff51 ->                         (* [ctrl-]left *)
+    | 0xff51 | 0xff96 ->                (* [ctrl-] (kp) left *)
         let o =
           if ctrl
           then (
@@ -3648,11 +3652,11 @@ object (self)
         in
         coe o
 
-    | 0xff50 ->                         (* home *)
+    | 0xff50 | 0xff95 ->                (* (kp) home *)
         G.postRedisplay "outline home";
         coe {< m_first = 0; m_active = 0 >}
 
-    | 0xff57 ->                         (* end *)
+    | 0xff57 | 0xff9c ->                (* (kp) end *)
         let active = source#getitemcount - 1 in
         let first = max 0 (active - fstate.maxrows) in
         G.postRedisplay "outline end";
@@ -4546,8 +4550,8 @@ let enterinfomode =
         if not (Wsi.withctrl mask)
         then
           match key with
-          | 0xff51 -> coe (self#updownlevel ~-1)
-          | 0xff53 -> coe (self#updownlevel 1)
+          | 0xff51 | 0xff96 -> coe (self#updownlevel ~-1) (* (kp) left *)
+          | 0xff53 | 0xff98 -> coe (self#updownlevel 1) (* (kp) right *)
           | _ -> super#key key mask
         else super#key key mask
     end);
@@ -4744,6 +4748,9 @@ let viewkeyboard key mask =
     in
     any state.layout
   in
+  let key =
+    if key >= 0xffb0 && key < 0xffb9 then key - 0xffb0 + 48 else key
+  in
   match key with
   | 81 ->                               (* Q *)
       exit 0
@@ -4849,7 +4856,7 @@ let viewkeyboard key mask =
   | 57 when ctrl ->                     (* ctrl-9 *)
       togglebirdseye ()
 
-  | (48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 |  57)
+  | (48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57)
       when not ctrl ->                  (* 0..9 *)
       let ondone s =
         let n =
@@ -5157,7 +5164,7 @@ let viewkeyboard key mask =
   | 0xff54 | 0xff52 when ctrl && Wsi.withshift mask ->
       setzoom state.prevzoom
 
-  | 107 | 0xff52 ->                     (* k up *)
+  | 107 | 0xff52 | 0xff97 ->            (* k (kp) up *)
       begin match state.autoscroll with
       | None ->
           begin match state.mode with
@@ -5171,7 +5178,7 @@ let viewkeyboard key mask =
           setautoscrollspeed n false
       end
 
-  | 106 | 0xff54 ->                     (* j down *)
+  | 106 | 0xff54 | 0xff99 ->            (* j (kp) down *)
       begin match state.autoscroll with
       | None ->
           begin match state.mode with
@@ -5201,7 +5208,7 @@ let viewkeyboard key mask =
         G.postRedisplay "lef/right"
       )
 
-  | 0xff55 ->                           (* prior *)
+  | 0xff55 | 0xff9a ->                  (* (kp) prior *)
       let y =
         if ctrl
         then
@@ -5213,7 +5220,7 @@ let viewkeyboard key mask =
       in
       gotoghyll y
 
-  | 0xff56 ->                           (* next *)
+  | 0xff56 | 0xff9b ->                  (* (kp) next *)
       let y =
         if ctrl
         then
@@ -5225,9 +5232,9 @@ let viewkeyboard key mask =
       in
       gotoghyll y
 
-  | 103 | 0xff50 ->                     (* g home *)
+  | 103 | 0xff50 | 0xff95 ->            (* g (kp) home *)
       gotoghyll 0
-  | 71 | 0xff57 ->                      (* G end *)
+  | 71 | 0xff57 | 0xff9c ->             (* G end *)
       gotoghyll (clamp state.maxy)
 
   | 0xff53 when Wsi.withalt mask ->     (* alt-right *)
@@ -5270,7 +5277,7 @@ let linknavkeyboard key mask linknav =
   let doexact (pageno, n) =
     match getopaque pageno, getpage pageno with
     | Some opaque, Some l ->
-        if key = 0xff0d
+        if key = 0xff0d || key = 0xff8d (* (kp)enter *)
         then
           let under = getlink opaque n in
           G.postRedisplay "link gotounder";
@@ -5384,7 +5391,8 @@ let birdseyekeyboard key mask
       let y, h = getpageyh pageno in
       let top = (conf.winh - h) / 2 in
       gotoy (max 0 (y - top))
-  | 0xff0d -> leavebirdseye beye false
+  | 0xff0d                              (* enter *)
+  | 0xff8d -> leavebirdseye beye false  (* kp enter *)
   | 0xff1b -> leavebirdseye beye true   (* escape *)
   | 0xff52 -> upbirdseye incr beye      (* up *)
   | 0xff54 -> downbirdseye incr beye    (* down *)
