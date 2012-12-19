@@ -5097,7 +5097,10 @@ let viewkeyboard key mask =
   | 109 ->                              (* m *)
       let ondone s =
         match state.layout with
-        | l :: _ -> state.bookmarks <- (s, 0, getanchor1 l) :: state.bookmarks
+        | l :: _ ->
+            if String.length s > 0
+            then
+              state.bookmarks <- (s, 0, getanchor1 l) :: state.bookmarks
         | _ -> ()
       in
       enttext ("bookmark: ", "", None, textentry, ondone, true)
