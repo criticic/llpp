@@ -433,7 +433,7 @@ static void freepdfpage (void *ptr)
     pdf_free_page (state.u.pdf, ptr);
 }
 
-static void freeemptypdfpage (void *ptr)
+static void freeemptyxxxpage (void *ptr)
 {
     (void) ptr;
 }
@@ -697,30 +697,30 @@ static void *loadpage (int pageno, int pindex)
 
     page->dlist = fz_new_display_list (state.ctx);
     dev = fz_new_list_device (state.ctx, page->dlist);
-    switch (state.type) {
-    case DPDF:
-        fz_try (state.ctx) {
+    fz_try (state.ctx) {
+        switch (state.type) {
+        case DPDF:
             page->u.pdfpage = pdf_load_page (state.u.pdf, pageno);
             pdf_run_page (state.u.pdf, page->u.pdfpage, dev, fz_identity, NULL);
             page->freepage = freepdfpage;
-        }
-        fz_catch (state.ctx) {
-            page->u.ptr = NULL;
-            page->freepage = freeemptypdfpage;
-        }
-        break;
+            break;
 
-    case DXPS:
-        page->u.xpspage = xps_load_page (state.u.xps, pageno);
-        xps_run_page (state.u.xps, page->u.xpspage, dev, fz_identity, NULL);
-        page->freepage = freexpspage;
-        break;
+        case DXPS:
+            page->u.xpspage = xps_load_page (state.u.xps, pageno);
+            xps_run_page (state.u.xps, page->u.xpspage, dev, fz_identity, NULL);
+            page->freepage = freexpspage;
+            break;
 
-    case DCBZ:
-        page->u.cbzpage = cbz_load_page (state.u.cbz, pageno);
-        cbz_run_page (state.u.cbz, page->u.cbzpage, dev, fz_identity, NULL);
-        page->freepage = freecbzpage;
-        break;
+        case DCBZ:
+            page->u.cbzpage = cbz_load_page (state.u.cbz, pageno);
+            cbz_run_page (state.u.cbz, page->u.cbzpage, dev, fz_identity, NULL);
+            page->freepage = freecbzpage;
+            break;
+        }
+    }
+    fz_catch (state.ctx) {
+        page->u.ptr = NULL;
+        page->freepage = freeemptyxxxpage;
     }
     fz_free_device (dev);
 
@@ -938,6 +938,7 @@ static void initpdims (void)
                     }
                 }
                 fz_catch (state.ctx) {
+                    fprintf (stderr, "failed to load page %d\n", pageno+1);
                 }
             }
             else {
@@ -968,33 +969,37 @@ static void initpdims (void)
             {
                 xps_page *page;
 
-                page = xps_load_page (state.u.xps, pageno);
-                mediabox = xps_bound_page (state.u.xps, page);
-                rotate = 0;
-                if (state.trimmargins) {
-                    fz_rect rect;
-                    fz_bbox bbox;
-                    fz_device *dev;
+                fz_try (state.ctx) {
+                    page = xps_load_page (state.u.xps, pageno);
+                    mediabox = xps_bound_page (state.u.xps, page);
+                    rotate = 0;
+                    if (state.trimmargins) {
+                        fz_rect rect;
+                        fz_bbox bbox;
+                        fz_device *dev;
 
-                    dev = fz_new_bbox_device (state.ctx, &bbox);
-                    dev->hints |= FZ_IGNORE_SHADE;
-                    xps_run_page (state.u.xps, page, dev, fz_identity, NULL);
-                    fz_free_device (dev);
+                        dev = fz_new_bbox_device (state.ctx, &bbox);
+                        dev->hints |= FZ_IGNORE_SHADE;
+                        xps_run_page (state.u.xps, page, dev, fz_identity, NULL);
+                        fz_free_device (dev);
 
-                    rect.x0 = bbox.x0 + state.trimfuzz.x0;
-                    rect.x1 = bbox.x1 + state.trimfuzz.x1;
-                    rect.y0 = bbox.y0 + state.trimfuzz.y0;
-                    rect.y1 = bbox.y1 + state.trimfuzz.y1;
-                    rect = fz_intersect_rect (rect, mediabox);
+                        rect.x0 = bbox.x0 + state.trimfuzz.x0;
+                        rect.x1 = bbox.x1 + state.trimfuzz.x1;
+                        rect.y0 = bbox.y0 + state.trimfuzz.y0;
+                        rect.y1 = bbox.y1 + state.trimfuzz.y1;
+                        rect = fz_intersect_rect (rect, mediabox);
 
-                    if (!fz_is_empty_rect (rect)) {
-                        mediabox = rect;
+                        if (!fz_is_empty_rect (rect)) {
+                            mediabox = rect;
+                        }
                     }
+                    xps_free_page (state.u.xps, page);
+                    printd ("progress %f loading %d",
+                            (double) (pageno + 1) / state.pagecount,
+                            pageno + 1);
                 }
-                xps_free_page (state.u.xps, page);
-                printd ("progress %f loading %d",
-                        (double) (pageno + 1) / state.pagecount,
-                        pageno + 1);
+                fz_catch (state.ctx) {
+                }
             }
             break;
 
@@ -1004,12 +1009,21 @@ static void initpdims (void)
                 if (state.trimmargins && trimw) {
                     cbz_page *page;
 
-                    page = cbz_load_page (state.u.cbz, pageno);
-                    mediabox = cbz_bound_page (state.u.cbz, page);
-                    cbz_free_page (state.u.cbz, page);
-                    printd ("progress %f Trimming %d",
-                            (double) (pageno + 1) / state.pagecount,
-                            pageno + 1);
+                    fz_try (state.ctx) {
+                        page = cbz_load_page (state.u.cbz, pageno);
+                        mediabox = cbz_bound_page (state.u.cbz, page);
+                        cbz_free_page (state.u.cbz, page);
+                        printd ("progress %f Trimming %d",
+                                (double) (pageno + 1) / state.pagecount,
+                                pageno + 1);
+                    }
+                    fz_catch (state.ctx) {
+                        fprintf (stderr, "failed to load page %d\n", pageno+1);
+                        mediabox.x0 = 0;
+                        mediabox.y0 = 0;
+                        mediabox.x1 = 900;
+                        mediabox.y1 = 900;
+                    }
                     if (trimf) {
                         int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
                         if (n - 1)  {
