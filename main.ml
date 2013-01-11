@@ -1875,8 +1875,8 @@ let opendoc path password =
 ;;
 
 let reload () =
-    state.anchor <- getanchor ();
-    opendoc state.path state.password;
+  state.anchor <- getanchor ();
+  opendoc state.path state.password;
 ;;
 
 let scalecolor c =
