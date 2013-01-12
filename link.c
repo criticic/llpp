@@ -1612,20 +1612,29 @@ static void * mainloop (void *unused)
 
         if (!strncmp ("open", p, 4)) {
             size_t filenamelen;
+            int wthack, off;
             char *password;
-            char *filename = p + 5;
+            char *filename;
             char *utf8filename;
 
+            ret = sscanf (p + 5, " %d %n", &wthack, &off);
+            if (ret != 1) {
+                errx (1, "malformed cs `%.*s' ret=%d", len, p, ret);
+            }
+
+            filename = p + 5 + off;
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
 
             openxref (filename, password);
             pdfinfo ();
             initpdims ();
-            utf8filename = mbtoutf8 (filename);
-            printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
-            if (utf8filename != filename) {
-                free (utf8filename);
+            if (!wthack) {
+                utf8filename = mbtoutf8 (filename);
+                printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
+                if (utf8filename != filename) {
+                    free (utf8filename);
+                }
             }
             state.needoutline = 1;
         }

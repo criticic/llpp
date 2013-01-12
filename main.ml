@@ -473,6 +473,7 @@ type state =
     ; mutable keystate      : keystate
     ; mutable glinks        : bool
     ; mutable prevcolumns   : (columns * float) option
+    ; mutable wthack        : bool
     }
 and hists =
     { pat : string circbuf
@@ -712,6 +713,7 @@ let state =
   ; keystate      = KSnone
   ; glinks        = false
   ; prevcolumns   = None
+  ; wthack        = false
   }
 ;;
 
@@ -1868,7 +1870,7 @@ let opendoc path password =
   flushpages ();
   setaalevel conf.aalevel;
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename path)));
-  wcmd "open %s\000%s\000" path password;
+  wcmd "open %d %s\000%s\000" (btod state.wthack) path password;
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d" conf.angle (btod conf.proportional));
@@ -1876,6 +1878,7 @@ let opendoc path password =
 
 let reload () =
   state.anchor <- getanchor ();
+  state.wthack <- true;
   opendoc state.path state.password;
 ;;
 
@@ -2034,6 +2037,7 @@ let represent () =
 ;;
 
 let reshape w h =
+  state.wthack <- false;
   GlDraw.viewport 0 0 w h;
   let firsttime = state.geomcmds == firstgeomcmds in
   if not firsttime && nogeomcmds state.geomcmds
@@ -2430,6 +2434,7 @@ let act cmds =
 
             begin match state.throttle with
             | None ->
+                state.wthack <- false;
                 preload state.layout;
                 if   gen = state.gen
                   && conf.colorspace = cs
@@ -2441,6 +2446,7 @@ let act cmds =
                 let ready = layoutready layout in
                 if ready
                 then (
+                  state.wthack <- false;
                   state.y <- y;
                   state.layout <- layout;
                   state.throttle <- None;
@@ -5632,7 +5638,7 @@ let display () =
   end;
   enttext ();
   scrollindicator ();
-  Wsi.swapb ();
+  if not state.wthack then Wsi.swapb ();
 ;;
 
 let zoomrect x y x1 y1 =
@@ -6931,6 +6937,7 @@ let () =
   let globalkeyhash = findkeyhash conf "global" in
   let wsfd, winw, winh = Wsi.init (object
     method expose =
+      state.wthack <- false;
       if nogeomcmds state.geomcmds || platform == Posx
       then display ()
       else (
