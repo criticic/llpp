@@ -344,6 +344,7 @@ type conf =
     ; mutable hfsize         : int
     ; mutable pgscale        : float
     ; mutable usepbo         : bool
+    ; mutable wheelbypage    : bool
     }
 and columns =
     | Csingle of singlecolumn
@@ -548,6 +549,7 @@ let defconf =
   ; hfsize         = 12
   ; pgscale        = 1.0
   ; usepbo         = false
+  ; wheelbypage    = false
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -4509,6 +4511,9 @@ let enterinfomode =
         src#bool "use PBO"
           (fun () -> conf.usepbo)
           (fun v -> conf.usepbo <- v);
+      src#bool "mouse wheel scrolls pages"
+        (fun () -> conf.wheelbypage)
+        (fun v -> conf.wheelbypage <- v);
     );
 
     sep ();
@@ -4730,6 +4735,96 @@ let canpan () =
   | _ -> conf.zoom > 1.0
 ;;
 
+let existsinrow pageno (columns, coverA, coverB) p =
+  let last = ((pageno - coverA) mod columns) + columns in
+  let rec any = function
+    | [] -> false
+    | l :: rest ->
+        if l.pageno = coverA - 1 || l.pageno = state.pagecount - coverB
+        then p l
+        else (
+          if not (p l)
+          then (if l.pageno = last then false else any rest)
+          else true
+        )
+  in
+  any state.layout
+;;
+
+let nextpage () =
+  match state.layout with
+  | [] -> ()
+  | l :: rest ->
+      match conf.columns with
+      | Csingle _ ->
+          if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
+          then
+            let y = clamp (pgscale conf.winh) in
+            gotoghyll y
+          else
+            let pageno = min (l.pageno+1) (state.pagecount-1) in
+            gotoghyll (getpagey pageno)
+      | Cmulti ((c, _, _) as cl, _) ->
+          if conf.presentation
+            && (existsinrow l.pageno cl
+                   (fun l -> l.pageh > l.pagey + l.pagevh))
+          then
+            let y = clamp (pgscale conf.winh) in
+            gotoghyll y
+          else
+            let pageno = min (l.pageno+c) (state.pagecount-1) in
+            gotoghyll (getpagey pageno)
+      | Csplit (n, _) ->
+          if l.pageno < state.pagecount - 1 || l.pagecol < n - 1
+          then
+            let pagey, pageh = getpageyh l.pageno in
+            let pagey = pagey + pageh * l.pagecol in
+            let ips = if l.pagecol = 0 then 0 else conf.interpagespace in
+            gotoghyll (pagey + pageh + ips)
+;;
+
+let prevpage () =
+  match state.layout with
+  | [] -> ()
+  | l :: _ ->
+      match conf.columns with
+      | Csingle _ ->
+          if conf.presentation && l.pagey != 0
+          then
+            gotoghyll (clamp (pgscale ~-(conf.winh)))
+          else
+            let pageno = max 0 (l.pageno-1) in
+            gotoghyll (getpagey pageno)
+      | Cmulti ((c, _, coverB) as cl, _) ->
+          if conf.presentation &&
+            (existsinrow l.pageno cl (fun l -> l.pagey != 0))
+          then
+            gotoghyll (clamp (pgscale ~-(conf.winh)))
+          else
+            let decr =
+              if l.pageno = state.pagecount - coverB
+              then 1
+              else c
+            in
+            let pageno = max 0 (l.pageno-decr) in
+            gotoghyll (getpagey pageno)
+      | Csplit (n, _) ->
+          let y =
+            if l.pagecol = 0
+            then
+              if l.pageno = 0
+              then l.pagey
+              else
+                let pageno = max 0 (l.pageno-1) in
+                let pagey, pageh = getpageyh pageno in
+                pagey + (n-1)*pageh
+            else
+              let pagey, pageh = getpageyh l.pageno in
+              pagey + pageh * (l.pagecol-1) - conf.interpagespace
+          in
+          gotoghyll y
+;;
+
 let viewkeyboard key mask =
   let enttext te =
     let mode = state.mode in
@@ -4739,21 +4834,6 @@ let viewkeyboard key mask =
     G.postRedisplay "view:enttext"
   in
   let ctrl = Wsi.withctrl mask in
-  let existsinrow pageno (columns, coverA, coverB) p =
-    let last = ((pageno - coverA) mod columns) + columns in
-    let rec any = function
-      | [] -> false
-      | l :: rest ->
-          if l.pageno = coverA - 1 || l.pageno = state.pagecount - coverB
-          then p l
-          else (
-            if not (p l)
-            then (if l.pageno = last then false else any rest)
-            else true
-          )
-    in
-    any state.layout
-  in
   let key =
     if key >= 0xffb0 && key < 0xffb9 then key - 0xffb0 + 48 else key
   in
@@ -5004,78 +5084,10 @@ let viewkeyboard key mask =
       end
 
   | 32 ->                               (* space *)
-      begin match state.layout with
-      | [] -> ()
-      | l :: rest ->
-          match conf.columns with
-          | Csingle _ ->
-              if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
-              then
-                let y = clamp (pgscale conf.winh) in
-                gotoghyll y
-              else
-                let pageno = min (l.pageno+1) (state.pagecount-1) in
-                gotoghyll (getpagey pageno)
-          | Cmulti ((c, _, _) as cl, _) ->
-              if conf.presentation
-                && (existsinrow l.pageno cl
-                       (fun l -> l.pageh > l.pagey + l.pagevh))
-              then
-                let y = clamp (pgscale conf.winh) in
-                gotoghyll y
-              else
-                let pageno = min (l.pageno+c) (state.pagecount-1) in
-                gotoghyll (getpagey pageno)
-          | Csplit (n, _) ->
-              if l.pageno < state.pagecount - 1 || l.pagecol < n - 1
-              then
-                let pagey, pageh = getpageyh l.pageno in
-                let pagey = pagey + pageh * l.pagecol in
-                let ips = if l.pagecol = 0 then 0 else conf.interpagespace in
-                gotoghyll (pagey + pageh + ips)
-      end
+      nextpage ()
 
   | 0xff9f | 0xffff ->                  (* delete *)
-      begin match state.layout with
-      | [] -> ()
-      | l :: _ ->
-          match conf.columns with
-          | Csingle _ ->
-              if conf.presentation && l.pagey != 0
-              then
-                gotoghyll (clamp (pgscale ~-(conf.winh)))
-              else
-                let pageno = max 0 (l.pageno-1) in
-                gotoghyll (getpagey pageno)
-          | Cmulti ((c, _, coverB) as cl, _) ->
-              if conf.presentation &&
-                (existsinrow l.pageno cl (fun l -> l.pagey != 0))
-              then
-                gotoghyll (clamp (pgscale ~-(conf.winh)))
-              else
-                let decr =
-                  if l.pageno = state.pagecount - coverB
-                  then 1
-                  else c
-                in
-                let pageno = max 0 (l.pageno-decr) in
-                gotoghyll (getpagey pageno)
-          | Csplit (n, _) ->
-              let y =
-                if l.pagecol = 0
-                then
-                  if l.pageno = 0
-                  then l.pagey
-                  else
-                    let pageno = max 0 (l.pageno-1) in
-                    let pagey, pageh = getpageyh pageno in
-                    pagey + (n-1)*pageh
-                else
-                  let pagey, pageh = getpageyh l.pageno in
-                  pagey + pageh * (l.pagecol-1) - conf.interpagespace
-              in
-              gotoghyll y
-      end
+      prevpage ()
 
   | 61 ->                               (* = *)
       showtext ' ' (describe_location ());
@@ -5707,14 +5719,21 @@ let viewmouse button down x y mask =
         match state.autoscroll with
         | Some step -> setautoscrollspeed step (n=4)
         | None ->
-            let incr =
-              if n = 4
-              then -conf.scrollstep
-              else conf.scrollstep
-            in
-            let incr = incr * 2 in
-            let y = clamp incr in
-            gotoy_and_clear_text y
+            if conf.wheelbypage
+            then (
+             if n = 4
+             then nextpage ()
+             else prevpage ()
+            )
+            else
+              let incr =
+                if n = 4
+                then -conf.scrollstep
+                else conf.scrollstep
+              in
+              let incr = incr * 2 in
+              let y = clamp incr in
+              gotoy_and_clear_text y
       )
 
   | n when (n = 6 || n = 7) && not down && canpan () ->
@@ -6159,6 +6178,7 @@ struct
         | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
         | "page-scroll-scale" -> { c with pgscale = float_of_string v }
         | "use-pbo" -> { c with usepbo = bool_of_string v }
+        | "wheel-scrolls-pages" -> { c with wheelbypage = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6270,6 +6290,7 @@ struct
     dst.hscrollstep    <- src.hscrollstep;
     dst.pgscale        <- src.pgscale;
     dst.usepbo         <- src.usepbo;
+    dst.wheelbypage    <- src.wheelbypage;
   ;;
 
   let get s =
@@ -6680,6 +6701,7 @@ struct
     oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
     oF "page-scroll-scale" c.pgscale dc.pgscale;
     ob "use-pbo" c.usepbo dc.usepbo;
+    ob "wheel-scrolls-pages" c.wheelbypage dc.wheelbypage;
   ;;
 
   let keymapsbuf always dc c =
