@@ -457,6 +457,7 @@ type state =
     ; mutable bookmarks     : outline list
     ; mutable path          : string
     ; mutable password      : string
+    ; mutable nameddest     : string
     ; mutable geomcmds      : (string * ((string * (unit -> unit)) list))
     ; mutable memused       : memsize
     ; mutable gen           : gen
@@ -692,6 +693,7 @@ let state =
   ; bookmarks     = []
   ; path          = ""
   ; password      = ""
+  ; nameddest     = ""
   ; geomcmds      = firstgeomcmds
   ; hists         =
       { nav       = cbnew 10 emptyanchor
@@ -1863,16 +1865,17 @@ let flushpages () =
   Hashtbl.clear state.pagemap;
 ;;
 
-let opendoc path password =
+let opendoc path password nameddest =
   state.path <- path;
   state.password <- password;
   state.gen <- state.gen + 1;
   state.docinfo <- [];
+  state.nameddest <- nameddest;
 
   flushpages ();
   setaalevel conf.aalevel;
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename path)));
-  wcmd "open %d %s\000%s\000" (btod state.wthack) path password;
+  wcmd "open %d %s\000%s\000%s\000" (btod state.wthack) path password nameddest;
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d" conf.angle (btod conf.proportional));
@@ -1881,7 +1884,7 @@ let opendoc path password =
 let reload () =
   state.anchor <- getanchor ();
   state.wthack <- true;
-  opendoc state.path state.password;
+  opendoc state.path state.password state.nameddest;
 ;;
 
 let scalecolor c =
@@ -2284,6 +2287,11 @@ let act cmds =
       if conf.verbose
       then showtext ' ' args
 
+  | "emsg" ->
+      Buffer.add_string state.errmsgs args;
+      state.newerrmsgs <- true;
+      G.postRedisplay "error message"
+
   | "progress" ->
       let progress, text =
         try
@@ -2497,6 +2505,18 @@ let act cmds =
             dolog "invalid outlining state";
             logcurrently currently
       end
+
+  | "a" ->
+      let (n, t, h) =
+        try
+          Scanf.sscanf args "%u %u %d"
+            (fun n t h -> n, t, h)
+        with exn ->
+          dolog "error processing 'a' %S: %s"
+            cmds (Printexc.to_string exn);
+          exit 1;
+      in
+      state.anchor <- (n, float t /. float h, 0.0)
 
   | "info" ->
       state.docinfo <- (1, args) :: state.docinfo
@@ -4420,7 +4440,7 @@ let enterinfomode =
         (fun v ->
           conf.aalevel <- bound v 0 8;
           state.anchor <- getanchor ();
-          opendoc state.path state.password;
+          opendoc state.path state.password state.nameddest;
         );
       src#string "page scroll scaling factor"
         (fun () -> string_of_float conf.pgscale)
@@ -4722,7 +4742,7 @@ let gotounder = function
         let ranchor = state.path, state.password, anchor in
         state.anchor <- (pageno, 0.0, 0.0);
         state.ranchors <- ranchor :: state.ranchors;
-        opendoc path "";
+        opendoc path "" "";
       )
       else showtext '!' ("Could not find " ^ filename)
 
@@ -4866,7 +4886,7 @@ let viewkeyboard key mask =
               | (path, password, anchor) :: rest ->
                   state.ranchors <- rest;
                   state.anchor <- anchor;
-                  opendoc path password
+                  opendoc path password ""
           end;
       end;
 
@@ -5109,7 +5129,7 @@ let viewkeyboard key mask =
   | 105 ->                              (* i *)
       enterinfomode ()
 
-  | 101 when conf.redirectstderr ->     (* e *)
+  | 101 when Buffer.length state.errmsgs > 0 -> (* e *)
       entermsgsmode ()
 
   | 109 ->                              (* m *)
@@ -6938,6 +6958,9 @@ let () =
          ("-tcf", Arg.String (fun s -> trimcachepath := s),
          "<path> Set path to the trim cache file");
 
+         ("-dest", Arg.String (fun s -> state.nameddest <- s),
+         "<named destination> Set named destination");
+
          ("-v", Arg.Unit (fun () ->
            Printf.printf
              "%s\nconfiguration path: %s\n"
@@ -7045,7 +7068,7 @@ let () =
   state.sw <- sw;
   state.text <- "Opening " ^ (mbtoutf8 state.path);
   reshape winw winh;
-  opendoc state.path state.password;
+  opendoc state.path state.password state.nameddest;
   state.uioh <- uioh;
 
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));

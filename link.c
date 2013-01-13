@@ -1155,35 +1155,45 @@ static void layout (void)
     }
 }
 
+static struct anchor { int n; int y; int h; } desttoanchor (fz_link_dest *dest)
+{
+    int i;
+    struct anchor a;
+    struct pagedim *pdim = state.pagedims;
+
+    a.n = -1;
+    a.y = 0;
+    for (i = 0; i < state.pagedimcount; ++i) {
+        if (state.pagedims[i].pageno > dest->ld.gotor.page)
+            break;
+        pdim = &state.pagedims[i];
+    }
+    if (dest->ld.gotor.flags & fz_link_flag_t_valid) {
+        fz_point p;
+        p.x = 0;
+        p.y = dest->ld.gotor.lt.y;
+        p = fz_transform_point (pdim->lctm, p);
+        a.y = p.y;
+    }
+    if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
+        double y0, y1;
+
+        y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
+        y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
+        a.h = y1 - y0;
+        a.n = dest->ld.gotor.page;
+    }
+    return a;
+}
+
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        fz_link_dest *dest;
-        int i, top = 0;
-        struct pagedim *pdim = state.pagedims;
+        struct anchor a = desttoanchor (&outline->dest);
 
-        dest = &outline->dest;
-        for (i = 0; i < state.pagedimcount; ++i) {
-            if (state.pagedims[i].pageno > dest->ld.gotor.page)
-                break;
-            pdim = &state.pagedims[i];
-        }
-        if (dest->ld.gotor.flags & fz_link_flag_t_valid) {
-            fz_point p;
-            p.x = 0;
-            p.y = dest->ld.gotor.lt.y;
-            p = fz_transform_point (pdim->lctm, p);
-            top = p.y;
-        }
-        if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
-            int h;
-            double y0, y1;
-
-            y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
-            y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
-            h = y1 - y0;
+        if (a.n >= 0) {
             printd ("o %d %d %d %d %s",
-                    level, dest->ld.gotor.page, top, h, outline->title);
+                    level, a.n, a.y, a.h, outline->title);
         }
         if (outline->down) {
             recurse_outline (outline->down, level + 1);
@@ -1615,20 +1625,48 @@ static void * mainloop (void *unused)
             int wthack, off;
             char *password;
             char *filename;
+            char *nameddest;
             char *utf8filename;
 
             ret = sscanf (p + 5, " %d %n", &wthack, &off);
             if (ret != 1) {
-                errx (1, "malformed cs `%.*s' ret=%d", len, p, ret);
+                errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
 
             filename = p + 5 + off;
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
+            nameddest = password + strlen (password) + 1;
 
             openxref (filename, password);
             pdfinfo ();
             initpdims ();
+            if (nameddest && *nameddest) {
+                struct anchor a;
+                fz_link_dest dest;
+                pdf_obj *needle, *obj;
+
+                needle = pdf_new_string (state.ctx, nameddest,
+                                         strlen (nameddest));
+                obj = pdf_lookup_dest (state.u.pdf, needle);
+                if (obj) {
+                    dest = pdf_parse_link_dest (state.u.pdf, obj);
+
+                    a = desttoanchor (&dest);
+                    if (a.n >= 0) {
+                        printd ("a %d %d %d", a.n, a.y, a.h);
+                    }
+                    else {
+                        printd ("emsg failed to parse destination `%s'\n",
+                                nameddest);
+                    }
+                }
+                else {
+                    printd ("emsg destination `%s' not found\n",
+                            nameddest);
+                }
+                pdf_drop_obj (needle);
+            }
             if (!wthack) {
                 utf8filename = mbtoutf8 (filename);
                 printd ("msg Opened %s (press h/F1 to get help)", utf8filename);

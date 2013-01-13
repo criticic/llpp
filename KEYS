@@ -36,7 +36,7 @@ o                       - switch to outline mode
 '                       - switch to bookmark mode
 h,F1                    - switch to help mode
 i                       - switch to info mode
-e                       - switch to error messages mode (if stderr was redirected)
+e                       - view error log
 m                       - create named bookmark
 ~                       - create quick bookmark
 z                       - crop
