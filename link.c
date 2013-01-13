@@ -1460,7 +1460,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         }
     }
     end = now ();
-    if (!stop)  {
+    if (!stop) {
         printd ("progress 1 no matches %f sec", end - start);
     }
     printd ("clearrects");
