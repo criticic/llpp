@@ -18,8 +18,8 @@ root=$(pwd)
 
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 mupdf3p=http://mupdf.com/download/archive/mupdf-thirdparty-2012-08-14.zip
-mupdfrev=a1a37ae36043d8dba89cecfa345119ad32f81b9e
-mudir=mupdf-a1a37ae
+mupdfrev=a242b4cf1123910c4dba18c75a77f28c5f6d8f33
+mudir=mupdf-a242b4c
 mutgz=mupdf-$mupdfrev.tgz
 muurl="http://git.ghostscript.com/?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
