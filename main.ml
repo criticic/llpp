@@ -1,5 +1,7 @@
 exception Quit;;
 
+let tempfailureretry = Wsi.tempfailureretry;;
+
 type under =
     | Unone
     | Ulinkuri of string
@@ -752,17 +754,17 @@ module Ne = struct
   ;;
 
   let clo fd f =
-    try Unix.close fd
+    try tempfailureretry Unix.close fd
     with exn -> f (Printexc.to_string exn)
   ;;
 
   let dup fd =
-    try Res (Unix.dup fd)
+    try Res (tempfailureretry Unix.dup fd)
     with exn -> Exn exn
   ;;
 
   let dup2 fd1 fd2 =
-    try Res (Unix.dup2 fd1 fd2)
+    try Res (tempfailureretry (Unix.dup2 fd1) fd2)
     with exn -> Exn exn
   ;;
 end;;
@@ -807,7 +809,7 @@ let redirectstderr () =
               (Printexc.to_string exn)
         | Ne.Res () ->
             Ne.clo fd (clofail "dup of stderr");
-            Unix.dup2 state.stderr Unix.stderr;
+            ignore (Ne.dup2 state.stderr Unix.stderr);
             state.errfd <- None;
         end;
     | None -> ()
@@ -995,7 +997,7 @@ let multicolumns_of_string s =
 
 let readcmd fd =
   let s = "xxxx" in
-  let n = Unix.read fd s 0 4 in
+  let n = tempfailureretry (Unix.read fd s 0) 4 in
   if n != 4 then failwith "incomplete read(len)";
   let len = 0
     lor (Char.code s.[0] lsl 24)
@@ -1004,7 +1006,7 @@ let readcmd fd =
     lor (Char.code s.[3] lsl  0)
   in
   let s = String.create len in
-  let n = Unix.read fd s 0 len in
+  let n = tempfailureretry (Unix.read fd s 0) len in
   if n != len then failwith "incomplete read(data)";
   s
 ;;
@@ -1024,7 +1026,7 @@ let wcmd fmt =
       s.[1] <- Char.chr ((len lsr 16) land 0xff);
       s.[2] <- Char.chr ((len lsr  8) land 0xff);
       s.[3] <- Char.chr (len land 0xff);
-      let n' = Unix.write state.sw s 0 n in
+      let n' = tempfailureretry (Unix.write state.sw s 0) n in
       if n' != n then failwith "write failed";
     ) b fmt;
 ;;
@@ -5035,7 +5037,7 @@ let viewkeyboard key mask =
               then
                 (try
                     let l = String.length s in
-                    let n = Unix.write w s 0 l in
+                    let n = tempfailureretry (Unix.write w s 0) l in
                     if n != l
                     then
                       showtext '!'
@@ -7095,7 +7097,7 @@ let () =
       else 0.0
     in
     let r, _, _ =
-      try Unix.select r [] [] timeout
+      try tempfailureretry (Unix.select r [] []) timeout
       with Unix.Unix_error (Unix.EINTR, _, _) -> [], [], []
     in
     begin match r with
@@ -7135,7 +7137,7 @@ let () =
 
           | fd :: rest ->
               let s = String.create 80 in
-              let n = Unix.read fd s 0 80 in
+              let n = tempfailureretry (Unix.read fd s 0) 80 in
               if conf.redirectstderr
               then (
                 Buffer.add_substring state.errmsgs s 0 n;

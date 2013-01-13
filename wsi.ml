@@ -6,6 +6,12 @@ type cursor =
     | CURSOR_TEXT
 ;;
 
+let tempfailureretry f a =
+  let rec g () =
+    try f a with Unix.Unix_error (Unix.EINTR, _, _) -> g ()
+  in g ()
+;;
+
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external glx : int -> unit = "ml_glx";;
 external glxsync : unit -> unit = "ml_glxsync";;
@@ -141,12 +147,12 @@ let error fmt = Printf.kprintf failwith fmt;;
 let readstr sock n =
   let s = String.create n in
   let rec loop pos n =
-    let m = Unix.read sock s pos n in
+    let m = tempfailureretry (Unix.read sock s pos) n in
     if m = 0
     then state.t#quit;
     if n != m
     then (
-      ignore (Unix.select [sock] [] [] 0.01);
+      ignore (tempfailureretry (Unix.select [sock] [] []) 0.01);
       loop (pos + m) (n - m)
     )
   in
@@ -157,7 +163,7 @@ let readstr sock n =
 let sendstr1 s pos len sock =
   vlog "%d => %S" state.seq s;
   state.seq <- state.seq + 1;
-  let n = Unix.send sock s pos len [] in
+  let n = tempfailureretry (Unix.send sock s pos len) [] in
   if n != len
   then error "send %d returned %d" len n;
 ;;
@@ -591,7 +597,9 @@ let syncsendwithrep sock secstowait s f =
   let now = Unix.gettimeofday in
   let deadline = now () +. secstowait in
   let rec readtillcompletion () =
-    let r, _, _ = Unix.select [sock] [] [] (deadline -. now ()) in
+    let r, _, _ =
+      tempfailureretry (Unix.select [sock] [] []) (deadline -. now ())
+    in
     match r with
     | [] -> error "didn't get X response in %f seconds, aborting" secstowait
     | _ ->
