@@ -809,7 +809,6 @@ let redirectstderr () =
               (Printexc.to_string exn)
         | Ne.Res () ->
             Ne.clo fd (clofail "dup of stderr");
-            ignore (Ne.dup2 state.stderr Unix.stderr);
             state.errfd <- None;
         end;
     | None -> ()
