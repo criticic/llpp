@@ -2518,7 +2518,7 @@ let act cmds =
             cmds (Printexc.to_string exn);
           exit 1;
       in
-      state.anchor <- (n, float t /. float h, 0.0)
+      gotoanchor (n, float t /. float h, 0.0)
 
   | "info" ->
       state.docinfo <- (1, args) :: state.docinfo
