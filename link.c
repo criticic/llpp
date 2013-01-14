@@ -1732,8 +1732,25 @@ static void * mainloop (void *unused)
             unlock ("geometry");
             printd ("continue %d", state.pagecount);
         }
-        else if (!strncmp ("anchor", p, 6)) {
-            char *nameddest = p + 7;
+        else if (!strncmp ("reqlayout", p, 9)) {
+            char *nameddest;
+            int rotate, proportional, off;
+
+            printd ("clear");
+            ret = sscanf (p + 9, " %d %d %n", &rotate, &proportional, &off);
+            if (ret != 2) {
+                errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
+            }
+            lock ("reqlayout");
+            if (state.rotate != rotate || state.proportional != proportional) {
+                state.gen += 1;
+            }
+            state.rotate = rotate;
+            state.proportional = proportional;
+            layout ();
+            process_outline ();
+
+            nameddest = p + 9 + off;
             if (state.type == DPDF && nameddest && *nameddest) {
                 struct anchor a;
                 fz_link_dest dest;
@@ -1760,23 +1777,7 @@ static void * mainloop (void *unused)
                 }
                 pdf_drop_obj (needle);
             }
-        }
-        else if (!strncmp ("reqlayout", p, 9)) {
-            int rotate, proportional;
 
-            printd ("clear");
-            ret = sscanf (p + 9, " %d %d", &rotate, &proportional);
-            if (ret != 2) {
-                errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
-            }
-            lock ("reqlayout");
-            if (state.rotate != rotate || state.proportional != proportional) {
-                state.gen += 1;
-            }
-            state.rotate = rotate;
-            state.proportional = proportional;
-            layout ();
-            process_outline ();
             state.gen++;
             unlock ("reqlayout");
             printd ("continue %d", state.pagecount);

@@ -1878,9 +1878,9 @@ let opendoc path password =
   wcmd "open %d %s\000%s\000" (btod state.wthack) path password;
   invalidate "reqlayout"
     (fun () ->
-      wcmd "reqlayout %d %d" conf.angle (btod conf.proportional);
-      if String.length state.nameddest > 0
-      then wcmd "anchor %s\000" state.nameddest);
+      wcmd "reqlayout %d %d %s\000"
+        conf.angle (btod conf.proportional) state.nameddest;
+    )
 ;;
 
 let reload () =
@@ -2518,7 +2518,7 @@ let act cmds =
             cmds (Printexc.to_string exn);
           exit 1;
       in
-      gotoanchor (n, float t /. float h, 0.0)
+      state.anchor <- (n, float t /. float h, 0.0)
 
   | "info" ->
       state.docinfo <- (1, args) :: state.docinfo
