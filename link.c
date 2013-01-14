@@ -1625,7 +1625,6 @@ static void * mainloop (void *unused)
             int wthack, off;
             char *password;
             char *filename;
-            char *nameddest;
             char *utf8filename;
 
             ret = sscanf (p + 5, " %d %n", &wthack, &off);
@@ -1636,37 +1635,10 @@ static void * mainloop (void *unused)
             filename = p + 5 + off;
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
-            nameddest = password + strlen (password) + 1;
 
             openxref (filename, password);
             pdfinfo ();
             initpdims ();
-            if (nameddest && *nameddest) {
-                struct anchor a;
-                fz_link_dest dest;
-                pdf_obj *needle, *obj;
-
-                needle = pdf_new_string (state.ctx, nameddest,
-                                         strlen (nameddest));
-                obj = pdf_lookup_dest (state.u.pdf, needle);
-                if (obj) {
-                    dest = pdf_parse_link_dest (state.u.pdf, obj);
-
-                    a = desttoanchor (&dest);
-                    if (a.n >= 0) {
-                        printd ("a %d %d %d", a.n, a.y, a.h);
-                    }
-                    else {
-                        printd ("emsg failed to parse destination `%s'\n",
-                                nameddest);
-                    }
-                }
-                else {
-                    printd ("emsg destination `%s' not found\n",
-                            nameddest);
-                }
-                pdf_drop_obj (needle);
-            }
             if (!wthack) {
                 utf8filename = mbtoutf8 (filename);
                 printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
@@ -1755,9 +1727,39 @@ static void * mainloop (void *unused)
             }
             layout ();
             process_outline ();
+
             state.gen++;
             unlock ("geometry");
             printd ("continue %d", state.pagecount);
+        }
+        else if (!strncmp ("anchor", p, 6)) {
+            char *nameddest = p + 7;
+            if (state.type == DPDF && nameddest && *nameddest) {
+                struct anchor a;
+                fz_link_dest dest;
+                pdf_obj *needle, *obj;
+
+                needle = pdf_new_string (state.ctx, nameddest,
+                                         strlen (nameddest));
+                obj = pdf_lookup_dest (state.u.pdf, needle);
+                if (obj) {
+                    dest = pdf_parse_link_dest (state.u.pdf, obj);
+
+                    a = desttoanchor (&dest);
+                    if (a.n >= 0) {
+                        printd ("a %d %d %d", a.n, a.y, a.h);
+                    }
+                    else {
+                        printd ("emsg failed to parse destination `%s'\n",
+                                nameddest);
+                    }
+                }
+                else {
+                    printd ("emsg destination `%s' not found\n",
+                            nameddest);
+                }
+                pdf_drop_obj (needle);
+            }
         }
         else if (!strncmp ("reqlayout", p, 9)) {
             int rotate, proportional;

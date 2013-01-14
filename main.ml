@@ -1866,26 +1866,27 @@ let flushpages () =
   Hashtbl.clear state.pagemap;
 ;;
 
-let opendoc path password nameddest =
+let opendoc path password =
   state.path <- path;
   state.password <- password;
   state.gen <- state.gen + 1;
   state.docinfo <- [];
-  state.nameddest <- nameddest;
 
   flushpages ();
   setaalevel conf.aalevel;
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename path)));
-  wcmd "open %d %s\000%s\000%s\000" (btod state.wthack) path password nameddest;
+  wcmd "open %d %s\000%s\000" (btod state.wthack) path password;
   invalidate "reqlayout"
     (fun () ->
-      wcmd "reqlayout %d %d" conf.angle (btod conf.proportional));
+      wcmd "reqlayout %d %d" conf.angle (btod conf.proportional);
+      if String.length state.nameddest > 0
+      then wcmd "anchor %s\000" state.nameddest);
 ;;
 
 let reload () =
   state.anchor <- getanchor ();
   state.wthack <- true;
-  opendoc state.path state.password state.nameddest;
+  opendoc state.path state.password;
 ;;
 
 let scalecolor c =
@@ -4441,7 +4442,7 @@ let enterinfomode =
         (fun v ->
           conf.aalevel <- bound v 0 8;
           state.anchor <- getanchor ();
-          opendoc state.path state.password state.nameddest;
+          opendoc state.path state.password;
         );
       src#string "page scroll scaling factor"
         (fun () -> string_of_float conf.pgscale)
@@ -4743,7 +4744,7 @@ let gotounder = function
         let ranchor = state.path, state.password, anchor in
         state.anchor <- (pageno, 0.0, 0.0);
         state.ranchors <- ranchor :: state.ranchors;
-        opendoc path "" "";
+        opendoc path "";
       )
       else showtext '!' ("Could not find " ^ filename)
 
@@ -4887,7 +4888,7 @@ let viewkeyboard key mask =
               | (path, password, anchor) :: rest ->
                   state.ranchors <- rest;
                   state.anchor <- anchor;
-                  opendoc path password ""
+                  opendoc path password
           end;
       end;
 
@@ -7069,7 +7070,7 @@ let () =
   state.sw <- sw;
   state.text <- "Opening " ^ (mbtoutf8 state.path);
   reshape winw winh;
-  opendoc state.path state.password state.nameddest;
+  opendoc state.path state.password;
   state.uioh <- uioh;
 
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
