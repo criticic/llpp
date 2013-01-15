@@ -2518,7 +2518,12 @@ let act cmds =
             cmds (Printexc.to_string exn);
           exit 1;
       in
-      state.anchor <- (n, float t /. float h, 0.0)
+      let top, dtop =
+        if conf.presentation
+        then (0.0, 1.0)
+        else float t, 0.0
+      in
+      state.anchor <- (n, top /. float h, dtop)
 
   | "info" ->
       state.docinfo <- (1, args) :: state.docinfo
