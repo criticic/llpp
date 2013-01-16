@@ -1597,6 +1597,7 @@ let layoutready layout =
 ;;
 
 let gotoy y =
+  state.wthack <- false;
   let y = bound y 0 state.maxy in
   let y, layout, proceed =
     match conf.maxwait with
@@ -2035,12 +2036,15 @@ let represent () =
     then 0
     else state.scrollw
   ;
-  match state.mode with
+  let wthack = state.wthack in
+  begin match state.mode with
   | Birdseye (_, _, pageno, _, _) ->
       let y, h = getpageyh pageno in
       let top = (conf.winh - h) / 2 in
       gotoy (max 0 (y - top))
   | _ -> gotoanchor state.anchor
+  end;
+  state.wthack <- wthack;
 ;;
 
 let reshape w h =
@@ -2446,7 +2450,8 @@ let act cmds =
 
             begin match state.throttle with
             | None ->
-                state.wthack <- false;
+                if state.wthack
+                then state.wthack <- not (layoutready state.layout);
                 preload state.layout;
                 if   gen = state.gen
                   && conf.colorspace = cs
