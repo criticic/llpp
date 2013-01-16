@@ -568,6 +568,8 @@ let defconf =
   }
 ;;
 
+let wtmode = ref false;;
+
 let findkeyhash c name =
   try List.assoc name c.keyhashes
   with Not_found -> failwith ("invalid mode name `" ^ name ^ "'")
@@ -1886,7 +1888,7 @@ let opendoc path password =
 
 let reload () =
   state.anchor <- getanchor ();
-  state.wthack <- true;
+  state.wthack <- !wtmode;
   opendoc state.path state.password;
 ;;
 
@@ -6972,6 +6974,8 @@ let () =
 
          ("-dest", Arg.String (fun s -> state.nameddest <- s),
          "<named destination> Set named destination");
+
+         ("-wtmode", Arg.Set wtmode, "wt mode");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
