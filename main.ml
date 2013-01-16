@@ -2527,9 +2527,9 @@ let act cmds =
       let top, dtop =
         if conf.presentation
         then (0.0, 1.0)
-        else float t, 0.0
+        else float t /. float h, 0.0
       in
-      state.anchor <- (n, top /. float h, dtop)
+      state.anchor <- (n, top, dtop)
 
   | "info" ->
       state.docinfo <- (1, args) :: state.docinfo
