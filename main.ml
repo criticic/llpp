@@ -1630,8 +1630,7 @@ let gotoy y =
 
     | _ ->
         let layout = layout y conf.winh in
-        if true || layoutready layout
-        then G.postRedisplay "gotoy ready";
+        G.postRedisplay "gotoy ready";
         y, layout, true
   in
   if proceed
