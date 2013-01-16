@@ -5755,8 +5755,8 @@ let viewmouse button down x y mask =
             if conf.wheelbypage
             then (
              if n = 4
-             then nextpage ()
-             else prevpage ()
+             then prevpage ()
+             else nextpage ()
             )
             else
               let incr =
