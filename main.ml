@@ -5246,7 +5246,8 @@ let viewkeyboard key mask =
           setautoscrollspeed n true
       end
 
-  | 0xff51 | 0xff53 when not (Wsi.withalt mask) -> (* left / right *)
+  | 0xff51 | 0xff53 | 0xff96 | 0xff98
+        when not (Wsi.withalt mask) ->  (* (kp) left / right *)
       if canpan ()
       then
         let dx =
@@ -5254,7 +5255,7 @@ let viewkeyboard key mask =
           then conf.winw / 2
           else conf.hscrollstep
         in
-        let dx = if key = 0xff51 then dx else -dx in
+        let dx = if key = 0xff51 or key = 0xff96 then dx else -dx in
         state.x <- state.x + dx;
         gotoy_and_clear_text state.y
       else (
@@ -5291,9 +5292,11 @@ let viewkeyboard key mask =
   | 71 | 0xff57 | 0xff9c ->             (* G end *)
       gotoghyll (clamp state.maxy)
 
-  | 0xff53 when Wsi.withalt mask ->     (* alt-right *)
+  | 0xff53 | 0xff98
+      when Wsi.withalt mask ->          (* alt-(kp) right *)
       gotoghyll (getnav 1)
-  | 0xff51 when Wsi.withalt mask ->     (* alt-left *)
+  | 0xff51 | 0xff96
+      when Wsi.withalt mask ->          (* alt-(kp) left *)
       gotoghyll (getnav ~-1)
 
   | 114 ->                              (* r *)
