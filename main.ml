@@ -5289,7 +5289,7 @@ let viewkeyboard key mask =
 
   | 103 | 0xff50 | 0xff95 ->            (* g (kp) home *)
       gotoghyll 0
-  | 71 | 0xff57 | 0xff9c ->             (* G end *)
+  | 71 | 0xff57 | 0xff9c ->             (* G (kp) end *)
       gotoghyll (clamp state.maxy)
 
   | 0xff53 | 0xff98
