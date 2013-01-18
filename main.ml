@@ -3885,7 +3885,7 @@ let irect_to_string (x0,y0,x1,y1) =
 ;;
 
 let makecheckers () =
-  (* Appropriated from lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had
+  (* Based on lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had
      following to say:
      converted by Issac Trotts.  July 25, 2002 *)
   let image = GlPix.create `ubyte ~format:`luminance ~width:2 ~height:2 in
@@ -3895,10 +3895,7 @@ let makecheckers () =
   GlPix.store (`unpack_alignment 1);
   GlTex.image2d image;
   List.iter (GlTex.parameter ~target:`texture_2d)
-    [ `wrap_s `repeat;
-      `wrap_t `repeat;
-      `mag_filter `nearest;
-      `min_filter `nearest ];
+    [ `mag_filter `nearest; `min_filter `nearest ];
   id;
 ;;
 
