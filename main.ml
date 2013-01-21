@@ -90,7 +90,8 @@ external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
 external getmaxw : unit -> float = "ml_getmaxw";;
 external postprocess :
-  opaque -> int -> int -> int -> (int * string * int) -> int = "ml_postprocess";;
+  opaque -> int -> int -> int -> (int * string * int) -> int
+  = "ml_postprocess";;
 external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
