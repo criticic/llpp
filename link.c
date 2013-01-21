@@ -3559,6 +3559,52 @@ CAMLprim value ml_pbo_usable (value unit_v)
     CAMLreturn (Val_bool (state.pbo_usable));
 }
 
+CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
+{
+    CAMLparam3 (ptr_v, x_v, y_v);
+    CAMLlocal2 (ret_v, tup_v);
+    struct page *page;
+    char *s = String_val (ptr_v);
+    int x = Int_val (x_v), y = Int_val (y_v);
+    struct pagedim *pdim;
+    fz_point p;
+    fz_matrix ctm;
+
+    page = parse_pointer ("ml_unproject", s);
+    pdim = &state.pagedims[page->pdimno];
+
+    ret_v = Val_int (0);
+    if (trylock ("ml_unproject")) {
+        goto done;
+    }
+
+    switch (page->type) {
+    case DPDF:
+        ctm = trimctm (page->u.pdfpage, page->pdimno);
+        break;
+
+    default:
+        ctm = fz_identity;
+        break;
+    }
+    p.x = x;
+    p.y = y;
+
+    ctm = fz_concat (ctm, pdim->ctm);
+    ctm = fz_invert_matrix (ctm);
+    p = fz_transform_point (ctm, p);
+
+    tup_v = caml_alloc_tuple (2);
+    ret_v = caml_alloc_small (1, 1);
+    Field (tup_v, 0) = Val_int (p.x);
+    Field (tup_v, 1) = Val_int (p.y);
+    Field (ret_v, 0) = tup_v;
+
+    unlock ("ml_unproject");
+ done:
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_init (value pipe_v, value params_v)
 {
     CAMLparam2 (pipe_v, params_v);

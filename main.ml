@@ -108,6 +108,8 @@ external getpbo : width -> height -> colorspace -> string = "ml_getpbo";;
 external freepbo : string -> unit = "ml_freepbo";;
 external unmappbo : string -> unit = "ml_unmappbo";;
 external pbousable : unit -> bool = "ml_pbo_usable";;
+external unproject : opaque -> int -> int -> (int * int) option
+  = "ml_unproject";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -348,6 +350,7 @@ type conf =
     ; mutable pgscale        : float
     ; mutable usepbo         : bool
     ; mutable wheelbypage    : bool
+    ; mutable stcmd          : string
     }
 and columns =
     | Csingle of singlecolumn
@@ -554,6 +557,7 @@ let defconf =
   ; pgscale        = 1.0
   ; usepbo         = false
   ; wheelbypage    = false
+  ; stcmd          = "echo SyncTex"
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -848,7 +852,7 @@ let pagetranslatepoint l x y =
   (x, y);
 ;;
 
-let getunder x y =
+let onppundermouse g x y d =
   let rec f = function
     | l :: rest ->
         begin match getopaque l.pageno with
@@ -860,16 +864,34 @@ let getunder x y =
             if y >= y0 && y <= y1 && x >= x0 && x <= x1
             then
               let px, py = pagetranslatepoint l x y in
-              match whatsunder opaque px py with
-              | Unone -> f rest
-              | under -> under
+              match g opaque l px py with
+              | Some res -> res
+              | None -> f rest
             else f rest
         | _ ->
             f rest
         end
-    | [] -> Unone
+    | [] -> d
   in
   f state.layout
+;;
+
+let getunder x y =
+  let g opaque _ px py =
+    match whatsunder opaque px py with
+    | Unone -> None
+    | under -> Some under
+  in
+  onppundermouse g x y Unone
+;;
+
+let unproject x y =
+  let g opaque l x y =
+    match unproject opaque x y with
+    | Some (x, y) -> Some (Some (l.pageno, x, y))
+    | None -> None
+  in
+  onppundermouse g x y None;
 ;;
 
 let showtext c s =
@@ -4530,6 +4552,9 @@ let enterinfomode =
       src#string "selection command"
         (fun () -> conf.selcmd)
         (fun v -> conf.selcmd <- v);
+      src#string "synctex command"
+        (fun () -> conf.stcmd)
+        (fun v -> conf.stcmd <- v);
       src#colorspace "color space"
         (fun () -> colorspace_to_string conf.colorspace)
         (fun v ->
@@ -5774,6 +5799,19 @@ let viewmouse button down x y mask =
       state.x <- state.x + (if n = 7 then -2 else 2) * conf.hscrollstep;
       gotoy_and_clear_text state.y
 
+  | 1 when Wsi.withshift mask ->
+      state.mstate <- Mnone;
+      if not down then (
+        match unproject x y with
+        | Some (pageno, ux, uy) ->
+            let cmd = Printf.sprintf
+              "%s %s %d %d %d"
+              conf.stcmd state.path pageno ux uy
+            in
+            popen cmd []
+        | None -> ()
+      )
+
   | 1 when Wsi.withctrl mask ->
       if down
       then (
@@ -6208,6 +6246,7 @@ struct
         | "birds-eye-columns" ->
             { c with beyecolumns = Some (max (int_of_string v) 2) }
         | "selection-command" -> { c with selcmd = unent v }
+        | "synctex-command" -> { c with stcmd = unent v }
         | "update-cursor" -> { c with updatecurs = bool_of_string v }
         | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
         | "page-scroll-scale" -> { c with pgscale = float_of_string v }
@@ -6325,6 +6364,7 @@ struct
     dst.pgscale        <- src.pgscale;
     dst.usepbo         <- src.usepbo;
     dst.wheelbypage    <- src.wheelbypage;
+    dst.stcmd          <- src.stcmd;
   ;;
 
   let get s =
@@ -6730,6 +6770,7 @@ struct
     oco "columns" c.columns dc.columns;
     obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
     os "selection-command" c.selcmd dc.selcmd;
+    os "synctex-command" c.stcmd dc.stcmd;
     ob "update-cursor" c.updatecurs dc.updatecurs;
     oi "hint-font-size" c.hfsize dc.hfsize;
     oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
