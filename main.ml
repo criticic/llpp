@@ -5683,7 +5683,7 @@ let display () =
   end;
   enttext ();
   scrollindicator ();
-  if not state.wthack then Wsi.swapb ();
+  Wsi.swapb ();
 ;;
 
 let zoomrect x y x1 y1 =
@@ -7094,7 +7094,7 @@ let () =
       | None -> [state.sr; state.wsfd]
       | Some fd -> [state.sr; state.wsfd; fd]
     in
-    if state.redisplay
+    if state.redisplay && not state.wthack
     then (
       state.redisplay <- false;
       display ();
