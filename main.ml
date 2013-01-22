@@ -7152,7 +7152,7 @@ let () =
       else 0.0
     in
     let r, _, _ =
-      try tempfailureretry (Unix.select r [] []) timeout
+      try Unix.select r [] [] timeout
       with Unix.Unix_error (Unix.EINTR, _, _) -> [], [], []
     in
     begin match r with
