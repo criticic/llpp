@@ -597,9 +597,13 @@ let syncsendwithrep sock secstowait s f =
   let now = Unix.gettimeofday in
   let deadline = now () +. secstowait in
   let rec readtillcompletion () =
-    let r, _, _ =
-      tempfailureretry (Unix.select [sock] [] []) (deadline -. now ())
+    let sf deadline =
+      let timeout = deadline -. now () in
+      if timeout <= 0.0
+      then [], [], []
+      else Unix.select [sock] [] [] timeout
     in
+    let r, _, _ = tempfailureretry sf deadline in
     match r with
     | [] -> error "didn't get X response in %f seconds, aborting" secstowait
     | _ ->
