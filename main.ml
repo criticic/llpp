@@ -2267,6 +2267,13 @@ let act cmds =
         else String.sub cmds (spacepos+1) (l-spacepos-1)
       end
   in
+  let scan s fmt f =
+    try Scanf.sscanf s fmt f
+    with exn ->
+      dolog "error processing '%S' %S: %s"
+        op cmds (Printexc.to_string exn);
+      exit 1
+  in
   match op with
   | "clear" ->
       state.uioh#infochanged Pdim;
@@ -2277,13 +2284,7 @@ let act cmds =
       G.postRedisplay "clearrects";
 
   | "continue" ->
-      let n =
-        try Scanf.sscanf args "%u" (fun n -> n)
-        with exn ->
-          dolog "error processing 'continue' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
-      in
+      let n = scan args "%u" (fun n -> n) in
       state.pagecount <- n;
       begin match state.currently with
       | Outlining l ->
@@ -2324,14 +2325,9 @@ let act cmds =
 
   | "progress" ->
       let progress, text =
-        try
-          Scanf.sscanf args "%f %n"
-            (fun f pos ->
-              f, String.sub args pos (String.length args - pos))
-        with exn ->
-          dolog "error processing 'progress' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
+        scan args "%f %n"
+          (fun f pos ->
+            f, String.sub args pos (String.length args - pos))
       in
       state.text <- text;
       state.progress <- progress;
@@ -2339,14 +2335,9 @@ let act cmds =
 
   | "firstmatch" ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
-        try
-          Scanf.sscanf args "%u %d %f %f %f %f %f %f %f %f"
-            (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
-              (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
-        with exn ->
-          dolog "error processing 'firstmatch' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
+        scan args "%u %d %f %f %f %f %f %f %f %f"
+          (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
+            (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
       let y = (getpagey pageno) + truncate y0 in
       addnav ();
@@ -2355,27 +2346,15 @@ let act cmds =
 
   | "match" ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
-        try
-          Scanf.sscanf args "%u %d %f %f %f %f %f %f %f %f"
-            (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
-              (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
-        with exn ->
-          dolog "error processing 'match' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
+        scan  args "%u %d %f %f %f %f %f %f %f %f"
+          (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
+            (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
       state.rects1 <-
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | "page" ->
-      let pageopaque, t =
-        try
-          Scanf.sscanf args "%s %f" (fun p t -> p, t)
-        with exn ->
-          dolog "error processing 'page' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
-      in
+      let pageopaque, t = scan  args "%s %f" (fun p t -> p, t) in
       begin match state.currently with
       | Loading (l, gen) ->
           vlog "page %d took %f sec" l.pageno t;
@@ -2432,13 +2411,8 @@ let act cmds =
 
   | "tile" ->
       let (x, y, opaque, size, t) =
-        try
-          Scanf.sscanf args "%u %u %s %u %f"
-            (fun x y p size t -> (x, y, p, size, t))
-        with exn ->
-          dolog "error processing 'tile' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
+        scan args "%u %u %s %u %f"
+          (fun x y p size t -> (x, y, p, size, t))
       in
       begin match state.currently with
       | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
@@ -2505,25 +2479,15 @@ let act cmds =
 
   | "pdim" ->
       let pdim =
-        try
-          Scanf.sscanf args "%u %u %u %u" (fun n w h x -> n, w, h, x)
-        with exn ->
-          dolog "error processing 'pdim' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
+        scan  args "%u %u %u %u" (fun n w h x -> n, w, h, x)
       in
       state.uioh#infochanged Pdim;
       state.pdims <- pdim :: state.pdims
 
   | "o" ->
       let (l, n, t, h, pos) =
-        try
-          Scanf.sscanf args "%u %u %d %u %n"
-            (fun l n t h pos -> l, n, t, h, pos)
-        with exn ->
-          dolog "error processing 'o' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
+        scan  args "%u %u %d %u %n"
+          (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub args pos (String.length args - pos) in
       let outline = (s, l, (n, float t /. float h, 0.0)) in
@@ -2539,13 +2503,7 @@ let act cmds =
 
   | "a" ->
       let (n, t, h) =
-        try
-          Scanf.sscanf args "%u %u %d"
-            (fun n t h -> n, t, h)
-        with exn ->
-          dolog "error processing 'a' %S: %s"
-            cmds (Printexc.to_string exn);
-          exit 1;
+        scan args "%u %u %d" (fun n t h -> n, t, h)
       in
       let top, dtop =
         if conf.presentation
