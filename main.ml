@@ -5094,7 +5094,7 @@ let viewkeyboard key mask =
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
-          gotoy_and_clear_text (getpagey l.pageno)
+          gotoghyll (getpagey l.pageno)
       end
 
   | 32 ->                               (* space *)
