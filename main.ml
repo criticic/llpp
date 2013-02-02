@@ -6972,9 +6972,9 @@ let () =
          "<path> Set path to the trim cache file");
 
          ("-dest", Arg.String (fun s -> state.nameddest <- s),
-         "<named destination> Set named destination");
+         "<named-destination> Set named destination");
 
-         ("-wtmode", Arg.Set wtmode, "wt mode");
+         ("-wtmode", Arg.Set wtmode, " Operate in wt mode");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
