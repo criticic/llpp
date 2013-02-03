@@ -791,7 +791,8 @@ static int obscured (struct page *page, fz_bbox bbox)
     dev.ctx = state.ctx;
     dev.fill_image = obs_fill_image;
     obs.b = bbox;
-    fz_run_display_list (page->dlist, &dev, pagectm (page), bbox, NULL);
+    fz_run_display_list (page->dlist, &dev, pagectm (page),
+                         fz_rect_from_bbox (bbox), NULL);
     return obs.cured;
 }
 #define OBSCURED obscured
@@ -848,7 +849,8 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
         clearpixmap (tile->pixmap);
     }
     dev = fz_new_draw_device (state.ctx, tile->pixmap);
-    fz_run_display_list (page->dlist, dev, pagectm (page), bbox, NULL);
+    fz_run_display_list (page->dlist, dev, pagectm (page),
+                         fz_rect_from_bbox (bbox), NULL);
     fz_free_device (dev);
 
     return tile;
@@ -889,20 +891,19 @@ static void initpdims (void)
                     trim = state.trimanew || !obj;
                     if (trim) {
                         fz_rect rect;
-                        fz_bbox bbox;
                         fz_matrix ctm;
                         fz_device *dev;
 
-                        dev = fz_new_bbox_device (state.ctx, &bbox);
+                        dev = fz_new_bbox_device (state.ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
                         ctm = fz_invert_matrix (page->ctm);
                         pdf_run_page (state.u.pdf, page, dev, fz_identity, NULL);
                         fz_free_device (dev);
 
-                        rect.x0 = bbox.x0 + state.trimfuzz.x0;
-                        rect.x1 = bbox.x1 + state.trimfuzz.x1;
-                        rect.y0 = bbox.y0 + state.trimfuzz.y0;
-                        rect.y1 = bbox.y1 + state.trimfuzz.y1;
+                        rect.x0 += state.trimfuzz.x0;
+                        rect.x1 += state.trimfuzz.x1;
+                        rect.y0 += state.trimfuzz.y0;
+                        rect.y1 += state.trimfuzz.y1;
                         rect = fz_transform_rect (ctm, rect);
                         rect = fz_intersect_rect (rect, page->mediabox);
 
@@ -975,18 +976,17 @@ static void initpdims (void)
                     rotate = 0;
                     if (state.trimmargins) {
                         fz_rect rect;
-                        fz_bbox bbox;
                         fz_device *dev;
 
-                        dev = fz_new_bbox_device (state.ctx, &bbox);
+                        dev = fz_new_bbox_device (state.ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
                         xps_run_page (state.u.xps, page, dev, fz_identity, NULL);
                         fz_free_device (dev);
 
-                        rect.x0 = bbox.x0 + state.trimfuzz.x0;
-                        rect.x1 = bbox.x1 + state.trimfuzz.x1;
-                        rect.y0 = bbox.y0 + state.trimfuzz.y0;
-                        rect.y1 = bbox.y1 + state.trimfuzz.y1;
+                        rect.x0 += state.trimfuzz.x0;
+                        rect.x1 += state.trimfuzz.x1;
+                        rect.y0 += state.trimfuzz.y0;
+                        rect.y1 += state.trimfuzz.y1;
                         rect = fz_intersect_rect (rect, mediabox);
 
                         if (!fz_is_empty_rect (rect)) {
@@ -1900,6 +1900,7 @@ static void showsel (struct page *page, int ox, int oy)
 {
     int seen = 0;
     fz_bbox bbox;
+    fz_rect rect;
     fz_text_line *line;
     fz_text_span *span;
     fz_text_block *block;
@@ -1948,9 +1949,9 @@ static void showsel (struct page *page, int ox, int oy)
 
                 if (seen) {
                     for (i = j; i <= k; ++i) {
-                        fz_bbox b = fz_round_rect (span->text[i].bbox);
-                        bbox = fz_union_bbox (bbox, b);
+                        rect = fz_union_rect (rect, span->text[i].bbox);
                     }
+                    bbox = fz_round_rect (rect);
                     lprintf ("%d %d %d %d oy=%d ox=%d\n",
                              bbox.x0,
                              bbox.y0,
@@ -2392,7 +2393,7 @@ static void ensuretext (struct page *page)
         fz_run_display_list (page->dlist,
                              tdev,
                              pagectm (page),
-                             fz_infinite_bbox, NULL);
+                             fz_infinite_rect, NULL);
         qsort (page->text->blocks, page->text->len,
                sizeof (*page->text->blocks), compareblocks);
         fz_free_device (tdev);
@@ -3267,13 +3268,14 @@ CAMLprim value ml_getpagebox (value opaque_v)
 {
     CAMLparam1 (opaque_v);
     CAMLlocal1 (ret_v);
+    fz_rect rect;
     fz_bbox bbox;
     fz_device *dev;
     char *s = String_val (opaque_v);
     struct page *page = parse_pointer ("ml_getpagebox", s);
 
     ret_v = caml_alloc_tuple (4);
-    dev = fz_new_bbox_device (state.ctx, &bbox);
+    dev = fz_new_bbox_device (state.ctx, &rect);
     dev->hints |= FZ_IGNORE_SHADE;
 
     switch (page->type) {
@@ -3286,11 +3288,12 @@ CAMLprim value ml_getpagebox (value opaque_v)
         break;
 
     default:
-        bbox = fz_infinite_bbox;
+        rect = fz_infinite_rect;
         break;
     }
 
     fz_free_device (dev);
+    bbox = fz_round_rect (rect);
     Field (ret_v, 0) = Val_int (bbox.x0);
     Field (ret_v, 1) = Val_int (bbox.y0);
     Field (ret_v, 2) = Val_int (bbox.x1);
