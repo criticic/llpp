@@ -6955,8 +6955,147 @@ struct
   ;;
 end;;
 
+let adderrmsg src msg =
+  Buffer.add_string state.errmsgs msg;
+  state.newerrmsgs <- true;
+  G.postRedisplay src
+;;
+
+let adderrfmt src fmt =
+  Format.kprintf (fun s -> adderrmsg src s) fmt;
+;;
+
+let onpagerect pageno f =
+  let b =
+    match conf.columns with
+    | Cmulti (_, b) -> b
+    | Csingle b -> b
+    | Csplit (_, b) -> b
+  in
+  if pageno >= 0 && pageno < Array.length b
+  then
+    let (pdimno, _, _, (_, _, _, _)) = b.(pageno) in
+    let r = getpdimrect pdimno in
+    f (r.(1)-.r.(0)) (r.(3)-.r.(2))
+;;
+
+let ract cmds =
+  let op, args =
+    let spacepos =
+      try String.index cmds ' '
+      with Not_found -> -1
+    in
+    if spacepos = -1
+    then cmds, ""
+    else
+      let l = String.length cmds in
+      let op = String.sub cmds 0 spacepos in
+      op, begin
+        if l - spacepos < 2 then ""
+        else String.sub cmds (spacepos+1) (l-spacepos-1)
+      end
+  in
+  let scan s fmt f =
+    try Scanf.sscanf s fmt f
+    with exn ->
+      adderrfmt "remote exec"
+        "error processing '%S' %S: %s\n" op cmds (Printexc.to_string exn)
+  in
+  match op with
+  | "reload" -> reload ()
+  | "goto" ->
+      scan args "%u %f %f"
+        (fun pageno _ y ->
+          onpagerect pageno (fun _ h ->
+            let top = y /. h in
+            gotopage pageno top;
+          )
+        )
+  | "goto1" -> scan args "%u %f" gotopage
+  | "rect" ->
+      scan args "%u %u %f %f %f %f"
+        (fun pageno color x0 y0 x1 y1 ->
+          onpagerect pageno (fun w h ->
+            let _,w1,h1,_ = getpagedim pageno in
+            let sw = float w1 /. w
+            and sh = float h1 /. h in
+            let x0s = x0 *. sw
+            and x1s = x1 *. sw
+            and y0s = y0 *. sh
+            and y1s = y1 *. sh in
+            let rect = (x0s,y0s,x1s,y0s,x1s,y1s,x0s,y1s) in
+            debugrect rect;
+            state.rects <- (pageno, color, rect) :: state.rects;
+            G.postRedisplay "rect";
+          )
+        )
+  | "quit" -> raise Quit
+  | _ ->
+      adderrfmt "remote command"
+        "error processing remote command: %S\n" cmds;
+;;
+
+let remote =
+  let scratch = String.create 80 in
+  let buf = Buffer.create 80 in
+  fun fd ->
+    let rec loop () =
+      let rec tempfr () =
+        try Some (Unix.read fd scratch 0 80)
+        with
+        | Unix.Unix_error (Unix.EAGAIN, _, _) -> None
+        | Unix.Unix_error (Unix.EINTR, _, _) -> tempfr ()
+        | exn -> raise exn
+      in
+      match tempfr () with
+      | None -> Some fd
+      | Some n ->
+          if n = 0
+          then (
+            Unix.close fd;
+            if Buffer.length buf > 0
+            then (
+              let s = Buffer.contents buf in
+              Buffer.clear buf;
+              ract s;
+            );
+            None
+          )
+          else
+            let nlpos =
+              try
+                let pos = String.index scratch '\n' in
+                if pos >= n then -1 else pos
+              with Not_found -> -1
+            in
+            if nlpos >= 0
+            then (
+              Buffer.add_substring buf scratch 0 nlpos;
+              let s = Buffer.contents buf in
+              Buffer.clear buf;
+              if n - nlpos - 1 > 0
+              then Buffer.add_substring buf scratch (nlpos+1) (n-nlpos-1);
+              ract s;
+              loop ()
+            )
+            else (
+              Buffer.add_substring buf scratch 0 n;
+              loop ();
+            )
+    in
+    loop ();
+;;
+
+let remoteopen path =
+  try Some (Unix.openfile path [Unix.O_NONBLOCK; Unix.O_RDONLY] 0o0)
+  with exn ->
+    adderrfmt "remoteopen" "error opening %S: %s" path (Printexc.to_string exn);
+    None
+;;
+
 let () =
   let trimcachepath = ref "" in
+  let rcmdpath = ref "" in
   Arg.parse
     (Arg.align
         [("-p", Arg.String (fun s -> state.password <- s) ,
@@ -6975,6 +7114,9 @@ let () =
          "<named-destination> Set named destination");
 
          ("-wtmode", Arg.Set wtmode, " Operate in wt mode");
+
+         ("-remote", Arg.String (fun s -> rcmdpath := s),
+         "<path> Set path to the remote commands source");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
@@ -7087,12 +7229,24 @@ let () =
   state.uioh <- uioh;
 
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
+  let optrfd =
+    ref (
+      if String.length !rcmdpath > 0
+      then remoteopen !rcmdpath
+      else None
+    )
+  in
 
   let rec loop deadline =
     let r =
       match state.errfd with
       | None -> [state.sr; state.wsfd]
       | Some fd -> [state.sr; state.wsfd; fd]
+    in
+    let r =
+      match !optrfd with
+      | None -> r
+      | Some fd -> fd :: r
     in
     if state.redisplay && not state.wthack
     then (
@@ -7146,6 +7300,13 @@ let () =
 
           | fd :: rest when fd = state.wsfd ->
               Wsi.readresp fd;
+              checkfds rest
+
+          | fd :: rest when Some fd = !optrfd ->
+              begin match remote fd with
+              | None -> optrfd := remoteopen !rcmdpath;
+              | opt -> optrfd := opt
+              end;
               checkfds rest
 
           | fd :: rest ->
