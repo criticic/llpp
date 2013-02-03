@@ -2256,40 +2256,30 @@ let logcurrently = function
       dolog "outlining"
 ;;
 
+let splitatspace =
+  let r = Str.regexp " " in
+  fun s -> Str.bounded_split r s 2;
+;;
+
 let act cmds =
   (* dolog "%S" cmds; *)
-  let op, args =
-    let spacepos =
-      try String.index cmds ' '
-      with Not_found -> -1
-    in
-    if spacepos = -1
-    then cmds, ""
-    else
-      let l = String.length cmds in
-      let op = String.sub cmds 0 spacepos in
-      op, begin
-        if l - spacepos < 2 then ""
-        else String.sub cmds (spacepos+1) (l-spacepos-1)
-      end
-  in
+  let cl = splitatspace cmds in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
-      dolog "error processing '%S' %S: %s"
-        op cmds (Printexc.to_string exn);
+      dolog "error processing '%S': %s" cmds (Printexc.to_string exn);
       exit 1
   in
-  match op with
-  | "clear" ->
+  match cl with
+  | "clear" :: [] ->
       state.uioh#infochanged Pdim;
       state.pdims <- [];
 
-  | "clearrects" ->
+  | "clearrects" :: [] ->
       state.rects <- state.rects1;
       G.postRedisplay "clearrects";
 
-  | "continue" ->
+  | "continue" :: args :: [] ->
       let n = scan args "%u" (fun n -> n) in
       state.pagecount <- n;
       begin match state.currently with
@@ -2314,22 +2304,22 @@ let act cmds =
       if conf.maxwait = None
       then G.postRedisplay "continue";
 
-  | "title" ->
+  | "title" :: args :: [] ->
       Wsi.settitle args
 
-  | "msg" ->
+  | "msg" :: args :: [] ->
       showtext ' ' args
 
-  | "vmsg" ->
+  | "vmsg" :: args :: [] ->
       if conf.verbose
       then showtext ' ' args
 
-  | "emsg" ->
+  | "emsg" :: args :: [] ->
       Buffer.add_string state.errmsgs args;
       state.newerrmsgs <- true;
       G.postRedisplay "error message"
 
-  | "progress" ->
+  | "progress" :: args :: [] ->
       let progress, text =
         scan args "%f %n"
           (fun f pos ->
@@ -2339,7 +2329,7 @@ let act cmds =
       state.progress <- progress;
       G.postRedisplay "progress"
 
-  | "firstmatch" ->
+  | "firstmatch" :: args :: [] ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
         scan args "%u %d %f %f %f %f %f %f %f %f"
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
@@ -2350,7 +2340,7 @@ let act cmds =
       gotoy y;
       state.rects1 <- [pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)]
 
-  | "match" ->
+  | "match" :: args :: [] ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
         scan  args "%u %d %f %f %f %f %f %f %f %f"
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
@@ -2359,7 +2349,7 @@ let act cmds =
       state.rects1 <-
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
-  | "page" ->
+  | "page" :: args :: [] ->
       let pageopaque, t = scan  args "%s %f" (fun p t -> p, t) in
       begin match state.currently with
       | Loading (l, gen) ->
@@ -2415,7 +2405,7 @@ let act cmds =
           exit 1
       end
 
-  | "tile" ->
+  | "tile" :: args :: [] ->
       let (x, y, opaque, size, t) =
         scan args "%u %u %s %u %f"
           (fun x y p size t -> (x, y, p, size, t))
@@ -2483,14 +2473,14 @@ let act cmds =
           exit 1
       end
 
-  | "pdim" ->
+  | "pdim" :: args :: [] ->
       let pdim =
         scan  args "%u %u %u %u" (fun n w h x -> n, w, h, x)
       in
       state.uioh#infochanged Pdim;
       state.pdims <- pdim :: state.pdims
 
-  | "o" ->
+  | "o" :: args :: [] ->
       let (l, n, t, h, pos) =
         scan  args "%u %u %d %u %n"
           (fun l n t h pos -> l, n, t, h, pos)
@@ -2507,7 +2497,7 @@ let act cmds =
             logcurrently currently
       end
 
-  | "a" ->
+  | "a" :: args :: [] ->
       let (n, t, h) =
         scan args "%u %u %d" (fun n t h -> n, t, h)
       in
@@ -2518,15 +2508,15 @@ let act cmds =
       in
       state.anchor <- (n, top, dtop)
 
-  | "info" ->
+  | "info" :: args :: [] ->
       state.docinfo <- (1, args) :: state.docinfo
 
-  | "infoend" ->
+  | "infoend" :: [] ->
       state.uioh#infochanged Docinfo;
       state.docinfo <- List.rev state.docinfo
 
   | _ ->
-      dolog "unknown cmd `%S'" cmds
+      failwith (Printf.sprintf "unknown cmd `%S'" cmds)
 ;;
 
 let onhist cb =
@@ -6986,30 +6976,16 @@ let onpagerect pageno f =
 ;;
 
 let ract cmds =
-  let op, args =
-    let spacepos =
-      try String.index cmds ' '
-      with Not_found -> -1
-    in
-    if spacepos = -1
-    then cmds, ""
-    else
-      let l = String.length cmds in
-      let op = String.sub cmds 0 spacepos in
-      op, begin
-        if l - spacepos < 2 then ""
-        else String.sub cmds (spacepos+1) (l-spacepos-1)
-      end
-  in
+  let cl = splitatspace cmds in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
       adderrfmt "remote exec"
-        "error processing '%S' %S: %s\n" op cmds (Printexc.to_string exn)
+        "error processing '%S': %s\n" cmds (Printexc.to_string exn)
   in
-  match op with
-  | "reload" -> reload ()
-  | "goto" ->
+  match cl with
+  | "reload" :: [] -> reload ()
+  | "goto" :: args :: [] ->
       scan args "%u %f %f"
         (fun pageno _ y ->
           onpagerect pageno (fun _ h ->
@@ -7017,8 +6993,8 @@ let ract cmds =
             gotopage pageno top;
           )
         )
-  | "goto1" -> scan args "%u %f" gotopage
-  | "rect" ->
+  | "goto1" :: args :: [] -> scan args "%u %f" gotopage
+  | "rect" :: args :: [] ->
       scan args "%u %u %f %f %f %f"
         (fun pageno color x0 y0 x1 y1 ->
           onpagerect pageno (fun w h ->
@@ -7035,7 +7011,7 @@ let ract cmds =
             G.postRedisplay "rect";
           )
         )
-  | "quit" -> raise Quit
+  | "quit" :: []  -> raise Quit
   | _ ->
       adderrfmt "remote command"
         "error processing remote command: %S\n" cmds;
