@@ -7039,51 +7039,48 @@ let remote =
   let scratch = String.create 80 in
   let buf = Buffer.create 80 in
   fun fd ->
-    let rec loop () =
-      let rec tempfr () =
-        try Some (Unix.read fd scratch 0 80)
-        with
-        | Unix.Unix_error (Unix.EAGAIN, _, _) -> None
-        | Unix.Unix_error (Unix.EINTR, _, _) -> tempfr ()
-        | exn -> raise exn
-      in
-      match tempfr () with
-      | None -> Some fd
-      | Some n ->
-          if n = 0
+    let rec tempfr () =
+      try Some (Unix.read fd scratch 0 80)
+      with
+      | Unix.Unix_error (Unix.EAGAIN, _, _) -> None
+      | Unix.Unix_error (Unix.EINTR, _, _) -> tempfr ()
+      | exn -> raise exn
+    in
+    match tempfr () with
+    | None -> Some fd
+    | Some n ->
+        if n = 0
+        then (
+          Unix.close fd;
+          if Buffer.length buf > 0
           then (
-            Unix.close fd;
-            if Buffer.length buf > 0
-            then (
-              let s = Buffer.contents buf in
-              Buffer.clear buf;
-              ract s;
-            );
-            None
-          )
-          else
+            let s = Buffer.contents buf in
+            Buffer.clear buf;
+            ract s;
+          );
+          None
+        )
+        else
+          let rec eat ppos =
             let nlpos =
               try
-                let pos = String.index scratch '\n' in
+                let pos = String.index_from scratch ppos '\n' in
                 if pos >= n then -1 else pos
               with Not_found -> -1
             in
             if nlpos >= 0
             then (
-              Buffer.add_substring buf scratch 0 nlpos;
+              Buffer.add_substring buf scratch ppos (nlpos-ppos);
               let s = Buffer.contents buf in
               Buffer.clear buf;
-              if n - nlpos - 1 > 0
-              then Buffer.add_substring buf scratch (nlpos+1) (n-nlpos-1);
               ract s;
-              loop ()
+              eat (nlpos+1);
             )
             else (
-              Buffer.add_substring buf scratch 0 n;
-              loop ();
+              Buffer.add_substring buf scratch ppos (n-ppos);
+              Some fd
             )
-    in
-    loop ();
+          in eat 0
 ;;
 
 let remoteopen path =
