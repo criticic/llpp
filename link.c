@@ -1636,9 +1636,12 @@ static void * mainloop (void *unused)
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
 
+            lock ("open");
             openxref (filename, password);
             pdfinfo ();
             initpdims ();
+            unlock ("open");
+
             if (!wthack) {
                 utf8filename = mbtoutf8 (filename);
                 printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
