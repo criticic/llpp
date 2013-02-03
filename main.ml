@@ -1162,48 +1162,51 @@ let page_of_y y =
     | Cmulti (c, b) -> c, b
     | Csplit (_, b) -> (1, 0, 0), b
   in
-  let rec bsearch nmin nmax =
-    if nmin > nmax
-    then bound nmin 0 (state.pagecount-1)
-    else
-      let n = (nmax + nmin) / 2 in
-      let vy, h = rowyh cl b n in
-      let y0, y1 =
-        if conf.presentation
-        then
-          let ips = calcips h in
-          let y0 = vy - ips in
-          let y1 = vy + h + ips in
-          y0, y1
-        else (
-          if n = 0
-          then 0, vy + h + conf.interpagespace
-          else
-            let y0 = vy - conf.interpagespace in
-            y0, y0 + h + conf.interpagespace
-        )
-      in
-      if y >= y0 && y < y1
-      then (
-        if c = 1
-        then n
-        else (
-          if n > coverA
+  if Array.length b = 0
+  then -1
+  else
+    let rec bsearch nmin nmax =
+      if nmin > nmax
+      then bound nmin 0 (state.pagecount-1)
+      else
+        let n = (nmax + nmin) / 2 in
+        let vy, h = rowyh cl b n in
+        let y0, y1 =
+          if conf.presentation
           then
-            if n < state.pagecount - coverB
-            then ((n-coverA)/c)*c + coverA
+            let ips = calcips h in
+            let y0 = vy - ips in
+            let y1 = vy + h + ips in
+            y0, y1
+          else (
+            if n = 0
+            then 0, vy + h + conf.interpagespace
+            else
+              let y0 = vy - conf.interpagespace in
+              y0, y0 + h + conf.interpagespace
+          )
+        in
+        if y >= y0 && y < y1
+        then (
+          if c = 1
+          then n
+          else (
+            if n > coverA
+            then
+              if n < state.pagecount - coverB
+              then ((n-coverA)/c)*c + coverA
+              else n
             else n
-          else n
+          )
         )
-      )
-      else (
-        if y > y0
-        then bsearch (n+1) nmax
-        else bsearch nmin (n-1)
-      )
-  in
-  let r = bsearch 0 (state.pagecount-1) in
-  r;
+        else (
+          if y > y0
+          then bsearch (n+1) nmax
+          else bsearch nmin (n-1)
+        )
+    in
+    let r = bsearch 0 (state.pagecount-1) in
+    r;
 ;;
 
 let layoutN ((columns, coverA, coverB), b) y sh =
@@ -1762,17 +1765,20 @@ let getanchor () =
   | l :: _ -> getanchor1 l
   | []     ->
       let n = page_of_y state.y in
-      let y, h = getpageyh n in
-      let dy = y - state.y in
-      let dtop =
-        if conf.presentation
-        then
-          let ips = calcips h in
-          float (dy + ips) /. float ips
-        else
-          float dy /. float conf.interpagespace
-      in
-      (n, 0.0, dtop)
+      if n = -1
+      then state.anchor
+      else
+        let y, h = getpageyh n in
+        let dy = y - state.y in
+        let dtop =
+          if conf.presentation
+          then
+            let ips = calcips h in
+            float (dy + ips) /. float ips
+          else
+            float dy /. float conf.interpagespace
+        in
+        (n, 0.0, dtop)
 ;;
 
 let getanchory (n, top, dtop) =
