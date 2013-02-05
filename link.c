@@ -1926,6 +1926,7 @@ static void showsel (struct page *page, int ox, int oy)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
+            rect = fz_empty_rect;
             for (span = line->spans;
                  span < line->spans + line->len;
                  ++span) {
