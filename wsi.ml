@@ -738,9 +738,8 @@ let setup sock screennum w h =
             dolog "error getting host name: %s" (exntos exn);
             empty
         in
-        if hostname == empty
-        then ()
-        else (
+        if hostname != empty
+        then
           let s = changepropreq wid atom state.stringatom 8 hostname in
           sendstr s sock;
           sendintern sock "_NET_WM_PID" false (fun resp ->
@@ -749,7 +748,6 @@ let setup sock screennum w h =
             let s = s32 pid in
             let s = changepropreq wid atom 6 (* cardinal *) 8 s in
             sendstr s sock;
-          )
         )
       );
 
