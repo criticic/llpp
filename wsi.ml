@@ -729,6 +729,30 @@ let setup sock screennum w h =
         );
       );
 
+      sendintern sock "WM_CLIENT_MACHINE" false (fun resp ->
+        let atom = r32 resp 8 in
+        let empty = "" in
+        let hostname =
+          try Unix.gethostname ()
+          with exn ->
+            dolog "error getting host name: %s" (exntos exn);
+            empty
+        in
+        if hostname == empty
+        then ()
+        else (
+          let s = changepropreq wid atom state.stringatom 8 hostname in
+          sendstr s sock;
+          sendintern sock "_NET_WM_PID" false (fun resp ->
+            let atom = r32 resp 8 in
+            let pid = Unix.getpid () in
+            let s = s32 pid in
+            let s = changepropreq wid atom 6 (* cardinal *) 8 s in
+            sendstr s sock;
+          )
+        )
+      );
+
       syncsendintern sock 2.0 "WM_CLASS" false (fun resp ->
         let atom = r32 resp 8 in
         let llpp = "llpp\000llpp\000" in
