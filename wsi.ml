@@ -746,7 +746,7 @@ let setup sock screennum w h =
             let atom = r32 resp 8 in
             let pid = Unix.getpid () in
             let s = s32 pid in
-            let s = changepropreq wid atom 6 (* cardinal *) 8 s in
+            let s = changepropreq wid atom (* cardinal *)6 32 s in
             sendstr s sock;
         )
       );
