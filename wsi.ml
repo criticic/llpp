@@ -59,6 +59,7 @@ type state =
     ; mutable idbase     : int
     ; mutable fullscreen : (int -> unit)
     ; mutable setwmname  : (string -> unit)
+    ; mutable actwin     : (unit -> unit)
     ; mutable stringatom : int
     ; mutable t          : t
     ; mutable sock       : Unix.file_descr
@@ -89,6 +90,7 @@ let state =
   ; idbase     = -1
   ; fullscreen = (fun _ -> ())
   ; setwmname  = (fun _ -> ())
+  ; actwin     = (fun _ -> ())
   ; sock       = Unix.stdin
   ; t          = onot
   ; x          = -1
@@ -591,6 +593,10 @@ let reshape w h =
   else state.fullscreen state.idbase
 ;;
 
+let activatewin () =
+  state.actwin ();
+;;
+
 let syncsendwithrep sock secstowait s f =
   let completed = ref false in
   sendwithrep sock s (fun resp -> f resp; completed := true);
@@ -749,6 +755,24 @@ let setup sock screennum w h =
             let s = changepropreq wid atom (* cardinal *)6 32 s in
             sendstr s sock;
         )
+      );
+
+      state.actwin <- (fun () ->
+        let s = "\000uuu" in
+        let s = configurewindowreq state.idbase 0x40 s in
+        sendstr s state.sock;
+        let s = mapreq state.idbase in
+        sendstr s state.sock;
+      );
+
+      sendintern sock "_NET_ACTIVE_WINDOW" true (fun resp ->
+        let atom = r32 resp 8 in
+        state.actwin <- (fun () ->
+          let data = String.make 20 '\000' in
+          let cm = clientmessage 32 0 wid atom data in
+          let s = sendeventreq 0 root 0x180000 cm in
+          sendstr s state.sock;
+        );
       );
 
       syncsendintern sock 2.0 "WM_CLASS" false (fun resp ->

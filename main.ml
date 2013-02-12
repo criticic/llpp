@@ -7011,7 +7011,8 @@ let ract cmds =
             G.postRedisplay "rect";
           )
         )
-  | "quit" :: []  -> raise Quit
+  | "activatewin" :: [] -> Wsi.activatewin ()
+  | "quit" :: [] -> raise Quit
   | _ ->
       adderrfmt "remote command"
         "error processing remote command: %S\n" cmds;
