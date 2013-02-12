@@ -16,7 +16,7 @@ will first attempt to automatically fetch lablGL, mupdf, mupdf's
 prerequisites[7] and build them, then, if everything goes fine, it
 will proceed building llpp itself. Note that OCaml still needs to be
 installed separately, also, in addition to the usual suspects (i.e.
-GCC, make, binutils, OCaml) you will need `wget' and `unzip' for this
+GCC, make, binutils, OCaml), you will need `wget' and `unzip' for this
 script to work.
 
 Otherwise, provided that all prereqs are already built, one should
