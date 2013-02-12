@@ -7,10 +7,11 @@ mouse buttons 5/6       - .............. (aka horizontal mouse wheel)
 cntrol + shift up/down  - set previous zoom level
 control + arrows        - scroll up/down, pan left/right (by half a screen widht/height)
 primary mouse button[1] - click on link or select text[2]
+     when shift is held - execute "synctex command" with coordinates ot the point [3]
 other mouse button[1]   - select rectangle to zoom to
 escape/q                - quit
 Q                       - quit without saving the configuration
-backspace               - go back after jumping (clicking link and suchlike) [3]
+backspace               - go back after jumping (clicking link and suchlike) [4]
 alt-left/right arrow    - go backward/forward in history
 u                       - dehighlight
 /,?                     - enter text to search for (/ - forward, ? - backward)
@@ -127,7 +128,13 @@ ctrl-g,esc              - cancel
     wsel under Windows  - http://repo.or.cz/w/llpp.git/blob/master:/wsel.c
     pbcopy under OSX    - ships with the system
 
-[3] if the document was previously visited initial backspace will
+[3] arguments to the command are:
+    1 = path to the document
+    2 = zero based page number
+    3 = X coordinate within the page
+    4 = Y ..........................
+
+[4] if the document was previously visited initial backspace will
     jump to the last visited place
 
 ======================================================================
