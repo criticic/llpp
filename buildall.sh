@@ -57,8 +57,6 @@ cd ..
 
 srcpath=$(dirname $0)
 
-sh $srcpath/mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
-
 tp=$root/$mudir/thirdparty
 
 ccopt="-O"
@@ -78,6 +76,9 @@ cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
 cclib="$cclib -lX11"
 
 echo Building llpp...
+
+sh $srcpath/mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
+
 if test "$1" = "opt"; then
     executable_p ocamlopt.opt && comp=ocamlopt.opt || comp=ocamlopt
     cmsuf=cmx
