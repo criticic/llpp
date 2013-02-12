@@ -21,12 +21,12 @@ ocamlc -c -o wsi.cmo $srcpath/wsi.ml
 ocamlc -c -o parser.cmo $srcpath/parser.ml
 ocamlc -c -o main.cmo -I +lablGL $srcpath/main.ml
 
-ocamlc -custom -o llpp \
--I +lablGL \
-str.cma unix.cma lablgl.cma \
-link.o \
--cclib "$cclib" \
-help.cmo \
-parser.cmo \
-wsi.cmo \
-main.cmo
+ocamlc -custom -o llpp           \
+    -I +lablGL                   \
+    str.cma unix.cma lablgl.cma  \
+    link.o                       \
+    -cclib "$cclib"              \
+    help.cmo                     \
+    parser.cmo                   \
+    wsi.cmo                      \
+    main.cmo
