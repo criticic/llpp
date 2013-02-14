@@ -2147,7 +2147,7 @@ static void ensureslinks (struct page *page)
             fz_rect rect;
 
             rect = link->rect;
-            fz_transform_rect (&link->rect, &ctm);
+            fz_transform_rect (&rect, &ctm);
             page->slinks[i].link = link;
             fz_round_rect (&page->slinks[i].bbox, &rect);
         }
