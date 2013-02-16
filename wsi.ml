@@ -608,11 +608,18 @@ let readresp sock =
               let rec loop wsl i = if i = nitems then wsl else
                   let atom = r32 s (i*4) in
                   let wsl =
-                    if atom = state.maxhatom then (MaxHorz::wsl)
+                    if atom = state.maxhatom
+                    then MaxHorz::wsl
                     else (
-                      if atom = state.maxvatom then (MaxVert::wsl)
+                      if atom = state.maxvatom
+                      then MaxVert::wsl
                       else (
-                        if atom = state.fulsatom then (Fullscreen::wsl) else wsl
+                        if atom = state.fulsatom
+                        then (
+                          state.fs <- Fs (state.x, state.y, state.w, state.h);
+                          Fullscreen::wsl
+                        )
+                        else wsl
                       )
                     )
                   in loop wsl (i+1)
