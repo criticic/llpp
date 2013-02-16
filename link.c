@@ -645,7 +645,7 @@ static void OPTIMIZE_ATTR (3) clearpixmap (fz_pixmap *pixmap)
 #define clearpixmap(p) fz_clear_pixmap_with_value (state.ctx, p, 0xff)
 #endif
 
-static fz_matrix trimctm (pdf_page *page, int pindex)
+static void trimctm (pdf_page *page, int pindex)
 {
     fz_matrix ctm;
     struct pagedim *pdim = &state.pagedims[pindex];
@@ -662,8 +662,8 @@ static fz_matrix trimctm (pdf_page *page, int pindex)
             fz_transform_rect (&realbox, &ctm);
             fz_translate (&tm, -realbox.x0, -realbox.y0);
             fz_concat (&ctm1, &ctm, &tm);
-            fz_invert_matrix (&im, &ctm1);
-            fz_concat (&ctm, &im, &ctm);
+            fz_invert_matrix (&im, &page->ctm);
+            fz_concat (&ctm, &im, &ctm1);
         }
         else {
             ctm = fz_identity;
@@ -671,7 +671,6 @@ static fz_matrix trimctm (pdf_page *page, int pindex)
         pdim->tctm = ctm;
         pdim->tctmready = 1;
     }
-    return pdim->tctm;
 }
 
 static fz_matrix pagectm (struct page *page)
@@ -679,8 +678,10 @@ static fz_matrix pagectm (struct page *page)
     fz_matrix ctm, tm;
 
     if (page->type == DPDF) {
-        tm = trimctm (page->u.pdfpage, page->pdimno);
-        fz_concat (&ctm, &tm, &state.pagedims[page->pdimno].ctm);
+        trimctm (page->u.pdfpage, page->pdimno);
+        fz_concat (&ctm,
+                   &state.pagedims[page->pdimno].tctm,
+                   &state.pagedims[page->pdimno].ctm);
     }
     else {
         struct pagedim *pdim = &state.pagedims[page->pdimno];
@@ -2120,8 +2121,10 @@ static void ensureslinks (struct page *page)
     switch (page->type) {
     case DPDF:
         links = page->u.pdfpage->links;
-        ctm = trimctm (page->u.pdfpage, page->pdimno);
-        fz_concat (&ctm, &ctm, &state.pagedims[page->pdimno].ctm);
+        trimctm (page->u.pdfpage, page->pdimno);
+        fz_concat (&ctm,
+                   &state.pagedims[page->pdimno].tctm,
+                   &state.pagedims[page->pdimno].ctm);
         break;
 
     case DXPS:
@@ -2380,16 +2383,18 @@ static fz_link *getlink (struct page *page, int x, int y)
 {
     fz_point p;
     fz_matrix ctm;
+    const fz_matrix *tctm;
     fz_link *link, *links;
 
     switch (page->type) {
     case DPDF:
-        ctm = trimctm (page->u.pdfpage, page->pdimno);
+        trimctm (page->u.pdfpage, page->pdimno);
+        tctm = &state.pagedims[page->pdimno].tctm;
         links = page->u.pdfpage->links;
         break;
 
     case DXPS:
-        ctm = fz_identity;
+        tctm = &fz_identity;
         links = page->u.xpspage->links;
         break;
 
@@ -2399,7 +2404,7 @@ static fz_link *getlink (struct page *page, int x, int y)
     p.x = x;
     p.y = y;
 
-    fz_concat (&ctm, &ctm, &state.pagedims[page->pdimno].ctm);
+    fz_concat (&ctm, tctm, &state.pagedims[page->pdimno].ctm);
     fz_invert_matrix (&ctm, &ctm);
     fz_transform_point (&p, &ctm);
 
@@ -3622,17 +3627,16 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
 
     switch (page->type) {
     case DPDF:
-        ctm = trimctm (page->u.pdfpage, page->pdimno);
+        trimctm (page->u.pdfpage, page->pdimno);
         break;
 
     default:
-        ctm = fz_identity;
         break;
     }
     p.x = x;
     p.y = y;
 
-    fz_concat (&ctm, &ctm, &pdim->ctm);
+    fz_concat (&ctm, &pdim->tctm, &pdim->ctm);
     fz_invert_matrix (&ctm, &ctm);
     fz_transform_point (&p, &ctm);
 
