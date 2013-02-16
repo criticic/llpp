@@ -315,8 +315,8 @@ type conf =
     ; mutable zoom           : float
     ; mutable presentation   : bool
     ; mutable angle          : angle
-    ; mutable winw           : int
-    ; mutable winh           : int
+    ; mutable cwinw          : int
+    ; mutable cwinh          : int
     ; mutable savebmarks     : bool
     ; mutable proportional   : proportional
     ; mutable trimmargins    : trimmargins
@@ -456,7 +456,7 @@ type state =
     ; mutable rects         : (pageno * recttype * rect) list
     ; mutable rects1        : (pageno * recttype * rect) list
     ; mutable text          : string
-    ; mutable fullscreen    : (width * height) option
+    ; mutable winstate      : Wsi.winstate list
     ; mutable mode          : mode
     ; mutable uioh          : uioh
     ; mutable outlines      : outline array
@@ -482,6 +482,8 @@ type state =
     ; mutable glinks        : bool
     ; mutable prevcolumns   : (columns * float) option
     ; mutable wthack        : bool
+    ; mutable winw          : int
+    ; mutable winh          : int
     }
 and hists =
     { pat : string circbuf
@@ -511,8 +513,8 @@ let defconf =
   ; zoom           = 1.0
   ; presentation   = false
   ; angle          = 0
-  ; winw           = 900
-  ; winh           = 900
+  ; cwinw          = 900
+  ; cwinh          = 900
   ; savebmarks     = true
   ; proportional   = true
   ; trimmargins    = false
@@ -596,12 +598,6 @@ let fstate =
   ; wwidth = nan
   ; maxrows = -1
   }
-;;
-
-let setfontsize n =
-  fstate.fontsize <- n;
-  fstate.wwidth <- measurestr fstate.fontsize "w";
-  fstate.maxrows <- (conf.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
 let geturl s =
@@ -696,7 +692,7 @@ let state =
   ; rects1        = []
   ; text          = ""
   ; mode          = View
-  ; fullscreen    = None
+  ; winstate      = []
   ; searchpattern = ""
   ; outlines      = [||]
   ; bookmarks     = []
@@ -727,7 +723,15 @@ let state =
   ; glinks        = false
   ; prevcolumns   = None
   ; wthack        = false
+  ; winw          = -1
+  ; winh          = -1
   }
+;;
+
+let setfontsize n =
+  fstate.fontsize <- n;
+  fstate.wwidth <- measurestr fstate.fontsize "w";
+  fstate.maxrows <- (state.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
 let vlog fmt =
@@ -1056,7 +1060,7 @@ let wcmd fmt =
 ;;
 
 let calcips h =
-  let d = conf.winh - h in
+  let d = state.winh - h in
   max conf.interpagespace ((d + 1) / 2)
 ;;
 
@@ -1230,7 +1234,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
             let pagedispx, pagex =
               let pdx =
                 if n = coverA - 1 || n = state.pagecount - coverB
-                then state.x + (conf.winw - state.scrollw - w) / 2
+                then state.x + (state.winw - state.scrollw - w) / 2
                 else dx + xoff + state.x
               in
               if pdx < 0
@@ -1238,7 +1242,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
               else pdx, 0
             in
             let pagevw =
-              let vw = conf.winw - state.scrollw - pagedispx in
+              let vw = state.winw - state.scrollw - pagedispx in
               let pw = w - pagex in
               min vw pw
             in
@@ -1302,12 +1306,12 @@ let layoutS (columns, b) y sh =
             in
             let pagecolw = pagew/columns in
             let pagedispx =
-              if pagecolw < conf.winw
-              then pagedispx + ((conf.winw - state.scrollw - pagecolw) / 2)
+              if pagecolw < state.winw
+              then pagedispx + ((state.winw - state.scrollw - pagecolw) / 2)
               else pagedispx
             in
             let pagevw =
-              let vw = conf.winw - pagedispx - state.scrollw in
+              let vw = state.winw - pagedispx - state.scrollw in
               let pw = pagew - pagex in
               min vw pw
             in
@@ -1353,7 +1357,7 @@ let layout y sh =
 let clamp incr =
   let y = state.y + incr in
   let y = max 0 y in
-  let y = min y (state.maxy - (if conf.maxhfit then conf.winh else 0)) in
+  let y = min y (state.maxy - (if conf.maxhfit then state.winh else 0)) in
   y;
 ;;
 
@@ -1435,10 +1439,10 @@ let drawtiles l color =
 
     | _ ->
         let w =
-          let lw = conf.winw - state.scrollw - x in
+          let lw = state.winw - state.scrollw - x in
           min lw w
         and h =
-          let lh = conf.winh - y in
+          let lh = state.winh - y in
           min lh h
         in
         begin match state.texid with
@@ -1570,8 +1574,8 @@ let tilepage n p layout =
 ;;
 
 let preloadlayout y =
-  let y = if y < conf.winh then 0 else y - conf.winh in
-  let h = conf.winh*3 in
+  let y = if y < state.winh then 0 else y - state.winh in
+  let h = state.winh*3 in
   layout y h;
 ;;
 
@@ -1632,7 +1636,7 @@ let gotoy y =
     | Some time when state.ghyll == noghyll ->
         begin match state.throttle with
         | None ->
-            let layout = layout y conf.winh in
+            let layout = layout y state.winh in
             let ready = layoutready layout in
             if not ready
             then (
@@ -1646,7 +1650,7 @@ let gotoy y =
             if dt > time
             then (
               state.throttle <- None;
-              let layout = layout y conf.winh in
+              let layout = layout y state.winh in
               load layout;
               G.postRedisplay "maxwait";
               y, layout, true
@@ -1655,7 +1659,7 @@ let gotoy y =
         end
 
     | _ ->
-        let layout = layout y conf.winh in
+        let layout = layout y state.winh in
         G.postRedisplay "gotoy ready";
         y, layout, true
   in
@@ -1943,7 +1947,7 @@ let docolumns = function
             | _ ->
                 pdimno, pdim, pdims
           in
-          let x = max 0 (((conf.winw - state.scrollw - w) / 2) - xoff) in
+          let x = max 0 (((state.winw - state.scrollw - w) / 2) - xoff) in
           let y = y +
             (if conf.presentation
             then (if pageno = 0 then calcips h else calcips ph + calcips h)
@@ -1981,7 +1985,7 @@ let docolumns = function
           let x, y, rowh' =
             if pageno = coverA - 1 || pageno = state.pagecount - coverB
             then (
-              let x = (conf.winw - state.scrollw - w) / 2 in
+              let x = (state.winw - state.scrollw - w) / 2 in
               let ips =
                 if conf.presentation then calcips h else conf.interpagespace in
               x, y + ips + rowh, h
@@ -1989,7 +1993,7 @@ let docolumns = function
             else (
               if (pageno - coverA) mod columns = 0
               then (
-                let x = max 0 (conf.winw - state.scrollw - state.w) / 2 in
+                let x = max 0 (state.winw - state.scrollw - state.w) / 2 in
                 let y =
                   if conf.presentation
                   then
@@ -2062,7 +2066,7 @@ let represent () =
   docolumns conf.columns;
   state.maxy <- calcheight ();
   state.hscrollh <-
-    if state.w <= conf.winw - state.scrollw
+    if state.w <= state.winw - state.scrollw
     then 0
     else state.scrollw
   ;
@@ -2070,7 +2074,7 @@ let represent () =
   begin match state.mode with
   | Birdseye (_, _, pageno, _, _) ->
       let y, h = getpageyh pageno in
-      let top = (conf.winh - h) / 2 in
+      let top = (state.winh - h) / 2 in
       gotoy (max 0 (y - top))
   | _ -> gotoanchor state.anchor
   end;
@@ -2084,10 +2088,10 @@ let reshape w h =
   if not firsttime && nogeomcmds state.geomcmds
   then state.anchor <- getanchor ();
 
-  conf.winw <- w;
+  state.winw <- w;
   let w = truncate (float w *. conf.zoom) - state.scrollw in
   let w = max w 2 in
-  conf.winh <- h;
+  state.winh <- h;
   setfontsize fstate.fontsize;
   GlMat.mode `modelview;
   GlMat.load_identity ();
@@ -2096,7 +2100,7 @@ let reshape w h =
   GlMat.load_identity ();
   GlMat.rotate ~x:1.0 ~angle:180.0 ();
   GlMat.translate ~x:~-.1.0 ~y:~-.1.0 ();
-  GlMat.scale3 (2.0 /. float conf.winw, 2.0 /. float conf.winh, 1.0);
+  GlMat.scale3 (2.0 /. float state.winw, 2.0 /. float state.winh, 1.0);
 
   let relx =
     if conf.zoom <= 1.0
@@ -2130,11 +2134,11 @@ let enttext () =
     in
     let rect x w =
       GlDraw.rect
-        (x, float (conf.winh - (fstate.fontsize + 4) - hscrollh))
-        (x+.w, float (conf.winh - hscrollh))
+        (x, float (state.winh - (fstate.fontsize + 4) - hscrollh))
+        (x+.w, float (state.winh - hscrollh))
     in
 
-    let w = float (conf.winw - state.scrollw - 1) in
+    let w = float (state.winw - state.scrollw - 1) in
     if state.progress >= 0.0 && state.progress < 1.0
     then (
       GlDraw.color (0.3, 0.3, 0.3);
@@ -2150,7 +2154,7 @@ let enttext () =
 
     GlDraw.color (1.0, 1.0, 1.0);
     drawstring fstate.fontsize
-      (if len > 0 then 8 else 2) (conf.winh - hscrollh - 5) s;
+      (if len > 0 then 8 else 2) (state.winh - hscrollh - 5) s;
   in
   let s =
     match state.mode with
@@ -2647,7 +2651,7 @@ let setzoom zoom =
       then (
         state.prevzoom <- conf.zoom;
         conf.zoom <- zoom;
-        reshape conf.winw conf.winh;
+        reshape state.winw state.winh;
         state.text <- Printf.sprintf "zoom is now %-5.1f" (zoom *. 100.0);
       )
 
@@ -2689,13 +2693,13 @@ let setcolumns mode columns coverA coverB =
       conf.zoom <- 1.0;
     );
   );
-  reshape conf.winw conf.winh;
+  reshape state.winw state.winh;
 ;;
 
 let enterbirdseye () =
-  let zoom = float conf.thumbw /. float conf.winw in
+  let zoom = float conf.thumbw /. float state.winw in
   let birdseyepageno =
-    let cy = conf.winh / 2 in
+    let cy = state.winh / 2 in
     let fold = function
       | [] -> 0
       | l :: rest ->
@@ -2736,7 +2740,7 @@ let enterbirdseye () =
   else
     state.text <- ""
   ;
-  reshape conf.winw conf.winh;
+  reshape state.winw state.winh;
 ;;
 
 let leavebirdseye (c, leftx, pageno, _, anchor) goback =
@@ -2764,7 +2768,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
       (100.0*.conf.zoom)
   ;
-  reshape conf.winw conf.winh;
+  reshape state.winw state.winh;
   state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
 ;;
 
@@ -2795,7 +2799,7 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   let rec loop = function
     | [] ->
         let y, h = getpageyh pageno in
-        let dy = (y - state.y) - (conf.winh - h - conf.interpagespace) in
+        let dy = (y - state.y) - (state.winh - h - conf.interpagespace) in
         gotoy (clamp dy)
     | l :: _ when l.pageno = pageno ->
         if l.pagevh != l.pageh
@@ -3135,8 +3139,8 @@ let calcfirst first active =
 ;;
 
 let scrollph y maxy =
-  let sh = (float (maxy + conf.winh) /. float conf.winh) in
-  let sh = float conf.winh /. sh in
+  let sh = (float (maxy + state.winh) /. float state.winh) in
+  let sh = float state.winh /. sh in
   let sh = max sh (float conf.scrollh) in
 
   let percent =
@@ -3144,11 +3148,11 @@ let scrollph y maxy =
     then 1.0
     else float y /. float maxy
   in
-  let position = (float conf.winh -. sh) *. percent in
+  let position = (float state.winh -. sh) *. percent in
 
   let position =
-    if position +. sh > float conf.winh
-    then float conf.winh -. sh
+    if position +. sh > float state.winh
+    then float state.winh -. sh
     else position
   in
   position, sh;
@@ -3178,7 +3182,7 @@ object (self)
     Gl.enable `blend;
     GlFunc.blend_func `src_alpha `one_minus_src_alpha;
     GlDraw.color (0., 0., 0.) ~alpha:0.85;
-    GlDraw.rect (0., 0.) (float conf.winw, float conf.winh);
+    GlDraw.rect (0., 0.) (float state.winw, float state.winh);
     GlDraw.color (1., 1., 1.);
     Gl.enable `texture_2d;
     let fs = fstate.fontsize in
@@ -3201,7 +3205,7 @@ object (self)
             GlDraw.polygon_mode `both `line;
             GlDraw.color (1., 1., 1.) ~alpha:0.9;
             GlDraw.rect (1., float (y + 1))
-              (float (conf.winw - conf.scrollbw - 1), float (y + fs + 3));
+              (float (state.winw - conf.scrollbw - 1), float (y + fs + 3));
             GlDraw.polygon_mode `both `fill;
             GlDraw.color (1., 1., 1.);
             Gl.enable `texture_2d;
@@ -3493,7 +3497,7 @@ object (self)
   method button button down x y _ =
     let opt =
       match button with
-      | 1 when x > conf.winw - conf.scrollbw ->
+      | 1 when x > state.winw - conf.scrollbw ->
           G.postRedisplay "listview scroll";
           if down
           then
@@ -3504,7 +3508,7 @@ object (self)
               Some (coe self)
             )
             else
-              let s = float (max 0 (y - conf.scrollh)) /. float conf.winh in
+              let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
               let first = truncate (s *. float source#getitemcount) in
               let first = min source#getitemcount first in
               Some (coe {< m_first = first; m_active = first >})
@@ -3547,7 +3551,7 @@ object (self)
   method motion _ y =
     match state.mstate with
     | Mscrolly ->
-        let s = float (max 0 (y - conf.scrollh)) /. float conf.winh in
+        let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
         let first = truncate (s *. float source#getitemcount) in
         let first = min source#getitemcount first in
         G.postRedisplay "listview motion";
@@ -3555,7 +3559,7 @@ object (self)
     | _ -> coe self
 
   method pmotion x y =
-    if x < conf.winw - conf.scrollbw
+    if x < state.winw - conf.scrollbw
     then
       let n =
         match self#elemunder y with
@@ -3962,7 +3966,7 @@ let describe_location () =
     if fn = -1 then l.pageno, l.pageno else fn, l.pageno
   in
   let fn, ln = List.fold_left f (-1, -1) state.layout in
-  let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
+  let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
   let percent =
     if maxy <= 0
     then 100.
@@ -4286,7 +4290,7 @@ let enterinfomode =
       (fun v ->
         state.scrollw <- v;
         conf.scrollbw <- v;
-        reshape conf.winw conf.winh;
+        reshape state.winw state.winh;
       );
 
     src#int "scroll handle height"
@@ -4327,7 +4331,7 @@ let enterinfomode =
           if conf.presentation
           then (
             state.scrollw <- if v then conf.scrollbw else 0;
-            reshape conf.winw conf.winh;
+            reshape state.winw state.winh;
           )
         );
       );
@@ -4348,7 +4352,7 @@ let enterinfomode =
     src#caption2 "Dimension"
       (fun () ->
         Printf.sprintf "%dx%d (virtual %dx%d)"
-          conf.winw conf.winh
+          state.winw state.winh
           state.w state.maxy)
       1;
     if conf.debug
@@ -4693,7 +4697,6 @@ let quickbookmark ?title () =
 ;;
 
 let doreshape w h =
-  state.fullscreen <- None;
   Wsi.reshape w h;
 ;;
 
@@ -4769,7 +4772,7 @@ let nextpage () =
       | Csingle _ ->
           if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
           then
-            let y = clamp (pgscale conf.winh) in
+            let y = clamp (pgscale state.winh) in
             gotoghyll y
           else
             let pageno = min (l.pageno+1) (state.pagecount-1) in
@@ -4779,7 +4782,7 @@ let nextpage () =
             && (existsinrow l.pageno cl
                    (fun l -> l.pageh > l.pagey + l.pagevh))
           then
-            let y = clamp (pgscale conf.winh) in
+            let y = clamp (pgscale state.winh) in
             gotoghyll y
           else
             let pageno = min (l.pageno+c) (state.pagecount-1) in
@@ -4801,7 +4804,7 @@ let prevpage () =
       | Csingle _ ->
           if conf.presentation && l.pagey != 0
           then
-            gotoghyll (clamp (pgscale ~-(conf.winh)))
+            gotoghyll (clamp (pgscale ~-(state.winh)))
           else
             let pageno = max 0 (l.pageno-1) in
             gotoghyll (getpagey pageno)
@@ -4809,7 +4812,7 @@ let prevpage () =
           if conf.presentation &&
             (existsinrow l.pageno cl (fun l -> l.pagey != 0))
           then
-            gotoghyll (clamp (pgscale ~-(conf.winh)))
+            gotoghyll (clamp (pgscale ~-(state.winh)))
           else
             let decr =
               if l.pageno = state.pagecount - coverB
@@ -4942,7 +4945,7 @@ let viewkeyboard key mask =
         | Csingle _ | Cmulti _ -> 1
         | Csplit (n, _) -> n
       in
-      let zoom = zoomforh conf.winw conf.winh state.scrollw cols in
+      let zoom = zoomforh state.winw state.winh state.scrollw cols in
       if zoom < 1.0
       then setzoom zoom
 
@@ -4978,7 +4981,7 @@ let viewkeyboard key mask =
 
   | 98 ->                               (* b *)
       state.scrollw <- if state.scrollw > 0 then 0 else conf.scrollbw;
-      reshape conf.winw conf.winh;
+      reshape state.winw state.winh;
 
   | 108 ->                              (* l *)
       conf.hlinks <- not conf.hlinks;
@@ -5071,14 +5074,9 @@ let viewkeyboard key mask =
                        if conf.presentation then "on" else "off");
 
   | 102 ->                              (* f *)
-      begin match state.fullscreen with
-      | None ->
-          state.fullscreen <- Some (conf.winw, conf.winh);
-          Wsi.fullscreen ()
-      | Some (w, h) ->
-          state.fullscreen <- None;
-          doreshape w h
-      end
+      if List.mem Wsi.Fullscreen state.winstate
+      then doreshape conf.cwinw conf.cwinh
+      else Wsi.fullscreen ()
 
   | 112 | 78 ->                         (* p|N *)
       search state.searchpattern false
@@ -5165,7 +5163,7 @@ let viewkeyboard key mask =
   | 50 when ctrl ->                     (* ctrl-2 *)
       let maxw = getmaxw () in
       if maxw > 0.0
-      then setzoom (maxw /. float conf.winw)
+      then setzoom (maxw /. float state.winw)
 
   | 60 | 62 ->                          (* < > *)
       reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.proportional
@@ -5202,7 +5200,7 @@ let viewkeyboard key mask =
           | Birdseye beye -> upbirdseye 1 beye
           | _ ->
               if ctrl
-              then gotoy_and_clear_text (clamp ~-(conf.winh/2))
+              then gotoy_and_clear_text (clamp ~-(state.winh/2))
               else gotoy_and_clear_text (clamp (-conf.scrollstep))
           end
       | Some n ->
@@ -5216,7 +5214,7 @@ let viewkeyboard key mask =
           | Birdseye beye -> downbirdseye 1 beye
           | _ ->
               if ctrl
-              then gotoy_and_clear_text (clamp (conf.winh/2))
+              then gotoy_and_clear_text (clamp (state.winh/2))
               else gotoy_and_clear_text (clamp conf.scrollstep)
           end
       | Some n ->
@@ -5229,7 +5227,7 @@ let viewkeyboard key mask =
       then
         let dx =
           if ctrl
-          then conf.winw / 2
+          then state.winw / 2
           else conf.hscrollstep
         in
         let dx = if key = 0xff51 or key = 0xff96 then dx else -dx in
@@ -5248,7 +5246,7 @@ let viewkeyboard key mask =
           | [] -> state.y
           | l :: _ -> state.y - l.pagey
         else
-          clamp (pgscale (-conf.winh))
+          clamp (pgscale (-state.winh))
       in
       gotoghyll y
 
@@ -5260,7 +5258,7 @@ let viewkeyboard key mask =
           | [] -> state.y
           | l :: _ -> getpagey l.pageno
         else
-          clamp (pgscale conf.winh)
+          clamp (pgscale state.winh)
       in
       gotoghyll y
 
@@ -5349,7 +5347,7 @@ let linknavkeyboard key mask linknav =
                   let y, h = getpageyh pageno in
                   let y =
                     if dir < 0
-                    then y + h - conf.winh
+                    then y + h - state.winh
                     else y
                   in
                   gotoy y
@@ -5383,7 +5381,7 @@ let linknavkeyboard key mask linknav =
                 else (
                   let d = fstate.fontsize + 1 in
                   if y1 - l.pagey > l.pagevh - d
-                  then gotopage1 l.pageno (y1 - conf.winh - state.hscrollh + d)
+                  then gotopage1 l.pageno (y1 - state.winh - state.hscrollh + d)
                   else G.postRedisplay "linknav";
                 );
                 showlinktype (getlink opaque m);
@@ -5419,11 +5417,11 @@ let birdseyekeyboard key mask
     | Cmulti ((c, _, _), _) -> c
     | Csplit _ -> failwith "bird's eye split mode"
   in
-  let pgh layout = List.fold_left (fun m l -> max l.pageh m) conf.winh layout in
+  let pgh layout = List.fold_left (fun m l -> max l.pageh m) state.winh layout in
   match key with
   | 108 when Wsi.withctrl mask ->      (* ctrl-l *)
       let y, h = getpageyh pageno in
-      let top = (conf.winh - h) / 2 in
+      let top = (state.winh - h) / 2 in
       gotoy (max 0 (y - top))
   | 0xff0d                              (* enter *)
   | 0xff8d -> leavebirdseye beye false  (* kp enter *)
@@ -5444,9 +5442,9 @@ let birdseyekeyboard key mask
             gotopage1 l.pageno 0;
           )
           else (
-            let layout = layout (state.y-conf.winh) (pgh state.layout) in
+            let layout = layout (state.y-state.winh) (pgh state.layout) in
             match layout with
-            | [] -> gotoy (clamp (-conf.winh))
+            | [] -> gotoy (clamp (-state.winh))
             | l :: _ ->
                 state.mode <- Birdseye (
                   oconf, leftx, l.pageno, hooverpageno, anchor
@@ -5454,13 +5452,13 @@ let birdseyekeyboard key mask
                 gotopage1 l.pageno 0
           );
 
-      | [] -> gotoy (clamp (-conf.winh))
+      | [] -> gotoy (clamp (-state.winh))
       end;
 
   | 0xff56 ->                           (* next *)
       begin match List.rev state.layout with
       | l :: _ ->
-          let layout = layout (state.y + (pgh state.layout)) conf.winh in
+          let layout = layout (state.y + (pgh state.layout)) state.winh in
           begin match layout with
           | [] ->
               let incr = l.pageh - l.pagevh in
@@ -5480,7 +5478,7 @@ let birdseyekeyboard key mask
               gotopage1 l.pageno 0;
           end
 
-      | [] -> gotoy (clamp conf.winh)
+      | [] -> gotoy (clamp state.winh)
       end;
 
   | 0xff50 ->                           (* home *)
@@ -5494,10 +5492,10 @@ let birdseyekeyboard key mask
       then
         let h =
           match List.rev state.pdims with
-          | [] -> conf.winh
+          | [] -> state.winh
           | (_, _, h, _) :: _ -> h
         in
-        gotoy (max 0 (getpagey pageno - (conf.winh - h - conf.interpagespace)))
+        gotoy (max 0 (getpagey pageno - (state.winh - h - conf.interpagespace)))
       else G.postRedisplay "birdseye end";
   | _ -> viewkeyboard key mask
 ;;
@@ -5550,22 +5548,22 @@ let scrollindicator () =
 
   GlDraw.color (0.64, 0.64, 0.64);
   GlDraw.rect
-    (float (conf.winw - sbw), 0.)
-    (float conf.winw, float conf.winh)
+    (float (state.winw - sbw), 0.)
+    (float state.winw, float state.winh)
   ;
   GlDraw.rect
-    (0., float (conf.winh - sbh))
-    (float (conf.winw - state.scrollw - 1), float conf.winh)
+    (0., float (state.winh - sbh))
+    (float (state.winw - state.scrollw - 1), float state.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
   GlDraw.rect
-    (float (conf.winw - sbw), ph)
-    (float conf.winw, ph +. sh)
+    (float (state.winw - sbw), ph)
+    (float state.winw, ph +. sh)
   ;
   GlDraw.rect
-    (pw, float (conf.winh - sbh))
-    (pw +. sw, float conf.winh)
+    (pw, float (state.winh - sbh))
+    (pw +. sw, float state.winh)
   ;
 ;;
 
@@ -5672,10 +5670,10 @@ let zoomrect x y x1 y1 =
   and y0 = min y y1 in
   gotoy (state.y + y0);
   state.anchor <- getanchor ();
-  let zoom = (float conf.winw *. conf.zoom) /. float (x1 - x0) in
+  let zoom = (float state.winw *. conf.zoom) /. float (x1 - x0) in
   let margin =
-    if state.w < conf.winw - state.scrollw
-    then (conf.winw - state.scrollw - state.w) / 2
+    if state.w < state.winw - state.scrollw
+    then (state.winw - state.scrollw - state.w) / 2
     else 0
   in
   state.x <- (state.x + margin) - x0;
@@ -5685,7 +5683,7 @@ let zoomrect x y x1 y1 =
 ;;
 
 let scrollx x =
-  let winw = conf.winw - state.scrollw - 1 in
+  let winw = state.winw - state.scrollw - 1 in
   let s = float x /. float winw in
   let destx = truncate (float (state.w + winw) *. s) in
   state.x <- winw - destx;
@@ -5694,8 +5692,8 @@ let scrollx x =
 ;;
 
 let scrolly y =
-  let s = float y /. float conf.winh in
-  let desty = truncate (float (state.maxy - conf.winh) *. s) in
+  let s = float y /. float state.winh in
+  let desty = truncate (float (state.maxy - state.winh) *. s) in
   gotoy_and_clear_text desty;
   state.mstate <- Mscrolly;
 ;;
@@ -5797,7 +5795,7 @@ let viewmouse button down x y mask =
             state.mstate <- Mnone
       )
 
-  | 1 when x > conf.winw - state.scrollw ->
+  | 1 when x > state.winw - state.scrollw ->
       if down
       then
         let _, position, sh = state.uioh#scrollph in
@@ -5807,7 +5805,7 @@ let viewmouse button down x y mask =
       else
         state.mstate <- Mnone
 
-  | 1 when y > conf.winh - state.hscrollh ->
+  | 1 when y > state.winh - state.hscrollh ->
       if down
       then
         let _, position, sw = state.uioh#scrollpw in
@@ -5977,11 +5975,11 @@ let uioh = object
             G.postRedisplay "motion select";
 
         | Mscrolly ->
-            let y = min conf.winh (max 0 y) in
+            let y = min state.winh (max 0 y) in
             scrolly y
 
         | Mscrollx ->
-            let x = min conf.winw (max 0 x) in
+            let x = min state.winw (max 0 x) in
             scrollx x
 
         | Mzoomrect (p0, _) ->
@@ -6025,12 +6023,12 @@ let uioh = object
   method infochanged _ = ()
 
   method scrollph =
-    let maxy = state.maxy - (if conf.maxhfit then conf.winh else 0) in
+    let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
     let p, h = scrollph state.y maxy in
     state.scrollw, p, h
 
   method scrollpw =
-    let winw = conf.winw - state.scrollw - 1 in
+    let winw = state.winw - state.scrollw - 1 in
     let fwinw = float winw in
     let sw =
       let sw = fwinw /. float state.w in
@@ -6163,8 +6161,8 @@ struct
             { c with zoom = zoom }
         | "presentation" -> { c with presentation = bool_of_string v }
         | "rotation-angle" -> { c with angle = int_of_string v }
-        | "width" -> { c with winw = max 20 (int_of_string v) }
-        | "height" -> { c with winh = max 20 (int_of_string v) }
+        | "width" -> { c with cwinw = max 20 (int_of_string v) }
+        | "height" -> { c with cwinh = max 20 (int_of_string v) }
         | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
         | "proportional-display" -> { c with proportional = bool_of_string v }
         | "pixmap-cache-size" ->
@@ -6283,8 +6281,8 @@ struct
     dst.zoom           <- src.zoom;
     dst.presentation   <- src.presentation;
     dst.angle          <- src.angle;
-    dst.winw           <- src.winw;
-    dst.winh           <- src.winh;
+    dst.cwinw          <- src.cwinw;
+    dst.cwinh          <- src.cwinh;
     dst.savebmarks     <- src.savebmarks;
     dst.memlimit       <- src.memlimit;
     dst.proportional   <- src.proportional;
@@ -6672,16 +6670,8 @@ struct
         | Some c when c > 1 -> Printf.bprintf bb "\n    %s='%d'" s c
         | _ -> ()
     in
-    let w, h =
-      if always
-      then dc.winw, dc.winh
-      else
-        match state.fullscreen with
-        | Some wh -> wh
-        | None -> c.winw, c.winh
-    in
-    oi "width" w dc.winw;
-    oi "height" h dc.winh;
+    oi "width" c.cwinw dc.cwinw;
+    oi "height" c.cwinh dc.cwinh;
     oi "scroll-bar-width" c.scrollbw dc.scrollbw;
     oi "scroll-handle-height" c.scrollh dc.scrollh;
     ob "case-insensitive-search" c.icase dc.icase;
@@ -6802,6 +6792,18 @@ struct
   let save () =
     let uifontsize = fstate.fontsize in
     let bb = Buffer.create 32768 in
+    let w, h =
+      List.fold_left
+        (fun (w, h) ws ->
+          match ws with
+          | Wsi.Fullscreen -> (conf.cwinw, conf.cwinh)
+          | Wsi.MaxVert -> (w, conf.cwinh)
+          | Wsi.MaxHorz -> (conf.cwinw, h)
+        )
+        (state.winw, state.winh) state.winstate
+    in
+    conf.cwinw <- w;
+    conf.cwinh <- h;
     let f (h, dc) =
       let dc = if conf.bedefault then conf else dc in
       Buffer.add_string bb "<llppconfig>\n";
@@ -7160,8 +7162,9 @@ let () =
 
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
+    method winstate wsl = state.winstate <- wsl
     method quit = raise Quit
-  end) conf.winw conf.winh (platform = Posx) in
+  end) conf.cwinw conf.cwinh (platform = Posx) in
 
   state.wsfd <- wsfd;
 

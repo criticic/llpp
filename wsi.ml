@@ -6,6 +6,12 @@ type cursor =
     | CURSOR_TEXT
 ;;
 
+type winstate =
+    | MaxVert
+    | MaxHorz
+    | Fullscreen
+;;
+
 let tempfailureretry f a =
   let rec g () =
     try f a with Unix.Unix_error (Unix.EINTR, _, _) -> g ()
@@ -32,20 +38,22 @@ let onot = object
   method key _ _         = ()
   method enter _ _       = ()
   method leave           = ()
+  method winstate _      = ()
   method quit            = exit 0
 end;;
 
 class type t = object
-  method display : unit
-  method expose  : unit
-  method reshape : int -> int -> unit
-  method mouse   : int -> bool -> int -> int -> int -> unit
-  method motion  : int -> int -> unit
-  method pmotion : int -> int -> unit
-  method key     : int -> int -> unit
-  method enter   : int -> int -> unit
-  method leave   : unit
-  method quit    : unit
+  method display  : unit
+  method expose   : unit
+  method reshape  : int -> int -> unit
+  method mouse    : int -> bool -> int -> int -> int -> unit
+  method motion   : int -> int -> unit
+  method pmotion  : int -> int -> unit
+  method key      : int -> int -> unit
+  method enter    : int -> int -> unit
+  method leave    : unit
+  method winstate : winstate list -> unit
+  method quit     : unit
 end;;
 
 type state =
@@ -56,6 +64,10 @@ type state =
     ; mutable seq        : int
     ; mutable protoatom  : int
     ; mutable deleatom   : int
+    ; mutable nwmsatom   : int
+    ; mutable maxvatom   : int
+    ; mutable maxhatom   : int
+    ; mutable fulsatom   : int
     ; mutable idbase     : int
     ; mutable fullscreen : (int -> unit)
     ; mutable setwmname  : (string -> unit)
@@ -87,6 +99,10 @@ let state =
   ; seq        = 0
   ; protoatom  = -1
   ; deleatom   = -1
+  ; nwmsatom   = -1
+  ; maxvatom   = -1
+  ; maxhatom   = -1
+  ; fulsatom   = -1
   ; idbase     = -1
   ; fullscreen = (fun _ -> ())
   ; setwmname  = (fun _ -> ())
@@ -336,6 +352,17 @@ let changepropreq wid prop typ format props =
   s;
 ;;
 
+let getpropreq delete wid prop typ =
+  let s = "\020\000\006\000wwwwppppttttooooLLLL" in
+  if delete then w8 s 1 1;
+  w32 s 4 wid;
+  w32 s 8 prop;
+  w32 s 12 typ;
+  w32 s 16 0;
+  w32 s 20 2;
+  s;
+;;
+
 let openfontreq fid name =
   let s = "\045ullffffnnuu" in
   let s = padcat s name in
@@ -565,6 +592,36 @@ let readresp sock =
       state.y <- y;
       state.t#expose
 
+  | 28 ->
+      let atom = r32 resp 8 in
+      if atom = state.nwmsatom
+      then
+        let s = getpropreq false state.idbase atom 4 in
+        sendwithrep sock s (fun resp ->
+          let len = r32 resp 4 in
+          let nitems = r32 resp 16 in
+          let wsl =
+            if len = 0
+            then []
+            else
+              let s = readstr sock (len*4) in
+              let rec loop wsl i = if i = nitems then wsl else
+                  let atom = r32 s (i*4) in
+                  let wsl =
+                    if atom = state.maxhatom then (MaxHorz::wsl)
+                    else (
+                      if atom = state.maxvatom then (MaxVert::wsl)
+                      else (
+                        if atom = state.fulsatom then (Fullscreen::wsl) else wsl
+                      )
+                    )
+                  in loop wsl (i+1)
+              in
+              loop [] 0
+          in
+          state.t#winstate (List.sort compare wsl)
+        );
+
   | n ->
       dolog "event %d %S" n resp
 ;;
@@ -717,7 +774,7 @@ let setup sock screennum w h =
         (* + 0x00080000 *)              (* SubstructureNotify *)
         (* + 0x00100000 *)              (* SubstructureRedirect *)
         (* + 0x00200000 *)              (* FocusChange *)
-        (* + 0x00400000 *)              (* PropertyChange *)
+        + 0x00400000                    (* PropertyChange *)
         (* + 0x00800000 *)              (* ColormapChange *)
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
@@ -843,12 +900,18 @@ let setup sock screennum w h =
       );
 
       sendintern sock "_NET_WM_STATE" true (fun resp ->
-        let nwmsatom = r32 resp 8 in
-        if nwmsatom != 0
-        then
+        state.nwmsatom <- r32 resp 8;
+        if state.nwmsatom != 0
+        then (
+          sendintern sock "_NET_WM_STATE_MAXIMIZED_VERT" true (fun resp ->
+            state.maxvatom <- r32 resp 8;
+          );
+          sendintern sock "_NET_WM_STATE_MAXIMIZED_HORZ" true (fun resp ->
+            state.maxhatom <- r32 resp 8;
+          );
           sendintern sock "_NET_WM_STATE_FULLSCREEN" true (fun resp ->
-            let fsatom = r32 resp 8 in
-            if fsatom != 0
+            state.fulsatom <- r32 resp 8;
+            if state.fulsatom != 0
             then
               state.fullscreen <-
                 (fun wid ->
@@ -859,14 +922,15 @@ let setup sock screennum w h =
                     | Fs _ -> NoFs, 0
                   in
                   w32 data 0 f;
-                  w32 data 4 fsatom;
+                  w32 data 4 state.fulsatom;
 
-                  let cm = clientmessage 32 0 wid nwmsatom data in
+                  let cm = clientmessage 32 0 wid state.nwmsatom data in
                   let s = sendeventreq 0 root 0x180000 cm in
                   sendstr s sock;
                   state.fs <- fs;
                 );
           );
+        );
       );
       let s = getgeometryreq wid in
       syncsendwithrep sock 2.0 s (fun resp ->

@@ -6,17 +6,24 @@ type cursor =
     | CURSOR_TEXT
 ;;
 
+type winstate =
+    | MaxVert
+    | MaxHorz
+    | Fullscreen
+;;
+
 class type t = object
-  method display : unit
-  method expose : unit
-  method reshape : int -> int -> unit
-  method mouse : int -> bool -> int -> int -> int -> unit
-  method motion : int -> int -> unit
-  method pmotion : int -> int -> unit
-  method key : int -> int -> unit
-  method enter : int -> int -> unit
-  method leave : unit
-  method quit : unit
+  method display  : unit
+  method expose   : unit
+  method reshape  : int -> int -> unit
+  method mouse    : int -> bool -> int -> int -> int -> unit
+  method motion   : int -> int -> unit
+  method pmotion  : int -> int -> unit
+  method key      : int -> int -> unit
+  method enter    : int -> int -> unit
+  method leave    : unit
+  method winstate : winstate list -> unit
+  method quit     : unit
 end;;
 
 val setcursor : cursor -> unit;;
