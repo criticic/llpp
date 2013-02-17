@@ -7005,10 +7005,18 @@ let ract cmds =
                 else false
               in
               let y, h = getpageyh pageno in
-              let y = y + (truncate (top *. float h)) in
-              let dy = y - state.y in
+              let y' = y + truncate (top *. float h) in
+              let dy = y' - state.y in
               if newpan || not (dy > 0 && dy < state.winh - state.hscrollh)
               then (
+                let y =
+                  if conf.presentation
+                  then
+                    if abs (y - y') > state.winh - state.hscrollh
+                    then y'
+                    else y
+                  else y';
+                in
                 gotoy y;
                 state.wthack <- !wtmode && not (layoutready state.layout);
               )
