@@ -6996,9 +6996,16 @@ let ract cmds =
             let sw = float w1 /. w in
             let x = sw *. x in
             let x = leftx + state.x + truncate x in
-            if x < 0 || x >= state.winw - state.scrollw
-            then state.x <- state.x - x;
-            gotopage pageno top;
+            let newpan =
+              if x < 0 || x >= state.winw - state.scrollw
+              then (state.x <- state.x - x; true)
+              else false
+            in
+            let y, h = getpageyh pageno in
+            let y = y + (truncate (top *. float h)) in
+            let dy = y - state.y in
+            if newpan || not (dy > 0 && dy < state.winh - state.hscrollh)
+            then gotoy y
           )
         )
   | "goto1" :: args :: [] -> scan args "%u %f" gotopage
