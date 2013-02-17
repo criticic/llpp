@@ -6989,9 +6989,15 @@ let ract cmds =
   | "reload" :: [] -> reload ()
   | "goto" :: args :: [] ->
       scan args "%u %f %f"
-        (fun pageno _ y ->
-          onpagerect pageno (fun _ h ->
+        (fun pageno x y ->
+          onpagerect pageno (fun w h ->
             let top = y /. h in
+            let _,w1,_,leftx = getpagedim pageno in
+            let sw = float w1 /. w in
+            let x = sw *. x in
+            let x = leftx + state.x + truncate x in
+            if x < 0 || x >= state.winw - state.scrollw
+            then state.x <- state.x - x;
             gotopage pageno top;
           )
         )
