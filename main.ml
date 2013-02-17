@@ -2544,13 +2544,13 @@ let act cmds =
       let s = String.sub args pos (String.length args - pos) in
       let outline = (s, l, (n, float t /. float h, 0.0)) in
       begin match state.currently with
-        | Outlining outlines ->
-            state.currently <- Outlining (outline :: outlines)
-        | Idle ->
-            state.currently <- Outlining [outline]
-        | currently ->
-            dolog "invalid outlining state";
-            logcurrently currently
+      | Outlining outlines ->
+          state.currently <- Outlining (outline :: outlines)
+      | Idle ->
+          state.currently <- Outlining [outline]
+      | currently ->
+          dolog "invalid outlining state";
+          logcurrently currently
       end
 
   | "a" :: args :: [] ->
