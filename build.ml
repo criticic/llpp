@@ -138,7 +138,7 @@ let () =
     cmopp ~flags:"-g -w A-7-6-4 -I +lablGL -thread" ~dirname name;
     (name ^ ".cmo")
   in
-  let cmos = so :: List.map mkcmo ["help"; "parser"; "wsi"; "main"] in
+  let cmos = so :: List.map mkcmo ["help"; "utils"; "parser"; "wsi"; "main"] in
   prog "llpp" cmos;
 ;;
 

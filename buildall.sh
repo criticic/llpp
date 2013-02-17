@@ -89,6 +89,7 @@ if test "$1" = "opt"; then
             link.o                         \
             -cclib "$cclib"                \
             help.cmx                       \
+            utils.cmx                      \
             parser.cmx                     \
             wsi.cmx                        \
             main.cmx
@@ -103,6 +104,7 @@ else
             link.o                       \
             -cclib "$cclib"              \
             help.cmo                     \
+            utils.cmo                    \
             parser.cmo                   \
             wsi.cmo                      \
             main.cmo
@@ -111,6 +113,7 @@ fi
 
 $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
 $comp -c -o help.$cmsuf help.ml
+$comp -c -o utils.$cmsuf $srcpath/utils.ml
 $comp -c -o wsi.cmi $srcpath/wsi.mli
 $comp -c -o wsi.$cmsuf $srcpath/wsi.ml
 $comp -c -o parser.$cmsuf $srcpath/parser.ml

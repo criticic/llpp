@@ -1,3 +1,5 @@
+open Utils;;
+
 type cursor =
     | CURSOR_INHERIT
     | CURSOR_INFO
@@ -12,20 +14,10 @@ type winstate =
     | Fullscreen
 ;;
 
-let tempfailureretry f a =
-  let rec g () =
-    try f a with Unix.Unix_error (Unix.EINTR, _, _) -> g ()
-  in g ()
-;;
-
-external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external glx : int -> unit = "ml_glx";;
 external glxsync : unit -> unit = "ml_glxsync";;
 external swapb : unit -> unit = "ml_swapb";;
-external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
-external toutf8 : int -> string = "ml_keysymtoutf8";;
 
-let dolog fmt = Format.kprintf prerr_endline fmt;;
 let vlog fmt = Format.kprintf ignore fmt;;
 
 let onot = object
@@ -153,14 +145,6 @@ let r32 s pos =
   and u = (rb 2) lor ((rb 3) lsl 8) in
   (u lsl 16) lor l
 ;;
-
-let exntos = function
-  | Unix.Unix_error (e, s, a) -> Printf.sprintf "%s(%s) : %s (%d)"
-      s a (Unix.error_message e) (Obj.magic e)
-  | exn -> Printexc.to_string exn;
-;;
-
-let error fmt = Printf.kprintf failwith fmt;;
 
 let readstr sock n =
   let s = String.create n in

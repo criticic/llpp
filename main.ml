@@ -1,6 +1,6 @@
-exception Quit;;
+open Utils;;
 
-let tempfailureretry = Wsi.tempfailureretry;;
+exception Quit;;
 
 type under =
     | Unone
@@ -12,9 +12,6 @@ type under =
     | Unamed of string
     | Uremote of (string * int)
 and facename = string;;
-
-let dolog fmt = Printf.kprintf prerr_endline fmt;;
-let now = Unix.gettimeofday;;
 
 type params = (angle * proportional * trimparams
                 * texcount * sliceheight * memsize
@@ -96,14 +93,12 @@ external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
 external platform : unit -> platform = "ml_platform";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external realloctexts : int -> bool = "ml_realloctexts";;
-external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;
 external getlink : opaque -> int -> under = "ml_getlink";;
 external getlinkrect : opaque -> int -> irect = "ml_getlinkrect";;
 external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl : int -> int -> pagewithlinks = "ml_find_page_with_links"
 external popen : string -> (Unix.file_descr * int) list -> unit = "ml_popen";;
-external mbtoutf8 : string -> string = "ml_mbtoutf8";;
 external getpbo : width -> height -> colorspace -> string = "ml_getpbo";;
 external freepbo : string -> unit = "ml_freepbo";;
 external unmappbo : string -> unit = "ml_unmappbo";;
@@ -627,8 +622,6 @@ let geturl s =
   )
   else ""
 ;;
-
-let exntos = Wsi.exntos;;
 
 let gotouri uri =
   if String.length conf.urilauncher = 0
@@ -2655,7 +2648,7 @@ let linkndone f s =
 let textentry text key =
   if key land 0xff00 = 0xff00
   then TEcont text
-  else TEcont (text ^ Wsi.toutf8 key)
+  else TEcont (text ^ toutf8 key)
 ;;
 
 let reqlayout angle proportional =
@@ -3442,7 +3435,7 @@ object (self)
         );
 
     | key when (key != 0 && key land 0xff00 != 0xff00) ->
-        let pattern = m_qsearch ^ Wsi.toutf8 key in
+        let pattern = m_qsearch ^ toutf8 key in
         let active, first =
           match search m_active pattern 1 with
           | None ->

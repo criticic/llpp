@@ -16,6 +16,7 @@ sh $srcpath/mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
 ocamlc -c -o link.o -ccopt "$ccopt" $srcpath/link.c
 ocamlc -c -o help.cmo help.ml
+ocamlc -c -o utils.cmo $srcpath/utils.ml
 ocamlc -c -o wsi.cmi $srcpath/wsi.mli
 ocamlc -c -o wsi.cmo $srcpath/wsi.ml
 ocamlc -c -o parser.cmo $srcpath/parser.ml
@@ -27,6 +28,7 @@ ocamlc -custom -o llpp           \
     link.o                       \
     -cclib "$cclib"              \
     help.cmo                     \
+    utils.cmo                    \
     parser.cmo                   \
     wsi.cmo                      \
     main.cmo
