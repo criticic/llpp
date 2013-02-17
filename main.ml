@@ -628,6 +628,8 @@ let geturl s =
   else ""
 ;;
 
+let exntos = Wsi.exntos;;
+
 let gotouri uri =
   if String.length conf.urilauncher = 0
   then print_endline uri
@@ -641,7 +643,7 @@ let gotouri uri =
       try popen command []
       with exn ->
         Printf.eprintf
-          "failed to execute `%s': %s\n" command (Printexc.to_string exn);
+          "failed to execute `%s': %s\n" command (exntos exn);
         flush stderr;
   );
 ;;
@@ -753,8 +755,7 @@ let launchpath () =
     let command = Str.global_replace re state.path conf.pathlauncher in
     try popen command []
     with exn ->
-      Printf.eprintf
-        "failed to execute `%s': %s\n" command (Printexc.to_string exn);
+      Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
       flush stderr;
   );
 ;;
@@ -769,7 +770,7 @@ module Ne = struct
 
   let clo fd f =
     try tempfailureretry Unix.close fd
-    with exn -> f (Printexc.to_string exn)
+    with exn -> f (exntos exn)
   ;;
 
   let dup fd =
@@ -789,21 +790,19 @@ let redirectstderr () =
   then
     match Ne.pipe () with
     | Ne.Exn exn ->
-        dolog "failed to create stderr redirection pipes: %s"
-          (Printexc.to_string exn)
+        dolog "failed to create stderr redirection pipes: %s" (exntos exn)
 
     | Ne.Res (r, w) ->
         begin match Ne.dup Unix.stderr with
         | Ne.Exn exn ->
-            dolog "failed to dup stderr: %s" (Printexc.to_string exn);
+            dolog "failed to dup stderr: %s" (exntos exn);
             Ne.clo r (clofail "pipe/r");
             Ne.clo w (clofail "pipe/w");
 
         | Ne.Res dupstderr ->
             begin match Ne.dup2 w Unix.stderr with
             | Ne.Exn exn ->
-                dolog "failed to dup2 to stderr: %s"
-                  (Printexc.to_string exn);
+                dolog "failed to dup2 to stderr: %s" (exntos exn);
                 Ne.clo dupstderr (clofail "stderr duplicate");
                 Ne.clo r (clofail "redir pipe/r");
                 Ne.clo w (clofail "redir pipe/w");
@@ -819,8 +818,7 @@ let redirectstderr () =
     | Some fd ->
         begin match Ne.dup2 state.stderr Unix.stderr with
         | Ne.Exn exn ->
-            dolog "failed to dup2 original stderr: %s"
-              (Printexc.to_string exn)
+            dolog "failed to dup2 original stderr: %s" (exntos exn)
         | Ne.Res () ->
             Ne.clo fd (clofail "dup of stderr");
             state.errfd <- None;
@@ -2323,7 +2321,7 @@ let act cmds =
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
-      dolog "error processing '%S': %s" cmds (Printexc.to_string exn);
+      dolog "error processing '%S': %s" cmds (exntos exn);
       exit 1
   in
   match cl with
@@ -2866,8 +2864,7 @@ let optentry mode _ key =
     | 's' ->
         let ondone s =
           try conf.scrollstep <- int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
         TEswitch ("scroll step: ", "", None, intentry, ondone, true)
 
@@ -2878,8 +2875,7 @@ let optentry mode _ key =
             if state.autoscroll <> None
             then state.autoscroll <- Some conf.autoscrollstep
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
         TEswitch ("auto scroll step: ", "", None, intentry, ondone, true)
 
@@ -2889,8 +2885,7 @@ let optentry mode _ key =
             let n, a, b = multicolumns_of_string s in
             setcolumns mode n a b;
           with exc ->
-            state.text <- Printf.sprintf "bad columns `%s': %s"
-              s (Printexc.to_string exc)
+            state.text <- Printf.sprintf "bad columns `%s': %s" s (exntos exc)
         in
         TEswitch ("columns: ", "", None, textentry, ondone, true)
 
@@ -2900,8 +2895,7 @@ let optentry mode _ key =
             let zoom = float (int_of_string s) /. 100.0 in
             setzoom zoom
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
         TEswitch ("zoom: ", "", None, intentry, ondone, true)
 
@@ -2918,8 +2912,7 @@ let optentry mode _ key =
             | _ -> ();
             end
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
         TEswitch ("thumbnail width: ", "", None, intentry, ondone, true)
 
@@ -2929,7 +2922,7 @@ let optentry mode _ key =
               Some (int_of_string s)
             with exc ->
               state.text <- Printf.sprintf "bad integer `%s': %s"
-                s (Printexc.to_string exc);
+                s (exntos exc);
               None
           with
           | Some angle -> reqlayout angle conf.proportional
@@ -2998,8 +2991,7 @@ let optentry mode _ key =
             let y = getpagey pageno in
             gotoy (y + py)
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
         TEswitch ("vertical margin: ", "", None, intentry, ondone, true)
 
@@ -4087,7 +4079,7 @@ let enterinfomode =
                 try set (int_of_string s)
                 with exn ->
                   state.text <- Printf.sprintf "bad integer `%s': %s"
-                    s (Printexc.to_string exn)
+                    s (exntos exn)
               in
               state.text <- "";
               let te = name ^ ": ", "", None, intentry, ondone, true in
@@ -4103,7 +4095,7 @@ let enterinfomode =
                 try set (int_of_string_with_suffix s)
                 with exn ->
                   state.text <- Printf.sprintf "bad integer `%s': %s"
-                    s (Printexc.to_string exn)
+                    s (exntos exn)
               in
               state.text <- "";
               let te =
@@ -4132,7 +4124,7 @@ let enterinfomode =
                   try color_of_string s
                   with exn ->
                     state.text <- Printf.sprintf "bad color `%s': %s"
-                      s (Printexc.to_string exn);
+                      s (exntos exn);
                     invalid
                 in
                 if c <> invalid
@@ -4240,8 +4232,7 @@ let enterinfomode =
             let c = color_of_string v in
             set c
           with exn ->
-            state.text <- Printf.sprintf "bad color `%s': %s"
-              v (Printexc.to_string exn);
+            state.text <- Printf.sprintf "bad color `%s': %s" v (exntos exn)
         )
     in
     let oldmode = state.mode in
@@ -4459,7 +4450,8 @@ let enterinfomode =
             flushtiles ();
           with exn ->
             state.text <- Printf.sprintf "bad tile size `%s': %s"
-              v (Printexc.to_string exn));
+              v (exntos exn)
+        );
       src#int "texture count"
         (fun () -> conf.texcount)
         (fun v ->
@@ -4488,8 +4480,7 @@ let enterinfomode =
             conf.pgscale <- s
           with exn ->
             state.text <- Printf.sprintf
-              "bad page scroll scaling factor `%s': %s"
-              v (Printexc.to_string exn)
+              "bad page scroll scaling factor `%s': %s" v (exntos exn)
         )
       ;
       src#int "ui font size"
@@ -4512,8 +4503,7 @@ let enterinfomode =
             if conf.trimmargins
             then settrim true conf.trimfuzz;
           with exn ->
-            state.text <- Printf.sprintf "bad irect `%s': %s"
-              v (Printexc.to_string exn)
+            state.text <- Printf.sprintf "bad irect `%s': %s" v (exntos exn)
         );
       src#string "throttle"
         (fun () ->
@@ -4533,8 +4523,7 @@ let enterinfomode =
             then conf.maxwait <- None
             else conf.maxwait <- Some f
           with exn ->
-            state.text <- Printf.sprintf "bad time `%s': %s"
-              v (Printexc.to_string exn)
+            state.text <- Printf.sprintf "bad time `%s': %s" v (exntos exn)
         );
       src#string "ghyll scroll"
         (fun () ->
@@ -4551,8 +4540,7 @@ let enterinfomode =
             in
             conf.ghyllscroll <- gs
           with exn ->
-            state.text <- Printf.sprintf "bad ghyll `%s': %s"
-              v (Printexc.to_string exn)
+            state.text <- Printf.sprintf "bad ghyll `%s': %s" v (exntos exn)
         );
       src#string "selection command"
         (fun () -> conf.selcmd)
@@ -4960,8 +4948,7 @@ let viewkeyboard key mask =
       let ondone s =
         let n =
           try int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc);
+            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc);
             max_int
         in
         if n != max_int
@@ -5007,8 +4994,7 @@ let viewkeyboard key mask =
       let ondone s =
         let n =
           try int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s"
-              s (Printexc.to_string exc);
+            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc);
             -1
         in
         if n >= 0
@@ -5054,15 +5040,14 @@ let viewkeyboard key mask =
         (":", "", None, linknentry, linkndone (fun under ->
           match Ne.pipe () with
           | Ne.Exn exn ->
-              showtext '!' (Printf.sprintf "pipe failed: %s"
-                               (Printexc.to_string exn));
+              showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
           | Ne.Res (r, w) ->
               let popened =
                 try popen conf.selcmd [r, 0; w, -1]; true
                 with exn ->
                   showtext '!'
                     (Printf.sprintf "failed to execute %s: %s"
-                        conf.selcmd (Printexc.to_string exn));
+                        conf.selcmd (exntos exn));
                   false
               in
               let clo cap fd =
@@ -5086,7 +5071,7 @@ let viewkeyboard key mask =
                   with exn ->
                     showtext '!'
                       (Printf.sprintf "failed to write to sel pipe: %s"
-                          (Printexc.to_string exn)
+                          (exntos exn)
                       )
                 )
               else dolog "%s" s;
@@ -5920,7 +5905,7 @@ let viewmouse button down x y mask =
                                   showtext '!'
                                     (Printf.sprintf
                                         "can not create sel pipe: %s"
-                                        (Printexc.to_string exn));
+                                        (exntos exn));
                               | Ne.Res (r, w) ->
                                   let doclose what fd =
                                     Ne.clo fd (fun msg ->
@@ -5933,7 +5918,7 @@ let viewmouse button down x y mask =
                                     G.postRedisplay "copysel";
                                   with exn ->
                                     dolog "can not execute %S: %s"
-                                      conf.selcmd (Printexc.to_string exn);
+                                      conf.selcmd (exntos exn);
                                     doclose "pipe/r" r;
                                     doclose "pipe/w" w;
                             end
@@ -6126,8 +6111,7 @@ struct
     try Sys.getenv "HOME"
     with exn ->
       prerr_endline
-        ("Can not determine home directory location: " ^
-            Printexc.to_string exn);
+        ("Can not determine home directory location: " ^ exntos exn);
       ""
   ;;
 
@@ -6254,7 +6238,7 @@ struct
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
-                          k ^ "'=`" ^ v ^ "'): " ^ Printexc.to_string exn);
+                          k ^ "'=`" ^ v ^ "'): " ^ exntos exn);
         c
     in
     let rec fold c = function
@@ -6270,7 +6254,7 @@ struct
     try f v
     with exn ->
       dolog "Error processing attribute (%S=%S) at %d\n%s"
-        n v pos (Printexc.to_string exn)
+        n v pos (exntos exn)
       ;
       d
   ;;
@@ -6585,7 +6569,7 @@ struct
         failwith ("parse error: " ^ s)
 
     | exn ->
-        failwith ("config load error: " ^ Printexc.to_string exn)
+        failwith ("config load error: " ^ exntos exn)
   ;;
 
   let defconfpath =
@@ -6608,7 +6592,7 @@ struct
           with exn ->
             prerr_endline
               ("Error opening configuation file `" ^ !confpath ^ "': " ^
-                  Printexc.to_string exn);
+                  exntos exn);
             None
         )
       with
@@ -6619,7 +6603,7 @@ struct
             with exn ->
               prerr_endline
                 ("Error loading configuation from `" ^ !confpath ^ "': " ^
-                    Printexc.to_string exn);
+                    exntos exn);
               false
           in
           close_in ic;
@@ -6996,7 +6980,7 @@ struct
         Unix.rename tmp !confpath;
       with exn ->
         prerr_endline
-          ("error while saving configuration: " ^ Printexc.to_string exn)
+          ("error while saving configuration: " ^ exntos exn)
   ;;
 end;;
 
@@ -7016,7 +7000,7 @@ let ract cmds =
     try Scanf.sscanf s fmt f
     with exn ->
       adderrfmt "remote exec"
-        "error processing '%S': %s\n" cmds (Printexc.to_string exn)
+        "error processing '%S': %s\n" cmds (exntos exn)
   in
   match cl with
   | "reload" :: [] -> reload ()
@@ -7110,7 +7094,7 @@ let remote =
 let remoteopen path =
   try Some (Unix.openfile path [Unix.O_NONBLOCK; Unix.O_RDONLY] 0o0)
   with exn ->
-    adderrfmt "remoteopen" "error opening %S: %s" path (Printexc.to_string exn);
+    adderrfmt "remoteopen" "error opening %S: %s" path (exntos exn);
     None
 ;;
 
@@ -7218,13 +7202,13 @@ let () =
   let cr, sw =
     match Ne.pipe () with
     | Ne.Exn exn ->
-        Printf.eprintf "pipe/crsw failed: %s" (Printexc.to_string exn);
+        Printf.eprintf "pipe/crsw failed: %s" (exntos exn);
         exit 1
     | Ne.Res rw -> rw
   and sr, cw =
     match Ne.pipe () with
     | Ne.Exn exn ->
-        Printf.eprintf "pipe/srcw failed: %s" (Printexc.to_string exn);
+        Printf.eprintf "pipe/srcw failed: %s" (exntos exn);
         exit 1
     | Ne.Res rw -> rw
   in
