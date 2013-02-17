@@ -43,6 +43,13 @@ and colorspace     = | Rgb | Bgr | Gray
 and haspbo         = bool
 ;;
 
+type x = int
+and y = int
+and tilex = int
+and tiley = int
+and tileparams = (x * y * width * height * tilex * tiley)
+;;
+
 type link =
     | Lnotfound
     | Lfound of int
@@ -105,6 +112,7 @@ external unmappbo : string -> unit = "ml_unmappbo";;
 external pbousable : unit -> bool = "ml_pbo_usable";;
 external unproject : opaque -> int -> int -> (int * int) option
   = "ml_unproject";;
+external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -141,15 +149,6 @@ let popen cmd fda =
   )
   else popen cmd fda;
 ;;
-
-type x = int
-and y = int
-and tilex = int
-and tiley = int
-and tileparams = (x * y * width * height * tilex * tiley)
-;;
-
-external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 
 type mpos = int * int
 and mstate =
