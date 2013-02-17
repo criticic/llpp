@@ -2573,10 +2573,10 @@ let act cmds =
 let onhist cb =
   let rc = cb.rc in
   let action = function
-  | HCprev   -> cbget cb ~-1
-  | HCnext   -> cbget cb 1
-  | HCfirst  -> cbget cb ~-(cb.rc)
-  | HClast   -> cbget cb (cb.len - 1 - cb.rc)
+    | HCprev   -> cbget cb ~-1
+    | HCnext   -> cbget cb 1
+    | HCfirst  -> cbget cb ~-(cb.rc)
+    | HClast   -> cbget cb (cb.len - 1 - cb.rc)
   and cancel () = cb.rc <- rc
   in (action, cancel)
 ;;
