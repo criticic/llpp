@@ -2272,6 +2272,51 @@ let splitatspace =
   fun s -> Str.bounded_split r s 2;
 ;;
 
+let onpagerect pageno f =
+  let b =
+    match conf.columns with
+    | Cmulti (_, b) -> b
+    | Csingle b -> b
+    | Csplit (_, b) -> b
+  in
+  if pageno >= 0 && pageno < Array.length b
+  then
+    let (pdimno, _, _, (_, _, _, _)) = b.(pageno) in
+    let r = getpdimrect pdimno in
+    f (r.(1)-.r.(0)) (r.(3)-.r.(2))
+;;
+
+let gotopagexy pageno x y  =
+  onpagerect pageno (fun w h ->
+    let top = y /. h in
+    let _,w1,_,leftx = getpagedim pageno in
+    let sw = float w1 /. w in
+    let x = sw *. x in
+    let x = leftx + state.x + truncate x in
+    let newpan =
+      if x < 0 || x >= state.winw - state.scrollw
+      then (state.x <- state.x - x; true)
+      else false
+    in
+    let y, h = getpageyh pageno in
+    let y' = y + truncate (top *. float h) in
+    let dy = y' - state.y in
+    if newpan || not (dy > 0 && dy < state.winh - state.hscrollh)
+    then (
+      let y =
+        if conf.presentation
+        then
+          if abs (y - y') > state.winh - state.hscrollh
+          then y'
+          else y
+        else y';
+      in
+      gotoy y;
+      state.wthack <- !wtmode && not (layoutready state.layout);
+    )
+  );
+;;
+
 let act cmds =
   (* dolog "%S" cmds; *)
   let cl = splitatspace cmds in
@@ -2509,15 +2554,10 @@ let act cmds =
       end
 
   | "a" :: args :: [] ->
-      let (n, t, h) =
-        scan args "%u %u %d" (fun n t h -> n, t, h)
+      let (n, l, t) =
+        scan args "%u %d %d" (fun n l t -> n, l, t)
       in
-      let top, dtop =
-        if conf.presentation
-        then (0.0, 1.0)
-        else (float t /. float h, 0.0)
-      in
-      state.anchor <- (n, top, dtop)
+      state.reprf <- (fun () -> gotopagexy n (float l) (float t))
 
   | "info" :: args :: [] ->
       state.docinfo <- (1, args) :: state.docinfo
@@ -6970,20 +7010,6 @@ let adderrfmt src fmt =
   Format.kprintf (fun s -> adderrmsg src s) fmt;
 ;;
 
-let onpagerect pageno f =
-  let b =
-    match conf.columns with
-    | Cmulti (_, b) -> b
-    | Csingle b -> b
-    | Csplit (_, b) -> b
-  in
-  if pageno >= 0 && pageno < Array.length b
-  then
-    let (pdimno, _, _, (_, _, _, _)) = b.(pageno) in
-    let r = getpdimrect pdimno in
-    f (r.(1)-.r.(0)) (r.(3)-.r.(2))
-;;
-
 let ract cmds =
   let cl = splitatspace cmds in
   let scan s fmt f =
@@ -6998,40 +7024,15 @@ let ract cmds =
       let cmd, _ = state.geomcmds in
       scan args "%u %f %f"
         (fun pageno x y ->
-          let dogo prevf () =
-            onpagerect pageno (fun w h ->
-              let top = y /. h in
-              let _,w1,_,leftx = getpagedim pageno in
-              let sw = float w1 /. w in
-              let x = sw *. x in
-              let x = leftx + state.x + truncate x in
-              let newpan =
-                if x < 0 || x >= state.winw - state.scrollw
-                then (state.x <- state.x - x; true)
-                else false
-              in
-              let y, h = getpageyh pageno in
-              let y' = y + truncate (top *. float h) in
-              let dy = y' - state.y in
-              if newpan || not (dy > 0 && dy < state.winh - state.hscrollh)
-              then (
-                let y =
-                  if conf.presentation
-                  then
-                    if abs (y - y') > state.winh - state.hscrollh
-                    then y'
-                    else y
-                  else y';
-                in
-                gotoy y;
-                state.wthack <- !wtmode && not (layoutready state.layout);
-              )
-            );
-            prevf ();
-          in
           if String.length cmd = 0
-          then dogo noreprf ()
-          else state.reprf <- dogo state.reprf
+          then gotopagexy pageno x y
+          else
+            let prevf = state.reprf in
+            let f () =
+              gotopagexy pageno x y;
+              prevf ()
+            in
+            state.reprf <- f
         )
   | "goto1" :: args :: [] -> scan args "%u %f" gotopage
   | "rect" :: args :: [] ->

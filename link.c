@@ -1183,13 +1183,16 @@ static void layout (void)
     }
 }
 
-static struct anchor { int n; int y; int h; } desttoanchor (fz_link_dest *dest)
+static
+struct anchor { int n; int x; int y; int w; int h; }
+desttoanchor (fz_link_dest *dest)
 {
     int i;
     struct anchor a;
     struct pagedim *pdim = state.pagedims;
 
     a.n = -1;
+    a.x = 0;
     a.y = 0;
     for (i = 0; i < state.pagedimcount; ++i) {
         if (state.pagedims[i].pageno > dest->ld.gotor.page)
@@ -1198,14 +1201,19 @@ static struct anchor { int n; int y; int h; } desttoanchor (fz_link_dest *dest)
     }
     if (dest->ld.gotor.flags & fz_link_flag_t_valid) {
         fz_point p;
-        p.x = 0;
+        if (dest->ld.gotor.flags & fz_link_flag_l_valid)
+            p.x = dest->ld.gotor.lt.x;
         p.y = dest->ld.gotor.lt.y;
         fz_transform_point (&p, &pdim->lctm);
         a.y = p.y;
+        a.x = p.x;
     }
     if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
-        double y0, y1;
+        double x0, x1, y0, y1;
 
+        x0 = MIN (pdim->bounds.x0, pdim->bounds.x1);
+        x1 = MAX (pdim->bounds.x0, pdim->bounds.x1);
+        a.w = x1 - x0;
         y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
         y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
         a.h = y1 - y0;
@@ -1794,7 +1802,7 @@ static void * mainloop (void *unused)
 
                     a = desttoanchor (&dest);
                     if (a.n >= 0) {
-                        printd ("a %d %d %d", a.n, a.y, a.h);
+                        printd ("a %d %d %d", a.n, a.x, a.y);
                     }
                     else {
                         printd ("emsg failed to parse destination `%s'\n",
