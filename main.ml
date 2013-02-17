@@ -484,6 +484,7 @@ type state =
     ; mutable wthack        : bool
     ; mutable winw          : int
     ; mutable winh          : int
+    ; mutable reprf         : (unit -> unit)
     }
 and hists =
     { pat : string circbuf
@@ -663,6 +664,7 @@ let makehelp () =
 
 let noghyll _ = ();;
 let firstgeomcmds = "", [];;
+let noreprf () = ();;
 
 let state =
   { sr            = Unix.stdin
@@ -725,6 +727,7 @@ let state =
   ; wthack        = false
   ; winw          = -1
   ; winh          = -1
+  ; reprf         = noreprf
   }
 ;;
 
@@ -2070,15 +2073,19 @@ let represent () =
     then 0
     else state.scrollw
   ;
-  let wthack = state.wthack in
-  begin match state.mode with
-  | Birdseye (_, _, pageno, _, _) ->
-      let y, h = getpageyh pageno in
-      let top = (state.winh - h) / 2 in
-      gotoy (max 0 (y - top))
-  | _ -> gotoanchor state.anchor
-  end;
-  state.wthack <- wthack;
+  if state.reprf == noreprf
+  then
+    let wthack = state.wthack in
+    begin match state.mode with
+    | Birdseye (_, _, pageno, _, _) ->
+        let y, h = getpageyh pageno in
+        let top = (state.winh - h) / 2 in
+        gotoy (max 0 (y - top))
+    | _ -> gotoanchor state.anchor
+    end;
+    state.wthack <- wthack;
+    state.reprf <- noreprf;
+  else state.reprf ()
 ;;
 
 let reshape w h =
@@ -6991,10 +6998,9 @@ let ract cmds =
       let cmd, _ = state.geomcmds in
       scan args "%u %f %f"
         (fun pageno x y ->
-          onpagerect pageno (fun w h ->
-            let top = y /. h in
-            if String.length cmd = 0
-            then (
+          let dogo prevf () =
+            onpagerect pageno (fun w h ->
+              let top = y /. h in
               let _,w1,_,leftx = getpagedim pageno in
               let sw = float w1 /. w in
               let x = sw *. x in
@@ -7020,11 +7026,12 @@ let ract cmds =
                 gotoy y;
                 state.wthack <- !wtmode && not (layoutready state.layout);
               )
-            )
-            else (
-              state.anchor <- pageno, top, 0.0
-            )
-          )
+            );
+            prevf ();
+          in
+          if String.length cmd = 0
+          then dogo noreprf ()
+          else state.reprf <- dogo state.reprf
         )
   | "goto1" :: args :: [] -> scan args "%u %f" gotopage
   | "rect" :: args :: [] ->
