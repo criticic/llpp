@@ -7011,7 +7011,7 @@ let ract cmds =
               then gotoy y
             )
             else (
-              state.anchor <- pageno, top /. h, 0.0
+              state.anchor <- pageno, top, 0.0
             )
           )
         )
