@@ -6999,18 +6999,17 @@ let ract cmds =
   match cl with
   | "reload" :: [] -> reload ()
   | "goto" :: args :: [] ->
-      let cmd, _ = state.geomcmds in
       scan args "%u %f %f"
         (fun pageno x y ->
+          let cmd, _ = state.geomcmds in
           if String.length cmd = 0
           then gotopagexy pageno x y
           else
-            let prevf = state.reprf in
-            let f () =
+            let f prevf () =
               gotopagexy pageno x y;
               prevf ()
             in
-            state.reprf <- f
+            state.reprf <- f state.reprf
         )
   | "goto1" :: args :: [] -> scan args "%u %f" gotopage
   | "rect" :: args :: [] ->
