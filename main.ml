@@ -7008,7 +7008,10 @@ let ract cmds =
               let y = y + (truncate (top *. float h)) in
               let dy = y - state.y in
               if newpan || not (dy > 0 && dy < state.winh - state.hscrollh)
-              then gotoy y
+              then (
+                gotoy y;
+                state.wthack <- !wtmode && not (layoutready state.layout);
+              )
             )
             else (
               state.anchor <- pageno, top, 0.0
