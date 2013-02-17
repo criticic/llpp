@@ -2515,7 +2515,7 @@ let act cmds =
       let top, dtop =
         if conf.presentation
         then (0.0, 1.0)
-        else float t /. float h, 0.0
+        else (float t /. float h, 0.0)
       in
       state.anchor <- (n, top, dtop)
 
