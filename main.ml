@@ -120,6 +120,8 @@ let platform_to_string = function
 
 let platform = platform ();;
 
+let now = Unix.gettimeofday;;
+
 let popen cmd fda =
   if platform = Pcygwin
   then (

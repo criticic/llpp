@@ -18,6 +18,3 @@ let exntos = function
 ;;
 
 let error fmt = Printf.kprintf failwith fmt;;
-
-let now = Unix.gettimeofday;;
-
