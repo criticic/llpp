@@ -137,7 +137,7 @@ ctrl-g,esc              - cancel
 [4] if the document was previously visited initial backspace will
     jump to the last visited place
 
-[5] sending SIGHUP will also reload the document
+[5] document will also be reloaded upon reception of the HUP signal
 
 ======================================================================
 Caveat emptor:
