@@ -2334,6 +2334,7 @@ let gotopagexy pageno x y  =
       gotoy y;
       state.wthack <- !wtmode && not (layoutready state.layout);
     )
+    else gotoy state.y;
   );
 ;;
 
