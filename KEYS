@@ -41,7 +41,7 @@ e                       - view error log
 m                       - create named bookmark
 ~                       - create quick bookmark
 z                       - crop
-r                       - reload document
+r                       - reload document [5]
 P                       - "presentation" mode
 a                       - autoscroll
 c                       - switch to previous column layout
@@ -136,6 +136,8 @@ ctrl-g,esc              - cancel
 
 [4] if the document was previously visited initial backspace will
     jump to the last visited place
+
+[5] sending SIGHUP will also reload the document
 
 ======================================================================
 Caveat emptor:
