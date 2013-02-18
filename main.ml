@@ -2282,27 +2282,55 @@ let gotopagexy pageno x y  =
   onpagerect pageno (fun w h ->
     let top = y /. h in
     let _,w1,_,leftx = getpagedim pageno in
+    let wh = state.winh - state.hscrollh in
     let sw = float w1 /. w in
     let x = sw *. x in
     let x = leftx + state.x + truncate x in
-    let newpan =
+    let sx =
       if x < 0 || x >= state.winw - state.scrollw
-      then (state.x <- state.x - x; true)
-      else false
+      then state.x - x
+      else state.x
     in
-    let y, h = getpageyh pageno in
-    let y' = y + truncate (top *. float h) in
+    let py, h = getpageyh pageno in
+    let y' = py + truncate (top *. float h) in
     let dy = y' - state.y in
-    if newpan || not (dy > 0 && dy < state.winh - state.hscrollh)
-    then (
-      let y =
+    let sy =
+      if x != state.x || not (dy > 0 && dy < wh)
+      then (
         if conf.presentation
         then
-          if abs (y - y') > state.winh - state.hscrollh
+          if abs (py - y') > wh
           then y'
-          else y
+          else py
         else y';
+      )
+      else state.y
+    in
+    if state.x != sx || state.y != sy
+    then (
+      let x, y =
+        if !wtmode
+        then (
+          let ww = state.winw - state.scrollw in
+          let qx = sx / ww
+          and qy = sy / wh in
+          let x = qx * ww
+          and y = qy * wh in
+          let x = if -x + ww > w1 then -(w1-ww) else x
+          and y' = if y + wh > state.maxy then state.maxy - wh else y in
+          let y =
+            if conf.presentation
+            then
+              if abs (py - y') > wh
+              then y'
+              else py
+            else y';
+          in
+          (x, y)
+        )
+        else (sx, sy)
       in
+      state.x <- x;
       gotoy y;
       state.wthack <- !wtmode && not (layoutready state.layout);
     )
