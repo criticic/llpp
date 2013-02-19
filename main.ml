@@ -2419,7 +2419,7 @@ let act cmds =
 
   | "match" :: args :: [] ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
-        scan  args "%u %d %f %f %f %f %f %f %f %f"
+        scan args "%u %d %f %f %f %f %f %f %f %f"
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
@@ -2427,7 +2427,7 @@ let act cmds =
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | "page" :: args :: [] ->
-      let pageopaque, t = scan  args "%s %f" (fun p t -> p, t) in
+      let pageopaque, t = scan args "%s %f" (fun p t -> p, t) in
       begin match state.currently with
       | Loading (l, gen) ->
           vlog "page %d took %f sec" l.pageno t;
@@ -2552,14 +2552,14 @@ let act cmds =
 
   | "pdim" :: args :: [] ->
       let pdim =
-        scan  args "%u %u %u %u" (fun n w h x -> n, w, h, x)
+        scan args "%u %u %u %u" (fun n w h x -> n, w, h, x)
       in
       state.uioh#infochanged Pdim;
       state.pdims <- pdim :: state.pdims
 
   | "o" :: args :: [] ->
       let (l, n, t, h, pos) =
-        scan  args "%u %u %d %u %n"
+        scan args "%u %u %d %u %n"
           (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub args pos (String.length args - pos) in
@@ -2594,10 +2594,10 @@ let act cmds =
 let onhist cb =
   let rc = cb.rc in
   let action = function
-    | HCprev   -> cbget cb ~-1
-    | HCnext   -> cbget cb 1
-    | HCfirst  -> cbget cb ~-(cb.rc)
-    | HClast   -> cbget cb (cb.len - 1 - cb.rc)
+    | HCprev  -> cbget cb ~-1
+    | HCnext  -> cbget cb 1
+    | HCfirst -> cbget cb ~-(cb.rc)
+    | HClast  -> cbget cb (cb.len - 1 - cb.rc)
   and cancel () = cb.rc <- rc
   in (action, cancel)
 ;;
@@ -3142,7 +3142,7 @@ let textentrykeyboard
   | 0xff50 | 0xff95 -> histaction HCfirst (* (kp) home) *)
   | 0xff57 | 0xff9c -> histaction HClast (* (kp) end *)
 
-  | 0xff1b ->                     (* escape*)
+  | 0xff1b ->                           (* escape*)
       if String.length text = 0
       then (
         begin match opthist with
@@ -3920,7 +3920,7 @@ let color_to_string (r, g, b) =
 ;;
 
 let irect_of_string s =
-  Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1  -> (x0,y0,x1,y1))
+  Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
 ;;
 
 let irect_to_string (x0,y0,x1,y1) =
@@ -5233,7 +5233,7 @@ let viewkeyboard key mask =
       let (c, a, b), z =
         match state.prevcolumns with
         | None -> (1, 0, 0), 1.0
-        | Some (columns, z)  ->
+        | Some (columns, z) ->
             let cab =
               match columns with
               | Csplit (c, _) -> -c, 0, 0
@@ -5894,7 +5894,7 @@ let viewmouse button down x y mask =
           )
           else (
             match state.mstate with
-            | Mnone  -> ()
+            | Mnone -> ()
 
             | Mzoom _ | Mscrollx | Mscrolly ->
                 state.mstate <- Mnone
