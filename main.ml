@@ -2331,10 +2331,10 @@ let gotopagexy pageno x y  =
         else (sx, sy)
       in
       state.x <- x;
-      gotoy y;
+      gotoy_and_clear_text y;
       state.wthack <- !wtmode && not (layoutready state.layout);
     )
-    else gotoy state.y;
+    else gotoy_and_clear_text state.y;
   );
 ;;
 
