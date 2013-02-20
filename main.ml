@@ -4822,7 +4822,9 @@ let existsinrow pageno (columns, coverA, coverB) p =
 
 let nextpage () =
   match state.layout with
-  | [] -> ()
+  | [] ->
+      let pageno = page_of_y state.y in
+      gotoghyll (getpagey (pageno+1))
   | l :: rest ->
       match conf.columns with
       | Csingle _ ->
@@ -4854,7 +4856,9 @@ let nextpage () =
 
 let prevpage () =
   match state.layout with
-  | [] -> ()
+  | [] ->
+      let pageno = page_of_y state.y in
+      gotoghyll (getpagey (pageno-1))
   | l :: _ ->
       match conf.columns with
       | Csingle _ ->
