@@ -4045,10 +4045,8 @@ let describe_location () =
 ;;
 
 let setpresentationmode v =
-  let (n, _, _) = getanchor () in
-  let _, h = getpageyh n in
-  let ips = if conf.presentation then calcips h else conf.interpagespace in
-  state.anchor <- (n, 0.0, float ips);
+  let n = page_of_y state.y in
+  state.anchor <- (n, 0.0, 1.0);
   conf.presentation <- v;
   if conf.presentation
   then (
