@@ -1896,6 +1896,17 @@ let flushpages () =
   Hashtbl.clear state.pagemap;
 ;;
 
+let flushtiles () =
+  Queue.iter (fun (k, p, s) ->
+    wcmd "freetile %s" p;
+    state.memused <- state.memused - s;
+    state.uioh#infochanged Memused;
+    Hashtbl.remove state.tilemap k;
+  ) state.tilelru;
+  Queue.clear state.tilelru;
+  load state.layout;
+;;
+
 let opendoc path password =
   state.path <- path;
   state.password <- password;
@@ -1903,6 +1914,7 @@ let opendoc path password =
   state.docinfo <- [];
 
   flushpages ();
+  flushtiles ();
   setaalevel conf.aalevel;
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename path)));
   wcmd "open %d %s\000%s\000" (btod state.wthack) path password;
@@ -2227,17 +2239,6 @@ let gctiles () =
     )
   in
   loop 0
-;;
-
-let flushtiles () =
-  Queue.iter (fun (k, p, s) ->
-    wcmd "freetile %s" p;
-    state.memused <- state.memused - s;
-    state.uioh#infochanged Memused;
-    Hashtbl.remove state.tilemap k;
-  ) state.tilelru;
-  Queue.clear state.tilelru;
-  load state.layout;
 ;;
 
 let logcurrently = function
