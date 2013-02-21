@@ -4999,7 +4999,17 @@ let viewkeyboard key mask =
       )
 
   | 48 when ctrl ->                     (* ctrl-0 *)
-      setzoom 1.0
+      if conf.zoom = 1.0
+      then (
+        state.x <- 0;
+        state.hscrollh <-
+          if state.w <= state.winw - state.scrollw
+          then 0
+          else state.scrollw
+        ;
+        gotoy state.y
+      )
+      else setzoom 1.0
 
   | 49 when ctrl ->                     (* ctrl-1 *)
       let cols =
