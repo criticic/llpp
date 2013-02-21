@@ -4423,7 +4423,7 @@ let enterinfomode =
         Printf.sprintf "%dx%d" state.x state.y
       ) 1
     else
-      src#caption2 "Visible" (fun () -> describe_location ()) 1
+      src#caption2 "Position" (fun () -> describe_location ()) 1
     ;
 
     sep ();
