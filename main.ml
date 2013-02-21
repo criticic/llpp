@@ -2076,8 +2076,10 @@ let represent () =
     | _ -> gotoanchor state.anchor
     end;
     state.wthack <- wthack;
+  else (
+    state.reprf ();
     state.reprf <- noreprf;
-  else state.reprf ()
+  );
 ;;
 
 let reshape w h =
