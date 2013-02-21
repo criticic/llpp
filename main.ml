@@ -2066,16 +2066,14 @@ let represent () =
     else state.scrollw
   ;
   if state.reprf == noreprf
-  then
-    let wthack = state.wthack in
-    begin match state.mode with
+  then (
+    match state.mode with
     | Birdseye (_, _, pageno, _, _) ->
         let y, h = getpageyh pageno in
         let top = (state.winh - h) / 2 in
         gotoy (max 0 (y - top))
     | _ -> gotoanchor state.anchor
-    end;
-    state.wthack <- wthack;
+  )
   else (
     state.reprf ();
     state.reprf <- noreprf;
@@ -2334,9 +2332,9 @@ let gotopagexy pageno x y  =
       in
       state.x <- x;
       gotoy_and_clear_text y;
-      state.wthack <- !wtmode && not (layoutready state.layout);
     )
     else gotoy_and_clear_text state.y;
+    state.wthack <- !wtmode && not (layoutready state.layout);
   );
 ;;
 
