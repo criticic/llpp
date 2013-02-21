@@ -1897,13 +1897,16 @@ let flushpages () =
 ;;
 
 let flushtiles () =
-  Queue.iter (fun (k, p, s) ->
-    wcmd "freetile %s" p;
-    state.memused <- state.memused - s;
+  if not (Queue.is_empty state.tilelru)
+  then (
+    Queue.iter (fun (k, p, s) ->
+      wcmd "freetile %s" p;
+      state.memused <- state.memused - s;
+      Hashtbl.remove state.tilemap k;
+    ) state.tilelru;
     state.uioh#infochanged Memused;
-    Hashtbl.remove state.tilemap k;
-  ) state.tilelru;
-  Queue.clear state.tilelru;
+    Queue.clear state.tilelru;
+  );
   load state.layout;
 ;;
 
