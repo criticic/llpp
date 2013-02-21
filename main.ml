@@ -7129,7 +7129,7 @@ let () =
   let rcmdpath = ref "" in
   Arg.parse
     (Arg.align
-        [("-p", Arg.String (fun s -> state.password <- s) ,
+        [("-p", Arg.String (fun s -> state.password <- s),
          "<password> Set password");
 
          ("-f", Arg.String (fun s -> Config.fontpath := s),
