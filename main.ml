@@ -2061,7 +2061,7 @@ let represent () =
   docolumns conf.columns;
   state.maxy <- calcheight ();
   state.hscrollh <-
-    if state.w <= state.winw - state.scrollw
+    if state.x = 0 && state.w <= state.winw - state.scrollw
     then 0
     else state.scrollw
   ;
@@ -2331,6 +2331,11 @@ let gotopagexy pageno x y  =
         else (sx, sy)
       in
       state.x <- x;
+      state.hscrollh <-
+        if x = 0 && state.w <= state.winw - state.scrollw
+        then 0
+        else state.scrollw
+      ;
       gotoy_and_clear_text y;
     )
     else gotoy_and_clear_text state.y;
@@ -4024,10 +4029,8 @@ let ghyllscroll_to_string ((n, a, b) as nab) =
 ;;
 
 let describe_location () =
-  let f (fn, _) l =
-    if fn = -1 then l.pageno, l.pageno else fn, l.pageno
-  in
-  let fn, ln = List.fold_left f (-1, -1) state.layout in
+  let fn = page_of_y state.y in
+  let ln = page_of_y (state.y + state.winh - state.hscrollh) in
   let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
   let percent =
     if maxy <= 0
@@ -4801,7 +4804,7 @@ let gotounder = function
 let canpan () =
   match conf.columns with
   | Csplit _ -> true
-  | _ -> conf.zoom > 1.0
+  | _ -> state.x != 0 || conf.zoom > 1.0
 ;;
 
 let existsinrow pageno (columns, coverA, coverB) p =
