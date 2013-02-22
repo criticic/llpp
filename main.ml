@@ -2276,7 +2276,7 @@ let onpagerect pageno f =
     f (r.(1)-.r.(0)) (r.(3)-.r.(2))
 ;;
 
-let gotopagexy pageno x y  =
+let gotopagexy1 pageno x y  =
   onpagerect pageno (fun w h ->
     let top = y /. h in
     let _,w1,_,leftx = getpagedim pageno in
@@ -2338,6 +2338,12 @@ let gotopagexy pageno x y  =
     )
     else gotoy_and_clear_text state.y;
   );
+;;
+
+let gotopagexy pageno x y =
+  match state.mode with
+  | Birdseye _ -> gotopage pageno 0.0
+  | _ -> gotopagexy1 pageno x y
 ;;
 
 let act cmds =
