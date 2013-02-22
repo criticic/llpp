@@ -5019,7 +5019,10 @@ let viewkeyboard key mask =
         | Csingle _ | Cmulti _ -> 1
         | Csplit (n, _) -> n
       in
-      let zoom = zoomforh state.winw state.winh state.scrollw cols in
+      let h = state.winh -
+        conf.interpagespace lsl (if conf.presentation then 1 else 0)
+      in
+      let zoom = zoomforh state.winw h state.scrollw cols in
       if zoom < 1.0
       then setzoom zoom
 
