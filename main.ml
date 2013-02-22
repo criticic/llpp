@@ -92,7 +92,6 @@ external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
-external getmaxw : unit -> float = "ml_getmaxw";;
 external postprocess :
   opaque -> int -> int -> int -> (int * string * int) -> int
   = "ml_postprocess";;
@@ -5232,11 +5231,6 @@ let viewkeyboard key mask =
 
       | [] -> ()
       end
-
-  | 50 when ctrl ->                     (* ctrl-2 *)
-      let maxw = getmaxw () in
-      if maxw > 0.0
-      then setzoom (maxw /. float state.winw)
 
   | 60 | 62 ->                          (* < > *)
       reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.proportional

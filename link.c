@@ -3207,22 +3207,6 @@ static double getmaxw (void)
     return maxw;
 }
 
-CAMLprim value ml_getmaxw (value unit_v)
-{
-    CAMLparam1 (unit_v);
-    CAMLlocal1 (ret_v);
-    double maxw = 0.0;
-
-    if (trylock ("ml_getmaxw")) {
-        goto done;
-    }
-    maxw = getmaxw ();
-    unlock ("ml_getmaxw");
- done:
-    ret_v = caml_copy_double (maxw);
-    CAMLreturn (ret_v);
-}
-
 CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
                                    value dw_v, value cols_v)
 {
