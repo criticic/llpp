@@ -476,7 +476,6 @@ type state =
     ; mutable keystate      : keystate
     ; mutable glinks        : bool
     ; mutable prevcolumns   : (columns * float) option
-    ; mutable wthack        : bool
     ; mutable winw          : int
     ; mutable winh          : int
     ; mutable reprf         : (unit -> unit)
@@ -719,7 +718,6 @@ let state =
   ; keystate      = KSnone
   ; glinks        = false
   ; prevcolumns   = None
-  ; wthack        = false
   ; winw          = -1
   ; winh          = -1
   ; reprf         = noreprf
@@ -1623,7 +1621,6 @@ let layoutready layout =
 ;;
 
 let gotoy y =
-  state.wthack <- false;
   let y = bound y 0 state.maxy in
   let y, layout, proceed =
     match conf.maxwait with
@@ -1654,7 +1651,8 @@ let gotoy y =
 
     | _ ->
         let layout = layout y state.winh in
-        G.postRedisplay "gotoy ready";
+        if not !wtmode || layoutready layout
+        then G.postRedisplay "gotoy ready";
         y, layout, true
   in
   if proceed
@@ -1918,7 +1916,7 @@ let opendoc path password =
   flushpages ();
   setaalevel conf.aalevel;
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename path)));
-  wcmd "open %d %s\000%s\000" (btod state.wthack) path password;
+  wcmd "open %d %s\000%s\000" (btod !wtmode) path password;
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %s\000"
@@ -1928,7 +1926,6 @@ let opendoc path password =
 
 let reload () =
   state.anchor <- getanchor ();
-  state.wthack <- !wtmode;
   opendoc state.path state.password;
 ;;
 
@@ -2080,14 +2077,12 @@ let represent () =
   ;
   if state.reprf == noreprf
   then (
-    begin match state.mode with
+    match state.mode with
     | Birdseye (_, _, pageno, _, _) ->
         let y, h = getpageyh pageno in
         let top = (state.winh - h) / 2 in
         gotoy (max 0 (y - top))
     | _ -> gotoanchor state.anchor
-    end;
-    state.wthack <- !wtmode && not (layoutready state.layout);
   )
   else (
     state.reprf ();
@@ -2096,7 +2091,6 @@ let represent () =
 ;;
 
 let reshape w h =
-  state.wthack <- false;
   GlDraw.viewport 0 0 w h;
   let firsttime = state.geomcmds == firstgeomcmds in
   if not firsttime && nogeomcmds state.geomcmds
@@ -2343,7 +2337,6 @@ let gotopagexy pageno x y  =
       gotoy_and_clear_text y;
     )
     else gotoy_and_clear_text state.y;
-    state.wthack <- !wtmode && not (layoutready state.layout);
   );
 ;;
 
@@ -2387,7 +2380,7 @@ let act cmds =
           f ();
           state.geomcmds <- s, List.rev rest;
       end;
-      if conf.maxwait = None
+      if conf.maxwait = None && not !wtmode
       then G.postRedisplay "continue";
 
   | "title" :: args :: [] ->
@@ -2530,20 +2523,18 @@ let act cmds =
 
             begin match state.throttle with
             | None ->
-                if state.wthack
-                then state.wthack <- not (layoutready state.layout);
                 preload state.layout;
                 if   gen = state.gen
                   && conf.colorspace = cs
                   && conf.angle = angle
                   && tilevisible state.layout l.pageno x y
+                  && (not !wtmode || layoutready state.layout)
                 then G.postRedisplay "tile nothrottle";
 
             | Some (layout, y, _) ->
                 let ready = layoutready layout in
                 if ready
                 then (
-                  state.wthack <- false;
                   state.y <- y;
                   state.layout <- layout;
                   state.throttle <- None;
@@ -7183,7 +7174,6 @@ let () =
   let globalkeyhash = findkeyhash conf "global" in
   let wsfd, winw, winh = Wsi.init (object
     method expose =
-      state.wthack <- false;
       if nogeomcmds state.geomcmds || platform == Posx
       then display ()
       else (
@@ -7293,7 +7283,7 @@ let () =
       | None -> r
       | Some fd -> fd :: r
     in
-    if state.redisplay && not state.wthack
+    if state.redisplay
     then (
       state.redisplay <- false;
       display ();
