@@ -2080,12 +2080,14 @@ let represent () =
   ;
   if state.reprf == noreprf
   then (
-    match state.mode with
+    begin match state.mode with
     | Birdseye (_, _, pageno, _, _) ->
         let y, h = getpageyh pageno in
         let top = (state.winh - h) / 2 in
         gotoy (max 0 (y - top))
     | _ -> gotoanchor state.anchor
+    end;
+    state.wthack <- !wtmode && not (layoutready state.layout);
   )
   else (
     state.reprf ();
