@@ -6630,7 +6630,7 @@ struct
         (try Some (open_in_bin !confpath)
           with exn ->
             prerr_endline
-              ("Error opening configuation file `" ^ !confpath ^ "': " ^
+              ("Error opening configuration file `" ^ !confpath ^ "': " ^
                   exntos exn);
             None
         )
@@ -6641,7 +6641,7 @@ struct
               f (do_load get ic)
             with exn ->
               prerr_endline
-                ("Error loading configuation from `" ^ !confpath ^ "': " ^
+                ("Error loading configuration from `" ^ !confpath ^ "': " ^
                     exntos exn);
               false
           in
