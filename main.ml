@@ -5822,7 +5822,8 @@ let viewmouse button down x y mask =
 
   | 1 when Wsi.withshift mask ->
       state.mstate <- Mnone;
-      if not down then (
+      if not down
+      then (
         match unproject x y with
         | Some (pageno, ux, uy) ->
             let cmd = Printf.sprintf
