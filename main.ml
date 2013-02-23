@@ -2290,7 +2290,8 @@ let gotopagexy1 pageno x y  =
       else state.x
     in
     let py, h = getpageyh pageno in
-    let y' = py + truncate (top *. float h) in
+    let pdy = truncate (top *. float h) in
+    let y' = py + pdy in
     let dy = y' - state.y in
     let sy =
       if x != state.x || not (dy > 0 && dy < wh)
@@ -2311,9 +2312,9 @@ let gotopagexy1 pageno x y  =
         then (
           let ww = state.winw - state.scrollw in
           let qx = sx / ww
-          and qy = sy / wh in
+          and qy = pdy / wh in
           let x = qx * ww
-          and y = qy * wh in
+          and y = py + qy * wh in
           let x = if -x + ww > w1 then -(w1-ww) else x
           and y' = if y + wh > state.maxy then state.maxy - wh else y in
           let y =
