@@ -321,7 +321,7 @@ type conf =
     ; mutable sliceheight    : sliceheight
     ; mutable thumbw         : width
     ; mutable jumpback       : bool
-    ; mutable bgcolor        : float * float * float
+    ; mutable bgcolor        : (float * float * float)
     ; mutable bedefault      : bool
     ; mutable scrollbarinpm  : bool
     ; mutable tilew          : int
