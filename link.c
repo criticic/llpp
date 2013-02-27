@@ -20,7 +20,6 @@
 #endif
 
 #include <regex.h>
-#include <ctype.h>
 #include <stdarg.h>
 #include <limits.h>
 
