@@ -3674,7 +3674,7 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
 
 static void makestippletex (void)
 {
-    const char *pixels = "\0\0\xff\xff";
+    const char *pixels = "\xff\xff\0\0";
     glGenTextures (1, &state.stid);
     glBindTexture (GL_TEXTURE_1D, state.stid);
     glTexParameteri (GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
