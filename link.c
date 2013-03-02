@@ -2074,14 +2074,11 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
 
             w = p2.x - p1.x;
             h = p2.y - p1.y;
-            t = sqrtf (w*w + h*h);
+            t = sqrtf (w*w + h*h) * .25f;
 
             w = p3.x - p2.x;
             h = p3.y - p2.y;
-            s = sqrtf (w*w + h*h);
-
-            t /= 4.0;
-            s /= 4.0;
+            s = sqrtf (w*w + h*h) * .25f;
 
             glTexCoord1i (0);
             glVertex2f (p1.x, p1.y);
