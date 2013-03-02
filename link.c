@@ -228,6 +228,8 @@ struct {
 
     char *trimcachepath;
 
+    GLuint stid;
+
     int pbo_usable;
     void (*glBindBufferARB) (GLenum, GLuint);
     GLboolean (*glUnmapBufferARB) (GLenum);
@@ -2030,9 +2032,9 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         return;
     }
 
-    glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-    glEnable (GL_LINE_STIPPLE);
-    glLineStipple (0.5, 0xcccc);
+    glEnable (GL_TEXTURE_1D);
+    glEnable (GL_BLEND);
+    glBindTexture (GL_TEXTURE_1D, state.stid);
 
     xoff -= state.pagedims[page->pdimno].bounds.x0;
     yoff -= state.pagedims[page->pdimno].bounds.y0;
@@ -2040,7 +2042,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     pm = pagectm (page);
     fz_concat (&ctm, &pm, &tm);
 
-    glBegin (GL_QUADS);
+    glBegin (GL_LINES);
     for (link = links; link; link = link->next) {
         fz_point p1, p2, p3, p4;
 
@@ -2067,15 +2069,45 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         default: glColor3ub (0, 0, 0); break;
         }
 
-        glVertex2f (p1.x, p1.y);
-        glVertex2f (p2.x, p2.y);
-        glVertex2f (p3.x, p3.y);
-        glVertex2f (p4.x, p4.y);
+        {
+            float w, h, s, t;
+
+            w = p2.x - p1.x;
+            h = p2.y - p1.y;
+            t = sqrtf (w*w + h*h);
+
+            w = p3.x - p2.x;
+            h = p3.y - p2.y;
+            s = sqrtf (w*w + h*h);
+
+            t /= 4.0;
+            s /= 4.0;
+
+            glTexCoord1i (0);
+            glVertex2f (p1.x, p1.y);
+            glTexCoord1f (t);
+            glVertex2f (p2.x, p2.y);
+
+            glTexCoord1i (0);
+            glVertex2f (p2.x, p2.y);
+            glTexCoord1f (s);
+            glVertex2f (p3.x, p3.y);
+
+            glTexCoord1i (0);
+            glVertex2f (p3.x, p3.y);
+            glTexCoord1i (t);
+            glVertex2f (p4.x, p4.y);
+
+            glTexCoord1i (0);
+            glVertex2f (p4.x, p4.y);
+            glTexCoord1i (s);
+            glVertex2f (p1.x, p1.y);
+        }
     }
     glEnd ();
 
-    glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-    glDisable (GL_LINE_STIPPLE);
+    glDisable (GL_BLEND);
+    glDisable (GL_TEXTURE_1D);
 }
 
 static int compareslinks (const void *l, const void *r)
@@ -3642,6 +3674,25 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
+static void makestippletex (void)
+{
+    const char *pixels = "\0\0\xff\xff";
+    glGenTextures (1, &state.stid);
+    glBindTexture (GL_TEXTURE_1D, state.stid);
+    glTexParameteri (GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri (GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage1D (
+        GL_TEXTURE_1D,
+        0,
+        GL_ALPHA,
+        4,
+        0,
+        GL_ALPHA,
+        GL_UNSIGNED_BYTE,
+        pixels
+        );
+}
+
 CAMLprim value ml_init (value pipe_v, value params_v)
 {
     CAMLparam2 (pipe_v, params_v);
@@ -3699,6 +3750,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
         setuppbo ();
     }
 
+    makestippletex ();
 #ifdef __CYGWIN__
     sa.sa_handler = SIG_IGN;
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
