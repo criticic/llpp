@@ -2066,6 +2066,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         switch (link->dest.kind) {
         case FZ_LINK_GOTO: glColor3ub (255, 0, 0); break;
         case FZ_LINK_URI: glColor3ub (0, 0, 255); break;
+        case FZ_LINK_LAUNCH: glColor3ub (0, 255, 0); break;
         default: glColor3ub (0, 0, 0); break;
         }
 
