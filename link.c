@@ -2093,12 +2093,12 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
 
             glTexCoord1i (0);
             glVertex2f (p3.x, p3.y);
-            glTexCoord1i (t);
+            glTexCoord1f (t);
             glVertex2f (p4.x, p4.y);
 
             glTexCoord1i (0);
             glVertex2f (p4.x, p4.y);
-            glTexCoord1i (s);
+            glTexCoord1f (s);
             glVertex2f (p1.x, p1.y);
         }
     }
