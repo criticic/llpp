@@ -31,8 +31,7 @@ test -d $mudir || tar -xzf $mutgz
 while read m r; do
     d=$m-$(printf "%.7s" $r)
     t=$m-$r.tgz
-    p=$m
-    test $m = jbig2dec || p=thirdparty/$m
+    test $m = jbig2dec && p=$m || p=thirdparty/$m
     u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
     test -e $t || wget -nc $u -O $t
     test -e $mudir/thirdparty/$m/README ||
