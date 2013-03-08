@@ -44,6 +44,7 @@ for m in $submodules; do
     test $m = jbig2dec || p=thirdparty/$m
     u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
     test -e $t || wget -nc $u -O $t
+    rm -fr $mudir/thirdparty/$m
     tar -xzf $t && mv $d $mudir/thirdparty/$m
 done
 
