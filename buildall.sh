@@ -19,7 +19,7 @@ root=$(pwd)
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 baseurl="http://git.ghostscript.com/"
 
-mupdfrev=386c713b83f8788a80bb165431bf598b982385b3
+mupdfrev=1b4b5fdfa6b74827631d42efd2a61226125f036b
 submodules="freetype jbig2dec jpeg openjpeg zlib"
 freetyperev=2ef0a19842ae1172bec153225328aaaeaf130a18
 jbig2decrev=3e6c1b0670740be3b138228dcc134bf5e6c1eceb
@@ -44,7 +44,7 @@ for m in $submodules; do
     test $m = jbig2dec || p=thirdparty/$m
     u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
     test -e $t || wget -nc $u -O $t
-    test -d $mudir/thirdparty/$m || (tar -xzf $t && mv $d $mudir/thirdparty/$m)
+    tar -xzf $t && mv $d $mudir/thirdparty/$m
 done
 
 executable_p() {
