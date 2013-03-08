@@ -17,19 +17,34 @@ cd 3rdp
 root=$(pwd)
 
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
-mupdf3p=http://mupdf.com/download/archive/mupdf-thirdparty-2012-08-14.zip
+baseurl="http://git.ghostscript.com/"
+
 mupdfrev=386c713b83f8788a80bb165431bf598b982385b3
+submodules="freetype jbig2dec jpeg openjpeg zlib"
+freetyperev=2ef0a19842ae1172bec153225328aaaeaf130a18
+jbig2decrev=3e6c1b0670740be3b138228dcc134bf5e6c1eceb
+jpegrev=219d59dcfd0e6ce8a3d8c5510e29237f0b5078ed
+openjpegrev=d5693f4ec8635d81defc92619c02134b6b785b06
+zlibrev=c16b1b18ddaaf090caf321af831bccac6381a381
+
 mudir=mupdf-$(printf "%.7s" $mupdfrev)
 mutgz=mupdf-$mupdfrev.tgz
-muurl="http://git.ghostscript.com/?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
+muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 
 test -e $mutgz || wget -nc $muurl -O $mutgz
-test -e $(basename $mupdf3p) || wget -nc $mupdf3p
-test -d $mudir || tar -xzf $(basename $mutgz)
-test -d $mudir/thirdparty/openjpeg-1.5.0-patched || \
-    unzip -o -d $mudir $(basename $mupdf3p)
+test -d $mudir || tar -xzf $mutgz
+
+for m in $submodules; do
+    eval r=\$${m}rev
+    d=$m-$(printf "%.7s" $r)
+    t=$m-$r.tgz
+    test $m = jbig2dec || p=thirdparty/$m && p=$m
+    u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
+    test -e $t || wget -nc $u -O $t
+    test -d $mudir/thirdparty/$m || (tar -xzf $t && mv $d $mudir/thirdparty/$m)
+done
 
 executable_p() {
     command -v $1 >/dev/null 2>&1
@@ -46,12 +61,7 @@ executable_p gmake && make=gmake || make=make
             DLLDIR=$root/lib/ocaml/stublibs                 \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-(cd $mudir && $make -j "$jobs" build=release        \
-    FREETYPE_DIR=thirdparty/freetype-2.4.10         \
-    JBIG2DEC_DIR=thirdparty/jbig2dec                \
-    JPEG_DIR=thirdparty/jpeg-9                      \
-    OPENJPEG_DIR=thirdparty/openjpeg-1.5.0-patched  \
-    ZLIB_DIR=thirdparty/zlib-1.2.7)
+(cd $mudir && $make -j "$jobs" build=release)
 
 cd ..
 
@@ -61,14 +71,14 @@ tp=$root/$mudir/thirdparty
 
 ccopt="-O"
 ccopt="$ccopt -I $tp/jbig2dec"
-ccopt="$ccopt -I $tp/jpeg-8d"
-ccopt="$ccopt -I $tp/freetype-2.4.10/include"
-ccopt="$ccopt -I $tp/openjpeg-1.4/libopenjpeg"
-ccopt="$ccopt -I $tp/zlib-1.2.5"
+ccopt="$ccopt -I $tp/jpeg"
+ccopt="$ccopt -I $tp/freetype/include"
+ccopt="$ccopt -I $tp/openjpeg/libopenjpeg"
+ccopt="$ccopt -I $tp/zlib"
 ccopt="$ccopt -I $root/$mudir/fitz -I $root/$mudir/pdf -I $root/$mudir/xps"
 ccopt="$ccopt -I $root/$mudir/cbz"
 
-ccopt="$ccopt -include $tp/freetype-2.4.10/include/ft2build.h -D_GNU_SOURCE"
+ccopt="$ccopt -include $tp/freetype/include/ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/$mudir/build/release"
 cclib="$cclib -lfitz"

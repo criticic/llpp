@@ -1,20 +1,20 @@
 MuPDF[1] rendering library is used to do the actual work, so it needs
 to be built and installed to use llpp, MuPDF's README[2] describes how
 to build it and lists its dependencies. Snapshots of MuPDF itself can
-be found here[3], dependencies here[4]
+be found here[3]
 
 Note that MuPDF is a moving target therefore bellow is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
 386c713b83f8788a80bb165431bf598b982385b3
 
-llpp also depends on OCaml[5], lablGL[6], having a C compiler wouldn't
+llpp also depends on OCaml[4], lablGL[5], having a C compiler wouldn't
 hurt either.
 
 To build llpp "the easy way" one can invoke `sh buildall.sh' which
 will first attempt to automatically fetch lablGL, mupdf, mupdf's
-prerequisites[7] and build them, then, if everything goes fine, it
-will proceed building llpp itself. Note that OCaml still needs to be
+prerequisites and build them, then, if everything goes fine, it will
+proceed building llpp itself. Note that OCaml still needs to be
 installed separately, also, in addition to the usual suspects (i.e.
 GCC, make, binutils, OCaml), you will need `wget' and `unzip' for this
 script to work.
@@ -33,9 +33,5 @@ $ ./llpp -p password /path/to/some.password.protected.pdf
 [1] http://www.mupdf.com
 [2] http://mupdf.com/repos/mupdf/README
 [3] http://mupdf.com/download/snapshots/
-[4] http://mupdf.com/download/source/mupdf-thirdparty.zip
-[5] http://caml.inria.fr/
-[6] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
-[7] mupdf-386c713b83f8788a80bb165431bf598b982385b3.tgz (6934923 bytes)
-    mupdf-thirdparty-2012-08-14.zip (6944385 bytes)
-    lablgl-1.04.tar.gz (410525 bytes)
+[4] http://caml.inria.fr/
+[5] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
