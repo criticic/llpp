@@ -40,7 +40,8 @@ for m in $submodules; do
     eval r=\$${m}rev
     d=$m-$(printf "%.7s" $r)
     t=$m-$r.tgz
-    test $m = jbig2dec || p=thirdparty/$m && p=$m
+    p=$m
+    test $m = jbig2dec || p=thirdparty/$m
     u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
     test -e $t || wget -nc $u -O $t
     test -d $mudir/thirdparty/$m || (tar -xzf $t && mv $d $mudir/thirdparty/$m)
