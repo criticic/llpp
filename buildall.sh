@@ -20,33 +20,30 @@ lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 baseurl="http://git.ghostscript.com/"
 
 mupdfrev=1b4b5fdfa6b74827631d42efd2a61226125f036b
-submodules="freetype jbig2dec jpeg openjpeg zlib"
-freetyperev=2ef0a19842ae1172bec153225328aaaeaf130a18
-jbig2decrev=3e6c1b0670740be3b138228dcc134bf5e6c1eceb
-jpegrev=219d59dcfd0e6ce8a3d8c5510e29237f0b5078ed
-openjpegrev=d5693f4ec8635d81defc92619c02134b6b785b06
-zlibrev=c16b1b18ddaaf090caf321af831bccac6381a381
-
 mudir=mupdf-$(printf "%.7s" $mupdfrev)
 mutgz=mupdf-$mupdfrev.tgz
 muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
 test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
-
 test -e $mutgz || wget -nc $muurl -O $mutgz
 test -d $mudir || tar -xzf $mutgz
 
-for m in $submodules; do
-    eval r=\$${m}rev
+while read m r; do
     d=$m-$(printf "%.7s" $r)
     t=$m-$r.tgz
     p=$m
     test $m = jbig2dec || p=thirdparty/$m
     u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
     test -e $t || wget -nc $u -O $t
-    rm -fr $mudir/thirdparty/$m
-    tar -xzf $t && mv $d $mudir/thirdparty/$m
-done
+    test -e $mudir/thirdparty/$m/README ||
+    (rm -fr $mudir/thirdparty/$m && tar -xzf $t && mv $d $mudir/thirdparty/$m)
+done <<-EOF
+freetype 2ef0a19842ae1172bec153225328aaaeaf130a18
+jbig2dec 3e6c1b0670740be3b138228dcc134bf5e6c1eceb
+jpeg 219d59dcfd0e6ce8a3d8c5510e29237f0b5078ed
+openjpeg d5693f4ec8635d81defc92619c02134b6b785b06
+zlib c16b1b18ddaaf090caf321af831bccac6381a381
+EOF
 
 executable_p() {
     command -v $1 >/dev/null 2>&1
