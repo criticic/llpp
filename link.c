@@ -3240,15 +3240,15 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     double winh = Int_val (winh_v);
     double dw = Int_val (dw_v);
     double cols = Int_val (cols_v);
-    double pw = 1.0, ph = 1.0, aspect;
+    double pw = 1.0, ph = 1.0;
 
     if (trylock ("ml_zoom_for_height")) {
         goto done;
     }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        int w = p->bounds.x1 / cols;
-        int h = p->bounds.y1;
+        double w = p->pagebox.x1 / cols;
+        double h = p->pagebox.y1;
         if (h > maxh) {
             maxh = h;
             ph = h;
@@ -3256,9 +3256,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
         if (w > pw) pw = w;
     }
 
-    aspect = pw / ph;
-    zoom = (winh * aspect + dw) / winw;
-
+    zoom = (((winh / ph) * pw) + dw) / winw;
     unlock ("ml_zoom_for_height");
  done:
     ret_v = caml_copy_double (zoom);

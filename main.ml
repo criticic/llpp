@@ -2721,13 +2721,13 @@ let settrim trimmargins trimfuzz =
 let setzoom zoom =
   match state.throttle with
   | None ->
-      let zoom = max 0.01 zoom in
+      let zoom = max 0.0001 zoom in
       if zoom <> conf.zoom
       then (
         state.prevzoom <- conf.zoom;
         conf.zoom <- zoom;
         reshape state.winw state.winh;
-        state.text <- Printf.sprintf "zoom is now %-5.1f" (zoom *. 100.0);
+        state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
       )
 
   | Some (layout, y, started) ->
@@ -5013,7 +5013,7 @@ let viewkeyboard key mask =
       )
       else setzoom 1.0
 
-  | 49 when ctrl ->                     (* ctrl-1 *)
+  | 49 | 50 when ctrl ->                (* ctrl-1/2 *)
       let cols =
         match conf.columns with
         | Csingle _ | Cmulti _ -> 1
@@ -5023,7 +5023,7 @@ let viewkeyboard key mask =
         conf.interpagespace lsl (if conf.presentation then 1 else 0)
       in
       let zoom = zoomforh state.winw h state.scrollw cols in
-      if zoom > 0.0
+      if zoom > 0.0 && (key = 50 || zoom < 1.0)
       then setzoom zoom
 
   | 0xffc6 ->                           (* f9 *)
