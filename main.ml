@@ -380,6 +380,7 @@ class type uioh = object
   method scrollpw : (int * float * float)
   method scrollph : (int * float * float)
   method modehash : keyhash
+  method eformsgs : bool
 end;;
 
 type mode =
@@ -421,6 +422,7 @@ let nouioh : uioh = object (self)
   method scrollpw = (0, nan, nan)
   method scrollph = (0, nan, nan)
   method modehash = emptykeyhash
+  method eformsgs = false
 end;;
 
 type state =
@@ -2181,7 +2183,7 @@ let enttext () =
   let s =
     if state.newerrmsgs
     then (
-      if not (istextentry state.mode)
+      if not (istextentry state.mode) && state.uioh#eformsgs
       then
         let s1 = "(press 'e' to review error messasges)" in
         if String.length s > 0 then s ^ " " ^ s1 else s1
@@ -3659,6 +3661,7 @@ object (self)
     conf.scrollbw, p, h
 
   method modehash = modehash
+  method eformsgs = false
 end;;
 
 class outlinelistview ~source =
@@ -6136,6 +6139,8 @@ let uioh = object
       | View -> "view"
     in
     findkeyhash conf modename
+
+  method eformsgs = true
 end;;
 
 module Config =
