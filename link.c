@@ -3233,8 +3233,8 @@ static double getmaxw (void)
         rect = p->mediabox;
         fz_transform_rect (&rect, &rm);
 
-        x0 = MIN (p->mediabox.x0, p->mediabox.x1);
-        x1 = MAX (p->mediabox.x0, p->mediabox.x1);
+        x0 = MIN (rect.x0, rect.x1);
+        x1 = MAX (rect.x0, rect.x1);
 
         w = x1 - x0;
         maxw = MAX (w, maxw);
