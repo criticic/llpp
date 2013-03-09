@@ -1108,40 +1108,33 @@ static void initpdims (void)
     }
 }
 
-static double getmaxw (void)
-{
-    int i;
-    struct pagedim *p;
-    double maxw = 0.0;
-
-    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        fz_rect rect;
-        fz_matrix rm;
-        double x0, x1, w;
-
-        fz_rotate (&rm, p->rotate + state.rotate);
-        rect = p->mediabox;
-        fz_transform_rect (&rect, &rm);
-
-        x0 = MIN (rect.x0, rect.x1);
-        x1 = MAX (rect.x0, rect.x1);
-
-        w = x1 - x0;
-        maxw = MAX (w, maxw);
-    }
-    return maxw;
-}
-
 static void layout (void)
 {
     int pindex;
     fz_rect box;
     fz_matrix ctm;
-    double zoom, w, maxw = 0;
+    double zoom, w, maxw = 0.0;
     struct pagedim *p = state.pagedims;
 
     if (state.proportional) {
-        maxw = getmaxw ();
+        int i;
+        struct pagedim *p;
+
+        for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+            fz_rect rect;
+            fz_matrix rm;
+            double x0, x1, w;
+
+            fz_rotate (&rm, p->rotate + state.rotate);
+            rect = p->mediabox;
+            fz_transform_rect (&rect, &rm);
+
+            x0 = MIN (rect.x0, rect.x1);
+            x1 = MAX (rect.x0, rect.x1);
+
+            w = x1 - x0;
+            maxw = MAX (w, maxw);
+        }
     }
 
     p = state.pagedims;
@@ -3240,8 +3233,8 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     CAMLparam3 (winw_v, winh_v, dw_v);
     CAMLlocal1 (ret_v);
     int i;
-    double zoom = 1.0;
-    double maxw = 0.0, maxh = 0.0;
+    double zoom = -1.;
+    double maxh = 0.0;
     struct pagedim *p;
     double winw = Int_val (winw_v);
     double winh = Int_val (winh_v);
@@ -3253,40 +3246,14 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
         goto done;
     }
 
-    if (state.proportional) {
-        maxw = getmaxw () / cols;
-    }
-
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        fz_rect rect;
-        fz_matrix rm;
-        double x0, x1, y0, y1, w, h, scaledh, scale;
-
-        fz_rotate (&rm, p->rotate + state.rotate);
-        rect = p->mediabox;
-        fz_transform_rect (&rect, &rm);
-        x0 = MIN (rect.x0, rect.x1);
-        x1 = MAX (rect.x0, rect.x1);
-        y0 = MIN (rect.y0, rect.y1);
-        y1 = MAX (rect.y0, rect.y1);
-
-        w = (x1 - x0) / cols;
-        h = y1 - y0;
-
-        if (state.proportional) {
-            scale = w / maxw;
-            scaledh = h * scale;
+        int w = p->bounds.x1 / cols;
+        int h = p->bounds.y1;
+        if (h > maxh) {
+            maxh = h;
+            ph = h;
         }
-        else  {
-            scale = 1.0;
-            scaledh = h;
-        }
-
-        if (scaledh > maxh) {
-            maxh = scaledh;
-            ph = scaledh;
-            pw = w * scale;
-        }
+        if (w > pw) pw = w;
     }
 
     aspect = pw / ph;
