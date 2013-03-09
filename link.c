@@ -3252,8 +3252,9 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
         if (h > maxh) {
             maxh = h;
             ph = h;
+            if (!state.proportional) pw = w;
         }
-        if (w > pw) pw = w;
+        if (state.proportional && w > pw) pw = w;
     }
 
     zoom = (((winh / ph) * pw) + dw) / winw;
