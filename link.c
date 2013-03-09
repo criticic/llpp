@@ -1108,6 +1108,30 @@ static void initpdims (void)
     }
 }
 
+static double getmaxw (void)
+{
+    int i;
+    struct pagedim *p;
+    double maxw = 0.0;
+
+    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+        fz_rect rect;
+        fz_matrix rm;
+        double x0, x1, w;
+
+        fz_rotate (&rm, p->rotate + state.rotate);
+        rect = p->mediabox;
+        fz_transform_rect (&rect, &rm);
+
+        x0 = MIN (rect.x0, rect.x1);
+        x1 = MAX (rect.x0, rect.x1);
+
+        w = x1 - x0;
+        maxw = MAX (w, maxw);
+    }
+    return maxw;
+}
+
 static void layout (void)
 {
     int pindex;
@@ -1117,15 +1141,7 @@ static void layout (void)
     struct pagedim *p = state.pagedims;
 
     if (state.proportional) {
-        for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
-            fz_matrix rm;
-
-            fz_rotate (&rm, p->rotate + state.rotate);
-            box = p->mediabox;
-            fz_transform_rect (&box, &rm);
-            w = box.x1 - box.x0;
-            maxw = MAX (w, maxw);
-        }
+        maxw = getmaxw ();
     }
 
     p = state.pagedims;
@@ -3216,30 +3232,6 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
     Store_double_field (ret_v, 3, box.y1);
 
     CAMLreturn (ret_v);
-}
-
-static double getmaxw (void)
-{
-    int i;
-    struct pagedim *p;
-    double maxw = 0.0;
-
-    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        fz_rect rect;
-        fz_matrix rm;
-        double x0, x1, w;
-
-        fz_rotate (&rm, p->rotate + state.rotate);
-        rect = p->mediabox;
-        fz_transform_rect (&rect, &rm);
-
-        x0 = MIN (rect.x0, rect.x1);
-        x1 = MAX (rect.x0, rect.x1);
-
-        w = x1 - x0;
-        maxw = MAX (w, maxw);
-    }
-    return maxw;
 }
 
 CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
