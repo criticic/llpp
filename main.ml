@@ -5271,7 +5271,11 @@ let viewkeyboard key mask =
           | _ ->
               if ctrl
               then gotoy_and_clear_text (clamp ~-(state.winh/2))
-              else gotoy_and_clear_text (clamp (-conf.scrollstep))
+              else (
+                if not (Wsi.withshift mask) && conf.presentation
+                then prevpage ()
+                else gotoy_and_clear_text (clamp (-conf.scrollstep))
+              )
           end
       | Some n ->
           setautoscrollspeed n false
@@ -5285,7 +5289,11 @@ let viewkeyboard key mask =
           | _ ->
               if ctrl
               then gotoy_and_clear_text (clamp (state.winh/2))
-              else gotoy_and_clear_text (clamp conf.scrollstep)
+              else (
+                if not (Wsi.withshift mask) && conf.presentation
+                then nextpage ()
+                else gotoy_and_clear_text (clamp conf.scrollstep)
+              )
           end
       | Some n ->
           setautoscrollspeed n true
