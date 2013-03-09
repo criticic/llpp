@@ -5811,7 +5811,7 @@ let viewmouse button down x y mask =
         match state.autoscroll with
         | Some step -> setautoscrollspeed step (n=4)
         | None ->
-            if conf.wheelbypage
+            if conf.wheelbypage || conf.presentation
             then (
              if n = 4
              then prevpage ()
