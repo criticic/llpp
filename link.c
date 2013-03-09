@@ -3225,7 +3225,13 @@ static double getmaxw (void)
     double maxw = 0.0;
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+        fz_rect rect;
+        fz_matrix rm;
         double x0, x1, w;
+
+        fz_rotate (&rm, p->rotate + state.rotate);
+        rect = p->mediabox;
+        fz_transform_rect (&rect, &rm);
 
         x0 = MIN (p->mediabox.x0, p->mediabox.x1);
         x1 = MAX (p->mediabox.x0, p->mediabox.x1);
