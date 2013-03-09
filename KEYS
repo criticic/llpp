@@ -51,7 +51,7 @@ Ctrl-p                  - launch a command with the document path as an argument
 Ctrl-g                  - interrupt search
 Ctrl-+/Ctrl-=           - zoom in
 Ctrl--                  - zoom out
-Ctrl-0                  - fit page width and reset panning
+Ctrl-0                  - fit widest page width and reset panning
 Ctrl-1                  - fit tallest page
 Ctrl-2                  - fit tallest page height exactly
 Ctrl-9/F9               - enter bird's eye view
