@@ -4822,10 +4822,6 @@ let quickbookmark ?title () =
       state.bookmarks <- (title, 0, getanchor1 l) :: state.bookmarks
 ;;
 
-let doreshape w h =
-  Wsi.reshape w h;
-;;
-
 let setautoscrollspeed step goingdown =
   let incr = max 1 ((abs step) / 2) in
   let incr = if goingdown then incr else -incr in
@@ -5225,7 +5221,7 @@ let viewkeyboard key mask =
 
   | 102 ->                              (* f *)
       if List.mem Wsi.Fullscreen state.winstate
-      then doreshape conf.cwinw conf.cwinh
+      then Wsi.reshape conf.cwinw conf.cwinh
       else Wsi.fullscreen ()
 
   | 112 | 78 ->                         (* p|N *)
@@ -5254,7 +5250,7 @@ let viewkeyboard key mask =
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
-          doreshape (l.pagew + state.scrollw) l.pageh;
+          Wsi.reshape (l.pagew + state.scrollw) l.pageh;
           G.postRedisplay "w"
       end
 
@@ -5303,7 +5299,7 @@ let viewkeyboard key mask =
           if w != 0 && h != 0
           then (
             state.anchor <- getanchor ();
-            doreshape (w + state.scrollw) (h + conf.interpagespace)
+            Wsi.reshape (w + state.scrollw) (h + conf.interpagespace)
           );
           G.postRedisplay "z";
 
