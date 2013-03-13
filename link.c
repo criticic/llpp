@@ -209,7 +209,7 @@ struct {
     } *texowners;
 
     int rotate;
-    int proportional;
+    enum { FitWidth, FitProportional, FitPage } fitmodel;
     int trimmargins;
     int needoutline;
     int gen;
@@ -1116,14 +1116,14 @@ static void layout (void)
     double zoom, w, maxw = 0.0;
     struct pagedim *p = state.pagedims;
 
-    if (state.proportional) {
+    if (state.fitmodel == FitProportional) {
         int i;
         struct pagedim *p;
 
         for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
             fz_rect rect;
             fz_matrix rm;
-            double x0, x1, w;
+            double x0, x1;
 
             fz_rotate (&rm, p->rotate + state.rotate);
             rect = p->mediabox;
@@ -1147,13 +1147,27 @@ static void layout (void)
         box = p->mediabox;
         fz_transform_rect (&box, &rm);
         w = box.x1 - box.x0;
-
-        if (state.proportional) {
-            double scale = w / maxw;
-            zoom = (state.w / w) * scale;
-        }
-        else {
+        switch (state.fitmodel) {
+        case FitProportional:
+            {
+                double scale = w / maxw;
+                zoom = (state.w / w) * scale;
+            }
+            break;
+        case FitPage:
+            {
+                double z1, h;
+                h = box.y1 - box.y0;
+                zoom = state.w / w;
+                z1 = state.h / h;
+                if (z1 < zoom) {
+                    zoom = z1;
+                }
+            }
+            break;
+        case FitWidth:
             zoom = state.w / w;
+            break;
         }
 
         fz_scale (&p->zoomctm, zoom, zoom);
@@ -1170,7 +1184,9 @@ static void layout (void)
         fz_transform_rect (&rect, &ctm);
         fz_round_rect (&p->bounds, &rect);
 
-        p->left = state.proportional ? ((maxw - w) * zoom) / 2.0 : 0;
+        p->left = (state.fitmodel == FitProportional)
+            ? ((maxw - w) * zoom) / 2.0
+            : 0;
         p->ctm = ctm;
 
         fz_translate (&tm, 0, -p->mediabox.y1);
@@ -1782,19 +1798,19 @@ static void * mainloop (void *unused)
         }
         else if (!strncmp ("reqlayout", p, 9)) {
             char *nameddest;
-            int rotate, proportional, off;
+            int rotate, fitmodel, off;
 
             printd ("clear");
-            ret = sscanf (p + 9, " %d %d %n", &rotate, &proportional, &off);
+            ret = sscanf (p + 9, " %d %d %n", &rotate, &fitmodel, &off);
             if (ret != 2) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
             lock ("reqlayout");
-            if (state.rotate != rotate || state.proportional != proportional) {
+            if (state.rotate != rotate || state.fitmodel != fitmodel) {
                 state.gen += 1;
             }
             state.rotate = rotate;
-            state.proportional = proportional;
+            state.fitmodel = fitmodel;
             layout ();
             process_outline ();
 
@@ -3252,9 +3268,9 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
         if (h > maxh) {
             maxh = h;
             ph = h;
-            if (!state.proportional) pw = w;
+            if (state.fitmodel != FitProportional) pw = w;
         }
-        if (state.proportional && w > pw) pw = w;
+        if ((state.fitmodel == FitProportional) && w > pw) pw = w;
     }
 
     zoom = (((winh / ph) * pw) + dw) / winw;
@@ -3670,7 +3686,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     state.cr            = Int_val (Field (pipe_v, 0));
     state.cw            = Int_val (Field (pipe_v, 1));
     state.rotate        = Int_val (Field (params_v, 0));
-    state.proportional  = Bool_val (Field (params_v, 1));
+    state.fitmodel      = Int_val (Field (params_v, 1));
     trim_v              = Field (params_v, 2);
     texcount            = Int_val (Field (params_v, 3));
     state.sliceheight   = Int_val (Field (params_v, 4));

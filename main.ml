@@ -13,7 +13,7 @@ type under =
     | Uremote of (string * int)
 and facename = string;;
 
-type params = (angle * proportional * trimparams
+type params = (angle * fitmodel * trimparams
                 * texcount * sliceheight * memsize
                 * colorspace * fontpath * trimcachepath
                 * haspbo)
@@ -25,7 +25,6 @@ and opaque         = string
 and recttype       = int
 and pixmapsize     = int
 and angle          = int
-and proportional   = bool
 and trimmargins    = bool
 and interpagespace = int
 and texcount       = int
@@ -40,6 +39,7 @@ and aalevel        = int
 and irect          = (int * int * int * int)
 and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
+and fitmodel       = | FitWidth | FitProportional | FitPage
 and haspbo         = bool
 ;;
 
@@ -313,7 +313,7 @@ type conf =
     ; mutable cwinw          : int
     ; mutable cwinh          : int
     ; mutable savebmarks     : bool
-    ; mutable proportional   : proportional
+    ; mutable fitmodel       : fitmodel
     ; mutable trimmargins    : trimmargins
     ; mutable trimfuzz       : irect
     ; mutable memlimit       : memsize
@@ -513,7 +513,7 @@ let defconf =
   ; cwinw          = 900
   ; cwinh          = 900
   ; savebmarks     = true
-  ; proportional   = true
+  ; fitmodel       = FitProportional
   ; trimmargins    = false
   ; trimfuzz       = (0,0,0,0)
   ; memlimit       = 32 lsl 20
@@ -979,6 +979,33 @@ let colorspace_to_string = function
   | Rgb -> "rgb"
   | Bgr -> "bgr"
   | Gray -> "gray"
+;;
+
+let fitmodel_of_string s =
+  match String.lowercase s with
+  | "width" -> FitWidth
+  | "proportional" -> FitProportional
+  | "page" -> FitPage
+  | _ -> failwith "invalid fit model"
+;;
+
+let int_of_fitmodel = function
+  | FitWidth -> 0
+  | FitProportional -> 1
+  | FitPage -> 2
+;;
+
+let fitmodel_of_int = function
+  | 0 -> FitWidth
+  | 1 -> FitProportional
+  | 2 -> FitPage
+  | n -> failwith ("invalid fit model index " ^ string_of_int n)
+;;
+
+let fitmodel_to_string = function
+  | FitWidth -> "width"
+  | FitProportional -> "proportional"
+  | FitPage -> "page"
 ;;
 
 let intentry_with_suffix text key =
@@ -1922,7 +1949,7 @@ let opendoc path password =
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %s\000"
-        conf.angle (btod conf.proportional) state.nameddest;
+        conf.angle (int_of_fitmodel conf.fitmodel) state.nameddest;
     )
 ;;
 
@@ -2128,7 +2155,7 @@ let reshape w h =
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
-      wcmd "geometry %d %d" w h);
+      wcmd "geometry %d %d" w (h - conf.interpagespace));
 ;;
 
 let enttext () =
@@ -2690,7 +2717,7 @@ let textentry text key =
   else TEcont (text ^ toutf8 key)
 ;;
 
-let reqlayout angle proportional =
+let reqlayout angle fitmodel =
   match state.throttle with
   | None ->
       if nogeomcmds state.geomcmds
@@ -2702,9 +2729,10 @@ let reqlayout angle proportional =
         | LinkNav _ -> state.mode <- View
         | _ -> ()
       );
-      conf.proportional <- proportional;
+      conf.fitmodel <- fitmodel;
       invalidate "reqlayout"
-        (fun () -> wcmd "reqlayout %d %d" conf.angle (btod proportional));
+        (fun () ->
+          wcmd "reqlayout %d %d" conf.angle (int_of_fitmodel fitmodel));
   | _ -> ()
 ;;
 
@@ -2957,7 +2985,7 @@ let optentry mode _ key =
                 s (exntos exc);
               None
           with
-          | Some angle -> reqlayout angle conf.proportional
+          | Some angle -> reqlayout angle conf.fitmodel
           | None -> ()
         in
         TEswitch ("rotation: ", "", None, intentry, ondone, true)
@@ -3028,8 +3056,13 @@ let optentry mode _ key =
         TEswitch ("vertical margin: ", "", None, intentry, ondone, true)
 
     | 'l' ->
-        reqlayout conf.angle (not conf.proportional);
-        TEdone ("proportional display " ^ btos conf.proportional)
+        let fm =
+          match conf.fitmodel with
+          | FitProportional -> FitWidth
+          | _ -> FitProportional
+        in
+        reqlayout conf.angle fm;
+        TEdone ("proportional display " ^ btos (fm == FitProportional))
 
     | 'T' ->
         settrim (not conf.trimmargins) conf.trimfuzz;
@@ -3332,6 +3365,7 @@ object (self)
       coe {< m_active = active; m_first = first; m_qsearch = qsearch >}
     in
     let search active pattern incr =
+      let active = if active = -1 then m_first else active in
       let dosearch re =
         let rec loop n =
           if n >= 0 && n < source#getitemcount
@@ -4202,6 +4236,33 @@ let enterinfomode =
               coe (new listview ~source ~trusted:true ~modehash)
           )) :: m_l
 
+      method fitmodel name get set =
+        m_l <-
+          (name, `string get, 1, Action (
+            fun _ ->
+              let source =
+                let vals = [| "fit width"; "proportional"; "fit page" |] in
+                (object
+                  inherit lvsourcebase
+
+                  initializer
+                    m_active <- int_of_fitmodel conf.fitmodel;
+                    m_first <- 0;
+
+                  method getitemcount = Array.length vals
+                  method getitem n = (vals.(n), 0)
+                  method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
+                    ignore (uioh, first, pan, qsearch);
+                    if not cancel then set active;
+                    None
+                  method hasaction _ = true
+                end)
+              in
+              state.text <- "";
+              let modehash = findkeyhash conf "info" in
+              coe (new listview ~source ~trusted:true ~modehash)
+          )) :: m_l
+
       method caption s offset =
         m_l <- (s, `empty, offset, Noaction) :: m_l
 
@@ -4293,9 +4354,9 @@ let enterinfomode =
       (fun () -> conf.savebmarks)
       (fun v -> conf.savebmarks <- v);
 
-    src#bool "proportional display"
-      (fun () -> conf.proportional)
-      (fun v -> reqlayout conf.angle v);
+    src#fitmodel "fit model"
+      (fun () -> fitmodel_to_string conf.fitmodel)
+      (fun v -> reqlayout conf.angle (fitmodel_of_int v));
 
     src#bool "trim margins"
       (fun () -> conf.trimmargins)
@@ -4350,7 +4411,7 @@ let enterinfomode =
 
     src#int "rotation"
       (fun () -> conf.angle)
-      (fun v -> reqlayout v conf.proportional);
+      (fun v -> reqlayout v conf.fitmodel);
 
     src#int "scroll bar width"
       (fun () -> state.scrollw)
@@ -5029,6 +5090,16 @@ let viewkeyboard key mask =
       if zoom > 0.0 && (key = 50 || zoom < 1.0)
       then setzoom zoom
 
+  | 51 when ctrl ->                     (* ctrl-3 *)
+      let fm =
+        match conf.fitmodel with
+        | FitWidth -> FitProportional
+        | FitProportional -> FitPage
+        | FitPage -> FitWidth
+      in
+      state.text <- "fit model " ^ fitmodel_to_string fm;
+      reqlayout conf.angle fm
+
   | 0xffc6 ->                           (* f9 *)
       togglebirdseye ()
 
@@ -5239,7 +5310,7 @@ let viewkeyboard key mask =
       end
 
   | 60 | 62 ->                          (* < > *)
-      reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.proportional
+      reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.fitmodel
 
   | 91 | 93 ->                          (* [ ] *)
       conf.colorscale <-
@@ -6247,7 +6318,14 @@ struct
         | "width" -> { c with cwinw = max 20 (int_of_string v) }
         | "height" -> { c with cwinh = max 20 (int_of_string v) }
         | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
-        | "proportional-display" -> { c with proportional = bool_of_string v }
+        | "proportional-display" ->
+            let fm =
+              if bool_of_string v
+              then FitProportional
+              else FitWidth
+            in
+            { c with fitmodel = fm }
+        | "fit-model" -> { c with fitmodel = fitmodel_of_string v }
         | "pixmap-cache-size" ->
             { c with memlimit = max 2 (int_of_string_with_suffix v) }
         | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
@@ -6368,7 +6446,7 @@ struct
     dst.cwinh          <- src.cwinh;
     dst.savebmarks     <- src.savebmarks;
     dst.memlimit       <- src.memlimit;
-    dst.proportional   <- src.proportional;
+    dst.fitmodel       <- src.fitmodel;
     dst.texcount       <- src.texcount;
     dst.sliceheight    <- src.sliceheight;
     dst.thumbw         <- src.thumbw;
@@ -6752,6 +6830,10 @@ struct
         match a with
         | Some c when c > 1 -> Printf.bprintf bb "\n    %s='%d'" s c
         | _ -> ()
+    and oFm s a b =
+      if always || a <> b
+      then
+        Printf.bprintf bb "\n    %s='%s'" s (fitmodel_to_string a)
     in
     oi "width" c.cwinw dc.cwinw;
     oi "height" c.cwinh dc.cwinh;
@@ -6772,7 +6854,7 @@ struct
     ob "presentation" c.presentation dc.presentation;
     oi "rotation-angle" c.angle dc.angle;
     ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
-    ob "proportional-display" c.proportional dc.proportional;
+    oFm "fit-model" c.fitmodel dc.fitmodel;
     oI "pixmap-cache-size" c.memlimit dc.memlimit;
     oi "tex-count" c.texcount dc.texcount;
     oi "slice-height" c.sliceheight dc.sliceheight;
@@ -7272,7 +7354,7 @@ let () =
   redirectstderr ();
 
   init (cr, cw) (
-    conf.angle, conf.proportional, (conf.trimmargins, conf.trimfuzz),
+    conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
     !Config.fontpath, !trimcachepath,
     GlMisc.check_extension "GL_ARB_pixel_buffer_object"

@@ -54,6 +54,7 @@ Ctrl--                  - zoom out
 Ctrl-0                  - fit widest page width and reset panning
 Ctrl-1                  - fit tallest page
 Ctrl-2                  - fit tallest page height exactly
+Ctrl-3                  - cycle fit models
 Ctrl-9/F9               - enter bird's eye view
 home/end                - go to first/last page
 pageup/pagedown         - go forward/backward one screen-full
