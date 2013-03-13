@@ -3307,7 +3307,8 @@ object (self)
           then (
             Gl.disable `texture_2d;
             GlDraw.polygon_mode `both `line;
-            GlDraw.color (1., 1., 1.) ~alpha:0.9;
+            let alpha = if source#hasaction row then 0.9 else 0.3 in
+            GlDraw.color (1., 1., 1.) ~alpha;
             GlDraw.rect (1., float (y + 1))
               (float (state.winw - conf.scrollbw - 1), float (y + fs + 3));
             GlDraw.polygon_mode `both `fill;
