@@ -5102,7 +5102,7 @@ let viewkeyboard key mask =
         | FitProportional -> FitPage
         | FitPage -> FitWidth
       in
-      state.text <- "fit model " ^ fitmodel_to_string fm;
+      state.text <- "fit model: " ^ fitmodel_to_string fm;
       reqlayout conf.angle fm
 
   | 0xffc6 ->                           (* f9 *)
