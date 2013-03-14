@@ -1168,6 +1168,8 @@ static void layout (void)
         case FitWidth:
             zoom = state.w / w;
             break;
+        default:
+            ARSERT (0 && state.fitmodel);
         }
 
         fz_scale (&p->zoomctm, zoom, zoom);
