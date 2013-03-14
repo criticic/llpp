@@ -2749,29 +2749,32 @@ let settrim trimmargins trimfuzz =
 ;;
 
 let setzoom zoom =
-  match state.throttle with
-  | None ->
-      let zoom = max 0.0001 zoom in
-      if zoom <> conf.zoom
-      then (
-        state.prevzoom <- conf.zoom;
-        conf.zoom <- zoom;
-        reshape state.winw state.winh;
-        state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
-      )
+  if conf.fitmodel = FitPage
+  then showtext '!' "Zooming in fit page model makes no sense"
+  else
+    match state.throttle with
+    | None ->
+        let zoom = max 0.0001 zoom in
+        if zoom <> conf.zoom
+        then (
+          state.prevzoom <- conf.zoom;
+          conf.zoom <- zoom;
+          reshape state.winw state.winh;
+          state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
+        )
 
-  | Some (layout, y, started) ->
-      let time =
-        match conf.maxwait with
-        | None -> 0.0
-        | Some t -> t
-      in
-      let dt = now () -. started in
-      if dt > time
-      then (
-        state.y <- y;
-        load layout;
-      )
+    | Some (layout, y, started) ->
+        let time =
+          match conf.maxwait with
+          | None -> 0.0
+          | Some t -> t
+        in
+        let dt = now () -. started in
+        if dt > time
+        then (
+          state.y <- y;
+          load layout;
+        )
 ;;
 
 let setcolumns mode columns coverA coverB =
@@ -4357,7 +4360,10 @@ let enterinfomode =
 
     src#fitmodel "fit model"
       (fun () -> fitmodel_to_string conf.fitmodel)
-      (fun v -> reqlayout conf.angle (fitmodel_of_int v));
+      (fun v ->
+        reqlayout conf.angle (fitmodel_of_int v);
+        fillsrc prevmode prevuioh;
+      );
 
     src#bool "trim margins"
       (fun () -> conf.trimmargins)
@@ -4406,9 +4412,11 @@ let enterinfomode =
         then state.autoscroll <- Some n;
         conf.autoscrollstep <- n);
 
-    src#int "zoom"
-      (fun () -> truncate (conf.zoom *. 100.))
-      (fun v -> setzoom ((float v) /. 100.));
+    if conf.fitmodel != FitPage
+    then
+      src#int "zoom"
+        (fun () -> truncate (conf.zoom *. 100.))
+        (fun v -> setzoom ((float v) /. 100.));
 
     src#int "rotation"
       (fun () -> conf.angle)
