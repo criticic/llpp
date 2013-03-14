@@ -2155,7 +2155,7 @@ let reshape w h =
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
-      wcmd "geometry %d %d" w (h - conf.interpagespace));
+      wcmd "geometry %d %d" w (h - 2*conf.interpagespace));
 ;;
 
 let enttext () =
