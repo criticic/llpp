@@ -4073,7 +4073,7 @@ let ghyllscroll_to_string ((n, a, b) as nab) =
 
 let describe_location () =
   let fn = page_of_y state.y in
-  let ln = page_of_y (state.y + state.winh - state.hscrollh) in
+  let ln = page_of_y (state.y + state.winh - state.hscrollh - 1) in
   let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
   let percent =
     if maxy <= 0
