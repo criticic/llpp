@@ -598,6 +598,7 @@ static void freetile (struct tile *tile)
 }
 
 #ifdef __ALTIVEC__
+#include <stdint.h>
 #include <altivec.h>
 
 static int cacheline32bytes;
