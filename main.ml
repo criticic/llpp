@@ -1948,8 +1948,8 @@ let opendoc path password =
   wcmd "open %d %s\000%s\000" (btod !wtmode) path password;
   invalidate "reqlayout"
     (fun () ->
-      wcmd "reqlayout %d %d %s\000"
-        conf.angle (int_of_fitmodel conf.fitmodel) state.nameddest;
+      wcmd "reqlayout %d %d %f %s\000"
+        conf.angle (int_of_fitmodel conf.fitmodel) conf.zoom state.nameddest;
     )
 ;;
 
@@ -2155,7 +2155,7 @@ let reshape w h =
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
-      wcmd "geometry %d %d" w (h - 2*conf.interpagespace));
+      wcmd "geometry %d %d %f" w (h - 2*conf.interpagespace) conf.zoom);
 ;;
 
 let enttext () =
@@ -2732,7 +2732,8 @@ let reqlayout angle fitmodel =
       conf.fitmodel <- fitmodel;
       invalidate "reqlayout"
         (fun () ->
-          wcmd "reqlayout %d %d" conf.angle (int_of_fitmodel fitmodel));
+          wcmd "reqlayout %d %d %f"
+            conf.angle (int_of_fitmodel fitmodel) conf.zoom);
   | _ -> ()
 ;;
 
@@ -2749,32 +2750,29 @@ let settrim trimmargins trimfuzz =
 ;;
 
 let setzoom zoom =
-  if conf.fitmodel = FitPage
-  then showtext '!' "Zooming in fit page model makes no sense"
-  else
-    match state.throttle with
-    | None ->
-        let zoom = max 0.0001 zoom in
-        if zoom <> conf.zoom
-        then (
-          state.prevzoom <- conf.zoom;
-          conf.zoom <- zoom;
-          reshape state.winw state.winh;
-          state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
-        )
+  match state.throttle with
+  | None ->
+      let zoom = max 0.0001 zoom in
+      if zoom <> conf.zoom
+      then (
+        state.prevzoom <- conf.zoom;
+        conf.zoom <- zoom;
+        reshape state.winw state.winh;
+        state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
+      )
 
-    | Some (layout, y, started) ->
-        let time =
-          match conf.maxwait with
-          | None -> 0.0
-          | Some t -> t
-        in
-        let dt = now () -. started in
-        if dt > time
-        then (
-          state.y <- y;
-          load layout;
-        )
+  | Some (layout, y, started) ->
+      let time =
+        match conf.maxwait with
+        | None -> 0.0
+        | Some t -> t
+      in
+      let dt = now () -. started in
+      if dt > time
+      then (
+        state.y <- y;
+        load layout;
+      )
 ;;
 
 let setcolumns mode columns coverA coverB =
@@ -4360,10 +4358,7 @@ let enterinfomode =
 
     src#fitmodel "fit model"
       (fun () -> fitmodel_to_string conf.fitmodel)
-      (fun v ->
-        reqlayout conf.angle (fitmodel_of_int v);
-        fillsrc prevmode prevuioh;
-      );
+      (fun v -> reqlayout conf.angle (fitmodel_of_int v));
 
     src#bool "trim margins"
       (fun () -> conf.trimmargins)
@@ -4412,11 +4407,9 @@ let enterinfomode =
         then state.autoscroll <- Some n;
         conf.autoscrollstep <- n);
 
-    if conf.fitmodel != FitPage
-    then
-      src#int "zoom"
-        (fun () -> truncate (conf.zoom *. 100.))
-        (fun v -> setzoom ((float v) /. 100.));
+    src#int "zoom"
+      (fun () -> truncate (conf.zoom *. 100.))
+      (fun v -> setzoom ((float v) /. 100.));
 
     src#int "rotation"
       (fun () -> conf.angle)

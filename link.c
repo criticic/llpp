@@ -1108,7 +1108,7 @@ static void initpdims (void)
     }
 }
 
-static void layout (void)
+static void layout (double zoom1)
 {
     int pindex;
     fz_rect box;
@@ -1147,26 +1147,23 @@ static void layout (void)
         box = p->mediabox;
         fz_transform_rect (&box, &rm);
         w = box.x1 - box.x0;
+        zoom = state.w / w;
         switch (state.fitmodel) {
         case FitProportional:
-            {
-                double scale = w / maxw;
-                zoom = (state.w / w) * scale;
-            }
+            zoom *= w / maxw;
             break;
         case FitPage:
             {
                 double z1, h;
                 h = box.y1 - box.y0;
-                zoom = state.w / w;
                 z1 = state.h / h;
                 if (z1 < zoom) {
                     zoom = z1;
                 }
+                zoom *= zoom1;
             }
             break;
         case FitWidth:
-            zoom = state.w / w;
             break;
         default:
             ARSERT (0 && state.fitmodel);
@@ -1775,10 +1772,11 @@ static void * mainloop (void *unused)
         }
         else if (!strncmp ("geometry", p, 8)) {
             int w, h;
+            float zoom;
 
             printd ("clear");
-            ret = sscanf (p + 8, " %d %d", &w, &h);
-            if (ret != 2) {
+            ret = sscanf (p + 8, " %d %d %f", &w, &h, &zoom);
+            if (ret != 3) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
             }
 
@@ -1791,7 +1789,7 @@ static void * mainloop (void *unused)
                     state.texowners[i].slice = NULL;
                 }
             }
-            layout ();
+            layout (zoom);
             process_outline ();
 
             state.gen++;
@@ -1799,12 +1797,14 @@ static void * mainloop (void *unused)
             printd ("continue %d", state.pagecount);
         }
         else if (!strncmp ("reqlayout", p, 9)) {
+            float zoom;
             char *nameddest;
             int rotate, fitmodel, off;
 
             printd ("clear");
-            ret = sscanf (p + 9, " %d %d %n", &rotate, &fitmodel, &off);
-            if (ret != 2) {
+            ret = sscanf (p + 9, " %d %d %f %n",
+                          &rotate, &fitmodel, &zoom, &off);
+            if (ret != 3) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
             lock ("reqlayout");
@@ -1813,7 +1813,7 @@ static void * mainloop (void *unused)
             }
             state.rotate = rotate;
             state.fitmodel = fitmodel;
-            layout ();
+            layout (zoom);
             process_outline ();
 
             nameddest = p + 9 + off;
@@ -1892,11 +1892,13 @@ static void * mainloop (void *unused)
                     b - a);
         }
         else if (!strncmp ("settrim", p, 7))  {
-            int trimmargins;
+            float zoom;
             fz_irect fuzz;
+            int trimmargins;
 
-            ret = sscanf (p + 7, " %d %d %d %d %d", &trimmargins,
-                          &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
+            ret = sscanf (p + 7, " %d %d %d %d %d %f",
+                          &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1,
+                          &zoom);
             if (ret != 5) {
                 errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
             }
@@ -1912,7 +1914,7 @@ static void * mainloop (void *unused)
             free (state.pagedims);
             state.pagedims = NULL;
             initpdims ();
-            layout ();
+            layout (zoom);
             process_outline ();
             unlock ("settrim");
             printd ("continue %d", state.pagecount);
