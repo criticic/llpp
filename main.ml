@@ -3406,7 +3406,7 @@ object (self)
     let set active first =
       let first = bound first 0 (itemcount - fstate.maxrows) in
       state.text <- "";
-      coe {< m_active = active; m_first = first >}
+      coe {< m_active = active; m_first = first; m_qsearch = "" >}
     in
     let navigate incr =
       let isvisible first n = n >= first && n - first <= fstate.maxrows in
