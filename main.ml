@@ -2478,8 +2478,6 @@ let act cmds =
                 else state.layout
               in
               let evict () =
-                let module IntSet =
-                  Set.Make (struct type t = int let compare = (-) end) in
                 let set =
                   List.fold_left (fun s l -> IntSet.add l.pageno s)
                     IntSet.empty preloadedpages
