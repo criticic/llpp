@@ -1,0 +1,51 @@
+#!/bin/sh
+
+set -e
+
+CACHEDIR=$HOME/.config/llpp
+
+die()
+{
+    fmt=$1
+    shift
+    printf "$fmt\n" "$*" >&2
+    exit 1
+}
+
+test -d $CACHEDIR || die "cache directory %s does not exist" $CACHEDIR
+test -z "$1" && die "usage %s: path" $0
+
+ft=$(file --mime-type -b "$1")
+
+case $ft in
+    application/x-gzip) dc=zcat;;
+    application/x-xz) dc=xzcat;;
+    application/x-bzip2) dc=bzcat;;
+    *) dc=cat;;
+esac
+
+test $dc = "cat" || ft=$(file --mime-type -bz "$1")
+
+case $ft in
+    application/postscript) conv='ps2pdf - >$casp';;
+    application/pdf) exec llpp "$1";;
+    application/msword) conv='antiword -p a4 - | ps2pdf - >$casp';;
+    image/vnd.djvu) conv='djvups - | ps2pdf - >$casp';;
+    image/svg+xml) unset dc; conv='inkscape -z -A $casp $1';;
+    application/x-dvi) {
+        test $dc = "cat" || die "can not handle compressed DVIs";
+        unset dc;
+        conv='dvipdf $1 $casp'
+    };;
+    *) die "unhandled file type: %s" $ft;;
+esac
+
+hash=$(md5sum "$1" | cut -f 1 -d\ )
+
+casp="$CACHEDIR/$hash"
+
+if ! test -e $casp; then
+    test -z $dc && cmd="$conv" || cmd="$dc \"$1\" | $conv"
+    eval "$cmd"
+fi
+exec llpp -origin "$1" $casp

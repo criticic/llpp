@@ -481,6 +481,7 @@ type state =
     ; mutable winw          : int
     ; mutable winh          : int
     ; mutable reprf         : (unit -> unit)
+    ; mutable origin        : string
     }
 and hists =
     { pat : string circbuf
@@ -723,6 +724,7 @@ let state =
   ; winw          = -1
   ; winh          = -1
   ; reprf         = noreprf
+  ; origin        = ""
   }
 ;;
 
@@ -1944,7 +1946,12 @@ let opendoc path password =
 
   flushpages ();
   setaalevel conf.aalevel;
-  Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename path)));
+  let titlepath =
+    if String.length state.origin = 0
+    then path
+    else state.origin
+  in
+  Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
   wcmd "open %d %s\000%s\000" (btod !wtmode) path password;
   invalidate "reqlayout"
     (fun () ->
@@ -6744,7 +6751,7 @@ struct
     let f (h, dc) =
       let pc, pb, px, pa =
         try
-          Hashtbl.find h (Filename.basename state.path)
+          Hashtbl.find h (Filename.basename state.origin)
         with Not_found -> dc, [], 0, emptyanchor
       in
       setconf defconf dc;
@@ -7073,7 +7080,7 @@ struct
             pan, { c with beyecolumns = beyecolumns; columns = columns }
         | _ -> state.x, conf
       in
-      let basename = Filename.basename state.path in
+      let basename = Filename.basename state.origin in
       adddoc basename pan (getanchor ())
         (let conf =
           let autoscrollstep =
@@ -7251,6 +7258,9 @@ let () =
 
          ("-remote", Arg.String (fun s -> rcmdpath := s),
          "<path> Set path to the remote commands source");
+
+         ("-origin", Arg.String (fun s -> state.origin <- s),
+         "<original path> Set original path");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
