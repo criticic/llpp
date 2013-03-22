@@ -1772,12 +1772,12 @@ static void * mainloop (void *unused)
             }
         }
         else if (!strncmp ("geometry", p, 8)) {
-            int w, h;
             float zoom;
+            int w, h, fitmodel;
 
             printd ("clear");
-            ret = sscanf (p + 8, " %d %d %f", &w, &h, &zoom);
-            if (ret != 3) {
+            ret = sscanf (p + 8, " %d %d %f %d", &w, &h, &zoom, &fitmodel);
+            if (ret != 4) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
             }
 
@@ -1790,6 +1790,7 @@ static void * mainloop (void *unused)
                     state.texowners[i].slice = NULL;
                 }
             }
+            state.fitmodel = fitmodel;
             layout (zoom);
             process_outline ();
 

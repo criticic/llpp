@@ -2162,7 +2162,9 @@ let reshape w h =
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
-      wcmd "geometry %d %d %f" w (h - 2*conf.interpagespace) conf.zoom);
+      wcmd "geometry %d %d %f %d"
+        w (h - 2*conf.interpagespace) conf.zoom
+        (int_of_fitmodel conf.fitmodel));
 ;;
 
 let enttext () =
@@ -2833,6 +2835,7 @@ let enterbirdseye () =
   conf.presentation <- false;
   conf.interpagespace <- 10;
   conf.hlinks <- false;
+  conf.fitmodel <- FitProportional;
   state.x <- 0;
   state.mstate <- Mnone;
   conf.maxwait <- None;
@@ -2861,6 +2864,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   conf.interpagespace <- c.interpagespace;
   conf.maxwait <- c.maxwait;
   conf.hlinks <- c.hlinks;
+  conf.fitmodel <- c.fitmodel;
   conf.beyecolumns <- (
     match conf.columns with
     | Cmulti ((c, _, _), _) -> Some c
