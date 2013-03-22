@@ -29,12 +29,12 @@ esac
 test -z $dc || ft=$(file --mime-type -bz "$1")
 
 case $ft in
-    application/postscript) conv='ps2pdf - $casp';;
+    application/postscript) conv='ps2pdf $1 $casp';;
     application/pdf) {
         test -z $dc && exec llpp "$1" || conv='cat >$casp'
     };;
-    application/msword) conv='antiword -p a4 - | ps2pdf - $casp';;
-    image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
+    application/msword) conv='antiword -p a4 $1 | ps2pdf - $casp';;
+    image/vnd.djvu) conv='djvups $1 | ps2pdf - $casp';;
     image/svg+xml) conv='inkscape -z -A $casp $1';;
     application/x-dvi) {
         test -z $dc || die "can not handle compressed DVIs";
