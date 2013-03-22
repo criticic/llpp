@@ -439,7 +439,7 @@ type state =
     ; mutable scrollw       : int
     ; mutable hscrollh      : int
     ; mutable anchor        : anchor
-    ; mutable ranchors      : (string * string * anchor) list
+    ; mutable ranchors      : (string * string * anchor * string) list
     ; mutable maxy          : int
     ; mutable layout        : page list
     ; pagemap               : (pagemapkey, opaque) Hashtbl.t
@@ -4864,7 +4864,8 @@ let gotounder = function
       if String.length path > 0
       then (
         let anchor = getanchor () in
-        let ranchor = state.path, state.password, anchor in
+        let ranchor = state.path, state.password, anchor, state.origin in
+        state.origin <- "";
         state.anchor <- (pageno, 0.0, 0.0);
         state.ranchors <- ranchor :: state.ranchors;
         opendoc path "";
@@ -5012,9 +5013,10 @@ let viewkeyboard key mask =
           | _ ->
               match state.ranchors with
               | [] -> raise Quit
-              | (path, password, anchor) :: rest ->
+              | (path, password, anchor, origin) :: rest ->
                   state.ranchors <- rest;
                   state.anchor <- anchor;
+                  state.origin <- origin;
                   opendoc path password
           end;
       end;
