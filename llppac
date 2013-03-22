@@ -23,22 +23,21 @@ case $ft in
     application/x-gzip) dc=zcat;;
     application/x-xz) dc=xzcat;;
     application/x-bzip2) dc=bzcat;;
-    *) dc=cat;;
+    *) unset dc;;
 esac
 
-test $dc = "cat" || ft=$(file --mime-type -bz "$1")
+test -z $dc || ft=$(file --mime-type -bz "$1")
 
 case $ft in
     application/postscript) conv='ps2pdf - $casp';;
     application/pdf) {
-        test $dc = "cat" && exec llpp "$1" || conv='cat >$casp'
+        test -z $dc && exec llpp "$1" || conv='cat >$casp'
     };;
     application/msword) conv='antiword -p a4 - | ps2pdf - $casp';;
     image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
-    image/svg+xml) unset dc; conv='inkscape -z -A $casp $1';;
+    image/svg+xml) conv='inkscape -z -A $casp $1';;
     application/x-dvi) {
-        test $dc = "cat" || die "can not handle compressed DVIs";
-        unset dc;
+        test -z $dc || die "can not handle compressed DVIs";
         conv='dvipdf $1 $casp'
     };;
     *) die "unhandled file type: %s" $ft;;
