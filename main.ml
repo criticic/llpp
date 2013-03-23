@@ -4718,9 +4718,6 @@ let enterinfomode =
     sep ();
     src#caption "Document" 0;
     List.iter (fun (_, s) -> src#caption s 1) state.docinfo;
-    src#caption ("Path\t" ^ state.path) 1;
-    if String.length state.origin > 0
-    then src#caption ("Orign\t" ^ state.origin) 1;
     src#caption2 "Pages"
       (fun () ->  string_of_int state.pagecount) 1;
     src#caption2 "Dimensions"
@@ -4737,6 +4734,13 @@ let enterinfomode =
     src#caption "OpenGL" 0;
     src#caption (Printf.sprintf "Vendor\t%s" (GlMisc.get_string `vendor)) 1;
     src#caption (Printf.sprintf "Renderer\t%s" (GlMisc.get_string `renderer)) 1;
+
+    sep ();
+    src#caption "Location" 0;
+    src#caption ("Path\t" ^ state.path) 1;
+    if String.length state.origin > 0
+    then src#caption ("Orign\t" ^ state.origin) 1;
+
     src#reset prevmode prevuioh;
   in
   fun () ->
