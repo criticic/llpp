@@ -1901,7 +1901,7 @@ static void * mainloop (void *unused)
             ret = sscanf (p + 7, " %d %d %d %d %d %f",
                           &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1,
                           &zoom);
-            if (ret != 5) {
+            if (ret != 6) {
                 errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
             }
             printd ("clear");

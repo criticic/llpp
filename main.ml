@@ -2793,7 +2793,8 @@ let settrim trimmargins trimfuzz =
   let x0, y0, x1, y1 = trimfuzz in
   invalidate "settrim"
     (fun () ->
-      wcmd "settrim %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1);
+      wcmd "settrim %d %d %d %d %d %f"
+        (btod conf.trimmargins) x0 y0 x1 y1 conf.zoom);
   flushpages ();
 ;;
 
