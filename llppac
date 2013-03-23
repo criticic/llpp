@@ -68,6 +68,7 @@ case $mime in
             && conv='rsvg-convert -f pdf -o $casp' \
             || conv='inkscape -z -A $casp -'
     };;
+    image/*) conv='convert - pdf:$casp';;
     application/x-dvi) {
         test -z $dc || die "can not handle compressed DVIs"
         unset filt
