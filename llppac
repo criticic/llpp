@@ -47,7 +47,7 @@ case $mime in
     application/pdf) test -z $dc && exec llpp "$1" || conv='cat >$casp';;
     image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
     text/html) {
-        test -z $dc || die "can not handle compressed htmls"
+        ! test -z $dc && die "can not convert compressed $mime"
         unset filt
         conv='prince "$1" -o $casp'
     };;
@@ -75,7 +75,7 @@ case $mime in
     };;
     image/*) conv='convert - pdf:$casp';;
     application/x-dvi) {
-        test -z $dc || die "can not handle compressed DVIs"
+        ! test -z $dc && die "can not convert compressed $mime"
         unset filt
         conv='dvipdf $1 $casp'
     };;
