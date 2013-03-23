@@ -37,7 +37,7 @@ case $ft in
     *) unset dc || true;;
 esac
 
-test -z $dc || (ft=$(file -L --mime-type -bz "$1") || die "$ft")
+test -z $dc || ft=$(file -L --mime-type -bz "$1") || die "$ft"
 
 filt='${dc-cat} "$1" |'
 
