@@ -46,6 +46,11 @@ case $mime in
     application/postscript) conv='ps2pdf - $casp';;
     application/pdf) test -z $dc && exec llpp "$1" || conv='cat >$casp';;
     image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
+    text/html) {
+        test -z $dc || die "can not handle compressed htmls"
+        unset filt
+        conv='prince "$1" -o $casp'
+    };;
     application/msword) {
         if executable_p unoconv && test -z $dc; then
             unset filt
