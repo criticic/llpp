@@ -6780,7 +6780,12 @@ struct
     let f (h, dc) =
       let pc, pb, px, pa =
         try
-          Hashtbl.find h (Filename.basename state.origin)
+          let key =
+            if String.length state.origin = 0
+            then state.path
+            else state.origin
+          in
+          Hashtbl.find h (Filename.basename key)
         with Not_found -> dc, [], 0, emptyanchor
       in
       setconf defconf dc;
@@ -7109,7 +7114,9 @@ struct
             pan, { c with beyecolumns = beyecolumns; columns = columns }
         | _ -> state.x, conf
       in
-      let basename = Filename.basename state.origin in
+      let basename = Filename.basename
+        (if String.length state.origin = 0 then state.path else state.origin)
+      in
       adddoc basename pan (getanchor ())
         (let conf =
           let autoscrollstep =
