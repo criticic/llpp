@@ -36,7 +36,23 @@ case $ft in
     application/postscript) conv='ps2pdf - $casp';;
     application/pdf) test -z $dc && exec llpp "$1" || conv='cat >$casp';;
     image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
-    application/msword) conv='antiword -m 8859-1.txt -a a4 - >$casp';;
+    application/msword) {
+        if executable_p unoconv && test -z $dc; then
+            dc=true # shrug
+            conv='unoconv -o $casp $1'
+        else
+            conv='antiword -m 8859-1.txt -a a4 - >$casp'
+        fi
+    };;
+    application/vnd.openxmlformats-officedocument.*) {
+        if executable_p unoconv; then
+            ! test -z $dc && die "can not convert compressed openxml"
+            dc=true
+            conv='unoconv -o $casp $1'
+        else
+            die 'unoconv not found'
+        fi
+    };;
     image/svg+xml) {
         executable_p rsvg-convert \
             && conv='rsvg-convert -f pdf -o $casp' \
@@ -51,7 +67,6 @@ esac
 
 hash=$(md5sum "$1" | cut -f 1 -d\ )
 casp="$CACHEDIR/$hash"
-test -e $casp ||
-eval "${dc-cat} \"$1\" | $conv"
+test -e $casp || eval "${dc-cat} \"$1\" | $conv"
 
 exec llpp -origin "$1" $casp
