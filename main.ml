@@ -5142,7 +5142,7 @@ let viewkeyboard key mask =
       )
       else setzoom 1.0
 
-  | (49 | 50) when ctrl ->              (* ctrl-1/2 *)
+  | (49 | 50) when ctrl && conf.fitmodel != FitPage -> (* ctrl-1/2 *)
       let cols =
         match conf.columns with
         | Csingle _ | Cmulti _ -> 1
