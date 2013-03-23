@@ -56,7 +56,7 @@ case $mime in
     };;
     application/vnd.openxmlformats-officedocument.*) {
         if executable_p unoconv; then
-            ! test -z $dc && die "can not convert compressed openxml"
+            ! test -z $dc && die "can not convert compressed $mime"
             unset filt
             conv='unoconv -o $casp "$1"'
         else
