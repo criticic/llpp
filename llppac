@@ -29,26 +29,20 @@ esac
 test -z $dc || ft=$(file --mime-type -bz "$1")
 
 case $ft in
-    application/postscript) conv='ps2pdf $1 $casp';;
-    application/pdf) {
-        test -z $dc && exec llpp "$1" || conv='cat >$casp'
-    };;
-    application/msword) conv='antiword -p a4 $1 | ps2pdf - $casp';;
-    image/vnd.djvu) conv='djvups $1 | ps2pdf - $casp';;
-    image/svg+xml) conv='inkscape -z -A $casp $1';;
+    application/postscript) conv='ps2pdf - $casp';;
+    application/pdf) test -z $dc && exec llpp "$1" || conv='cat >$casp';;
+    application/msword) conv='LC_CTYPE= antiword -a a4 - >$casp';;
+    image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
+    image/svg+xml) conv='inkscape -z -A $casp -';;
     application/x-dvi) {
-        test -z $dc || die "can not handle compressed DVIs";
-        conv='dvipdf $1 $casp'
+        test -z $dc || die "can not handle compressed DVIs"
+        conv='dvipdf - $casp'
     };;
     *) die "unhandled file type: %s" $ft;;
 esac
 
 hash=$(md5sum "$1" | cut -f 1 -d\ )
-
 casp="$CACHEDIR/$hash"
+test -e $casp || eval "${dc-cat} \"$1\" | $conv"
 
-if ! test -e $casp; then
-    test -z $dc && cmd="$conv" || cmd="$dc \"$1\" | $conv"
-    eval "$cmd"
-fi
 exec llpp -origin "$1" $casp
