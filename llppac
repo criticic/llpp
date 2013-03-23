@@ -78,8 +78,7 @@ case $mime in
 esac
 
 hash=$(md5sum "$1") || die "$hash"
-hash=${hash%% *}
-casp="$CACHEDIR/$hash"
+casp="$CACHEDIR/${hash%% *}"
 test -e $casp || eval "$filt" "$conv"
 
 exec llpp -origin "$@" $casp
