@@ -28,7 +28,7 @@ done
 shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: path"
 
-ft=$(file --mime-type -b "$1") || die "$ft"
+ft=$(file -L --mime-type -b "$1") || die "$ft"
 
 case $ft in
     application/x-gzip) dc=zcat;;
@@ -37,7 +37,7 @@ case $ft in
     *) unset dc || true;;
 esac
 
-test -z $dc || (ft=$(file --mime-type -bz "$1") || die "$ft")
+test -z $dc || (ft=$(file -L --mime-type -bz "$1") || die "$ft")
 
 filt='${dc-cat} "$1" |'
 
