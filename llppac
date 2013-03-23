@@ -80,4 +80,5 @@ hash=$(md5sum "$1" | cut -f 1 -d\ )
 casp="$CACHEDIR/$hash"
 test -e $casp || eval "$filt" "$conv"
 
-exec llpp -origin "$1" $casp
+shift
+exec llpp -origin "$1" $casp "$@"
