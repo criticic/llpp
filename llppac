@@ -82,7 +82,7 @@ case $mime in
     *) die "unhandled file type: $mime";;
 esac
 
-hash=$(set - $(md5sum "$1"); printf $1)
+hash=$(set - $(md5sum "$1"); echo $1)
 casp="$CACHEDIR/$hash"
 test -e $casp || eval "$filt" "$conv"
 
