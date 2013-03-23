@@ -899,6 +899,47 @@ let showtext c s =
   G.postRedisplay "showtext";
 ;;
 
+let selstring s =
+  match Ne.pipe () with
+  | Ne.Exn exn ->
+      showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
+  | Ne.Res (r, w) ->
+      let popened =
+        try popen conf.selcmd [r, 0; w, -1]; true
+        with exn ->
+          showtext '!'
+            (Printf.sprintf "failed to execute %s: %s"
+                conf.selcmd (exntos exn));
+          false
+      in
+      let clo cap fd =
+        Ne.clo fd (fun msg ->
+          showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
+        )
+      in
+      if popened
+      then
+        (try
+            let l = String.length s in
+            let n = tempfailureretry (Unix.write w s 0) l in
+            if n != l
+            then
+              showtext '!'
+                (Printf.sprintf
+                    "failed to write %d characters to sel pipe, wrote %d"
+                    l n
+                )
+          with exn ->
+            showtext '!'
+              (Printf.sprintf "failed to write to sel pipe: %s"
+                  (exntos exn)
+              )
+        )
+      else dolog "%s" s;
+      clo "pipe/r" r;
+      clo "pipe/w" w;
+;;
+
 let undertext = function
   | Unone -> "none"
   | Ulinkuri s -> s
@@ -3492,6 +3533,14 @@ object (self)
         G.postRedisplay "listview ctrl-r/s";
         set1 active first m_qsearch;
 
+    | 0xff63 when Wsi.withctrl mask ->  (* ctrl-insert *)
+        if m_active >= 0 && m_active < source#getitemcount
+        then (
+          let s, _ = source#getitem m_active in
+          selstring s;
+        );
+        coe self
+
     | 0xff08 ->                         (* backspace *)
         if String.length m_qsearch = 0
         then coe self
@@ -5166,47 +5215,10 @@ let viewkeyboard key mask =
       state.glinks <- true;
       let mode = state.mode in
       state.mode <- Textentry (
-        (":", "", None, linknentry, linkndone (fun under ->
-          match Ne.pipe () with
-          | Ne.Exn exn ->
-              showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
-          | Ne.Res (r, w) ->
-              let popened =
-                try popen conf.selcmd [r, 0; w, -1]; true
-                with exn ->
-                  showtext '!'
-                    (Printf.sprintf "failed to execute %s: %s"
-                        conf.selcmd (exntos exn));
-                  false
-              in
-              let clo cap fd =
-                Ne.clo fd (fun msg ->
-                  showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
-                )
-              in
-              let s = undertext under in
-              if popened
-              then
-                (try
-                    let l = String.length s in
-                    let n = tempfailureretry (Unix.write w s 0) l in
-                    if n != l
-                    then
-                      showtext '!'
-                        (Printf.sprintf
-                            "failed to write %d characters to sel pipe, wrote %d"
-                            l n
-                        )
-                  with exn ->
-                    showtext '!'
-                      (Printf.sprintf "failed to write to sel pipe: %s"
-                          (exntos exn)
-                      )
-                )
-              else dolog "%s" s;
-              clo "pipe/r" r;
-              clo "pipe/w" w;
-        ), false
+        (
+          ":", "", None, linknentry, linkndone (fun under ->
+            selstring (undertext under);
+          ), false
         ),
         fun _ ->
           state.glinks <- false;
