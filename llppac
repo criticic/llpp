@@ -6,9 +6,7 @@ CACHEDIR=$HOME/.config/llpp
 
 die()
 {
-    fmt=$1
-    shift
-    printf "$fmt\n" "$*" >&2
+    echo "$1" >&2
     exit 1
 }
 
@@ -18,8 +16,8 @@ executable_p() {
 
 trap '! test -z $casp && rm -f $casp' 0
 
-test -d $CACHEDIR || die "cache directory %s does not exist" $CACHEDIR
-test -z "$1" && die "usage %s: path" $0
+test -d $CACHEDIR || die "cache directory $CACHEDIR does not exist"
+test -z "$1" && die "usage $0: path"
 
 ft=$(file --mime-type -b "$1")
 
@@ -62,7 +60,7 @@ case $ft in
         test -z $dc || die "can not handle compressed DVIs"
         conv='dvipdf - $casp'
     };;
-    *) die "unhandled file type: %s" $ft;;
+    *) die "unhandled file type: $ft";;
 esac
 
 hash=$(md5sum "$1" | cut -f 1 -d\ )
