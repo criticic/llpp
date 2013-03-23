@@ -17,6 +17,15 @@ executable_p() {
 trap '! test -z $casp && rm -f $casp' 0
 
 test -d $CACHEDIR || die "cache directory $CACHEDIR does not exist"
+while getopts m: opt; do
+    case "$opt" in
+        m) mime="$OPTARG";;
+        ?)
+        die "usage: $0 [-t mime/type] path";
+        exit 1;;
+    esac
+done
+shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: path"
 
 ft=$(file --mime-type -b "$1")
@@ -32,14 +41,15 @@ test -z $dc || ft=$(file --mime-type -bz "$1")
 
 filt='${dc-cat} "$1" |'
 
-case $ft in
+mime=${mime:-$ft}
+case $mime in
     application/postscript) conv='ps2pdf - $casp';;
     application/pdf) test -z $dc && exec llpp "$1" || conv='cat >$casp';;
     image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
     application/msword) {
         if executable_p unoconv && test -z $dc; then
             unset filt
-            conv='unoconv -o $casp $1'
+            conv='unoconv -o $casp "$1"'
         else
             conv='antiword -m 8859-1.txt -a a4 - >$casp'
         fi
@@ -48,7 +58,7 @@ case $ft in
         if executable_p unoconv; then
             ! test -z $dc && die "can not convert compressed openxml"
             unset filt
-            conv='unoconv -o $casp $1'
+            conv='unoconv -o $casp "$1"'
         else
             die 'unoconv not found'
         fi
@@ -63,7 +73,7 @@ case $ft in
         unset filt
         conv='dvipdf $1 $casp'
     };;
-    *) die "unhandled file type: $ft";;
+    *) die "unhandled file type: $mime";;
 esac
 
 hash=$(md5sum "$1" | cut -f 1 -d\ )
