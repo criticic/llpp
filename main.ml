@@ -4669,6 +4669,9 @@ let enterinfomode =
     sep ();
     src#caption "Document" 0;
     List.iter (fun (_, s) -> src#caption s 1) state.docinfo;
+    src#caption ("Path\t" ^ state.path) 1;
+    if String.length state.origin > 0
+    then src#caption ("Orign\t" ^ state.origin) 1;
     src#caption2 "Pages"
       (fun () ->  string_of_int state.pagecount) 1;
     src#caption2 "Dimensions"
