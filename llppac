@@ -12,6 +12,10 @@ die()
     exit 1
 }
 
+executable_p() {
+    command -v $1 >/dev/null 2>&1
+}
+
 trap '! test -z $casp && rm -f $casp' 0
 
 test -d $CACHEDIR || die "cache directory %s does not exist" $CACHEDIR
@@ -31,9 +35,13 @@ test -z $dc || ft=$(file --mime-type -bz "$1")
 case $ft in
     application/postscript) conv='ps2pdf - $casp';;
     application/pdf) test -z $dc && exec llpp "$1" || conv='cat >$casp';;
-    application/msword) conv='LC_CTYPE= antiword -a a4 - >$casp';;
     image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
-    image/svg+xml) conv='inkscape -z -A $casp -';;
+    application/msword) conv='antiword -m 8859-1.txt -a a4 - >$casp';;
+    image/svg+xml) {
+        executable_p rsvg-convert \
+            && conv='rsvg-convert -f pdf -o $casp' \
+            || conv='inkscape -z -A $casp -'
+    };;
     application/x-dvi) {
         test -z $dc || die "can not handle compressed DVIs"
         conv='dvipdf - $casp'
@@ -43,6 +51,7 @@ esac
 
 hash=$(md5sum "$1" | cut -f 1 -d\ )
 casp="$CACHEDIR/$hash"
-test -e $casp || eval "${dc-cat} \"$1\" | $conv"
+test -e $casp ||
+eval "${dc-cat} \"$1\" | $conv"
 
 exec llpp -origin "$1" $casp
