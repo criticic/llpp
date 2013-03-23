@@ -81,8 +81,7 @@ case $mime in
     *) die "unhandled file type: $mime";;
 esac
 
-hash=$(set - $(md5sum "$1"); echo $1)
-casp="$CACHEDIR/$hash"
+casp="$CACHEDIR/$(set - $(md5sum "$1"); echo $1)"
 test -e $casp || eval "$filt" "$conv"
 
 exec llpp -origin "$@" $casp
