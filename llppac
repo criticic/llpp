@@ -4,8 +4,7 @@ set -e
 
 CACHEDIR=$HOME/.config/llpp
 
-die()
-{
+die() {
     echo "$1" >&2
     exit 1
 }
