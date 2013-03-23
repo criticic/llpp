@@ -6205,7 +6205,11 @@ let uioh = object
 
   method scrollph =
     let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
-    let p, h = scrollph state.y maxy in
+    let p, h =
+      if maxy = 0
+      then 0.0, float state.winh
+      else scrollph state.y maxy
+    in
     state.scrollw, p, h
 
   method scrollpw =
