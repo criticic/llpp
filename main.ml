@@ -3295,15 +3295,11 @@ let calcfirst first active =
 ;;
 
 let scrollph y maxy =
-  let sh = (float (maxy + state.winh) /. float state.winh) in
+  let sh = float (maxy + state.winh) /. float state.winh in
   let sh = float state.winh /. sh in
   let sh = max sh (float conf.scrollh) in
 
-  let percent =
-    if y = state.maxy
-    then 1.0
-    else float y /. float maxy
-  in
+  let percent = float y /. float maxy in
   let position = (float state.winh -. sh) *. percent in
 
   let position =
@@ -4938,6 +4934,8 @@ let canpan () =
   | _ -> state.x != 0 || conf.zoom > 1.0
 ;;
 
+let panbound x = bound x (-state.w) (state.winw - state.scrollw);;
+
 let existsinrow pageno (columns, coverA, coverB) p =
   let last = ((pageno - coverA) mod columns) + columns in
   let rec any = function
@@ -5412,7 +5410,7 @@ let viewkeyboard key mask =
           else conf.hscrollstep
         in
         let dx = if key = 0xff51 or key = 0xff96 then dx else -dx in
-        state.x <- state.x + dx;
+        state.x <- panbound (state.x + dx);
         gotoy_and_clear_text state.y
       else (
         state.text <- "";
@@ -5929,7 +5927,8 @@ let viewmouse button down x y mask =
       )
 
   | n when (n = 6 || n = 7) && not down && canpan () ->
-      state.x <- state.x + (if n = 7 then -2 else 2) * conf.hscrollstep;
+      state.x <-
+        panbound (state.x + (if n = 7 then -2 else 2) * conf.hscrollstep);
       gotoy_and_clear_text state.y
 
   | 1 when Wsi.withshift mask ->
@@ -6148,7 +6147,7 @@ let uioh = object
             and dy = y0 - y in
             state.mstate <- Mpan (x, y);
             if canpan ()
-            then state.x <- state.x + dx;
+            then state.x <- panbound (state.x + dx);
             let y = clamp dy in
             gotoy_and_clear_text y
 
@@ -6214,23 +6213,18 @@ let uioh = object
     state.scrollw, p, h
 
   method scrollpw =
-    let winw = state.winw - state.scrollw - 1 in
+    let winw = state.winw - state.scrollw in
     let fwinw = float winw in
     let sw =
       let sw = fwinw /. float state.w in
       let sw = fwinw *. sw in
       max sw (float conf.scrollh)
     in
-    let position, sw =
-      let f = state.w+winw in
-      let r = float (winw-state.x) /. float f in
-      let p = fwinw *. r in
-      p-.sw/.2., sw
-    in
-    let sw =
-      if position +. sw > fwinw
-      then fwinw -. position
-      else sw
+    let position =
+      let maxx = state.w + winw in
+      let x = winw - state.x in
+      let percent = float x /. float maxx in
+      (fwinw -. sw) *. percent
     in
     state.hscrollh, position, sw
 
