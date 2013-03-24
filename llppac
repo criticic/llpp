@@ -43,7 +43,7 @@ filt='${dc-cat} "$1" |'
 mime=${mime:-$ft}
 case $mime in
     application/postscript) conv='ps2pdf - $casp';;
-    application/pdf) test -z $dc && exec llpp "$1" || conv='cat >$casp';;
+    application/pdf) test -z $dc && exec llpp "$@" || conv='cat >$casp';;
     image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
     text/html) {
         ! test -z $dc && die "can not convert compressed $mime"
