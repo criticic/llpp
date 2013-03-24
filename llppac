@@ -20,7 +20,7 @@ while getopts m: opt; do
     case "$opt" in
         m) mime="$OPTARG";;
         ?)
-        die "usage: $0 [-t mime/type] path";
+        die "usage: $0 [-m mime/type] path";
         exit 1;;
     esac
 done
