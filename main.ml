@@ -5416,7 +5416,7 @@ let viewkeyboard key mask =
         gotoy_and_clear_text state.y
       else (
         state.text <- "";
-        G.postRedisplay "lef/right"
+        G.postRedisplay "left/right"
       )
 
   | 0xff55 | 0xff9a ->                  (* (kp) prior *)
