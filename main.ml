@@ -5679,7 +5679,7 @@ let birdseyekeyboard key mask
   | _ -> viewkeyboard key mask
 ;;
 
-let drawpage l linkindexbase =
+let drawpage l =
   let color =
     match state.mode with
     | Textentry _ -> scalecolor 0.4
@@ -5695,7 +5695,10 @@ let drawpage l linkindexbase =
         )
   in
   drawtiles l color;
-  begin match getopaque l.pageno with
+;;
+
+let postdrawpage l linkindexbase =
+  match getopaque l.pageno with
   | Some opaque ->
       if tileready l l.pagex l.pagey
       then
@@ -5716,9 +5719,7 @@ let drawpage l linkindexbase =
         in
         postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
       else 0
-
   | _ -> 0
-  end;
 ;;
 
 let scrollindicator () =
@@ -5802,13 +5803,7 @@ let showrects rects =
 let display () =
   GlClear.color (scalecolor2 conf.bgcolor);
   GlClear.clear [`color];
-  let rec loop linkindexbase = function
-    | l :: rest ->
-        let linkindexbase = linkindexbase + drawpage l linkindexbase in
-        loop linkindexbase rest
-    | [] -> ()
-  in
-  loop 0 state.layout;
+  List.iter drawpage state.layout;
   let rects =
     match state.mode with
     | LinkNav (Ltexact (pageno, linkno)) ->
@@ -5826,7 +5821,14 @@ let display () =
     | _ -> state.rects
   in
   showrects rects;
+  let rec postloop linkindexbase = function
+    | l :: rest ->
+        let linkindexbase = linkindexbase + postdrawpage l linkindexbase in
+        postloop linkindexbase rest
+    | [] -> ()
+  in
   showsel ();
+  postloop 0 state.layout;
   state.uioh#display;
   begin match state.mstate with
   | Mzoomrect ((x0, y0), (x1, y1)) ->
