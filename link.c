@@ -1313,14 +1313,15 @@ static char *strofspan (fz_text_span *span)
     return p;
 }
 
-static int matchspan (regex_t *re, fz_text_span *span, fz_matrix ctm,
+static int matchspan (regex_t *re, fz_text_page *page,
+                      fz_text_span *span, fz_matrix ctm,
                       int stop, int pageno, double start)
 {
     int ret;
     char *p;
     regmatch_t rm;
     int a, b, c;
-    fz_rect *sb, *eb;
+    fz_rect sb, eb;
     fz_point p1, p2, p3, p4;
 
     p = strofspan (span);
@@ -1341,6 +1342,7 @@ static int matchspan (regex_t *re, fz_text_span *span, fz_matrix ctm,
     }
     else  {
         int l = span->len;
+
         for (a = 0, c = 0; c < rm.rm_so && a < l; a++) {
             c += fz_runelen (span->text[a].c);
         }
@@ -1351,17 +1353,18 @@ static int matchspan (regex_t *re, fz_text_span *span, fz_matrix ctm,
         if (fz_runelen (span->text[b].c) > 1) {
             b = MAX (0, b-1);
         }
-        sb = &span->text[MIN (a, l-1)].bbox;
-        eb = &span->text[MIN (b, l-1)].bbox;
 
-        p1.x = sb->x0;
-        p1.y = sb->y0;
-        p2.x = eb->x1;
-        p2.y = sb->y0;
-        p3.x = eb->x1;
-        p3.y = eb->y1;
-        p4.x = sb->x0;
-        p4.y = eb->y1;
+        fz_text_char_bbox (&sb, span, a);
+        fz_text_char_bbox (&eb, span, b);
+
+        p1.x = sb.x0;
+        p1.y = sb.y0;
+        p2.x = eb.x1;
+        p2.y = sb.y0;
+        p3.x = eb.x1;
+        p3.y = eb.y1;
+        p4.x = sb.x0;
+        p4.y = eb.y1;
 
         if (!stop) {
             printd ("firstmatch %d %d %f %f %f %f %f %f %f %f",
@@ -1480,8 +1483,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
             block = &text->blocks[forward ? j : text->len - 1 - j];
 
             for (k = 0; k < block->len; ++k) {
+                int spannum;
                 fz_text_line *line;
-                fz_text_span *span;
 
                 if (forward) {
                     line = &block->lines[k];
@@ -1492,11 +1495,11 @@ static void search (regex_t *re, int pageno, int y, int forward)
                     if (line->bbox.y0 > y - 1) continue;
                 }
 
-                for (span = line->spans;
-                     span < line->spans + line->len;
-                     ++span) {
+                for (spannum = 0; spannum < line->len; ++spannum) {
+                    fz_text_span *span = line->spans[spannum];
 
-                    switch (matchspan (re, span, ctm, stop, pageno, start)) {
+                    switch (matchspan (re, text, span, ctm,
+                                       stop, pageno, start)) {
                     case 0: break;
                     case 1: stop = 1; break;
                     case -1: stop = 1; goto endloop;
@@ -1972,7 +1975,6 @@ static void showsel (struct page *page, int ox, int oy)
     fz_irect bbox;
     fz_rect rect;
     fz_text_line *line;
-    fz_text_span *span;
     fz_text_block *block;
     struct mark first, last;
 
@@ -1993,11 +1995,11 @@ static void showsel (struct page *page, int ox, int oy)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
+            int spannum;
             rect = fz_empty_rect;
-            for (span = line->spans;
-                 span < line->spans + line->len;
-                 ++span) {
+            for (spannum = 0; spannum < line->len; ++spannum) {
                 int i, j, k;
+                fz_text_span *span = line->spans[spannum];
 
                 bbox.x0 = bbox.y0 = bbox.x1 = bbox.y1 = 0;
 
@@ -2020,7 +2022,9 @@ static void showsel (struct page *page, int ox, int oy)
 
                 if (seen) {
                     for (i = j; i <= k; ++i) {
-                        fz_union_rect (&rect, &span->text[i].bbox);
+                        fz_rect bbox;
+                        fz_union_rect (&rect,
+                                       fz_text_char_bbox (&bbox, span, i));
                     }
                     fz_round_rect (&bbox, &rect);
                     lprintf ("%d %d %d %d oy=%d ox=%d\n",
@@ -2865,32 +2869,34 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             for (line = block->lines;
                  line < block->lines + block->len;
                  ++line) {
-                fz_text_span *span;
+                int spannum;
 
                 b = &line->bbox;
                 if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
                     continue;
 
-                for (span = line->spans;
-                     span < line->spans + line->len;
-                     ++span) {
-                    fz_text_char *ch;
+                for (spannum = 0; spannum < line->len; ++spannum) {
+                    int charnum;
+                    fz_text_span *span = line->spans[spannum];
 
                     b = &span->bbox;
                     if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
                         continue;
 
-                    for (ch = span->text; ch < span->text + span->len; ++ch) {
-                        b = &ch->bbox;
+                    for (charnum = 0; charnum < span->len; ++charnum) {
+                        fz_rect bbox;
+                        fz_text_char_bbox (&bbox, span, charnum);
+                        b = &bbox;
 
                         if (x >= b->x0 && x <= b->x1
                             && y >= b->y0 && y <= b->y1) {
+                            fz_text_style *style = span->text->style;
                             const char *n2 =
-                                span->style->font && span->style->font->name
-                                ? span->style->font->name
+                                style->font && style->font->name
+                                ? style->font->name
                                 : "Span has no font name"
                                 ;
-                            FT_FaceRec *face = span->style->font->ft_face;
+                            FT_FaceRec *face = style->font->ft_face;
                             if (face && face->family_name) {
                                 char *s;
                                 char *n1 = face->family_name;
@@ -2930,7 +2936,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 CAMLprim value ml_seltext (value ptr_v, value rect_v)
 {
     CAMLparam2 (ptr_v, rect_v);
-    fz_rect *b;
+    fz_rect b;
     struct page *page;
     struct pagedim *pdim;
     int i, x0, x1, y0, y1;
@@ -2968,22 +2974,25 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            for (span = line->spans;
-                 span < line->spans + line->len;
-                 ++span) {
+            int spannum;
+
+            for (spannum = 0; spannum < line->len; ++spannum) {
+                span = line->spans[spannum];
+
                 for (i = 0; i < span->len; ++i) {
-                    b = &span->text[i].bbox;
                     int selected = 0;
 
-                    if (x0 >= b->x0 && x0 <= b->x1
-                        && y0 >= b->y0 && y0 <= b->y1) {
+                    fz_text_char_bbox (&b, span, i);
+
+                    if (x0 >= b.x0 && x0 <= b.x1
+                        && y0 >= b.y0 && y0 <= b.y1) {
                         fspan = span;
                         fline = line;
                         fi = i;
                         selected = 1;
                     }
-                    if (x1 >= b->x0 && x1 <= b->x1
-                        && y1 >= b->y0 && y1 <= b->y1) {
+                    if (x1 >= b.x0 && x1 <= b.x1
+                        && y1 >= b.y0 && y1 <= b.y1) {
                         lspan = span;
                         lline = line;
                         li = i;
@@ -2992,7 +3001,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
                     if (0 && selected) {
                         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
                         glColor3ub (128, 128, 128);
-                        glRecti (b->x0, b->y0, b->x1, b->y1);
+                        glRecti (b.x0, b.y0, b.x1, b.y1);
                         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
                     }
                 }
@@ -3140,7 +3149,6 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     int seen = 0;
     struct page *page;
     fz_text_line *line;
-    fz_text_span *span;
     fz_text_block *block;
     int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
@@ -3169,10 +3177,11 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            for (span = line->spans;
-                 span < line->spans + line->len;
-                 ++span) {
+            int spannum;
+
+            for (spannum = 0; spannum < line->len; ++spannum) {
                 int a, b;
+                fz_text_span *span = line->spans[spannum];
 
                 seen |= span == page->fmark.span || span == page->lmark.span;
                 a = span == page->fmark.span ? page->fmark.i : 0;
@@ -3182,7 +3191,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                     if (pipespan (f, span, a, b))  {
                         goto close;
                     }
-                    if (span == line->spans + line->len - 1)  {
+                    if (spannum == line->len - 1)  {
                         if (putc ('\n', f) == EOF) {
                             fprintf (stderr,
                                      "failed break line on sel pipe: %s\n",
