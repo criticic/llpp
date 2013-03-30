@@ -1113,36 +1113,63 @@ static void layout (double zoom1)
 {
     int pindex;
     fz_rect box;
-    fz_matrix ctm;
+    fz_matrix ctm, rm;
+    struct pagedim *p;
     double zoom, w, maxw = 0.0;
-    struct pagedim *p = state.pagedims;
 
-    if (state.fitmodel == FitProportional) {
-        int i;
-        struct pagedim *p;
+    if (state.pagedimcount == 0) return;
 
-        for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-            fz_rect rect;
-            fz_matrix rm;
+    switch (state.fitmodel)  {
+    case FitProportional:
+        for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
             double x0, x1;
 
+            p = &state.pagedims[pindex];
             fz_rotate (&rm, p->rotate + state.rotate);
-            rect = p->mediabox;
-            fz_transform_rect (&rect, &rm);
+            box = p->mediabox;
+            fz_transform_rect (&box, &rm);
 
-            x0 = MIN (rect.x0, rect.x1);
-            x1 = MAX (rect.x0, rect.x1);
+            x0 = MIN (box.x0, box.x1);
+            x1 = MAX (box.x0, box.x1);
 
             w = x1 - x0;
             maxw = MAX (w, maxw);
         }
+        break;
+
+    case FitPage:
+        for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
+            double z1, h;
+
+            p = &state.pagedims[pindex];
+            fz_rotate (&ctm, state.rotate);
+            fz_rotate (&rm, p->rotate + state.rotate);
+            box = p->mediabox;
+            fz_transform_rect (&box, &rm);
+            w = box.x1 - box.x0;
+            zoom = state.w / w;
+            h = box.y1 - box.y0;
+            z1 = state.h / h;
+            if (z1 < zoom) {
+                zoom = z1;
+            }
+            zoom *= zoom1;
+            maxw = MAX (w * zoom, maxw);
+        }
+        break;
+
+    case FitWidth:
+        break;
+
+    default:
+        ARSERT (0 && state.fitmodel);
     }
 
-    p = state.pagedims;
-    for (pindex = 0; pindex < state.pagedimcount; ++pindex, ++p) {
+    for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
         fz_rect rect;
-        fz_matrix tm, sm, rm;
+        fz_matrix tm, sm;
 
+        p = &state.pagedims[pindex];
         fz_rotate (&ctm, state.rotate);
         fz_rotate (&rm, p->rotate + state.rotate);
         box = p->mediabox;
@@ -1152,6 +1179,7 @@ static void layout (double zoom1)
         switch (state.fitmodel) {
         case FitProportional:
             zoom *= w / maxw;
+            p->left = ((maxw - w) * zoom) / 2.0;
             break;
         case FitPage:
             {
@@ -1162,12 +1190,12 @@ static void layout (double zoom1)
                     zoom = z1;
                 }
                 zoom *= zoom1;
+                p->left = (maxw - (w * zoom)) / 2.0;
             }
             break;
         case FitWidth:
+            p->left = 0;
             break;
-        default:
-            ARSERT (0 && state.fitmodel);
         }
 
         fz_scale (&p->zoomctm, zoom, zoom);
@@ -1183,10 +1211,6 @@ static void layout (double zoom1)
         rect = p->pagebox;
         fz_transform_rect (&rect, &ctm);
         fz_round_rect (&p->bounds, &rect);
-
-        p->left = (state.fitmodel == FitProportional)
-            ? ((maxw - w) * zoom) / 2.0
-            : 0;
         p->ctm = ctm;
 
         fz_translate (&tm, 0, -p->mediabox.y1);
@@ -1197,7 +1221,7 @@ static void layout (double zoom1)
         p->tctmready = 0;
     }
 
-    while (p-- != state.pagedims)  {
+    do {
         int x0 = MIN (p->bounds.x0, p->bounds.x1);
         int y0 = MIN (p->bounds.y0, p->bounds.y1);
         int x1 = MAX (p->bounds.x0, p->bounds.x1);
@@ -1206,7 +1230,7 @@ static void layout (double zoom1)
         int h = y1 - y0;
 
         printd ("pdim %d %d %d %d", p->pageno, w, h, p->left);
-    }
+    } while (p-- != state.pagedims);
 }
 
 static
