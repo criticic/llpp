@@ -13,7 +13,7 @@ executable_p() {
     command -v $1 >/dev/null 2>&1
 }
 
-trap 'test -n $casp && rm -f $casp' 0
+trap 'test -n "$casp" && rm -f $casp' 0
 
 test -d $CACHEDIR || die "cache directory $CACHEDIR does not exist"
 while getopts m:t:f opt; do
@@ -64,7 +64,7 @@ case $type in
     pdf) test -z $dc && exec llpp "$@" || conv='cat >$casp';;
     djvu) conv='djvups - | ps2pdf - $casp';;
     html) {
-        test -n $dc && die "can not convert compressed $mime"
+        test -n "$dc" && die "can not convert compressed $mime"
         unset filt
         conv='prince "$1" -o $casp'
     };;
@@ -77,7 +77,7 @@ case $type in
         fi
     };;
     uno) {
-        test -n $dc && die "can not convert compressed $mime"
+        test -n "$dc" && die "can not convert compressed $mime"
         unset filt
         conv='unoconv -o $casp "$1"'
     };;
@@ -88,7 +88,7 @@ case $type in
     };;
     image) conv='convert - pdf:$casp';;
     dvi) {
-        test -n $dc && die "can not convert compressed $mime"
+        test -n "$dc" && die "can not convert compressed $mime"
         unset filt
         conv='dvipdf $1 $casp'
     };;
@@ -97,6 +97,6 @@ esac
 
 hash=$(md5sum "$1") || die "$hash"
 casp="$CACHEDIR/${hash%% *}"
-(test -n $force -o ! -e $casp) && eval "$filt" "$conv"
+(test -n "$force" -o ! -e $casp) && eval "$filt" "$conv"
 
 exec llpp -origin "$@" $casp
