@@ -51,6 +51,8 @@ if test -z $type; then
         text/html) type="html";;
         application/msword) type="word";;
         application/vnd.openxmlformats-officedocument.* \
+            | application/vnd.ms-powerpoint \
+            | application/vnd.ms-excel \
             | application/vnd.oasis.opendocument.*) type="uno";;
         image/svg+xml) type="svg";;
         image/*) type="image";;
