@@ -1114,7 +1114,7 @@ static void layout (void)
     int pindex;
     fz_rect box;
     fz_matrix ctm, rm;
-    struct pagedim *p;
+    struct pagedim *p = p;
     double zw, w, maxw = 0.0;
 
     if (state.pagedimcount == 0) return;
@@ -1149,9 +1149,9 @@ static void layout (void)
     }
 
     for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
-        double zoom;
         fz_rect rect;
         fz_matrix tm, sm;
+        double zoom = zoom;
 
         p = &state.pagedims[pindex];
         fz_rotate (&ctm, state.rotate);
