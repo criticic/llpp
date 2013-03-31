@@ -1038,6 +1038,15 @@ let int_of_fitmodel = function
   | FitPage -> 2
 ;;
 
+let int_of_fitmodel_and_zoom fitmodel zoom =
+  let fitmodel =
+    match fitmodel with
+    | FitPage when zoom > 1.0 -> FitWidth
+    | _ -> fitmodel
+  in
+  int_of_fitmodel fitmodel;
+;;
+
 let fitmodel_of_int = function
   | 0 -> FitWidth
   | 1 -> FitProportional
@@ -1996,8 +2005,9 @@ let opendoc path password =
   wcmd "open %d %s\000%s\000" (btod !wtmode) path password;
   invalidate "reqlayout"
     (fun () ->
-      wcmd "reqlayout %d %d %f %s\000"
-        conf.angle (int_of_fitmodel conf.fitmodel) conf.zoom state.nameddest;
+      wcmd "reqlayout %d %d %s\000"
+        conf.angle (int_of_fitmodel_and_zoom conf.fitmodel conf.zoom)
+        state.nameddest;
     )
 ;;
 
@@ -2203,9 +2213,10 @@ let reshape w h =
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
-      wcmd "geometry %d %d %f %d"
-        w (h - 2*conf.interpagespace) conf.zoom
-        (int_of_fitmodel conf.fitmodel));
+      wcmd "geometry %d %d %d"
+        w (h - 2*conf.interpagespace)
+        (int_of_fitmodel_and_zoom conf.fitmodel conf.zoom)
+    );
 ;;
 
 let enttext () =
@@ -2780,8 +2791,9 @@ let reqlayout angle fitmodel =
       conf.fitmodel <- fitmodel;
       invalidate "reqlayout"
         (fun () ->
-          wcmd "reqlayout %d %d %f"
-            conf.angle (int_of_fitmodel fitmodel) conf.zoom);
+          wcmd "reqlayout %d %d" conf.angle
+            (int_of_fitmodel_and_zoom conf.fitmodel conf.zoom)
+        );
   | _ -> ()
 ;;
 
@@ -2793,8 +2805,7 @@ let settrim trimmargins trimfuzz =
   let x0, y0, x1, y1 = trimfuzz in
   invalidate "settrim"
     (fun () ->
-      wcmd "settrim %d %d %d %d %d %f"
-        (btod conf.trimmargins) x0 y0 x1 y1 conf.zoom);
+      wcmd "settrim %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1);
   flushpages ();
 ;;
 
@@ -5851,7 +5862,7 @@ let zoomrect x y x1 y1 =
   and y0 = min y y1 in
   gotoy (state.y + y0);
   state.anchor <- getanchor ();
-  let zoom = (float state.winw *. conf.zoom) /. float (x1 - x0) in
+  let zoom = (float state.w) /. float (x1 - x0) in
   let margin =
     if state.w < state.winw - state.scrollw
     then (state.winw - state.scrollw - state.w) / 2

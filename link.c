@@ -1109,13 +1109,13 @@ static void initpdims (void)
     }
 }
 
-static void layout (double zoom1)
+static void layout (void)
 {
     int pindex;
     fz_rect box;
     fz_matrix ctm, rm;
     struct pagedim *p;
-    double zoom, w, maxw = 0.0;
+    double zw, w, maxw = 0.0;
 
     if (state.pagedimcount == 0) return;
 
@@ -1138,24 +1138,7 @@ static void layout (double zoom1)
         break;
 
     case FitPage:
-        for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
-            double z1, h;
-
-            p = &state.pagedims[pindex];
-            fz_rotate (&ctm, state.rotate);
-            fz_rotate (&rm, p->rotate + state.rotate);
-            box = p->mediabox;
-            fz_transform_rect (&box, &rm);
-            w = box.x1 - box.x0;
-            zoom = state.w / w;
-            h = box.y1 - box.y0;
-            z1 = state.h / h;
-            if (z1 < zoom) {
-                zoom = z1;
-            }
-            zoom *= zoom1;
-            maxw = MAX (w * zoom, maxw);
-        }
+        maxw = state.w;
         break;
 
     case FitWidth:
@@ -1166,6 +1149,7 @@ static void layout (double zoom1)
     }
 
     for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
+        double zoom;
         fz_rect rect;
         fz_matrix tm, sm;
 
@@ -1175,26 +1159,25 @@ static void layout (double zoom1)
         box = p->mediabox;
         fz_transform_rect (&box, &rm);
         w = box.x1 - box.x0;
-        zoom = state.w / w;
         switch (state.fitmodel) {
         case FitProportional:
-            zoom *= w / maxw;
+            zw = state.w / w;
+            zoom = zw * (w / maxw);
             p->left = ((maxw - w) * zoom) / 2.0;
             break;
         case FitPage:
             {
-                double z1, h;
+                double zh, h;
+                zw = maxw / w;
                 h = box.y1 - box.y0;
-                z1 = state.h / h;
-                if (z1 < zoom) {
-                    zoom = z1;
-                }
-                zoom *= zoom1;
+                zh = state.h / h;
+                zoom = MIN (zw, zh);
                 p->left = (maxw - (w * zoom)) / 2.0;
             }
             break;
         case FitWidth:
             p->left = 0;
+            zoom = state.w / w;
             break;
         }
 
@@ -1799,12 +1782,11 @@ static void * mainloop (void *unused)
             }
         }
         else if (!strncmp ("geometry", p, 8)) {
-            float zoom;
             int w, h, fitmodel;
 
             printd ("clear");
-            ret = sscanf (p + 8, " %d %d %f %d", &w, &h, &zoom, &fitmodel);
-            if (ret != 4) {
+            ret = sscanf (p + 8, " %d %d %d", &w, &h, &fitmodel);
+            if (ret != 3) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
             }
 
@@ -1818,7 +1800,7 @@ static void * mainloop (void *unused)
                 }
             }
             state.fitmodel = fitmodel;
-            layout (zoom);
+            layout ();
             process_outline ();
 
             state.gen++;
@@ -1826,14 +1808,12 @@ static void * mainloop (void *unused)
             printd ("continue %d", state.pagecount);
         }
         else if (!strncmp ("reqlayout", p, 9)) {
-            float zoom;
             char *nameddest;
             int rotate, fitmodel, off;
 
             printd ("clear");
-            ret = sscanf (p + 9, " %d %d %f %n",
-                          &rotate, &fitmodel, &zoom, &off);
-            if (ret != 3) {
+            ret = sscanf (p + 9, " %d %d %n", &rotate, &fitmodel, &off);
+            if (ret != 2) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
             lock ("reqlayout");
@@ -1842,7 +1822,7 @@ static void * mainloop (void *unused)
             }
             state.rotate = rotate;
             state.fitmodel = fitmodel;
-            layout (zoom);
+            layout ();
             process_outline ();
 
             nameddest = p + 9 + off;
@@ -1943,7 +1923,7 @@ static void * mainloop (void *unused)
             free (state.pagedims);
             state.pagedims = NULL;
             initpdims ();
-            layout (zoom);
+            layout ();
             process_outline ();
             unlock ("settrim");
             printd ("continue %d", state.pagecount);
