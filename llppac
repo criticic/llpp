@@ -32,7 +32,7 @@ test -z "$1" && die "usage $0: path"
 ft=$(file -L --mime-type -b "$1") || die "$ft"
 
 case $ft in
-    application/x-gzip) dc=zcat;;
+    application/x-gzip | application/x-compress) dc=zcat;;
     application/x-xz) dc=xzcat;;
     application/x-bzip2) dc=bzcat;;
     *) unset dc || true;;
