@@ -58,7 +58,8 @@ case $mime in
             conv='antiword -m 8859-1.txt -a a4 - >$casp'
         fi
     };;
-    application/vnd.openxmlformats-officedocument.*) {
+    application/vnd.openxmlformats-officedocument.* \
+    | application/vnd.oasis.opendocument.*) {
         ! test -z $dc && die "can not convert compressed $mime"
         unset filt
         conv='unoconv -o $casp "$1"'
