@@ -50,9 +50,9 @@ if test -z $type; then
         image/vnd.djvu) type="djvu";;
         text/html) type="html";;
         application/msword) type="word";;
-        application/vnd.openxmlformats-officedocument.* \
-            | application/vnd.ms-powerpoint \
-            | application/vnd.ms-excel \
+        application/vnd.openxmlformats-officedocument.*  \
+            | application/vnd.ms-powerpoint              \
+            | application/vnd.ms-excel                   \
             | application/vnd.oasis.opendocument.*) type="uno";;
         image/svg+xml) type="svg";;
         image/*) type="image";;
@@ -84,8 +84,8 @@ case $type in
         conv='unoconv -o $casp "$1"'
     };;
     svg) {
-        executable_p rsvg-convert \
-            && conv='rsvg-convert -f pdf -o $casp' \
+        executable_p rsvg-convert                        \
+            && conv='rsvg-convert -f pdf -o $casp'       \
             || conv='inkscape -z -A $casp -'
     };;
     image) conv='convert - pdf:$casp';;
