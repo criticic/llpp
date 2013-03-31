@@ -13,14 +13,16 @@ executable_p() {
     command -v $1 >/dev/null 2>&1
 }
 
-trap '! test -z $casp && rm -f $casp' 0
+trap 'test -n $casp && rm -f $casp' 0
 
 test -d $CACHEDIR || die "cache directory $CACHEDIR does not exist"
-while getopts m: opt; do
+while getopts m:t:f opt; do
     case "$opt" in
         m) mime="$OPTARG";;
+        t) type="$OPTARG";;
+        f) force="1";;
         ?)
-        die "usage: $0 [-m mime/type] path";
+        die "usage: $0 [-m mime/type] [-t filter] [-f] path";
         exit 1;;
     esac
 done
@@ -36,21 +38,37 @@ case $ft in
     *) unset dc || true;;
 esac
 
-test -z $dc || ft=$(file -L --mime-type -bz "$1") || die "$ft"
-
 filt='${dc-cat} "$1" |'
 
-mime=${mime:-$ft}
-case $mime in
-    application/postscript) conv='ps2pdf - $casp';;
-    application/pdf) test -z $dc && exec llpp "$@" || conv='cat >$casp';;
-    image/vnd.djvu) conv='djvups - | ps2pdf - $casp';;
-    text/html) {
-        ! test -z $dc && die "can not convert compressed $mime"
+if test -z $type; then
+    test -z $dc || ft=$(file -L --mime-type -bz "$1") || die "$ft"
+
+    mime=${mime:-$ft}
+    case $mime in
+        application/postscript) type="ps";;
+        application/pdf) type="pdf";;
+        image/vnd.djvu) type="djvu";;
+        text/html) type="html";;
+        application/msword) type="word";;
+        application/vnd.openxmlformats-officedocument.* \
+            | application/vnd.oasis.opendocument.*) type="uno";;
+        image/svg+xml) type="svg";;
+        image/*) type="image";;
+        application/x-dvi) type="dvi";;
+        *) die "unhandled file type: $mime";;
+    esac
+fi
+
+case $type in
+    ps) conv='ps2pdf - $casp';;
+    pdf) test -z $dc && exec llpp "$@" || conv='cat >$casp';;
+    djvu) conv='djvups - | ps2pdf - $casp';;
+    html) {
+        test -n $dc && die "can not convert compressed $mime"
         unset filt
         conv='prince "$1" -o $casp'
     };;
-    application/msword) {
+    word) {
         if executable_p unoconv && test -z $dc; then
             unset filt
             conv='unoconv -o $casp "$1"'
@@ -58,28 +76,27 @@ case $mime in
             conv='antiword -m 8859-1.txt -a a4 - >$casp'
         fi
     };;
-    application/vnd.openxmlformats-officedocument.* \
-    | application/vnd.oasis.opendocument.*) {
-        ! test -z $dc && die "can not convert compressed $mime"
+    uno) {
+        test -n $dc && die "can not convert compressed $mime"
         unset filt
         conv='unoconv -o $casp "$1"'
     };;
-    image/svg+xml) {
+    svg) {
         executable_p rsvg-convert \
             && conv='rsvg-convert -f pdf -o $casp' \
             || conv='inkscape -z -A $casp -'
     };;
-    image/*) conv='convert - pdf:$casp';;
-    application/x-dvi) {
-        ! test -z $dc && die "can not convert compressed $mime"
+    image) conv='convert - pdf:$casp';;
+    dvi) {
+        test -n $dc && die "can not convert compressed $mime"
         unset filt
         conv='dvipdf $1 $casp'
     };;
-    *) die "unhandled file type: $mime";;
+    *) die "unhandled filter type: $type";;
 esac
 
 hash=$(md5sum "$1") || die "$hash"
 casp="$CACHEDIR/${hash%% *}"
-test -e $casp || eval "$filt" "$conv"
+(test -n $force -o ! -e $casp) && eval "$filt" "$conv"
 
 exec llpp -origin "$@" $casp
