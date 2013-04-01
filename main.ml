@@ -1038,15 +1038,6 @@ let int_of_fitmodel = function
   | FitPage -> 2
 ;;
 
-let int_of_fitmodel_and_zoom fitmodel zoom =
-  let fitmodel =
-    match fitmodel with
-    | FitPage when zoom > 1.0 -> FitWidth
-    | _ -> fitmodel
-  in
-  int_of_fitmodel fitmodel;
-;;
-
 let fitmodel_of_int = function
   | 0 -> FitWidth
   | 1 -> FitProportional
@@ -2006,8 +1997,7 @@ let opendoc path password =
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %s\000"
-        conf.angle (int_of_fitmodel_and_zoom conf.fitmodel conf.zoom)
-        state.nameddest;
+        conf.angle (int_of_fitmodel conf.fitmodel) state.nameddest;
     )
 ;;
 
@@ -2214,8 +2204,7 @@ let reshape w h =
         | Csplit (c, _) -> w * c
       in
       wcmd "geometry %d %d %d"
-        w (h - 2*conf.interpagespace)
-        (int_of_fitmodel_and_zoom conf.fitmodel conf.zoom)
+        w (h - 2*conf.interpagespace) (int_of_fitmodel conf.fitmodel)
     );
 ;;
 
@@ -2646,8 +2635,13 @@ let act cmds =
       end
 
   | "pdim" :: args :: [] ->
-      let pdim =
+      let (n, w, h, _) as pdim =
         scan args "%u %u %u %u" (fun n w h x -> n, w, h, x)
+      in
+      let pdim =
+        match conf.fitmodel, conf.columns with
+        | (FitPage | FitProportional), Csplit _ -> (n, w, h, 0)
+        | _ -> pdim
       in
       state.uioh#infochanged Pdim;
       state.pdims <- pdim :: state.pdims
@@ -2791,8 +2785,7 @@ let reqlayout angle fitmodel =
       conf.fitmodel <- fitmodel;
       invalidate "reqlayout"
         (fun () ->
-          wcmd "reqlayout %d %d" conf.angle
-            (int_of_fitmodel_and_zoom conf.fitmodel conf.zoom)
+          wcmd "reqlayout %d %d" conf.angle (int_of_fitmodel conf.fitmodel)
         );
   | _ -> ()
 ;;
