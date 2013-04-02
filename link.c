@@ -1901,14 +1901,12 @@ static void * mainloop (void *unused)
                     b - a);
         }
         else if (!strncmp ("settrim", p, 7))  {
-            float zoom;
             fz_irect fuzz;
             int trimmargins;
 
-            ret = sscanf (p + 7, " %d %d %d %d %d %f",
-                          &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1,
-                          &zoom);
-            if (ret != 6) {
+            ret = sscanf (p + 7, " %d %d %d %d %d",
+                          &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
+            if (ret != 5) {
                 errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
             }
             printd ("clear");
