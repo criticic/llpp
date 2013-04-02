@@ -1035,7 +1035,7 @@ let fitmodel_of_string s =
 let int_of_fitmodel = function
   | FitWidth -> 0
   | FitProportional -> 1
-  | FitPage -> 2
+  | FitPage -> if conf.zoom > 1.0 then 0 else 2
 ;;
 
 let fitmodel_of_int = function
