@@ -1035,13 +1035,7 @@ let fitmodel_of_string s =
 let int_of_fitmodel = function
   | FitWidth -> 0
   | FitProportional -> 1
-  | FitPage -> if conf.zoom > 1.0 then 0 else 2
-;;
-
-let int_of_zfitmodel zoom = function
-  | FitWidth -> 0
-  | FitProportional -> 1
-  | FitPage -> if zoom > 1.0 then 0 else 2
+  | FitPage -> 2
 ;;
 
 let fitmodel_of_int = function
@@ -1055,12 +1049,6 @@ let fitmodel_to_string = function
   | FitWidth -> "width"
   | FitProportional -> "proportional"
   | FitPage -> "page"
-;;
-
-let zfitmodel_to_string zoom = function
-  | FitWidth -> "width"
-  | FitProportional -> "proportional"
-  | FitPage -> if zoom > 1.0 then "width(page)" else "page"
 ;;
 
 let intentry_with_suffix text key =
@@ -2009,7 +1997,7 @@ let opendoc path password =
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %s\000"
-        conf.angle (int_of_zfitmodel conf.zoom conf.fitmodel) state.nameddest;
+        conf.angle (int_of_fitmodel conf.fitmodel) state.nameddest;
     )
 ;;
 
@@ -2216,7 +2204,8 @@ let reshape w h =
         | Csplit (c, _) -> w * c
       in
       wcmd "geometry %d %d %d"
-        w (h - 2*conf.interpagespace) (int_of_zfitmodel conf.zoom conf.fitmodel)
+        w ((truncate (float h*.conf.zoom)) - 2*conf.interpagespace)
+        (int_of_fitmodel conf.fitmodel)
     );
 ;;
 
@@ -2797,8 +2786,7 @@ let reqlayout angle fitmodel =
       conf.fitmodel <- fitmodel;
       invalidate "reqlayout"
         (fun () ->
-          wcmd "reqlayout %d %d" conf.angle
-            (int_of_zfitmodel conf.zoom conf.fitmodel)
+          wcmd "reqlayout %d %d" conf.angle (int_of_fitmodel conf.fitmodel)
         );
   | _ -> ()
 ;;
@@ -4429,7 +4417,7 @@ let enterinfomode =
       (fun v -> conf.savebmarks <- v);
 
     src#fitmodel "fit model"
-      (fun () -> zfitmodel_to_string conf.zoom conf.fitmodel)
+      (fun () -> fitmodel_to_string conf.fitmodel)
       (fun v -> reqlayout conf.angle (fitmodel_of_int v));
 
     src#bool "trim margins"
