@@ -3473,7 +3473,7 @@ object (self)
               then -1
               else find next incr1
             in
-            if next = -1 || abs (m_active - next) > fstate.maxrows
+            if abs (m_active - next) > fstate.maxrows
             then -1
             else next
           in
@@ -3486,7 +3486,15 @@ object (self)
               let next = bound next 0 (itemcount - 1) in
               find next ~-incr1
             in
-            let active = if next = -1 then m_active else next in
+            let active =
+              if next = -1
+              then m_active
+              else (
+                if isvisible first next
+                then next
+                else m_active
+              )
+            in
             active, first
           else
             let first = min next m_first in
