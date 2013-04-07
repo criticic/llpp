@@ -5870,9 +5870,14 @@ let zoomrect x y x1 y1 =
   state.anchor <- getanchor ();
   let zoom = (float state.w) /. float (x1 - x0) in
   let margin =
-    if state.w < state.winw - state.scrollw
-    then (state.winw - state.scrollw - state.w) / 2
-    else 0
+    match conf.fitmodel, conf.columns with
+    | FitPage, Csplit _ ->
+        onppundermouse (fun _ l _ _ -> Some l.pagedispx) x0 y0 x0
+
+    | _, _ ->
+        if state.w < state.winw - state.scrollw
+        then (state.winw - state.scrollw - state.w) / 2
+        else 0
   in
   state.x <- (state.x + margin) - x0;
   setzoom zoom;
