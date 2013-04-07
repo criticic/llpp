@@ -2693,16 +2693,20 @@ let onhist cb =
 ;;
 
 let search pattern forward =
-  if String.length pattern > 0
-  then
-    let pn, py =
-      match state.layout with
-      | [] -> 0, 0
-      | l :: _ ->
-          l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
-    in
-    wcmd "search %d %d %d %d,%s\000"
-      (btod conf.icase) pn py (btod forward) pattern;
+  match conf.columns with
+  | Csplit _ ->
+      showtext '!' "searching does not work properly in split columns mode"
+  | _ ->
+      if String.length pattern > 0
+      then
+        let pn, py =
+          match state.layout with
+          | [] -> 0, 0
+          | l :: _ ->
+              l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
+        in
+        wcmd "search %d %d %d %d,%s\000"
+          (btod conf.icase) pn py (btod forward) pattern;
 ;;
 
 let intentry text key =
