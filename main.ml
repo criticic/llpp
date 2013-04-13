@@ -7381,9 +7381,7 @@ let () =
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
     method winstate wsl =
-      if List.exists
-        (function | Wsi.MaxVert | Wsi.MaxHorz | Wsi.Fullscreen -> true) wsl
-      then conf.cx <- state.x;
+      conf.cx <- state.x;
       state.winstate <- wsl
     method quit = raise Quit
   end) conf.cwinw conf.cwinh (platform = Posx) in
