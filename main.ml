@@ -312,6 +312,7 @@ type conf =
     ; mutable angle          : angle
     ; mutable cwinw          : int
     ; mutable cwinh          : int
+    ; mutable cx             : int
     ; mutable savebmarks     : bool
     ; mutable fitmodel       : fitmodel
     ; mutable trimmargins    : trimmargins
@@ -513,6 +514,7 @@ let defconf =
   ; angle          = 0
   ; cwinw          = 900
   ; cwinh          = 900
+  ; cx             = 0
   ; savebmarks     = true
   ; fitmodel       = FitProportional
   ; trimmargins    = false
@@ -7013,15 +7015,15 @@ struct
   let save () =
     let uifontsize = fstate.fontsize in
     let bb = Buffer.create 32768 in
-    let w, h =
+    let w, h, cx =
       List.fold_left
-        (fun (w, h) ws ->
+        (fun (w, h, _) ws ->
           match ws with
-          | Wsi.Fullscreen -> (conf.cwinw, conf.cwinh)
-          | Wsi.MaxVert -> (w, conf.cwinh)
-          | Wsi.MaxHorz -> (conf.cwinw, h)
+          | Wsi.Fullscreen -> (conf.cwinw, conf.cwinh, conf.cx)
+          | Wsi.MaxVert -> (w, conf.cwinh, conf.cx)
+          | Wsi.MaxHorz -> (conf.cwinw, h, conf.cx)
         )
-        (state.winw, state.winh) state.winstate
+        (state.winw, state.winh, state.x) state.winstate
     in
     conf.cwinw <- w;
     conf.cwinh <- h;
@@ -7131,7 +7133,7 @@ struct
               | Csplit _ -> failwith "quit from bird's eye while split"
             in
             pan, { c with beyecolumns = beyecolumns; columns = columns }
-        | _ -> state.x, conf
+        | _ -> cx, conf
       in
       let basename = Filename.basename
         (if String.length state.origin = 0 then state.path else state.origin)
@@ -7378,7 +7380,11 @@ let () =
 
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
-    method winstate wsl = state.winstate <- wsl
+    method winstate wsl =
+      if List.exists
+        (function | Wsi.MaxVert | Wsi.MaxHorz | Wsi.Fullscreen -> true) wsl
+      then conf.cx <- state.x;
+      state.winstate <- wsl
     method quit = raise Quit
   end) conf.cwinw conf.cwinh (platform = Posx) in
 
