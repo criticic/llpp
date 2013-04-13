@@ -1889,9 +1889,8 @@ let gotoghyll y =
     in
     snake f a b
   and summa f n a b =
-    (* courtesy:
-       http://integrals.wolfram.com/index.jsp?expr=3x%5E2-2x%5E3&random=false *)
-    let iv x = -.((-.2.0 +. x)*.x**3.0)/.2.0 in
+    (* courtesy: (calc-eval "integ(3x^2-2x^3,x)") *)
+    let iv x = x**3.-.0.5*.x**4. in
     let iv1 = iv f in
     let ins = float a *. iv1
     and outs = float (n-b) *. iv1 in
