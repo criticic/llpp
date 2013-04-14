@@ -1115,7 +1115,7 @@ static void layout (void)
     fz_rect box;
     fz_matrix ctm, rm;
     struct pagedim *p = p;
-    double zw, w, maxw = 0.0;
+    double zw, w, maxw = 0.0, zoom;
 
     if (state.pagedimcount == 0) return;
 
@@ -1134,6 +1134,7 @@ static void layout (void)
 
             w = x1 - x0;
             maxw = MAX (w, maxw);
+            zoom = state.w / maxw;
         }
         break;
 
@@ -1151,7 +1152,6 @@ static void layout (void)
     for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
         fz_rect rect;
         fz_matrix tm, sm;
-        double zoom = zoom;
 
         p = &state.pagedims[pindex];
         fz_rotate (&ctm, state.rotate);
@@ -1161,8 +1161,6 @@ static void layout (void)
         w = box.x1 - box.x0;
         switch (state.fitmodel) {
         case FitProportional:
-            zw = state.w / w;
-            zoom = zw * (w / maxw);
             p->left = ((maxw - w) * zoom) / 2.0;
             break;
         case FitPage:
