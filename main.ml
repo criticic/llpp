@@ -7316,7 +7316,7 @@ let () =
          "<path> Set path to the remote commands source");
 
          ("-origin", Arg.String (fun s -> state.origin <- s),
-         "<original path> Set original path");
+         "<original_path> Set original path");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
