@@ -1115,7 +1115,7 @@ static void layout (void)
     fz_rect box;
     fz_matrix ctm, rm;
     struct pagedim *p = p;
-    double zw, w, maxw = 0.0, zoom;
+    double zw, w, maxw = 0.0, zoom = zoom;
 
     if (state.pagedimcount == 0) return;
 
