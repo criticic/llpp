@@ -2554,7 +2554,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
             break;
 
         default:
-            ARSERT ("invalid document type");
+            ARSERT (0 && "invalid document type");
         }
 
         if (found) {
