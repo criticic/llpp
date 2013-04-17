@@ -1807,11 +1807,12 @@ static void * mainloop (void *unused)
         }
         else if (!strncmp ("reqlayout", p, 9)) {
             char *nameddest;
-            int rotate, fitmodel, off;
+            int rotate, fitmodel, off, h;
 
             printd ("clear");
-            ret = sscanf (p + 9, " %d %d %n", &rotate, &fitmodel, &off);
-            if (ret != 2) {
+            ret = sscanf (p + 9, " %d %d %d %n",
+                          &rotate, &fitmodel, &h, &off);
+            if (ret != 3) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
             lock ("reqlayout");
@@ -1820,6 +1821,7 @@ static void * mainloop (void *unused)
             }
             state.rotate = rotate;
             state.fitmodel = fitmodel;
+            state.h = h;
             layout ();
             process_outline ();
 

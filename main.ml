@@ -1978,6 +1978,12 @@ let flushtiles () =
   load state.layout;
 ;;
 
+let stateh h =
+  let h = truncate (float h*.conf.zoom) in
+  let d = conf.interpagespace lsl (if conf.presentation then 1 else 0) in
+  h - d
+;;
+
 let opendoc path password =
   state.path <- path;
   state.password <- password;
@@ -1995,8 +2001,9 @@ let opendoc path password =
   wcmd "open %d %s\000%s\000" (btod !wtmode) path password;
   invalidate "reqlayout"
     (fun () ->
-      wcmd "reqlayout %d %d %s\000"
-        conf.angle (int_of_fitmodel conf.fitmodel) state.nameddest;
+      wcmd "reqlayout %d %d %d %s\000"
+        conf.angle (int_of_fitmodel conf.fitmodel)
+        (stateh state.winh) state.nameddest
     )
 ;;
 
@@ -2203,8 +2210,7 @@ let reshape w h =
         | Csplit (c, _) -> w * c
       in
       wcmd "geometry %d %d %d"
-        w ((truncate (float h*.conf.zoom)) - 2*conf.interpagespace)
-        (int_of_fitmodel conf.fitmodel)
+        w (stateh h) (int_of_fitmodel conf.fitmodel)
     );
 ;;
 
@@ -2789,7 +2795,8 @@ let reqlayout angle fitmodel =
       conf.fitmodel <- fitmodel;
       invalidate "reqlayout"
         (fun () ->
-          wcmd "reqlayout %d %d" conf.angle (int_of_fitmodel conf.fitmodel)
+          wcmd "reqlayout %d %d %d"
+            conf.angle (int_of_fitmodel conf.fitmodel) (stateh state.winh)
         );
   | _ -> ()
 ;;
@@ -4169,6 +4176,8 @@ let setpresentationmode v =
     then state.scrollw <- 0;
   )
   else state.scrollw <- conf.scrollbw;
+  if conf.fitmodel = FitPage
+  then reqlayout conf.angle conf.fitmodel;
   represent ();
 ;;
 
