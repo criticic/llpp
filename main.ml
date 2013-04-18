@@ -2220,8 +2220,7 @@ let enttext () =
   let drawstring s =
     let hscrollh =
       match state.mode with
-      | Textentry _
-      | View ->
+      | Textentry _ | View | LinkNav _ ->
           let h, _, _ = state.uioh#scrollpw in
           h
       | _ -> 0
