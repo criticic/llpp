@@ -645,7 +645,7 @@ let gotouri uri =
 
 let version () =
   Printf.sprintf "llpp version %s (%s/%dbit, ocaml %s)" Help.version
-      (platform_to_string platform) Sys.word_size Sys.ocaml_version
+    (platform_to_string platform) Sys.word_size Sys.ocaml_version
 ;;
 
 let makehelp () =
@@ -656,7 +656,7 @@ let makehelp () =
       if String.length url > 0
       then (s, 0, Action (fun u -> gotouri url; u))
       else (s, 0, Noaction)
-  ) strings);
+    ) strings);
 ;;
 
 let noghyll _ = ();;
@@ -1820,10 +1820,11 @@ let getanchor1 l =
     if l.pagedispy = 0
     then
       0.0
-    else
+    else (
       if conf.presentation
       then float l.pagedispy /. float (calcips l.pageh)
       else float l.pagedispy /. float conf.interpagespace
+    )
   in
   (l.pageno, top, dtop)
 ;;
@@ -5481,10 +5482,10 @@ let viewkeyboard key mask =
       gotoghyll (clamp state.maxy)
 
   | 0xff53 | 0xff98
-      when Wsi.withalt mask ->          (* alt-(kp) right *)
+        when Wsi.withalt mask ->          (* alt-(kp) right *)
       gotoghyll (getnav 1)
   | 0xff51 | 0xff96
-      when Wsi.withalt mask ->          (* alt-(kp) left *)
+        when Wsi.withalt mask ->          (* alt-(kp) left *)
       gotoghyll (getnav ~-1)
 
   | 114 ->                              (* r *)
@@ -5792,7 +5793,7 @@ let showsel () =
             if ((y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
                  || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh))))
               && ((x0 >= l.pagedispx && x0 <= (l.pagedispx + l.pagevw))
-                 || ((x1 >= l.pagedispx && x1 <= (l.pagedispx + l.pagevw))))
+                   || ((x1 >= l.pagedispx && x1 <= (l.pagedispx + l.pagevw))))
             then
               match getopaque l.pageno with
               | Some opaque ->
@@ -5952,9 +5953,9 @@ let viewmouse button down x y mask =
         | None ->
             if conf.wheelbypage || conf.presentation
             then (
-             if n = 4
-             then prevpage ()
-             else nextpage ()
+              if n = 4
+              then prevpage ()
+              else nextpage ()
             )
             else
               let incr =
@@ -6325,9 +6326,9 @@ struct
           then (Wsi.namekey s, m)
           else (k, m lor m1)
         in function
-        | Str.Delim s when n land 1 = 0 -> g s
-        | Str.Text s -> g s
-        | Str.Delim _ -> (k, m)
+          | Str.Delim s when n land 1 = 0 -> g s
+          | Str.Text s -> g s
+          | Str.Delim _ -> (k, m)
       in
       let rec loop n k m = function
         | [] -> (k, m)
