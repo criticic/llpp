@@ -5372,10 +5372,13 @@ let viewkeyboard key mask =
 
   | 99 when state.mode = View ->        (* [alt]-c *)
       if Wsi.withalt mask
-      then
-        let m = (state.winw - state.w - state.scrollw) / 2 in
-        state.x <- m;
-        gotoy_and_clear_text state.y
+      then (
+        if conf.zoom > 1.0
+        then
+          let m = (state.winw - state.w - state.scrollw) / 2 in
+          state.x <- m;
+          gotoy_and_clear_text state.y
+      )
       else
         let (c, a, b), z =
           match state.prevcolumns with
