@@ -44,6 +44,7 @@ z                       - crop
 r                       - reload document [5]
 P                       - "presentation" mode
 a                       - autoscroll
+alt-c                   - center view
 c                       - switch to previous column layout
 Ctrl-p                  - launch a command with the document path as an argument
 <,>                     - rotate

@@ -5370,21 +5370,27 @@ let viewkeyboard key mask =
       ;
       G.postRedisplay "brightness";
 
-  | 99 when state.mode = View ->        (* c *)
-      let (c, a, b), z =
-        match state.prevcolumns with
-        | None -> (1, 0, 0), 1.0
-        | Some (columns, z) ->
-            let cab =
-              match columns with
-              | Csplit (c, _) -> -c, 0, 0
-              | Cmulti ((c, a, b), _) -> c, a, b
-              | Csingle _ -> 1, 0, 0
-            in
-            cab, z
-      in
-      setcolumns View c a b;
-      setzoom z;
+  | 99 when state.mode = View ->        (* [alt]-c *)
+      if Wsi.withalt mask
+      then
+        let m = (state.winw - state.w - state.scrollw) / 2 in
+        state.x <- m;
+        gotoy_and_clear_text state.y
+      else
+        let (c, a, b), z =
+          match state.prevcolumns with
+          | None -> (1, 0, 0), 1.0
+          | Some (columns, z) ->
+              let cab =
+                match columns with
+                | Csplit (c, _) -> -c, 0, 0
+                | Cmulti ((c, a, b), _) -> c, a, b
+                | Csingle _ -> 1, 0, 0
+              in
+              cab, z
+        in
+        setcolumns View c a b;
+        setzoom z
 
   | 0xff54 | 0xff52 when ctrl && Wsi.withshift mask ->
       setzoom state.prevzoom
