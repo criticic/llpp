@@ -2036,8 +2036,7 @@ let docolumns = function
             | _ ->
                 pdimno, pdim, pdims
           in
-          let x = ((state.winw - state.scrollw - w) / 2) - xoff in
-          let x = if state.x = 0 then x else max 0 x in
+          let x = max 0 (((state.winw - state.scrollw - w) / 2) - xoff) in
           let y = y +
             (if conf.presentation
             then (if pageno = 0 then calcips h else calcips ph + calcips h)
