@@ -919,7 +919,8 @@ static void initpdims (void)
                         dev = fz_new_bbox_device (state.ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
                         fz_invert_matrix (&ctm, &page->ctm);
-                        pdf_run_page (state.u.pdf, page, dev, &fz_identity, NULL);
+                        pdf_run_page (state.u.pdf, page, dev,
+                                      &fz_identity, NULL);
                         fz_free_device (dev);
 
                         rect.x0 += state.trimfuzz.x0;
@@ -937,10 +938,14 @@ static void initpdims (void)
                         }
 
                         obj = pdf_new_array (state.ctx, 4);
-                        pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.x0));
-                        pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.y0));
-                        pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.x1));
-                        pdf_array_push (obj, pdf_new_real (state.ctx, mediabox.y1));
+                        pdf_array_push (obj,
+                                        pdf_new_real (state.ctx, mediabox.x0));
+                        pdf_array_push (obj,
+                                        pdf_new_real (state.ctx, mediabox.y0));
+                        pdf_array_push (obj,
+                                        pdf_new_real (state.ctx, mediabox.x1));
+                        pdf_array_push (obj,
+                                        pdf_new_real (state.ctx, mediabox.y1));
                         pdf_dict_puts (pageobj, "llpp.TrimBox", obj);
                     }
                     else {
