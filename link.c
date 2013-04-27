@@ -1488,9 +1488,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
 
         for (j = 0; j < text->len; ++j) {
             int k;
+            fz_page_block *pb;
             fz_text_block *block;
 
-            block = &text->blocks[forward ? j : text->len - 1 - j];
+            pb = &text->blocks[forward ? j : text->len - 1 - j];
+            if (pb->type != FZ_PAGE_BLOCK_TEXT) continue;
+            block = pb->u.text;
 
             for (k = 0; k < block->len; ++k) {
                 int spannum;
@@ -1982,6 +1985,7 @@ static void showsel (struct page *page, int ox, int oy)
     fz_irect bbox;
     fz_rect rect;
     fz_text_line *line;
+    fz_page_block *pageb;
     fz_text_block *block;
     struct mark first, last;
 
@@ -1996,9 +2000,12 @@ static void showsel (struct page *page, int ox, int oy)
 
     ox += state.pagedims[page->pdimno].bounds.x0;
     oy += state.pagedims[page->pdimno].bounds.y0;
-    for (block = page->text->blocks;
-         block < page->text->blocks + page->text->len;
-         ++block) {
+    for (pageb = page->text->blocks;
+         pageb < page->text->blocks + page->text->len;
+         ++pageb) {
+        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
+        block = pageb->u.text;
+
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
@@ -2861,13 +2868,16 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     }
     else {
         fz_rect *b;
+        fz_page_block *pageb;
         fz_text_block *block;
 
         ensuretext (page);
-        for (block = page->text->blocks;
-             block < page->text->blocks + page->text->len;
-             ++block) {
+        for (pageb = page->text->blocks;
+             pageb < page->text->blocks + page->text->len;
+             ++pageb) {
             fz_text_line *line;
+            if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
+            block = pageb->u.text;
 
             b = &block->bbox;
             if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
@@ -2949,6 +2959,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     int i, x0, x1, y0, y1;
     char *s = String_val (ptr_v);
     int fi = 0, li = 0;
+    fz_page_block *pageb;
     fz_text_block *block;
     fz_text_span *span, *fspan, *lspan;
     fz_text_line *line, *fline = NULL, *lline = NULL;
@@ -2975,9 +2986,11 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
 
     fspan = lspan = NULL;
 
-    for (block = page->text->blocks;
-         block < page->text->blocks + page->text->len;
-         ++block) {
+    for (pageb= page->text->blocks;
+         pageb < page->text->blocks + page->text->len;
+         ++pageb) {
+        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
+        block = pageb->u.text;
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
@@ -3156,6 +3169,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     int seen = 0;
     struct page *page;
     fz_text_line *line;
+    fz_page_block *pageb;
     fz_text_block *block;
     int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
@@ -3178,9 +3192,11 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
         f = stdout;
     }
 
-    for (block = page->text->blocks;
-         block < page->text->blocks + page->text->len;
-         ++block) {
+    for (pageb = page->text->blocks;
+         pageb < page->text->blocks + page->text->len;
+         ++pageb) {
+        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
+        block = pageb->u.text;
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
