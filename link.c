@@ -1496,8 +1496,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
             block = pb->u.text;
 
             for (k = 0; k < block->len; ++k) {
-                int spannum;
                 fz_text_line *line;
+                fz_text_span *span;
 
                 if (forward) {
                     line = &block->lines[k];
@@ -1508,9 +1508,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                     if (line->bbox.y0 > y - 1) continue;
                 }
 
-                for (spannum = 0; spannum < line->len; ++spannum) {
-                    fz_text_span *span = line->spans[spannum];
-
+                for (span = line->first_span; span; span = span->next) {
                     switch (matchspan (re, text, span, ctm,
                                        stop, pageno, start)) {
                     case 0: break;
@@ -2009,12 +2007,11 @@ static void showsel (struct page *page, int ox, int oy)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            int spannum;
+            fz_text_span *span;
             rect = fz_empty_rect;
-            for (spannum = 0; spannum < line->len; ++spannum) {
-                int i, j, k;
-                fz_text_span *span = line->spans[spannum];
 
+            for (span = line->first_span; span; span = span->next) {
+                int i, j, k;
                 bbox.x0 = bbox.y0 = bbox.x1 = bbox.y1 = 0;
 
                 j = 0;
@@ -2886,15 +2883,14 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             for (line = block->lines;
                  line < block->lines + block->len;
                  ++line) {
-                int spannum;
+                fz_text_span *span;
 
                 b = &line->bbox;
                 if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
                     continue;
 
-                for (spannum = 0; spannum < line->len; ++spannum) {
+                for (span = line->first_span; span; span = span->next) {
                     int charnum;
-                    fz_text_span *span = line->spans[spannum];
 
                     b = &span->bbox;
                     if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
@@ -2994,11 +2990,9 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            int spannum;
+            fz_text_span *span;
 
-            for (spannum = 0; spannum < line->len; ++spannum) {
-                span = line->spans[spannum];
-
+            for (span = line->first_span; span; span = span->next) {
                 for (i = 0; i < span->len; ++i) {
                     int selected = 0;
 
@@ -3200,11 +3194,10 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            int spannum;
+            fz_text_span *span;
 
-            for (spannum = 0; spannum < line->len; ++spannum) {
+            for (span = line->first_span; span; span = span->next) {
                 int a, b;
-                fz_text_span *span = line->spans[spannum];
 
                 seen |= span == page->fmark.span || span == page->lmark.span;
                 a = span == page->fmark.span ? page->fmark.i : 0;
@@ -3214,7 +3207,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                     if (pipespan (f, span, a, b))  {
                         goto close;
                     }
-                    if (spannum == line->len - 1)  {
+                    if (span == line->last_span)  {
                         if (putc ('\n', f) == EOF) {
                             fprintf (stderr,
                                      "failed break line on sel pipe: %s\n",
