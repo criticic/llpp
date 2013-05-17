@@ -1553,7 +1553,7 @@ static void set_tex_params (int colorspace)
         state.texiform = GL_RGBA8;
         state.texform = GL_RGBA;
         state.texty = GL_UNSIGNED_BYTE;
-        state.colorspace = fz_device_rgb;
+        state.colorspace = fz_device_rgb (state.ctx);
         break;
     case 1:
         state.texiform = GL_RGBA8;
@@ -1561,13 +1561,13 @@ static void set_tex_params (int colorspace)
         state.texty = endianness.s > 1
             ? GL_UNSIGNED_INT_8_8_8_8
             : GL_UNSIGNED_INT_8_8_8_8_REV;
-        state.colorspace = fz_device_bgr;
+        state.colorspace = fz_device_bgr (state.ctx);
         break;
     case 2:
         state.texiform = GL_LUMINANCE_ALPHA;
         state.texform = GL_LUMINANCE_ALPHA;
         state.texty = GL_UNSIGNED_BYTE;
-        state.colorspace = fz_device_gray;
+        state.colorspace = fz_device_gray (state.ctx);
         break;
     default:
         errx (1, "invalid colorspce %d", colorspace);
