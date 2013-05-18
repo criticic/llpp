@@ -3490,7 +3490,7 @@ object (self)
           if next = -1
           then
             let first = m_first + incr in
-            let first = bound first 0 (itemcount - 1) in
+            let first = bound first 0 (itemcount - fstate.maxrows) in
             let next =
               let next = m_active + incr in
               let next = bound next 0 (itemcount - 1) in
