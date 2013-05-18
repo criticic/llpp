@@ -290,9 +290,14 @@ and pdimno = int
 and columncount = int
 and covercount = int;;
 
+type scrollb = int;;
+let scrollbvv = 1;;
+let scrollbhv = 2;;
+
 type conf =
     { mutable scrollbw       : int
     ; mutable scrollh        : int
+    ; mutable scrollb        : scrollb
     ; mutable icase          : bool
     ; mutable preload        : bool
     ; mutable pagebias       : int
@@ -323,7 +328,6 @@ type conf =
     ; mutable jumpback       : bool
     ; mutable bgcolor        : (float * float * float)
     ; mutable bedefault      : bool
-    ; mutable scrollbarinpm  : bool
     ; mutable tilew          : int
     ; mutable tileh          : int
     ; mutable mustoresize    : memsize
@@ -436,8 +440,6 @@ type state =
     ; mutable w             : int
     ; mutable x             : int
     ; mutable y             : int
-    ; mutable scrollw       : int
-    ; mutable hscrollh      : int
     ; mutable anchor        : anchor
     ; mutable ranchors      : (string * string * anchor * string) list
     ; mutable maxy          : int
@@ -494,6 +496,7 @@ and hists =
 let defconf =
   { scrollbw       = 7
   ; scrollh        = 12
+  ; scrollb        = scrollbhv lor scrollbvv
   ; icase          = true
   ; preload        = true
   ; pagebias       = 0
@@ -524,7 +527,6 @@ let defconf =
   ; jumpback       = true
   ; bgcolor        = (0.5, 0.5, 0.5)
   ; bedefault      = false
-  ; scrollbarinpm  = true
   ; tilew          = 2048
   ; tileh          = 2048
   ; mustoresize    = 256 lsl 20
@@ -674,8 +676,6 @@ let state =
   ; x             = 0
   ; y             = 0
   ; w             = 0
-  ; scrollw       = 0
-  ; hscrollh      = 0
   ; anchor        = emptyanchor
   ; ranchors      = []
   ; layout        = []
@@ -727,6 +727,21 @@ let state =
   ; origin        = ""
   }
 ;;
+
+let hscrollh () =
+  if (conf.scrollb land scrollbhv = 0)
+    || (state.x = 0 && state.w <= state.winw - conf.scrollbw)
+  then 0
+  else conf.scrollbw
+;;
+
+let vscrollw () =
+  if (conf.scrollb land scrollbvv = 0)
+  then 0
+  else conf.scrollbw
+;;
+
+let wadjsb w = w - vscrollw ();;
 
 let setfontsize n =
   fstate.fontsize <- n;
@@ -1278,7 +1293,7 @@ let page_of_y y =
 ;;
 
 let layoutN ((columns, coverA, coverB), b) y sh =
-  let sh = sh - state.hscrollh in
+  let sh = sh - (hscrollh ()) in
   let rec fold accu n =
     if n = Array.length b
     then accu
@@ -1298,7 +1313,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
             let pagedispx, pagex =
               let pdx =
                 if n = coverA - 1 || n = state.pagecount - coverB
-                then state.x + (state.winw - state.scrollw - w) / 2
+                then state.x + (wadjsb state.winw - w) / 2
                 else dx + xoff + state.x
               in
               if pdx < 0
@@ -1306,7 +1321,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
               else pdx, 0
             in
             let pagevw =
-              let vw = state.winw - state.scrollw - pagedispx in
+              let vw = wadjsb state.winw - pagedispx in
               let pw = w - pagex in
               min vw pw
             in
@@ -1339,7 +1354,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
 ;;
 
 let layoutS (columns, b) y sh =
-  let sh = sh - state.hscrollh in
+  let sh = sh - hscrollh () in
   let rec fold accu n =
     if n = Array.length b
     then accu
@@ -1371,11 +1386,11 @@ let layoutS (columns, b) y sh =
             let pagecolw = pagew/columns in
             let pagedispx =
               if pagecolw < state.winw
-              then pagedispx + ((state.winw - state.scrollw - pagecolw) / 2)
+              then pagedispx + ((wadjsb state.winw - pagecolw) / 2)
               else pagedispx
             in
             let pagevw =
-              let vw = state.winw - pagedispx - state.scrollw in
+              let vw = wadjsb state.winw - pagedispx in
               let pw = pagew - pagex in
               min vw pw
             in
@@ -1503,7 +1518,7 @@ let drawtiles l color =
 
     | _ ->
         let w =
-          let lw = state.winw - state.scrollw - x in
+          let lw = wadjsb state.winw - x in
           min lw w
         and h =
           let lh = state.winh - y in
@@ -2036,7 +2051,7 @@ let docolumns = function
             | _ ->
                 pdimno, pdim, pdims
           in
-          let x = max 0 (((state.winw - state.scrollw - w) / 2) - xoff) in
+          let x = max 0 (((wadjsb state.winw - w) / 2) - xoff) in
           let y = y +
             (if conf.presentation
             then (if pageno = 0 then calcips h else calcips ph + calcips h)
@@ -2074,7 +2089,7 @@ let docolumns = function
           let x, y, rowh' =
             if pageno = coverA - 1 || pageno = state.pagecount - coverB
             then (
-              let x = (state.winw - state.scrollw - w) / 2 in
+              let x = (wadjsb state.winw - w) / 2 in
               let ips =
                 if conf.presentation then calcips h else conf.interpagespace in
               x, y + ips + rowh, h
@@ -2082,7 +2097,7 @@ let docolumns = function
             else (
               if (pageno - coverA) mod columns = 0
               then (
-                let x = max 0 (state.winw - state.scrollw - state.w) / 2 in
+                let x = max 0 (wadjsb state.winw - state.w) / 2 in
                 let y =
                   if conf.presentation
                   then
@@ -2154,11 +2169,6 @@ let docolumns = function
 let represent () =
   docolumns conf.columns;
   state.maxy <- calcheight ();
-  state.hscrollh <-
-    if state.x = 0 && state.w <= state.winw - state.scrollw
-    then 0
-    else state.scrollw
-  ;
   if state.reprf == noreprf
   then (
     match state.mode with
@@ -2181,7 +2191,7 @@ let reshape w h =
   then state.anchor <- getanchor ();
 
   state.winw <- w;
-  let w = truncate (float w *. conf.zoom) - state.scrollw in
+  let w = wadjsb (truncate (float w *. conf.zoom)) in
   let w = max w 2 in
   state.winh <- h;
   setfontsize fstate.fontsize;
@@ -2231,7 +2241,7 @@ let enttext () =
         (x+.w, float (state.winh - hscrollh))
     in
 
-    let w = float (state.winw - state.scrollw - 1) in
+    let w = float (wadjsb state.winw - 1) in
     if state.progress >= 0.0 && state.progress < 1.0
     then (
       GlDraw.color (0.3, 0.3, 0.3);
@@ -2365,12 +2375,12 @@ let gotopagexy1 pageno x y  =
   onpagerect pageno (fun w h ->
     let top = y /. h in
     let _,w1,_,leftx = getpagedim pageno in
-    let wh = state.winh - state.hscrollh in
+    let wh = state.winh - hscrollh () in
     let sw = float w1 /. w in
     let x = sw *. x in
     let x = leftx + state.x + truncate x in
     let sx =
-      if x < 0 || x >= state.winw - state.scrollw
+      if x < 0 || x >= wadjsb state.winw
       then state.x - x
       else state.x
     in
@@ -2395,7 +2405,7 @@ let gotopagexy1 pageno x y  =
       let x, y =
         if !wtmode
         then (
-          let ww = state.winw - state.scrollw in
+          let ww = wadjsb state.winw in
           let qx = sx / ww
           and qy = pdy / wh in
           let x = qx * ww
@@ -2415,11 +2425,6 @@ let gotopagexy1 pageno x y  =
         else (sx, sy)
       in
       state.x <- x;
-      state.hscrollh <-
-        if x = 0 && state.w <= state.winw - state.scrollw
-        then 0
-        else state.scrollw
-      ;
       gotoy_and_clear_text y;
     )
     else gotoy_and_clear_text state.y;
@@ -4149,7 +4154,7 @@ let ghyllscroll_to_string ((n, a, b) as nab) =
 
 let describe_location () =
   let fn = page_of_y state.y in
-  let ln = page_of_y (state.y + state.winh - state.hscrollh - 1) in
+  let ln = page_of_y (state.y + state.winh - hscrollh () - 1) in
   let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
   let percent =
     if maxy <= 0
@@ -4170,12 +4175,6 @@ let setpresentationmode v =
   let n = page_of_y state.y in
   state.anchor <- (n, 0.0, 1.0);
   conf.presentation <- v;
-  if conf.presentation
-  then (
-    if not conf.scrollbarinpm
-    then state.scrollw <- 0;
-  )
-  else state.scrollw <- conf.scrollbw;
   if conf.fitmodel = FitPage
   then reqlayout conf.angle conf.fitmodel;
   represent ();
@@ -4496,9 +4495,8 @@ let enterinfomode =
       (fun v -> reqlayout v conf.fitmodel);
 
     src#int "scroll bar width"
-      (fun () -> state.scrollw)
+      (fun () -> conf.scrollbw)
       (fun v ->
-        state.scrollw <- v;
         conf.scrollbw <- v;
         reshape state.winw state.winh;
       );
@@ -4529,22 +4527,6 @@ let enterinfomode =
       (fun v ->
         let n, a, b = multicolumns_of_string v in
         setcolumns mode n a b);
-
-    sep ();
-    src#caption "Presentation mode" 0;
-    src#bool "scrollbar visible"
-      (fun () -> conf.scrollbarinpm)
-      (fun v ->
-        if v != conf.scrollbarinpm
-        then (
-          conf.scrollbarinpm <- v;
-          if conf.presentation
-          then (
-            state.scrollw <- if v then conf.scrollbw else 0;
-            reshape state.winw state.winh;
-          )
-        );
-      );
 
     sep ();
     src#caption "Pixmap cache" 0;
@@ -4959,7 +4941,7 @@ let canpan () =
   | _ -> state.x != 0 || conf.zoom > 1.0
 ;;
 
-let panbound x = bound x (-state.w) (state.winw - state.scrollw);;
+let panbound x = bound x (-state.w) (wadjsb state.winw);;
 
 let existsinrow pageno (columns, coverA, coverB) p =
   let last = ((pageno - coverA) mod columns) + columns in
@@ -5157,11 +5139,6 @@ let viewkeyboard key mask =
       if conf.zoom = 1.0
       then (
         state.x <- 0;
-        state.hscrollh <-
-          if state.w <= state.winw - state.scrollw
-          then 0
-          else state.scrollw
-        ;
         gotoy state.y
       )
       else setzoom 1.0
@@ -5175,7 +5152,7 @@ let viewkeyboard key mask =
       let h = state.winh -
         conf.interpagespace lsl (if conf.presentation then 1 else 0)
       in
-      let zoom = zoomforh state.winw h state.scrollw cols in
+      let zoom = zoomforh state.winw h (vscrollw ()) cols in
       if zoom > 0.0 && (key = 50 || zoom < 1.0)
       then setzoom zoom
 
@@ -5219,7 +5196,7 @@ let viewkeyboard key mask =
       enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone, true)
 
   | 98 ->                               (* b *)
-      state.scrollw <- if state.scrollw > 0 then 0 else conf.scrollbw;
+      conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
       reshape state.winw state.winh;
 
   | 108 ->                              (* l *)
@@ -5305,7 +5282,7 @@ let viewkeyboard key mask =
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
-          Wsi.reshape (l.pagew + state.scrollw) l.pageh;
+          Wsi.reshape (l.pagew + vscrollw ()) l.pageh;
           G.postRedisplay "w"
       end
 
@@ -5354,7 +5331,7 @@ let viewkeyboard key mask =
           if w != 0 && h != 0
           then (
             state.anchor <- getanchor ();
-            Wsi.reshape (w + state.scrollw) (h + conf.interpagespace)
+            Wsi.reshape (w + vscrollw ()) (h + conf.interpagespace)
           );
           G.postRedisplay "z";
 
@@ -5375,7 +5352,7 @@ let viewkeyboard key mask =
       then (
         if conf.zoom > 1.0
         then
-          let m = (state.winw - state.w - state.scrollw) / 2 in
+          let m = (wadjsb state.winw - state.w) / 2 in
           state.x <- m;
           gotoy_and_clear_text state.y
       )
@@ -5594,7 +5571,7 @@ let linknavkeyboard key mask linknav =
                 else (
                   let d = fstate.fontsize + 1 in
                   if y1 - l.pagey > l.pagevh - d
-                  then gotopage1 l.pageno (y1 - state.winh - state.hscrollh + d)
+                  then gotopage1 l.pageno (y1 - state.winh - hscrollh () + d)
                   else G.postRedisplay "linknav";
                 );
                 showlinktype (getlink opaque m);
@@ -5767,7 +5744,7 @@ let scrollindicator () =
   ;
   GlDraw.rect
     (0., float (state.winh - sbh))
-    (float (state.winw - state.scrollw - 1), float state.winh)
+    (float (wadjsb state.winw - 1), float state.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
@@ -5892,8 +5869,9 @@ let zoomrect x y x1 y1 =
         onppundermouse (fun _ l _ _ -> Some l.pagedispx) x0 y0 x0
 
     | _, _ ->
-        if state.w < state.winw - state.scrollw
-        then (state.winw - state.scrollw - state.w) / 2
+        let adjw = wadjsb state.winw in
+        if state.w < adjw
+        then (adjw - state.w) / 2
         else 0
   in
   state.x <- (state.x + margin) - x0;
@@ -5903,7 +5881,7 @@ let zoomrect x y x1 y1 =
 ;;
 
 let scrollx x =
-  let winw = state.winw - state.scrollw - 1 in
+  let winw = wadjsb state.winw - 1 in
   let s = float x /. float winw in
   let destx = truncate (float (state.w + winw) *. s) in
   state.x <- winw - destx;
@@ -6017,7 +5995,7 @@ let viewmouse button down x y mask =
             state.mstate <- Mnone
       )
 
-  | 1 when x > state.winw - state.scrollw ->
+  | 1 when x > state.winw - vscrollw () ->
       if down
       then
         let _, position, sh = state.uioh#scrollph in
@@ -6027,7 +6005,7 @@ let viewmouse button down x y mask =
       else
         state.mstate <- Mnone
 
-  | 1 when y > state.winh - state.hscrollh ->
+  | 1 when y > state.winh - hscrollh () ->
       if down
       then
         let _, position, sw = state.uioh#scrollpw in
@@ -6251,10 +6229,10 @@ let uioh = object
       then 0.0, float state.winh
       else scrollph state.y maxy
     in
-    state.scrollw, p, h
+    vscrollw (), p, h
 
   method scrollpw =
-    let winw = state.winw - state.scrollw in
+    let winw = wadjsb state.winw in
     let fwinw = float winw in
     let sw =
       let sw = fwinw /. float state.w in
@@ -6267,7 +6245,7 @@ let uioh = object
       let percent = float x /. float maxx in
       (fwinw -. sw) *. percent
     in
-    state.hscrollh, position, sw
+    hscrollh (), position, sw
 
   method modehash =
     let modename =
@@ -6401,8 +6379,6 @@ struct
         | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
         | "persistent-location" -> { c with jumpback = bool_of_string v }
         | "background-color" -> { c with bgcolor = color_of_string v }
-        | "scrollbar-in-presentation" ->
-            { c with scrollbarinpm = bool_of_string v }
         | "tile-width" -> { c with tilew = max 2 (int_of_string v) }
         | "tile-height" -> { c with tileh = max 2 (int_of_string v) }
         | "mupdf-store-size" ->
@@ -6433,6 +6409,20 @@ struct
         | "page-scroll-scale" -> { c with pgscale = float_of_string v }
         | "use-pbo" -> { c with usepbo = bool_of_string v }
         | "wheel-scrolls-pages" -> { c with wheelbypage = bool_of_string v }
+        | "horizontal-scrollbar-visible" ->
+            let b =
+              if bool_of_string v
+              then c.scrollb lor scrollbhv
+              else c.scrollb land (lnot scrollbhv)
+            in
+            { c with scrollb = b }
+        | "vertical-scrollbar-visible" ->
+            let b =
+              if bool_of_string v
+              then c.scrollb lor scrollbvv
+              else c.scrollb land (lnot scrollbvv)
+            in
+            { c with scrollb = b }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6520,7 +6510,6 @@ struct
     dst.thumbw         <- src.thumbw;
     dst.jumpback       <- src.jumpback;
     dst.bgcolor        <- src.bgcolor;
-    dst.scrollbarinpm  <- src.scrollbarinpm;
     dst.tilew          <- src.tilew;
     dst.tileh          <- src.tileh;
     dst.mustoresize    <- src.mustoresize;
@@ -6546,6 +6535,7 @@ struct
     dst.usepbo         <- src.usepbo;
     dst.wheelbypage    <- src.wheelbypage;
     dst.stcmd          <- src.stcmd;
+    dst.scrollb        <- src.scrollb;
   ;;
 
   let get s =
@@ -6828,7 +6818,6 @@ struct
       setconf conf pc;
       state.bookmarks <- pb;
       state.x <- px;
-      state.scrollw <- conf.scrollbw;
       if conf.jumpback
       then state.anchor <- pa;
       cbput state.hists.nav pa;
@@ -6907,11 +6896,17 @@ struct
       if always || a <> b
       then
         Printf.bprintf bb "\n    %s='%s'" s (fitmodel_to_string a)
+    and oSv s a b m =
+      if always || a <> b
+      then
+        Printf.bprintf bb "\n    %s='%b'" s (a land m != 0)
     in
     oi "width" c.cwinw dc.cwinw;
     oi "height" c.cwinh dc.cwinh;
     oi "scroll-bar-width" c.scrollbw dc.scrollbw;
     oi "scroll-handle-height" c.scrollh dc.scrollh;
+    oSv "horizontal-scrollbar-visible" c.scrollb dc.scrollb scrollbhv;
+    oSv "vertical-scrollbar-visible" c.scrollb dc.scrollb scrollbvv;
     ob "case-insensitive-search" c.icase dc.icase;
     ob "preload" c.preload dc.preload;
     oi "page-bias" c.pagebias dc.pagebias;
@@ -6934,7 +6929,6 @@ struct
     oi "thumbnail-width" c.thumbw dc.thumbw;
     ob "persistent-location" c.jumpback dc.jumpback;
     oc "background-color" c.bgcolor dc.bgcolor;
-    ob "scrollbar-in-presentation" c.scrollbarinpm dc.scrollbarinpm;
     oi "tile-width" c.tilew dc.tilew;
     oi "tile-height" c.tileh dc.tileh;
     oI "mupdf-store-size" c.mustoresize dc.mustoresize;
