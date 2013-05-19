@@ -7353,7 +7353,9 @@ let () =
     method expose = if not m_hack then G.postRedisplay "expose"
     method visible = if not m_hack then G.postRedisplay "visible"
     method display = m_hack <- false; display ()
-    method reshape w h = m_hack <- true; reshape w h
+    method reshape w h =
+      m_hack <- w < state.winw && h < state.winh;
+      reshape w h
     method mouse b d x y m = mouse b d x y m
     method motion x y = state.mpos <- (x, y); motion x y
     method pmotion x y = state.mpos <- (x, y); pmotion x y
