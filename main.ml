@@ -7348,14 +7348,14 @@ let () =
   if not (Config.load ())
   then prerr_endline "failed to load configuration";
 
-  let wsfd, winw, winh = Wsi.init (object
-    val mutable m_uptodatewrtreshape = true
+  let wsfd, winw, winh = Wsi.init (object (self)
+    val mutable m_hack = false
     method expose =
-      if m_uptodatewrtreshape
+      if not m_hack
       then G.postRedisplay "expose"
-    method visible = G.postRedisplay "visible"
-    method display = m_uptodatewrtreshape <- true; display ()
-    method reshape w h = m_uptodatewrtreshape <- false; reshape w h
+    method visible = self#expose
+    method display = m_hack <- false; display ()
+    method reshape w h = m_hack <- true; reshape w h
     method mouse b d x y m = mouse b d x y m
     method motion x y = state.mpos <- (x, y); motion x y
     method pmotion x y = state.mpos <- (x, y); pmotion x y
