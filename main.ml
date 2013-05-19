@@ -7346,15 +7346,12 @@ let () =
   then (prerr_endline "file name missing"; exit 1);
 
   let wsfd, winw, winh = Wsi.init (object
+    val mutable m_uptodatewrtreshape = true
     method expose =
-      if nogeomcmds state.geomcmds || platform == Posx
-      then display ()
-      else (
-        GlClear.color (scalecolor2 conf.bgcolor);
-        GlClear.clear [`color];
-      )
-    method display = display ()
-    method reshape w h = reshape w h
+      if m_uptodatewrtreshape
+      then G.postRedisplay "expose"
+    method display = m_uptodatewrtreshape <- true; display ()
+    method reshape w h = m_uptodatewrtreshape <- false; reshape w h
     method mouse b d x y m = mouse b d x y m
     method motion x y = state.mpos <- (x, y); motion x y
     method pmotion x y = state.mpos <- (x, y); pmotion x y
