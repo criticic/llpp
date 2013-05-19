@@ -645,6 +645,11 @@ let activatewin () =
   state.actwin ();
 ;;
 
+let mapwin () =
+  let s = mapreq state.idbase in
+  sendstr s state.sock;
+;;
+
 let syncsendwithrep sock secstowait s f =
   let completed = ref false in
   sendwithrep sock s (fun resp -> f resp; completed := true);
@@ -829,9 +834,6 @@ let setup sock screennum w h =
         let s = changepropreq wid atom 31 8 llpp in
         sendstr s sock;
       );
-
-      let s = mapreq wid in
-      sendstr s sock;
 
       let s = getkeymapreq state.mink (state.maxk-state.mink) in
       sendwithrep sock s (updkmap sock);
