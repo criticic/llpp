@@ -7444,7 +7444,8 @@ let () =
   reshape winw winh;
   opendoc state.path state.password;
   state.uioh <- uioh;
-  Wsi.syncmapwin ();
+  display ();
+  Wsi.mapwin ();
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
   let optrfd =
     ref (

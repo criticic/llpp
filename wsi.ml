@@ -670,9 +670,9 @@ let syncsendwithrep sock secstowait s f =
   readtillcompletion ();
 ;;
 
-let syncmapwin () =
+let mapwin () =
   let s = mapreq state.idbase in
-  syncsendwithrep state.sock 1.0 s (fun _ -> ());
+  sendstr s state.sock;
 ;;
 
 let syncsendintern sock secstowait s onlyifexists f =

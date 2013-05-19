@@ -35,7 +35,7 @@ val init : t -> int -> int -> bool -> Unix.file_descr * int * int;;
 val fullscreen : unit -> unit;;
 val reshape : int -> int -> unit;;
 val activatewin : unit -> unit;;
-val syncmapwin : unit -> unit;;
+val mapwin : unit -> unit;;
 val withalt : int -> bool;;
 val withctrl : int -> bool;;
 val withshift : int -> bool;;
