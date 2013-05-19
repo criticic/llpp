@@ -7345,10 +7345,6 @@ let () =
   if String.length state.path = 0
   then (prerr_endline "file name missing"; exit 1);
 
-  if not (Config.load ())
-  then prerr_endline "failed to load configuration";
-
-  let globalkeyhash = findkeyhash conf "global" in
   let wsfd, winw, winh = Wsi.init (object
     method expose =
       if nogeomcmds state.geomcmds || platform == Posx
@@ -7374,7 +7370,7 @@ let () =
               let modehash = state.uioh#modehash in
               try Hashtbl.find modehash km
               with Not_found ->
-                try Hashtbl.find globalkeyhash km
+                try Hashtbl.find (findkeyhash conf "global") km
                 with Not_found -> KMinsrt (k, m)
             with
             | KMinsrt (k, m) -> keyboard k m
@@ -7404,6 +7400,17 @@ let () =
       ; "GL_NV_texture_rectangle" ]
   )
   then (prerr_endline "OpenGL does not suppport rectangular textures"; exit 1);
+
+  if (
+    let r = GlMisc.get_string `renderer in
+    let p = "Mesa DRI Intel(" in
+    let l = String.length p in
+    String.length r > l && String.sub r 0 l = p
+  )
+  then (defconf.sliceheight <- 1024; conf.sliceheight <- 1024;);
+
+  if not (Config.load ())
+  then prerr_endline "failed to load configuration";
 
   let cr, sw =
     match Ne.pipe () with
