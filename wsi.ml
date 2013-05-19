@@ -23,6 +23,7 @@ let vlog fmt = Format.kprintf ignore fmt;;
 let onot = object
   method display         = ()
   method expose          = ()
+  method visible         = ()
   method reshape _ _     = ()
   method mouse _ _ _ _ _ = ()
   method motion _ _      = ()
@@ -37,6 +38,7 @@ end;;
 class type t = object
   method display  : unit
   method expose   : unit
+  method visible  : unit
   method reshape  : int -> int -> unit
   method mouse    : int -> bool -> int -> int -> int -> unit
   method motion   : int -> int -> unit
@@ -528,7 +530,7 @@ let readresp sock =
 
   | 15 ->                               (* visibility *)
       let vis = r8 resp 8 in
-      if vis != 2 then state.t#expose;
+      if vis != 2 then state.t#visible;
       vlog "visibility %d" vis;
 
   | 34 ->                               (* mapping *)

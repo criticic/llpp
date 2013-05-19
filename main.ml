@@ -7353,6 +7353,7 @@ let () =
     method expose =
       if m_uptodatewrtreshape
       then G.postRedisplay "expose"
+    method visible = G.postRedisplay "visible"
     method display = m_uptodatewrtreshape <- true; display ()
     method reshape w h = m_uptodatewrtreshape <- false; reshape w h
     method mouse b d x y m = mouse b d x y m
