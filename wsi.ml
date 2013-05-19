@@ -645,11 +645,6 @@ let activatewin () =
   state.actwin ();
 ;;
 
-let mapwin () =
-  let s = mapreq state.idbase in
-  sendstr s state.sock;
-;;
-
 let syncsendwithrep sock secstowait s f =
   let completed = ref false in
   sendwithrep sock s (fun resp -> f resp; completed := true);
@@ -671,6 +666,11 @@ let syncsendwithrep sock secstowait s f =
         then readtillcompletion ()
   in
   readtillcompletion ();
+;;
+
+let syncmapwin () =
+  let s = mapreq state.idbase in
+  syncsendwithrep state.sock 1.0 s (fun _ -> ());
 ;;
 
 let syncsendintern sock secstowait s onlyifexists f =
