@@ -7345,6 +7345,9 @@ let () =
   if String.length state.path = 0
   then (prerr_endline "file name missing"; exit 1);
 
+  if not (Config.load ())
+  then prerr_endline "failed to load configuration";
+
   let wsfd, winw, winh = Wsi.init (object
     val mutable m_uptodatewrtreshape = true
     method expose =
@@ -7404,10 +7407,7 @@ let () =
     let l = String.length p in
     String.length r > l && String.sub r 0 l = p
   )
-  then (defconf.sliceheight <- 1024; conf.sliceheight <- 1024;);
-
-  if not (Config.load ())
-  then prerr_endline "failed to load configuration";
+  then defconf.sliceheight <- 1024;
 
   let cr, sw =
     match Ne.pipe () with
