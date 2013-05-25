@@ -4917,14 +4917,14 @@ let gotounder = function
 
   | Uremote (filename, pageno) ->
       let path =
-        if Sys.file_exists filename
-        then filename
-        else
-          let dir = Filename.dirname state.path in
-          let path = Filename.concat dir filename in
-          if Sys.file_exists path
-          then path
-          else ""
+        if String.length filename > 0
+        then
+          if Filename.is_relative filename
+          then
+            let dir = Filename.dirname state.path in
+            Filename.concat dir filename
+          else filename
+        else ""
       in
       if String.length path > 0
       then (
