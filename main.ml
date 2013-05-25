@@ -4926,6 +4926,11 @@ let gotounder = function
           else filename
         else ""
       in
+      let path =
+        if Sys.file_exists path
+        then path
+        else ""
+      in
       if String.length path > 0
       then (
         if conf.riani
