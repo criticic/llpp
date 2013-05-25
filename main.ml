@@ -4922,6 +4922,11 @@ let gotounder = function
           if Filename.is_relative filename
           then
             let dir = Filename.dirname state.path in
+            let dir =
+              if Filename.is_implicit dir
+              then Filename.concat (Sys.getcwd ()) dir
+              else dir
+            in
             Filename.concat dir filename
           else filename
         else ""
