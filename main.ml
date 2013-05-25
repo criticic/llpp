@@ -350,6 +350,7 @@ type conf =
     ; mutable usepbo         : bool
     ; mutable wheelbypage    : bool
     ; mutable stcmd          : string
+    ; mutable riani          : bool
     }
 and columns =
     | Csingle of singlecolumn
@@ -560,6 +561,7 @@ let defconf =
   ; usepbo         = false
   ; wheelbypage    = false
   ; stcmd          = "echo SyncTex"
+  ; riani          = false
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -4717,6 +4719,9 @@ let enterinfomode =
       src#bool "mouse wheel scrolls pages"
         (fun () -> conf.wheelbypage)
         (fun v -> conf.wheelbypage <- v);
+      src#bool "open remote links in a new instance"
+        (fun () -> conf.riani)
+        (fun v -> conf.riani <- v);
     );
 
     sep ();
@@ -4923,12 +4928,21 @@ let gotounder = function
       in
       if String.length path > 0
       then (
-        let anchor = getanchor () in
-        let ranchor = state.path, state.password, anchor, state.origin in
-        state.origin <- "";
-        state.anchor <- (pageno, 0.0, 0.0);
-        state.ranchors <- ranchor :: state.ranchors;
-        opendoc path "";
+        if conf.riani
+        then
+          let command = Printf.sprintf "%s '%s'" Sys.argv.(0) path in
+          try popen command []
+          with exn ->
+            Printf.eprintf
+              "failed to execute `%s': %s\n" command (exntos exn);
+            flush stderr;
+        else
+          let anchor = getanchor () in
+          let ranchor = state.path, state.password, anchor, state.origin in
+          state.origin <- "";
+          state.anchor <- (pageno, 0.0, 0.0);
+          state.ranchors <- ranchor :: state.ranchors;
+          opendoc path "";
       )
       else showtext '!' ("Could not find " ^ filename)
 
@@ -6423,6 +6437,7 @@ struct
               else c.scrollb land (lnot scrollbvv)
             in
             { c with scrollb = b }
+        | "remote-in-a-new-instance" -> { c with riani = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6536,6 +6551,7 @@ struct
     dst.wheelbypage    <- src.wheelbypage;
     dst.stcmd          <- src.stcmd;
     dst.scrollb        <- src.scrollb;
+    dst.riani          <- src.riani;
   ;;
 
   let get s =
@@ -6953,6 +6969,7 @@ struct
     oF "page-scroll-scale" c.pgscale dc.pgscale;
     ob "use-pbo" c.usepbo dc.usepbo;
     ob "wheel-scrolls-pages" c.wheelbypage dc.wheelbypage;
+    ob "remote-in-a-new-instance" c.riani dc.riani;
   ;;
 
   let keymapsbuf always dc c =
