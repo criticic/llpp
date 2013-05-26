@@ -11,18 +11,12 @@ with:
 llpp also depends on OCaml[4], lablGL[5], having a C compiler wouldn't
 hurt either.
 
-To build llpp "the easy way" one can invoke `sh buildall.sh' which
-will first attempt to automatically fetch lablGL, mupdf, mupdf's
-prerequisites and build them, then, if everything goes fine, it will
-proceed building llpp itself. Note that OCaml still needs to be
-installed separately, also, in addition to the usual suspects (i.e.
-GCC, make, binutils, OCaml), you will need `wget' and `unzip' for this
-script to work.
-
-Otherwise, provided that all prereqs are already built, one should
-invoke `sh build.sh' from the top of llpp's directory, prior to that
-it's advisable to review build.sh so that it matches local mupdf
-installation (or lack thereof)
+To build llpp one can invoke `sh buildall.sh' which will first attempt
+to automatically fetch lablGL, mupdf, mupdf's prerequisites and build
+them, then, if everything goes fine, it will proceed building llpp
+itself. Note that OCaml still needs to be installed separately, also,
+in addition to the usual suspects (i.e.  GCC, make, binutils, OCaml),
+you will need `wget' and `unzip' for this script to work.
 
 If everything goes fine llpp binary will appear, it can be used like so:
 
