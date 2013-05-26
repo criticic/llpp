@@ -1,10 +1,9 @@
 # builds "hard" prerequisites and llpp
 set -e
 
-jobs=1
 while getopts j: opt; do
     case "$opt" in
-        j) jobs="$OPTARG";;
+        j) jobs="-j $OPTARG";;
         ?)
         printf "usage: $0 [-j N] [opt]\n";
         exit 1;;
@@ -59,7 +58,7 @@ executable_p gmake && make=gmake || make=make
             DLLDIR=$root/lib/ocaml/stublibs                 \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-(cd $mudir && $make -j "$jobs" build=release)
+(cd $mudir && $make $jobs build=release)
 
 cd ..
 
