@@ -129,6 +129,8 @@ let platform = platform ();;
 
 let now = Unix.gettimeofday;;
 
+let selfexec = ref "";;
+
 let popen cmd fda =
   if platform = Pcygwin
   then (
@@ -4940,7 +4942,7 @@ let gotounder = function
       then (
         if conf.riani
         then
-          let command = Printf.sprintf "%s '%s'" Sys.argv.(0) path in
+          let command = !selfexec ^ " " ^ path in
           try popen command []
           with exn ->
             Printf.eprintf
@@ -7332,15 +7334,23 @@ let remoteopen path =
 let () =
   let trimcachepath = ref "" in
   let rcmdpath = ref "" in
+  selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
         [("-p", Arg.String (fun s -> state.password <- s),
          "<password> Set password");
 
-         ("-f", Arg.String (fun s -> Config.fontpath := s),
+         ("-f", Arg.String
+           (fun s ->
+             Config.fontpath := s;
+             selfexec := !selfexec ^ " -f " ^ Filename.quote s;
+           ),
          "<path> Set path to the user interface font");
 
-         ("-c", Arg.String (fun s -> Config.confpath := s),
+         ("-c", Arg.String
+           (fun s ->
+             selfexec := !selfexec ^ " -c " ^ Filename.quote s;
+             Config.confpath := s),
          "<path> Set path to the configuration file");
 
          ("-tcf", Arg.String (fun s -> trimcachepath := s),
@@ -7369,6 +7379,9 @@ let () =
     (fun s -> state.path <- s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:")
   ;
+  if !wtmode
+  then selfexec := !selfexec ^ " -wtmode";
+
   if String.length state.path = 0
   then (prerr_endline "file name missing"; exit 1);
 
