@@ -10,12 +10,12 @@ die() {
 }
 
 executable_p() {
-    command -v $1 >/dev/null 2>&1
+    command -v "$1" >/dev/null 2>&1
 }
 
-trap 'test -n "$casp" && rm -f $casp' 0
+trap 'test -n "$casp" && rm -f "$casp"' 0
 
-test -d $CACHEDIR || die "cache directory $CACHEDIR does not exist"
+test -d "$CACHEDIR" || die "cache directory $CACHEDIR does not exist"
 while getopts m:t:f opt; do
     case "$opt" in
         m) mime="$OPTARG";;
@@ -38,10 +38,10 @@ case $ft in
     *) unset dc || true;;
 esac
 
-filt='${dc-cat} "$1" |'
+filt='"${dc-cat}" "$1" |'
 
-if test -z $type; then
-    test -z $dc || ft=$(file -L --mime-type -bz "$1") || die "$ft"
+if test -z "$type"; then
+    test -z "$dc" || ft=$(file -L --mime-type -bz "$1") || die "$ft"
 
     mime=${mime:-$ft}
     case $mime in
@@ -62,43 +62,43 @@ if test -z $type; then
 fi
 
 case $type in
-    ps) conv='ps2pdf - $casp';;
-    pdf) test -z $dc && exec llpp "$@" || conv='cat >$casp';;
-    djvu) conv='djvups - | ps2pdf - $casp';;
+    ps) conv='ps2pdf - "$casp"';;
+    pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
+    djvu) conv='djvups - | ps2pdf - "$casp"';;
     html) {
         test -n "$dc" && die "can not convert compressed $mime"
         unset filt
-        conv='prince "$1" -o $casp'
+        conv='prince "$1" -o "$casp"'
     };;
     word) {
-        if executable_p unoconv && test -z $dc; then
+        if executable_p unoconv && test -z "$dc"; then
             unset filt
-            conv='unoconv -o $casp "$1"'
+            conv='unoconv -o "$casp" "$1"'
         else
-            conv='antiword -m 8859-1.txt -a a4 - >$casp'
+            conv='antiword -m 8859-1.txt -a a4 - >"$casp"'
         fi
     };;
     uno) {
         test -n "$dc" && die "can not convert compressed $mime"
         unset filt
-        conv='unoconv -o $casp "$1"'
+        conv='unoconv -o "$casp" "$1"'
     };;
     svg) {
         executable_p rsvg-convert                        \
-            && conv='rsvg-convert -f pdf -o $casp'       \
-            || conv='inkscape -z -A $casp -'
+            && conv='rsvg-convert -f pdf -o "$casp"'     \
+            || conv='inkscape -z -A "$casp" -'
     };;
-    image) conv='convert - pdf:$casp';;
+    image) conv='convert - pdf:"$casp"';;
     dvi) {
         test -n "$dc" && die "can not convert compressed $mime"
         unset filt
-        conv='dvipdf $1 $casp'
+        conv='dvipdf "$1" "$casp"'
     };;
     *) die "unhandled filter type: $type";;
 esac
 
 hash=$(md5sum "$1") || die "$hash"
 casp="$CACHEDIR/${hash%% *}"
-(test -n "$force" -o ! -e $casp) && eval "$filt" "$conv"
+(test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
 
-exec llpp -origin "$@" $casp
+exec llpp -origin "$@" "$casp"
