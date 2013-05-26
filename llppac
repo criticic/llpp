@@ -17,10 +17,10 @@ trap 'test -n "$casp" && rm -f "$casp"' 0
 
 test -d "$CACHEDIR" || die "cache directory $CACHEDIR does not exist"
 while getopts m:t:f opt; do
-    case "$opt" in
-        m) mime="$OPTARG";;
-        t) type="$OPTARG";;
-        f) force="1";;
+    case $opt in
+        m) mime=$OPTARG;;
+        t) type=$OPTARG;;
+        f) force=1;;
         ?)
         die "usage: $0 [-m mime/type] [-t filter] [-f] path";
         exit 1;;
@@ -45,18 +45,18 @@ if test -z "$type"; then
 
     mime=${mime:-$ft}
     case $mime in
-        application/postscript) type="ps";;
-        application/pdf) type="pdf";;
-        image/vnd.djvu) type="djvu";;
-        text/html) type="html";;
-        application/msword) type="word";;
+        application/postscript) type=ps;;
+        application/pdf) type=pdf;;
+        image/vnd.djvu) type=djvu;;
+        text/html) type=html;;
+        application/msword) type=word;;
         application/vnd.openxmlformats-officedocument.*  \
             | application/vnd.ms-powerpoint              \
             | application/vnd.ms-excel                   \
-            | application/vnd.oasis.opendocument.*) type="uno";;
-        image/svg+xml) type="svg";;
-        image/*) type="image";;
-        application/x-dvi) type="dvi";;
+            | application/vnd.oasis.opendocument.*) type=uno;;
+        image/svg+xml) type=svg;;
+        image/*) type=image;;
+        application/x-dvi) type=dvi;;
         *) die "unhandled file type: $mime";;
     esac
 fi
@@ -98,7 +98,7 @@ case $type in
 esac
 
 hash=$(md5sum "$1") || die "$hash"
-casp="$CACHEDIR/${hash%% *}"
+casp=$CACHEDIR/${hash%% *}
 (test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
 
 exec llpp -origin "$@" "$casp"
