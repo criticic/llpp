@@ -15,7 +15,7 @@ executable_p() {
 
 trap 'test -n "$casp" && rm -f "$casp"' 0
 
-test -d "$CACHEDIR" || die "cache directory $CACHEDIR does not exist"
+test -d "$CACHEDIR" || die "cache directory '$CACHEDIR' does not exist"
 while getopts m:t:f opt; do
     case $opt in
         m) mime=$OPTARG;;
@@ -57,7 +57,7 @@ if test -z "$type"; then
         image/svg+xml) type=svg;;
         image/*) type=image;;
         application/x-dvi) type=dvi;;
-        *) die "unhandled file type: $mime";;
+        *) die "unhandled file type: '$mime'";;
     esac
 fi
 
@@ -66,7 +66,7 @@ case $type in
     pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
     djvu) conv='djvups - | ps2pdf - "$casp"';;
     html) {
-        test -n "$dc" && die "can not convert compressed $mime"
+        test -n "$dc" && die "can not convert compressed '$mime'"
         unset filt
         conv='prince "$1" -o "$casp"'
     };;
@@ -79,7 +79,7 @@ case $type in
         fi
     };;
     uno) {
-        test -n "$dc" && die "can not convert compressed $mime"
+        test -n "$dc" && die "can not convert compressed '$mime'"
         unset filt
         conv='unoconv -o "$casp" "$1"'
     };;
@@ -90,11 +90,11 @@ case $type in
     };;
     image) conv='convert - pdf:"$casp"';;
     dvi) {
-        test -n "$dc" && die "can not convert compressed $mime"
+        test -n "$dc" && die "can not convert compressed '$mime'"
         unset filt
         conv='dvipdf "$1" "$casp"'
     };;
-    *) die "unhandled filter type: $type";;
+    *) die "unhandled filter type: '$type'";;
 esac
 
 hash=$(md5sum "$1") || die "$hash"
