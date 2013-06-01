@@ -5461,7 +5461,7 @@ let viewkeyboard key mask =
       ;
       G.postRedisplay "brightness";
 
-  | 99 when state.mode = View ->        (* [alt]-c *)
+  | 99 when state.mode = View ->        (* [alt-]c *)
       if Wsi.withalt mask
       then (
         if conf.zoom > 1.0
