@@ -2176,6 +2176,7 @@ static void droptext (struct page *page)
     }
     if (page->sheet) {
         fz_free_text_sheet (state.ctx, page->sheet);
+        page->sheet = NULL;
     }
 }
 
@@ -2455,7 +2456,9 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         highlightslinks (page, xoff, yoff, noff, targ, tlen, hfsize);
         noff = page->slinkcount;
     }
-    showsel (page, xoff, yoff);
+    if (page->tgen == state.gen) {
+        showsel (page, xoff, yoff);
+    }
     unlock ("ml_postprocess");
 
  done:
