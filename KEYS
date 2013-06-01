@@ -41,6 +41,7 @@ e                       - view error log
 m                       - create named bookmark
 ~                       - create quick bookmark
 z                       - crop
+x                       - run pax command on pointed region
 r                       - reload document [5]
 P                       - "presentation" mode
 a                       - autoscroll
@@ -86,6 +87,7 @@ tunables
 -t<number>              - set thumbnail width (pixels)
 -T                      - toggle trimming of margins
 -I                      - invert colors
+-M                      - toggle pax mode
 -C<number>              - set column count
 -x<string>              - set command to run on selection
 -f                      - toggle "what's under cursor" identification

@@ -13,6 +13,13 @@ type under =
     | Uremote of (string * int)
 and facename = string;;
 
+type mark =
+    | Mark_page
+    | Mark_block
+    | Mark_line
+    | Mark_word
+;;
+
 type params = (angle * fitmodel * trimparams
                 * texcount * sliceheight * memsize
                 * colorspace * fontpath * trimcachepath
@@ -86,9 +93,10 @@ type pipe = (Unix.file_descr * Unix.file_descr);;
 
 external init : pipe -> params -> unit = "ml_init";;
 external seltext : string -> (int * int * int * int) -> unit = "ml_seltext";;
-external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
+external copysel : Unix.file_descr -> opaque -> bool -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
+external markunder : string -> int -> int -> mark -> bool = "ml_markunder";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
@@ -345,6 +353,7 @@ type conf =
     ; mutable columns        : columns
     ; mutable beyecolumns    : columncount option
     ; mutable selcmd         : string
+    ; mutable paxcmd         : string
     ; mutable updatecurs     : bool
     ; mutable keyhashes      : (string * keyhash) list
     ; mutable hfsize         : int
@@ -353,6 +362,8 @@ type conf =
     ; mutable wheelbypage    : bool
     ; mutable stcmd          : string
     ; mutable riani          : bool
+    ; mutable pax            : (float * int * int) ref option
+    ; mutable paxmark        : mark
     }
 and columns =
     | Csingle of singlecolumn
@@ -487,6 +498,7 @@ type state =
     ; mutable winh          : int
     ; mutable reprf         : (unit -> unit)
     ; mutable origin        : string
+    ; mutable roam          : (unit -> unit)
     }
 and hists =
     { pat : string circbuf
@@ -550,6 +562,7 @@ let defconf =
       | Posx -> "pbcopy"
       | Pcygwin -> "wsel"
       | Punknown -> "cat")
+  ; paxcmd         = "cat"
   ; colorspace     = Rgb
   ; invert         = false
   ; colorscale     = 1.0
@@ -564,6 +577,8 @@ let defconf =
   ; wheelbypage    = false
   ; stcmd          = "echo SyncTex"
   ; riani          = false
+  ; pax            = None
+  ; paxmark        = Mark_word
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -729,6 +744,7 @@ let state =
   ; winh          = -1
   ; reprf         = noreprf
   ; origin        = ""
+  ; roam          = (fun () -> ())
   }
 ;;
 
@@ -918,6 +934,44 @@ let showtext c s =
   G.postRedisplay "showtext";
 ;;
 
+let paxunder x y =
+  let g opaque l px py =
+    if markunder opaque px py conf.paxmark
+    then (
+      Some (fun () ->
+        match getopaque l.pageno with
+        | None -> ()
+        | Some opaque ->
+            match Ne.pipe () with
+            | Ne.Exn exn ->
+                showtext '!'
+                  (Printf.sprintf
+                      "can not create mark pipe: %s"
+                      (exntos exn));
+            | Ne.Res (r, w) ->
+                let doclose what fd =
+                  Ne.clo fd (fun msg ->
+                    dolog "%s close failed: %s" what msg)
+                in
+                try
+                  popen conf.paxcmd [r, 0; w, -1];
+                  copysel w opaque false;
+                  doclose "pipe/r" r;
+                  G.postRedisplay "paxunder";
+                with exn ->
+                  dolog "can not execute %S: %s"
+                    conf.paxcmd (exntos exn);
+                  doclose "pipe/r" r;
+                  doclose "pipe/w" w;
+      )
+    )
+    else None
+  in
+  G.postRedisplay "paxunder";
+  state.roam <-
+    onppundermouse g x y (fun () -> showtext '!' "Whoopsie daisy");
+;;
+
 let selstring s =
   match Ne.pipe () with
   | Ne.Exn exn ->
@@ -1041,6 +1095,37 @@ let colorspace_to_string = function
   | Rgb -> "rgb"
   | Bgr -> "bgr"
   | Gray -> "gray"
+;;
+
+let mark_of_string s =
+  match String.lowercase s with
+  | "word" -> Mark_word
+  | "line" -> Mark_line
+  | "block" -> Mark_block
+  | "page" -> Mark_page
+  | _ -> failwith "invalid colorspace"
+;;
+
+let int_of_mark = function
+  | Mark_page -> 0
+  | Mark_block -> 1
+  | Mark_line -> 2
+  | Mark_word -> 3
+;;
+
+let mark_of_int = function
+  | 0 -> Mark_page
+  | 1 -> Mark_block
+  | 2 -> Mark_line
+  | 3 -> Mark_word
+  | n -> failwith ("invalid mark index " ^ string_of_int n)
+;;
+
+let mark_to_string = function
+  | Mark_word -> "word"
+  | Mark_line -> "line"
+  | Mark_block -> "block"
+  | Mark_page -> "page"
 ;;
 
 let fitmodel_of_string s =
@@ -3156,6 +3241,12 @@ let optentry mode _ key =
         TEswitch ("selection command: ", "", Some (onhist state.hists.sel),
                  textentry, ondone, true)
 
+    | 'M' ->
+        if conf.pax == None
+        then conf.pax <- Some (ref (0.0, 0, 0))
+        else conf.pax <- None;
+        TEdone ("PAX " ^ btos (conf.pax != None))
+
     | _ ->
         state.text <- Printf.sprintf "bad option %d `%c'" key c;
         TEstop
@@ -4321,6 +4412,33 @@ let enterinfomode =
               coe (new listview ~source ~trusted:true ~modehash)
           )) :: m_l
 
+      method roammark name get set =
+        m_l <-
+          (name, `string get, 1, Action (
+            fun _ ->
+              let source =
+                let vals = [| "page"; "block"; "line"; "word" |] in
+                (object
+                  inherit lvsourcebase
+
+                  initializer
+                    m_active <- int_of_mark conf.paxmark;
+                    m_first <- 0;
+
+                  method getitemcount = Array.length vals
+                  method getitem n = (vals.(n), 0)
+                  method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
+                    ignore (uioh, first, pan, qsearch);
+                    if not cancel then set active;
+                    None
+                  method hasaction _ = true
+                end)
+              in
+              state.text <- "";
+              let modehash = findkeyhash conf "info" in
+              coe (new listview ~source ~trusted:true ~modehash)
+          )) :: m_l
+
       method fitmodel name get set =
         m_l <-
           (name, `string get, 1, Action (
@@ -4592,6 +4710,12 @@ let enterinfomode =
       src#bool "redirect stderr"
         (fun () -> conf.redirectstderr)
         (fun v -> conf.redirectstderr <- v; redirectstderr ());
+      src#bool "pax mode"
+        (fun () -> conf.pax != None)
+        (fun v ->
+          if v
+          then conf.pax <- Some (ref (now (), 0, 0))
+          else conf.pax <- None);
       src#string "uri launcher"
         (fun () -> conf.urilauncher)
         (fun v -> conf.urilauncher <- v);
@@ -4706,6 +4830,9 @@ let enterinfomode =
       src#string "synctex command"
         (fun () -> conf.stcmd)
         (fun v -> conf.stcmd <- v);
+      src#string "pax command"
+        (fun () -> conf.paxcmd)
+        (fun v -> conf.paxcmd <- v);
       src#colorspace "color space"
         (fun () -> colorspace_to_string conf.colorspace)
         (fun v ->
@@ -4713,6 +4840,9 @@ let enterinfomode =
           wcmd "cs %d" v;
           load state.layout;
         );
+      src#roammark "pax mark method"
+        (fun () -> mark_to_string conf.paxmark)
+        (fun v -> conf.paxmark <- mark_of_int v);
       if pbousable ()
       then
         src#bool "use PBO"
@@ -5157,7 +5287,7 @@ let viewkeyboard key mask =
   | 45 | 0xffad ->                      (* - *)
       let ondone msg = state.text <- msg in
       enttext (
-        "option [acfhilpstvxACFPRSZTIS]: ", "", None,
+        "option [acfhilpstvxACFPRSZTISM]: ", "", None,
         optentry state.mode, ondone, true
       )
 
@@ -5364,6 +5494,7 @@ let viewkeyboard key mask =
       | [] -> ()
       end
 
+  | 120 -> state.roam ()
   | 60 | 62 ->                          (* < > *)
       reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.fitmodel
 
@@ -5484,10 +5615,10 @@ let viewkeyboard key mask =
       gotoghyll (clamp state.maxy)
 
   | 0xff53 | 0xff98
-        when Wsi.withalt mask ->          (* alt-(kp) right *)
+        when Wsi.withalt mask ->        (* alt-(kp) right *)
       gotoghyll (getnav 1)
   | 0xff51 | 0xff96
-        when Wsi.withalt mask ->          (* alt-(kp) left *)
+        when Wsi.withalt mask ->        (* alt-(kp) left *)
       gotoghyll (getnav ~-1)
 
   | 114 ->                              (* r *)
@@ -6107,7 +6238,7 @@ let viewmouse button down x y mask =
                                   in
                                   try
                                     popen conf.selcmd [r, 0; w, -1];
-                                    copysel w opaque;
+                                    copysel w opaque true;
                                     doclose "pipe/r" r;
                                     G.postRedisplay "copysel";
                                   with exn ->
@@ -6240,9 +6371,19 @@ let uioh = object
     | LinkNav _
     | View ->
         match state.mstate with
-        | Mnone -> updateunder x y
         | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ ->
             ()
+        | Mnone ->
+            updateunder x y;
+            match conf.pax with
+            | None -> ()
+            | Some r ->
+                let past, _, _ = !r in
+                let now = now () in
+                let delta = now -. past in
+                if delta > 0.01
+                then paxunder x y
+                else r := (now, x, y)
     end;
     state.uioh
 
@@ -6430,6 +6571,7 @@ struct
             { c with beyecolumns = Some (max (int_of_string v) 2) }
         | "selection-command" -> { c with selcmd = unent v }
         | "synctex-command" -> { c with stcmd = unent v }
+        | "pax-command" -> { c with paxcmd = unent v }
         | "update-cursor" -> { c with updatecurs = bool_of_string v }
         | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
         | "page-scroll-scale" -> { c with pgscale = float_of_string v }
@@ -6450,6 +6592,11 @@ struct
             in
             { c with scrollb = b }
         | "remote-in-a-new-instance" -> { c with riani = bool_of_string v }
+        | "point-and-x" ->
+            { c with pax =
+                if bool_of_string v
+                then Some (ref (0.0, 0, 0))
+                else None }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6562,8 +6709,13 @@ struct
     dst.usepbo         <- src.usepbo;
     dst.wheelbypage    <- src.wheelbypage;
     dst.stcmd          <- src.stcmd;
+    dst.paxcmd         <- src.paxcmd;
     dst.scrollb        <- src.scrollb;
     dst.riani          <- src.riani;
+    dst.pax            <-
+      if src.pax = None
+      then None
+      else Some ((ref (0.0, 0, 0)));
   ;;
 
   let get s =
@@ -6858,6 +7010,9 @@ struct
     let ob s a b =
       if always || a != b
       then Printf.bprintf bb "\n    %s='%b'" s a
+    and op s a b =
+      if always || a <> b
+      then Printf.bprintf bb "\n    %s='%b'" s (a != None)
     and oi s a b =
       if always || a != b
       then Printf.bprintf bb "\n    %s='%d'" s a
@@ -6975,6 +7130,7 @@ struct
     obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
     os "selection-command" c.selcmd dc.selcmd;
     os "synctex-command" c.stcmd dc.stcmd;
+    os "pax-command" c.paxcmd dc.paxcmd;
     ob "update-cursor" c.updatecurs dc.updatecurs;
     oi "hint-font-size" c.hfsize dc.hfsize;
     oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
@@ -6982,6 +7138,7 @@ struct
     ob "use-pbo" c.usepbo dc.usepbo;
     ob "wheel-scrolls-pages" c.wheelbypage dc.wheelbypage;
     ob "remote-in-a-new-instance" c.riani dc.riani;
+    op "point-and-x" c.pax dc.pax;
   ;;
 
   let keymapsbuf always dc c =

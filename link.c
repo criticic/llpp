@@ -2946,6 +2946,159 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
+enum { mark_page, mark_block, mark_line, mark_word };
+
+static int white (int c)
+{
+    return c == ' ' || c == '\n' || c == '\t' || c == '\n' || c == '\r';
+}
+
+CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
+{
+    CAMLparam4 (ptr_v, x_v, y_v, mark_v);
+    CAMLlocal3 (ret_v, tup_v, str_v);
+    fz_rect *b;
+    struct page *page;
+    fz_text_line *line;
+    fz_page_block *pageb;
+    fz_text_block *block;
+    struct pagedim *pdim;
+    int mark = Int_val (mark_v);
+    char *s = String_val (ptr_v);
+    int x = Int_val (x_v), y = Int_val (y_v);
+
+    ret_v = Val_bool (0);
+    if (trylock ("ml_markunder")) {
+        goto done;
+    }
+
+    page = parse_pointer ("ml_markunder", s);
+    pdim = &state.pagedims[page->pdimno];
+    x += pdim->bounds.x0;
+    y += pdim->bounds.y0;
+
+    ensuretext (page);
+
+    if (mark == mark_page)  {
+        int i;
+
+        for (i = page->text->len - 1; i >= 0; --i) {
+            pageb = &page->text->blocks[i];
+            if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
+        }
+        if (i < 0) goto unlock;
+
+        block = pageb->u.text;
+
+        page->fmark.i = 0;
+        page->fmark.span = block->lines->first_span;
+
+        line = &block->lines[block->len - 1];
+        page->lmark.i = line->last_span->len - 1;
+        page->lmark.span = line->last_span;
+        ret_v = Val_bool (1);
+        goto unlock;
+    }
+
+    for (pageb = page->text->blocks;
+         pageb < page->text->blocks + page->text->len;
+         ++pageb) {
+        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
+        block = pageb->u.text;
+
+        b = &block->bbox;
+        if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
+            continue;
+
+        if (mark == mark_block) {
+            page->fmark.i = 0;
+            page->fmark.span = block->lines->first_span;
+
+            line = &block->lines[block->len - 1];
+            page->lmark.i = line->last_span->len - 1;
+            page->lmark.span = line->last_span;
+            ret_v = Val_bool (1);
+            goto unlock;
+        }
+
+        for (line = block->lines;
+             line < block->lines + block->len;
+             ++line) {
+            fz_text_span *span;
+
+            b = &line->bbox;
+            if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
+                continue;
+
+            if (mark == mark_line) {
+                page->fmark.i = 0;
+                page->fmark.span = line->first_span;
+
+                page->lmark.i = line->last_span->len - 1;
+                page->lmark.span = line->last_span;
+                ret_v = Val_bool (1);
+                goto unlock;
+            }
+
+            for (span = line->first_span; span; span = span->next) {
+                int charnum;
+
+                b = &span->bbox;
+                if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
+                    continue;
+
+                for (charnum = 0; charnum < span->len; ++charnum) {
+                    fz_rect bbox;
+                    fz_text_char_bbox (&bbox, span, charnum);
+                    b = &bbox;
+
+                    if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                        /* unicode ftw */
+                        int charnum2, charnum3 = -1, charnum4 = -1;
+
+                        if (white (span->text[charnum].c)) goto unlock;
+
+                        for (charnum2 = charnum; charnum2 >= 0; --charnum2) {
+                            if (white (span->text[charnum2].c)) {
+                                charnum3 = charnum2 + 1;
+                                break;
+                            }
+                        }
+                        if (charnum3 == -1) charnum3 = 0;
+
+                        for (charnum2 = charnum + 1;
+                             charnum2 < span->len;
+                             ++charnum2) {
+                            if (white (span->text[charnum2].c)) break;
+                            charnum4 = charnum2;
+                        }
+                        if (charnum4 == -1) goto unlock;
+
+                        page->fmark.i = charnum3;
+                        page->fmark.span = span;
+
+                        page->lmark.i = charnum4;
+                        page->lmark.span = span;
+                        ret_v = Val_bool (1);
+                        goto unlock;
+                    }
+                }
+            }
+        }
+    }
+ unlock:
+    unlock ("ml_markunder");
+
+ done:
+    if (!Bool_val (ret_v)) {
+        page->fmark.span = NULL;
+        page->lmark.span = NULL;
+        page->fmark.i = 0;
+        page->lmark.i = 0;
+    }
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_seltext (value ptr_v, value rect_v)
 {
     CAMLparam2 (ptr_v, rect_v);
@@ -3156,9 +3309,9 @@ CAMLprim value ml_popen (value command_v, value fds_v)
 }
 #endif
 
-CAMLprim value ml_copysel (value fd_v, value ptr_v)
+CAMLprim value ml_copysel (value fd_v, value ptr_v, value clear_v)
 {
-    CAMLparam1 (ptr_v);
+    CAMLparam3 (fd_v, ptr_v, clear_v);
     FILE *f;
     int seen = 0;
     struct page *page;
@@ -3167,6 +3320,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     fz_text_block *block;
     int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
+    int clear = Bool_val (clear_v);
 
     if (trylock ("ml_copysel")) {
         goto done;
@@ -3223,8 +3377,10 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
         }
     }
  endloop:
-    page->lmark.span = NULL;
-    page->fmark.span = NULL;
+    if (clear) {
+        page->lmark.span = NULL;
+        page->fmark.span = NULL;
+    }
 
  close:
     if (f != stdout) {
