@@ -1104,7 +1104,7 @@ end);;
 module MTE = TextEnumMake (struct
   type t = mark;;
   let name = "mark";;
-  let names = [|"word"; "line"; "block"; "page"|];;
+  let names = [|"page"; "block"; "line"; "word"|];;
 end);;
 
 module FMTE = TextEnumMake (struct
