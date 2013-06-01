@@ -3087,15 +3087,15 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
         }
     }
  unlock:
-    unlock ("ml_markunder");
-
- done:
     if (!Bool_val (ret_v)) {
         page->fmark.span = NULL;
         page->lmark.span = NULL;
         page->fmark.i = 0;
         page->lmark.i = 0;
     }
+    unlock ("ml_markunder");
+
+ done:
     CAMLreturn (ret_v);
 }
 
