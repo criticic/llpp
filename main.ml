@@ -4371,12 +4371,11 @@ let enterinfomode =
               coe (new listview ~source ~trusted:true ~modehash)
           )) :: m_l
 
-      method roammark name get set =
+      method paxmark name get set =
         m_l <-
           (name, `string get, 1, Action (
             fun _ ->
               let source =
-                let vals = [| "page"; "block"; "line"; "word" |] in
                 (object
                   inherit lvsourcebase
 
@@ -4384,8 +4383,8 @@ let enterinfomode =
                     m_active <- MTE.to_int conf.paxmark;
                     m_first <- 0;
 
-                  method getitemcount = Array.length vals
-                  method getitem n = (vals.(n), 0)
+                  method getitemcount = Array.length MTE.names
+                  method getitem n = (MTE.names.(n), 0)
                   method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
                     ignore (uioh, first, pan, qsearch);
                     if not cancel then set active;
@@ -4403,7 +4402,6 @@ let enterinfomode =
           (name, `string get, 1, Action (
             fun _ ->
               let source =
-                let vals = [| "fit width"; "proportional"; "fit page" |] in
                 (object
                   inherit lvsourcebase
 
@@ -4411,8 +4409,8 @@ let enterinfomode =
                     m_active <- FMTE.to_int conf.fitmodel;
                     m_first <- 0;
 
-                  method getitemcount = Array.length vals
-                  method getitem n = (vals.(n), 0)
+                  method getitemcount = Array.length FMTE.names
+                  method getitem n = (FMTE.names.(n), 0)
                   method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
                     ignore (uioh, first, pan, qsearch);
                     if not cancel then set active;
@@ -4799,7 +4797,7 @@ let enterinfomode =
           wcmd "cs %d" v;
           load state.layout;
         );
-      src#roammark "pax mark method"
+      src#paxmark "pax mark method"
         (fun () -> MTE.to_string conf.paxmark)
         (fun v -> conf.paxmark <- MTE.of_int v);
       if pbousable ()
