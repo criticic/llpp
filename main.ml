@@ -1070,90 +1070,48 @@ let addchar s c =
   Buffer.contents b;
 ;;
 
-let colorspace_of_string s =
-  match String.lowercase s with
-  | "rgb" -> Rgb
-  | "bgr" -> Bgr
-  | "gray" -> Gray
-  | _ -> failwith "invalid colorspace"
-;;
+module type TextEnumType =
+sig
+  type t
+  val name : string
+  val names : string array
+end;;
 
-let int_of_colorspace = function
-  | Rgb -> 0
-  | Bgr -> 1
-  | Gray -> 2
-;;
+module TextEnumMake (Ten : TextEnumType) =
+struct
+  let names = Ten.names;;
+  let to_int (t : Ten.t)  = Obj.magic t;;
+  let to_string t = names.(to_int t);;
+  let of_int n : Ten.t = Obj.magic n;;
+  let of_string s =
+    let rec find i =
+      if i = Array.length names
+      then failwith ("invalid " ^ Ten.name ^ ": " ^ s)
+      else (
+        if Ten.names.(i) = s
+        then of_int i
+        else find (i+1)
+      )
+    in find 0;;
+end;;
 
-let colorspace_of_int = function
-  | 0 -> Rgb
-  | 1 -> Bgr
-  | 2 -> Gray
-  | n -> failwith ("invalid colorspace index " ^ string_of_int n)
-;;
+module CSTE = TextEnumMake (struct
+  type t = colorspace;;
+  let name = "colorspace";;
+  let names = [|"rgb"; "bgr"; "gray"|];;
+end);;
 
-let colorspace_to_string = function
-  | Rgb -> "rgb"
-  | Bgr -> "bgr"
-  | Gray -> "gray"
-;;
+module MTE = TextEnumMake (struct
+  type t = mark;;
+  let name = "mark";;
+  let names = [|"word"; "line"; "block"; "page"|];;
+end);;
 
-let mark_of_string s =
-  match String.lowercase s with
-  | "word" -> Mark_word
-  | "line" -> Mark_line
-  | "block" -> Mark_block
-  | "page" -> Mark_page
-  | _ -> failwith "invalid colorspace"
-;;
-
-let int_of_mark = function
-  | Mark_page -> 0
-  | Mark_block -> 1
-  | Mark_line -> 2
-  | Mark_word -> 3
-;;
-
-let mark_of_int = function
-  | 0 -> Mark_page
-  | 1 -> Mark_block
-  | 2 -> Mark_line
-  | 3 -> Mark_word
-  | n -> failwith ("invalid mark index " ^ string_of_int n)
-;;
-
-let mark_to_string = function
-  | Mark_word -> "word"
-  | Mark_line -> "line"
-  | Mark_block -> "block"
-  | Mark_page -> "page"
-;;
-
-let fitmodel_of_string s =
-  match String.lowercase s with
-  | "width" -> FitWidth
-  | "proportional" -> FitProportional
-  | "page" -> FitPage
-  | _ -> failwith "invalid fit model"
-;;
-
-let int_of_fitmodel = function
-  | FitWidth -> 0
-  | FitProportional -> 1
-  | FitPage -> 2
-;;
-
-let fitmodel_of_int = function
-  | 0 -> FitWidth
-  | 1 -> FitProportional
-  | 2 -> FitPage
-  | n -> failwith ("invalid fit model index " ^ string_of_int n)
-;;
-
-let fitmodel_to_string = function
-  | FitWidth -> "width"
-  | FitProportional -> "proportional"
-  | FitPage -> "page"
-;;
+module FMTE = TextEnumMake (struct
+  type t= fitmodel;;
+  let name = "fitmodel";;
+  let names = [|"width"; "proportional"; "page"|];;
+end);;
 
 let intentry_with_suffix text key =
   let c =
@@ -2107,7 +2065,7 @@ let opendoc path password =
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %d %s\000"
-        conf.angle (int_of_fitmodel conf.fitmodel)
+        conf.angle (FMTE.to_int conf.fitmodel)
         (stateh state.winh) state.nameddest
     )
 ;;
@@ -2310,7 +2268,7 @@ let reshape w h =
         | Csplit (c, _) -> w * c
       in
       wcmd "geometry %d %d %d"
-        w (stateh h) (int_of_fitmodel conf.fitmodel)
+        w (stateh h) (FMTE.to_int conf.fitmodel)
     );
 ;;
 
@@ -2430,7 +2388,7 @@ let logcurrently = function
       dolog
         "Tiling %d[%d,%d] page=%s cs=%s angle"
         l.pageno col row pageopaque
-        (colorspace_to_string colorspace)
+        (CSTE.to_string colorspace)
       ;
       dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
         angle gen conf.angle state.gen
@@ -2890,7 +2848,7 @@ let reqlayout angle fitmodel =
       invalidate "reqlayout"
         (fun () ->
           wcmd "reqlayout %d %d %d"
-            conf.angle (int_of_fitmodel conf.fitmodel) (stateh state.winh)
+            conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh)
         );
   | _ -> ()
 ;;
@@ -4390,16 +4348,17 @@ let enterinfomode =
           (name, `string get, 1, Action (
             fun _ ->
               let source =
-                let vals = [| "rgb"; "bgr"; "gray" |] in
                 (object
                   inherit lvsourcebase
 
                   initializer
-                    m_active <- int_of_colorspace conf.colorspace;
+                    m_active <- CSTE.to_int conf.colorspace;
                     m_first <- 0;
 
-                  method getitemcount = Array.length vals
-                  method getitem n = (vals.(n), 0)
+                  method getitemcount =
+                    Array.length CSTE.names
+                  method getitem n =
+                    (CSTE.names.(n), 0)
                   method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
                     ignore (uioh, first, pan, qsearch);
                     if not cancel then set active;
@@ -4422,7 +4381,7 @@ let enterinfomode =
                   inherit lvsourcebase
 
                   initializer
-                    m_active <- int_of_mark conf.paxmark;
+                    m_active <- MTE.to_int conf.paxmark;
                     m_first <- 0;
 
                   method getitemcount = Array.length vals
@@ -4449,7 +4408,7 @@ let enterinfomode =
                   inherit lvsourcebase
 
                   initializer
-                    m_active <- int_of_fitmodel conf.fitmodel;
+                    m_active <- FMTE.to_int conf.fitmodel;
                     m_first <- 0;
 
                   method getitemcount = Array.length vals
@@ -4558,8 +4517,8 @@ let enterinfomode =
       (fun v -> conf.savebmarks <- v);
 
     src#fitmodel "fit model"
-      (fun () -> fitmodel_to_string conf.fitmodel)
-      (fun v -> reqlayout conf.angle (fitmodel_of_int v));
+      (fun () -> FMTE.to_string conf.fitmodel)
+      (fun v -> reqlayout conf.angle (FMTE.of_int v));
 
     src#bool "trim margins"
       (fun () -> conf.trimmargins)
@@ -4834,15 +4793,15 @@ let enterinfomode =
         (fun () -> conf.paxcmd)
         (fun v -> conf.paxcmd <- v);
       src#colorspace "color space"
-        (fun () -> colorspace_to_string conf.colorspace)
+        (fun () -> CSTE.to_string conf.colorspace)
         (fun v ->
-          conf.colorspace <- colorspace_of_int v;
+          conf.colorspace <- CSTE.of_int v;
           wcmd "cs %d" v;
           load state.layout;
         );
       src#roammark "pax mark method"
-        (fun () -> mark_to_string conf.paxmark)
-        (fun v -> conf.paxmark <- mark_of_int v);
+        (fun () -> MTE.to_string conf.paxmark)
+        (fun v -> conf.paxmark <- MTE.of_int v);
       if pbousable ()
       then
         src#bool "use PBO"
@@ -5319,7 +5278,7 @@ let viewkeyboard key mask =
         | FitProportional -> FitPage
         | FitPage -> FitWidth
       in
-      state.text <- "fit model: " ^ fitmodel_to_string fm;
+      state.text <- "fit model: " ^ FMTE.to_string fm;
       reqlayout conf.angle fm
 
   | 0xffc6 ->                           (* f9 *)
@@ -6538,7 +6497,7 @@ struct
               else FitWidth
             in
             { c with fitmodel = fm }
-        | "fit-model" -> { c with fitmodel = fitmodel_of_string v }
+        | "fit-model" -> { c with fitmodel = FMTE.of_string v }
         | "pixmap-cache-size" ->
             { c with memlimit = max 2 (int_of_string_with_suffix v) }
         | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
@@ -6556,7 +6515,7 @@ struct
         | "trim-fuzz" -> { c with trimfuzz = irect_of_string v }
         | "uri-launcher" -> { c with urilauncher = unent v }
         | "path-launcher" -> { c with pathlauncher = unent v }
-        | "color-space" -> { c with colorspace = colorspace_of_string v }
+        | "color-space" -> { c with colorspace = CSTE.of_string v }
         | "invert-colors" -> { c with invert = bool_of_string v }
         | "brightness" -> { c with colorscale = float_of_string v }
         | "redirectstderr" -> { c with redirectstderr = bool_of_string v }
@@ -7032,7 +6991,7 @@ struct
     and oC s a b =
       if always || a <> b
       then
-        Printf.bprintf bb "\n    %s='%s'" s (colorspace_to_string a)
+        Printf.bprintf bb "\n    %s='%s'" s (CSTE.to_string a)
     and oR s a b =
       if always || a <> b
       then
@@ -7078,7 +7037,7 @@ struct
     and oFm s a b =
       if always || a <> b
       then
-        Printf.bprintf bb "\n    %s='%s'" s (fitmodel_to_string a)
+        Printf.bprintf bb "\n    %s='%s'" s (FMTE.to_string a)
     and oSv s a b m =
       if always || a <> b
       then
