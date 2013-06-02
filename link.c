@@ -1245,14 +1245,15 @@ desttoanchor (fz_link_dest *dest)
         a.x = p.x;
     }
     if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
-        double x0, x1, y0, y1;
+        double x0, x1, y0, y1, h;
 
         x0 = MIN (pdim->bounds.x0, pdim->bounds.x1);
         x1 = MAX (pdim->bounds.x0, pdim->bounds.x1);
         a.w = x1 - x0;
         y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
         y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
-        a.h = y1 - y0;
+        h = y1 - y0;
+        a.h = h > (1<<30) ? 0 : h;
         a.n = dest->ld.gotor.page;
     }
     return a;
@@ -1261,11 +1262,17 @@ desttoanchor (fz_link_dest *dest)
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        struct anchor a = desttoanchor (&outline->dest);
+        if (outline->dest.kind == FZ_LINK_GOTO) {
+            struct anchor a = desttoanchor (&outline->dest);
 
-        if (a.n >= 0) {
-            printd ("o %d %d %d %d %s",
-                    level, a.n, a.y, a.h, outline->title);
+            if (a.n >= 0) {
+                printd ("o %d %d %d %d %s",
+                        level, a.n, a.y, a.h, outline->title);
+            }
+        }
+        else {
+            printd ("emsg Unhandled outline kind %d for %s\n",
+                    outline->dest.kind, outline->title);
         }
         if (outline->down) {
             recurse_outline (outline->down, level + 1);
