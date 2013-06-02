@@ -2958,9 +2958,10 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
 enum { mark_page, mark_block, mark_line, mark_word };
 
-static int white (int c)
+static int uninteresting (int c)
 {
-    return c == ' ' || c == '\n' || c == '\t' || c == '\n' || c == '\r';
+    return c == ' ' || c == '\n' || c == '\t' || c == '\n' || c == '\r'
+        || ispunct (c);
 }
 
 CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
@@ -3066,10 +3067,10 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                         /* unicode ftw */
                         int charnum2, charnum3 = -1, charnum4 = -1;
 
-                        if (white (span->text[charnum].c)) goto unlock;
+                        if (uninteresting (span->text[charnum].c)) goto unlock;
 
                         for (charnum2 = charnum; charnum2 >= 0; --charnum2) {
-                            if (white (span->text[charnum2].c)) {
+                            if (uninteresting (span->text[charnum2].c)) {
                                 charnum3 = charnum2 + 1;
                                 break;
                             }
@@ -3079,7 +3080,7 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                         for (charnum2 = charnum + 1;
                              charnum2 < span->len;
                              ++charnum2) {
-                            if (white (span->text[charnum2].c)) break;
+                            if (uninteresting (span->text[charnum2].c)) break;
                             charnum4 = charnum2;
                         }
                         if (charnum4 == -1) goto unlock;
