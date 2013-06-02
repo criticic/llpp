@@ -1239,21 +1239,22 @@ desttoanchor (fz_link_dest *dest)
         fz_point p;
         if (dest->ld.gotor.flags & fz_link_flag_l_valid)
             p.x = dest->ld.gotor.lt.x;
+        else
+            p.x = 0.0;
         p.y = dest->ld.gotor.lt.y;
         fz_transform_point (&p, &pdim->lctm);
         a.y = p.y;
         a.x = p.x;
     }
     if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
-        double x0, x1, y0, y1, h;
+        double x0, x1, y0, y1;
 
         x0 = MIN (pdim->bounds.x0, pdim->bounds.x1);
         x1 = MAX (pdim->bounds.x0, pdim->bounds.x1);
         a.w = x1 - x0;
         y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
         y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
-        h = y1 - y0;
-        a.h = h > (1<<30) ? 0 : h;
+        a.h = y1 - y0;
         a.n = dest->ld.gotor.page;
     }
     return a;
