@@ -6554,6 +6554,7 @@ struct
                 if bool_of_string v
                 then Some (ref (0.0, 0, 0))
                 else None }
+        | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -6669,6 +6670,7 @@ struct
     dst.paxcmd         <- src.paxcmd;
     dst.scrollb        <- src.scrollb;
     dst.riani          <- src.riani;
+    dst.paxmark        <- src.paxmark;
     dst.pax            <-
       if src.pax = None
       then None
@@ -7040,6 +7042,10 @@ struct
       if always || a <> b
       then
         Printf.bprintf bb "\n    %s='%b'" s (a land m != 0)
+    and oPm s a b =
+      if always || a <> b
+      then
+        Printf.bprintf bb "\n    %s='%s'" s (MTE.to_string a)
     in
     oi "width" c.cwinw dc.cwinw;
     oi "height" c.cwinh dc.cwinh;
@@ -7096,6 +7102,7 @@ struct
     ob "wheel-scrolls-pages" c.wheelbypage dc.wheelbypage;
     ob "remote-in-a-new-instance" c.riani dc.riani;
     op "point-and-x" c.pax dc.pax;
+    oPm "point-and-x-mark" c.paxmark dc.paxmark;
   ;;
 
   let keymapsbuf always dc c =
