@@ -7592,6 +7592,31 @@ let () =
 
   setcheckers conf.checkers;
   redirectstderr ();
+  if conf.redirectstderr
+  then
+    at_exit (fun () ->
+      let s = Buffer.contents state.errmsgs ^
+        (match state.errfd with
+        | Some fd ->
+            let s = String.create (80*24) in
+            let n =
+              try
+                let r, _, _ = Unix.select [fd] [] [] 0.0 in
+                if List.mem fd r
+                then Unix.read fd s 0 (String.length s)
+                else 0
+              with _ -> 0
+            in
+            if n = 0
+            then ""
+            else String.sub s 0 n
+        | None -> ""
+        )
+      in
+      try ignore (Unix.write state.stderr s 0 (String.length s))
+      with exn -> print_endline (exntos exn)
+    )
+  ;
 
   init (cr, cw) (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
