@@ -2998,7 +2998,7 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 
     ensuretext (page);
 
-    if (mark == mark_page)  {
+    if (mark == mark_page) {
         int i;
 
         for (i = page->text->len - 1; i >= 0; --i) {
