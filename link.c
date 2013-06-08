@@ -227,6 +227,7 @@ struct {
     void (*freepage) (void *);
 
     char *trimcachepath;
+    int cxack;
 
     GLuint stid;
 
@@ -883,7 +884,7 @@ static void initpdims (void)
     double start, end;
     int pageno, trim, show;
     FILE *trimf = NULL;
-    int trimw = 0;
+    int trimw = 0, cxcount;
 
     start = now ();
 
@@ -894,7 +895,13 @@ static void initpdims (void)
             trimw = 1;
         }
     }
-    for (pageno = 0; pageno < state.pagecount; ++pageno) {
+
+    if (state.trimmargins || state.type == DPDF || !state.cxack)
+        cxcount = state.pagecount;
+    else
+        cxcount = MIN (state.pagecount, 1);
+
+    for (pageno = 0; pageno < cxcount; ++pageno) {
         int rotate = 0;
         struct pagedim *p;
         fz_rect mediabox;
@@ -1704,14 +1711,14 @@ static void * mainloop (void *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
-            size_t filenamelen;
             int wthack, off;
             char *password;
             char *filename;
             char *utf8filename;
+            size_t filenamelen;
 
-            ret = sscanf (p + 5, " %d %n", &wthack, &off);
-            if (ret != 1) {
+            ret = sscanf (p + 5, " %d %d %n", &wthack, &state.cxack, &off);
+            if (ret != 2) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
 

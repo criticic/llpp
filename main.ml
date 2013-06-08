@@ -595,6 +595,7 @@ let defconf =
 ;;
 
 let wtmode = ref false;;
+let cxack = ref false;;
 
 let findkeyhash c name =
   try List.assoc name c.keyhashes
@@ -2061,7 +2062,7 @@ let opendoc path password =
     else state.origin
   in
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
-  wcmd "open %d %s\000%s\000" (btod !wtmode) path password;
+  wcmd "open %d %d %s\000%s\000" (btod !wtmode) (btod !cxack) path password;
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %d %s\000"
@@ -7481,6 +7482,7 @@ let () =
          "<named-destination> Set named destination");
 
          ("-wtmode", Arg.Set wtmode, " Operate in wt mode");
+         ("-cxack", Arg.Set cxack, " Cut corners");
 
          ("-remote", Arg.String (fun s -> rcmdpath := s),
          "<path> Set path to the remote commands source");
