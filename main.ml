@@ -120,6 +120,8 @@ external pbousable : unit -> bool = "ml_pbo_usable";;
 external unproject : opaque -> int -> int -> (int * int) option
   = "ml_unproject";;
 external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
+external rectofblock : opaque -> int -> int -> float array option
+  = "ml_rectofblock";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -499,6 +501,7 @@ type state =
     ; mutable reprf         : (unit -> unit)
     ; mutable origin        : string
     ; mutable roam          : (unit -> unit)
+    ; mutable bzoom         : bool
     }
 and hists =
     { pat : string circbuf
@@ -746,6 +749,7 @@ let state =
   ; reprf         = noreprf
   ; origin        = ""
   ; roam          = (fun () -> ())
+  ; bzoom         = false
   }
 ;;
 
@@ -913,7 +917,16 @@ let onppundermouse g x y d =
 ;;
 
 let getunder x y =
-  let g opaque _ px py =
+  let g opaque l px py =
+    if state.bzoom
+    then  (
+      match rectofblock opaque px py with
+      | Some a ->
+          let rect = (a.(0),a.(2),a.(1),a.(2),a.(1),a.(3),a.(0),a.(3)) in
+          state.rects <- [l.pageno, l.pageno mod 3, rect];
+          G.postRedisplay "rectofblock";
+      | None -> ()
+    );
     match whatsunder opaque px py with
     | Unone -> None
     | under -> Some under
@@ -3206,6 +3219,11 @@ let optentry mode _ key =
         else conf.pax <- None;
         TEdone ("PAX " ^ btos (conf.pax != None))
 
+    | 'B' ->
+        state.bzoom <- not state.bzoom;
+        state.rects <- [];
+        TEdone ("block zoom " ^ btos (state.bzoom))
+
     | _ ->
         state.text <- Printf.sprintf "bad option %d `%c'" key c;
         TEstop
@@ -5245,7 +5263,7 @@ let viewkeyboard key mask =
   | 45 | 0xffad ->                      (* - *)
       let ondone msg = state.text <- msg in
       enttext (
-        "option [acfhilpstvxACFPRSZTISM]: ", "", None,
+        "option [acfhilpstvxACFPRSZTISMB]: ", "", None,
         optentry state.mode, ondone, true
       )
 
@@ -5995,6 +6013,38 @@ let zoomrect x y x1 y1 =
   state.mstate <- Mnone;
 ;;
 
+let zoomblock x y =
+  let g opaque l px py =
+    match rectofblock opaque px py with
+    | Some a ->
+        let x0 = a.(0) -. 20. in
+        let x1 = a.(1) +. 20. in
+        let y0 = a.(2) -. 20. in
+        state.rects <- [];
+        gotoy (getpagey l.pageno + truncate y0);
+        state.anchor <- getanchor ();
+        let zoom = (float state.w) /. (x1 -. x0) in
+        let margin =
+          match conf.fitmodel, conf.columns with
+          | FitPage, Csplit _ ->
+              onppundermouse (fun _ l _ _ -> Some l.pagedispx)
+                (truncate x0) (truncate y0) 0
+
+          | _, _ ->
+              let adjw = wadjsb state.winw in
+              if state.w < adjw
+              then (adjw - state.w) / 2
+              else 0
+        in
+        state.x <- margin - truncate x0;
+        setzoom zoom;
+        state.bzoom <- false;
+        None
+    | None -> None
+  in
+  onppundermouse g x y ()
+;;
+
 let scrollx x =
   let winw = wadjsb state.winw - 1 in
   let s = float x /. float winw in
@@ -6129,6 +6179,8 @@ let viewmouse button down x y mask =
         else scrollx x
       else
         state.mstate <- Mnone
+
+  | 1 when state.bzoom -> zoomblock x y
 
   | 1 ->
       let dest = if down then getunder x y else Unone in

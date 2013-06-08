@@ -3118,6 +3118,64 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     CAMLreturn (ret_v);
 }
 
+CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
+{
+    CAMLparam3 (ptr_v, x_v, y_v);
+    CAMLlocal2 (ret_v, res_v);
+    fz_rect *b = NULL;
+    struct page *page;
+    fz_page_block *pageb;
+    struct pagedim *pdim;
+    char *s = String_val (ptr_v);
+    int x = Int_val (x_v), y = Int_val (y_v);
+
+    ret_v = Val_int (0);
+    if (trylock ("ml_rectofblock")) {
+        goto done;
+    }
+
+    page = parse_pointer ("ml_rectofblock", s);
+    pdim = &state.pagedims[page->pdimno];
+    x += pdim->bounds.x0;
+    y += pdim->bounds.y0;
+
+    ensuretext (page);
+
+    for (pageb = page->text->blocks;
+         pageb < page->text->blocks + page->text->len;
+         ++pageb) {
+        switch (pageb->type) {
+        case FZ_PAGE_BLOCK_TEXT:
+            b = &pageb->u.text->bbox;
+            break;
+
+        case FZ_PAGE_BLOCK_IMAGE:
+            b = &pageb->u.image->bbox;
+            break;
+
+        default:
+            continue;
+        }
+
+        if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1)
+            break;
+        b = NULL;
+    }
+    if (b) {
+        res_v = caml_alloc_small (4 * Double_wosize, Double_array_tag);
+        ret_v = caml_alloc_small (1, 1);
+        Store_double_field (res_v, 0, b->x0);
+        Store_double_field (res_v, 1, b->x1);
+        Store_double_field (res_v, 2, b->y0);
+        Store_double_field (res_v, 3, b->y1);
+        Field (ret_v, 0) = res_v;
+    }
+    unlock ("ml_rectofblock");
+
+ done:
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_seltext (value ptr_v, value rect_v)
 {
     CAMLparam2 (ptr_v, rect_v);
