@@ -489,7 +489,7 @@ type state =
     ; mutable docinfo       : (int * string) list
     ; mutable texid         : GlTex.texture_id option
     ; hists                 : hists
-    ; mutable prevzoom      : float
+    ; mutable prevzoom      : (float * int)
     ; mutable progress      : float
     ; mutable redisplay     : bool
     ; mutable mpos          : mpos
@@ -736,7 +736,7 @@ let state =
   ; help          = makehelp ()
   ; docinfo       = []
   ; texid         = None
-  ; prevzoom      = 1.0
+  ; prevzoom      = (1.0, 0)
   ; progress      = -1.0
   ; uioh          = nouioh
   ; redisplay     = true
@@ -2885,7 +2885,7 @@ let setzoom zoom =
       let zoom = max 0.0001 zoom in
       if zoom <> conf.zoom
       then (
-        state.prevzoom <- conf.zoom;
+        state.prevzoom <- (conf.zoom, state.x);
         conf.zoom <- zoom;
         reshape state.winw state.winh;
         state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
@@ -5505,8 +5505,11 @@ let viewkeyboard key mask =
         setcolumns View c a b;
         setzoom z
 
-  | 0xff54 | 0xff52 when ctrl && Wsi.withshift mask ->
-      setzoom state.prevzoom
+  | 0xff54 | 0xff52 when ctrl && Wsi.withshift mask
+        ->                              (* ctrl-shift- (kp) [up|down] *)
+      let zoom, x = state.prevzoom in
+      setzoom zoom;
+      state.x <- x;
 
   | 107 | 0xff52 | 0xff97 ->            (* k (kp) up *)
       begin match state.autoscroll with
