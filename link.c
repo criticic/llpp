@@ -523,7 +523,7 @@ static void pdfinfo (void)
         printd ("info PDF version\t%d.%d",
                 state.u.pdf->version / 10, state.u.pdf->version % 10);
 
-        infoobj = pdf_dict_gets (state.u.pdf->trailer, "Info");
+        infoobj = pdf_dict_gets (pdf_trailer (state.u.pdf), "Info");
         if (infoobj) {
             int i;
             char *s;
