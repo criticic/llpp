@@ -2975,7 +2975,7 @@ static int uninteresting (int c)
 CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 {
     CAMLparam4 (ptr_v, x_v, y_v, mark_v);
-    CAMLlocal3 (ret_v, tup_v, str_v);
+    CAMLlocal1 (ret_v);
     fz_rect *b;
     struct page *page;
     fz_text_line *line;
