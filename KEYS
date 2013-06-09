@@ -22,6 +22,7 @@ u                       - dehighlight
 -                       - toggle/set tunable
 0..9                    - enter page number to jump to
 b                       - toggle scroll bar
+B                       - toggle zoom block mode
 l                       - toggle links highlighting
 f                       - toggle fullscreen
 n                       - repeat last search (forward)
@@ -91,7 +92,6 @@ tunables
 -T                      - toggle trimming of margins
 -I                      - invert colors
 -M                      - toggle pax mode
--B                      - toggle block zoom mode
 -C<number>              - set column count
 -x<string>              - set command to run on selection
 -f                      - toggle "what's under cursor" identification

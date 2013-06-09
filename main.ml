@@ -3219,11 +3219,6 @@ let optentry mode _ key =
         else conf.pax <- None;
         TEdone ("PAX " ^ btos (conf.pax != None))
 
-    | 'B' ->
-        state.bzoom <- not state.bzoom;
-        state.rects <- [];
-        TEdone ("block zoom " ^ btos (state.bzoom))
-
     | _ ->
         state.text <- Printf.sprintf "bad option %d `%c'" key c;
         TEstop
@@ -5263,7 +5258,7 @@ let viewkeyboard key mask =
   | 45 | 0xffad ->                      (* - *)
       let ondone msg = state.text <- msg in
       enttext (
-        "option [acfhilpstvxACFPRSZTISMB]: ", "", None,
+        "option [acfhilpstvxACFPRSZTISM]: ", "", None,
         optentry state.mode, ondone, true
       )
 
@@ -5330,6 +5325,11 @@ let viewkeyboard key mask =
   | 98 ->                               (* b *)
       conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
       reshape state.winw state.winh;
+
+  | 66 ->                               (* B *)
+      state.bzoom <- not state.bzoom;
+      state.rects <- [];
+      showtext ' ' ("block zoom " ^ if state.bzoom then "on" else "off")
 
   | 108 ->                              (* l *)
       conf.hlinks <- not conf.hlinks;
@@ -6027,21 +6027,12 @@ let zoomblock x y =
         gotoy (getpagey l.pageno + truncate y0);
         state.anchor <- getanchor ();
         let zoom = (float state.w) /. (x1 -. x0) in
-        let margin =
-          match conf.fitmodel, conf.columns with
-          | FitPage, Csplit _ ->
-              onppundermouse (fun _ l _ _ -> Some l.pagedispx)
-                (truncate x0) (truncate y0) 0
-
-          | _, _ ->
-              let adjw = wadjsb state.winw in
-              if state.w < adjw
-              then (adjw - state.w) / 2
-              else 0
+        let margin = onppundermouse (fun _ l _ _ -> Some (l.pagedispx))
+          (truncate x0) (truncate y0) 0
         in
         state.x <- margin - truncate x0;
-        setzoom zoom;
         state.bzoom <- false;
+        setzoom zoom;
         None
     | None -> None
   in
