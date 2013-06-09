@@ -1029,9 +1029,11 @@ static void initpdims (void)
                         }
                     }
                     xps_free_page (state.u.xps, page);
-                    printd ("progress %f loading %d",
-                            (double) (pageno + 1) / state.pagecount,
-                            pageno + 1);
+                    if (!state.cxack) {
+                        printd ("progress %f loading %d",
+                                (double) (pageno + 1) / state.pagecount,
+                                pageno + 1);
+                    }
                 }
                 fz_catch (state.ctx) {
                 }
@@ -1080,9 +1082,6 @@ static void initpdims (void)
                                 page = cbz_load_page (state.u.cbz, pageno);
                                 cbz_bound_page (state.u.cbz, page, &mediabox);
                                 cbz_free_page (state.u.cbz, page);
-                                printd ("progress %f Trimming %d",
-                                        (double) (pageno + 1) / state.pagecount,
-                                        pageno + 1);
                             }
                             fz_catch (state.ctx) {
                                 fprintf (stderr, "failed to load cbz page\n");
