@@ -6027,7 +6027,18 @@ let zoomblock x y =
         gotoy_and_clear_text (getpagey l.pageno + truncate y0);
         state.anchor <- getanchor ();
         let zoom = (float state.w) /. (x1 -. x0) in
-        state.x <- -truncate x0 - l.pagedispx;
+        begin match conf.fitmodel, conf.columns with
+        | FitPage, Csplit _ ->
+            state.x <- state.x - truncate x0
+        | _, _ ->
+            let margin =
+              let adjw = wadjsb state.winw in
+              if state.w < adjw
+              then (adjw - state.w) / 2
+              else 0
+            in
+            state.x <- (state.x + margin) - (truncate x0 + l.pagedispx)
+        end;
         setzoom zoom;
         None
     | None -> None
