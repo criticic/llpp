@@ -6023,27 +6023,20 @@ let zoomblock x y =
         let x0 = a.(0) -. 20. in
         let x1 = a.(1) +. 20. in
         let y0 = a.(2) -. 20. in
-        state.rects <- [];
-        gotoy_and_clear_text (getpagey l.pageno + truncate y0);
-        state.anchor <- getanchor ();
         let zoom = (float state.w) /. (x1 -. x0) in
-        begin match conf.fitmodel, conf.columns with
-        | FitPage, Csplit _ ->
-            state.x <- state.x - truncate x0
-        | _, _ ->
-            let margin =
-              let adjw = wadjsb state.winw in
-              if state.w < adjw
-              then (adjw - state.w) / 2
-              else 0
-            in
-            state.x <- (state.x + margin) - (truncate x0 + l.pagedispx)
-        end;
+        let pagey = getpagey l.pageno + l.pageh*l.pagecol in
+        gotoy_and_clear_text (pagey + truncate y0);
+        state.anchor <- getanchor ();
+        let margin = (state.w - l.pagew)/2 in
+        state.x <- -truncate x0 - margin;
         setzoom zoom;
         None
     | None -> None
   in
-  onppundermouse g x y ()
+  match conf.columns with
+  | Csplit _ ->
+      showtext '!' "block zooming does not work properly in split columns mode"
+  | _ -> onppundermouse g x y ()
 ;;
 
 let scrollx x =
@@ -6181,7 +6174,7 @@ let viewmouse button down x y mask =
       else
         state.mstate <- Mnone
 
-  | 1 when state.bzoom -> zoomblock x y
+  | 1 when state.bzoom -> if not down then zoomblock x y
 
   | 1 ->
       let dest = if down then getunder x y else Unone in
