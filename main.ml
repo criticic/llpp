@@ -6024,14 +6024,10 @@ let zoomblock x y =
         let x1 = a.(1) +. 20. in
         let y0 = a.(2) -. 20. in
         state.rects <- [];
-        gotoy (getpagey l.pageno + truncate y0);
+        gotoy_and_clear_text (getpagey l.pageno + truncate y0);
         state.anchor <- getanchor ();
         let zoom = (float state.w) /. (x1 -. x0) in
-        let margin = onppundermouse (fun _ l _ _ -> Some (l.pagedispx))
-          (truncate x0) (truncate y0) 0
-        in
-        state.x <- margin - truncate x0;
-        state.bzoom <- false;
+        state.x <- -truncate x0 - l.pagedispx;
         setzoom zoom;
         None
     | None -> None
