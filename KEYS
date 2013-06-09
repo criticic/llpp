@@ -7,10 +7,10 @@ mouse buttons 5/6       - .............. (aka horizontal mouse wheel)
 cntrol + shift up/down  - set previous zoom level
 control + arrows        - scroll up/down, pan left/right (by half a screen widht/height)
 primary mouse button[1] - click on link or select text[2]
-                        - pan if there's no text/links under the cursor
   when shift is held    - execute "synctex command" with coordinates of the point [3]
   when control is held  - pan
   zoom to block         - when in block zoom mode
+  otherwise             - pan if there's no text/link under the cursor
 other mouse button[1]   - select rectangle to zoom to
 escape/q                - quit
 Q                       - quit without saving the configuration
@@ -23,20 +23,20 @@ u                       - dehighlight
 0..9                    - enter page number to jump to
 b                       - toggle scroll bar
 B                       - toggle zoom block mode
-l                       - toggle links highlighting
+l                       - toggle highlighting of the links
 f                       - toggle fullscreen
 n                       - repeat last search (forward)
 p, N                    - .................. (backward)
 g, G                    - go to first/last page
 t                       - align top of the screen with the top of the page
-F                       - go to numbered link
+F                       - go to hinted link
 y                       - select link and paste its description to the clipboard
 space                   - go to the next page
 delete                  - go to the previous page
 insert                  - toggle link navigation mode
 return                  - (in link navigation mode) follow link
 =                       - show current position
-w                       - change height to encompass all of the page
+w                       - change height of the window to encompass all of the page
 o                       - switch to outline mode
 '                       - switch to bookmark mode
 h,F1                    - switch to help mode
@@ -45,7 +45,7 @@ e                       - view error log
 m                       - create named bookmark
 ~                       - create quick bookmark
 z                       - crop
-x                       - run pax command on pointed region
+x                       - run pax command on selected region
 r                       - reload document [5]
 P                       - "presentation" mode
 a                       - autoscroll
