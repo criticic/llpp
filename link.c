@@ -1041,6 +1041,10 @@ static void initpdims (void)
         case DCBZ:
             {
                 rotate = 0;
+                mediabox.x0 = 0;
+                mediabox.y0 = 0;
+                mediabox.x1 = 900;
+                mediabox.y1 = 900;
                 if (state.trimmargins && trimw) {
                     cbz_page *page;
 
@@ -1054,10 +1058,6 @@ static void initpdims (void)
                     }
                     fz_catch (state.ctx) {
                         fprintf (stderr, "failed to load page %d\n", pageno+1);
-                        mediabox.x0 = 0;
-                        mediabox.y0 = 0;
-                        mediabox.x1 = 900;
-                        mediabox.y1 = 900;
                     }
                     if (trimf) {
                         int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
@@ -1074,9 +1074,20 @@ static void initpdims (void)
                         }
                     }
                     else {
-                        mediabox.x0 = mediabox.y0 = 0;
-                        mediabox.x1 = 900;
-                        mediabox.y1 = 900;
+                        if (state.cxack) {
+                            cbz_page *page;
+                            fz_try (state.ctx) {
+                                page = cbz_load_page (state.u.cbz, pageno);
+                                cbz_bound_page (state.u.cbz, page, &mediabox);
+                                cbz_free_page (state.u.cbz, page);
+                                printd ("progress %f Trimming %d",
+                                        (double) (pageno + 1) / state.pagecount,
+                                        pageno + 1);
+                            }
+                            fz_catch (state.ctx) {
+                                fprintf (stderr, "failed to load cbz page\n");
+                            }
+                        }
                     }
                 }
             }
