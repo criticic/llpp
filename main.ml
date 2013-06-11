@@ -6024,7 +6024,7 @@ let zoomblock x y =
         let x1 = a.(1) +. 20. in
         let y0 = a.(2) -. 20. in
         let zoom = (float state.w) /. (x1 -. x0) in
-        let pagey = getpagey l.pageno + l.pageh*l.pagecol in
+        let pagey = getpagey l.pageno in
         gotoy_and_clear_text (pagey + truncate y0);
         state.anchor <- getanchor ();
         let margin = (state.w - l.pagew)/2 in
