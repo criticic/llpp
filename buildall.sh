@@ -18,7 +18,7 @@ root=$(pwd)
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 baseurl="http://git.ghostscript.com/"
 
-mupdfrev=42db34aa0892c86e20da1063d7e4b07383fd73fe
+mupdfrev=ac84904af638b243284e24d5f401c3f1a21cb0ef
 mudir=mupdf-$(printf "%.7s" $mupdfrev)
 mutgz=mupdf-$mupdfrev.tgz
 muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
@@ -39,7 +39,7 @@ done <<-EOF
 freetype 2ef0a19842ae1172bec153225328aaaeaf130a18
 jbig2dec d02b3649334e59e862b37c70d7d0fa9e086a524c
 jpeg 219d59dcfd0e6ce8a3d8c5510e29237f0b5078ed
-openjpeg 21551ac631b469a9110ef79cf2fcba6ff65636f1
+openjpeg 0970aed6e3990f8df7ef1b70cc22d024439b46d2
 zlib c16b1b18ddaaf090caf321af831bccac6381a381
 EOF
 
@@ -72,13 +72,12 @@ ccopt="$ccopt -I $tp/jpeg"
 ccopt="$ccopt -I $tp/freetype/include"
 ccopt="$ccopt -I $tp/openjpeg/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib"
-ccopt="$ccopt -I $root/$mudir/fitz -I $root/$mudir/pdf -I $root/$mudir/xps"
-ccopt="$ccopt -I $root/$mudir/cbz"
+ccopt="$ccopt -I $root/$mudir/include"
 
 ccopt="$ccopt -include $tp/freetype/include/ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/$mudir/build/release"
-cclib="$cclib -lfitz"
+cclib="$cclib -lmupdf -lmupdf-js-none"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
 cclib="$cclib -lX11"
 

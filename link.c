@@ -30,12 +30,10 @@
 #include <caml/memory.h>
 #include <caml/unixsupport.h>
 
-#include <fitz.h>
-#include <mupdf.h>
-#include <mupdf-internal.h>
-#include <muxps.h>
-#include <muxps-internal.h>
-#include <mucbz.h>
+#include <mupdf/fitz.h>
+#include <mupdf/cbz.h>
+#include <mupdf/pdf.h>
+#include <mupdf/xps.h>
 
 #include FT_FREETYPE_H
 
@@ -574,7 +572,7 @@ static void freepage (struct page *page)
         free (page->slinks);
     }
     page->freepage (page->u.ptr);
-    fz_free_display_list (state.ctx, page->dlist);
+    fz_drop_display_list (state.ctx, page->dlist);
     free (page);
 }
 
@@ -944,15 +942,15 @@ static void initpdims (void)
                             mediabox = rect;
                         }
 
-                        obj = pdf_new_array (state.ctx, 4);
-                        pdf_array_push (obj,
-                                        pdf_new_real (state.ctx, mediabox.x0));
-                        pdf_array_push (obj,
-                                        pdf_new_real (state.ctx, mediabox.y0));
-                        pdf_array_push (obj,
-                                        pdf_new_real (state.ctx, mediabox.x1));
-                        pdf_array_push (obj,
-                                        pdf_new_real (state.ctx, mediabox.y1));
+                        obj = pdf_new_array (state.u.pdf, 4);
+                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
+                                                           mediabox.x0));
+                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
+                                                           mediabox.y0));
+                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
+                                                           mediabox.x1));
+                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
+                                                           mediabox.y1));
                         pdf_dict_puts (pageobj, "llpp.TrimBox", obj);
                     }
                     else {
@@ -1480,7 +1478,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     found:
 
         sheet = fz_new_text_sheet (state.ctx);
-        text = fz_new_text_page (state.ctx, &fz_infinite_rect);
+        text = fz_new_text_page (state.ctx);
         tdev = fz_new_text_device (state.ctx, sheet, text);
 
         switch (state.type) {
@@ -1490,7 +1488,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 u.pdfpage = pdf_load_page (state.u.pdf, pageno);
                 trimctm (u.pdfpage, pdim - state.pagedims);
                 fz_concat (&ctm, &pdim->tctm, &pdim->zoomctm);
+                fz_begin_page (tdev, &fz_infinite_rect, &ctm);
                 pdf_run_page (state.u.pdf, u.pdfpage, tdev, &ctm, NULL);
+                fz_end_page (tdev);
             }
             fz_catch (state.ctx) {
                 fz_free_device (tdev);
@@ -1862,7 +1862,7 @@ static void * mainloop (void *unused)
                 fz_link_dest dest;
                 pdf_obj *needle, *obj;
 
-                needle = pdf_new_string (state.ctx, nameddest,
+                needle = pdf_new_string (state.u.pdf, nameddest,
                                          strlen (nameddest));
                 obj = pdf_lookup_dest (state.u.pdf, needle);
                 if (obj) {
@@ -2539,13 +2539,15 @@ static void ensuretext (struct page *page)
         fz_matrix ctm;
         fz_device *tdev;
 
-        page->text = fz_new_text_page (state.ctx, &fz_infinite_rect);
+        page->text = fz_new_text_page (state.ctx);
         page->sheet = fz_new_text_sheet (state.ctx);
         tdev = fz_new_text_device (state.ctx, page->sheet, page->text);
         ctm = pagectm (page);
+        fz_begin_page (tdev, &fz_infinite_rect, &ctm);
         fz_run_display_list (page->dlist, tdev, &ctm, &fz_infinite_rect, NULL);
         qsort (page->text->blocks, page->text->len,
                sizeof (*page->text->blocks), compareblocks);
+        fz_end_page (tdev);
         fz_free_device (tdev);
     }
 }
