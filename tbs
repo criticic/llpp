@@ -23,7 +23,7 @@ if ! md5sum --status -c $d; then
 fi
 
 mupdf=/home/malc/x/rcs/git/mupdf
-ccopt="-std=gnu89 -Wall -Werror"
+ccopt="-std=c89 -Wall -Werror"
 ccopt="$ccopt -I$mupdf/include"
 ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"
@@ -31,9 +31,7 @@ libs="-lmupdf -lmupdf-js-none"
 libs="$libs -lopenjp2 -ljbig2dec -ljpeg -lz -lfreetype -lX11"
 if test $(hostname) = "linmac"; then
 cc=gcc-4.6.0
-#ccopt="$ccopt -maltivec -O -D_GNU_SOURCE"
-#ccopt="$ccopt -maltivec -D_GNU_SOURCE -DOBSCURED_OPT"
-ccopt="$ccopt -D_GNU_SOURCE -DOBSCURED_OPT"
+ccopt="$ccopt -maltivec -D_GNU_SOURCE -DOBSCURED_OPT"
 else
 cc=cc
 ccopt="$ccopt -O -D_GNU_SOURCE -fPIC"
