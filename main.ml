@@ -7617,7 +7617,11 @@ let () =
     let l = String.length p in
     String.length r > l && String.sub r 0 l = p
   )
-  then defconf.sliceheight <- 1024;
+  then (
+    defconf.sliceheight <- 1024;
+    defconf.texcount <- 32;
+    defconf.usepbo <- true;
+  );
 
   let cr, sw =
     match Ne.pipe () with
