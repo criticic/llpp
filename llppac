@@ -55,11 +55,15 @@ if test -z "$type"; then
             | application/vnd.ms-excel                   \
             | application/vnd.oasis.opendocument.*) type=uno;;
         image/svg+xml) type=svg;;
+        image/png | image/jpeg) type=image2;;
         image/*) type=image;;
         application/x-dvi) type=dvi;;
         *) die "unhandled file type: '$mime'";;
     esac
 fi
+
+suff=
+opts=
 
 case $type in
     ps) conv='ps2pdf - "$casp"';;
@@ -89,6 +93,13 @@ case $type in
             || conv='inkscape -z -A "$casp" -'
     };;
     image) conv='convert - pdf:"$casp"';;
+    image2) {
+        test -n "$dc" && die "can not convert compressed '$mime'"
+        unset filt
+        suff=".cbz"
+        opts="-cxack"
+        conv='zip -0q "$casp" "$1"'
+    };;
     dvi) {
         test -n "$dc" && die "can not convert compressed '$mime'"
         unset filt
@@ -98,7 +109,7 @@ case $type in
 esac
 
 hash=$(md5sum "$1") || die "$hash"
-casp=$CACHEDIR/${hash%% *}
+casp=$CACHEDIR/${hash%% *}$suff
 (test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
 
-exec llpp -origin "$@" "$casp"
+exec llpp $opts -origin "$@" "$casp"
