@@ -1411,7 +1411,9 @@ let layoutN ((columns, coverA, coverB), b) y sh =
         in
         fold accu (n+1)
   in
-  List.rev (fold [] (page_of_y y));
+  if Array.length b = 0
+  then []
+  else List.rev (fold [] (page_of_y y))
 ;;
 
 let layoutS (columns, b) y sh =
