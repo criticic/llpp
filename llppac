@@ -55,7 +55,7 @@ if test -z "$type"; then
             | application/vnd.ms-excel                   \
             | application/vnd.oasis.opendocument.*) type=uno;;
         image/svg+xml) type=svg;;
-        image/png | image/jpeg) type=image2;;
+        image/png | image/jpeg) test -n "$dc" && type="image" || type="image2";;
         image/*) type=image;;
         application/x-dvi) type=dvi;;
         *) die "unhandled file type: '$mime'";;
@@ -94,8 +94,6 @@ case $type in
     };;
     image) conv='convert - pdf:"$casp"';;
     image2) {
-        test -n "$dc" && die "can not convert compressed '$mime'"
-        unset filt
         suff=".cbz"
         opts="-cxack"
         conv='zip -0q "$casp" "$1"'
