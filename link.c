@@ -906,7 +906,8 @@ static void initpdims (void)
 
         switch (state.type) {
         case DPDF: {
-            pdf_obj *pageobj = state.u.pdf->page_objs[pageno];
+            pdf_obj *pageref = pdf_lookup_page_obj (state.u.pdf, pageno);
+            pdf_obj *pageobj = pdf_resolve_indirect (pageref);
 
             if (state.trimmargins) {
                 pdf_obj *obj;
