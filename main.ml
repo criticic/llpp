@@ -3797,7 +3797,7 @@ object (self)
           G.postRedisplay "listview wheel";
           Some (coe {< m_first = first >})
       | n when (n = 6 || n = 7) && not down ->
-          let inc = m_first + (if n = 7 then -1 else 1) in
+          let inc = if n = 7 then -1 else 1 in
           G.postRedisplay "listview hwheel";
           Some (coe {< m_pan = m_pan + inc >})
       | _ ->
