@@ -114,6 +114,7 @@ Ctrl-s                  - repeat search (forward)
 Ctrl-r                  - repeat search (backward)
 Ctrl-l                  - center on current item
 Ctrl-left/right         - pan text left/right
+Ctrl-up/down            - scroll view up/down
 Ctrl-insert             - copy active item's text to clipboard
 
 outline mode

@@ -3861,15 +3861,15 @@ object (self)
     as super
 
   method key key mask =
+    let maxrows =
+      if String.length state.text = 0
+      then fstate.maxrows
+      else fstate.maxrows - 2
+    in
     let calcfirst first active =
       if active > first
       then
         let rows = active - first in
-        let maxrows =
-          if String.length state.text = 0
-          then fstate.maxrows
-          else fstate.maxrows - 2
-        in
         if rows > maxrows then active - maxrows else first
       else active
     in
@@ -3879,6 +3879,20 @@ object (self)
       let first = calcfirst m_first active in
       G.postRedisplay "outline navigate";
       coe {< m_active = active; m_first = first >}
+    in
+    let navscroll first =
+      let active =
+        let dist = m_active - first in
+        if dist < 0
+        then first
+        else (
+          if dist < maxrows
+          then m_active
+          else first + maxrows
+        )
+      in
+      G.postRedisplay "outline navscroll";
+      coe {< m_first = first; m_active = active >}
     in
     let ctrl = Wsi.withctrl mask in
     match key with
@@ -3904,6 +3918,12 @@ object (self)
         let active = max 0 (m_active-1) in
         coe {< m_first = firstof m_first active;
                m_active = active >}
+
+    | 0xff52 | 0xff97 when ctrl ->      (* ctrl-(kp) up *)
+        navscroll (max 0 (m_first - 1))
+
+    | 0xff54 | 0xff99 when ctrl ->      (* ctrl-(kp) down *)
+        navscroll (min (source#getitemcount - 1) (m_first + 1))
 
     | 0xff52 | 0xff97 -> navigate ~-1   (* (kp) up *)
     | 0xff54 | 0xff99 -> navigate 1     (* (kp) down *)
