@@ -3970,6 +3970,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     mustoresize         = Int_val (Field (params_v, 5));
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
+
     state.trimcachepath = strdup (String_val (Field (params_v, 8)));
     if (!state.trimcachepath) {
         fprintf (stderr, "failed to strdup trimcachepath: %s\n",
