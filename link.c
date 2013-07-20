@@ -1896,7 +1896,7 @@ static void * mainloop (void *unused)
 
             ret = sscanf (p + 4, " %d %d", &pageno, &pindex);
             if (ret != 2) {
-                errx (1, "bad render line `%.*s' ret=%d", len, p, ret);
+                errx (1, "bad page line `%.*s' ret=%d", len, p, ret);
             }
 
             lock ("page");
