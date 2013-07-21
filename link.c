@@ -127,7 +127,7 @@ struct slice {
 };
 
 struct tile {
-    int x, y, w, h;
+    int w, h;
     int slicecount;
     int sliceheight;
     struct pbo *pbo;
@@ -696,7 +696,7 @@ static fz_matrix pagectm (struct page *page)
 static void *loadpage (int pageno, int pindex)
 {
     fz_device *dev;
-    struct page *page = NULL;
+    struct page *page;
 
     page = calloc (sizeof (struct page), 1);
     if (!page) {
@@ -3855,26 +3855,13 @@ CAMLprim value ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
-#define GGPA(n) *(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n)
-    GGPA (glBindBufferARB);
-    if (state.glBindBufferARB) {
-        GGPA (glUnmapBufferARB);
-        if (state.glUnmapBufferARB) {
-            GGPA (glMapBufferARB);
-            if (state.glMapBufferARB) {
-                GGPA (glBufferDataARB);
-                if (state.glBufferDataARB) {
-                    GGPA (glGenBuffersARB);
-                    if (state.glGenBuffersARB) {
-                        GGPA (glDeleteBuffersARB);
-                        if (state.glDeleteBuffersARB) {
-                            state.pbo_usable = 1;
-                        }
-                    }
-                }
-            }
-        }
-    }
+#define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
+    state.pbo_usable = GGPA (glBindBufferARB)
+        && GGPA (glUnmapBufferARB)
+        && GGPA (glMapBufferARB)
+        && GGPA (glBufferDataARB)
+        && GGPA (glGenBuffersARB)
+        && GGPA (glDeleteBuffersARB);
 #undef GGPA
 }
 
