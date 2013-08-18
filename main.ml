@@ -7619,7 +7619,7 @@ let () =
 
     method enter x y = state.mpos <- (x, y); pmotion x y
     method leave = state.mpos <- (-1, -1)
-    method winstate wsl = state.winstate <- wsl
+    method winstate wsl = state.winstate <- wsl; m_hack <- false
     method quit = raise Quit
   end) conf.cwinw conf.cwinh (platform = Posx) in
 
