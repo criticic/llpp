@@ -2429,25 +2429,24 @@ let onpagerect pageno f =
   in
   if pageno >= 0 && pageno < Array.length b
   then
-    let (pdimno, _, _, (_, _, _, _)) = b.(pageno) in
-    let r = getpdimrect pdimno in
-    f (r.(1)-.r.(0)) (r.(3)-.r.(2))
+    let (_, _, _, (w, h, _, _)) = b.(pageno) in
+    f w h
 ;;
 
 let gotopagexy1 pageno x y  =
   onpagerect pageno (fun w h ->
-    let top = y /. h in
-    let _,w1,_,leftx = getpagedim pageno in
+    let _,w1,h1,leftx = getpagedim pageno in
+    let top = y /. (float h1) in
+    let left = x /. (float w1) in
     let wh = state.winh - hscrollh () in
-    let sw = float w1 /. w in
-    let x = sw *. x in
+    let x = left *. (float w) in
     let x = leftx + state.x + truncate x in
     let sx =
       if x < 0 || x >= wadjsb state.winw
       then state.x - x
       else state.x
     in
-    let py, h = getpageyh pageno in
+    let py = getpagey pageno in
     let pdy = truncate (top *. float h) in
     let y' = py + pdy in
     let dy = y' - state.y in
@@ -7447,8 +7446,8 @@ let ract cmds =
         (fun pageno color x0 y0 x1 y1 ->
           onpagerect pageno (fun w h ->
             let _,w1,h1,_ = getpagedim pageno in
-            let sw = float w1 /. w
-            and sh = float h1 /. h in
+            let sw = float w1 /. float w
+            and sh = float h1 /. float h in
             let x0s = x0 *. sw
             and x1s = x1 *. sw
             and y0s = y0 *. sh
