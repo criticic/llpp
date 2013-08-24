@@ -1244,38 +1244,44 @@ let calcheight () =
       else 0
 ;;
 
-let getpageyh pageno =
+let getpageywh pageno =
   let pageno = bound pageno 0 (state.pagecount-1) in
   match conf.columns with
   | Csingle b ->
       if Array.length b = 0
-      then 0, 0
+      then 0, 0, 0
       else
-        let (_, _, y, (_, _, h, _)) = b.(pageno) in
+        let (_, _, y, (_, w, h, _)) = b.(pageno) in
         let y =
           if conf.presentation
           then y - calcips h
           else y
         in
-        y, h
+        y, w, h
   | Cmulti (cl, b) ->
       if Array.length b = 0
-      then 0, 0
+      then 0, 0, 0
       else
         let y, h = rowyh cl b pageno in
+        let (_, _, _, (_, w, _, _)) = b.(pageno) in
         let y =
           if conf.presentation
           then y - calcips h
           else y
         in
-        y, h
+        y, w, h
   | Csplit (c, b) ->
       if Array.length b = 0
-      then 0, 0
+      then 0, 0, 0
       else
         let n = pageno*c in
-        let (_, _, y, (_, _, h, _)) = b.(n) in
-        y, h
+        let (_, _, y, (_, w, h, _)) = b.(n) in
+        y, w / c, h
+;;
+
+let getpageyh pageno =
+  let y,_,h = getpageywh pageno in
+  y, h;
 ;;
 
 let getpagedim pageno =
@@ -2434,63 +2440,61 @@ let onpagerect pageno f =
 ;;
 
 let gotopagexy1 pageno x y  =
-  onpagerect pageno (fun w h ->
-    let _,w1,h1,leftx = getpagedim pageno in
-    let top = y /. (float h1) in
-    let left = x /. (float w1) in
-    let wh = state.winh - hscrollh () in
-    let x = left *. (float w) in
-    let x = leftx + state.x + truncate x in
-    let sx =
-      if x < 0 || x >= wadjsb state.winw
-      then state.x - x
-      else state.x
-    in
-    let py = getpagey pageno in
-    let pdy = truncate (top *. float h) in
-    let y' = py + pdy in
-    let dy = y' - state.y in
-    let sy =
-      if x != state.x || not (dy > 0 && dy < wh)
-      then (
-        if conf.presentation
-        then
-          if abs (py - y') > wh
-          then y'
-          else py
-        else y';
-      )
-      else state.y
-    in
-    if state.x != sx || state.y != sy
+  let _,w1,h1,leftx = getpagedim pageno in
+  let top = y /. (float h1) in
+  let left = x /. (float w1) in
+  let py, w, h = getpageywh pageno in
+  let wh = state.winh - hscrollh () in
+  let x = left *. (float w) in
+  let x = leftx + state.x + truncate x in
+  let sx =
+    if x < 0 || x >= wadjsb state.winw
+    then state.x - x
+    else state.x
+  in
+  let pdy = truncate (top *. float h) in
+  let y' = py + pdy in
+  let dy = y' - state.y in
+  let sy =
+    if x != state.x || not (dy > 0 && dy < wh)
     then (
-      let x, y =
-        if !wtmode
-        then (
-          let ww = wadjsb state.winw in
-          let qx = sx / ww
-          and qy = pdy / wh in
-          let x = qx * ww
-          and y = py + qy * wh in
-          let x = if -x + ww > w1 then -(w1-ww) else x
-          and y' = if y + wh > state.maxy then state.maxy - wh else y in
-          let y =
-            if conf.presentation
-            then
-              if abs (py - y') > wh
-              then y'
-              else py
-            else y';
-          in
-          (x, y)
-        )
-        else (sx, sy)
-      in
-      state.x <- x;
-      gotoy_and_clear_text y;
+      if conf.presentation
+      then
+        if abs (py - y') > wh
+        then y'
+        else py
+      else y';
     )
-    else gotoy_and_clear_text state.y;
-  );
+    else state.y
+  in
+  if state.x != sx || state.y != sy
+  then (
+    let x, y =
+      if !wtmode
+      then (
+        let ww = wadjsb state.winw in
+        let qx = sx / ww
+        and qy = pdy / wh in
+        let x = qx * ww
+        and y = py + qy * wh in
+        let x = if -x + ww > w1 then -(w1-ww) else x
+        and y' = if y + wh > state.maxy then state.maxy - wh else y in
+        let y =
+          if conf.presentation
+          then
+            if abs (py - y') > wh
+            then y'
+            else py
+          else y';
+        in
+        (x, y)
+      )
+      else (sx, sy)
+    in
+    state.x <- x;
+    gotoy_and_clear_text y;
+  )
+  else gotoy_and_clear_text state.y;
 ;;
 
 let gotopagexy pageno x y =
