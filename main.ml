@@ -11,6 +11,7 @@ type under =
     | Ulaunch of string
     | Unamed of string
     | Uremote of (string * int)
+    | Uremotedest of (string * string)
 and facename = string;;
 
 type mark =
@@ -1037,6 +1038,8 @@ let undertext = function
   | Unamed s -> "named: " ^ s
   | Uremote (filename, pageno) ->
       Printf.sprintf "%s: page %d" filename (pageno+1)
+  | Uremotedest (filename, destname) ->
+      Printf.sprintf "%s: destination %S" filename destname
 ;;
 
 let updateunder x y =
@@ -1064,6 +1067,10 @@ let updateunder x y =
   | Uremote (filename, pageno) ->
       if conf.underinfo then showtext 'r'
         (Printf.sprintf "emote: %s (%d)" filename (pageno+1));
+      Wsi.setcursor Wsi.CURSOR_INFO
+  | Uremotedest (filename, destname) ->
+      if conf.underinfo then showtext 'r'
+        (Printf.sprintf "emote destination: %s (%S)" filename destname);
       Wsi.setcursor Wsi.CURSOR_INFO
 ;;
 
@@ -5032,7 +5039,28 @@ let setautoscrollspeed step goingdown =
   state.autoscroll <- Some astep;
 ;;
 
-let gotounder = function
+let gotounder under =
+  let getpath filename =
+    let path =
+      if String.length filename > 0
+      then
+        if Filename.is_relative filename
+        then
+          let dir = Filename.dirname state.path in
+          let dir =
+            if Filename.is_implicit dir
+            then Filename.concat (Sys.getcwd ()) dir
+            else dir
+          in
+          Filename.concat dir filename
+        else filename
+      else ""
+    in
+    if Sys.file_exists path
+    then path
+    else ""
+  in
+  match under with
   | Ulinkgoto (pageno, top) ->
       if pageno >= 0
       then (
@@ -5044,26 +5072,7 @@ let gotounder = function
       gotouri s
 
   | Uremote (filename, pageno) ->
-      let path =
-        if String.length filename > 0
-        then
-          if Filename.is_relative filename
-          then
-            let dir = Filename.dirname state.path in
-            let dir =
-              if Filename.is_implicit dir
-              then Filename.concat (Sys.getcwd ()) dir
-              else dir
-            in
-            Filename.concat dir filename
-          else filename
-        else ""
-      in
-      let path =
-        if Sys.file_exists path
-        then path
-        else ""
-      in
+      let path = getpath filename in
       if String.length path > 0
       then (
         if conf.riani
@@ -5079,6 +5088,28 @@ let gotounder = function
           let ranchor = state.path, state.password, anchor, state.origin in
           state.origin <- "";
           state.anchor <- (pageno, 0.0, 0.0);
+          state.ranchors <- ranchor :: state.ranchors;
+          opendoc path "";
+      )
+      else showtext '!' ("Could not find " ^ filename)
+
+  | Uremotedest (filename, destname) ->
+      let path = getpath filename in
+      if String.length path > 0
+      then (
+        if conf.riani
+        then
+          let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
+          try popen command []
+          with exn ->
+            Printf.eprintf
+              "failed to execute `%s': %s\n" command (exntos exn);
+            flush stderr;
+        else
+          let anchor = getanchor () in
+          let ranchor = state.path, state.password, anchor, state.origin in
+          state.origin <- "";
+          state.nameddest <- destname;
           state.ranchors <- ranchor :: state.ranchors;
           opendoc path "";
       )
@@ -5231,6 +5262,7 @@ let viewkeyboard key mask =
                   state.ranchors <- rest;
                   state.anchor <- anchor;
                   state.origin <- origin;
+                  state.nameddest <- "";
                   opendoc path password
           end;
       end;
@@ -6206,7 +6238,7 @@ let viewmouse button down x y mask =
       begin match dest with
       | Ulinkgoto _
       | Ulinkuri _
-      | Uremote _
+      | Uremote _ | Uremotedest _
       | Uunexpected _ | Ulaunch _ | Unamed _ ->
           gotounder dest
 

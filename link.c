@@ -1867,7 +1867,7 @@ static void * mainloop (void *unused)
                                          strlen (nameddest));
                 obj = pdf_lookup_dest (state.u.pdf, needle);
                 if (obj) {
-                    dest = pdf_parse_link_dest (state.u.pdf, obj);
+                    dest = pdf_parse_link_dest (state.u.pdf, FZ_LINK_GOTO, obj);
 
                     a = desttoanchor (&dest);
                     if (a.n >= 0) {
@@ -2737,7 +2737,8 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     CAMLreturn (ret_v);
 }
 
-enum  { uuri, ugoto, utext, uunexpected, ulaunch, unamed, uremote };
+enum  { uuri, ugoto, utext, uunexpected,
+        ulaunch, unamed, uremote, uremotedest };
 
 #define LINKTOVAL                                                       \
 {                                                                       \
@@ -2783,13 +2784,25 @@ enum  { uuri, ugoto, utext, uunexpected, ulaunch, unamed, uremote };
         break;                                                          \
                                                                         \
     case FZ_LINK_GOTOR:                                                 \
-        str_v = caml_copy_string (link->dest.ld.gotor.file_spec);       \
-        pageno = link->dest.ld.gotor.page;                              \
-        tup_v = caml_alloc_tuple (2);                                   \
-        ret_v = caml_alloc_small (1, uremote);                          \
-        Field (tup_v, 0) = str_v;                                       \
-        Field (tup_v, 1) = Val_int (pageno);                            \
-        Field (ret_v, 0) = tup_v;                                       \
+        {                                                               \
+            int rty;                                                    \
+                                                                        \
+            str_v = caml_copy_string (link->dest.ld.gotor.file_spec);   \
+            pageno = link->dest.ld.gotor.page;                          \
+            if (pageno == -1) {                                         \
+                gr_v = caml_copy_string (link->dest.ld.gotor.dest);     \
+                rty = uremotedest;                                      \
+            }                                                           \
+            else {                                                      \
+                gr_v = Val_int (pageno);                                \
+                rty = uremote;                                          \
+            }                                                           \
+            tup_v = caml_alloc_tuple (2);                               \
+            ret_v = caml_alloc_small (1, rty);                          \
+            Field (tup_v, 0) = str_v;                                   \
+            Field (tup_v, 1) = gr_v;                                    \
+            Field (ret_v, 0) = tup_v;                                   \
+        }                                                               \
         break;                                                          \
                                                                         \
     default:                                                            \
@@ -2809,7 +2822,7 @@ enum  { uuri, ugoto, utext, uunexpected, ulaunch, unamed, uremote };
 CAMLprim value ml_getlink (value ptr_v, value n_v)
 {
     CAMLparam2 (ptr_v, n_v);
-    CAMLlocal3 (ret_v, tup_v, str_v);
+    CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
     fz_link *link;
     struct page *page;
     struct pagedim *pdim;
@@ -2874,7 +2887,7 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
 CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 {
     CAMLparam3 (ptr_v, x_v, y_v);
-    CAMLlocal3 (ret_v, tup_v, str_v);
+    CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
     fz_link *link;
     struct page *page;
     char *s = String_val (ptr_v);
