@@ -21,9 +21,7 @@ while getopts m:t:f opt; do
         m) mime=$OPTARG;;
         t) type=$OPTARG;;
         f) force=1;;
-        ?)
-        die "usage: $0 [-m mime/type] [-t filter] [-f] path";
-        exit 1;;
+        ?) die "usage: $0 [-m mime/type] [-t filter] [-f] path";;
     esac
 done
 shift $(($OPTIND - 1))
