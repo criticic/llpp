@@ -86,7 +86,7 @@ let bso name objs =
   in
   ocaml'
     cc
-    ("-shared -lpthread -o " ^ so)
+    ("-shared -lpthread")
     (mupdf_libs)
     so
     (StrSet.singleton so)
