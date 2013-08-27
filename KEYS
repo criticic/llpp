@@ -119,6 +119,7 @@ Ctrl-insert             - copy active item's text to clipboard
 
 outline mode
 left/right              - go up/down a level
+Ctrl-a                  - toggle auto narrowing
 Ctrl-n                  - narrow to search pattern
 Ctrl-u                  - undo narrowing
 

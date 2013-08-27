@@ -3870,6 +3870,8 @@ object (self)
     ~modehash:(findkeyhash conf "outline")
     as super
 
+  val m_autonarrow = false
+
   method key key mask =
     let maxrows =
       if String.length state.text = 0
@@ -3906,6 +3908,13 @@ object (self)
     in
     let ctrl = Wsi.withctrl mask in
     match key with
+    | 97 when ctrl ->                   (* ctrl-a *)
+        if m_autonarrow
+        then source#denarrow
+        else source#narrow m_qsearch;
+        G.postRedisplay "toggle auto narrowing";
+        coe {< m_autonarrow = not m_autonarrow >}
+
     | 110 when ctrl ->                  (* ctrl-n *)
         source#narrow m_qsearch;
         G.postRedisplay "outline ctrl-n";
@@ -3921,6 +3930,24 @@ object (self)
         let first = max 0 (m_active - (fstate.maxrows / 2)) in
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
+
+    | key when m_autonarrow && (key != 0 && key land 0xff00 != 0xff00) ->
+        let pattern = m_qsearch ^ toutf8 key in
+        G.postRedisplay "outlinelistview autonarrow add";
+        source#narrow pattern;
+        state.text <- pattern;
+        coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
+
+    | key when m_autonarrow && key = 0xff08 ->
+        if String.length m_qsearch = 0
+        then coe self
+        else
+          let pattern = withoutlastutf8 m_qsearch in
+          G.postRedisplay "outlinelistview backspace autonarrow";
+          source#denarrow;
+          source#narrow pattern;
+          state.text <- pattern;
+          coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
     | 0xff9f | 0xffff ->                (* (kp) delete *)
         source#remove m_active;
