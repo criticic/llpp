@@ -18,7 +18,7 @@ root=$(pwd)
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
 baseurl="http://git.ghostscript.com/"
 
-mupdfrev=3c559928d88fccfe17da4953ea1c93ceb42a90cb
+mupdfrev=dca49ac644409e9bed09812e03977e649519f5d7
 mudir=mupdf-$(printf "%.7s" $mupdfrev)
 mutgz=mupdf-$mupdfrev.tgz
 muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
@@ -27,7 +27,7 @@ test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
 test -e $mutgz || wget -nc $muurl -O $mutgz
 test -d $mudir || tar -xzf $mutgz
 
-while read m r; do
+while read r m; do
     d=$m-$(printf "%.7s" $r)
     t=$m-$r.tgz
     test $m = jbig2dec && p=$m || p=thirdparty/$m
@@ -36,11 +36,11 @@ while read m r; do
     test -e $mudir/thirdparty/$m/README ||
     (rm -fr $mudir/thirdparty/$m && tar -xzf $t && mv $d $mudir/thirdparty/$m)
 done <<-EOF
-freetype 2ef0a19842ae1172bec153225328aaaeaf130a18
-jbig2dec d02b3649334e59e862b37c70d7d0fa9e086a524c
-jpeg 219d59dcfd0e6ce8a3d8c5510e29237f0b5078ed
-openjpeg 0970aed6e3990f8df7ef1b70cc22d024439b46d2
-zlib c16b1b18ddaaf090caf321af831bccac6381a381
+2ef0a19842ae1172bec153225328aaaeaf130a18 freetype
+d02b3649334e59e862b37c70d7d0fa9e086a524c jbig2dec
+219d59dcfd0e6ce8a3d8c5510e29237f0b5078ed jpeg
+0970aed6e3990f8df7ef1b70cc22d024439b46d2 openjpeg
+c16b1b18ddaaf090caf321af831bccac6381a381 zlib
 EOF
 
 executable_p() {
@@ -78,7 +78,7 @@ ccopt="$ccopt -include $tp/freetype/include/ft2build.h -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/$mudir/build/release"
 cclib="$cclib -lmupdf -lmupdf-js-none"
-cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread"
+cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread -lcrypto"
 cclib="$cclib -lX11"
 
 echo Building llpp...
