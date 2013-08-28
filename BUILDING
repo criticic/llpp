@@ -3,7 +3,7 @@ to be built and installed to use llpp, MuPDF's README[2] describes how
 to build it and lists its dependencies. Snapshots of MuPDF itself can
 be found here[3]
 
-Note that MuPDF is a moving target therefore bellow is the commit id
+Note that MuPDF is a moving target therefore below is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
 dca49ac644409e9bed09812e03977e649519f5d7
