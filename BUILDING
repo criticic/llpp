@@ -1,14 +1,13 @@
 MuPDF[1] rendering library is used to do the actual work, so it needs
 to be built and installed to use llpp, MuPDF's README[2] describes how
-to build it and lists its dependencies. Snapshots of MuPDF itself can
-be found here[3]
+to build it and lists its dependencies.
 
 Note that MuPDF is a moving target therefore below is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
 d396b126c7ab5c241e0dc7ff0edd9942ad5dfdaa
 
-llpp also depends on OCaml[4], lablGL[5], having a C compiler wouldn't
+llpp also depends on OCaml[3], lablGL[4], having a C compiler wouldn't
 hurt either.
 
 To build llpp one can invoke `sh buildall.sh' which will first attempt
@@ -26,6 +25,5 @@ $ ./llpp -p password /path/to/some.password.protected.pdf
 
 [1] http://www.mupdf.com
 [2] http://mupdf.com/repos/mupdf/README
-[3] http://mupdf.com/download/snapshots/
-[4] http://caml.inria.fr/
-[5] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
+[3] http://caml.inria.fr/
+[4] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
