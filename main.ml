@@ -4036,9 +4036,12 @@ let outlinesource usebookmarks =
       if not cancel
       then (
         if not confrimremoval
-        then(
-          let _, _, anchor = m_items.(active) in
-          gotoghyll (getanchory anchor);
+        then (
+          let _, _, ((pageno, y, _) as anchor) = m_items.(active) in
+          let y = getanchory
+            (if conf.presentation then (pageno, y, 1.0) else anchor)
+          in
+          gotoghyll y;
           m_items <- items;
         )
         else (
