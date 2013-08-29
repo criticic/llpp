@@ -3938,7 +3938,7 @@ object (self)
         state.text <- pattern;
         coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-    | key when m_autonarrow && key = 0xff08 ->
+    | key when m_autonarrow && key = 0xff08 -> (* backspace *)
         if String.length m_qsearch = 0
         then coe self
         else
