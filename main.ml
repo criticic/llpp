@@ -3919,7 +3919,7 @@ object (self)
         else source#narrow m_qsearch;
         settext (not m_autonarrow) m_qsearch;
         G.postRedisplay "toggle auto narrowing";
-        coe {< m_autonarrow = not m_autonarrow >}
+        coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
 
     | 110 when ctrl ->                  (* ctrl-n *)
         source#narrow m_qsearch;
@@ -3939,7 +3939,8 @@ object (self)
 
     | 0xff1b when m_autonarrow ->       (* escape *)
         let o = super#key key mask in
-        settext true "";
+        if String.length m_qsearch > 0
+        then settext true "";
         o
 
     | key when m_autonarrow && (key != 0 && key land 0xff00 != 0xff00) ->
