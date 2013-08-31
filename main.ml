@@ -3863,6 +3863,11 @@ object (self)
 end;;
 
 class outlinelistview ~source =
+  let settext autonarrow s =
+    if autonarrow
+    then state.text <- "[" ^ s ^ "]"
+    else state.text <- s
+  in
 object (self)
   inherit listview
     ~source:(source :> lvsource)
@@ -3912,6 +3917,7 @@ object (self)
         if m_autonarrow
         then source#denarrow
         else source#narrow m_qsearch;
+        settext (not m_autonarrow) m_qsearch;
         G.postRedisplay "toggle auto narrowing";
         coe {< m_autonarrow = not m_autonarrow >}
 
@@ -3923,19 +3929,24 @@ object (self)
     | 117 when ctrl ->                  (* ctrl-u *)
         source#denarrow;
         G.postRedisplay "outline ctrl-u";
-        state.text <- "";
-        coe {< m_first = 0; m_active = 0 >}
+        settext m_autonarrow "";
+        coe {< m_first = 0; m_active = 0; m_qsearch = "" >}
 
     | 108 when ctrl ->                  (* ctrl-l *)
         let first = max 0 (m_active - (fstate.maxrows / 2)) in
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
 
+    | 0xff1b when m_autonarrow ->       (* escape *)
+        let o = super#key key mask in
+        settext true "";
+        o
+
     | key when m_autonarrow && (key != 0 && key land 0xff00 != 0xff00) ->
         let pattern = m_qsearch ^ toutf8 key in
         G.postRedisplay "outlinelistview autonarrow add";
         source#narrow pattern;
-        state.text <- pattern;
+        settext true pattern;
         coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
     | key when m_autonarrow && key = 0xff08 -> (* backspace *)
@@ -3946,7 +3957,7 @@ object (self)
           G.postRedisplay "outlinelistview backspace autonarrow";
           source#denarrow;
           source#narrow pattern;
-          state.text <- pattern;
+          settext true pattern;
           coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
     | 0xff9f | 0xffff ->                (* (kp) delete *)
