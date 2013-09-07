@@ -363,7 +363,7 @@ static void writedata (char *p, int size)
     n = writev (state.cw, iovec, 2);
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
-        err (1, "write (req %d, ret %zd)", size, n);
+        err (1, "write (req %d, ret %zd)", size + 4, n);
     }
 }
 
