@@ -572,8 +572,8 @@ static void freepage (struct page *page)
     if (page->slinks) {
         free (page->slinks);
     }
-    page->freepage (page->u.ptr);
     fz_drop_display_list (state.ctx, page->dlist);
+    page->freepage (page->u.ptr);
     free (page);
 }
 
