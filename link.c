@@ -977,23 +977,29 @@ static void initpdims (void)
                 }
             }
             else {
+                int empty = 0;
                 fz_rect cropbox;
 
                 pdf_to_rect (state.ctx, pdf_dict_gets (pageobj, "MediaBox"),
                              &mediabox);
                 if (fz_is_empty_rect (&mediabox)) {
-                    fprintf (stderr, "cannot find page size for page %d\n",
-                             pageno+1);
                     mediabox.x0 = 0;
                     mediabox.y0 = 0;
                     mediabox.x1 = 612;
                     mediabox.y1 = 792;
+                    empty = 1;
                 }
 
                 pdf_to_rect (state.ctx, pdf_dict_gets (pageobj, "CropBox"),
                              &cropbox);
                 if (!fz_is_empty_rect (&cropbox)) {
                     fz_intersect_rect (&mediabox, &cropbox);
+                }
+                else {
+                    if (empty) {
+                        fprintf (stderr, "cannot find page size for page %d\n",
+                                 pageno+1);
+                    }
                 }
                 rotate = pdf_to_int (pdf_dict_gets (pageobj, "Rotate"));
             }
