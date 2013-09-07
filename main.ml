@@ -4021,7 +4021,6 @@ let outlinesource usebookmarks =
     inherit lvsourcebase
     val mutable m_items = empty
     val mutable m_orig_items = empty
-    val mutable m_prev_items = empty
     val mutable m_narrow_pattern = ""
     val mutable m_hadremovals = false
 
@@ -4116,13 +4115,12 @@ let outlinesource usebookmarks =
 
     method reset anchor items =
       m_hadremovals <- false;
-      if m_orig_items == empty || m_prev_items != items
+      if m_orig_items == empty
       then (
         m_orig_items <- items;
         if emptystr m_narrow_pattern
         then m_items <- items;
       );
-      m_prev_items <- items;
       let rely = getanchory anchor in
       let active =
         let rec loop n best bestd =
