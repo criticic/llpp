@@ -925,7 +925,7 @@ let getunder x y =
       | Some a ->
           let rect = (a.(0),a.(2),a.(1),a.(2),a.(1),a.(3),a.(0),a.(3)) in
           state.rects <- [l.pageno, l.pageno mod 3, rect];
-          G.postRedisplay "rectofblock";
+          G.postRedisplay "getunder";
       | None -> ()
     );
     match whatsunder opaque px py with
