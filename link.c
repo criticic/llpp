@@ -9,6 +9,7 @@
 
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/uio.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -345,22 +346,22 @@ static void readdata (void *p, int size)
 
 static void writedata (char *p, int size)
 {
-    char buf[4];
     ssize_t n;
+    char buf[4];
+    struct iovec iovec[2];
 
     buf[0] = (size >> 24) & 0xff;
     buf[1] = (size >> 16) & 0xff;
     buf[2] = (size >>  8) & 0xff;
     buf[3] = (size >>  0) & 0xff;
 
-    n = write (state.cw, buf, 4);
-    if (n != 4) {
-        if (!n) errx (1, "EOF while writing length");
-        err (1, "write %zd", n);
-    }
+    iovec[0].iov_base = buf;
+    iovec[0].iov_len = 4;
+    iovec[1].iov_base = p;
+    iovec[1].iov_len = size;
 
-    n = write (state.cw, p, size);
-    if (n - size) {
+    n = writev (state.cw, iovec, 2);
+    if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
         err (1, "write (req %d, ret %zd)", size, n);
     }
