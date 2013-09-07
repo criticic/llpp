@@ -652,11 +652,11 @@ let geturl s =
 ;;
 
 let gotouri uri =
-  if String.length conf.urilauncher = 0
+  if emptystr conf.urilauncher
   then print_endline uri
   else (
     let url = geturl uri in
-    if String.length url = 0
+    if emptystr url
     then Printf.eprintf "obtained empty url from uri %S" uri
     else
       let re = Str.regexp "%s" in
@@ -679,7 +679,7 @@ let makehelp () =
   Array.of_list (
     List.map (fun s ->
       let url = geturl s in
-      if String.length url > 0
+      if nonemptystr url
       then (s, 0, Action (fun u -> gotouri url; u))
       else (s, 0, Noaction)
     ) strings);
@@ -784,7 +784,7 @@ let vlog fmt =
 ;;
 
 let launchpath () =
-  if String.length conf.pathlauncher = 0
+  if emptystr conf.pathlauncher
   then print_endline state.path
   else (
     let re = Str.regexp "%s" in
@@ -1308,7 +1308,7 @@ let getpagey pageno = fst (getpageyh pageno);;
 
 let nogeomcmds cmds =
   match cmds with
-  | s, [] -> String.length s = 0
+  | s, [] -> emptystr s
   | _ -> false
 ;;
 
@@ -2035,7 +2035,7 @@ let invalidate s f =
   state.rects <- [];
   state.rects1 <- [];
   match state.geomcmds with
-  | ps, [] when String.length ps = 0 ->
+  | ps, [] when emptystr ps ->
       f ();
       state.geomcmds <- s, [];
 
@@ -2085,7 +2085,7 @@ let opendoc path password =
   flushpages ();
   setaalevel conf.aalevel;
   let titlepath =
-    if String.length state.origin = 0
+    if emptystr state.origin
     then path
     else state.origin
   in
@@ -2355,12 +2355,12 @@ let enttext () =
       if not (istextentry state.mode) && state.uioh#eformsgs
       then
         let s1 = "(press 'e' to review error messasges)" in
-        if String.length s > 0 then s ^ " " ^ s1 else s1
+        if nonemptystr s then s ^ " " ^ s1 else s1
       else s
     )
     else s
   in
-  if String.length s > 0
+  if nonemptystr s
   then drawstring s
 ;;
 
@@ -2539,7 +2539,7 @@ let act cmds =
       end;
 
       let cur, cmds = state.geomcmds in
-      if String.length cur = 0
+      if emptystr cur
       then failwith "umpossible";
 
       begin match List.rev cmds with
@@ -2780,7 +2780,7 @@ let search pattern forward =
   | Csplit _ ->
       showtext '!' "searching does not work properly in split columns mode"
   | _ ->
-      if String.length pattern > 0
+      if nonemptystr pattern
       then
         let pn, py =
           match state.layout with
@@ -2825,7 +2825,7 @@ let linknentry text key =
 ;;
 
 let linkndone f s =
-  if String.length s > 0
+  if nonemptystr s
   then (
     let n =
       let l = String.length s in
@@ -3336,7 +3336,7 @@ let textentrykeyboard
   | 0xff57 | 0xff9c -> histaction HClast (* (kp) end *)
 
   | 0xff1b ->                           (* escape*)
-      if String.length text = 0
+      if emptystr text
       then (
         begin match opthist with
         | None -> ()
@@ -3646,12 +3646,11 @@ object (self)
         coe self
 
     | 0xff08 ->                         (* backspace *)
-        if String.length m_qsearch = 0
+        if emptystr m_qsearch
         then coe self
         else (
           let qsearch = withoutlastutf8 m_qsearch in
-          let len = String.length qsearch in
-          if len = 0
+          if emptystr qsearch
           then (
             state.text <- "";
             G.postRedisplay "listview empty qsearch";
@@ -3687,7 +3686,7 @@ object (self)
 
     | 0xff1b ->                         (* escape *)
         state.text <- "";
-        if String.length m_qsearch = 0
+        if emptystr m_qsearch
         then (
           G.postRedisplay "list view escape";
           begin
@@ -3879,7 +3878,7 @@ object (self)
 
   method key key mask =
     let maxrows =
-      if String.length state.text = 0
+      if emptystr state.text
       then fstate.maxrows
       else fstate.maxrows - 2
     in
@@ -3939,7 +3938,7 @@ object (self)
 
     | 0xff1b when m_autonarrow ->       (* escape *)
         let o = super#key key mask in
-        if String.length m_qsearch > 0
+        if nonemptystr m_qsearch
         then settext true "";
         o
 
@@ -3951,7 +3950,7 @@ object (self)
         coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
     | key when m_autonarrow && key = 0xff08 -> (* backspace *)
-        if String.length m_qsearch = 0
+        if emptystr m_qsearch
         then coe self
         else
           let pattern = withoutlastutf8 m_qsearch in
@@ -4041,7 +4040,7 @@ let outlinesource usebookmarks =
       ignore (uioh, first, qsearch);
       let confrimremoval = m_hadremovals && active = Array.length m_items in
       let items =
-        if String.length m_narrow_pattern = 0
+        if emptystr m_narrow_pattern
         then m_orig_items
         else m_items
       in
@@ -4120,7 +4119,7 @@ let outlinesource usebookmarks =
       if m_orig_items == empty || m_prev_items != items
       then (
         m_orig_items <- items;
-        if String.length m_narrow_pattern = 0
+        if emptystr m_narrow_pattern
         then m_items <- items;
       );
       m_prev_items <- items;
@@ -4530,7 +4529,7 @@ let enterinfomode =
         in
         let name, t, offset, _ = m_a.(n) in
         ((let s = tostr t in
-          if String.length s > 0
+          if nonemptystr s
           then Printf.sprintf "%s\t%s" name s
           else name),
         offset)
@@ -4861,7 +4860,7 @@ let enterinfomode =
         (fun v ->
           try
             let gs =
-              if String.length v = 0
+              if emptystr v
               then None
               else Some (ghyllscroll_of_string v)
             in
@@ -4923,7 +4922,7 @@ let enterinfomode =
 
     sep ();
     src#caption "Location" 0;
-    if String.length state.origin > 0
+    if nonemptystr state.origin
     then src#caption ("Orign\t" ^ mbtoutf8 state.origin) 1;
     src#caption ("Path\t" ^ mbtoutf8 state.path) 1;
 
@@ -5084,7 +5083,7 @@ let setautoscrollspeed step goingdown =
 let gotounder under =
   let getpath filename =
     let path =
-      if String.length filename > 0
+      if nonemptystr filename
       then
         if Filename.is_relative filename
         then
@@ -5115,7 +5114,7 @@ let gotounder under =
 
   | Uremote (filename, pageno) ->
       let path = getpath filename in
-      if String.length path > 0
+      if nonemptystr path
       then (
         if conf.riani
         then
@@ -5137,7 +5136,7 @@ let gotounder under =
 
   | Uremotedest (filename, destname) ->
       let path = getpath filename in
-      if String.length path > 0
+      if nonemptystr path
       then (
         if conf.riani
         then
@@ -5533,7 +5532,7 @@ let viewkeyboard key mask =
       let ondone s =
         match state.layout with
         | l :: _ ->
-            if String.length s > 0
+            if nonemptystr s
             then
               state.bookmarks <- (s, 0, getanchor1 l) :: state.bookmarks
         | _ -> ()
@@ -6915,7 +6914,7 @@ struct
       | Vopen (_, _, _) ->
           error "unexpected subelement in ui-font" s spos
       | Vclose "ui-font" ->
-          if String.length !fontpath = 0
+          if emptystr !fontpath
           then fontpath := Buffer.contents b;
           { v with f = llppconfig }
       | Vclose _ -> error "unexpected close in ui-font" s spos
@@ -7092,7 +7091,7 @@ struct
       let pc, pb, px, pa =
         try
           let key =
-            if String.length state.origin = 0
+            if emptystr state.origin
             then state.path
             else state.origin
           in
@@ -7338,7 +7337,7 @@ struct
       let dc = if conf.bedefault then conf else dc in
       Buffer.add_string bb "<llppconfig>\n";
 
-      if String.length !fontpath > 0
+      if nonemptystr !fontpath
       then
         Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
           uifontsize
@@ -7443,7 +7442,7 @@ struct
         | _ -> x, conf
       in
       let basename = Filename.basename
-        (if String.length state.origin = 0 then state.path else state.origin)
+        (if emptystr state.origin then state.path else state.origin)
       in
       adddoc basename pan (getanchor ())
         (let conf =
@@ -7509,7 +7508,7 @@ let ract cmds =
       scan args "%u %f %f"
         (fun pageno x y ->
           let cmd, _ = state.geomcmds in
-          if String.length cmd = 0
+          if emptystr cmd
           then gotopagexy pageno x y
           else
             let f prevf () =
@@ -7650,7 +7649,7 @@ let () =
   if !wtmode
   then selfexec := !selfexec ^ " -wtmode";
 
-  if String.length state.path = 0
+  if emptystr state.path
   then (prerr_endline "file name missing"; exit 1);
 
   if not (Config.load ())
@@ -7786,7 +7785,7 @@ let () =
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
   let optrfd =
     ref (
-      if String.length !rcmdpath > 0
+      if nonemptystr !rcmdpath
       then remoteopen !rcmdpath
       else None
     )
