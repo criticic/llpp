@@ -3012,7 +3012,6 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
     | Csingle _ -> Csingle [||]
     | Csplit (c, _) -> Csplit (c, [||])
   );
-  state.x <- leftx;
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
@@ -3020,6 +3019,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   ;
   reshape state.winw state.winh;
   state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
+  state.x <- leftx;
 ;;
 
 let togglebirdseye () =
