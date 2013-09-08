@@ -3922,13 +3922,19 @@ object (self)
 
     | 110 when ctrl ->                  (* ctrl-n *)
         source#narrow m_qsearch;
+        if not m_autonarrow
+        then source#add_narrow_pattern m_qsearch;
         G.postRedisplay "outline ctrl-n";
         coe {< m_first = 0; m_active = 0 >}
 
     | 117 when ctrl ->                  (* ctrl-u *)
-        source#denarrow;
+        source#del_narrow_pattern;
+        let pattern = source#renarrow in
         G.postRedisplay "outline ctrl-u";
-        settext m_autonarrow "";
+        let text =
+          if emptystr pattern then "" else "Narrowed to " ^ pattern
+        in
+        settext m_autonarrow text;
         coe {< m_first = 0; m_active = 0; m_qsearch = "" >}
 
     | 108 when ctrl ->                  (* ctrl-l *)
@@ -3936,11 +3942,22 @@ object (self)
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
 
-    | 0xff1b when m_autonarrow ->       (* escape *)
+    | 0xff1b ->                         (* escape *)
         let o = super#key key mask in
-        if nonemptystr m_qsearch
-        then settext true "";
+        if m_autonarrow
+        then (
+          if nonemptystr m_qsearch
+          then (
+            source#add_narrow_pattern m_qsearch;
+            settext true "";
+          )
+        );
         o
+
+    | 0xff0d | 0xff8d when m_autonarrow -> (* (kp) enter *)
+        if nonemptystr m_qsearch
+        then source#add_narrow_pattern m_qsearch;
+        super#key key mask
 
     | key when m_autonarrow && (key != 0 && key land 0xff00 != 0xff00) ->
         let pattern = m_qsearch ^ toutf8 key in
@@ -3954,8 +3971,8 @@ object (self)
         then coe self
         else
           let pattern = withoutlastutf8 m_qsearch in
-          G.postRedisplay "outlinelistview backspace autonarrow";
-          source#denarrow;
+          G.postRedisplay "outlinelistview autonarrow backspace";
+          ignore (source#renarrow);
           source#narrow pattern;
           settext true pattern;
           coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
@@ -4017,11 +4034,11 @@ end
 
 let outlinesource usebookmarks =
   let empty = [||] in
-  (object
+  (object (self)
     inherit lvsourcebase
     val mutable m_items = empty
     val mutable m_orig_items = empty
-    val mutable m_narrow_pattern = ""
+    val mutable m_narrow_patterns = []
     val mutable m_hadremovals = false
 
     method getitemcount =
@@ -4039,7 +4056,7 @@ let outlinesource usebookmarks =
       ignore (uioh, first, qsearch);
       let confrimremoval = m_hadremovals && active = Array.length m_items in
       let items =
-        if emptystr m_narrow_pattern
+        if m_narrow_patterns = []
         then m_orig_items
         else m_items
       in
@@ -4067,7 +4084,9 @@ let outlinesource usebookmarks =
 
     method greetmsg =
       if Array.length m_items != Array.length m_orig_items
-      then "Narrowed to " ^ m_narrow_pattern ^ " (ctrl-u to restore)"
+      then
+        let s = String.concat " --> " (List.rev m_narrow_patterns) in
+        "Narrowed to " ^ s ^ " (ctrl-u to restore)"
       else ""
 
     method narrow pattern =
@@ -4077,10 +4096,7 @@ let outlinesource usebookmarks =
       | Some re ->
           let rec loop accu n =
             if n = -1
-            then (
-              m_narrow_pattern <- pattern;
-              m_items <- Array.of_list accu
-            )
+            then m_items <- Array.of_list accu
             else
               let (s, _, _) as o = m_items.(n) in
               let accu =
@@ -4113,12 +4129,29 @@ let outlinesource usebookmarks =
           )
         )
 
+    method add_narrow_pattern pattern =
+      m_narrow_patterns <- pattern :: m_narrow_patterns
+
+    method del_narrow_pattern =
+      match m_narrow_patterns with
+      | _ :: rest -> m_narrow_patterns <- rest
+      | [] -> ()
+
+    method renarrow =
+      self#denarrow;
+      match m_narrow_patterns with
+      | pattern :: [] -> self#narrow pattern; pattern
+      | list ->
+          List.fold_left (fun accu pattern ->
+            self#narrow pattern;
+            accu ^ " --> " ^ pattern) "" list
+
     method reset anchor items =
       m_hadremovals <- false;
       if m_orig_items == empty
       then (
         m_orig_items <- items;
-        if emptystr m_narrow_pattern
+        if m_narrow_patterns == []
         then m_items <- items;
       );
       let rely = getanchory anchor in
