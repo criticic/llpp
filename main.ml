@@ -1173,7 +1173,7 @@ let multicolumns_of_string s =
 let readcmd fd =
   let s = "xxxx" in
   let n = tempfailureretry (Unix.read fd s 0) 4 in
-  if n != 4 then failwith "incomplete read(len)";
+  if n != 4 then error "incomplete read(len) = %d" n;
   let len = 0
     lor (Char.code s.[0] lsl 24)
     lor (Char.code s.[1] lsl 16)
@@ -1182,7 +1182,7 @@ let readcmd fd =
   in
   let s = String.create len in
   let n = tempfailureretry (Unix.read fd s 0) len in
-  if n != len then failwith "incomplete read(data)";
+  if n != len then error "incomplete read(data) %d vs %d" n len;
   s
 ;;
 
@@ -1202,7 +1202,7 @@ let wcmd fmt =
       s.[2] <- Char.chr ((len lsr  8) land 0xff);
       s.[3] <- Char.chr (len land 0xff);
       let n' = tempfailureretry (Unix.write state.sw s 0) n in
-      if n' != n then failwith "write failed";
+      if n' != n then error "write failed %d vs %d" n' n;
     ) b fmt;
 ;;
 
@@ -2761,7 +2761,7 @@ let act cmds =
       state.docinfo <- List.rev state.docinfo
 
   | _ ->
-      failwith (Printf.sprintf "unknown cmd `%S'" cmds)
+      error "unknown cmd `%S'" cmds
 ;;
 
 let onhist cb =
@@ -4313,7 +4313,8 @@ let ghyllscroll_of_string s =
     else Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b)
   in
   if n <= a || n <= b || a >= b
-  then failwith "invalid ghyll N,A,B (N <= A, A < B, N <= B)";
+  then error "invalid ghyll N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)"
+    n a b;
   nab;
 ;;
 
@@ -7068,8 +7069,7 @@ struct
     with
     | Parse_error (msg, s, pos) ->
         let subs = subs s pos in
-        let s = Printf.sprintf "%s: at %d [..%s..]" msg pos subs in
-        failwith ("parse error: " ^ s)
+        Utils.error "parse error: %s: at %d [..%s..]" msg pos subs
 
     | exn ->
         failwith ("config load error: " ^ exntos exn)
