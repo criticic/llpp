@@ -4279,30 +4279,28 @@ let string_with_suffix_of_int n =
   if n = 0
   then "0"
   else
-    let n, s =
-      if n land ((1 lsl 30) - 1) = 0
-      then n lsr 30, "G"
-      else (
-        if n land ((1 lsl 20) - 1) = 0
-        then n lsr 20, "M"
+    let units = [(30, "G"); (20, "M"); (10, "K")] in
+    let prettyint n =
+      let rec loop s n =
+        let h = n mod 1000 in
+        let n = n / 1000 in
+        if n = 0
+        then string_of_int h ^ s
         else (
-          if n land ((1 lsl 10) - 1) = 0
-          then n lsr 10, "K"
-          else n, ""
+          let s = Printf.sprintf "_%03d%s" h s in
+          loop s n
         )
-      )
+      in
+      loop "" n
     in
-    let rec loop s n =
-      let h = n mod 1000 in
-      let n = n / 1000 in
-      if n = 0
-      then string_of_int h ^ s
-      else (
-        let s = Printf.sprintf "_%03d%s" h s in
-        loop s n
-      )
+    let rec find = function
+      | [] -> prettyint n
+      | (shift, suffix) :: rest ->
+          if (n land ((1 lsl shift) - 1)) = 0
+          then prettyint (n lsr shift) ^ suffix
+          else find rest
     in
-    loop "" n ^ s;
+    find units
 ;;
 
 let defghyllscroll = (40, 8, 32);;
