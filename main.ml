@@ -4085,7 +4085,11 @@ let outlinesource usebookmarks =
     method greetmsg =
       if Array.length m_items != Array.length m_orig_items
       then
-        let s = String.concat " --> " (List.rev m_narrow_patterns) in
+        let s =
+          match m_narrow_patterns with
+          | one :: [] -> one
+          | many -> String.concat " --> " (List.rev many)
+        in
         "Narrowed to " ^ s ^ " (ctrl-u to restore)"
       else ""
 
