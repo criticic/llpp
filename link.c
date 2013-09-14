@@ -881,8 +881,9 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 static void initpdims (void)
 {
     double start, end;
-    int pageno, trim, show;
     FILE *trimf = NULL;
+    fz_rect rootmediabox;
+    int pageno, trim, show;
     int trimw = 0, cxcount;
 
     start = now ();
@@ -899,6 +900,13 @@ static void initpdims (void)
         cxcount = state.pagecount;
     else
         cxcount = MIN (state.pagecount, 1);
+
+    if (state.type == DPDF) {
+        pdf_obj *obj;
+        obj = pdf_dict_getp (pdf_trailer (state.u.pdf),
+                             "Root/Pages/MediaBox");
+        pdf_to_rect (state.ctx, obj, &rootmediabox);
+    }
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
         int rotate = 0;
@@ -997,8 +1005,14 @@ static void initpdims (void)
                 }
                 else {
                     if (empty) {
-                        fprintf (stderr, "cannot find page size for page %d\n",
-                                 pageno+1);
+                        if (fz_is_empty_rect (&rootmediabox)) {
+                            fprintf (stderr,
+                                     "cannot find page size for page %d\n",
+                                     pageno+1);
+                        }
+                        else {
+                            mediabox = rootmediabox;
+                        }
                     }
                 }
                 rotate = pdf_to_int (pdf_dict_gets (pageobj, "Rotate"));
