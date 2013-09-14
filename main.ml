@@ -5691,7 +5691,7 @@ let viewkeyboard key mask =
           then state.winw / 2
           else conf.hscrollstep
         in
-        let dx = if key = 0xff51 or key = 0xff96 then dx else -dx in
+        let dx = if key = 0xff51 || key = 0xff96 then dx else -dx in
         state.x <- panbound (state.x + dx);
         gotoy_and_clear_text state.y
       else (
