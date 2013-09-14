@@ -434,7 +434,11 @@ let getkeysym code mask =
     else pkpk
   )
   else (
-    let shift = (mask land 1) lxor ((mask land state.capslmask) lsr 1) in
+    let shift =
+      if pkpk land 0xf000 = 0xf000
+      then 0
+      else (mask land 1) lxor ((mask land state.capslmask) lsr 1)
+    in
     let index =
       let l3 = (mask land state.levl3mask) != 0 in
       let l4 = (mask land state.levl5mask) != 0 in
