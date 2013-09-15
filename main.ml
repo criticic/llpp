@@ -1978,17 +1978,14 @@ let gotoghyll y =
       );
     in
     snake f a b
-  and summa f n a b =
-    (* courtesy: (calc-eval "integ(3x^2-2x^3,x)") *)
-    let iv x = x**3.-.0.5*.x**4. in
-    let iv1 = iv f in
-    let ins = float a *. iv1
-    and outs = float (n-b) *. iv1 in
+  and summa n a b =
+    let ins = float a *. 0.5
+    and outs = float (n-b) *. 0.5 in
     let ones = b - a in
     ins +. outs +. float ones
   in
   let rec set (_N, _A, _B) y sy =
-    let sum = summa 1.0 _N _A _B in
+    let sum = summa _N _A _B in
     let dy = float (y - sy) in
     state.ghyll <- (
       let rec gf n y1 o =
