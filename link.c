@@ -9,7 +9,6 @@
 
 #include <unistd.h>
 #include <pthread.h>
-#include <sys/uio.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -347,20 +346,13 @@ static void readdata (void *p, int size)
 static void writedata (char *p, int size)
 {
     ssize_t n;
-    char buf[4];
-    struct iovec iovec[2];
 
-    buf[0] = (size >> 24) & 0xff;
-    buf[1] = (size >> 16) & 0xff;
-    buf[2] = (size >>  8) & 0xff;
-    buf[3] = (size >>  0) & 0xff;
+    p[0] = (size >> 24) & 0xff;
+    p[1] = (size >> 16) & 0xff;
+    p[2] = (size >>  8) & 0xff;
+    p[3] = (size >>  0) & 0xff;
 
-    iovec[0].iov_base = buf;
-    iovec[0].iov_len = 4;
-    iovec[1].iov_base = p;
-    iovec[1].iov_len = size;
-
-    n = writev (state.cw, iovec, 2);
+    n = write (state.cw, p, size + 4);
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
         err (1, "write (req %d, ret %zd)", size + 4, n);
@@ -381,26 +373,25 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
     va_list ap;
     char *buf;
 
-    buf = malloc (size);
+    buf = malloc (size + 4);
     for (;;) {
-        if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size);
+        if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size + 4);
 
         va_start (ap, fmt);
-        len = vsnprintf (buf, size, fmt, ap);
+        len = vsnprintf (buf + 4, size - 4, fmt, ap);
         va_end (ap);
 
-        if (len > -1 && len < size) {
-            writedata (buf, len);
-            break;
-        }
-
         if (len > -1) {
-            size = len + 1;
+            if (len < size - 4) {
+                writedata (buf, len);
+                break;
+            }
+            else size = len + 5;
         }
-        else  {
-            size *= 2;
+        else {
+            err (1, "vsnprintf for `%s' failed", fmt);
         }
-        buf = realloc (buf, size);
+        buf = realloc (buf, size + 4);
     }
     free (buf);
 }
