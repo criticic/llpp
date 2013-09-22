@@ -373,9 +373,9 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
     va_list ap;
     char *buf;
 
-    buf = malloc (size + 4);
+    buf = malloc (size);
     for (;;) {
-        if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size + 4);
+        if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size);
 
         va_start (ap, fmt);
         len = vsnprintf (buf + 4, size - 4, fmt, ap);
@@ -391,7 +391,7 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
         else {
             err (1, "vsnprintf for `%s' failed", fmt);
         }
-        buf = realloc (buf, size + 4);
+        buf = realloc (buf, size);
     }
     free (buf);
 }
