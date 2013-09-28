@@ -98,6 +98,7 @@ external copysel : Unix.file_descr -> opaque -> bool -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external markunder : string -> int -> int -> mark -> bool = "ml_markunder";;
+external clearmark : string -> unit = "ml_clearmark";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
@@ -983,6 +984,12 @@ let paxunder x y =
     else None
   in
   G.postRedisplay "paxunder";
+  if conf.paxmark = Mark_page
+  then
+    List.iter (fun l ->
+      match getopaque l.pageno with
+      | None -> ()
+      | Some opaque -> clearmark opaque) state.layout;
   state.roam <-
     onppundermouse g x y (fun () -> showtext '!' "Whoopsie daisy");
 ;;

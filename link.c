@@ -3010,6 +3010,27 @@ static int uninteresting (int c)
         || ispunct (c);
 }
 
+CAMLprim value ml_clearmark (value ptr_v)
+{
+    CAMLparam1 (ptr_v);
+    char *s = String_val (ptr_v);
+    struct page *page;
+
+    if (trylock ("ml_clearmark")) {
+        goto done;
+    }
+
+    page = parse_pointer ("ml_clearmark", s);
+    page->fmark.span = NULL;
+    page->lmark.span = NULL;
+    page->fmark.i = 0;
+    page->lmark.i = 0;
+
+    unlock ("ml_clearmark");
+ done:
+    CAMLreturn (Val_unit);
+}
+
 CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 {
     CAMLparam4 (ptr_v, x_v, y_v, mark_v);
@@ -3031,31 +3052,44 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 
     page = parse_pointer ("ml_markunder", s);
     pdim = &state.pagedims[page->pdimno];
-    x += pdim->bounds.x0;
-    y += pdim->bounds.y0;
 
     ensuretext (page);
 
     if (mark == mark_page) {
         int i;
+        fz_page_block *pb1 = NULL, *pb2 = NULL;
+
+        for (i = 0; i < page->text->len; ++i) {
+            if (page->text->blocks[i].type == FZ_PAGE_BLOCK_TEXT) {
+                pb1 = &page->text->blocks[i];
+                break;
+            }
+        }
+        if (!pb1) goto unlock;
 
         for (i = page->text->len - 1; i >= 0; --i) {
-            pageb = &page->text->blocks[i];
-            if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
+            if (page->text->blocks[i].type == FZ_PAGE_BLOCK_TEXT) {
+                pb2 = &page->text->blocks[i];
+                break;
+            }
         }
-        if (i < 0) goto unlock;
+        if (!pb2) goto unlock;
 
-        block = pageb->u.text;
+        block = pb1->u.text;
 
         page->fmark.i = 0;
         page->fmark.span = block->lines->first_span;
 
+        block = pb2->u.text;
         line = &block->lines[block->len - 1];
         page->lmark.i = line->last_span->len - 1;
         page->lmark.span = line->last_span;
         ret_v = Val_bool (1);
         goto unlock;
     }
+
+    x += pdim->bounds.x0;
+    y += pdim->bounds.y0;
 
     for (pageb = page->text->blocks;
          pageb < page->text->blocks + page->text->len;
