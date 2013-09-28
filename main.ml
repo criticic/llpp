@@ -1013,23 +1013,23 @@ let selstring s =
         )
       in
       if popened
-      then
-        (try
-            let l = String.length s in
-            let n = tempfailureretry (Unix.write w s 0) l in
-            if n != l
-            then
-              showtext '!'
-                (Printf.sprintf
-                    "failed to write %d characters to sel pipe, wrote %d"
-                    l n
-                )
-          with exn ->
+      then (
+        try
+          let l = String.length s in
+          let n = tempfailureretry (Unix.write w s 0) l in
+          if n != l
+          then
             showtext '!'
-              (Printf.sprintf "failed to write to sel pipe: %s"
-                  (exntos exn)
+              (Printf.sprintf
+                  "failed to write %d characters to sel pipe, wrote %d"
+                  l n
               )
-        )
+        with exn ->
+          showtext '!'
+            (Printf.sprintf "failed to write to sel pipe: %s"
+                (exntos exn)
+            )
+      )
       else dolog "%s" s;
       clo "pipe/r" r;
       clo "pipe/w" w;
@@ -1369,8 +1369,7 @@ let page_of_y y =
           else bsearch nmin (n-1)
         )
     in
-    let r = bsearch 0 (state.pagecount-1) in
-    r;
+    bsearch 0 (state.pagecount-1);
 ;;
 
 let layoutN ((columns, coverA, coverB), b) y sh =
@@ -5606,7 +5605,7 @@ let viewkeyboard key mask =
       | [] -> ()
       end
 
-  | 120 -> state.roam ()
+  | 120 -> state.roam ()                (* x *)
   | 60 | 62 ->                          (* < > *)
       reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.fitmodel
 
@@ -7385,7 +7384,7 @@ struct
           Printf.bprintf bb "<ui-font size='%d'/>\n" uifontsize
       );
 
-      Buffer.add_string bb "<defaults ";
+      Buffer.add_string bb "<defaults";
       add_attrs bb true dc dc;
       let kb = keymapsbuf true dc dc in
       if Buffer.length kb > 0

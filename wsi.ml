@@ -548,7 +548,6 @@ let readresp sock =
       let s = getmodifiermappingreq () in
       sendwithrep sock s (updmodmap sock);
 
-
   | 33 ->                               (* clientmessage *)
       let atom = r32 resp 8 in
       if atom = state.protoatom
