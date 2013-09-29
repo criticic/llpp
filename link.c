@@ -3254,9 +3254,8 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     fz_rect b;
     struct page *page;
     struct pagedim *pdim;
-    int i, x0, x1, y0, y1;
     char *s = String_val (ptr_v);
-    int fi = 0, li = 0;
+    int i, x0, x1, y0, y1, fi, li;
     fz_page_block *pageb;
     fz_text_block *block;
     fz_text_span *span, *fspan, *lspan;
@@ -3282,7 +3281,11 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    fspan = lspan = NULL;
+    fi = page->fmark.i;
+    fspan = page->fmark.span;
+
+    li = page->lmark.i;
+    lspan = page->lmark.span;
 
     for (pageb= page->text->blocks;
          pageb < page->text->blocks + page->text->len;
