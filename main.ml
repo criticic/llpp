@@ -6054,7 +6054,7 @@ let showsel () =
       loop state.layout
 ;;
 
-let showrects rects =
+let showrects = function [] -> () | rects ->
   Gl.enable `blend;
   GlDraw.color (0.0, 0.0, 1.0) ~alpha:0.5;
   GlDraw.polygon_mode `both `fill;
