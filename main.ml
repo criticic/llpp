@@ -6417,18 +6417,6 @@ let birdseyemouse button down x y mask
   | _ -> viewmouse button down x y mask
 ;;
 
-let mouse button down x y mask =
-  state.uioh <- state.uioh#button button down x y mask;
-;;
-
-let motion ~x ~y =
-  state.uioh <- state.uioh#motion x y
-;;
-
-let pmotion ~x ~y =
-  state.uioh <- state.uioh#pmotion x y;
-;;
-
 let uioh = object
   method display = ()
 
@@ -7699,9 +7687,13 @@ let () =
     method reshape w h =
       m_hack <- w < state.winw && h < state.winh;
       reshape w h
-    method mouse b d x y m = mouse b d x y m
-    method motion x y = state.mpos <- (x, y); motion x y
-    method pmotion x y = state.mpos <- (x, y); pmotion x y
+    method mouse b d x y m = state.uioh <- state.uioh#button b d x y m
+    method motion x y =
+      state.mpos <- (x, y);
+      state.uioh <- state.uioh#motion x y
+    method pmotion x y =
+      state.mpos <- (x, y);
+      state.uioh <- state.uioh#pmotion x y
     method key k m =
       let mascm = m land (
         Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
@@ -7729,7 +7721,9 @@ let () =
       | _ ->
           state.keystate <- KSnone
 
-    method enter x y = state.mpos <- (x, y); pmotion x y
+    method enter x y =
+      state.mpos <- (x, y);
+      state.uioh <- state.uioh#pmotion x y
     method leave = state.mpos <- (-1, -1)
     method winstate wsl = state.winstate <- wsl; m_hack <- false
     method quit = raise Quit
