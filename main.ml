@@ -3317,16 +3317,14 @@ let textentrykeyboard
   in
   match key with
   | 0xff08 ->                           (* backspace *)
-      let s = withoutlastutf8 text in
-      let len = String.length s in
-      if cancelonempty && len = 0
+      if emptystr text && cancelonempty
       then (
         onleave Cancel;
         G.postRedisplay "textentrykeyboard after cancel";
       )
-      else (
+      else
+        let s = withoutlastutf8 text in
         enttext (c, s, opthist, onkey, ondone, cancelonempty)
-      )
 
   | 0xff0d | 0xff8d ->                  (* (kp) enter *)
       ondone text;
