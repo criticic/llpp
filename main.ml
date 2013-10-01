@@ -124,6 +124,7 @@ external unproject : opaque -> int -> int -> (int * int) option
 external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 external rectofblock : opaque -> int -> int -> float array option
   = "ml_rectofblock";;
+external fz_version : unit -> string = "ml_fz_version";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -671,8 +672,9 @@ let gotouri uri =
 ;;
 
 let version () =
-  Printf.sprintf "llpp version %s (%s/%dbit, ocaml %s)" Help.version
-    (platform_to_string platform) Sys.word_size Sys.ocaml_version
+  Printf.sprintf "llpp version %s, fitz %s, ocaml %s (%s/%dbit)"
+    Help.version (fz_version ()) Sys.ocaml_version
+    (platform_to_string platform) Sys.word_size
 ;;
 
 let makehelp () =

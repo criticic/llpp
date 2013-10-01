@@ -3997,6 +3997,11 @@ static void makestippletex (void)
         );
 }
 
+CAMLprim value ml_fz_version (value unit_v)
+{
+    return caml_copy_string (FZ_VERSION);
+}
+
 CAMLprim value ml_init (value pipe_v, value params_v)
 {
     CAMLparam2 (pipe_v, params_v);
