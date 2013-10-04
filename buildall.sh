@@ -15,7 +15,7 @@ mkdir -p 3rdp
 cd 3rdp
 root=$(pwd)
 
-lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.04.tar.gz
+lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.05.tar.gz
 baseurl="http://git.ghostscript.com/"
 
 mupdfrev=6a6284ddfa453f909ba6576b85166b7cf26941ee
@@ -23,7 +23,7 @@ mudir=mupdf-$(printf "%.7s" $mupdfrev)
 mutgz=mupdf-$mupdfrev.tgz
 muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
-test -d lablGL-1.04 || (wget -nc $lablgl && tar -xzf lablgl-1.04.tar.gz)
+test -d lablgl-1.05 || (wget -nc $lablgl && tar -xzf lablgl-1.05.tar.gz)
 test -e $mutgz || wget -nc $muurl -O $mutgz
 test -d $mudir || tar -xzf $mutgz
 
@@ -49,13 +49,13 @@ executable_p() {
 
 executable_p gmake && make=gmake || make=make
 
-(cd lablGL-1.04                                             \
-    && sed 17d Makefile.config.linux.mdk > Makefile.config  \
-    && $make -j 1 lib $(test "$1" = opt && echo libopt)     \
-    && $make -j 1 install                                   \
-            BINDIR=$root/bin                                \
-            LIBDIR=$root/lib/ocaml                          \
-            DLLDIR=$root/lib/ocaml/stublibs                 \
+(cd lablgl-1.05                                            \
+    && sed 17d Makefile.config.linux.mdk > Makefile.config \
+    && $make lib $(test "$1" = opt && echo libopt)         \
+    && $make install                                       \
+            BINDIR=$root/bin                               \
+            LIBDIR=$root/lib/ocaml                         \
+            DLLDIR=$root/lib/ocaml/stublibs                \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
 (cd $mudir && $make $jobs build=release)
@@ -104,15 +104,15 @@ else
     executable_p ocamlc.opt && comp=ocamlc.opt || comp=ocamlc
     cmsuf=cmo
     dolink() {
-        $comp -custom -o llpp            \
-            -I $root/lib/ocaml/lablGL    \
-            str.cma unix.cma lablgl.cma  \
-            link.o                       \
-            -cclib "$cclib"              \
-            help.cmo                     \
-            utils.cmo                    \
-            parser.cmo                   \
-            wsi.cmo                      \
+        $comp -custom -o llpp           \
+            -I $root/lib/ocaml/lablGL   \
+            str.cma unix.cma lablgl.cma \
+            link.o                      \
+            -cclib "$cclib"             \
+            help.cmo                    \
+            utils.cmo                   \
+            parser.cmo                  \
+            wsi.cmo                     \
             main.cmo
     }
 fi
