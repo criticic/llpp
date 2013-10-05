@@ -4331,21 +4331,27 @@ let string_with_suffix_of_int n =
 ;;
 
 let defghyllscroll = (40, 8, 32);;
+let fastghyllscroll = (5,1,2);;
+let neatghyllscroll = (10,1,9);;
 let ghyllscroll_of_string s =
-  let (n, a, b) as nab =
-    if s = "default"
-    then defghyllscroll
-    else Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b)
-  in
-  if n <= a || n <= b || a >= b
-  then error "invalid ghyll N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)"
-    n a b;
-  nab;
+  match s with
+  | "default" -> Some defghyllscroll
+  | "fast" -> Some (5,1,2)
+  | "neat" -> Some (10,1,9)
+  | "" | "none" -> None
+  | _ ->
+      let (n,a,b) as nab =
+        Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b) in
+      if n <= a || n <= b || a >= b
+      then error "invalid ghyll N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)"
+        n a b;
+      Some nab
 ;;
 
 let ghyllscroll_to_string ((n, a, b) as nab) =
-  if nab = defghyllscroll
-  then "default"
+  (**) if nab = defghyllscroll then "default"
+  else if nab = fastghyllscroll then "fast"
+  else if nab = neatghyllscroll then "neat"
   else Printf.sprintf "%d,%d,%d" n a b;
 ;;
 
@@ -4915,13 +4921,7 @@ let enterinfomode =
           | Some nab -> ghyllscroll_to_string nab
         )
         (fun v ->
-          try
-            let gs =
-              if emptystr v
-              then None
-              else Some (ghyllscroll_of_string v)
-            in
-            conf.ghyllscroll <- gs
+          try conf.ghyllscroll <- ghyllscroll_of_string v
           with exn ->
             state.text <- Printf.sprintf "bad ghyll `%s': %s" v (exntos exn)
         );
@@ -6704,8 +6704,7 @@ struct
         | "invert-colors" -> { c with invert = bool_of_string v }
         | "brightness" -> { c with colorscale = float_of_string v }
         | "redirectstderr" -> { c with redirectstderr = bool_of_string v }
-        | "ghyllscroll" ->
-            { c with ghyllscroll = Some (ghyllscroll_of_string v) }
+        | "ghyllscroll" -> { c with ghyllscroll = ghyllscroll_of_string v }
         | "columns" ->
             let (n, _, _) as nab = multicolumns_of_string v in
             if n < 0
@@ -7190,9 +7189,13 @@ struct
       if always || a <> b
       then
         match a with
-        | None -> ()
         | Some (_N, _A, _B) ->
             Printf.bprintf bb "\n    %s='%u,%u,%u'" s _N _A _B
+        | None ->
+            match b with
+            | None -> ()
+            | _ ->
+                Printf.bprintf bb "\n    %s='none'" s
     and oW s a b =
       if always || a <> b
       then
