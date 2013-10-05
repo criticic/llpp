@@ -31,7 +31,7 @@ libs="-lmupdf -lmupdf-js-none"
 libs="$libs -lopenjp2 -ljbig2dec -ljpeg -lz -lfreetype -lX11 -lcrypto"
 if test $(hostname) = "linmac"; then
 cc=gcc-4.6.0
-ccopt="$ccopt -maltivec -D_GNU_SOURCE -DOBSCURED_OPT"
+ccopt="$ccopt -maltivec -D_GNU_SOURCE -DOBSCURED_OPT -DFFP"
 else
 cc=cc
 ccopt="$ccopt -O -D_GNU_SOURCE -fPIC"

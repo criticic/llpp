@@ -125,6 +125,8 @@ external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 external rectofblock : opaque -> int -> int -> float array option
   = "ml_rectofblock";;
 external fz_version : unit -> string = "ml_fz_version";;
+external begintiles : unit -> unit = "ml_begintiles";;
+external endtiles : unit -> unit = "ml_endtiles";;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -505,6 +507,8 @@ type state =
     ; mutable origin        : string
     ; mutable roam          : (unit -> unit)
     ; mutable bzoom         : bool
+    ; mutable traw          : [`float] Raw.t
+    ; mutable vraw          : [`float] Raw.t
     }
 and hists =
     { pat : string circbuf
@@ -754,6 +758,8 @@ let state =
   ; origin        = ""
   ; roam          = (fun () -> ())
   ; bzoom         = false
+  ; traw          = Raw.create_static `float 8
+  ; vraw          = Raw.create_static `float 8
   }
 ;;
 
@@ -1569,8 +1575,25 @@ let puttileopaque l col row gen colorspace angle opaque size elapsed =
   Hashtbl.add state.tilemap key (opaque, size, elapsed)
 ;;
 
+let filledrect x0 y0 x1 y1 =
+  GlArray.disable `texture_coord;
+  Raw.sets_float state.vraw ~pos:0 [| x0; y0; x0; y1; x1; y0; x1; y1 |];
+  GlArray.vertex `two state.vraw;
+  GlArray.draw_arrays `triangle_strip 0 4;
+  GlArray.enable `texture_coord;
+;;
+
+let linerect x0 y0 x1 y1 =
+  GlArray.disable `texture_coord;
+  Raw.sets_float state.vraw ~pos:0 [| x0; y0; x0; y1; x1; y1; x1; y0 |];
+  GlArray.vertex `two state.vraw;
+  GlArray.draw_arrays `line_loop 0 4;
+  GlArray.enable `texture_coord;
+;;
+
 let drawtiles l color =
   GlDraw.color color;
+  begintiles ();
   let f col row x y tilex tiley w h =
     match gettileopaque l col row with
     | Some (opaque, _, t) ->
@@ -1590,17 +1613,17 @@ let drawtiles l color =
             l.pageno col row t
           in
           let w = measurestr fstate.fontsize s in
-          GlMisc.push_attrib [`current];
           GlDraw.color (0.0, 0.0, 0.0);
-          GlDraw.rect
-            (float (x-2), float (y-2))
-            (float (x+2) +. w, float (y + fstate.fontsize + 2));
+          filledrect (float (x-2))
+            (float (y-2))
+            (float (x+2) +. w)
+            (float (y + fstate.fontsize + 2));
           GlDraw.color (1.0, 1.0, 1.0);
           drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
-          GlMisc.pop_attrib ();
         );
 
-    | _ ->
+    | None ->
+        endtiles ();
         let w =
           let lw = wadjsb state.winw - x in
           min lw w
@@ -1623,19 +1646,17 @@ let drawtiles l color =
             and ty0 = float tiley /. 16.0 in
             let tx1 = tx0 +. tw
             and ty1 = ty0 +. th in
-            GlDraw.begins `quads;
-            GlTex.coord2 (tx0, ty0); GlDraw.vertex2 (x0, y0);
-            GlTex.coord2 (tx0, ty1); GlDraw.vertex2 (x0, y1);
-            GlTex.coord2 (tx1, ty1); GlDraw.vertex2 (x1, y1);
-            GlTex.coord2 (tx1, ty0); GlDraw.vertex2 (x1, y0);
-            GlDraw.ends ();
+            Raw.sets_float state.vraw ~pos:0
+              [| x0; y0; x0; y1; x1; y0; x1; y1 |];
+            Raw.sets_float state.traw ~pos:0
+              [| tx0; ty0; tx0; ty1; tx1; ty0; tx1; ty1 |];
+            GlArray.vertex `two state.vraw;
+            GlArray.tex_coord `two state.traw;
+            GlArray.draw_arrays `triangle_strip 0 4;
 
-            Gl.disable `texture_2d;
         | None ->
             GlDraw.color (1.0, 1.0, 1.0);
-            GlDraw.rect
-              (float x, float y)
-              (float (x+w), float (y+h));
+            filledrect (float x) (float y) (float (x+w)) (float (y+h));
         end;
         if w > 128 && h > fstate.fontsize + 10
         then (
@@ -1648,8 +1669,10 @@ let drawtiles l color =
           drawstring2 fstate.fontsize x y "Loading %d [%d,%d]" l.pageno c r;
         );
         GlDraw.color color;
+        begintiles ();
   in
-  itertiles l f
+  itertiles l f;
+  endtiles ();
 ;;
 
 let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
@@ -2317,9 +2340,8 @@ let enttext () =
       | _ -> 0
     in
     let rect x w =
-      GlDraw.rect
-        (x, float (state.winh - (fstate.fontsize + 4) - hscrollh))
-        (x+.w, float (state.winh - hscrollh))
+      filledrect x (float (state.winh - (fstate.fontsize + 4) - hscrollh))
+        (x+.w) (float (state.winh - hscrollh))
     in
 
     let w = float (wadjsb state.winw - 1) in
@@ -3436,7 +3458,7 @@ object (self)
     Gl.enable `blend;
     GlFunc.blend_func `src_alpha `one_minus_src_alpha;
     GlDraw.color (0., 0., 0.) ~alpha:0.85;
-    GlDraw.rect (0., 0.) (float state.winw, float state.winh);
+    filledrect 0. 0. (float state.winw) (float state.winh);
     GlDraw.color (1., 1., 1.);
     Gl.enable `texture_2d;
     let fs = fstate.fontsize in
@@ -3456,12 +3478,10 @@ object (self)
           if row = m_active
           then (
             Gl.disable `texture_2d;
-            GlDraw.polygon_mode `both `line;
             let alpha = if source#hasaction row then 0.9 else 0.3 in
             GlDraw.color (1., 1., 1.) ~alpha;
-            GlDraw.rect (1., float (y + 1))
-              (float (state.winw - conf.scrollbw - 1), float (y + fs + 3));
-            GlDraw.polygon_mode `both `fill;
+            linerect 1. (float (y + 1))
+              (float (state.winw - conf.scrollbw - 1)) (float (y + fs + 3));
             GlDraw.color (1., 1., 1.);
             Gl.enable `texture_2d;
           );
@@ -6009,23 +6029,23 @@ let scrollindicator () =
   let sbh, pw, sw = state.uioh#scrollpw in
 
   GlDraw.color (0.64, 0.64, 0.64);
-  GlDraw.rect
-    (float (state.winw - sbw), 0.)
-    (float state.winw, float state.winh)
+  filledrect
+    (float (state.winw - sbw)) 0.
+    (float state.winw) (float state.winh)
   ;
-  GlDraw.rect
-    (0., float (state.winh - sbh))
-    (float (wadjsb state.winw - 1), float state.winh)
+  filledrect
+    0. (float (state.winh - sbh))
+    (float (wadjsb state.winw - 1)) (float state.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
-  GlDraw.rect
-    (float (state.winw - sbw), ph)
-    (float state.winw, ph +. sh)
+  filledrect
+    (float (state.winw - sbw)) ph
+    (float state.winw) (ph +. sh)
   ;
-  GlDraw.rect
-    (pw, float (state.winh - sbh))
-    (pw +. sw, float state.winh)
+  filledrect
+    pw (float (state.winh - sbh))
+    (pw +. sw) (float state.winh)
   ;
 ;;
 
@@ -6057,7 +6077,6 @@ let showsel () =
 let showrects = function [] -> () | rects ->
   Gl.enable `blend;
   GlDraw.color (0.0, 0.0, 1.0) ~alpha:0.5;
-  GlDraw.polygon_mode `both `fill;
   GlFunc.blend_func `src_alpha `one_minus_src_alpha;
   List.iter
     (fun (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) ->
@@ -6067,14 +6086,13 @@ let showrects = function [] -> () | rects ->
           let dx = float (l.pagedispx - l.pagex) in
           let dy = float (l.pagedispy - l.pagey) in
           GlDraw.color (0.0, 0.0, 1.0 /. float c) ~alpha:0.5;
-          GlDraw.begins `quads;
-          (
-            GlDraw.vertex2 (x0+.dx, y0+.dy);
-            GlDraw.vertex2 (x1+.dx, y1+.dy);
-            GlDraw.vertex2 (x2+.dx, y2+.dy);
-            GlDraw.vertex2 (x3+.dx, y3+.dy);
-          );
-          GlDraw.ends ();
+          Raw.sets_float state.vraw ~pos:0
+            [| x0+.dx; y0+.dy;
+               x1+.dx; y1+.dy;
+               x3+.dx; y3+.dy;
+               x2+.dx; y2+.dy |];
+          GlArray.vertex `two state.vraw;
+          GlArray.draw_arrays `triangle_strip 0 4;
         )
       ) state.layout
     ) rects
@@ -6117,8 +6135,7 @@ let display () =
       Gl.enable `blend;
       GlDraw.color (0.3, 0.3, 0.3) ~alpha:0.5;
       GlFunc.blend_func `src_alpha `one_minus_src_alpha;
-      GlDraw.rect (float x0, float y0)
-        (float x1, float y1);
+      filledrect (float x0) (float y0) (float x1) (float y1);
       Gl.disable `blend;
   | _ -> ()
   end;
@@ -7804,6 +7821,7 @@ let () =
     !Config.fontpath, !trimcachepath,
     GlMisc.check_extension "GL_ARB_pixel_buffer_object"
   );
+  List.iter GlArray.enable [`texture_coord; `vertex];
   state.sr <- sr;
   state.sw <- sw;
   state.text <- "Opening " ^ (mbtoutf8 state.path);

@@ -236,6 +236,9 @@ struct {
     void (*glBufferDataARB) (GLenum, GLsizei, void *, GLenum);
     void (*glGenBuffersARB) (GLsizei, GLuint *);
     void (*glDeleteBuffersARB) (GLsizei, GLuint *);
+
+    GLfloat texcoords[8];
+    GLfloat vertices[16];
 } state;
 
 struct pbo {
@@ -2015,6 +2018,18 @@ CAMLprim value ml_realloctexts (value texcount_v)
     CAMLreturn (Val_bool (ok));
 }
 
+static void recti (int x0, int y0, int x1, int y1)
+{
+    GLfloat *v = state.vertices;
+
+    glVertexPointer (2, GL_FLOAT, 0, v);
+    v[0] = x0; v[1] = y0;
+    v[2] = x1; v[3] = y0;
+    v[4] = x0; v[5] = y1;
+    v[6] = x1; v[7] = y1;
+    glDrawArrays (GL_TRIANGLE_STRIP, 0, 4);
+}
+
 static void showsel (struct page *page, int ox, int oy)
 {
     int seen = 0;
@@ -2083,8 +2098,8 @@ static void showsel (struct page *page, int ox, int oy)
                              bbox.y1,
                              oy, ox);
 
-                    glRecti (bbox.x0 + ox, bbox.y0 + oy,
-                             bbox.x1 + ox, bbox.y1 + oy);
+                    recti (bbox.x0 + ox, bbox.y0 + oy,
+                           bbox.x1 + ox, bbox.y1 + oy);
                     if (span == last.span) {
                         goto done;
                     }
@@ -2102,6 +2117,8 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
 {
     fz_matrix ctm, tm, pm;
     fz_link *link, *links;
+    GLfloat *texcoords = state.texcoords;
+    GLfloat *vertices = state.vertices;
 
     switch (page->type) {
     case DPDF:
@@ -2126,7 +2143,9 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     pm = pagectm (page);
     fz_concat (&ctm, &pm, &tm);
 
-    glBegin (GL_LINES);
+    glTexCoordPointer (1, GL_FLOAT, 0, texcoords);
+    glVertexPointer (2, GL_FLOAT, 0, vertices);
+
     for (link = links; link; link = link->next) {
         fz_point p1, p2, p3, p4;
 
@@ -2165,28 +2184,20 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
             h = p3.y - p2.y;
             s = sqrtf (w*w + h*h) * .25f;
 
-            glTexCoord1i (0);
-            glVertex2f (p1.x, p1.y);
-            glTexCoord1f (t);
-            glVertex2f (p2.x, p2.y);
+            texcoords[0] = 0; vertices[0] = p1.x; vertices[1] = p1.y;
+            texcoords[1] = t; vertices[2] = p2.x; vertices[3] = p2.y;
 
-            glTexCoord1i (0);
-            glVertex2f (p2.x, p2.y);
-            glTexCoord1f (s);
-            glVertex2f (p3.x, p3.y);
+            texcoords[2] = 0; vertices[4] = p2.x; vertices[5] = p2.y;
+            texcoords[3] = s; vertices[6] = p3.x; vertices[7] = p3.y;
 
-            glTexCoord1i (0);
-            glVertex2f (p3.x, p3.y);
-            glTexCoord1f (t);
-            glVertex2f (p4.x, p4.y);
+            texcoords[4] = 0; vertices[8] = p3.x; vertices[9] = p3.y;
+            texcoords[5] = t; vertices[10] = p4.x; vertices[11] = p4.y;
 
-            glTexCoord1i (0);
-            glVertex2f (p4.x, p4.y);
-            glTexCoord1f (s);
-            glVertex2f (p1.x, p1.y);
+            texcoords[6] = 0; vertices[12] = p4.x; vertices[13] = p4.y;
+            texcoords[7] = s; vertices[14] = p1.x; vertices[15] = p1.y;
         }
+        glDrawArrays (GL_LINES, 0, 8);
     }
-    glEnd ();
 
     glDisable (GL_BLEND);
     glDisable (GL_TEXTURE_1D);
@@ -2315,7 +2326,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
             y0 = y1 + 10 + hfsize;
             w = measure_string (state.face, hfsize, buf);
             x1 = x0 + w + 10;
-            glRectd (x0, y0, x1, y1);
+            recti (x0, y0, x1, y1);
         }
     }
 
@@ -2410,6 +2421,22 @@ static void uploadslice (struct tile *tile, struct slice *slice)
     }
 }
 
+CAMLprim value ml_begintiles (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    glEnable (GL_TEXTURE_RECTANGLE_ARB);
+    glTexCoordPointer (2, GL_FLOAT, 0, state.texcoords);
+    glVertexPointer (2, GL_FLOAT, 0, state.vertices);
+    CAMLreturn (unit_v);
+}
+
+CAMLprim value ml_endtiles (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    glDisable (GL_TEXTURE_RECTANGLE_ARB);
+    CAMLreturn (unit_v);
+}
+
 CAMLprim value ml_drawtile (value args_v, value ptr_v)
 {
     CAMLparam2 (args_v, ptr_v);
@@ -2421,47 +2448,39 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
     int tiley = Int_val (Field (args_v, 5));
     char *s = String_val (ptr_v);
     struct tile *tile = parse_pointer ("ml_drawtile", s);
+    int slicey, firstslice;
+    struct slice *slice;
+    GLfloat *texcoords = state.texcoords;
+    GLfloat *vertices = state.vertices;
 
-    glEnable (GL_TEXTURE_RECTANGLE_ARB);
-    {
-        int slicey, firstslice;
-        struct slice *slice;
+    firstslice = tiley / tile->sliceheight;
+    slice = &tile->slices[firstslice];
+    slicey = tiley % tile->sliceheight;
 
-        firstslice = tiley / tile->sliceheight;
-        slice = &tile->slices[firstslice];
-        slicey = tiley % tile->sliceheight;
+    while (disph > 0) {
+        int dh;
 
-        while (disph > 0) {
-            int dh;
+        dh = slice->h - slicey;
+        dh = MIN (disph, dh);
+        uploadslice (tile, slice);
 
-            dh = slice->h - slicey;
-            dh = MIN (disph, dh);
-            uploadslice (tile, slice);
+        texcoords[0] = tilex;       texcoords[1] = slicey;
+        texcoords[2] = tilex+dispw; texcoords[3] = slicey;
+        texcoords[4] = tilex;       texcoords[5] = slicey+dh;
+        texcoords[6] = tilex+dispw; texcoords[7] = slicey+dh;
 
-            glBegin (GL_QUADS);
-            {
-                glTexCoord2i (tilex, slicey);
-                glVertex2i (dispx, dispy);
+        vertices[0] = dispx;        vertices[1] = dispy;
+        vertices[2] = dispx+dispw;  vertices[3] = dispy;
+        vertices[4] = dispx;        vertices[5] = dispy+dh;
+        vertices[6] = dispx+dispw;  vertices[7] = dispy+dh;
 
-                glTexCoord2i (tilex+dispw, slicey);
-                glVertex2i (dispx+dispw, dispy);
-
-                glTexCoord2i (tilex+dispw, slicey+dh);
-                glVertex2i (dispx+dispw, dispy+dh);
-
-                glTexCoord2i (tilex, slicey+dh);
-                glVertex2i (dispx, dispy+dh);
-            }
-            glEnd ();
-
-            dispy += dh;
-            disph -= dh;
-            slice++;
-            ARSERT (!(slice - tile->slices >= tile->slicecount && disph > 0));
-            slicey = 0;
-        }
+        glDrawArrays (GL_TRIANGLE_STRIP, 0, 4);
+        dispy += dh;
+        disph -= dh;
+        slice++;
+        ARSERT (!(slice - tile->slices >= tile->slicecount && disph > 0));
+        slicey = 0;
     }
-    glDisable (GL_TEXTURE_RECTANGLE_ARB);
     CAMLreturn (Val_unit);
 }
 
@@ -3277,7 +3296,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     if (0) {
         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
         glColor3ub (128, 128, 128);
-        glRecti (x0, y0, x1, y1);
+        recti (x0, y0, x1, y1);
         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
     }
 
@@ -3320,7 +3339,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
                     if (0 && selected) {
                         glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
                         glColor3ub (128, 128, 128);
-                        glRecti (b.x0, b.y0, b.x1, b.y1);
+                        recti (b.x0, b.y0, b.x1, b.y1);
                         glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
                     }
                 }
@@ -4061,6 +4080,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     }
 
     makestippletex ();
+
 #ifdef __CYGWIN__
     sa.sa_handler = SIG_IGN;
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;

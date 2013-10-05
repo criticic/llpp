@@ -260,8 +260,9 @@ static struct glyph * lookup_glyph(FT_Face face, int size, int gid, int subx, in
                         GL_ALPHA, GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
+#ifdef FFP
         glBegin(GL_QUADS);
-
+#endif
         g_cache_row_x += w + PADDING;
         if (g_cache_row_h < h + PADDING)
                 g_cache_row_h = h + PADDING;
@@ -274,6 +275,12 @@ static float draw_glyph(FT_Face face, int size, int gid, float x, float y)
         struct glyph *glyph;
         int subx = (x - floor(x)) * XPRECISION;
         int suby = (y - floor(y)) * YPRECISION;
+#ifndef FFP
+        GLfloat *t = state.texcoords;
+        GLfloat *v = state.vertices;
+#endif
+        float s0, t0, s1, t1, xc, yc;
+
         subx = (subx * 64) / XPRECISION;
         suby = (suby * 64) / YPRECISION;
 
@@ -281,17 +288,26 @@ static float draw_glyph(FT_Face face, int size, int gid, float x, float y)
         if (!glyph)
                 return 0.0;
 
-        float s0 = (float) glyph->s / g_cache_w;
-        float t0 = (float) glyph->t / g_cache_h;
-        float s1 = (float) (glyph->s + glyph->w) / g_cache_w;
-        float t1 = (float) (glyph->t + glyph->h) / g_cache_h;
-        float xc = floor(x) + glyph->lsb;
-        float yc = floor(y) - glyph->top + glyph->h;
+        s0 = (float) glyph->s / g_cache_w;
+        t0 = (float) glyph->t / g_cache_h;
+        s1 = (float) (glyph->s + glyph->w) / g_cache_w;
+        t1 = (float) (glyph->t + glyph->h) / g_cache_h;
+        xc = floor(x) + glyph->lsb;
+        yc = floor(y) - glyph->top + glyph->h;
 
+#ifndef FFP
+        t[0] = s0; t[1] = t0; v[0] = xc;            v[1] = yc - glyph->h;
+        t[2] = s1; t[3] = t0; v[2] = xc + glyph->w; v[3] = yc - glyph->h;
+        t[4] = s0; t[5] = t1; v[4] = xc;            v[5] = yc;
+        t[6] = s1; t[7] = t1; v[6] = xc + glyph->w; v[7] = yc;
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+#else
         glTexCoord2f(s0, t0); glVertex2f(xc, yc - glyph->h);
         glTexCoord2f(s1, t0); glVertex2f(xc + glyph->w, yc - glyph->h);
         glTexCoord2f(s1, t1); glVertex2f(xc + glyph->w, yc);
         glTexCoord2f(s0, t1); glVertex2f(xc, yc);
+#endif
 
         return glyph->advance;
 }
@@ -333,8 +349,12 @@ static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
         FT_Set_Char_Size(face, size, size, 72, 72);
 
         glBindTexture(GL_TEXTURE_2D, g_cache_tex);
+#ifdef FFP
         glBegin(GL_QUADS);
-
+#else
+        glVertexPointer(2, GL_FLOAT, 0, state.vertices);
+        glTexCoordPointer(2, GL_FLOAT, 0, state.texcoords);
+#endif
         while (*str)
         {
                 str += fz_chartorune(&ucs, str);
@@ -349,7 +369,9 @@ static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
                 left = gid;
         }
 
+#ifdef FFP
         glEnd();
+#endif
 
         return x;
 }
