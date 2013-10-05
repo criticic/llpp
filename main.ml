@@ -3943,6 +3943,11 @@ object (self)
         G.postRedisplay "toggle auto narrowing";
         coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
 
+    | 47 when emptystr m_qsearch && not m_autonarrow -> (* / *)
+        settext true "";
+        G.postRedisplay "toggle auto narrowing";
+        coe {< m_first = 0; m_active = 0; m_autonarrow = true >}
+
     | 110 when ctrl ->                  (* ctrl-n *)
         source#narrow m_qsearch;
         if not m_autonarrow
