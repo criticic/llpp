@@ -1,6 +1,7 @@
 # builds "hard" prerequisites and llpp
 set -e
 
+filt='^$'
 while getopts j:f: opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
@@ -81,12 +82,20 @@ ccopt="$ccopt -I $tp/openjpeg/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib"
 ccopt="$ccopt -I $root/$mudir/include"
 
-ccopt="$ccopt -include $tp/freetype/include/ft2build.h -D_GNU_SOURCE"
+ccopt="$ccopt -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/$mudir/build/release"
 cclib="$cclib -lmupdf -lmupdf-js-none"
-cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lfreetype -lpthread -lcrypto"
+cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lpthread -lcrypto"
 cclib="$cclib -lX11"
+
+expr "$filt" : '.*freetype.*' && {
+    ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
+    cclib="$cclib $(freetype-config --libs)"
+} || {
+    ccopt="$ccopt -include $tp/freetype/include/ft2build.h"
+    cclib="$cclib -lfreetype"
+}
 
 echo Building llpp...
 
