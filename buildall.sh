@@ -1,9 +1,10 @@
 # builds "hard" prerequisites and llpp
 set -e
 
-while getopts j: opt; do
+while getopts j:f: opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
+        f) filt="$OPTARG";;
         ?)
         printf "usage: $0 [-j N] [opt]\n";
         exit 1;;
@@ -27,15 +28,19 @@ test -d lablgl-1.05 || (wget -nc $lablgl && tar -xzf lablgl-1.05.tar.gz)
 test -e $mutgz || wget -nc $muurl -O $mutgz
 test -d $mudir || tar -xzf $mutgz
 
-while read r m; do
-    d=$m-$(printf "%.7s" $r)
-    t=$m-$r.tgz
-    test $m = jbig2dec && p=$m || p=thirdparty/$m
-    u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
-    test -e $t || wget -nc $u -O $t
-    test -e $mudir/thirdparty/$m/README ||
-    (rm -fr $mudir/thirdparty/$m && tar -xzf $t && mv $d $mudir/thirdparty/$m)
-done <<-EOF
+fetch() {
+  while read r m; do
+      d=$m-$(printf "%.7s" $r)
+      t=$m-$r.tgz
+      test $m = jbig2dec && p=$m || p=thirdparty/$m
+      u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
+      test -e $t || wget -nc $u -O $t
+      test -e $mudir/thirdparty/$m/README ||
+      (rm -fr $mudir/thirdparty/$m && tar -xzf $t && mv $d $mudir/thirdparty/$m)
+  done
+}
+
+grep -v -E "$filt" <<-EOF | fetch
 2ef0a19842ae1172bec153225328aaaeaf130a18 freetype
 d02b3649334e59e862b37c70d7d0fa9e086a524c jbig2dec
 219d59dcfd0e6ce8a3d8c5510e29237f0b5078ed jpeg
