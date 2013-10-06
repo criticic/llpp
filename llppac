@@ -65,7 +65,7 @@ opts=
 
 case $type in
     ps) conv='ps2pdf - "$casp"';;
-    pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
+    image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
     djvu) conv='djvups - | ps2pdf - "$casp"';;
     html) {
         test -n "$dc" && die "can not convert compressed '$mime'"
@@ -91,11 +91,6 @@ case $type in
             || conv='inkscape -z -A "$casp" -'
     };;
     image) conv='convert - pdf:"$casp"';;
-    image2) {
-        suff=".cbz"
-        opts="-cxack"
-        conv='zip -0q "$casp" "$1"'
-    };;
     dvi) {
         test -n "$dc" && die "can not convert compressed '$mime'"
         unset filt

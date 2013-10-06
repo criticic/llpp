@@ -34,6 +34,7 @@
 #include <mupdf/cbz.h>
 #include <mupdf/pdf.h>
 #include <mupdf/xps.h>
+#include <mupdf/img.h>
 
 #include FT_FREETYPE_H
 
@@ -151,7 +152,7 @@ struct slink  {
     fz_link *link;
 };
 
-enum { DPDF, DXPS, DCBZ };
+enum { DPDF, DXPS, DCBZ, DIMG };
 
 struct page {
     int tgen;
@@ -166,6 +167,7 @@ struct page {
         pdf_page *pdfpage;
         xps_page *xpspage;
         cbz_page *cbzpage;
+        image_page *imgpage;
     } u;
     fz_display_list *dlist;
     int slinkcount;
@@ -187,6 +189,7 @@ struct {
         pdf_document *pdf;
         xps_document *xps;
         cbz_document *cbz;
+        image_document *img;
     } u;
     fz_context *ctx;
     int w, h;
@@ -423,6 +426,14 @@ static void closecbz (void)
     }
 }
 
+static void closeimg (void)
+{
+    if (state.u.img) {
+        image_close_document (state.u.img);
+        state.u.img = NULL;
+    }
+}
+
 static void freepdfpage (void *ptr)
 {
     pdf_free_page (state.u.pdf, ptr);
@@ -443,6 +454,11 @@ static void freecbzpage (void *ptr)
     cbz_free_page (state.u.cbz, ptr);
 }
 
+static void freeimgpage (void *ptr)
+{
+    image_free_page (state.u.img, ptr);
+}
+
 static void openxref (char *filename, char *password)
 {
     int i, len;
@@ -457,18 +473,26 @@ static void openxref (char *filename, char *password)
     len = strlen (filename);
 
     state.type = DPDF;
-    if (len > 4) {
-        char ext[4];
+    {
+        int i;
+        struct {
+            char *ext;
+            int type;
+        } tbl[] = {
+            { "xps", DXPS },
+            { "cbz", DCBZ },
+            { "jpg", DIMG },
+            { "jpeg", DIMG },
+            { "png", DIMG }
+        };
 
-        ext[0] = tolower ((int) filename[len-3]);
-        ext[1] = tolower ((int) filename[len-2]);
-        ext[2] = tolower ((int) filename[len-1]);
+        for (i = 0; i < sizeof (tbl) / sizeof (*tbl); ++i) {
+            int len2 = strlen (tbl[i].ext);
 
-        /**/ if (ext[0] == 'x' && ext[1] == 'p' && ext[2] == 's') {
-            state.type = DXPS;
-        }
-        else if (ext[0] == 'c' && ext[1] == 'b' && ext[2] == 'z') {
-            state.type = DCBZ;
+            if (len2 < len && !strcasecmp (tbl[i].ext, filename + len -len2)) {
+                state.type = tbl[i].type;
+                break;
+            }
         }
     }
 
@@ -505,6 +529,13 @@ static void openxref (char *filename, char *password)
         state.pagecount = cbz_count_pages (state.u.cbz);
         state.closedoc = closecbz;
         state.freepage = freecbzpage;
+        break;
+
+    case DIMG:
+        state.u.img = image_open_document (state.ctx, filename);
+        state.pagecount = 1;
+        state.closedoc = closeimg;
+        state.freepage = freeimgpage;
         break;
     }
 }
@@ -721,6 +752,13 @@ static void *loadpage (int pageno, int pindex)
             cbz_run_page (state.u.cbz, page->u.cbzpage, dev,
                           &fz_identity, NULL);
             page->freepage = freecbzpage;
+            break;
+
+        case DIMG:
+            page->u.imgpage = image_load_page (state.u.img, pageno);
+            image_run_page (state.u.img, page->u.imgpage, dev,
+                            &fz_identity, NULL);
+            page->freepage = freeimgpage;
             break;
         }
     }
@@ -1102,6 +1140,27 @@ static void initpdims (void)
                             }
                         }
                     }
+                }
+            }
+            break;
+
+        case DIMG:
+            {
+                image_page *page;
+
+                rotate = 0;
+                mediabox.x0 = 0;
+                mediabox.y0 = 0;
+                mediabox.x1 = 900;
+                mediabox.y1 = 900;
+
+                fz_try (state.ctx) {
+                    page = image_load_page (state.u.img, pageno);
+                    image_bound_page (state.u.img, page, &mediabox);
+                    image_free_page (state.u.img, page);
+                }
+                fz_catch (state.ctx) {
+                    fprintf (stderr, "failed to load page %d\n", pageno+1);
                 }
             }
             break;
