@@ -195,8 +195,9 @@ static struct glyph * lookup_glyph(FT_Face face, int size, int gid, int subx, in
         /*
          * Render the bitmap
          */
-
+#ifdef FFP
         glEnd();
+#endif
 
         subv.x = subx;
         subv.y = suby;
