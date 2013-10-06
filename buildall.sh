@@ -29,15 +29,17 @@ test -e $mutgz || wget -nc $muurl -O $mutgz
 test -d $mudir || tar -xzf $mutgz
 
 fetch() {
-  while read r m; do
-      d=$m-$(printf "%.7s" $r)
-      t=$m-$r.tgz
-      test $m = jbig2dec && p=$m || p=thirdparty/$m
-      u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
-      test -e $t || wget -nc $u -O $t
-      test -e $mudir/thirdparty/$m/README ||
-      (rm -fr $mudir/thirdparty/$m && tar -xzf $t && mv $d $mudir/thirdparty/$m)
-  done
+    while read r m; do
+        d=$m-$(printf "%.7s" $r)
+        t=$m-$r.tgz
+        test $m = jbig2dec && p=$m || p=thirdparty/$m
+        u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
+        test -e $t || wget -nc $u -O $t
+        test -e $mudir/thirdparty/$m/README ||
+        (rm -fr $mudir/thirdparty/$m &&
+            tar -xzf $t &&
+            mv $d $mudir/thirdparty/$m)
+    done
 }
 
 grep -v -E "$filt" <<-EOF | fetch
