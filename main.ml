@@ -1608,6 +1608,7 @@ let drawtiles l color =
         then Gl.disable `blend;
         if conf.debug
         then (
+          endtiles ();
           let s = Printf.sprintf
             "%d[%d,%d] %f sec"
             l.pageno col row t
@@ -1620,6 +1621,7 @@ let drawtiles l color =
             (float (y + fstate.fontsize + 2));
           GlDraw.color (1.0, 1.0, 1.0);
           drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
+          begintiles ();
         );
 
     | None ->
