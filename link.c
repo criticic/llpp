@@ -490,7 +490,7 @@ static void openxref (char *filename, char *password)
         for (i = 0; i < sizeof (tbl) / sizeof (*tbl); ++i) {
             int len2 = strlen (tbl[i].ext);
 
-            if (len2 < len && !strcasecmp (tbl[i].ext, filename + len -len2)) {
+            if (len2 < len && !strcasecmp (tbl[i].ext, filename + len - len2)) {
                 state.type = tbl[i].type;
                 break;
             }
