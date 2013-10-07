@@ -3955,6 +3955,12 @@ object (self)
         G.postRedisplay "outline ctrl-n";
         coe {< m_first = 0; m_active = 0 >}
 
+    | 115 when ctrl ->                  (* ctrl-s *)
+        let active = source#calcactive (getanchor ()) in
+        let first = firstof m_first active in
+        G.postRedisplay "outline ctrl-s";
+        coe {< m_first = first; m_active = active >}
+
     | 117 when ctrl ->                  (* ctrl-u *)
         source#del_narrow_pattern;
         let pattern = source#renarrow in
@@ -4178,6 +4184,21 @@ let outlinesource usebookmarks =
             self#narrow pattern;
             accu ^ " --> " ^ pattern) "" list
 
+    method calcactive anchor =
+      let rely = getanchory anchor in
+      let rec loop n best bestd =
+        if n = Array.length m_items
+        then best
+        else
+          let (_, _, anchor) = m_items.(n) in
+          let orely = getanchory anchor in
+          let d = abs (orely - rely) in
+          if d < bestd
+          then loop (n+1) n d
+          else loop (n+1) best bestd
+      in
+      loop 0 ~-1 max_int
+
     method reset anchor items =
       m_hadremovals <- false;
       if m_orig_items == empty
@@ -4186,21 +4207,7 @@ let outlinesource usebookmarks =
         if m_narrow_patterns == []
         then m_items <- items;
       );
-      let rely = getanchory anchor in
-      let active =
-        let rec loop n best bestd =
-          if n = Array.length m_items
-          then best
-          else
-            let (_, _, anchor) = m_items.(n) in
-            let orely = getanchory anchor in
-            let d = abs (orely - rely) in
-            if d < bestd
-            then loop (n+1) n d
-            else loop (n+1) best bestd
-        in
-        loop 0 ~-1 max_int
-      in
+      let active = self#calcactive anchor in
       m_active <- active;
       m_first <- firstof m_first active
   end)

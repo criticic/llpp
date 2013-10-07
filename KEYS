@@ -123,6 +123,7 @@ Ctrl-a                  - toggle auto narrowing
 /                       - enter auto narrowing
 Ctrl-n                  - narrow to search pattern
 Ctrl-u                  - undo narrowing
+Ctrl-s                  - synchronize
 
 info mode
 enter                   - toggle/enter new value for selected parameter
