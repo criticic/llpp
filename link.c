@@ -948,7 +948,8 @@ static void initpdims (void)
 
         switch (state.type) {
         case DPDF: {
-            pdf_obj *pageref = pdf_lookup_page_obj (state.u.pdf, pageno);
+            pdf_document *pdf = state.u.pdf;
+            pdf_obj *pageref = pdf_lookup_page_obj (pdf, pageno);
             pdf_obj *pageobj = pdf_resolve_indirect (pageref);
 
             if (state.trimmargins) {
@@ -956,7 +957,7 @@ static void initpdims (void)
                 pdf_page *page;
 
                 fz_try (state.ctx) {
-                    page = pdf_load_page (state.u.pdf, pageno);
+                    page = pdf_load_page (pdf, pageno);
                     obj = pdf_dict_gets (pageobj, "llpp.TrimBox");
                     trim = state.trimanew || !obj;
                     if (trim) {
@@ -967,8 +968,7 @@ static void initpdims (void)
                         dev = fz_new_bbox_device (state.ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
                         fz_invert_matrix (&ctm, &page->ctm);
-                        pdf_run_page (state.u.pdf, page, dev,
-                                      &fz_identity, NULL);
+                        pdf_run_page (pdf, page, dev, &fz_identity, NULL);
                         fz_free_device (dev);
 
                         rect.x0 += state.trimfuzz.x0;
@@ -985,15 +985,11 @@ static void initpdims (void)
                             mediabox = rect;
                         }
 
-                        obj = pdf_new_array (state.u.pdf, 4);
-                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
-                                                           mediabox.x0));
-                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
-                                                           mediabox.y0));
-                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
-                                                           mediabox.x1));
-                        pdf_array_push (obj, pdf_new_real (state.u.pdf,
-                                                           mediabox.y1));
+                        obj = pdf_new_array (pdf, 4);
+                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.x0));
+                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.y0));
+                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.x1));
+                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.y1));
                         pdf_dict_puts (pageobj, "llpp.TrimBox", obj);
                     }
                     else {
@@ -1004,7 +1000,7 @@ static void initpdims (void)
                     }
 
                     rotate = page->rotate;
-                    pdf_free_page (state.u.pdf, page);
+                    pdf_free_page (pdf, page);
 
                     show = trim ? pageno % 5 == 0 : pageno % 20 == 0;
                     if (show) {
