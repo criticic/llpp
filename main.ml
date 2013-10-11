@@ -4124,7 +4124,7 @@ let outlinesource usebookmarks =
         let s =
           match m_narrow_patterns with
           | one :: [] -> one
-          | many -> String.concat " --> " (List.rev many)
+          | many -> String.concat "\xe2\x80\xa6" (List.rev many)
         in
         "Narrowed to " ^ s ^ " (ctrl-u to restore)"
       else ""
@@ -4184,7 +4184,7 @@ let outlinesource usebookmarks =
       | list ->
           List.fold_left (fun accu pattern ->
             self#narrow pattern;
-            accu ^ " --> " ^ pattern) "" list
+            pattern ^ "\xe2\x80\xa6" ^ accu) "" list
 
     method calcactive anchor =
       let rely = getanchory anchor in
