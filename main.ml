@@ -4174,21 +4174,18 @@ let gotounder under =
 ;;
 
 let gotooutline (_, _, kind) =
-  let under =
-    match kind with
-    | Onone -> Unone
-    | Oanchor anchor ->
-        let (pageno, y, _) = anchor in
-        let y = getanchory
-          (if conf.presentation then (pageno, y, 1.0) else anchor)
-        in
-        Ulinkgoto (pageno, y)
-    | Ouri uri -> Ulinkuri uri
-    | Olaunch cmd -> Ulaunch cmd
-    | Oremote remote -> Uremote remote
-    | Oremotedest remotedest -> Uremotedest remotedest
-  in
-  gotounder under;
+  match kind with
+  | Onone -> ()
+  | Oanchor anchor ->
+      let (pageno, y, _) = anchor in
+      let y = getanchory
+        (if conf.presentation then (pageno, y, 1.0) else anchor)
+      in
+      gotoghyll y
+  | Ouri uri -> gotounder (Ulinkuri uri)
+  | Olaunch cmd -> gotounder (Ulaunch cmd)
+  | Oremote remote -> gotounder (Uremote remote)
+  | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
 ;;
 
 let outlinesource usebookmarks =
