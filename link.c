@@ -1350,17 +1350,28 @@ desttoanchor (fz_link_dest *dest)
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        if (outline->dest.kind == FZ_LINK_GOTO) {
-            struct anchor a = desttoanchor (&outline->dest);
+        switch (outline->dest.kind) {
+        case FZ_LINK_GOTO:
+            {
+                struct anchor a = desttoanchor (&outline->dest);
 
-            if (a.n >= 0) {
-                printd ("o %d %d %d %d %s",
-                        level, a.n, a.y, a.h, outline->title);
+                if (a.n >= 0) {
+                    printd ("o %d %d %d %d %s",
+                            level, a.n, a.y, a.h, outline->title);
+                }
             }
-        }
-        else {
+            break;
+
+        case FZ_LINK_URI:
+            printd ("ou %d %" FMT_s " %s %s", level,
+                    strlen (outline->title), outline->title,
+                    outline->dest.ld.uri.uri);
+            break;
+
+        default:
             printd ("emsg Unhandled outline kind %d for %s\n",
                     outline->dest.kind, outline->title);
+            break;
         }
         if (outline->down) {
             recurse_outline (outline->down, level + 1);

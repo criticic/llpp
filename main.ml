@@ -8,11 +8,15 @@ type under =
     | Ulinkgoto of (int * int)
     | Utext of facename
     | Uunexpected of string
-    | Ulaunch of string
-    | Unamed of string
-    | Uremote of (string * int)
-    | Uremotedest of (string * string)
-and facename = string;;
+    | Ulaunch of launchcommand
+    | Unamed of destname
+    | Uremote of (filename * pageno)
+    | Uremotedest of (filename * destname)
+and facename = string
+and launchcommand = string
+and filename = string
+and pageno = int
+and destname = string;;
 
 type mark =
     | Mark_page
@@ -25,7 +29,6 @@ type params = (angle * fitmodel * trimparams
                 * texcount * sliceheight * memsize
                 * colorspace * fontpath * trimcachepath
                 * haspbo)
-and pageno         = int
 and width          = int
 and height         = int
 and leftx          = int
@@ -49,6 +52,8 @@ and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
 and fitmodel       = | FitWidth | FitProportional | FitPage
 and haspbo         = bool
+and uri            = string
+and caption        = string
 ;;
 
 type x = int
@@ -380,7 +385,15 @@ and columns =
 
 type anchor = pageno * top * dtop;;
 
-type outline = string * int * anchor;;
+type outlinekind =
+    | Oanchor of anchor
+    | Ouri of uri
+    | Olaunch of launchcommand
+    | Oremote of (filename * pageno)
+    | Oremotedest of (filename * destname)
+and outline = (caption * outlinelevel * outlinekind)
+and outlinelevel = int
+;;
 
 type rect = float * float * float * float * float * float * float * float;;
 
@@ -2765,7 +2778,25 @@ let act cmds =
           (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub args pos (String.length args - pos) in
-      let outline = (s, l, (n, float t /. float h, 0.0)) in
+      let outline = (s, l, Oanchor (n, float t /. float h, 0.0)) in
+      begin match state.currently with
+      | Outlining outlines ->
+          state.currently <- Outlining (outline :: outlines)
+      | Idle ->
+          state.currently <- Outlining [outline]
+      | currently ->
+          dolog "invalid outlining state";
+          logcurrently currently
+      end
+
+  | "ou" :: args :: [] ->
+      let (l, len, pos) =
+        scan args "%u %u %n" (fun l len pos -> l, len, pos)
+      in
+      let s = String.sub args pos len in
+      let pos2 = pos + len + 1 in
+      let uri = String.sub args pos2 (String.length args - pos2) in
+      let outline = (s, l, Ouri uri) in
       begin match state.currently with
       | Outlining outlines ->
           state.currently <- Outlining (outline :: outlines)
@@ -4068,6 +4099,102 @@ object (self)
     | _ -> super#key key mask
 end
 
+let gotounder under =
+  let getpath filename =
+    let path =
+      if nonemptystr filename
+      then
+        if Filename.is_relative filename
+        then
+          let dir = Filename.dirname state.path in
+          let dir =
+            if Filename.is_implicit dir
+            then Filename.concat (Sys.getcwd ()) dir
+            else dir
+          in
+          Filename.concat dir filename
+        else filename
+      else ""
+    in
+    if Sys.file_exists path
+    then path
+    else ""
+  in
+  match under with
+  | Ulinkgoto (pageno, top) ->
+      if pageno >= 0
+      then (
+        addnav ();
+        gotopage1 pageno top;
+      )
+
+  | Ulinkuri s ->
+      gotouri s
+
+  | Uremote (filename, pageno) ->
+      let path = getpath filename in
+      if nonemptystr path
+      then (
+        if conf.riani
+        then
+          let command = !selfexec ^ " " ^ path in
+          try popen command []
+          with exn ->
+            Printf.eprintf
+              "failed to execute `%s': %s\n" command (exntos exn);
+            flush stderr;
+        else
+          let anchor = getanchor () in
+          let ranchor = state.path, state.password, anchor, state.origin in
+          state.origin <- "";
+          state.anchor <- (pageno, 0.0, 0.0);
+          state.ranchors <- ranchor :: state.ranchors;
+          opendoc path "";
+      )
+      else showtext '!' ("Could not find " ^ filename)
+
+  | Uremotedest (filename, destname) ->
+      let path = getpath filename in
+      if nonemptystr path
+      then (
+        if conf.riani
+        then
+          let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
+          try popen command []
+          with exn ->
+            Printf.eprintf
+              "failed to execute `%s': %s\n" command (exntos exn);
+            flush stderr;
+        else
+          let anchor = getanchor () in
+          let ranchor = state.path, state.password, anchor, state.origin in
+          state.origin <- "";
+          state.nameddest <- destname;
+          state.ranchors <- ranchor :: state.ranchors;
+          opendoc path "";
+      )
+      else showtext '!' ("Could not find " ^ filename)
+
+  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
+;;
+
+let gotooutline (_, _, kind) =
+  let under =
+    match kind with
+    | Oanchor anchor ->
+        let (pageno, y, _) = anchor in
+        let y = getanchory
+          (if conf.presentation then (pageno, y, 1.0) else anchor)
+        in
+        Ulinkgoto (pageno, y)
+    | Ouri uri -> Ulinkuri uri
+    | Olaunch cmd -> Ulaunch cmd
+    | Oremote remote -> Uremote remote
+    | Oremotedest remotedest -> Uremotedest remotedest
+  in
+  gotounder under;
+;;
+
 let outlinesource usebookmarks =
   let empty = [||] in
   (object (self)
@@ -4100,11 +4227,7 @@ let outlinesource usebookmarks =
       then (
         if not confrimremoval
         then (
-          let _, _, ((pageno, y, _) as anchor) = m_items.(active) in
-          let y = getanchory
-            (if conf.presentation then (pageno, y, 1.0) else anchor)
-          in
-          gotoghyll y;
+          gotooutline m_items.(active);
           m_items <- items;
         )
         else (
@@ -4192,12 +4315,16 @@ let outlinesource usebookmarks =
         if n = Array.length m_items
         then best
         else
-          let (_, _, anchor) = m_items.(n) in
-          let orely = getanchory anchor in
-          let d = abs (orely - rely) in
-          if d < bestd
-          then loop (n+1) n d
-          else loop (n+1) best bestd
+          let _, _, kind = m_items.(n) in
+          match kind with
+          | Oanchor anchor ->
+              let orely = getanchory anchor in
+              let d = abs (orely - rely) in
+              if d < bestd
+              then loop (n+1) n d
+              else loop (n+1) best bestd
+          | Oremote _ | Olaunch _ | Oremotedest _ | Ouri _ ->
+              loop (n+1) best bestd
       in
       loop 0 ~-1 max_int
 
@@ -5141,7 +5268,7 @@ let quickbookmark ?title () =
               tm.Unix.tm_min
         | Some title -> title
       in
-      state.bookmarks <- (title, 0, getanchor1 l) :: state.bookmarks
+      state.bookmarks <- (title, 0, Oanchor (getanchor1 l)) :: state.bookmarks
 ;;
 
 let setautoscrollspeed step goingdown =
@@ -5149,85 +5276,6 @@ let setautoscrollspeed step goingdown =
   let incr = if goingdown then incr else -incr in
   let astep = step + incr in
   state.autoscroll <- Some astep;
-;;
-
-let gotounder under =
-  let getpath filename =
-    let path =
-      if nonemptystr filename
-      then
-        if Filename.is_relative filename
-        then
-          let dir = Filename.dirname state.path in
-          let dir =
-            if Filename.is_implicit dir
-            then Filename.concat (Sys.getcwd ()) dir
-            else dir
-          in
-          Filename.concat dir filename
-        else filename
-      else ""
-    in
-    if Sys.file_exists path
-    then path
-    else ""
-  in
-  match under with
-  | Ulinkgoto (pageno, top) ->
-      if pageno >= 0
-      then (
-        addnav ();
-        gotopage1 pageno top;
-      )
-
-  | Ulinkuri s ->
-      gotouri s
-
-  | Uremote (filename, pageno) ->
-      let path = getpath filename in
-      if nonemptystr path
-      then (
-        if conf.riani
-        then
-          let command = !selfexec ^ " " ^ path in
-          try popen command []
-          with exn ->
-            Printf.eprintf
-              "failed to execute `%s': %s\n" command (exntos exn);
-            flush stderr;
-        else
-          let anchor = getanchor () in
-          let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- "";
-          state.anchor <- (pageno, 0.0, 0.0);
-          state.ranchors <- ranchor :: state.ranchors;
-          opendoc path "";
-      )
-      else showtext '!' ("Could not find " ^ filename)
-
-  | Uremotedest (filename, destname) ->
-      let path = getpath filename in
-      if nonemptystr path
-      then (
-        if conf.riani
-        then
-          let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
-          try popen command []
-          with exn ->
-            Printf.eprintf
-              "failed to execute `%s': %s\n" command (exntos exn);
-            flush stderr;
-        else
-          let anchor = getanchor () in
-          let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- "";
-          state.nameddest <- destname;
-          state.ranchors <- ranchor :: state.ranchors;
-          opendoc path "";
-      )
-      else showtext '!' ("Could not find " ^ filename)
-
-  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
 ;;
 
 let canpan () =
@@ -5605,7 +5653,8 @@ let viewkeyboard key mask =
         | l :: _ ->
             if nonemptystr s
             then
-              state.bookmarks <- (s, 0, getanchor1 l) :: state.bookmarks
+              state.bookmarks <-
+                (s, 0, Oanchor (getanchor1 l)) :: state.bookmarks
         | _ -> ()
       in
       enttext ("bookmark: ", "", None, textentry, ondone, true)
@@ -7046,7 +7095,7 @@ struct
           and rely = fromstring float_of_string spos "rely" srely 0.0
           and visy = fromstring float_of_string spos "visy" svisy 0.0 in
           let bookmarks =
-            (unent titleent, 0, (page, rely, visy)) :: bookmarks
+            (unent titleent, 0, Oanchor (page, rely, visy)) :: bookmarks
           in
           if closed
           then { v with f = pbookmarks path pan anchor c bookmarks }
@@ -7455,20 +7504,25 @@ struct
               else Buffer.add_string bb "/>\n"
           | _ ->
               Buffer.add_string bb ">\n<bookmarks>\n";
-              List.iter (fun (title, _level, (page, rely, visy)) ->
-                Printf.bprintf bb
-                  "<item title='%s' page='%d'"
-                  (enent title 0 (String.length title))
-                  page
-                ;
-                if rely > 1e-6
-                then
-                  Printf.bprintf bb " rely='%f'" rely
-                ;
-                if abs_float visy > 1e-6
-                then
-                  Printf.bprintf bb " visy='%f'" visy
-                ;
+              List.iter (fun (title, _, kind) ->
+                begin match kind with
+                | Oanchor (page, rely, visy) ->
+                    Printf.bprintf bb
+                      "<item title='%s' page='%d'"
+                      (enent title 0 (String.length title))
+                      page
+                    ;
+                    if rely > 1e-6
+                    then
+                      Printf.bprintf bb " rely='%f'" rely
+                    ;
+                    if abs_float visy > 1e-6
+                    then
+                      Printf.bprintf bb " visy='%f'" visy
+                    ;
+                | Ouri _ | Oremote _ | Oremotedest _ | Olaunch _ ->
+                    failwith "unexpected link in bookmarks"
+                end;
                 Buffer.add_string bb "/>\n";
               ) bookmarks;
               Buffer.add_string bb "</bookmarks>";
