@@ -1368,6 +1368,10 @@ static void recurse_outline (fz_outline *outline, int level)
                     outline->dest.ld.uri.uri);
             break;
 
+        case FZ_LINK_NONE:
+            printd ("on %d %s", level, outline->title);
+            break;
+
         default:
             printd ("emsg Unhandled outline kind %d for %s\n",
                     outline->dest.kind, outline->title);

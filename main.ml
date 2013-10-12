@@ -386,6 +386,7 @@ and columns =
 type anchor = pageno * top * dtop;;
 
 type outlinekind =
+    | Onone
     | Oanchor of anchor
     | Ouri of uri
     | Olaunch of launchcommand
@@ -2561,6 +2562,15 @@ let act cmds =
       dolog "error processing '%S': %s" cmds (exntos exn);
       exit 1
   in
+  let addoutline outline =
+    match state.currently with
+    | Outlining outlines ->
+        state.currently <- Outlining (outline :: outlines)
+    | Idle -> state.currently <- Outlining [outline]
+    | currently ->
+        dolog "invalid outlining state";
+        logcurrently currently
+  in
   match cl with
   | "clear" :: [] ->
       state.uioh#infochanged Pdim;
@@ -2778,34 +2788,19 @@ let act cmds =
           (fun l n t h pos -> l, n, t, h, pos)
       in
       let s = String.sub args pos (String.length args - pos) in
-      let outline = (s, l, Oanchor (n, float t /. float h, 0.0)) in
-      begin match state.currently with
-      | Outlining outlines ->
-          state.currently <- Outlining (outline :: outlines)
-      | Idle ->
-          state.currently <- Outlining [outline]
-      | currently ->
-          dolog "invalid outlining state";
-          logcurrently currently
-      end
+      addoutline (s, l, Oanchor (n, float t /. float h, 0.0))
 
   | "ou" :: args :: [] ->
-      let (l, len, pos) =
-        scan args "%u %u %n" (fun l len pos -> l, len, pos)
-      in
+      let (l, len, pos) = scan args "%u %u %n" (fun l len pos -> l, len, pos) in
       let s = String.sub args pos len in
       let pos2 = pos + len + 1 in
       let uri = String.sub args pos2 (String.length args - pos2) in
-      let outline = (s, l, Ouri uri) in
-      begin match state.currently with
-      | Outlining outlines ->
-          state.currently <- Outlining (outline :: outlines)
-      | Idle ->
-          state.currently <- Outlining [outline]
-      | currently ->
-          dolog "invalid outlining state";
-          logcurrently currently
-      end
+      addoutline (s, l, Ouri uri)
+
+  | "on" :: args :: [] ->
+      let (l, pos) = scan args "%u %n" (fun l pos -> l, pos) in
+      let s = String.sub args pos (String.length args - pos) in
+      addoutline (s, l, Onone)
 
   | "a" :: args :: [] ->
       let (n, l, t) =
@@ -4181,6 +4176,7 @@ let gotounder under =
 let gotooutline (_, _, kind) =
   let under =
     match kind with
+    | Onone -> Unone
     | Oanchor anchor ->
         let (pageno, y, _) = anchor in
         let y = getanchory
@@ -4323,7 +4319,7 @@ let outlinesource usebookmarks =
               if d < bestd
               then loop (n+1) n d
               else loop (n+1) best bestd
-          | Oremote _ | Olaunch _ | Oremotedest _ | Ouri _ ->
+          | Onone | Oremote _ | Olaunch _ | Oremotedest _ | Ouri _ ->
               loop (n+1) best bestd
       in
       loop 0 ~-1 max_int
@@ -7520,7 +7516,7 @@ struct
                     then
                       Printf.bprintf bb " visy='%f'" visy
                     ;
-                | Ouri _ | Oremote _ | Oremotedest _ | Olaunch _ ->
+                | Onone | Ouri _ | Oremote _ | Oremotedest _ | Olaunch _ ->
                     failwith "unexpected link in bookmarks"
                 end;
                 Buffer.add_string bb "/>\n";
