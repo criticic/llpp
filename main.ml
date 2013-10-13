@@ -4132,7 +4132,7 @@ let gotounder under =
       then (
         if conf.riani
         then
-          let command = !selfexec ^ " " ^ path in
+          let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
           try popen command []
           with exn ->
             Printf.eprintf
@@ -7711,6 +7711,7 @@ let remoteopen path =
 let () =
   let trimcachepath = ref "" in
   let rcmdpath = ref "" in
+  let pageno = ref None in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -7729,6 +7730,9 @@ let () =
              selfexec := !selfexec ^ " -c " ^ Filename.quote s;
              Config.confpath := s),
          "<path> Set path to the configuration file");
+
+         ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
+         "<page-number> Jump to page");
 
          ("-tcf", Arg.String (fun s -> trimcachepath := s),
          "<path> Set path to the trim cache file");
@@ -7765,6 +7769,10 @@ let () =
 
   if not (Config.load ())
   then prerr_endline "failed to load configuration";
+  begin match !pageno with
+  | Some pageno -> state.anchor <- (pageno, 0.0, 0.0)
+  | None -> ()
+  end;
 
   let wsfd, winw, winh = Wsi.init (object
     val mutable m_hack = false
