@@ -7623,6 +7623,12 @@ let ract cmds =
             state.reprf <- f state.reprf
         )
   | "goto1" :: args :: [] -> scan args "%u %f" gotopage
+  | "gotor" :: args :: [] ->
+      scan args "%S %u"
+        (fun filename pageno -> gotounder (Uremote (filename, pageno)))
+  | "gotord" :: args :: [] ->
+      scan args "%S %S"
+        (fun filename dest -> gotounder (Uremotedest (filename, dest)))
   | "rect" :: args :: [] ->
       scan args "%u %u %f %f %f %f"
         (fun pageno color x0 y0 x1 y1 ->
