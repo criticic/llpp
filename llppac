@@ -60,7 +60,6 @@ if test -z "$type"; then
     esac
 fi
 
-suff=
 opts=
 
 case $type in
@@ -100,7 +99,7 @@ case $type in
 esac
 
 hash=$(md5sum "$1") || die "$hash"
-casp=$CACHEDIR/${hash%% *}$suff
+casp=$CACHEDIR/${hash%% *}
 (test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
 
 exec llpp $opts -origin "$@" "$casp"
