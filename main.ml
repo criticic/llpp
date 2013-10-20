@@ -1647,6 +1647,11 @@ let drawtiles l color =
           let lh = state.winh - y in
           min lh h
         in
+        if conf.invert
+        then (
+          Gl.enable `blend;
+          GlFunc.blend_func `zero `one_minus_src_color;
+        );
         begin match state.texid with
         | Some id ->
             Gl.enable `texture_2d;
@@ -1676,7 +1681,8 @@ let drawtiles l color =
         end;
         if w > 128 && h > fstate.fontsize + 10
         then (
-          GlDraw.color (0.0, 0.0, 0.0);
+          let c = if conf.invert then 1.0 else 0.0 in
+          GlDraw.color (c, c, c);
           let c, r =
             if conf.verbose
             then (col*conf.tilew, row*conf.tileh)
