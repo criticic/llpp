@@ -1,21 +1,21 @@
 MuPDF[1] rendering library is used to do the actual work, so it needs
-to be built and installed to use llpp, MuPDF's README[2] describes how
-to build it and lists its dependencies.
+to be built and installed to use llpp.
 
 Note that MuPDF is a moving target therefore below is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
 67ebe59a41f8b2deaf78dc916c5cd203d3fcc3a3
 
-llpp also depends on OCaml[3], lablGL[4], having a C compiler wouldn't
-hurt either.
+llpp also depends on OCaml[2], lablGL[3] having a C compiler wouldn't
+hurt either. (mupdf depends on libcrypto[4] part of openssl)
 
 To build llpp one can invoke `sh buildall.sh' which will first attempt
 to automatically fetch lablGL, mupdf, mupdf's prerequisites and build
 them, then, if everything goes fine, it will proceed building llpp
-itself. Note that OCaml still needs to be installed separately, also,
-in addition to the usual suspects (i.e.  GCC, make, binutils, OCaml),
-you will need `wget' and `unzip' for this script to work.
+itself. Note that OCaml and libcrypto still needs to be installed
+separately, also, in addition to the usual suspects (i.e.  GCC, make,
+binutils, OCaml), you will need `wget' and `unzip' for this script to
+work.
 
 If everything goes fine llpp binary will appear, it can be used like so:
 
@@ -24,6 +24,6 @@ or
 $ ./llpp -p password /path/to/some.password.protected.pdf
 
 [1] http://www.mupdf.com
-[2] http://mupdf.com/repos/mupdf/README
-[3] http://caml.inria.fr/
-[4] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
+[2] http://caml.inria.fr/
+[3] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
+[4] http://www.openssl.org/docs/crypto/crypto.html
