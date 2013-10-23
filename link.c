@@ -3359,7 +3359,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     ensuretext (page);
 
     pdim = &state.pagedims[page->pdimno];
-    x0 = Int_val (Field (rect_v, 0)) + pdim->bounds.x0;;
+    x0 = Int_val (Field (rect_v, 0)) + pdim->bounds.x0;
     y0 = Int_val (Field (rect_v, 1)) + pdim->bounds.y0;
     x1 = Int_val (Field (rect_v, 2)) + pdim->bounds.x0;
     y1 = Int_val (Field (rect_v, 3)) + pdim->bounds.y0;
