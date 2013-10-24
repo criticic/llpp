@@ -3121,6 +3121,12 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   loop state.layout
 ;;
 
+let boundastep h step =
+  if step < 0
+  then bound step ~-h 0
+  else bound step 0 h
+;;
+
 let optentry mode _ key =
   let btos b = if b then "on" else "off" in
   if key >= 32 && key < 127
@@ -3137,7 +3143,7 @@ let optentry mode _ key =
     | 'A' ->
         let ondone s =
           try
-            conf.autoscrollstep <- int_of_string s;
+            conf.autoscrollstep <- boundastep state.winh (int_of_string s);
             if state.autoscroll <> None
             then state.autoscroll <- Some conf.autoscrollstep
           with exc ->
@@ -4851,6 +4857,7 @@ let enterinfomode =
         | Some step -> step
         | _ -> conf.autoscrollstep)
       (fun n ->
+        let n = boundastep state.winh n in
         if state.autoscroll <> None
         then state.autoscroll <- Some n;
         conf.autoscrollstep <- n);
@@ -5273,7 +5280,7 @@ let quickbookmark ?title () =
 let setautoscrollspeed step goingdown =
   let incr = max 1 ((abs step) / 2) in
   let incr = if goingdown then incr else -incr in
-  let astep = step + incr in
+  let astep = boundastep state.winh (step + incr) in
   state.autoscroll <- Some astep;
 ;;
 
