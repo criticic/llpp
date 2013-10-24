@@ -2174,6 +2174,7 @@ static void showsel (struct page *page, int ox, int oy)
                     if (span == last.span) {
                         goto done;
                     }
+                    rect = fz_empty_rect;
                 }
             }
         }
