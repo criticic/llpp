@@ -2715,7 +2715,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
     CAMLreturn (ret_v);
 }
 
-enum { dir_first, dir_last};
+enum { dir_first, dir_last };
 enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
 
 CAMLprim value ml_findlink (value ptr_v, value dir_v)
