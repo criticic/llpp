@@ -3365,15 +3365,12 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     x1 = Int_val (Field (rect_v, 2)) + pdim->bounds.x0;
     y1 = Int_val (Field (rect_v, 3)) + pdim->bounds.y0;
 
-    if (x0 > x1) {
-        int t = x0;
-        x0 = x1;
-        x1 = t;
-    }
     if (y0 > y1) {
         int t = y0;
         y0 = y1;
         y1 = t;
+        x0 = x1;
+        x1 = t;
     }
 
     if (0) {
