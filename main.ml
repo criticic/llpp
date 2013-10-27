@@ -7848,17 +7848,20 @@ let () =
   | None -> ()
   end;
 
-  let wsfd, winw, winh = Wsi.init (object
+  let wsfd, winw, winh = Wsi.init (object (self)
     val mutable m_hack = false
     val mutable m_clicks = 0
     val mutable m_click_x = 0
     val mutable m_click_y = 0
     val mutable m_lastclicktime = infinity
 
+    method private cleanup =
+      Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
     method expose = if not m_hack then G.postRedisplay "expose"
-    method visible = G.postRedisplay "visible"
+    method visible = self#cleanup; G.postRedisplay "visible"
     method display = m_hack <- false; display ()
     method reshape w h =
+      self#cleanup;
       m_hack <- w < state.winw && h < state.winh;
       reshape w h
     method mouse b d x y m =
@@ -7877,10 +7880,14 @@ let () =
           m_clicks <- m_clicks + 1;
           m_lastclicktime <- t;
           if m_clicks = 1
-          then state.uioh <- state.uioh#button b d x y m
+          then (
+            self#cleanup;
+            state.uioh <- state.uioh#button b d x y m;
+          )
           else state.uioh <- state.uioh#multiclick m_clicks x y m
         )
         else (
+          self#cleanup;
           m_lastclicktime <- infinity;
           state.uioh <- state.uioh#button b d x y m
         );
@@ -7895,6 +7902,7 @@ let () =
       state.mpos <- (x, y);
       state.uioh <- state.uioh#pmotion x y
     method key k m =
+      self#cleanup;
       let mascm = m land (
         Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
       ) in
