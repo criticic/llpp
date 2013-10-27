@@ -991,19 +991,17 @@ let paxunder x y =
                       (exntos exn));
             | Ne.Res (r, w) ->
                 let doclose what fd =
-                  Ne.clo fd (fun msg ->
-                    dolog "%s close failed: %s" what msg)
+                  Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
                 in
-                try
-                  popen conf.paxcmd [r, 0; w, -1];
-                  copysel w opaque false;
-                  doclose "pipe/r" r;
-                  G.postRedisplay "paxunder";
-                with exn ->
-                  dolog "can not execute %S: %s"
-                    conf.paxcmd (exntos exn);
-                  doclose "pipe/r" r;
-                  doclose "pipe/w" w;
+                begin try
+                    popen conf.paxcmd [r, 0; w, -1];
+                  with exn ->
+                    doclose "paxunder pipe/w" w;
+                    dolog "can not execute %S: %s" conf.paxcmd (exntos exn);
+                end;
+                copysel w opaque false;
+                G.postRedisplay "paxunder";
+                doclose "paxunder pipe/r" r;
       )
     )
     else None
@@ -1024,18 +1022,19 @@ let selstring s =
   | Ne.Exn exn ->
       showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
   | Ne.Res (r, w) ->
-      let popened =
-        try popen conf.selcmd [r, 0; w, -1]; true
-        with exn ->
-          showtext '!'
-            (Printf.sprintf "failed to execute %s: %s"
-                conf.selcmd (exntos exn));
-          false
-      in
       let clo cap fd =
         Ne.clo fd (fun msg ->
           showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
         )
+      in
+      let popened =
+        try popen conf.selcmd [r, 0; w, -1]; true
+        with exn ->
+          clo "selstring pipe/w" w;
+          showtext '!'
+            (Printf.sprintf "failed to execute %s: %s"
+                conf.selcmd (exntos exn));
+          false
       in
       if popened
       then (
@@ -1056,8 +1055,7 @@ let selstring s =
             )
       )
       else dolog "%s" s;
-      clo "pipe/r" r;
-      clo "pipe/w" w;
+      clo "selstring pipe/r" r;
 ;;
 
 let undertext = function
@@ -4152,8 +4150,7 @@ let gotounder under =
           let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
           try popen command []
           with exn ->
-            Printf.eprintf
-              "failed to execute `%s': %s\n" command (exntos exn);
+            Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
             flush stderr;
         else
           let anchor = getanchor () in
@@ -6308,18 +6305,17 @@ let viewmulticlick clicks x y mask =
             | Ne.Res (r, w) ->
                 let dopipe cmd =
                   let doclose what fd =
-                    Ne.clo fd (fun msg ->
-                      dolog "%s close failed: %s" what msg)
+                    Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
                   in
-                  try
-                    popen cmd [r, 0; w, -1];
-                    copysel w opaque false;
-                    doclose "pipe/r" r;
-                    G.postRedisplay "viewmulticlick";
-                  with exn ->
-                    dolog "can not execute %S: %s" cmd (exntos exn);
-                    doclose "pipe/r" r;
-                    doclose "pipe/w" w;
+                  begin try
+                      popen cmd [r, 0; w, -1];
+                    with exn ->
+                      doclose "viewmulticlick pipe/w" w;
+                      dolog "can not execute %S: %s" cmd (exntos exn);
+                  end;
+                  copysel w opaque false;
+                  G.postRedisplay "viewmulticlick";
+                  doclose "viewmulticlick pipe/r" r;
                 in
                 if Wsi.withctrl mask
                 then state.roam <- (fun () -> dopipe conf.paxcmd)
@@ -6517,16 +6513,16 @@ let viewmouse button down x y mask =
                                     Ne.clo fd (fun msg ->
                                       dolog "%s close failed: %s" what msg)
                                   in
-                                  try
-                                    popen conf.selcmd [r, 0; w, -1];
-                                    copysel w opaque true;
-                                    doclose "pipe/r" r;
-                                    G.postRedisplay "copysel";
-                                  with exn ->
-                                    dolog "can not execute %S: %s"
-                                      conf.selcmd (exntos exn);
-                                    doclose "pipe/r" r;
-                                    doclose "pipe/w" w;
+                                  begin try
+                                      popen conf.selcmd [r, 0; w, -1];
+                                    with exn ->
+                                      dolog "can not execute %S: %s"
+                                        conf.selcmd (exntos exn);
+                                      doclose "Msel pipe/w" w;
+                                  end;
+                                  copysel w opaque true;
+                                  G.postRedisplay "copysel";
+                                  doclose "Msel pipe/r" r;
                             end
                         | None -> ()
                       else loop rest
