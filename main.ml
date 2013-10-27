@@ -6319,7 +6319,7 @@ let viewmulticlick clicks x y mask =
     else None
   in
   G.postRedisplay "viewmulticlick";
-  onppundermouse g x y (fun () -> showtext '!' "Daisy whoopsie") ();
+  onppundermouse g x y (fun () -> showtext '!' "Nothing to select") ();
 ;;
 
 let viewmouse button down x y mask =
@@ -7878,6 +7878,7 @@ let () =
           if m_clicks = 1
           then (
             self#cleanup;
+            G.postRedisplay "cleanup";
             state.uioh <- state.uioh#button b d x y m;
           )
           else state.uioh <- state.uioh#multiclick m_clicks x y m
