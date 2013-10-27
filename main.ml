@@ -6302,8 +6302,8 @@ let viewmulticlick clicks x y mask =
                   (Printf.sprintf
                       "can not create mark pipe: %s"
                       (exntos exn));
-            | Ne.Res (r, w) ->
-                let dopipe cmd =
+            | Ne.Res rw ->
+                let dopipe (r, w) cmd =
                   let doclose what fd =
                     Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
                   in
@@ -6317,9 +6317,16 @@ let viewmulticlick clicks x y mask =
                   G.postRedisplay "viewmulticlick";
                   doclose "viewmulticlick pipe/r" r;
                 in
-                if Wsi.withctrl mask
-                then state.roam <- (fun () -> dopipe conf.paxcmd)
-                else dopipe conf.selcmd
+                state.roam <- (fun () ->
+                  match Ne.pipe () with
+                  | Ne.Exn exn ->
+                      showtext '!'
+                        (Printf.sprintf
+                            "can not create mark pipe: %s"
+                            (exntos exn));
+                  | Ne.Res rw ->
+                      dopipe rw conf.paxcmd);
+                if not (Wsi.withctrl mask) then dopipe rw conf.selcmd
       )
     )
     else None
@@ -7902,10 +7909,13 @@ let () =
       state.mpos <- (x, y);
       state.uioh <- state.uioh#pmotion x y
     method key k m =
-      self#cleanup;
       let mascm = m land (
         Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
       ) in
+      let keyboard k m =
+        keyboard k m;
+        self#cleanup
+      in
       match state.keystate with
       | KSnone ->
           let km = k, mascm in
