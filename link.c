@@ -3578,7 +3578,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v, value clear_v)
         goto done;
     }
 
-    page = parse_pointer ("ml_sopysel", s);
+    page = parse_pointer ("ml_copysel", s);
 
     if (!page->fmark.span || !page->lmark.span) {
         fprintf (stderr, "nothing to copy\n");
