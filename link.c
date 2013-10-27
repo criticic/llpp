@@ -3561,9 +3561,9 @@ CAMLprim value ml_popen (value command_v, value fds_v)
 }
 #endif
 
-CAMLprim value ml_copysel (value fd_v, value ptr_v, value clear_v)
+CAMLprim value ml_copysel (value fd_v, value ptr_v)
 {
-    CAMLparam3 (fd_v, ptr_v, clear_v);
+    CAMLparam2 (fd_v, ptr_v);
     FILE *f;
     int seen = 0;
     struct page *page;
@@ -3572,7 +3572,6 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v, value clear_v)
     fz_text_block *block;
     int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
-    int clear = Bool_val (clear_v);
 
     if (trylock ("ml_copysel")) {
         goto done;
@@ -3622,18 +3621,12 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v, value clear_v)
                         }
                     }
                     if (span == page->lmark.span) {
-                        goto endloop;
+                        goto close;
                     }
                 }
             }
         }
     }
- endloop:
-    if (clear) {
-        page->lmark.span = NULL;
-        page->fmark.span = NULL;
-    }
-
  close:
     if (f != stdout) {
         int ret = fclose (f);

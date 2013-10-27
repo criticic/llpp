@@ -99,7 +99,7 @@ type pipe = (Unix.file_descr * Unix.file_descr);;
 
 external init : pipe -> params -> unit = "ml_init";;
 external seltext : string -> (int * int * int * int) -> unit = "ml_seltext";;
-external copysel : Unix.file_descr -> opaque -> bool -> unit = "ml_copysel";;
+external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : string -> int -> int -> under = "ml_whatsunder";;
 external markunder : string -> int -> int -> mark -> bool = "ml_markunder";;
@@ -999,7 +999,7 @@ let paxunder x y =
                     doclose "paxunder pipe/w" w;
                     dolog "can not execute %S: %s" conf.paxcmd (exntos exn);
                 end;
-                copysel w opaque false;
+                copysel w opaque;
                 G.postRedisplay "paxunder";
                 doclose "paxunder pipe/r" r;
       )
@@ -6313,7 +6313,7 @@ let viewmulticlick clicks x y mask =
                       doclose "viewmulticlick pipe/w" w;
                       dolog "can not execute %S: %s" cmd (exntos exn);
                   end;
-                  copysel w opaque false;
+                  copysel w opaque;
                   G.postRedisplay "viewmulticlick";
                   doclose "viewmulticlick pipe/r" r;
                 in
@@ -6508,7 +6508,7 @@ let viewmouse button down x y mask =
                       then
                         match getopaque l.pageno with
                         | Some opaque ->
-                            begin
+                            let dosel cmd () =
                               match Ne.pipe () with
                               | Ne.Exn exn ->
                                   showtext '!'
@@ -6521,16 +6521,18 @@ let viewmouse button down x y mask =
                                       dolog "%s close failed: %s" what msg)
                                   in
                                   begin try
-                                      popen conf.selcmd [r, 0; w, -1];
+                                      popen cmd [r, 0; w, -1];
                                     with exn ->
                                       dolog "can not execute %S: %s"
-                                        conf.selcmd (exntos exn);
+                                        cmd (exntos exn);
                                       doclose "Msel pipe/w" w;
                                   end;
-                                  copysel w opaque true;
+                                  copysel w opaque;
                                   G.postRedisplay "copysel";
                                   doclose "Msel pipe/r" r;
-                            end
+                            in
+                            dosel conf.selcmd ();
+                            state.roam <- dosel conf.paxcmd;
                         | None -> ()
                       else loop rest
                 in
@@ -7865,7 +7867,7 @@ let () =
     method private cleanup =
       Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
     method expose = if not m_hack then G.postRedisplay "expose"
-    method visible = self#cleanup; G.postRedisplay "visible"
+    method visible = G.postRedisplay "visible"
     method display = m_hack <- false; display ()
     method reshape w h =
       self#cleanup;
