@@ -3998,7 +3998,7 @@ object (self)
         G.postRedisplay "outline ctrl-n";
         coe {< m_first = 0; m_active = 0 >}
 
-    | 115 when ctrl ->                  (* ctrl-s *)
+    | 83 when ctrl ->                   (* ctrl-S *)
         let active = source#calcactive (getanchor ()) in
         let first = firstof m_first active in
         G.postRedisplay "outline ctrl-s";
