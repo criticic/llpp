@@ -711,6 +711,7 @@ let makehelp () =
 let noghyll _ = ();;
 let firstgeomcmds = "", [];;
 let noreprf () = ();;
+let noroam () = ();;
 
 let state =
   { sr            = Unix.stdin
@@ -772,7 +773,7 @@ let state =
   ; winh          = -1
   ; reprf         = noreprf
   ; origin        = ""
-  ; roam          = (fun () -> ())
+  ; roam          = noroam
   ; bzoom         = false
   ; traw          = Raw.create_static `float 8
   ; vraw          = Raw.create_static `float 8
@@ -5699,7 +5700,9 @@ let viewkeyboard key mask =
       | [] -> ()
       end
 
-  | 120 -> state.roam ()                (* x *)
+  | 120 ->                              (* x *)
+      state.roam ();
+      state.roam <- noroam;
   | 60 | 62 ->                          (* < > *)
       reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.fitmodel
 
@@ -6290,11 +6293,6 @@ let viewmulticlick clicks x y mask =
       | 4 -> Mark_block
       | _ -> Mark_page
     in
-    let cmd =
-      if Wsi.withctrl mask
-      then conf.paxcmd
-      else conf.selcmd
-    in
     if markunder opaque px py mark
     then (
       Some (fun () ->
@@ -6308,20 +6306,24 @@ let viewmulticlick clicks x y mask =
                       "can not create mark pipe: %s"
                       (exntos exn));
             | Ne.Res (r, w) ->
-                let doclose what fd =
-                  Ne.clo fd (fun msg ->
-                    dolog "%s close failed: %s" what msg)
+                let dopipe cmd =
+                  let doclose what fd =
+                    Ne.clo fd (fun msg ->
+                      dolog "%s close failed: %s" what msg)
+                  in
+                  try
+                    popen cmd [r, 0; w, -1];
+                    copysel w opaque false;
+                    doclose "pipe/r" r;
+                    G.postRedisplay "viewmulticlick";
+                  with exn ->
+                    dolog "can not execute %S: %s" cmd (exntos exn);
+                    doclose "pipe/r" r;
+                    doclose "pipe/w" w;
                 in
-                try
-                  popen cmd [r, 0; w, -1];
-                  copysel w opaque false;
-                  doclose "pipe/r" r;
-                  G.postRedisplay "viewmulticlick";
-                with exn ->
-                  dolog "can not execute %S: %s"
-                    conf.paxcmd (exntos exn);
-                  doclose "pipe/r" r;
-                  doclose "pipe/w" w;
+                if Wsi.withctrl mask
+                then state.roam <- (fun () -> dopipe conf.paxcmd)
+                else dopipe conf.selcmd
       )
     )
     else None
