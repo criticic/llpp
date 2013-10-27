@@ -6129,23 +6129,10 @@ let showsel () =
       ()
 
   | Msel ((x0, y0), (x1, y1)) ->
-      let rec loop = function
-        | l :: ls ->
-            if ((y0 >= l.pagedispy && y0 <= (l.pagedispy + l.pagevh))
-                 || ((y1 >= l.pagedispy && y1 <= (l.pagedispy + l.pagevh))))
-              && ((x0 >= l.pagedispx && x0 <= (l.pagedispx + l.pagevw))
-                   || ((x1 >= l.pagedispx && x1 <= (l.pagedispx + l.pagevw))))
-            then
-              match getopaque l.pageno with
-              | Some opaque ->
-                  let x0, y0 = pagetranslatepoint l x0 y0 in
-                  let x1, y1 = pagetranslatepoint l x1 y1 in
-                  seltext opaque (x0, y0, x1, y1);
-              | _ -> ()
-            else loop ls
-        | [] -> ()
-      in
-      loop state.layout
+      let identify opaque l px py = Some (opaque, l.pageno, px, py) in
+      let o0,n0,px0,py0 = onppundermouse identify x0 y0 ("", -1, 0, 0) in
+      let _o1,n1,px1,py1 = onppundermouse identify x1 y1 ("", -1, 0, 0) in
+      if n0 != -1 && n0 = n1 then seltext o0 (px0, py0, px1, py1);
 ;;
 
 let showrects = function [] -> () | rects ->
