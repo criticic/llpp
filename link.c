@@ -2207,6 +2207,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
 
     glEnable (GL_TEXTURE_1D);
     glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture (GL_TEXTURE_1D, state.stid);
 
     xoff -= state.pagedims[page->pdimno].bounds.x0;
