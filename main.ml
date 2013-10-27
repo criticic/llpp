@@ -7897,6 +7897,7 @@ let () =
         )
         else (
           self#cleanup;
+          m_clicks <- 0;
           m_lastclicktime <- infinity;
           state.uioh <- state.uioh#button b d x y m
         );
