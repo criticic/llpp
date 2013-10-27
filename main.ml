@@ -160,7 +160,7 @@ let popen cmd fda =
       | [] -> si, so, se
       | (fd, 0) :: rest -> std fd so se rest
       | (fd, -1) :: rest ->
-          Unix.set_close_on_exec fd;
+          Unix.close fd;
           std si so se rest
       | (_, n) :: _ ->
           failwith ("unexpected fdn in cygwin popen " ^ string_of_int n)
