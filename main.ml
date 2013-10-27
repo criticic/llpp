@@ -413,6 +413,7 @@ class type uioh = object
   method display : unit
   method key : int -> int -> uioh
   method button : int -> bool -> int -> int -> int -> uioh
+  method multiclick : int -> int -> int -> int -> uioh
   method motion : int -> int -> uioh
   method pmotion : int -> int -> uioh
   method infochanged : infochange -> unit
@@ -454,6 +455,7 @@ let emptykeyhash = Hashtbl.create 0;;
 let nouioh : uioh = object (self)
   method display = ()
   method key _ _ = self
+  method multiclick _ _ _ _ = self
   method button _ _ _ _ _ = self
   method motion _ _ = self
   method pmotion _ _ = self
@@ -3879,6 +3881,8 @@ object (self)
     | None -> m_prev_uioh
     | Some uioh -> uioh
 
+  method multiclick _ x y = self#button 1 true x y
+
   method motion _ y =
     match state.mstate with
     | Mscrolly ->
@@ -5442,6 +5446,7 @@ let viewkeyboard key mask =
   | 117 ->                              (* u *)
       state.rects <- [];
       state.text <- "";
+      Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
       G.postRedisplay "dehighlight";
 
   | 47 | 63 ->                          (* / ? *)
@@ -6276,6 +6281,55 @@ let scrolly y =
   state.mstate <- Mscrolly;
 ;;
 
+let viewmulticlick clicks x y mask =
+  let g opaque l px py =
+    let mark =
+      match clicks with
+      | 2 -> Mark_word
+      | 3 -> Mark_line
+      | 4 -> Mark_block
+      | _ -> Mark_page
+    in
+    let cmd =
+      if Wsi.withctrl mask
+      then conf.paxcmd
+      else conf.selcmd
+    in
+    if markunder opaque px py mark
+    then (
+      Some (fun () ->
+        match getopaque l.pageno with
+        | None -> ()
+        | Some opaque ->
+            match Ne.pipe () with
+            | Ne.Exn exn ->
+                showtext '!'
+                  (Printf.sprintf
+                      "can not create mark pipe: %s"
+                      (exntos exn));
+            | Ne.Res (r, w) ->
+                let doclose what fd =
+                  Ne.clo fd (fun msg ->
+                    dolog "%s close failed: %s" what msg)
+                in
+                try
+                  popen cmd [r, 0; w, -1];
+                  copysel w opaque false;
+                  doclose "pipe/r" r;
+                  G.postRedisplay "viewmulticlick";
+                with exn ->
+                  dolog "can not execute %S: %s"
+                    conf.paxcmd (exntos exn);
+                  doclose "pipe/r" r;
+                  doclose "pipe/w" w;
+      )
+    )
+    else None
+  in
+  G.postRedisplay "viewmulticlick";
+  onppundermouse g x y (fun () -> showtext '!' "Daisy whoopsie") ();
+;;
+
 let viewmouse button down x y mask =
   match button with
   | n when (n == 4 || n == 5) && not down ->
@@ -6520,6 +6574,15 @@ let uioh = object
     | LinkNav _
     | View -> viewmouse button bstate x y mask
     | Birdseye beye -> birdseyemouse button bstate x y mask beye
+    | Textentry _ -> ()
+    end;
+    state.uioh
+
+  method multiclick clicks x y mask =
+    begin match state.mode with
+    | LinkNav _
+    | View -> viewmulticlick clicks x y mask
+    | Birdseye _
     | Textentry _ -> ()
     end;
     state.uioh
@@ -7789,13 +7852,44 @@ let () =
 
   let wsfd, winw, winh = Wsi.init (object
     val mutable m_hack = false
+    val mutable m_clicks = 0
+    val mutable m_click_x = 0
+    val mutable m_click_y = 0
+    val mutable m_lastclicktime = infinity
+
     method expose = if not m_hack then G.postRedisplay "expose"
     method visible = G.postRedisplay "visible"
     method display = m_hack <- false; display ()
     method reshape w h =
       m_hack <- w < state.winw && h < state.winh;
       reshape w h
-    method mouse b d x y m = state.uioh <- state.uioh#button b d x y m
+    method mouse b d x y m =
+      if d
+      then (
+        (* http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
+        m_click_x <- x;
+        m_click_y <- y;
+        if b = 1
+        then (
+          let t = now () in
+          if abs x - m_click_x > 10
+            || abs y - m_click_y > 10
+            || abs_float (t -. m_lastclicktime) > 0.3
+          then m_clicks <- 0;
+          m_clicks <- m_clicks + 1;
+          m_lastclicktime <- t;
+          if m_clicks = 1
+          then state.uioh <- state.uioh#button b d x y m
+          else state.uioh <- state.uioh#multiclick m_clicks x y m
+        )
+        else (
+          m_lastclicktime <- infinity;
+          state.uioh <- state.uioh#button b d x y m
+        );
+      )
+      else (
+        state.uioh <- state.uioh#button b d x y m
+      )
     method motion x y =
       state.mpos <- (x, y);
       state.uioh <- state.uioh#motion x y
