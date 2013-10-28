@@ -825,8 +825,8 @@ let launchpath () =
 module Ne = struct
   type 'a t = | Res of 'a | Exn of exn;;
 
-  let pipe () =
-    try Res (Unix.pipe ())
+  let res f =
+    try Res (f ())
     with exn -> Exn exn
   ;;
 
@@ -850,7 +850,7 @@ let redirectstderr () =
   let clofail what errmsg = dolog "failed to close %s: %s" what errmsg in
   if conf.redirectstderr
   then
-    match Ne.pipe () with
+    match Ne.res Unix.pipe with
     | Ne.Exn exn ->
         dolog "failed to create stderr redirection pipes: %s" (exntos exn)
 
@@ -983,7 +983,7 @@ let paxunder x y =
         match getopaque l.pageno with
         | None -> ()
         | Some opaque ->
-            match Ne.pipe () with
+            match Ne.res Unix.pipe with
             | Ne.Exn exn ->
                 showtext '!'
                   (Printf.sprintf
@@ -1018,7 +1018,7 @@ let paxunder x y =
 ;;
 
 let selstring s =
-  match Ne.pipe () with
+  match Ne.res Unix.pipe with
   | Ne.Exn exn ->
       showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
   | Ne.Res (r, w) ->
@@ -6283,7 +6283,7 @@ let viewmulticlick clicks x y mask =
         match getopaque l.pageno with
         | None -> ()
         | Some opaque ->
-            match Ne.pipe () with
+            match Ne.res Unix.pipe with
             | Ne.Exn exn ->
                 showtext '!'
                   (Printf.sprintf
@@ -6305,7 +6305,7 @@ let viewmulticlick clicks x y mask =
                   doclose "viewmulticlick pipe/r" r;
                 in
                 state.roam <- (fun () ->
-                  match Ne.pipe () with
+                  match Ne.res Unix.pipe with
                   | Ne.Exn exn ->
                       showtext '!'
                         (Printf.sprintf
@@ -6496,7 +6496,7 @@ let viewmouse button down x y mask =
                         match getopaque l.pageno with
                         | Some opaque ->
                             let dosel cmd () =
-                              match Ne.pipe () with
+                              match Ne.res Unix.pipe with
                               | Ne.Exn exn ->
                                   showtext '!'
                                     (Printf.sprintf
@@ -7961,13 +7961,13 @@ let () =
   );
 
   let cr, sw =
-    match Ne.pipe () with
+    match Ne.res Unix.pipe with
     | Ne.Exn exn ->
         Printf.eprintf "pipe/crsw failed: %s" (exntos exn);
         exit 1
     | Ne.Res rw -> rw
   and sr, cw =
-    match Ne.pipe () with
+    match Ne.res Unix.pipe with
     | Ne.Exn exn ->
         Printf.eprintf "pipe/srcw failed: %s" (exntos exn);
         exit 1
