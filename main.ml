@@ -975,6 +975,26 @@ let showtext c s =
   G.postRedisplay "showtext";
 ;;
 
+let pipesel opaque cmd =
+  match Ne.res Unix.pipe with
+  | Ne.Exn exn ->
+      showtext '!'
+        (Printf.sprintf "pipesel can not create pipe: %s" (exntos exn));
+  | Ne.Res (r, w) ->
+      let doclose what fd =
+        Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
+      in
+      begin try
+          popen cmd [r, 0; w, -1];
+        with exn ->
+          doclose "pipesel pipe/w" w;
+          dolog "can not execute %S: %s" cmd (exntos exn);
+      end;
+      copysel w opaque;
+      G.postRedisplay "pipesel";
+      doclose "pipesel pipe/r" r;
+;;
+
 let paxunder x y =
   let g opaque l px py =
     if markunder opaque px py conf.paxmark
@@ -982,26 +1002,7 @@ let paxunder x y =
       Some (fun () ->
         match getopaque l.pageno with
         | None -> ()
-        | Some opaque ->
-            match Ne.res Unix.pipe with
-            | Ne.Exn exn ->
-                showtext '!'
-                  (Printf.sprintf
-                      "can not create mark pipe: %s"
-                      (exntos exn));
-            | Ne.Res (r, w) ->
-                let doclose what fd =
-                  Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
-                in
-                begin try
-                    popen conf.paxcmd [r, 0; w, -1];
-                  with exn ->
-                    doclose "paxunder pipe/w" w;
-                    dolog "can not execute %S: %s" conf.paxcmd (exntos exn);
-                end;
-                copysel w opaque;
-                G.postRedisplay "paxunder";
-                doclose "paxunder pipe/r" r;
+        | Some opaque -> pipesel conf.paxcmd opaque
       )
     )
     else None
@@ -5849,6 +5850,25 @@ let viewkeyboard key mask =
       ) state.layout;
       G.postRedisplay "v";
 
+  | 124 ->                              (* | *)
+      let mode = state.mode in
+      let cmd = ref "" in
+      let onleave = function
+        | Cancel -> state.mode <- mode
+        | Confirm ->
+            List.iter (fun l ->
+              match getopaque l.pageno with
+              | Some opaque -> pipesel opaque !cmd
+              | None -> ()) state.layout;
+            state.mode <- mode
+      in
+      let ondone s = cmd := s in
+      let te =
+        "| ", !cmd, Some (onhist state.hists.sel), textentry, ondone, true
+      in
+      G.postRedisplay "|";
+      state.mode <- Textentry (te, onleave);
+
   | _ ->
       vlog "huh? %s" (Wsi.keyname key)
 ;;
@@ -6280,40 +6300,13 @@ let viewmulticlick clicks x y mask =
     if markunder opaque px py mark
     then (
       Some (fun () ->
-        match getopaque l.pageno with
-        | None -> ()
-        | Some opaque ->
-            match Ne.res Unix.pipe with
-            | Ne.Exn exn ->
-                showtext '!'
-                  (Printf.sprintf
-                      "can not create mark pipe: %s"
-                      (exntos exn));
-            | Ne.Res rw ->
-                let dopipe (r, w) cmd =
-                  let doclose what fd =
-                    Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
-                  in
-                  begin try
-                      popen cmd [r, 0; w, -1];
-                    with exn ->
-                      doclose "viewmulticlick pipe/w" w;
-                      dolog "can not execute %S: %s" cmd (exntos exn);
-                  end;
-                  copysel w opaque;
-                  G.postRedisplay "viewmulticlick";
-                  doclose "viewmulticlick pipe/r" r;
-                in
-                state.roam <- (fun () ->
-                  match Ne.res Unix.pipe with
-                  | Ne.Exn exn ->
-                      showtext '!'
-                        (Printf.sprintf
-                            "can not create mark pipe: %s"
-                            (exntos exn));
-                  | Ne.Res rw ->
-                      dopipe rw conf.paxcmd);
-                if not (Wsi.withctrl mask) then dopipe rw conf.selcmd
+        let dopipe cmd =
+          match getopaque l.pageno with
+          | None -> ()
+          | Some opaque -> pipesel opaque cmd
+        in
+        state.roam <- (fun () -> dopipe conf.paxcmd);
+        if not (Wsi.withctrl mask) then dopipe conf.selcmd;
       )
     )
     else None
@@ -7904,8 +7897,9 @@ let () =
         Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
       ) in
       let keyboard k m =
+        let x = state.x and y = state.y in
         keyboard k m;
-        self#cleanup
+        if x != state.x || y != state.y then self#cleanup
       in
       match state.keystate with
       | KSnone ->
