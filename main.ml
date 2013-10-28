@@ -5699,8 +5699,7 @@ let viewkeyboard key mask =
       end
 
   | 120 ->                              (* x *)
-      state.roam ();
-      state.roam <- noroam;
+      state.roam ()
   | 60 | 62 ->                          (* < > *)
       reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.fitmodel
 
@@ -7845,6 +7844,7 @@ let () =
     val mutable m_lastclicktime = infinity
 
     method private cleanup =
+      state.roam <- noroam;
       Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
     method expose = if not m_hack then G.postRedisplay "expose"
     method visible = G.postRedisplay "visible"
