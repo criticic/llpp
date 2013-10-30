@@ -1006,7 +1006,7 @@ let paxunder x y =
       Some (fun () ->
         match getopaque l.pageno with
         | None -> ()
-        | Some opaque -> pipesel conf.paxcmd opaque
+        | Some opaque -> pipesel opaque conf.paxcmd
       )
     )
     else None
