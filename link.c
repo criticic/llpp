@@ -1030,7 +1030,12 @@ static void initpdims (void)
                 pdf_to_rect (state.ctx, pdf_dict_gets (pageobj, "CropBox"),
                              &cropbox);
                 if (!fz_is_empty_rect (&cropbox)) {
-                    fz_intersect_rect (&mediabox, &cropbox);
+                    if (empty) {
+                        mediabox = cropbox;
+                    }
+                    else {
+                        fz_intersect_rect (&mediabox, &cropbox);
+                    }
                 }
                 else {
                     if (empty) {
