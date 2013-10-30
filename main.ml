@@ -160,7 +160,7 @@ let popen cmd fda =
       | [] -> si, so, se
       | (fd, 0) :: rest -> std fd so se rest
       | (fd, -1) :: rest ->
-          Unix.close fd;
+          Unix.set_close_on_exec fd;
           std si so se rest
       | (_, n) :: _ ->
           failwith ("unexpected fdn in cygwin popen " ^ string_of_int n)
@@ -984,14 +984,18 @@ let pipesel opaque cmd =
       let doclose what fd =
         Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
       in
-      begin try
-          popen cmd [r, 0; w, -1];
+      let popened =
+        try popen cmd [r, 0; w, -1]; true
         with exn ->
-          doclose "pipesel pipe/w" w;
           dolog "can not execute %S: %s" cmd (exntos exn);
-      end;
-      copysel w opaque;
-      G.postRedisplay "pipesel";
+          false
+      in
+      if popened
+      then (
+        copysel w opaque;
+        G.postRedisplay "pipesel";
+      )
+      else doclose "pipesel pipe/w" w;
       doclose "pipesel pipe/r" r;
 ;;
 
@@ -1031,7 +1035,6 @@ let selstring s =
       let popened =
         try popen conf.selcmd [r, 0; w, -1]; true
         with exn ->
-          clo "selstring pipe/w" w;
           showtext '!'
             (Printf.sprintf "failed to execute %s: %s"
                 conf.selcmd (exntos exn));
@@ -1057,6 +1060,7 @@ let selstring s =
       )
       else dolog "%s" s;
       clo "selstring pipe/r" r;
+      clo "selstring pipe/w" w;
 ;;
 
 let undertext = function
@@ -6495,20 +6499,24 @@ let viewmouse button down x y mask =
                                         "can not create sel pipe: %s"
                                         (exntos exn));
                               | Ne.Res (r, w) ->
-                                  let doclose what fd =
+                                  let clo what fd =
                                     Ne.clo fd (fun msg ->
                                       dolog "%s close failed: %s" what msg)
                                   in
-                                  begin try
-                                      popen cmd [r, 0; w, -1];
+                                  let popened =
+                                    try popen cmd [r, 0; w, -1]; true
                                     with exn ->
                                       dolog "can not execute %S: %s"
                                         cmd (exntos exn);
-                                      doclose "Msel pipe/w" w;
-                                  end;
-                                  copysel w opaque;
-                                  G.postRedisplay "copysel";
-                                  doclose "Msel pipe/r" r;
+                                      false
+                                  in
+                                  if popened
+                                  then (
+                                    copysel w opaque;
+                                    G.postRedisplay "copysel";
+                                  )
+                                  else clo "Msel pipe/w" w;
+                                  clo "Msel pipe/r" r;
                             in
                             dosel conf.selcmd ();
                             state.roam <- dosel conf.paxcmd;
