@@ -3617,6 +3617,9 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                     if (pipespan (f, span, a, b))  {
                         goto close;
                     }
+                    if (span == page->lmark.span) {
+                        goto close;
+                    }
                     if (span == line->last_span)  {
                         if (putc ('\n', f) == EOF) {
                             fprintf (stderr,
@@ -3624,9 +3627,6 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                                      strerror (errno));
                             goto close;
                         }
-                    }
-                    if (span == page->lmark.span) {
-                        goto close;
                     }
                 }
             }
