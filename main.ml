@@ -946,7 +946,7 @@ let onppundermouse g x y d =
 let getunder x y =
   let g opaque l px py =
     if state.bzoom
-    then  (
+    then (
       match rectofblock opaque px py with
       | Some a ->
           let rect = (a.(0),a.(2),a.(1),a.(2),a.(1),a.(3),a.(0),a.(3)) in
@@ -2732,7 +2732,7 @@ let act cmds =
             state.currently <- Idle;
             load state.layout;
           )
-          else  (
+          else (
             puttileopaque l col row gen cs angle opaque size t;
             state.memused <- state.memused + size;
             state.uioh#infochanged Memused;
