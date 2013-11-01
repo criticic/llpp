@@ -1164,7 +1164,7 @@ module MTE = TextEnumMake (struct
 end);;
 
 module FMTE = TextEnumMake (struct
-  type t= fitmodel;;
+  type t = fitmodel;;
   let name = "fitmodel";;
   let names = [|"width"; "proportional"; "page"|];;
 end);;
