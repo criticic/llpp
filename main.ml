@@ -2609,6 +2609,7 @@ let act cmds =
       begin match List.rev cmds with
       | [] ->
           state.geomcmds <- "", [];
+          state.throttle <- None;
           represent ();
       | (s, f) :: rest ->
           f ();
