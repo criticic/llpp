@@ -4200,6 +4200,7 @@ let gotooutline (_, _, kind) =
       let y = getanchory
         (if conf.presentation then (pageno, y, 1.0) else anchor)
       in
+      addnav ();
       gotoghyll y
   | Ouri uri -> gotounder (Ulinkuri uri)
   | Olaunch cmd -> gotounder (Ulaunch cmd)
