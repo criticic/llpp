@@ -25,6 +25,23 @@ type mark =
     | Mark_word
 ;;
 
+module Opaque :
+sig
+  type t =  private string
+  val of_string : string -> t
+  val to_string : t -> string
+end
+  =
+struct
+  type t = string
+  let of_string s = s
+  let to_string t = t
+end
+;;
+
+let (~<) = Opaque.of_string;;
+let (~>) = Opaque.to_string;;
+
 type params = (angle * fitmodel * trimparams
                 * texcount * sliceheight * memsize
                 * colorspace * fontpath * trimcachepath
@@ -32,7 +49,7 @@ type params = (angle * fitmodel * trimparams
 and width          = int
 and height         = int
 and leftx          = int
-and opaque         = string
+and opaque         = Opaque.t
 and recttype       = int
 and pixmapsize     = int
 and angle          = int
@@ -1768,13 +1785,14 @@ let tilepage n p layout =
                   let pbo =
                     if conf.usepbo
                     then getpbo w h conf.colorspace
-                    else "0"
+                    else ~< "0"
                   in
-                  wcmd "tile %s %d %d %d %d %s" p x y w h pbo;
+                  wcmd "tile %s %d %d %d %d %s"
+                    (~> p) x y w h (~> pbo);
                   state.currently <-
                     Tiling (
-                      l, p, conf.colorspace, conf.angle, state.gen, col, row,
-                      conf.tilew, conf.tileh
+                      l, p, conf.colorspace, conf.angle,
+                      state.gen, col, row, conf.tilew, conf.tileh
                     );
           in
           itertiles l f;
@@ -2107,7 +2125,7 @@ let invalidate s f =
 
 let flushpages () =
   Hashtbl.iter (fun _ opaque ->
-    wcmd "freepage %s" opaque;
+    wcmd "freepage %s" (~> opaque);
   ) state.pagemap;
   Hashtbl.clear state.pagemap;
 ;;
@@ -2116,7 +2134,7 @@ let flushtiles () =
   if not (Queue.is_empty state.tilelru)
   then (
     Queue.iter (fun (k, p, s) ->
-      wcmd "freetile %s" p;
+      wcmd "freetile %s" (~> p);
       state.memused <- state.memused - s;
       Hashtbl.remove state.tilemap k;
     ) state.tilelru;
@@ -2453,7 +2471,7 @@ let gctiles () =
         then Queue.push lruitem state.tilelru
         else (
           freepbo p;
-          wcmd "freetile %s" p;
+          wcmd "freetile %s" (~> p);
           state.memused <- state.memused - s;
           state.uioh#infochanged Memused;
           Hashtbl.remove state.tilemap k;
@@ -2471,7 +2489,7 @@ let logcurrently = function
   | Tiling (l, pageopaque, colorspace, angle, gen, col, row, tilew, tileh) ->
       dolog
         "Tiling %d[%d,%d] page=%s cs=%s angle"
-        l.pageno col row pageopaque
+        l.pageno col row (~> pageopaque)
         (CSTE.to_string colorspace)
       ;
       dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
@@ -2664,7 +2682,8 @@ let act cmds =
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | "page" :: args :: [] ->
-      let pageopaque, t = scan args "%s %f" (fun p t -> p, t) in
+      let pageopaques, t = scan args "%s %f" (fun p t -> p, t) in
+      let pageopaque = ~< pageopaques in
       begin match state.currently with
       | Loading (l, gen) ->
           vlog "page %d took %f sec" l.pageno t;
@@ -2685,7 +2704,7 @@ let act cmds =
                   Hashtbl.fold (fun ((pageno, _) as key) opaque accu ->
                     if not (IntSet.mem pageno set)
                     then (
-                      wcmd "freepage %s" opaque;
+                      wcmd "freepage %s" (~> opaque);
                       key :: accu
                     )
                     else accu
@@ -2718,10 +2737,11 @@ let act cmds =
       end
 
   | "tile" :: args :: [] ->
-      let (x, y, opaque, size, t) =
+      let (x, y, opaques, size, t) =
         scan args "%u %u %s %u %f"
           (fun x y p size t -> (x, y, p, size, t))
       in
+      let opaque = ~< opaques in
       begin match state.currently with
       | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
           vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
@@ -2729,7 +2749,7 @@ let act cmds =
           unmappbo opaque;
           if tilew != conf.tilew || tileh != conf.tileh
           then (
-            wcmd "freetile %s" opaque;
+            wcmd "freetile %s" (~> opaque);
             state.currently <- Idle;
             load state.layout;
           )
@@ -6158,8 +6178,8 @@ let showsel () =
 
   | Msel ((x0, y0), (x1, y1)) ->
       let identify opaque l px py = Some (opaque, l.pageno, px, py) in
-      let o0,n0,px0,py0 = onppundermouse identify x0 y0 ("", -1, 0, 0) in
-      let _o1,n1,px1,py1 = onppundermouse identify x1 y1 ("", -1, 0, 0) in
+      let o0,n0,px0,py0 = onppundermouse identify x0 y0 (~< "", -1, 0, 0) in
+      let _o1,n1,px1,py1 = onppundermouse identify x1 y1 (~< "", -1, 0, 0) in
       if n0 != -1 && n0 = n1 then seltext o0 (px0, py0, px1, py1);
 ;;
 
