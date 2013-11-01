@@ -5867,7 +5867,10 @@ let viewkeyboard key mask =
               | None -> ()) state.layout;
             state.mode <- mode
       in
-      let ondone s = cmd := s in
+      let ondone s =
+        cbput state.hists.sel s;
+        cmd := s
+      in
       let te =
         "| ", !cmd, Some (onhist state.hists.sel), textentry, ondone, true
       in
