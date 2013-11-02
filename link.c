@@ -3591,7 +3591,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
 
     f = fdopen (fd, "w");
     if (!f) {
-        fprintf (stderr, "failed to fopen sel pipe (from fd %d): %s\n",
+        fprintf (stderr, "failed to fdopen sel pipe (from fd %d): %s\n",
                  fd, strerror (errno));
         f = stdout;
     }
