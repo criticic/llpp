@@ -3355,10 +3355,10 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     struct pagedim *pdim;
     char *s = String_val (ptr_v);
     int i, x0, x1, y0, y1, fi, li;
+    fz_text_line *line;
     fz_page_block *pageb;
     fz_text_block *block;
     fz_text_span *span, *fspan, *lspan;
-    fz_text_line *line, *fline = NULL, *lline = NULL;
 
     if (trylock ("ml_seltext")) {
         goto done;
@@ -3413,14 +3413,12 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
                     if (x0 >= b.x0 && x0 <= b.x1
                         && y0 >= b.y0 && y0 <= b.y1) {
                         fspan = span;
-                        fline = line;
                         fi = i;
                         selected = 1;
                     }
                     if (x1 >= b.x0 && x1 <= b.x1
                         && y1 >= b.y0 && y1 <= b.y1) {
                         lspan = span;
-                        lline = line;
                         li = i;
                         selected = 1;
                     }
@@ -3434,30 +3432,15 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
             }
         }
     }
-    if (y1 < y0 || x1 < x0) {
-        int swap = 0;
+    if (x1 < x0 && fspan == lspan)  {
+        i = fi;
+        span = fspan;
 
-        if (fspan == lspan)  {
-            swap = 1;
-        }
-        else {
-            if (y1 < y0) {
-                if (fline != lline) {
-                    swap = 1;
-                }
-            }
-        }
+        fi = li;
+        fspan = lspan;
 
-        if (swap) {
-            i = fi;
-            span = fspan;
-
-            fi = li;
-            fspan = lspan;
-
-            li = i;
-            lspan = span;
-        }
+        li = i;
+        lspan = span;
     }
 
     page->fmark.i = fi;
