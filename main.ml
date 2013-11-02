@@ -116,6 +116,7 @@ type pipe = (Unix.file_descr * Unix.file_descr);;
 
 external init : pipe -> params -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
+external hassel : opaque -> bool = "ml_hassel";;
 external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : opaque -> int -> int -> under = "ml_whatsunder";;
@@ -993,27 +994,29 @@ let showtext c s =
 ;;
 
 let pipesel opaque cmd =
-  match Ne.res Unix.pipe with
-  | Ne.Exn exn ->
-      showtext '!'
-        (Printf.sprintf "pipesel can not create pipe: %s" (exntos exn));
-  | Ne.Res (r, w) ->
-      let doclose what fd =
-        Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
-      in
-      let popened =
-        try popen cmd [r, 0; w, -1]; true
-        with exn ->
-          dolog "can not execute %S: %s" cmd (exntos exn);
-          false
-      in
-      if popened
-      then (
-        copysel w opaque;
-        G.postRedisplay "pipesel";
-      )
-      else doclose "pipesel pipe/w" w;
-      doclose "pipesel pipe/r" r;
+  if hassel opaque
+  then
+    match Ne.res Unix.pipe with
+    | Ne.Exn exn ->
+        showtext '!'
+          (Printf.sprintf "pipesel can not create pipe: %s" (exntos exn));
+    | Ne.Res (r, w) ->
+        let doclose what fd =
+          Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
+        in
+        let popened =
+          try popen cmd [r, 0; w, -1]; true
+          with exn ->
+            dolog "can not execute %S: %s" cmd (exntos exn);
+            false
+        in
+        if popened
+        then (
+          copysel w opaque;
+          G.postRedisplay "pipesel";
+        )
+        else doclose "pipesel pipe/w" w;
+        doclose "pipesel pipe/r" r;
 ;;
 
 let paxunder x y =

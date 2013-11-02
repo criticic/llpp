@@ -3566,6 +3566,25 @@ CAMLprim value ml_popen (value command_v, value fds_v)
 }
 #endif
 
+CAMLprim value ml_hassel (value ptr_v)
+{
+    CAMLparam1 (ptr_v);
+    CAMLlocal1 (ret_v);
+    struct page *page;
+    char *s = String_val (ptr_v);
+
+    ret_v = Val_bool (0);
+    if (trylock ("ml_hassel")) {
+        goto done;
+    }
+
+    page = parse_pointer ("ml_hassel", s);
+    ret_v = Val_bool (page->fmark.span && page->lmark.span);
+    unlock ("ml_hassel");
+ done:
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_copysel (value fd_v, value ptr_v)
 {
     CAMLparam2 (fd_v, ptr_v);
