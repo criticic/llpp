@@ -3585,7 +3585,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     page = parse_pointer ("ml_copysel", s);
 
     if (!page->fmark.span || !page->lmark.span) {
-        fprintf (stderr, "nothing to copy\n");
+        fprintf (stderr, "nothing to copy on page %d\n", page->pageno);
         goto unlock;
     }
 
