@@ -2151,13 +2151,15 @@ static void showsel (struct page *page, int ox, int oy)
                     j = MIN (first.i, last.i);
                     k = MAX (first.i, last.i);
                 }
-                else if (span == first.span) {
-                    seen = 1;
-                    j = first.i;
-                }
-                else if (span == last.span) {
-                    seen = 1;
-                    k = last.i;
+                else {
+                    if (span == first.span) {
+                        seen = 1;
+                        j = first.i;
+                    }
+                    else if (span == last.span) {
+                        seen = 1;
+                        k = last.i;
+                    }
                 }
 
                 if (seen) {
