@@ -6346,6 +6346,12 @@ let viewmulticlick clicks x y mask =
   onppundermouse g x y (fun () -> showtext '!' "Nothing to select") ();
 ;;
 
+let canselect () =
+  match conf.columns with
+  | Csplit _ -> false
+  | Csingle _ | Cmulti _ -> conf.angle mod 360 = 0
+;;
+
 let viewmouse button down x y mask =
   match button with
   | n when (n == 4 || n == 5) && not down ->
@@ -6483,7 +6489,7 @@ let viewmouse button down x y mask =
       | Unone | Utext _ ->
           if down
           then (
-            if conf.angle mod 360 = 0
+            if canselect ()
             then (
               state.mstate <- Msel ((x, y), (x, y));
               G.postRedisplay "mouse select";
@@ -6673,15 +6679,17 @@ let uioh = object
             ()
         | Mnone ->
             updateunder x y;
-            match conf.pax with
-            | None -> ()
-            | Some r ->
-                let past, _, _ = !r in
-                let now = now () in
-                let delta = now -. past in
-                if delta > 0.01
-                then paxunder x y
-                else r := (now, x, y)
+            if canselect ()
+            then
+              match conf.pax with
+              | None -> ()
+              | Some r ->
+                  let past, _, _ = !r in
+                  let now = now () in
+                  let delta = now -. past in
+                  if delta > 0.01
+                  then paxunder x y
+                  else r := (now, x, y)
     end;
     state.uioh
 
@@ -7890,7 +7898,7 @@ let () =
       m_hack <- w < state.winw && h < state.winh;
       reshape w h
     method mouse b d x y m =
-      if d
+      if d && canselect ()
       then (
         (* http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
         m_click_x <- x;
