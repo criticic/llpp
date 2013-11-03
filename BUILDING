@@ -4,7 +4,7 @@ to be built and installed to use llpp.
 Note that MuPDF is a moving target therefore below is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
-67ebe59a41f8b2deaf78dc916c5cd203d3fcc3a3
+7aa2806dc5c74d56929e2f2bafeaeed20e364609
 
 llpp also depends on OCaml[2], lablGL[3] having a C compiler wouldn't
 hurt either. (mupdf depends on libcrypto[4] part of openssl)
