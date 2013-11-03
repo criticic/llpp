@@ -3394,7 +3394,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     li = page->lmark.i;
     lspan = page->lmark.span;
 
-    for (pageb= page->text->blocks;
+    for (pageb = page->text->blocks;
          pageb < page->text->blocks + page->text->len;
          ++pageb) {
         if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
