@@ -7656,22 +7656,15 @@ struct
         (if emptystr state.origin then state.path else state.origin)
       in
       adddoc basename pan (getanchor ())
-        (let conf =
-          let autoscrollstep =
-            match state.autoscroll with
-            | Some step -> step
-            | None -> conf.autoscrollstep
-          in
-          match state.mode with
-          | Birdseye (bc, _, _, _, _) ->
-              { conf with
-                zoom = bc.zoom;
-                presentation = bc.presentation;
-                interpagespace = bc.interpagespace;
-                maxwait = bc.maxwait;
-                autoscrollstep = autoscrollstep }
-          | _ -> { conf with autoscrollstep = autoscrollstep }
-          in conf)
+        (let autoscrollstep =
+          match state.autoscroll with
+          | Some step -> step
+          | None -> conf.autoscrollstep
+          in begin match state.mode with
+          | Birdseye beye -> leavebirdseye beye true;
+          | _ -> ()
+          end;
+        { conf with autoscrollstep = autoscrollstep })
         (if conf.savebmarks then state.bookmarks else []);
 
       Hashtbl.iter (fun path (c, bookmarks, x, anchor) ->
