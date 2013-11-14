@@ -2086,12 +2086,12 @@ let gotoghyll y =
     )
   in
   match conf.ghyllscroll with
-  | None ->
-      gotoy_and_clear_text y
-  | Some nab ->
+  | Some nab when not conf.presentation ->
       if state.ghyll == noghyll
       then set nab y state.y
       else state.ghyll (Some y)
+  | _ ->
+      gotoy_and_clear_text y
 ;;
 
 let gotopage n top =
