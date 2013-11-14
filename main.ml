@@ -3352,6 +3352,7 @@ class type lvsource = object
   method getqsearch : string
   method setqsearch : string -> unit
   method getpan : int
+  method getminfo : (int * int) array
 end;;
 
 class virtual lvsourcebase = object
@@ -3364,6 +3365,7 @@ class virtual lvsourcebase = object
   method getqsearch = m_qsearch
   method getpan = m_pan
   method setqsearch s = m_qsearch <- s
+  method getminfo : (int * int) array = [||]
 end;;
 
 let withoutlastutf8 s =
@@ -3536,6 +3538,7 @@ object (self)
     let ww = fstate.wwidth in
     let tabw = 30.0*.ww in
     let itemcount = source#getitemcount in
+    let minfo = source#getminfo in
     let rec loop row =
       if (row - m_first) > fstate.maxrows
       then ()
@@ -3552,10 +3555,9 @@ object (self)
             GlDraw.color (1., 1., 1.) ~alpha;
             linerect 1. (float (y + 1))
               (float (state.winw - conf.scrollbw - 1)) (float (y + fs + 3));
-            GlDraw.color (1., 1., 1.);
             Gl.enable `texture_2d;
+            GlDraw.color (1., 1., 1.);
           );
-
           let drawtabularstring s =
             let drawstr x s = drawstring1 fs (truncate x) (y+nfs) s in
             if trusted
@@ -3581,8 +3583,33 @@ object (self)
       )
     in
     loop m_first;
-    Gl.disable `blend;
+    GlDraw.color (1.0, 1.0, 1.0) ~alpha:0.5;
+    let rec loop row =
+      if (row - m_first) > fstate.maxrows
+      then ()
+      else (
+        if row >= 0 && row < itemcount
+        then (
+          let (s, level) = source#getitem row in
+          let y = (row - m_first) * nfs in
+          let x = 5.0 +. float (level + m_pan) *. ww in
+          let (first, last) = minfo.(row) in
+          let prefix = String.sub s 0 first in
+          let suffix = String.sub s first (last - first) in
+          let w1 = measurestr fstate.fontsize prefix in
+          let w2 = measurestr fstate.fontsize suffix in
+          let x0 = x +. w1
+          and y0 = (float (y+2)) in
+          let x1 = x0 +. w2
+          and y1 = (float (y+fs+3)) in
+          filledrect x0 y0 x1 y1;
+          loop (row+1)
+        )
+      )
+    in
     Gl.disable `texture_2d;
+    if Array.length minfo > 0 then loop m_first;
+    Gl.disable `blend;
 
   method updownlevel incr =
     let len = source#getitemcount in
@@ -3971,6 +3998,8 @@ object (self)
 
   val m_autonarrow = false
 
+  method display = super#display
+
   method key key mask =
     let maxrows =
       if emptystr state.text
@@ -4237,7 +4266,9 @@ let outlinesource usebookmarks =
   (object (self)
     inherit lvsourcebase
     val mutable m_items = empty
+    val mutable m_minfo = empty
     val mutable m_orig_items = empty
+    val mutable m_orig_minfo = empty
     val mutable m_narrow_patterns = []
     val mutable m_hadremovals = false
 
@@ -4255,10 +4286,10 @@ let outlinesource usebookmarks =
     method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
       ignore (uioh, first, qsearch);
       let confrimremoval = m_hadremovals && active = Array.length m_items in
-      let items =
+      let items, minfo =
         if m_narrow_patterns = []
-        then m_orig_items
-        else m_items
+        then m_orig_items, m_orig_minfo
+        else m_items, m_minfo
       in
       if not cancel
       then (
@@ -4266,13 +4297,18 @@ let outlinesource usebookmarks =
         then (
           gotooutline m_items.(active);
           m_items <- items;
+          m_minfo <- minfo;
         )
         else (
           state.bookmarks <- Array.to_list m_items;
           m_orig_items <- m_items;
+          m_orig_minfo <- m_minfo;
         )
       )
-      else m_items <- items;
+      else (
+        m_items <- items;
+        m_minfo <- minfo;
+      );
       m_pan <- pan;
       None
 
@@ -4294,20 +4330,28 @@ let outlinesource usebookmarks =
       match reopt with
       | None -> ()
       | Some re ->
-          let rec loop accu n =
+          let rec loop accu minfo n =
             if n = -1
-            then m_items <- Array.of_list accu
+            then (
+              m_items <- Array.of_list accu;
+              m_minfo <- Array.of_list minfo;
+            )
             else
               let (s, _, _) as o = m_items.(n) in
-              let accu =
-                if (try ignore (Str.search_forward re s 0); true
-                  with Not_found -> false)
-                then o :: accu
-                else accu
+              let accu, minfo =
+                let first =
+                  try Str.search_forward re s 0
+                  with Not_found -> -1
+                in
+                if first >= 0
+                then o :: accu, (first, Str.match_end ()) :: minfo
+                else accu, minfo
               in
-              loop accu (n-1)
+              loop accu minfo (n-1)
           in
-          loop [] (Array.length m_items - 1)
+          loop [] [] (Array.length m_items - 1)
+
+    method getminfo = m_minfo
 
     method denarrow =
       m_orig_items <- (
@@ -4315,6 +4359,7 @@ let outlinesource usebookmarks =
         then Array.of_list state.bookmarks
         else state.outlines
       );
+      m_minfo <- m_orig_minfo;
       m_items <- m_orig_items
 
     method remove m =
