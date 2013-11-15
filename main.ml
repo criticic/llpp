@@ -4068,14 +4068,22 @@ object (self)
         coe {< m_first = first; m_active = active >}
 
     | 117 when ctrl ->                  (* ctrl-u *)
-        source#del_narrow_pattern;
-        let pattern = source#renarrow in
         G.postRedisplay "outline ctrl-u";
-        let text =
-          if emptystr pattern then "" else "Narrowed to " ^ pattern
-        in
-        settext m_autonarrow text;
-        coe {< m_first = 0; m_active = 0; m_qsearch = "" >}
+        if m_autonarrow && nonemptystr m_qsearch
+        then (
+          ignore (source#renarrow);
+          settext m_autonarrow "";
+          coe {< m_first = 0; m_active = 0; m_qsearch = "" >}
+        )
+        else (
+          source#del_narrow_pattern;
+          let pattern = source#renarrow in
+          let text =
+            if emptystr pattern then "" else "Narrowed to " ^ pattern
+          in
+          settext m_autonarrow text;
+          coe {< m_first = 0; m_active = 0; m_qsearch = "" >}
+        )
 
     | 108 when ctrl ->                  (* ctrl-l *)
         let first = max 0 (m_active - (fstate.maxrows / 2)) in
