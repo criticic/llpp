@@ -122,6 +122,7 @@ outline mode
 left/right              - go up/down a level
 Ctrl-a                  - toggle auto narrowing
 /                       - enter auto narrowing
+tab                     - begin nested narrowing
 Ctrl-n                  - narrow to search pattern
 Ctrl-u                  - undo narrowing
 Ctrl-S                  - synchronize

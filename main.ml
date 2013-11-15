@@ -3986,7 +3986,12 @@ end;;
 class outlinelistview ~source =
   let settext autonarrow s =
     if autonarrow
-    then state.text <- "[" ^ s ^ "]"
+    then
+      let ss = source#statestr in
+      state.text <-
+        if emptystr ss
+        then "[" ^ s ^ "]"
+        else "{" ^ ss ^ "} [" ^ s ^ "]"
     else state.text <- s
   in
 object (self)
@@ -4077,17 +4082,15 @@ object (self)
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
 
-    | 0xff1b ->                         (* escape *)
-        let o = super#key key mask in
-        if m_autonarrow
+    | 0xff09 when m_autonarrow ->       (* tab *)
+        if nonemptystr m_qsearch
         then (
-          if nonemptystr m_qsearch
-          then (
-            source#add_narrow_pattern m_qsearch;
-            settext true "";
-          )
-        );
-        o
+          G.postRedisplay "outline list view tab";
+          source#add_narrow_pattern m_qsearch;
+          settext true "";
+          coe {< m_qsearch = "" >}
+        )
+        else coe self
 
     | 0xff0d | 0xff8d when m_autonarrow -> (* (kp) enter *)
         if nonemptystr m_qsearch
@@ -4324,6 +4327,12 @@ let outlinesource usebookmarks =
         in
         "Narrowed to " ^ s ^ " (ctrl-u to restore)"
       else ""
+
+    method statestr =
+      match m_narrow_patterns with
+      | [] -> ""
+      | one :: [] -> one
+      | head :: _ -> "\xe2\x80\xa6" ^ head
 
     method narrow pattern =
       let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
