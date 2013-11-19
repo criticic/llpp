@@ -4042,10 +4042,17 @@ object (self)
     let ctrl = Wsi.withctrl mask in
     match key with
     | 97 when ctrl ->                   (* ctrl-a *)
-        if m_autonarrow
-        then source#denarrow
-        else source#narrow m_qsearch;
-        settext (not m_autonarrow) m_qsearch;
+        let text =
+          if m_autonarrow
+          then (source#denarrow; "")
+          else (
+            let pattern = source#renarrow in
+            if nonemptystr m_qsearch
+            then (source#narrow m_qsearch; m_qsearch)
+            else pattern
+          )
+        in
+        settext (not m_autonarrow) text;
         G.postRedisplay "toggle auto narrowing";
         coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
 
