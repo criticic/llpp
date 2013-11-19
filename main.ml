@@ -2522,7 +2522,7 @@ let onpagerect pageno f =
     f w h
 ;;
 
-let gotopagexy1 pageno x y  =
+let gotopagexy1 pageno x y =
   let _,w1,h1,leftx = getpagedim pageno in
   let top = y /. (float h1) in
   let left = x /. (float w1) in
