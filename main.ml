@@ -3345,12 +3345,9 @@ class type lvsource = object
     active:int ->
     first:int ->
     pan:int ->
-    qsearch:string ->
     uioh option
   method getactive : int
   method getfirst : int
-  method getqsearch : string
-  method setqsearch : string -> unit
   method getpan : int
   method getminfo : (int * int) array
 end;;
@@ -3358,13 +3355,10 @@ end;;
 class virtual lvsourcebase = object
   val mutable m_active = 0
   val mutable m_first = 0
-  val mutable m_qsearch = ""
   val mutable m_pan = 0
   method getactive = m_active
   method getfirst = m_first
-  method getqsearch = m_qsearch
   method getpan = m_pan
-  method setqsearch s = m_qsearch <- s
   method getminfo : (int * int) array = [||]
 end;;
 
@@ -3513,7 +3507,7 @@ object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
   val m_active = source#getactive
-  val m_qsearch = source#getqsearch
+  val m_qsearch = ""
   val m_prev_uioh = state.uioh
 
   method private elemunder y =
@@ -3811,7 +3805,7 @@ object (self)
           G.postRedisplay "list view escape";
           begin
             match
-              source#exit (coe self) true m_active m_first m_pan m_qsearch
+              source#exit (coe self) true m_active m_first m_pan
             with
             | None -> m_prev_uioh
             | Some uioh -> uioh
@@ -3819,22 +3813,20 @@ object (self)
         )
         else (
           G.postRedisplay "list view kill qsearch";
-          source#setqsearch "";
           coe {< m_qsearch = "" >}
         )
 
     | 0xff0d | 0xff8d ->                (* (kp) enter *)
         state.text <- "";
         let self = {< m_qsearch = "" >} in
-        source#setqsearch "";
         let opt =
           G.postRedisplay "listview enter";
           if m_active >= 0 && m_active < source#getitemcount
           then (
-            source#exit (coe self) false m_active m_first m_pan "";
+            source#exit (coe self) false m_active m_first m_pan;
           )
           else (
-            source#exit (coe self) true m_active m_first m_pan "";
+            source#exit (coe self) true m_active m_first m_pan;
           );
         in
         begin match opt with
@@ -3908,8 +3900,7 @@ object (self)
           begin match self#elemunder y with
           | Some n ->
               G.postRedisplay "listview click";
-              source#exit
-                (coe {< m_active = n >}) false n m_first m_pan m_qsearch
+              source#exit (coe {< m_active = n >}) false n m_first m_pan
           | _ ->
               Some (coe self)
           end
@@ -4107,6 +4098,11 @@ object (self)
         )
         else coe self
 
+    | 0xff1b when m_autonarrow ->       (* escape *)
+        if nonemptystr m_qsearch
+        then source#add_narrow_pattern m_qsearch;
+        super#key key mask
+
     | 0xff0d | 0xff8d when m_autonarrow -> (* (kp) enter *)
         if nonemptystr m_qsearch
         then source#add_narrow_pattern m_qsearch;
@@ -4301,8 +4297,8 @@ let outlinesource usebookmarks =
         let s, n, _ = m_items.(n) in
         (s, n)
 
-    method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
-      ignore (uioh, first, qsearch);
+    method exit ~uioh ~cancel ~active ~first ~pan =
+      ignore (uioh, first);
       let confrimremoval = m_hadremovals && active = Array.length m_items in
       let items, minfo =
         if m_narrow_patterns = []
@@ -4756,8 +4752,8 @@ let enterinfomode =
                     Array.length CSTE.names
                   method getitem n =
                     (CSTE.names.(n), 0)
-                  method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
-                    ignore (uioh, first, pan, qsearch);
+                  method exit ~uioh ~cancel ~active ~first ~pan =
+                    ignore (uioh, first, pan);
                     if not cancel then set active;
                     None
                   method hasaction _ = true
@@ -4782,8 +4778,8 @@ let enterinfomode =
 
                   method getitemcount = Array.length MTE.names
                   method getitem n = (MTE.names.(n), 0)
-                  method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
-                    ignore (uioh, first, pan, qsearch);
+                  method exit ~uioh ~cancel ~active ~first ~pan =
+                    ignore (uioh, first, pan);
                     if not cancel then set active;
                     None
                   method hasaction _ = true
@@ -4808,8 +4804,8 @@ let enterinfomode =
 
                   method getitemcount = Array.length FMTE.names
                   method getitem n = (FMTE.names.(n), 0)
-                  method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
-                    ignore (uioh, first, pan, qsearch);
+                  method exit ~uioh ~cancel ~active ~first ~pan =
+                    ignore (uioh, first, pan);
                     if not cancel then set active;
                     None
                   method hasaction _ = true
@@ -4844,11 +4840,10 @@ let enterinfomode =
           else name),
         offset)
 
-      method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
+      method exit ~uioh ~cancel ~active ~first ~pan =
         let uiohopt =
           if not cancel
           then (
-            m_qsearch <- qsearch;
             let uioh =
               match m_a.(active) with
               | _, _, _, Action f -> f uioh
@@ -5274,11 +5269,10 @@ let enterhelpmode =
         let s, l, _ = state.help.(n) in
         (s, l)
 
-      method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
+      method exit ~uioh ~cancel ~active ~first ~pan =
         let optuioh =
           if not cancel
           then (
-            m_qsearch <- qsearch;
             match state.help.(active) with
             | _, _, Action f -> Some (f uioh)
             | _ -> Some (uioh)
@@ -5318,13 +5312,12 @@ let entermsgsmode =
         then "[Clear]", 0
         else m_items.(n-1), 0
 
-      method exit ~uioh ~cancel ~active ~first ~pan ~qsearch =
+      method exit ~uioh ~cancel ~active ~first ~pan =
         ignore uioh;
         if not cancel
         then (
           if active = 0
           then Buffer.clear state.errmsgs;
-          m_qsearch <- qsearch;
         );
         m_active <- active;
         m_first <- first;
