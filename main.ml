@@ -1639,13 +1639,10 @@ let drawtiles l color =
     | Some (opaque, _, t) ->
         let params = x, y, w, h, tilex, tiley in
         if conf.invert
-        then (
-          Gl.enable `blend;
-          GlFunc.blend_func `zero `one_minus_src_color;
-        );
+        then GlTex.env (`mode `blend);
         drawtile params opaque;
         if conf.invert
-        then Gl.disable `blend;
+        then GlTex.env (`mode `modulate);
         if conf.debug
         then (
           endtiles ();
@@ -1674,10 +1671,7 @@ let drawtiles l color =
           min lh h
         in
         if conf.invert
-        then (
-          Gl.enable `blend;
-          GlFunc.blend_func `zero `one_minus_src_color;
-        );
+        then GlTex.env (`mode `blend);
         begin match state.texid with
         | Some id ->
             Gl.enable `texture_2d;
@@ -1705,6 +1699,8 @@ let drawtiles l color =
             GlDraw.color (1.0, 1.0, 1.0);
             filledrect (float x) (float y) (float (x+w)) (float (y+h));
         end;
+        if conf.invert
+        then GlTex.env (`mode `modulate);
         if w > 128 && h > fstate.fontsize + 10
         then (
           let c = if conf.invert then 1.0 else 0.0 in
