@@ -4281,6 +4281,7 @@ let outlinesource usebookmarks =
     val mutable m_orig_minfo = empty
     val mutable m_narrow_patterns = []
     val mutable m_hadremovals = false
+    val mutable m_gen = -1
 
     method getitemcount =
       Array.length m_items + (if m_hadremovals then 1 else 0)
@@ -4428,11 +4429,22 @@ let outlinesource usebookmarks =
 
     method reset anchor items =
       m_hadremovals <- false;
-      if m_orig_items == empty
+      if state.gen != m_gen
       then (
         m_orig_items <- items;
-        if m_narrow_patterns == []
-        then m_items <- items;
+        m_items <- items;
+        m_narrow_patterns <- [];
+        m_minfo <- empty;
+        m_orig_minfo <- empty;
+        m_gen <- state.gen;
+      )
+      else (
+        if items != m_orig_items
+        then (
+          m_orig_items <- items;
+          if m_narrow_patterns == []
+          then m_items <- items;
+        )
       );
       let active = self#calcactive anchor in
       m_active <- active;
