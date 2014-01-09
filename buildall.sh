@@ -20,7 +20,7 @@ root=$(pwd)
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.05.tar.gz
 baseurl="http://git.ghostscript.com/"
 
-mupdfrev=7f009acebb75ff88c1ee934b03fa2d15f7785b32
+mupdfrev=e7be17be8685c5b57bf51a778fd188dbd4c74039
 mudir=mupdf-$(printf "%.7s" $mupdfrev)
 mutgz=mupdf-$mupdfrev.tgz
 muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
