@@ -2,10 +2,12 @@
 set -e
 
 filt='^$'
-while getopts j:f: opt; do
+btyp="release"
+while getopts j:f:t: opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
         f) filt="$OPTARG";;
+        t) btyp="$OPTARG";;
         ?)
         printf "usage: $0 [-j N] [opt]\n";
         exit 1;;
@@ -66,7 +68,7 @@ executable_p gmake && make=gmake || make=make
             DLLDIR=$root/lib/ocaml/stublibs                \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-(cd $mudir && $make $jobs build=release)
+(cd $mudir && $make $jobs build=$btyp)
 
 cd ..
 
@@ -84,7 +86,7 @@ ccopt="$ccopt -I $root/$mudir/include"
 
 ccopt="$ccopt -D_GNU_SOURCE"
 
-cclib="$cclib -L$root/$mudir/build/release"
+cclib="$cclib -L$root/$mudir/build/$btyp"
 cclib="$cclib -lmupdf -lmupdf-js-none"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lpthread -lcrypto"
 cclib="$cclib -lX11"
