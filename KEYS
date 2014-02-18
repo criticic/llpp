@@ -15,7 +15,7 @@ other mouse button[1]   - select rectangle to zoom to
 escape/q                - quit
 Q                       - quit without saving the configuration
 backspace               - go back after jumping (clicking link and suchlike) [4]
-alt-left/right arrow    - go backward/forward in history
+Alt-left/right arrow    - go backward/forward in history
 u                       - dehighlight
 /,?                     - enter text to search for (/ - forward, ? - backward)
 +                       - set page bias
@@ -50,7 +50,7 @@ x                       - run pax command on selected region
 r                       - reload document [5]
 P                       - "presentation" mode
 a                       - autoscroll
-alt-c                   - center view
+Alt-c                   - center view
 c                       - switch to previous column layout
 Ctrl-p                  - launch a command with the document path as an argument
 <,>                     - rotate
@@ -133,7 +133,7 @@ enter                   - toggle/enter new value for selected parameter
 when entering search pattern/page number
 up/down arrow           - previous/next entered text
 enter                   - confirm
-ctrl-g,esc              - cancel
+Ctrl-g,esc              - cancel
 
 double/tripple/quadruple/... cliks in view mode pipe the
 word/line/block/page through pax command when control is held
