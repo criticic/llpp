@@ -4062,8 +4062,8 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     default:
         break;
     }
-    p.x = x;
-    p.y = y;
+    p.x = x + pdim->bounds.x0;
+    p.y = y + pdim->bounds.y0;
 
     fz_concat (&ctm, &pdim->tctm, &pdim->ctm);
     fz_invert_matrix (&ctm, &ctm);
