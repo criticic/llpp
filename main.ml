@@ -3031,6 +3031,11 @@ let setcolumns mode columns coverA coverB =
   reshape state.winw state.winh;
 ;;
 
+let resetmstate () =
+  state.mstate <- Mnone;
+  Wsi.setcursor Wsi.CURSOR_INHERIT;
+;;
+
 let enterbirdseye () =
   let zoom = float conf.thumbw /. float state.winw in
   let birdseyepageno =
@@ -3053,13 +3058,13 @@ let enterbirdseye () =
   state.mode <- Birdseye (
     { conf with zoom = conf.zoom }, state.x, birdseyepageno, -1, getanchor ()
   );
+  resetmstate ();
   conf.zoom <- zoom;
   conf.presentation <- false;
   conf.interpagespace <- 10;
   conf.hlinks <- false;
   conf.fitmodel <- FitProportional;
   state.x <- 0;
-  state.mstate <- Mnone;
   conf.maxwait <- None;
   conf.columns <- (
     match conf.beyecolumns with
@@ -3068,7 +3073,6 @@ let enterbirdseye () =
         Cmulti ((c, 0, 0), [||])
     | None -> Csingle [||]
   );
-  Wsi.setcursor Wsi.CURSOR_INHERIT;
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
@@ -4453,6 +4457,7 @@ let outlinesource usebookmarks =
 ;;
 
 let enterselector usebookmarks =
+  resetmstate ();
   let source = outlinesource usebookmarks in
   fun errmsg ->
     let outlines =
@@ -5238,6 +5243,7 @@ let enterinfomode =
   in
   fun () ->
     state.text <- "";
+    resetmstate ();
     let prevmode = state.mode
     and prevuioh = state.uioh in
     fillsrc prevmode prevuioh;
@@ -5302,6 +5308,7 @@ let enterhelpmode =
     end)
   in fun () ->
     let modehash = findkeyhash conf "help" in
+    resetmstate ();
     state.uioh <- coe (new listview ~source ~trusted:true ~modehash);
     G.postRedisplay "help";
 ;;
@@ -5345,6 +5352,7 @@ let entermsgsmode =
     end)
   in fun () ->
     state.text <- "";
+    resetmstate ();
     msgsource#reset;
     let source = (msgsource :> lvsource) in
     let modehash = findkeyhash conf "listview" in
@@ -5515,8 +5523,7 @@ let viewkeyboard key mask =
   | 0xff1b | 113 ->                     (* escape / q *)
       begin match state.mstate with
       | Mzoomrect _ ->
-          state.mstate <- Mnone;
-          Wsi.setcursor Wsi.CURSOR_INHERIT;
+          resetmstate ();
           G.postRedisplay "kill zoom rect";
       | _ ->
           begin match state.mode with
@@ -6346,8 +6353,7 @@ let zoomrect x y x1 y1 =
   in
   state.x <- (state.x + margin) - x0;
   setzoom zoom;
-  Wsi.setcursor Wsi.CURSOR_INHERIT;
-  state.mstate <- Mnone;
+  resetmstate ();
 ;;
 
 let zoomblock x y =
@@ -6512,13 +6518,11 @@ let viewmouse button down x y mask =
             if abs (x-x0) > 10 && abs (y - y0) > 10
             then zoomrect x0 y0 x y
             else (
-              state.mstate <- Mnone;
-              Wsi.setcursor Wsi.CURSOR_INHERIT;
+              resetmstate ();
               G.postRedisplay "kill accidental zoom rect";
             )
         | _ ->
-            Wsi.setcursor Wsi.CURSOR_INHERIT;
-            state.mstate <- Mnone
+            resetmstate ()
       )
 
   | 1 when x > state.winw - vscrollw () ->
@@ -6628,8 +6632,7 @@ let viewmouse button down x y mask =
                       else loop rest
                 in
                 loop state.layout;
-                Wsi.setcursor Wsi.CURSOR_INHERIT;
-                state.mstate <- Mnone;
+                resetmstate ();
           )
       end
 
