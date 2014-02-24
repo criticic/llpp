@@ -991,7 +991,7 @@ let getauth haddr dnum =
 
       vlog "family %S addr %S(%S) num %S(%d) name %S data %S"
         family addr haddr nums dnum name data;
-      match optnum  with
+      match optnum with
       | Some num when addr = haddr && num = dnum ->
           name, data
       | _ -> find ()
