@@ -3,11 +3,13 @@ set -e
 
 filt='^$'
 btyp="release"
-while getopts j:f:t: opt; do
+mupdfrev=096272252c0d00449bb68c7fddecc13ec2cecdd0
+while getopts j:f:t:r: opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
         f) filt="$OPTARG";;
         t) btyp="$OPTARG";;
+        r) mupdfrev="$OPTARG";;
         ?)
         printf "usage: $0 [-j N] [opt]\n";
         exit 1;;
@@ -22,14 +24,13 @@ root=$(pwd)
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.05.tar.gz
 baseurl="http://git.ghostscript.com/"
 
-mupdfrev=096272252c0d00449bb68c7fddecc13ec2cecdd0
-mudir=mupdf-$(printf "%.7s" $mupdfrev)
+mudir=mupdf-$mupdfrev
 mutgz=mupdf-$mupdfrev.tgz
 muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
 test -d lablgl-1.05 || (wget -nc $lablgl && tar -xzf lablgl-1.05.tar.gz)
 test -e $mutgz || wget -nc $muurl -O $mutgz
-test -d $mudir || tar -xzf $mutgz
+mkdir $mudir && tar --strip-components 1 -C $mudir -xzf $mutgz
 
 fetch() {
     while read r m; do
