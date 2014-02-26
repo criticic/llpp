@@ -34,15 +34,13 @@ mkdir $mudir && tar --strip-components 1 -C $mudir -xzf $mutgz
 
 fetch() {
     while read r m; do
-        d=$m-$(printf "%.7s" $r)
         t=$m-$r.tgz
         test $m = jbig2dec && p=$m || p=thirdparty/$m
         u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
         test -e $t || wget -nc $u -O $t
         test -e $mudir/thirdparty/$m/README ||
-        (rm -fr $mudir/thirdparty/$m &&
-            tar -xzf $t &&
-            mv $d $mudir/thirdparty/$m)
+        (rm -fr $mudir/thirdparty/$m && mkdir $mudir/thirdparty/$m &&
+            tar -xzf $t --strip-components 1 -C $mudir/thirdparty/$m)
     done
 }
 
