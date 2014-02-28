@@ -11,7 +11,8 @@ while getopts j:f:t:r: opt; do
         t) btyp="$OPTARG";;
         r) mupdfrev="$OPTARG";;
         ?)
-        printf "usage: $0 [-j N] [opt]\n";
+        echo \
+        "usage: $0 [-j jobs] [-f filter] [-t build type] [-r revision] [opt]"
         exit 1;;
     esac
 done
