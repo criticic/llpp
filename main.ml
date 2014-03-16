@@ -1694,6 +1694,7 @@ let drawtiles l color =
             GlArray.vertex `two state.vraw;
             GlArray.tex_coord `two state.traw;
             GlArray.draw_arrays `triangle_strip 0 4;
+            Gl.disable `texture_2d;
 
         | None ->
             GlDraw.color (1.0, 1.0, 1.0);
