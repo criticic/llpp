@@ -135,7 +135,7 @@ up/down arrow           - previous/next entered text
 enter                   - confirm
 Ctrl-g,esc              - cancel
 
-double/tripple/quadruple/... clicks in view mode pipe the
+double/triple/quadruple/... clicks in view mode pipe the
 word/line/block/page through pax command when control is held
 and selection command otherwise
 
