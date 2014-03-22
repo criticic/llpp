@@ -76,7 +76,7 @@ let bso name objs =
     " -L" ^ mupdflibpath ^ " " ^ libs
   in
   let o = List.map (fun s -> s ^ ".o") objs in
-  let libs = ["mupdf"; "mupdf-js-none"] in
+  let libs = ["mupdf"] in
   let set =
     List.fold_left (fun set s ->
       let l = "lib" ^ s ^ ".a" in

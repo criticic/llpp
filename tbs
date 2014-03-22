@@ -27,7 +27,7 @@ ccopt="-std=c89 -Wall -Werror"
 ccopt="$ccopt -I$mupdf/include"
 ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
 targets="llpp"
-libs="-lmupdf -lmupdf-js-none"
+libs="-lmupdf"
 libs="$libs -lopenjp2 -ljbig2dec -ljpeg -lz -lfreetype -lX11 -lcrypto"
 if test $(hostname) = "linmac"; then
 cc=gcc-4.6.0
