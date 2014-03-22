@@ -3,7 +3,7 @@ set -e
 
 filt='^$'
 btyp="release"
-mupdfrev=096272252c0d00449bb68c7fddecc13ec2cecdd0
+mupdfrev=745cc918409d3a5bd45b7b5c025f3a7a8c47c633
 while getopts j:f:t:r: opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
@@ -87,7 +87,7 @@ ccopt="$ccopt -I $root/$mudir/include"
 ccopt="$ccopt -D_GNU_SOURCE"
 
 cclib="$cclib -L$root/$mudir/build/$btyp"
-cclib="$cclib -lmupdf -lmupdf-js-none"
+cclib="$cclib -lmupdf"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lpthread -lcrypto"
 cclib="$cclib -lX11"
 
