@@ -3512,14 +3512,17 @@ object (self)
   val m_prev_uioh = state.uioh
 
   method private elemunder y =
-    let n = y / (fstate.fontsize+1) in
-    if m_first + n < source#getitemcount
-    then (
-      if source#hasaction (m_first + n)
-      then Some (m_first + n)
+    if y < 0
+    then None
+    else
+      let n = y / (fstate.fontsize+1) in
+      if m_first + n < source#getitemcount
+      then (
+        if source#hasaction (m_first + n)
+        then Some (m_first + n)
+        else None
+      )
       else None
-    )
-    else None
 
   method display =
     Gl.enable `blend;
