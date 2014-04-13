@@ -3,7 +3,7 @@ set -e
 
 filt='^$'
 btyp="release"
-mupdfrev=745cc918409d3a5bd45b7b5c025f3a7a8c47c633
+mupdfrev=ef1e93e6442b06890fffb70419a93e47e666f013
 while getopts j:f:t:r: opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
@@ -31,12 +31,14 @@ muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
 test -d lablgl-1.05 || (wget -nc $lablgl && tar -xzf lablgl-1.05.tar.gz)
 test -e $mutgz || wget -nc $muurl -O $mutgz
-mkdir $mudir && tar --strip-components 1 -C $mudir -xzf $mutgz
+test -d $mudir || \
+    (mkdir $mudir && tar --strip-components 1 -C $mudir -xzf $mutgz)
 
 fetch() {
     while read r m; do
         t=$m-$r.tgz
         test $m = jbig2dec && p=$m || p=thirdparty/$m
+        test $m = openjpeg && e=opj_config.h.in.user || e=README
         u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
         test -e $t || wget -nc $u -O $t
         test -e $mudir/thirdparty/$m/README ||
@@ -68,7 +70,16 @@ executable_p gmake && make=gmake || make=make
             DLLDIR=$root/lib/ocaml/stublibs                \
             INSTALLDIR=$root/lib/ocaml/lablGL)
 
-(cd $mudir && $make $jobs build=$btyp)
+opjconfig=$root/$mudir/thirdparty/openjpeg/libopenjpeg/opj_config.h
+expr "$filt" : '.*openjpeg.*' >/dev/null || {
+cat >>$opjconfig <<EOF
+#ifdef _BIG_ENDIAN
+#define OPJ_BIG_ENDIAN 1
+#endif
+EOF
+}
+
+(cd $mudir && $make $jobs build=$btyp $ojbe)
 
 cd ..
 
@@ -91,7 +102,7 @@ cclib="$cclib -lmupdf"
 cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lpthread -lcrypto"
 cclib="$cclib -lX11"
 
-expr "$filt" : '.*freetype.*' && {
+expr "$filt" : '.*freetype.*' >/dev/null && {
     ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
     cclib="$cclib $(freetype-config --libs)"
 } || {
@@ -105,43 +116,33 @@ sh $srcpath/mkhelp.sh $srcpath/keystoml.ml $srcpath/KEYS > help.ml
 
 if test "$1" = "opt"; then
     executable_p ocamlopt.opt && comp=ocamlopt.opt || comp=ocamlopt
-    cmsuf=cmx
-    dolink() {
-        $comp -o llpp                      \
-            -I $root/lib/ocaml/lablGL      \
-            str.cmxa unix.cmxa lablgl.cmxa \
-            link.o                         \
-            -cclib "$cclib"                \
-            help.cmx                       \
-            utils.cmx                      \
-            parser.cmx                     \
-            wsi.cmx                        \
-            main.cmx
-    }
+    osuf=cmx
+    asuf=cmxa
+    link="$comp"
 else
     executable_p ocamlc.opt && comp=ocamlc.opt || comp=ocamlc
-    cmsuf=cmo
-    dolink() {
-        $comp -custom -o llpp           \
-            -I $root/lib/ocaml/lablGL   \
-            str.cma unix.cma lablgl.cma \
-            link.o                      \
-            -cclib "$cclib"             \
-            help.cmo                    \
-            utils.cmo                   \
-            parser.cmo                  \
-            wsi.cmo                     \
-            main.cmo
-    }
+    osuf=cmo
+    asuf=cma
+    link="$comp -custom"
 fi
 
 $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
-$comp -c -o help.$cmsuf help.ml
-$comp -c -o utils.$cmsuf $srcpath/utils.ml
+$comp -c -o help.$osuf help.ml
+$comp -c -o utils.$osuf $srcpath/utils.ml
 $comp -c -o wsi.cmi $srcpath/wsi.mli
-$comp -c -o wsi.$cmsuf $srcpath/wsi.ml
-$comp -c -o parser.$cmsuf $srcpath/parser.ml
-$comp -c -o main.$cmsuf -I $root/lib/ocaml/lablGL $srcpath/main.ml
-dolink
+$comp -c -o wsi.$osuf $srcpath/wsi.ml
+$comp -c -o parser.$osuf $srcpath/parser.ml
+$comp -c -o main.$osuf -I $root/lib/ocaml/lablGL $srcpath/main.ml
+
+$link -o llpp                          \
+    -I $root/lib/ocaml/lablGL          \
+    str.$asuf unix.$asuf lablgl.$asuf  \
+    link.o                             \
+    -cclib "$cclib"                    \
+    help.$osuf                         \
+    utils.$osuf                        \
+    parser.$osuf                       \
+    wsi.$osuf                          \
+    main.$osuf
 
 echo All done
