@@ -3,7 +3,7 @@ set -e
 
 filt='^$'
 btyp="release"
-mupdfrev=ef1e93e6442b06890fffb70419a93e47e666f013
+mupdfrev=eebc3385ebfa60574d78cf41badd6622987c1121
 while getopts j:f:t:r: opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
