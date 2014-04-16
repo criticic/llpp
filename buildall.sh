@@ -41,7 +41,7 @@ fetch() {
         test $m = openjpeg && e=opj_config.h.in.user || e=README
         u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
         test -e $t || wget -nc $u -O $t
-        test -e $mudir/thirdparty/$m/README ||
+        test -e $mudir/thirdparty/$m/$e ||
         (rm -fr $mudir/thirdparty/$m && mkdir $mudir/thirdparty/$m &&
             tar -xzf $t --strip-components 1 -C $mudir/thirdparty/$m)
     done
