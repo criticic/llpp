@@ -697,7 +697,7 @@ let gotouri uri =
   else (
     let url = geturl uri in
     if emptystr url
-    then Printf.eprintf "obtained empty url from uri %S" uri
+    then Printf.eprintf "obtained empty url from uri %S\n" uri
     else
       let re = Str.regexp "%s" in
       let command = Str.global_replace re url conf.urilauncher in
