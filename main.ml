@@ -2041,7 +2041,7 @@ let getnav dir =
   getanchory anchor;
 ;;
 
-let gotoghyll y =
+let gotoghyll1 single y =
   let scroll f n a b =
     (* http://devmaster.net/forums/topic/9796-ease-in-ease-out-algorithm/ *)
     let snake f a b =
@@ -2061,7 +2061,8 @@ let gotoghyll y =
     let ones = b - a in
     ins +. outs +. float ones
   in
-  let rec set (_N, _A, _B) y sy =
+  let rec set nab y sy =
+    let (_N, _A, _B) = if single then (5,1,4) else nab in
     let sum = summa _N _A _B in
     let dy = float (y - sy) in
     state.ghyll <- (
@@ -2077,6 +2078,7 @@ let gotoghyll y =
           in
           match o with
           | None -> go n
+          | Some y' when single -> set nab y' state.y
           | Some y' -> set (_N/2, 1, 1) y' state.y
       in
       gf 0 (float state.y)
@@ -2090,6 +2092,8 @@ let gotoghyll y =
   | _ ->
       gotoy_and_clear_text y
 ;;
+
+let gotoghyll = gotoghyll1 false;;
 
 let gotopage n top =
   let y, h = getpageyh n in
@@ -4590,7 +4594,7 @@ let string_with_suffix_of_int n =
     find units
 ;;
 
-let defghyllscroll = (40, 8, 32);;
+let defghyllscroll = (40,8,32);;
 let fastghyllscroll = (5,1,2);;
 let neatghyllscroll = (10,1,9);;
 let ghyllscroll_of_string s =
@@ -5861,7 +5865,7 @@ let viewkeyboard key mask =
               else (
                 if not (Wsi.withshift mask) && conf.presentation
                 then prevpage ()
-                else gotoy_and_clear_text (clamp (-conf.scrollstep))
+                else gotoghyll1 true (clamp (-conf.scrollstep))
               )
           end
       | Some n ->
@@ -5879,7 +5883,7 @@ let viewkeyboard key mask =
               else (
                 if not (Wsi.withshift mask) && conf.presentation
                 then nextpage ()
-                else gotoy_and_clear_text (clamp conf.scrollstep)
+                else gotoghyll1 true (clamp (conf.scrollstep))
               )
           end
       | Some n ->
