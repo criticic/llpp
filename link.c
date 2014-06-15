@@ -38,6 +38,10 @@
 
 #include FT_FREETYPE_H
 
+#ifdef USE_FONTCONFIG
+#include <fontconfig/fontconfig.h>
+#endif
+
 #define PIGGYBACK
 
 #ifndef __USE_GNU
@@ -4104,6 +4108,101 @@ CAMLprim value ml_fz_version (value unit_v)
     return caml_copy_string (FZ_VERSION);
 }
 
+#ifdef USE_FONTCONFIG
+static struct  {
+    int inited;
+    FcConfig *config;
+} fc;
+
+static fz_font *fc_load_system_font_func (fz_context *ctx,
+                                          const char *name,
+                                          int bold,
+                                          int italic,
+                                          int needs_exact_metrics)
+{
+    char *buf;
+    size_t i,size;
+    fz_font *font;
+    FcChar8 *path;
+    FcResult result;
+    FcPattern *pat, *pat1;
+
+    lprintf ("looking up %s bold:%d italic:%d needs_exact_metrics:%d\n",
+             name, bold, italic, needs_exact_metrics);
+    if (!fc.inited) {
+        fc.inited = 1;
+        fc.config = FcInitLoadConfigAndFonts ();
+        if (!fc.config) {
+            lprintf ("FcInitLoadConfigAndFonts failed\n");
+            return NULL;
+        }
+    }
+    if (!fc.config) return NULL;
+
+    size = strlen (name);
+    if (bold) size += sizeof (":bold") - 1;
+    if (italic) size += sizeof (":italic") - 1;
+    size += 1;
+
+    buf = malloc (size);
+    if (!buf) {
+        err (1, "malloc %zu failed", size);
+    }
+
+    strcpy (buf, name);
+    if (bold && italic) {
+        strcat (buf, ":bold:italic");
+    }
+    else {
+        if (bold) strcat (buf, ":bold");
+        if (italic) strcat (buf, ":italic");
+    }
+    for (i = 0; i < size; ++i) {
+        if (buf[i] == ',' || buf[i] == '-') buf[i] = ':';
+    }
+
+    lprintf ("fcbuf=%s\n", buf);
+    pat = FcNameParse ((FcChar8 *) buf);
+    if (!pat) {
+        printd ("emsg FcNameParse failed\n");
+        free (buf);
+        return NULL;
+    }
+
+    if (!FcConfigSubstitute (fc.config, pat, FcMatchPattern)) {
+        printd ("emsg FcConfigSubstitute failed\n");
+        free (buf);
+        return NULL;
+    }
+    FcDefaultSubstitute (pat);
+
+    pat1 = FcFontMatch (fc.config, pat, &result);
+    if (!pat1) {
+        printd ("emsg FcFontMatch failed\n");
+        FcPatternDestroy (pat);
+        free (buf);
+        return NULL;
+    }
+
+    if (FcPatternGetString (pat1, FC_FILE, 0, &path) != FcResultMatch) {
+        printd ("emsg FcPatternGetString failed\n");
+        FcPatternDestroy (pat);
+        FcPatternDestroy (pat1);
+        free (buf);
+        return NULL;
+    }
+
+#if 0
+    printd ("emsg name=%s path=%s\n", name, path);
+#endif
+    font = fz_new_font_from_file (ctx, name, (char *) path, 0, 0);
+    FcPatternDestroy (pat);
+    FcPatternDestroy (pat1);
+    free (buf);
+    return font;
+}
+#endif
+
 CAMLprim value ml_init (value pipe_v, value params_v)
 {
     CAMLparam2 (pipe_v, params_v);
@@ -4135,6 +4234,10 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     haspboext           = Bool_val (Field (params_v, 9));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
+
+#ifdef USE_FONTCONFIG
+    fz_install_load_system_font_funcs (state.ctx, fc_load_system_font_func, NULL);
+#endif
 
     state.trimmargins = Bool_val (Field (trim_v, 0));
     fuzz_v            = Field (trim_v, 1);

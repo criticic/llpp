@@ -4,12 +4,13 @@ set -e
 filt='^$'
 btyp="release"
 mupdfrev=eebc3385ebfa60574d78cf41badd6622987c1121
-while getopts j:f:t:r: opt; do
+while getopts j:f:t:r:F opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
         f) filt="$OPTARG";;
         t) btyp="$OPTARG";;
         r) mupdfrev="$OPTARG";;
+        F) usefontconfig=1;;
         ?)
         echo \
         "usage: $0 [-j jobs] [-f filter] [-t build type] [-r revision] [opt]"
@@ -96,6 +97,10 @@ ccopt="$ccopt -I $tp/zlib"
 ccopt="$ccopt -I $root/$mudir/include"
 
 ccopt="$ccopt -D_GNU_SOURCE"
+test -z "$usefontconfig" || {
+    ccopt="$ccopt -DUSE_FONTCONFIG $(pkg-config --cflags fontconfig)"
+    cclib="$cclib $(pkg-config --libs fontconfig)"
+}
 
 cclib="$cclib -L$root/$mudir/build/$btyp"
 cclib="$cclib -lmupdf"

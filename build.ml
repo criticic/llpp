@@ -86,7 +86,7 @@ let bso name objs =
   in
   ocaml'
     cc
-    ("-shared -lpthread")
+    ("-shared -lpthread -lfontconfig")
     (mupdf_libs)
     so
     (StrSet.singleton so)
