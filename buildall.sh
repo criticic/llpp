@@ -3,7 +3,7 @@ set -e
 
 filt='^$'
 btyp="release"
-mupdfrev=eebc3385ebfa60574d78cf41badd6622987c1121
+mupdfrev=b2f096de23e5341fbbcd7c290f3a144423741906
 while getopts j:f:t:r:F opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
@@ -96,16 +96,16 @@ ccopt="$ccopt -I $tp/openjpeg/libopenjpeg"
 ccopt="$ccopt -I $tp/zlib"
 ccopt="$ccopt -I $root/$mudir/include"
 
+cclib="$cclib -L$root/$mudir/build/$btyp"
+cclib="$cclib -lmupdf"
+cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lpthread -lcrypto"
+cclib="$cclib -lX11"
+
 ccopt="$ccopt -D_GNU_SOURCE"
 test -z "$usefontconfig" || {
     ccopt="$ccopt -DUSE_FONTCONFIG $(pkg-config --cflags fontconfig)"
     cclib="$cclib $(pkg-config --libs fontconfig)"
 }
-
-cclib="$cclib -L$root/$mudir/build/$btyp"
-cclib="$cclib -lmupdf"
-cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lpthread -lcrypto"
-cclib="$cclib -lX11"
 
 expr "$filt" : '.*freetype.*' >/dev/null && {
     ccopt="$ccopt $(freetype-config --cflags) -include ft2build.h"
