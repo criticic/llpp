@@ -2062,7 +2062,12 @@ let gotoghyll1 single y =
     ins +. outs +. float ones
   in
   let rec set nab y sy =
-    let (_N, _A, _B) = if single then (5,1,4) else nab in
+    let (_N, _A, _B), y =
+      if single
+      then
+        let scl = if y > sy then 3 else -3 in
+        (5,1,4), y+conf.scrollstep*scl
+      else nab,y in
     let sum = summa _N _A _B in
     let dy = float (y - sy) in
     state.ghyll <- (
