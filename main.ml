@@ -2065,8 +2065,9 @@ let gotoghyll1 single y =
     let (_N, _A, _B), y =
       if single
       then
-        let scl = if y > sy then 3 else -3 in
-        (5,1,4), y+conf.scrollstep*scl
+        let scl = if y > sy then 2 else -2 in
+        let _N, _, _ = nab in
+        (_N,0,_N), y+conf.scrollstep*scl
       else nab,y in
     let sum = summa _N _A _B in
     let dy = float (y - sy) in
