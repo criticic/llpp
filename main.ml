@@ -4600,13 +4600,11 @@ let string_with_suffix_of_int n =
     find units
 ;;
 
-let defghyllscroll = (40,8,32);;
 let fastghyllscroll = (5,1,2);;
 let neatghyllscroll = (10,1,9);;
 let ghyllscroll_of_string s =
   match s with
-  | "default" -> Some defghyllscroll
-  | "fast" -> Some (5,1,2)
+  | "fast" -> Some fastghyllscroll
   | "neat" -> Some (10,1,9)
   | "" | "none" -> None
   | _ ->
@@ -4619,8 +4617,7 @@ let ghyllscroll_of_string s =
 ;;
 
 let ghyllscroll_to_string ((n, a, b) as nab) =
-  (**) if nab = defghyllscroll then "default"
-  else if nab = fastghyllscroll then "fast"
+  (**) if nab = fastghyllscroll then "fast"
   else if nab = neatghyllscroll then "neat"
   else Printf.sprintf "%d,%d,%d" n a b;
 ;;
