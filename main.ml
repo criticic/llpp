@@ -4495,7 +4495,7 @@ let enterselector usebookmarks =
 
 let enteroutlinemode =
   let f = enterselector false in
-  fun ()-> f "Document has no outline";
+  fun () -> f "Document has no outline";
 ;;
 
 let enterbookmarkmode =
