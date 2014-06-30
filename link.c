@@ -54,7 +54,11 @@ extern char **environ;
 #if defined __GNUC__
 #define NORETURN_ATTR __attribute__ ((noreturn))
 #define UNUSED_ATTR __attribute__ ((unused))
+#if !defined __clang__
 #define OPTIMIZE_ATTR(n) __attribute__ ((optimize ("O"#n)))
+#else
+#define OPTIMIZE_ATTR(n)
+#endif
 #define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
 #else
 #define NORETURN_ATTR
