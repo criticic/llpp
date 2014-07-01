@@ -3513,7 +3513,7 @@ let scrollph y maxy =
 
 let coe s = (s :> uioh);;
 
-class listview ~(source:lvsource) ~trusted ~modehash =
+class listview ?(helpmode=false) ~(source:lvsource) ~trusted ~modehash =
 object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
@@ -3547,7 +3547,6 @@ object (self)
     let tabw = 30.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
-    let helphack = ref false in
     let rec loop row =
       if (row - m_first) > fstate.maxrows
       then ()
@@ -3571,7 +3570,7 @@ object (self)
             let drawstr x s = drawstring1 fs (truncate x) (y+nfs) s in
             if trusted
             then
-              let x = if !helphack then x +. ww else x in
+              let x = if helpmode && row > 0 then x +. ww else x in
               let tabpos = try String.index s '\t' with Not_found -> -1 in
               if tabpos > 0
               then
@@ -3587,14 +3586,7 @@ object (self)
                 if len > 0 && s.[0] = '\xc2' && s.[1] = '\xb7'
                 then
                   let s = String.sub s 2 len in
-                  let x =
-                    if not !helphack
-                    then (
-                      helphack := true;
-                      x +. ww
-                    )
-                    else x
-                  in
+                  let x = if not helpmode then x +. ww else x in
                   GlDraw.color (1.2, 1.2, 1.2);
                   let vinc = drawstring1 (fs+fs/4)
                       (truncate (x -. ww)) (y+nfs) s in
@@ -4021,6 +4013,7 @@ class outlinelistview ~source =
   in
 object (self)
   inherit listview
+    ~helpmode:false
     ~source:(source :> lvsource)
     ~trusted:false
     ~modehash:(findkeyhash conf "outline")
@@ -4805,7 +4798,7 @@ let enterinfomode =
               in
               state.text <- "";
               let modehash = findkeyhash conf "info" in
-              coe (new listview ~source ~trusted:true ~modehash)
+              coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
           )) :: m_l
 
       method paxmark name get set =
@@ -4831,7 +4824,7 @@ let enterinfomode =
               in
               state.text <- "";
               let modehash = findkeyhash conf "info" in
-              coe (new listview ~source ~trusted:true ~modehash)
+              coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
           )) :: m_l
 
       method fitmodel name get set =
@@ -4857,7 +4850,7 @@ let enterinfomode =
               in
               state.text <- "";
               let modehash = findkeyhash conf "info" in
-              coe (new listview ~source ~trusted:true ~modehash)
+              coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
           )) :: m_l
 
       method caption s offset =
@@ -5281,7 +5274,7 @@ let enterinfomode =
     let source = (src :> lvsource) in
     let modehash = findkeyhash conf "info" in
     state.uioh <- coe (object (self)
-      inherit listview ~source ~trusted:true ~modehash as super
+      inherit listview ~helpmode:false  ~source ~trusted:true ~modehash as super
       val mutable m_prevmemused = 0
       method infochanged = function
         | Memused ->
@@ -5340,7 +5333,8 @@ let enterhelpmode =
   in fun () ->
     let modehash = findkeyhash conf "help" in
     resetmstate ();
-    state.uioh <- coe (new listview ~source ~trusted:true ~modehash);
+    state.uioh <- coe (new listview
+                         ~helpmode:true ~source ~trusted:true ~modehash);
     G.postRedisplay "help";
 ;;
 
@@ -5388,7 +5382,7 @@ let entermsgsmode =
     let source = (msgsource :> lvsource) in
     let modehash = findkeyhash conf "listview" in
     state.uioh <- coe (object
-      inherit listview ~source ~trusted:false ~modehash as super
+      inherit listview ~helpmode:false ~source ~trusted:false ~modehash as super
       method display =
         if state.newerrmsgs
         then msgsource#reset;
