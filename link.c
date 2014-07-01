@@ -2436,7 +2436,6 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
     glDisable (GL_BLEND);
 }
 
-
 static void uploadslice (struct tile *tile, struct slice *slice)
 {
     int offset;
