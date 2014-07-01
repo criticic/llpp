@@ -3547,6 +3547,7 @@ object (self)
     let tabw = 30.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
+    let helphack = ref false in
     let rec loop row =
       if (row - m_first) > fstate.maxrows
       then ()
@@ -3570,7 +3571,7 @@ object (self)
             let drawstr x s = drawstring1 fs (truncate x) (y+nfs) s in
             if trusted
             then
-              let x = if row = 0 then x else x +. fstate.wwidth in
+              let x = if !helphack then x +. ww else x in
               let tabpos = try String.index s '\t' with Not_found -> -1 in
               if tabpos > 0
               then
@@ -3586,9 +3587,17 @@ object (self)
                 if len > 0 && s.[0] = '\xc2' && s.[1] = '\xb7'
                 then
                   let s = String.sub s 2 len in
+                  let x =
+                    if not !helphack
+                    then (
+                      helphack := true;
+                      x +. ww
+                    )
+                    else x
+                  in
                   GlDraw.color (1.2, 1.2, 1.2);
                   let vinc = drawstring1 (fs+fs/4)
-                      (truncate (x -. fstate.wwidth)) (y+nfs) s in
+                      (truncate (x -. ww)) (y+nfs) s in
                   GlDraw.color (1., 1., 1.);
                   vinc +. (float fs *. 0.8)
                 else
