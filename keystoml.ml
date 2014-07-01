@@ -5,7 +5,12 @@ let tabify s =
   let dashpos = try Str.search_forward r_dash s 0 with Not_found -> -1 in
   if dashpos < 1
   then
-    s
+    let l = String.length s in
+    if l > 11 && String.sub s 0 5 = "-----"
+    then
+      "\xc2\xb7" ^ String.sub s 5 (l - 10)
+    else
+      s
   else
     let rec findnonwsback i =
       if i = -1 then 0 else

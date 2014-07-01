@@ -1,61 +1,56 @@
+-----Quitting-----
+escape/q                - quit
+Q                       - quit without saving the configuration
+
+-----Movement-----
 up/down arrow           - scroll up/down
-j/k                     - ..............
-mouse buttons 3/4       - .............. (aka mouse wheel)
-  when control is held  - zoom
+j/k                     - scroll up/down
 left/right arrow        - pan left/right (when zoomed in)
-mouse buttons 5/6       - .............. (aka horizontal mouse wheel)
-control + shift up/down - set previous zoom level
 control + arrows        - scroll up/down, pan left/right (by half a screen widht/height)
-primary mouse button[1] - click on link or select text[2]
-  when shift is held    - execute "synctex command" with coordinates of the point [3]
+space                   - go to the next page
+delete                  - go to the previous page
+pageup/pagedown         - go forward/backward one screen-full
+g, G                    - go to first/last page
+home/end                - go to first/last page
+
+-----Advanced Movement / History-----
+backspace               - go back after jumping (clicking link and suchlike) [1]
+Alt-left/right arrow    - go backward/forward in history
+0..9                    - enter page number to jump to
+t                       - align top of the screen with the top of the page
+<,>                     - rotate
+Ctrl pageup/pagedown    - align top of the screen with first/last visible page
+F                       - go to hinted link
+a                       - autoscroll
+if auto scrolling is active:
+    up/down arrows and mouse buttons 3/4 will make scrolling go faster/slower
+
+-----Mouse-----
+primary mouse button[2] - click on link or select text[3]
+  when shift is held    - execute "synctex command" with coordinates of the point [4]
   when control is held  - pan
   zoom to block         - when in block zoom mode
   otherwise             - pan if there's no text/link under the cursor
-other mouse button[1]   - select rectangle to zoom to
-escape/q                - quit
-Q                       - quit without saving the configuration
-backspace               - go back after jumping (clicking link and suchlike) [4]
-Alt-left/right arrow    - go backward/forward in history
-u                       - dehighlight
-/,?                     - enter text to search for (/ - forward, ? - backward)
-+                       - set page bias
--                       - toggle/set tunable
-0..9                    - enter page number to jump to
-b                       - toggle scroll bar
-B                       - toggle zoom block mode
-l                       - toggle highlighting of the links
-f                       - toggle fullscreen
-n                       - repeat last search (forward)
-p, N                    - .................. (backward)
-g, G                    - go to first/last page
-t                       - align top of the screen with the top of the page
-F                       - go to hinted link
-y                       - select link and paste its description to the clipboard
-|                       - pipe selection through specified command
-space                   - go to the next page
-delete                  - go to the previous page
-insert                  - toggle link navigation mode
-return                  - (in link navigation mode) follow link
-=                       - show current position
-w                       - change height of the window to encompass all of the page
-o                       - switch to outline mode
-'                       - switch to bookmark mode
-h,F1                    - switch to help mode
-i                       - switch to info mode
-e                       - view error log
+mouse buttons 3/4       - scroll up/down (aka mouse wheel)
+  when control is held  - zoom
+mouse buttons 5/6       - pan left/right (aka horizontal mouse wheel)
+other mouse button[2]   - select rectangle to zoom to
+
+Note:
+(moving mouse while holding primary mouse button will pan the page,
+ if the mouse is over selectable element (text/link) holding control
+ will make the page pan instead of the default action (selecting text/
+ clicking link))
+
+-----Bookmarks-----
 m                       - create named bookmark
 ~                       - create quick bookmark
-z                       - crop
-x                       - run pax command on selected region
-r                       - reload document [5]
-P                       - "presentation" mode
-a                       - autoscroll
+
+-----Zoom-----
+control + shift up/down - set previous zoom level
+B                       - toggle zoom block mode
+w                       - change height of the window to encompass all of the page
 Alt-c                   - center view
-c                       - switch to previous column layout
-Ctrl-p                  - launch a command with the document path as an argument
-<,>                     - rotate
-[,]                     - decrease/increase page brightness
-Ctrl-g                  - interrupt search
 Ctrl-+/Ctrl-=           - zoom in
 Ctrl--                  - zoom out
 Ctrl-0                  - reset zoom and panning
@@ -63,19 +58,43 @@ Ctrl-1                  - fit tallest page
 Ctrl-2                  - fit tallest page height exactly
 Ctrl-3                  - cycle fit models
 Ctrl-9/F9               - enter bird's eye view
-home/end                - go to first/last page
-pageup/pagedown         - go forward/backward one screen-full
-Ctrl pageup/pagedown    - align top of the screen with first/last visible page
 
-(moving mouse while holding primary mouse button will pan the page,
-if the mouse is over selectable element (text/link) holding control
-will make the page pan instead of the default action (selecting text/
-clicking link))
+-----Actions-----
+u                       - dehighlight
+r                       - reload document [5]
+y                       - select link and paste its description to the clipboard
+|                       - pipe selection through specified command
+x                       - run pax command on selected region
+Ctrl-p                  - launch a command with the document path as an argument
+return                  - (in link navigation mode) follow link
+=                       - show current position
+e                       - view error log
+z                       - crop
 
-if auto scrolling is active:
-    up/down arrows and mouse buttons 3/4 will make scrolling go faster/slower
+-----Search-----
+/,?                     - enter text to search for (/ - forward, ? - backward)
+n                       - repeat last search (forward)
+p, N                    - repeat last search (backward)
+Ctrl-g                  - interrupt search
+u                       - dehighlight
 
-tunables
+-----Settings / Modes-----
+[,]                     - decrease/increase page brightness
++                       - set page bias
+-                       - toggle/set tunable
+b                       - toggle scroll bar
+l                       - toggle highlighting of the links
+f                       - toggle fullscreen
+insert                  - toggle link navigation mode
+B                       - toggle zoom block mode
+o                       - switch to outline mode
+'                       - switch to bookmark mode
+h,F1                    - switch to help mode
+i                       - switch to info mode
+P                       - switch to "presentation" mode
+c                       - switch to previous column layout
+
+-----Tunables-----
 -i                      - toggle case sensitivity of searches
 -s<number>              - set scroll step (pixels)
 -S<number>              - set space between pages (pixels)
@@ -97,9 +116,9 @@ tunables
 -x<string>              - set command to run on selection
 -f                      - toggle "what's under cursor" identification
                         - (or "what's currently selected" in link navigation mode)
-    (only font name of the text under cursor and link target currently)
+                        -     (font name of the text under cursor or link target)
 
-bird's eye mode
+-----Bird's eye mode-----
 Ctrl-9,F9,esc           - leave bird's eye view
 Ctrl-l                  - center the view on the currently selected page
 (page)up/(page)down     - navigate
@@ -107,7 +126,7 @@ home/end                - go to first/last page
 enter                   - select the page and leave bird's eye mode
 1st mouse button        - select the page under cursor and leave bird's eye mode
 
-outline/bookmark/help/info mode
+-----Outline/bookmark/help/info mode-----
 esc                     - leave outline/bookmark mode
 up/down                 - select previous/next item
 alpha-numeric           - quick search
@@ -118,7 +137,7 @@ Ctrl-left/right         - pan text left/right
 Ctrl-up/down            - scroll view up/down
 Ctrl-insert             - copy active item's text to clipboard
 
-outline mode
+-----Outline mode-----
 left/right              - go up/down a level
 Ctrl-a                  - toggle auto narrowing
 /                       - enter auto narrowing
@@ -127,10 +146,10 @@ Ctrl-n                  - narrow to search pattern
 Ctrl-u                  - undo narrowing
 Ctrl-S                  - synchronize
 
-info mode
+-----Info mode-----
 enter                   - toggle/enter new value for selected parameter
 
-when entering search pattern/page number
+-----When entering search pattern/page number-----
 up/down arrow           - previous/next entered text
 enter                   - confirm
 Ctrl-g,esc              - cancel
@@ -139,27 +158,25 @@ double/triple/quadruple/... clicks in view mode will pipe the
 word/line/block/page through pax command when control is held
 and selection command otherwise
 
-[1] i'm somewhat mouse button confused, since i use "left handed" mouse
+[1] if the document was previously visited initial backspace will
+    jump to the last visited place
+
+[2] i'm somewhat mouse button confused, since i use "left handed" mouse
     while not being left handed
 
-[2] text selection requires
+[3] text selection requires
     xsel on X11         - http://www.vergenet.net/~conrad/software/xsel/
     wsel under Windows  - http://repo.or.cz/w/llpp.git/blob/master:/wsel.c
     pbcopy under OSX    - ships with the system
 
-[3] arguments to the command are:
+[4] arguments to the command are:
     1 = path to the document
     2 = zero based page number
     3 = X coordinate within the page
     4 = Y ..........................
 
-[4] if the document was previously visited initial backspace will
-    jump to the last visited place
-
 [5] document will also be reloaded upon reception of the HUP signal
 
-======================================================================
-Caveat emptor:
-
+-----Caveat emptor-----
 o Selection can not cross page boundaries
 o Text searching is very naive

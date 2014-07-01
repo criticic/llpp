@@ -3570,6 +3570,7 @@ object (self)
             let drawstr x s = drawstring1 fs (truncate x) (y+nfs) s in
             if trusted
             then
+              let x = if row = 0 then x else x +. fstate.wwidth in
               let tabpos = try String.index s '\t' with Not_found -> -1 in
               if tabpos > 0
               then
@@ -3581,7 +3582,17 @@ object (self)
                 let x = x +. (max tabw sw) in
                 drawstr x s2
               else
-                drawstr x s
+                let len = String.length s - 2 in
+                if len > 0 && s.[0] = '\xc2' && s.[1] = '\xb7'
+                then
+                  let s = String.sub s 2 len in
+                  GlDraw.color (1.2, 1.2, 1.2);
+                  let vinc = drawstring1 (fs+fs/4)
+                      (truncate (x -. fstate.wwidth)) (y+nfs) s in
+                  GlDraw.color (1., 1., 1.);
+                  vinc +. (float fs *. 0.8)
+                else
+                  drawstr x s
             else
               drawstr x s
           in
