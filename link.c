@@ -4124,7 +4124,7 @@ static fz_font *fc_load_system_font_func (fz_context *ctx,
                                           int needs_exact_metrics)
 {
     char *buf;
-    size_t i,size;
+    size_t i, size;
     fz_font *font;
     FcChar8 *path;
     FcResult result;
@@ -4252,7 +4252,43 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     set_tex_params (colorspace);
 
     if (*fontpath) {
+#ifndef USE_FONTCONFIG
         state.face = load_font (fontpath);
+#else
+        FcChar8 *path;
+        FcResult result;
+        char *buf = fontpath;
+        FcPattern *pat, *pat1;
+
+        fc.inited = 1;
+        fc.config = FcInitLoadConfigAndFonts ();
+        if (!fc.config) {
+            errx (1, "FcInitLoadConfigAndFonts failed");
+        }
+
+        pat = FcNameParse ((FcChar8 *) buf);
+        if (!pat) {
+            errx (1, "FcNameParse failed");
+        }
+
+        if (!FcConfigSubstitute (fc.config, pat, FcMatchPattern)) {
+            errx (1, "FcConfigSubstitute failed");
+        }
+        FcDefaultSubstitute (pat);
+
+        pat1 = FcFontMatch (fc.config, pat, &result);
+        if (!pat1) {
+            errx (1, "FcFontMatch failed");
+        }
+
+        if (FcPatternGetString (pat1, FC_FILE, 0, &path) != FcResultMatch) {
+            errx (1, "FcPatternGetString failed");
+        }
+
+        state.face = load_font ((char *) path);
+        FcPatternDestroy (pat);
+        FcPatternDestroy (pat1);
+#endif
     }
     else {
         unsigned int len;
