@@ -716,7 +716,11 @@ let version () =
 ;;
 
 let makehelp () =
-  let strings = version () :: "" :: Help.keys in
+  let strings =
+    version ()
+    :: "(searching in this text works just by typing (i.e. no initial '/'))"
+    :: "" :: Help.keys
+  in
   Array.of_list (
     List.map (fun s ->
       let url = geturl s in
