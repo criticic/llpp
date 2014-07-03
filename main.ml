@@ -394,6 +394,7 @@ type conf =
     ; mutable riani          : bool
     ; mutable pax            : (float * int * int) ref option
     ; mutable paxmark        : mark
+    ; mutable leftscroll     : bool
     }
 and columns =
     | Csingle of singlecolumn
@@ -623,6 +624,7 @@ let defconf =
   ; riani          = false
   ; pax            = None
   ; paxmark        = Mark_word
+  ; leftscroll     = false    
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1593,8 +1595,12 @@ let itertiles l f =
         else (
           let dw = conf.tilew - x0 in
           let dw = min w dw in
-
-          f col row dispx dispy x0 y0 dw dh;
+          let dispx' =
+            if conf.leftscroll
+            then dispx+conf.scrollbw
+            else dispx
+          in
+          f col row dispx' dispy x0 y0 dw dh;
           colloop (col+1) 0 (dispx+dw) (w-dw)
         )
       in
@@ -1668,8 +1674,11 @@ let drawtiles l color =
     | None ->
         endtiles ();
         let w =
-          let lw = wadjsb state.winw - x in
-          min lw w
+          if conf.leftscroll
+          then w
+          else
+            let lw = wadjsb state.winw - x in
+            min lw w
         and h =
           let lh = state.winh - y in
           min lh h
@@ -2391,6 +2400,7 @@ let reshape w h =
 
 let enttext () =
   let len = String.length state.text in
+  let x0 = if conf.leftscroll then conf.scrollbw else 0 in
   let drawstring s =
     let hscrollh =
       match state.mode with
@@ -2409,18 +2419,19 @@ let enttext () =
     then (
       GlDraw.color (0.3, 0.3, 0.3);
       let w1 = w *. state.progress in
-      rect 0.0 w1;
+      rect (float x0) w1;
       GlDraw.color (0.0, 0.0, 0.0);
-      rect w1 (w-.w1)
+      rect (float x0+.w1) (float x0+.w-.w1)
     )
     else (
       GlDraw.color (0.0, 0.0, 0.0);
-      rect 0.0 w;
+      rect (float x0) w;
     );
 
     GlDraw.color (1.0, 1.0, 1.0);
     drawstring fstate.fontsize
-      (if len > 0 then 8 else 2) (state.winh - hscrollh - 5) s;
+      (if conf.leftscroll then x0 else x0 + if len > 0 then 8 else 2)
+      (state.winh - hscrollh - 5) s;
   in
   let s =
     match state.mode with
@@ -3551,6 +3562,11 @@ object (self)
     let tabw = 30.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
+    let x0, x1 =
+      if conf.leftscroll
+      then float conf.scrollbw, float (state.winw - 1)
+      else 0.0, float (state.winw - conf.scrollbw - 1)
+    in
     let rec loop row =
       if (row - m_first) > fstate.maxrows
       then ()
@@ -3565,13 +3581,12 @@ object (self)
             Gl.disable `texture_2d;
             let alpha = if source#hasaction row then 0.9 else 0.3 in
             GlDraw.color (1., 1., 1.) ~alpha;
-            linerect 1. (float (y + 1))
-              (float (state.winw - conf.scrollbw - 1)) (float (y + fs + 3));
+            linerect (x0 +. 1.) (float (y + 1)) (x1) (float (y + fs + 3));
             Gl.enable `texture_2d;
             GlDraw.color (1., 1., 1.);
           );
           let drawtabularstring s =
-            let drawstr x s = drawstring1 fs (truncate x) (y+nfs) s in
+            let drawstr x s = drawstring1 fs (truncate (x +. x0)) (y+nfs) s in
             if trusted
             then
               let x = if helpmode && row > 0 then x +. ww else x in
@@ -5089,6 +5104,9 @@ let enterinfomode =
       src#bool "update cursor"
         (fun () -> conf.updatecurs)
         (fun v -> conf.updatecurs <- v);
+      src#bool "scroll-bar on the left"
+        (fun () -> conf.leftscroll)
+        (fun v -> conf.leftscroll <- v);
       src#bool "verbose"
         (fun () -> conf.verbose)
         (fun v -> conf.verbose <- v);
@@ -6259,25 +6277,22 @@ let scrollindicator () =
   let sbw, ph, sh = state.uioh#scrollph in
   let sbh, pw, sw = state.uioh#scrollpw in
 
+  let x0,x1 =
+    if conf.leftscroll
+    then (0, sbw)
+    else (state.winw - sbw), state.winw
+  in
+
   GlDraw.color (0.64, 0.64, 0.64);
-  filledrect
-    (float (state.winw - sbw)) 0.
-    (float state.winw) (float state.winh)
-  ;
+  filledrect (float x0) 0. (float x1) (float state.winh);
   filledrect
     0. (float (state.winh - sbh))
     (float (wadjsb state.winw - 1)) (float state.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
-  filledrect
-    (float (state.winw - sbw)) ph
-    (float state.winw) (ph +. sh)
-  ;
-  filledrect
-    pw (float (state.winh - sbh))
-    (pw +. sw) (float state.winh)
-  ;
+  filledrect (float x0) ph (float x1) (ph +. sh);
+  filledrect pw (float (state.winh - sbh)) (pw +. sw) (float state.winh);
 ;;
 
 let showsel () =
@@ -7005,6 +7020,7 @@ struct
                 then Some (ref (0.0, 0, 0))
                 else None }
         | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
+        | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
         | _ -> c
       with exn ->
         prerr_endline ("Error processing attribute (`" ^
@@ -7121,6 +7137,7 @@ struct
     dst.scrollb        <- src.scrollb;
     dst.riani          <- src.riani;
     dst.paxmark        <- src.paxmark;
+    dst.leftscroll     <- src.leftscroll;
     dst.pax            <-
       if src.pax = None
       then None
@@ -7556,6 +7573,7 @@ struct
     ob "remote-in-a-new-instance" c.riani dc.riani;
     op "point-and-x" c.pax dc.pax;
     oPm "point-and-x-mark" c.paxmark dc.paxmark;
+    ob "scroll-bar-on-the-left" c.leftscroll dc.leftscroll;
   ;;
 
   let keymapsbuf always dc c =
