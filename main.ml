@@ -6266,5 +6266,5 @@ let () =
   try
     loop infinity;
   with Quit ->
-    Config.save ();
+    Config.save leavebirdseye;
 ;;
