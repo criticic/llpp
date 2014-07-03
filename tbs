@@ -30,15 +30,16 @@ targets="llpp"
 libs="-lmupdf"
 libs="$libs -lopenjp2 -ljbig2dec -ljpeg -lz -lfreetype -lX11 -lcrypto"
 if test $(hostname) = "linmac"; then
-cc=/usr/local/bin/clang
-cc=gcc-4.9.0
+cc="clang"
+#cc="gcc-4.9.0"
 ccopt="$ccopt -maltivec -D_GNU_SOURCE -DOBSCURED_OPT -DFFP -DUSE_FONTCONFIG"
 else
 cc=cc
 ccopt="$ccopt -O -D_GNU_SOURCE -fPIC"
 fi
 
-lpath=$mupdf/build/release
+lpath=$mupdf/build/native
+#lpath=$mupdf/build/release
 #lpath=$mupdf/build/debug
 
 ./b -O src:$h -r -O ccopt:"$ccopt" -O cc:"$cc" \
