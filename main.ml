@@ -4359,8 +4359,7 @@ let quickbookmark ?title () =
       let title =
         match title with
         | None ->
-            let sec = Unix.gettimeofday () in
-            let tm = Unix.localtime sec in
+            let tm = Unix.localtime (now ()) in
             Printf.sprintf "Quick (page %d) (bookmarked at %d/%d/%d %d:%d)"
               (l.pageno+1)
               tm.Unix.tm_mday
