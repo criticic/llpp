@@ -2123,6 +2123,7 @@ static void showsel (struct page *page, int ox, int oy)
     fz_page_block *pageb;
     fz_text_block *block;
     struct mark first, last;
+    unsigned char selcolor[] = {15,15,15,140};
 
     first = page->fmark;
     last = page->lmark;
@@ -2131,7 +2132,7 @@ static void showsel (struct page *page, int ox, int oy)
 
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
-    glColor4f (0.5f, 0.5f, 0.0f, 0.6f);
+    glColor4ubv (selcolor);
 
     ox += state.pagedims[page->pdimno].bounds.x0;
     oy += state.pagedims[page->pdimno].bounds.y0;
