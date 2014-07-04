@@ -2605,7 +2605,10 @@ object (self)
         then (
           let (s, level) = source#getitem row in
           let y = (row - m_first) * nfs in
-          let x = 5.0 +. float (level + m_pan) *. ww in
+          let x =
+            (if conf.leftscroll then float (conf.scrollbw + 5) else 5.0)
+              +. float (level + m_pan) *. ww
+          in
           if helpmode
           then GlDraw.color
               (let c = if row land 1 = 0 then 1.0 else 0.92 in (c,c,c));
