@@ -408,7 +408,7 @@ type state =
     ; mutable ghyll         : (int option -> unit)
     ; mutable help          : helpitem array
     ; mutable docinfo       : (int * string) list
-    ; mutable texid         : GlTex.texture_id option
+    ; mutable checkerstexid : GlTex.texture_id option
     ; hists                 : hists
     ; mutable prevzoom      : (float * int)
     ; mutable progress      : float
@@ -714,7 +714,7 @@ let state =
   ; ghyll         = noghyll
   ; help          = makehelp ()
   ; docinfo       = []
-  ; texid         = None
+  ; checkerstexid = None
   ; prevzoom      = (1.0, 0)
   ; progress      = -1.0
   ; uioh          = nouioh

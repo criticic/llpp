@@ -754,7 +754,7 @@ let drawtiles l color =
         in
         if conf.invert
         then GlTex.env (`mode `blend);
-        begin match state.texid with
+        begin match state.checkerstexid with
         | Some id ->
             Gl.enable `texture_2d;
             GlTex.bind_texture `texture_2d id;
@@ -3581,15 +3581,15 @@ let makecheckers () =
 ;;
 
 let setcheckers enabled =
-  match state.texid with
+  match state.checkerstexid with
   | None ->
-      if enabled then state.texid <- Some (makecheckers ())
+      if enabled then state.checkerstexid <- Some (makecheckers ())
 
-  | Some texid ->
+  | Some checkerstexid ->
       if not enabled
       then (
-        GlTex.delete_texture texid;
-        state.texid <- None;
+        GlTex.delete_texture checkerstexid;
+        state.checkerstexid <- None;
       );
 ;;
 
