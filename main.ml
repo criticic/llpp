@@ -2589,7 +2589,7 @@ object (self)
     let fs = fstate.fontsize in
     let nfs = fs + 1 in
     let ww = fstate.wwidth in
-    let tabw = 30.0*.ww in
+    let tabw = 17.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
     let x0, x1 =
@@ -2606,6 +2606,10 @@ object (self)
           let (s, level) = source#getitem row in
           let y = (row - m_first) * nfs in
           let x = 5.0 +. float (level + m_pan) *. ww in
+          if helpmode
+          then GlDraw.color
+              (let c = if row land 1 = 0 then 1.0 else 0.92 in (c,c,c));
+
           if row = m_active
           then (
             Gl.disable `texture_2d;
