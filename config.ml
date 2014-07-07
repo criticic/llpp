@@ -152,15 +152,6 @@ and pagewithlinks =
     | Pwl of int
 and scrollb = int
 and anchor = pageno * top * dtop
-and outlinekind =
-    | Onone
-    | Oanchor of anchor
-    | Ouri of uri
-    | Olaunch of launchcommand
-    | Oremote of (filename * pageno)
-    | Oremotedest of (filename * destname)
-and outline = (caption * outlinelevel * outlinekind)
-and outlinelevel = int
 and rect = float * float * float * float * float * float * float * float
 and infochange = | Memused | Docinfo | Pdim
 ;;
@@ -289,6 +280,16 @@ and columns =
     | Csingle of singlecolumn
     | Cmulti of multicolumns
     | Csplit of splitcolumns
+and outlinekind =
+    | Onone
+    | Oanchor of anchor
+    | Ouri of uri
+    | Olaunch of launchcommand
+    | Oremote of (filename * pageno)
+    | Oremotedest of (filename * destname)
+    | Ohistory of (filename * (conf * outline list * x * anchor))
+and outline = (caption * outlinelevel * outlinekind)
+and outlinelevel = int
 ;;
 
 type page =
@@ -1518,7 +1519,9 @@ let load () =
 let gethist listref =
   let f (h, _) =
     listref :=
-      Hashtbl.fold (fun path (c, _, _, _) accu -> (path, c.title) :: accu) h [];
+      Hashtbl.fold (fun path (pc, pb, px, pa) accu ->
+        (path, pc, pb, px, pa) :: accu)
+        h [];
     true
   in
   load1 f
@@ -1834,7 +1837,8 @@ let save leavebirdseye =
                   then
                     Printf.bprintf bb " visy='%f'" visy
                   ;
-              | Onone | Ouri _ | Oremote _ | Oremotedest _ | Olaunch _ ->
+              | Ohistory _ | Onone | Ouri _ | Oremote _
+              | Oremotedest _ | Olaunch _ ->
                   failwith "unexpected link in bookmarks"
               end;
               Buffer.add_string bb "/>\n";

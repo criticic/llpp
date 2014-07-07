@@ -3343,6 +3343,15 @@ let gotounder under =
   | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
 ;;
 
+let gotohist (path, (c, bookmarks, x, anchor)) =
+  state.anchor <- anchor;
+  state.x <- x;
+  state.bookmarks <- bookmarks;
+  state.origin <- "";
+  opendoc path "";
+  conf.presentation <- c.presentation;
+;;
+
 let gotooutline (_, _, kind) =
   match kind with
   | Onone -> ()
@@ -3356,6 +3365,7 @@ let gotooutline (_, _, kind) =
   | Ouri uri -> gotounder (Ulinkuri uri)
   | Olaunch cmd -> gotounder (Ulaunch cmd)
   | Oremote remote -> gotounder (Uremote remote)
+  | Ohistory hist -> gotohist hist
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
 ;;
 
@@ -3364,10 +3374,13 @@ let genhistoutlines () =
   if Config.gethist list
   then
     let ol =
-      List.fold_left (fun accu (path, title) ->
-        let path = Filename.basename path in
-        let cap = if emptystr title then path else title ^ ": " ^ path in
-        (cap, 0, (Oremote (path, 0))) :: accu
+      List.fold_left (fun accu (path, c, b, x, a) ->
+        let hist = (path, (c, b, x, a)) in
+        if emptystr c.title
+        then (Filename.basename path, 0, Ohistory hist) :: accu
+        else (c.title, 0, Ohistory hist)
+          :: (Filename.basename path, 1, Ohistory hist)
+          :: accu
       ) [] !list
     in
     Array.of_list ol;
@@ -3526,7 +3539,8 @@ let outlinesource sourcetype =
               if d < bestd
               then loop (n+1) n d
               else loop (n+1) best bestd
-          | Onone | Oremote _ | Olaunch _ | Oremotedest _ | Ouri _ ->
+          | Onone | Oremote _ | Olaunch _
+          | Oremotedest _ | Ouri _ | Ohistory _ ->
               loop (n+1) best bestd
       in
       loop 0 ~-1 max_int
@@ -5944,6 +5958,7 @@ let () =
   let trimcachepath = ref "" in
   let rcmdpath = ref "" in
   let pageno = ref None in
+  let histmode = ref false in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -5981,6 +5996,8 @@ let () =
          ("-origin", Arg.String (fun s -> state.origin <- s),
          "<original-path> Set original path");
 
+         ("-hist", Arg.Set histmode, " Browse history");
+
          ("-v", Arg.Unit (fun () ->
            Printf.printf
              "%s\nconfiguration path: %s\n"
@@ -5997,7 +6014,8 @@ let () =
   then selfexec := !selfexec ^ " -wtmode";
 
   if emptystr state.path
-  then (prerr_endline "file name missing"; exit 1);
+  then (if not !histmode then (prerr_endline "file name missing"; exit 1))
+  else (if !histmode then (prerr_endline "extra file name"; exit 1));
 
   if not (Config.load ())
   then prerr_endline "failed to load configuration";
@@ -6180,10 +6198,17 @@ let () =
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.sr <- sr;
   state.sw <- sw;
-  state.text <- "Opening " ^ (mbtoutf8 state.path);
   reshape winw winh;
-  opendoc state.path state.password;
-  state.uioh <- uioh;
+  if !histmode
+  then (
+    state.uioh <- uioh;
+    enterhistmode ();
+  )
+  else (
+    state.text <- "Opening " ^ (mbtoutf8 state.path);
+    opendoc state.path state.password;
+    state.uioh <- uioh;
+  );
   display ();
   Wsi.mapwin ();
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
