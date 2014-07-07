@@ -89,6 +89,7 @@ insert                  - toggle link navigation mode
 B                       - toggle zoom block mode
 o                       - switch to outline mode
 '                       - switch to bookmark mode
+H                       - switch to history mode
 h,F1                    - switch to help mode
 i                       - switch to info mode
 P                       - switch to "presentation" mode

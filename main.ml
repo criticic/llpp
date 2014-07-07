@@ -1692,6 +1692,7 @@ let act cmds =
       then G.postRedisplay "continue";
 
   | "title" :: args :: [] ->
+      conf.title <- args;
       Wsi.settitle args
 
   | "msg" :: args :: [] ->
@@ -3358,7 +3359,22 @@ let gotooutline (_, _, kind) =
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
 ;;
 
-let outlinesource usebookmarks =
+let genhistoutlines () =
+  let list = ref [] in
+  if Config.gethist list
+  then
+    let ol =
+      List.fold_left (fun accu (path, title) ->
+        let path = Filename.basename path in
+        let cap = if emptystr title then path else title ^ ": " ^ path in
+        (cap, 0, (Oremote (path, 0))) :: accu
+      ) [] !list
+    in
+    Array.of_list ol;
+  else [||];
+;;
+
+let outlinesource sourcetype =
   let empty = [||] in
   (object (self)
     inherit lvsourcebase
@@ -3459,15 +3475,16 @@ let outlinesource usebookmarks =
 
     method denarrow =
       m_orig_items <- (
-        if usebookmarks
-        then Array.of_list state.bookmarks
-        else state.outlines
+        match sourcetype with
+        | `bookmarks -> Array.of_list state.bookmarks
+        | `outlines -> state.outlines
+        | `history -> genhistoutlines ()
       );
       m_minfo <- m_orig_minfo;
       m_items <- m_orig_items
 
     method remove m =
-      if usebookmarks
+      if sourcetype = `bookmarks
       then
         if m >= 0 && m < Array.length m_items
         then (
@@ -3539,14 +3556,15 @@ let outlinesource usebookmarks =
   end)
 ;;
 
-let enterselector usebookmarks =
+let enterselector sourcetype =
   resetmstate ();
-  let source = outlinesource usebookmarks in
+  let source = outlinesource sourcetype in
   fun errmsg ->
     let outlines =
-      if usebookmarks
-      then Array.of_list state.bookmarks
-      else state.outlines
+      match sourcetype with
+      | `bookmarks -> Array.of_list state.bookmarks
+      | `outlines -> state.outlines
+      | `history -> genhistoutlines ()
     in
     if Array.length outlines = 0
     then (
@@ -3563,13 +3581,18 @@ let enterselector usebookmarks =
 ;;
 
 let enteroutlinemode =
-  let f = enterselector false in
+  let f = enterselector `outlines in
   fun () -> f "Document has no outline";
 ;;
 
 let enterbookmarkmode =
-  let f = enterselector true in
+  let f = enterselector `bookmarks in
   fun () -> f "Document has no bookmarks (yet)";
+;;
+
+let enterhistmode =
+  let f = enterselector `history in
+  fun () -> f "No history (yet)";
 ;;
 
 let makecheckers () =
@@ -4539,6 +4562,9 @@ let viewkeyboard key mask =
 
   | 111 ->                              (* o *)
       enteroutlinemode ()
+
+  | 72 ->                               (* H *)
+      enterhistmode ()
 
   | 117 ->                              (* u *)
       state.rects <- [];

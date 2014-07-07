@@ -283,6 +283,7 @@ type conf =
     ; mutable pax            : (float * int * int) ref option
     ; mutable paxmark        : mark
     ; mutable leftscroll     : bool
+    ; mutable title          : string
     }
 and columns =
     | Csingle of singlecolumn
@@ -572,6 +573,7 @@ let defconf =
   ; pax            = None
   ; paxmark        = Mark_word
   ; leftscroll     = false    
+  ; title          = ""
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1095,6 +1097,7 @@ let config_of c attrs =
               else None }
       | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
+      | "title" -> { c with title = unent v }
       | _ -> c
     with exn ->
       prerr_endline ("Error processing attribute (`" ^
@@ -1212,6 +1215,7 @@ let setconf dst src =
   dst.riani          <- src.riani;
   dst.paxmark        <- src.paxmark;
   dst.leftscroll     <- src.leftscroll;
+  dst.title          <- src.title;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1490,12 +1494,22 @@ let load () =
   let f (h, dc) =
     let pc, pb, px, pa =
       try
-        let key =
+        let path =
           if emptystr state.origin
           then state.path
           else state.origin
         in
-        Hashtbl.find h (Filename.basename key)
+        let absname =
+          if Filename.is_relative path
+          then
+            let cwd = Sys.getcwd () in
+            if Filename.is_implicit path
+            then Filename.concat cwd path
+            else Filename.concat cwd (Filename.basename path)
+          else
+            path
+        in
+        Hashtbl.find h absname
       with Not_found -> dc, [], 0, emptyanchor
     in
     setconf defconf dc;
@@ -1505,6 +1519,15 @@ let load () =
     if conf.jumpback
     then state.anchor <- pa;
     cbput state.hists.nav pa;
+    true
+  in
+  load1 f
+;;
+
+let gethist listref =
+  let f (h, _) =
+    listref :=
+      Hashtbl.fold (fun path (c, _, _, _) accu -> (path, c.title) :: accu) h [];
     true
   in
   load1 f
@@ -1653,6 +1676,8 @@ let add_attrs bb always dc c =
   op "point-and-x" c.pax dc.pax;
   oPm "point-and-x-mark" c.paxmark dc.paxmark;
   ob "scroll-bar-on-the-left" c.leftscroll dc.leftscroll;
+  if not always
+  then os "title" c.title dc.title;
 ;;
 
 let keymapsbuf always dc c =
@@ -1774,7 +1799,7 @@ let save leavebirdseye =
         if anchor <> emptyanchor
         then (
           let n, rely, visy = anchor in
-          Printf.bprintf bb " page='%d'" n;
+          Printf.bprintf bb "\n    page='%d'" n;
           if rely > 1e-6
           then
             Printf.bprintf bb " rely='%f'" rely
@@ -1851,10 +1876,18 @@ let save leavebirdseye =
           pan, { c with beyecolumns = beyecolumns; columns = columns }
       | _ -> x, conf
     in
-    let basename = Filename.basename
-      (if emptystr state.origin then state.path else state.origin)
+    let name = if emptystr state.origin then state.path else state.origin in
+    let cwd = Unix.getcwd () in
+    let absname =
+      if Filename.is_relative name
+      then
+        if Filename.is_implicit name
+        then Filename.concat cwd name
+        else Filename.concat cwd (Filename.basename name)
+      else
+        name
     in
-    adddoc basename pan (getanchor ())
+    adddoc absname pan (getanchor ())
       (let autoscrollstep =
         match state.autoscroll with
         | Some step -> step
@@ -1866,8 +1899,9 @@ let save leavebirdseye =
       { conf with autoscrollstep = autoscrollstep })
       (if conf.savebmarks then state.bookmarks else []);
 
+    let basename = Filename.basename absname in
     Hashtbl.iter (fun path (c, bookmarks, x, anchor) ->
-      if basename <> path
+      if basename <> Filename.basename path
       then adddoc path x anchor c bookmarks
     ) h;
     Buffer.add_string bb "</llppconfig>\n";
