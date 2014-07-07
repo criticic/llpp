@@ -3344,6 +3344,7 @@ let gotounder under =
 ;;
 
 let gotohist (path, (c, bookmarks, x, anchor)) =
+  Config.save leavebirdseye;
   state.anchor <- anchor;
   state.x <- x;
   state.bookmarks <- bookmarks;
