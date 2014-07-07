@@ -1499,16 +1499,7 @@ let load () =
           then state.path
           else state.origin
         in
-        let absname =
-          if Filename.is_relative path
-          then
-            let cwd = Sys.getcwd () in
-            if Filename.is_implicit path
-            then Filename.concat cwd path
-            else Filename.concat cwd (Filename.basename path)
-          else
-            path
-        in
+        let absname = abspath path in
         Hashtbl.find h absname
       with Not_found -> dc, [], 0, emptyanchor
     in

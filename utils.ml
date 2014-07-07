@@ -131,3 +131,14 @@ let color_to_string (r, g, b) =
   and b = truncate (b *. 256.0) in
   Printf.sprintf "%d/%d/%d" r g b
 ;;
+
+let abspath path =
+  if Filename.is_relative path
+  then
+    let cwd = Sys.getcwd () in
+    if Filename.is_implicit path
+    then Filename.concat cwd path
+    else Filename.concat cwd (Filename.basename path)
+  else
+    path
+;;
