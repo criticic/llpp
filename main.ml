@@ -3377,11 +3377,10 @@ let genhistoutlines () =
     let ol =
       List.fold_left (fun accu (path, c, b, x, a) ->
         let hist = (path, (c, b, x, a)) in
+        let base = mbtoutf8 (Filename.basename path) in
         if emptystr c.title
-        then (Filename.basename path, 0, Ohistory hist) :: accu
-        else (c.title, 0, Ohistory hist)
-          :: (Filename.basename path, 1, Ohistory hist)
-          :: accu
+        then (base, 0, Ohistory hist) :: accu
+        else (c.title, 0, Ohistory hist) :: (base, 1, Ohistory hist) :: accu
       ) [] !list
     in
     Array.of_list ol;
