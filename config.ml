@@ -1871,18 +1871,8 @@ let save leavebirdseye =
           pan, { c with beyecolumns = beyecolumns; columns = columns }
       | _ -> x, conf
     in
-    let name = if emptystr state.origin then state.path else state.origin in
-    let cwd = Unix.getcwd () in
-    let absname =
-      if Filename.is_relative name
-      then
-        if Filename.is_implicit name
-        then Filename.concat cwd name
-        else Filename.concat cwd (Filename.basename name)
-      else
-        name
-    in
-    adddoc absname pan (getanchor ())
+    let docpath = abspath state.path in
+    adddoc docpath pan (getanchor ())
       (
        let autoscrollstep =
          match state.autoscroll with
@@ -1897,9 +1887,8 @@ let save leavebirdseye =
       )
       (if conf.savebmarks then state.bookmarks else []);
 
-    let basename = Filename.basename absname in
     Hashtbl.iter (fun path (c, bookmarks, x, anchor) ->
-      if basename <> Filename.basename path
+      if docpath <> abspath path
       then adddoc path x anchor c bookmarks
     ) h;
     Buffer.add_string bb "</llppconfig>\n";
