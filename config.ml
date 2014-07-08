@@ -1883,15 +1883,18 @@ let save leavebirdseye =
         name
     in
     adddoc absname pan (getanchor ())
-      (let autoscrollstep =
-        match state.autoscroll with
-        | Some step -> step
-        | None -> conf.autoscrollstep
-        in begin match state.mode with
-        | Birdseye beye -> leavebirdseye beye true
-        | _ -> ()
-        end;
-      { conf with autoscrollstep = autoscrollstep })
+      (
+       let autoscrollstep =
+         match state.autoscroll with
+         | Some step -> step
+         | None -> conf.autoscrollstep
+       in
+       begin match state.mode with
+       | Birdseye beye -> leavebirdseye beye true
+       | _ -> ()
+       end;
+       { conf with autoscrollstep = autoscrollstep }
+      )
       (if conf.savebmarks then state.bookmarks else []);
 
     let basename = Filename.basename absname in
