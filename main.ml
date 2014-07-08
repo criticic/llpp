@@ -5239,6 +5239,7 @@ let postdrawpage l linkindexbase =
       if tileready l l.pagex l.pagey
       then
         let x = l.pagedispx - l.pagex
+            + (if conf.leftscroll then conf.scrollbw else 0)
         and y = l.pagedispy - l.pagey in
         let hlmask =
           match conf.columns with
@@ -5327,7 +5328,9 @@ let display () =
     | LinkNav (Ltexact (pageno, linkno)) ->
         begin match getopaque pageno with
         | Some opaque ->
+            let dx = if conf.leftscroll then conf.scrollbw else 0 in
             let x0, y0, x1, y1 = getlinkrect opaque linkno in
+            let x0 = x0 + dx and x1 = x1 + dx in
             (pageno, 5, (
               float x0, float y0,
               float x1, float y0,
