@@ -88,7 +88,7 @@ and fs =
 let state =
   { mink       = max_int
   ; maxk       = min_int
-  ; keymap     = [||]
+  ; keymap     = E.a
   ; fifo       = Queue.create ()
   ; seq        = 0
   ; protoatom  = -1
@@ -178,7 +178,7 @@ let updkmap sock resp =
   let data =
     if len > 0
     then readstr sock (4*len)
-    else ""
+    else E.s
   in
   let m = len / syms in
   state.keymap <- Array.make_matrix
@@ -202,7 +202,7 @@ let updmodmap sock resp =
   let data =
     if len > 0
     then readstr sock (len*4)
-    else ""
+    else E.s
   in
   let modmap = Array.make_matrix 8 n 0xffffff in
   let rec loop l = if l = 8 then () else
@@ -538,7 +538,7 @@ let readresp sock =
       vlog "visibility %d" vis;
 
   | 34 ->                               (* mapping *)
-      state.keymap <- [||];
+      state.keymap <- E.a;
       let s = getkeymapreq state.mink (state.maxk-state.mink-1) in
       sendwithrep sock s (updkmap sock);
       state.capslmask <- 0;
@@ -795,7 +795,7 @@ let setup sock screennum w h =
 
       sendintern sock "WM_CLIENT_MACHINE" false (fun resp ->
         let atom = r32 resp 8 in
-        let empty = "" in
+        let empty = E.s in
         let hostname =
           try Unix.gethostname ()
           with exn ->
@@ -957,7 +957,7 @@ let getauth haddr dnum =
     try Sys.getenv "XAUTHORITY"
     with Not_found ->
       try Filename.concat (Sys.getenv "HOME") ".Xauthority"
-      with Not_found -> ""
+      with Not_found -> E.s
   in
   let readauth ic =
     let input_string ic len =
@@ -999,11 +999,11 @@ let getauth haddr dnum =
     let name, data =
       try find ()
       with
-      | End_of_file -> "", ""
+      | End_of_file -> E.s, E.s
       | exn ->
         dolog "exception while reading X authority data (%S): %s"
           path (exntos exn);
-        "", ""
+        E.s, E.s
     in
     close_in ic;
     name, data;
@@ -1021,7 +1021,7 @@ let getauth haddr dnum =
       None
   in
   match opt with
-  | None -> "", ""
+  | None -> E.s, E.s
   | Some ic -> readauth ic
 ;;
 

@@ -1,3 +1,8 @@
+module E = struct
+  let s = ""
+  let a = [||];;
+end;;
+
 type platform =
   | Punknown | Plinux | Posx | Psun | Pfreebsd
   | Pdragonflybsd | Popenbsd | Pnetbsd | Pcygwin
@@ -107,7 +112,7 @@ let string_with_suffix_of_int n =
           loop s n
         )
       in
-      loop "" n
+      loop E.s n
     in
     let rec find = function
       | [] -> prettyint n

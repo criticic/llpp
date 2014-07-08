@@ -438,7 +438,7 @@ and hists =
 
 let emptyanchor = (0, 0.0, 0.0);;
 let emptykeyhash = Hashtbl.create 0;;
-let firstgeomcmds = "", [];;
+let firstgeomcmds = E.s, [];;
 let noghyll _ = ();;
 let noreprf () = ();;
 let noroam () = ();;
@@ -496,10 +496,10 @@ let geturl s =
             with Not_found -> len
           in
           String.sub s (schemestartpos+1) (epos-1-schemestartpos)
-      | _ -> ""
-    else ""
+      | _ -> E.s
+    else E.s
   )
-  else ""
+  else E.s
 ;;
 
 let defconf =
@@ -573,8 +573,8 @@ let defconf =
   ; riani          = false
   ; pax            = None
   ; paxmark        = Mark_word
-  ; leftscroll     = false    
-  ; title          = ""
+  ; leftscroll     = false
+  ; title          = E.s
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -614,7 +614,7 @@ let makehelp () =
   let strings =
     version ()
     :: "(searching in this text works just by typing (i.e. no initial '/'))"
-    :: "" :: Help.keys
+    :: E.s :: Help.keys
   in
   Array.of_list (
     List.map (fun s ->
@@ -694,21 +694,21 @@ let state =
   ; mstate        = Mnone
   ; rects         = []
   ; rects1        = []
-  ; text          = ""
+  ; text          = E.s
   ; mode          = View
   ; winstate      = []
-  ; searchpattern = ""
-  ; outlines      = [||]
+  ; searchpattern = E.s
+  ; outlines      = E.a
   ; bookmarks     = []
-  ; path          = ""
-  ; password      = ""
-  ; nameddest     = ""
+  ; path          = E.s
+  ; password      = E.s
+  ; nameddest     = E.s
   ; geomcmds      = firstgeomcmds
   ; hists         =
       { nav       = cbnew 10 emptyanchor
-      ; pat       = cbnew 10 ""
-      ; pag       = cbnew 10 ""
-      ; sel       = cbnew 10 ""
+      ; pat       = cbnew 10 E.s
+      ; pag       = cbnew 10 E.s
+      ; sel       = cbnew 10 E.s
       }
   ; memused       = 0
   ; gen           = 0
@@ -729,7 +729,7 @@ let state =
   ; winw          = -1
   ; winh          = -1
   ; reprf         = noreprf
-  ; origin        = ""
+  ; origin        = E.s
   ; roam          = noroam
   ; bzoom         = false
   ; traw          = Raw.create_static `float 8
@@ -933,7 +933,7 @@ let getanchor () =
         (n, 0.0, dtop)
 ;;
 
-let fontpath = ref "";;
+let fontpath = ref E.s;;
 
 module KeyMap =
   Map.Make (struct type t = (int * int) let compare = compare end);;
@@ -952,7 +952,7 @@ let home =
   with exn ->
     prerr_endline
       ("Can not determine home directory location: " ^ exntos exn);
-    ""
+    E.s
 ;;
 
 let modifier_of_string = function
@@ -1064,8 +1064,8 @@ let config_of c attrs =
       | "columns" ->
           let (n, _, _) as nab = multicolumns_of_string v in
           if n < 0
-          then { c with columns = Csplit (-n, [||]) }
-          else { c with columns = Cmulti (nab, [||]) }
+          then { c with columns = Csplit (-n, E.a) }
+          else { c with columns = Cmulti (nab, E.a) }
       | "birds-eye-columns" ->
           { c with beyecolumns = Some (max (int_of_string v) 2) }
       | "selection-command" -> { c with selcmd = unent v }
@@ -1145,7 +1145,7 @@ let doc_of attrs =
     | _ :: rest -> fold path page rely pan visy rest
     | [] -> path, page, rely, pan, visy
   in
-  fold "" "0" "0" "0" "0" attrs
+  fold E.s "0" "0" "0" "0" attrs
 ;;
 
 let map_of attrs =
@@ -1155,7 +1155,7 @@ let map_of attrs =
     | _ :: rest -> fold ls rs rest
     | [] -> ls, rs
   in
-  fold "" "" attrs
+  fold E.s "" attrs
 ;;
 
 let setconf dst src =
@@ -1864,8 +1864,8 @@ let save leavebirdseye =
             | Csplit _ -> None
           and columns =
             match c.columns with
-            | Cmulti (c, _) -> Cmulti (c, [||])
-            | Csingle _ -> Csingle [||]
+            | Cmulti (c, _) -> Cmulti (c, E.a)
+            | Csingle _ -> Csingle E.a
             | Csplit _ -> failwith "quit from bird's eye while split"
           in
           pan, { c with beyecolumns = beyecolumns; columns = columns }

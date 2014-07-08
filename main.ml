@@ -39,7 +39,7 @@ external rectofblock : opaque -> int -> int -> float array option
 external begintiles : unit -> unit = "ml_begintiles";;
 external endtiles : unit -> unit = "ml_endtiles";;
 
-let selfexec = ref "";;
+let selfexec = ref E.s;;
 
 let drawstring size x y s =
   Gl.enable `blend;
@@ -1057,7 +1057,7 @@ let conttiling pageno opaque =
 ;;
 
 let gotoy_and_clear_text y =
-  if not conf.verbose then state.text <- "";
+  if not conf.verbose then state.text <- E.s;
   gotoy y;
 ;;
 
@@ -1681,7 +1681,7 @@ let act cmds =
 
       begin match List.rev cmds with
       | [] ->
-          state.geomcmds <- "", [];
+          state.geomcmds <- E.s, [];
           state.throttle <- None;
           represent ();
       | (s, f) :: rest ->
@@ -2068,7 +2068,7 @@ let setcolumns mode columns coverA coverB =
     if isbirdseye mode
     then showtext '!' "split mode doesn't work in bird's eye"
     else (
-      conf.columns <- Csplit (-columns, [||]);
+      conf.columns <- Csplit (-columns, E.a);
       state.x <- 0;
       conf.zoom <- 1.0;
     );
@@ -2076,12 +2076,12 @@ let setcolumns mode columns coverA coverB =
   else (
     if columns < 2
     then (
-      conf.columns <- Csingle [||];
+      conf.columns <- Csingle E.a;
       state.x <- 0;
       setzoom 1.0;
     )
     else (
-      conf.columns <- Cmulti ((columns, coverA, coverB), [||]);
+      conf.columns <- Cmulti ((columns, coverA, coverB), E.a);
       conf.zoom <- 1.0;
     );
   );
@@ -2127,15 +2127,15 @@ let enterbirdseye () =
     match conf.beyecolumns with
     | Some c ->
         conf.zoom <- 1.0;
-        Cmulti ((c, 0, 0), [||])
-    | None -> Csingle [||]
+        Cmulti ((c, 0, 0), E.a)
+    | None -> Csingle E.a
   );
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
       (100.0*.zoom)
   else
-    state.text <- ""
+    state.text <- E.s
   ;
   reshape state.winw state.winh;
 ;;
@@ -2156,9 +2156,9 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   );
   conf.columns <- (
     match c.columns with
-    | Cmulti (c, _) -> Cmulti (c, [||])
-    | Csingle _ -> Csingle [||]
-    | Csplit (c, _) -> Csplit (c, [||])
+    | Cmulti (c, _) -> Cmulti (c, E.a)
+    | Csingle _ -> Csingle E.a
+    | Csplit (c, _) -> Csplit (c, E.a)
   );
   if conf.verbose
   then
@@ -2225,7 +2225,7 @@ let optentry mode _ key =
           try conf.scrollstep <- int_of_string s with exc ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
-        TEswitch ("scroll step: ", "", None, intentry, ondone, true)
+        TEswitch ("scroll step: ", E.s, None, intentry, ondone, true)
 
     | 'A' ->
         let ondone s =
@@ -2236,7 +2236,7 @@ let optentry mode _ key =
           with exc ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
-        TEswitch ("auto scroll step: ", "", None, intentry, ondone, true)
+        TEswitch ("auto scroll step: ", E.s, None, intentry, ondone, true)
 
     | 'C' ->
         let ondone s =
@@ -2246,7 +2246,7 @@ let optentry mode _ key =
           with exc ->
             state.text <- Printf.sprintf "bad columns `%s': %s" s (exntos exc)
         in
-        TEswitch ("columns: ", "", None, textentry, ondone, true)
+        TEswitch ("columns: ", E.s, None, textentry, ondone, true)
 
     | 'Z' ->
         let ondone s =
@@ -2256,7 +2256,7 @@ let optentry mode _ key =
           with exc ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
-        TEswitch ("zoom: ", "", None, intentry, ondone, true)
+        TEswitch ("zoom: ", E.s, None, intentry, ondone, true)
 
     | 't' ->
         let ondone s =
@@ -2273,7 +2273,7 @@ let optentry mode _ key =
           with exc ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
-        TEswitch ("thumbnail width: ", "", None, intentry, ondone, true)
+        TEswitch ("thumbnail width: ", E.s, None, intentry, ondone, true)
 
     | 'R' ->
         let ondone s =
@@ -2287,7 +2287,7 @@ let optentry mode _ key =
           | Some angle -> reqlayout angle conf.fitmodel
           | None -> ()
         in
-        TEswitch ("rotation: ", "", None, intentry, ondone, true)
+        TEswitch ("rotation: ", E.s, None, intentry, ondone, true)
 
     | 'i' ->
         conf.icase <- not conf.icase;
@@ -2352,7 +2352,7 @@ let optentry mode _ key =
           with exc ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
         in
-        TEswitch ("vertical margin: ", "", None, intentry, ondone, true)
+        TEswitch ("vertical margin: ", E.s, None, intentry, ondone, true)
 
     | 'l' ->
         let fm =
@@ -2376,7 +2376,7 @@ let optentry mode _ key =
           cbput state.hists.sel s;
           conf.selcmd <- s;
         in
-        TEswitch ("selection command: ", "", Some (onhist state.hists.sel),
+        TEswitch ("selection command: ", E.s, Some (onhist state.hists.sel),
                  textentry, ondone, true)
 
     | 'M' ->
@@ -2416,7 +2416,7 @@ class virtual lvsourcebase = object
   method getactive = m_active
   method getfirst = m_first
   method getpan = m_pan
-  method getminfo : (int * int) array = [||]
+  method getminfo : (int * int) array = E.a
 end;;
 
 let withoutlastutf8 s =
@@ -2449,7 +2449,7 @@ let textentrykeyboard
   in
   let enttext te =
     state.mode <- Textentry (te, onleave);
-    state.text <- "";
+    state.text <- E.s;
     enttext ();
     G.postRedisplay "textentrykeyboard enttext";
   in
@@ -2491,11 +2491,11 @@ let textentrykeyboard
         | Some (_, onhistcancel) -> onhistcancel ()
         end;
         onleave Cancel;
-        state.text <- "";
+        state.text <- E.s;
         G.postRedisplay "textentrykeyboard after cancel2"
       )
       else (
-        enttext (c, "", opthist, onkey, ondone, cancelonempty)
+        enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
       )
 
   | 0xff9f | 0xffff -> ()               (* delete *)
@@ -2564,7 +2564,7 @@ object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
   val m_active = source#getactive
-  val m_qsearch = ""
+  val m_qsearch = E.s
   val m_prev_uioh = state.uioh
 
   method private elemunder y =
@@ -2748,8 +2748,8 @@ object (self)
     in
     let set active first =
       let first = bound first 0 (itemcount - fstate.maxrows) in
-      state.text <- "";
-      coe {< m_active = active; m_first = first; m_qsearch = "" >}
+      state.text <- E.s;
+      coe {< m_active = active; m_first = first; m_qsearch = E.s >}
     in
     let navigate incr =
       let isvisible first n = n >= first && n - first <= fstate.maxrows in
@@ -2849,9 +2849,9 @@ object (self)
           let qsearch = withoutlastutf8 m_qsearch in
           if emptystr qsearch
           then (
-            state.text <- "";
+            state.text <- E.s;
             G.postRedisplay "listview empty qsearch";
-            set1 m_active m_first "";
+            set1 m_active m_first E.s;
           )
           else
             let active, first =
@@ -2882,7 +2882,7 @@ object (self)
         set1 active first pattern;
 
     | 0xff1b ->                         (* escape *)
-        state.text <- "";
+        state.text <- E.s;
         if emptystr m_qsearch
         then (
           G.postRedisplay "list view escape";
@@ -2896,12 +2896,12 @@ object (self)
         )
         else (
           G.postRedisplay "list view kill qsearch";
-          coe {< m_qsearch = "" >}
+          coe {< m_qsearch = E.s >}
         )
 
     | 0xff0d | 0xff8d ->                (* (kp) enter *)
-        state.text <- "";
-        let self = {< m_qsearch = "" >} in
+        state.text <- E.s;
+        let self = {< m_qsearch = E.s >} in
         let opt =
           G.postRedisplay "listview enter";
           if m_active >= 0 && m_active < source#getitemcount
@@ -2926,12 +2926,12 @@ object (self)
     | 0xff56 | 0xff9b -> navigate   fstate.maxrows (* (kp) next *)
 
     | 0xff53 | 0xff98 ->                (* (kp) right *)
-        state.text <- "";
+        state.text <- E.s;
         G.postRedisplay "listview right";
         coe {< m_pan = m_pan - 1 >}
 
     | 0xff51 | 0xff96 ->                (* (kp) left *)
-        state.text <- "";
+        state.text <- E.s;
         G.postRedisplay "listview left";
         coe {< m_pan = m_pan + 1 >}
 
@@ -3119,7 +3119,7 @@ object (self)
     | 97 when ctrl ->                   (* ctrl-a *)
         let text =
           if m_autonarrow
-          then (source#denarrow; "")
+          then (source#denarrow; E.s)
           else (
             let pattern = source#renarrow in
             if nonemptystr m_qsearch
@@ -3132,7 +3132,7 @@ object (self)
         coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
 
     | 47 when emptystr m_qsearch && not m_autonarrow -> (* / *)
-        settext true "";
+        settext true E.s;
         G.postRedisplay "toggle auto narrowing";
         coe {< m_first = 0; m_active = 0; m_autonarrow = true >}
 
@@ -3154,17 +3154,17 @@ object (self)
         if m_autonarrow && nonemptystr m_qsearch
         then (
           ignore (source#renarrow);
-          settext m_autonarrow "";
-          coe {< m_first = 0; m_active = 0; m_qsearch = "" >}
+          settext m_autonarrow E.s;
+          coe {< m_first = 0; m_active = 0; m_qsearch = E.s >}
         )
         else (
           source#del_narrow_pattern;
           let pattern = source#renarrow in
           let text =
-            if emptystr pattern then "" else "Narrowed to " ^ pattern
+            if emptystr pattern then E.s else "Narrowed to " ^ pattern
           in
           settext m_autonarrow text;
-          coe {< m_first = 0; m_active = 0; m_qsearch = "" >}
+          coe {< m_first = 0; m_active = 0; m_qsearch = E.s >}
         )
 
     | 108 when ctrl ->                  (* ctrl-l *)
@@ -3177,8 +3177,8 @@ object (self)
         then (
           G.postRedisplay "outline list view tab";
           source#add_narrow_pattern m_qsearch;
-          settext true "";
-          coe {< m_qsearch = "" >}
+          settext true E.s;
+          coe {< m_qsearch = E.s >}
         )
         else coe self
 
@@ -3280,11 +3280,11 @@ let gotounder under =
           in
           Filename.concat dir filename
         else filename
-      else ""
+      else E.s
     in
     if Sys.file_exists path
     then path
-    else ""
+    else E.s
   in
   match under with
   | Ulinkgoto (pageno, top) ->
@@ -3311,10 +3311,10 @@ let gotounder under =
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- "";
+          state.origin <- E.s;
           state.anchor <- (pageno, 0.0, 0.0);
           state.ranchors <- ranchor :: state.ranchors;
-          opendoc path "";
+          opendoc path E.s;
       )
       else showtext '!' ("Could not find " ^ filename)
 
@@ -3333,10 +3333,10 @@ let gotounder under =
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- "";
+          state.origin <- E.s;
           state.nameddest <- destname;
           state.ranchors <- ranchor :: state.ranchors;
-          opendoc path "";
+          opendoc path E.s;
       )
       else showtext '!' ("Could not find " ^ filename)
 
@@ -3348,8 +3348,8 @@ let gotohist (path, (c, bookmarks, x, anchor)) =
   state.anchor <- anchor;
   state.x <- x;
   state.bookmarks <- bookmarks;
-  state.origin <- "";
-  opendoc path "";
+  state.origin <- E.s;
+  opendoc path E.s;
   conf.presentation <- c.presentation;
 ;;
 
@@ -3385,11 +3385,11 @@ let genhistoutlines () =
       ) [] !list
     in
     Array.of_list ol;
-  else [||];
+  else E.a;
 ;;
 
 let outlinesource sourcetype =
-  let empty = [||] in
+  let empty = E.a in
   (object (self)
     inherit lvsourcebase
     val mutable m_items = empty
@@ -3451,11 +3451,11 @@ let outlinesource sourcetype =
           | many -> String.concat "\xe2\x80\xa6" (List.rev many)
         in
         "Narrowed to " ^ s ^ " (ctrl-u to restore)"
-      else ""
+      else E.s
 
     method statestr =
       match m_narrow_patterns with
-      | [] -> ""
+      | [] -> E.s
       | one :: [] -> one
       | head :: _ -> "\xe2\x80\xa6" ^ head
 
@@ -3524,7 +3524,7 @@ let outlinesource sourcetype =
       | list ->
           List.fold_left (fun accu pattern ->
             self#narrow pattern;
-            pattern ^ "\xe2\x80\xa6" ^ accu) "" list
+            pattern ^ "\xe2\x80\xa6" ^ accu) E.s list
 
     method calcactive anchor =
       let rely = getanchory anchor in
@@ -3667,7 +3667,7 @@ let setpresentationmode v =
 ;;
 
 let enterinfomode =
-  let btos b = if b then "\xe2\x88\x9a" else "" in
+  let btos b = if b then "\xe2\x88\x9a" else E.s in
   let showextended = ref false in
   let leave mode = function
     | Confirm -> state.mode <- mode
@@ -3676,7 +3676,7 @@ let enterinfomode =
     (object
       val mutable m_first_time = true
       val mutable m_l = []
-      val mutable m_a = [||]
+      val mutable m_a = E.a
       val mutable m_prev_uioh = nouioh
       val mutable m_prev_mode = View
 
@@ -3711,8 +3711,8 @@ let enterinfomode =
                   state.text <- Printf.sprintf "bad integer `%s': %s"
                     s (exntos exn)
               in
-              state.text <- "";
-              let te = name ^ ": ", "", None, intentry, ondone, true in
+              state.text <- E.s;
+              let te = name ^ ": ", E.s, None, intentry, ondone, true in
               state.mode <- Textentry (te, leave m_prev_mode);
               u
           )) :: m_l
@@ -3727,9 +3727,9 @@ let enterinfomode =
                   state.text <- Printf.sprintf "bad integer `%s': %s"
                     s (exntos exn)
               in
-              state.text <- "";
+              state.text <- E.s;
               let te =
-                name ^ ": ", "", None, intentry_with_suffix, ondone, true
+                name ^ ": ", E.s, None, intentry_with_suffix, ondone, true
               in
               state.mode <- Textentry (te, leave m_prev_mode);
               u
@@ -3760,7 +3760,7 @@ let enterinfomode =
                 if c <> invalid
                 then set c;
               in
-              let te = name ^ ": ", "", None, textentry, ondone, true in
+              let te = name ^ ": ", E.s, None, textentry, ondone, true in
               state.text <- color_to_string (get ());
               state.mode <- Textentry (te, leave m_prev_mode);
               u
@@ -3771,7 +3771,7 @@ let enterinfomode =
           (name, `string get, 1, Action (
             fun u ->
               let ondone s = set s in
-              let te = name ^ ": ", "", None, textentry, ondone, true in
+              let te = name ^ ": ", E.s, None, textentry, ondone, true in
               state.mode <- Textentry (te, leave m_prev_mode);
               u
           )) :: m_l
@@ -3799,7 +3799,7 @@ let enterinfomode =
                   method hasaction _ = true
                 end)
               in
-              state.text <- "";
+              state.text <- E.s;
               let modehash = findkeyhash conf "info" in
               coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
           )) :: m_l
@@ -3825,7 +3825,7 @@ let enterinfomode =
                   method hasaction _ = true
                 end)
               in
-              state.text <- "";
+              state.text <- E.s;
               let modehash = findkeyhash conf "info" in
               coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
           )) :: m_l
@@ -3851,7 +3851,7 @@ let enterinfomode =
                   method hasaction _ = true
                 end)
               in
-              state.text <- "";
+              state.text <- E.s;
               let modehash = findkeyhash conf "info" in
               coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
           )) :: m_l
@@ -3871,7 +3871,7 @@ let enterinfomode =
           | `string f -> f ()
           | `color f -> color_to_string (f ())
           | `bool (btos, f) -> btos (f ())
-          | `empty -> ""
+          | `empty -> E.s
         in
         let name, t, offset, _ = m_a.(n) in
         ((let s = tostr t in
@@ -3905,7 +3905,7 @@ let enterinfomode =
     end)
   in
   let rec fillsrc prevmode prevuioh =
-    let sep () = src#caption "" 0 in
+    let sep () = src#caption E.s 0 in
     let colorp name get set =
       src#string name
         (fun () -> color_to_string (get ()))
@@ -4203,7 +4203,7 @@ let enterinfomode =
       src#string "ghyll scroll"
         (fun () ->
           match conf.ghyllscroll with
-          | None -> ""
+          | None -> E.s
           | Some nab -> ghyllscroll_to_string nab
         )
         (fun v ->
@@ -4272,7 +4272,7 @@ let enterinfomode =
     src#reset prevmode prevuioh;
   in
   fun () ->
-    state.text <- "";
+    state.text <- E.s;
     resetmstate ();
     let prevmode = state.mode
     and prevuioh = state.uioh in
@@ -4349,7 +4349,7 @@ let entermsgsmode =
     let re = Str.regexp "[\r\n]" in
     (object
       inherit lvsourcebase
-      val mutable m_items = [||]
+      val mutable m_items = E.a
 
       method getitemcount = 1 + Array.length m_items
 
@@ -4382,7 +4382,7 @@ let entermsgsmode =
         m_active <- 0
     end)
   in fun () ->
-    state.text <- "";
+    state.text <- E.s;
     resetmstate ();
     msgsource#reset;
     let source = (msgsource :> lvsource) in
@@ -4530,7 +4530,7 @@ let viewkeyboard key mask =
   let enttext te =
     let mode = state.mode in
     state.mode <- Textentry (te, fun _ -> state.mode <- mode);
-    state.text <- "";
+    state.text <- E.s;
     enttext ();
     G.postRedisplay "view:enttext"
   in
@@ -4567,7 +4567,7 @@ let viewkeyboard key mask =
                   state.ranchors <- rest;
                   state.anchor <- anchor;
                   state.origin <- origin;
-                  state.nameddest <- "";
+                  state.nameddest <- E.s;
                   opendoc path password
           end;
       end;
@@ -4583,7 +4583,7 @@ let viewkeyboard key mask =
 
   | 117 ->                              (* u *)
       state.rects <- [];
-      state.text <- "";
+      state.text <- E.s;
       Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
       G.postRedisplay "dehighlight";
 
@@ -4595,7 +4595,7 @@ let viewkeyboard key mask =
       in
       let s = String.create 1 in
       s.[0] <- Char.chr key;
-      enttext (s, "", Some (onhist state.hists.pat),
+      enttext (s, E.s, Some (onhist state.hists.pat),
               textentry, ondone (key = 47), true)
 
   | 43 | 0xffab | 61 when ctrl ->       (* ctrl-+ or ctrl-= *)
@@ -4615,7 +4615,7 @@ let viewkeyboard key mask =
           state.text <- "page bias is now " ^ string_of_int n;
         )
       in
-      enttext ("page bias: ", "", None, intentry, ondone, true)
+      enttext ("page bias: ", E.s, None, intentry, ondone, true)
 
   | 45 | 0xffad when ctrl ->            (* ctrl-- *)
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
@@ -4624,7 +4624,7 @@ let viewkeyboard key mask =
   | 45 | 0xffad ->                      (* - *)
       let ondone msg = state.text <- msg in
       enttext (
-        "option [acfhilpstvxACFPRSZTISM]: ", "", None,
+        "option [acfhilpstvxACFPRSZTISM]: ", E.s, None,
         optentry state.mode, ondone, true
       )
 
@@ -4706,12 +4706,12 @@ let viewkeyboard key mask =
       state.glinks <- true;
       let mode = state.mode in
       state.mode <- Textentry (
-        (":", "", None, linknentry, linkndone gotounder, false),
+        (":", E.s, None, linknentry, linkndone gotounder, false),
         (fun _ ->
           state.glinks <- false;
           state.mode <- mode)
       );
-      state.text <- "";
+      state.text <- E.s;
       G.postRedisplay "view:linkent(F)"
 
   | 121 ->                              (* y *)
@@ -4719,7 +4719,7 @@ let viewkeyboard key mask =
       let mode = state.mode in
       state.mode <- Textentry (
         (
-          ":", "", None, linknentry, linkndone (fun under ->
+          ":", E.s, None, linknentry, linkndone (fun under ->
             selstring (undertext under);
           ), false
         ),
@@ -4727,7 +4727,7 @@ let viewkeyboard key mask =
           state.glinks <- false;
           state.mode <- mode
       );
-      state.text <- "";
+      state.text <- E.s;
       G.postRedisplay "view:linkent"
 
   | 97 ->                               (* a *)
@@ -4806,7 +4806,7 @@ let viewkeyboard key mask =
                 (s, 0, Oanchor (getanchor1 l)) :: state.bookmarks
         | _ -> ()
       in
-      enttext ("bookmark: ", "", None, textentry, ondone, true)
+      enttext ("bookmark: ", E.s, None, textentry, ondone, true)
 
   | 126 ->                              (* ~ *)
       quickbookmark ();
@@ -4928,7 +4928,7 @@ let viewkeyboard key mask =
         state.x <- panbound (state.x + dx);
         gotoy_and_clear_text state.y
       else (
-        state.text <- "";
+        state.text <- E.s;
         G.postRedisplay "left/right"
       )
 
@@ -4990,7 +4990,7 @@ let viewkeyboard key mask =
 
   | 124 ->                              (* | *)
       let mode = state.mode in
-      let cmd = ref "" in
+      let cmd = ref E.s in
       let onleave = function
         | Cancel -> state.mode <- mode
         | Confirm ->
@@ -5252,7 +5252,7 @@ let postdrawpage l linkindexbase =
         let s =
           match state.mode with
           | Textentry ((_, s, _, _, _, _), _) when state.glinks -> s
-          | _ -> ""
+          | _ -> E.s
         in
         postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
       else 0
@@ -5288,8 +5288,8 @@ let showsel () =
 
   | Msel ((x0, y0), (x1, y1)) ->
       let identify opaque l px py = Some (opaque, l.pageno, px, py) in
-      let o0,n0,px0,py0 = onppundermouse identify x0 y0 (~< "", -1, 0, 0) in
-      let _o1,n1,px1,py1 = onppundermouse identify x1 y1 (~< "", -1, 0, 0) in
+      let o0,n0,px0,py0 = onppundermouse identify x0 y0 (~< E.s, -1, 0, 0) in
+      let _o1,n1,px1,py1 = onppundermouse identify x1 y1 (~< E.s, -1, 0, 0) in
       if n0 != -1 && n0 = n1 then seltext o0 (px0, py0, px1, py1);
 ;;
 
@@ -5956,8 +5956,8 @@ let remoteopen path =
 ;;
 
 let () =
-  let trimcachepath = ref "" in
-  let rcmdpath = ref "" in
+  let trimcachepath = ref E.s in
+  let rcmdpath = ref E.s in
   let pageno = ref None in
   let histmode = ref false in
   selfexec := Sys.executable_name;
@@ -6180,9 +6180,9 @@ let () =
               with _ -> 0
             in
             if n = 0
-            then ""
+            then E.s
             else String.sub s 0 n
-        | None -> ""
+        | None -> E.s
         )
       in
       try ignore (Unix.write state.stderr s 0 (String.length s))
@@ -6267,7 +6267,7 @@ let () =
                 in
                 gotoy y;
                 if state.mode = View
-                then state.text <- "";
+                then state.text <- E.s;
                 deadline +. 0.01
             | _ -> infinity
           else deadline +. 0.01
