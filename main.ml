@@ -1723,6 +1723,11 @@ let act cmds =
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
+      let xoff = if conf.leftscroll then float conf.scrollbw else 0.0 in
+      let x0 = x0 +. xoff
+      and x1 = x1 +. xoff
+      and x2 = x2 +. xoff
+      and x3 = x3 +. xoff in
       let y = (getpagey pageno) + truncate y0 in
       addnav ();
       gotoy y;
@@ -1734,6 +1739,11 @@ let act cmds =
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
+      let xoff = if conf.leftscroll then float conf.scrollbw else 0.0 in
+      let x0 = x0 +. xoff
+      and x1 = x1 +. xoff
+      and x2 = x2 +. xoff
+      and x3 = x3 +. xoff in
       state.rects1 <-
         (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
