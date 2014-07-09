@@ -99,6 +99,7 @@ let vscrollw () =
 ;;
 
 let wadjsb w = w - vscrollw ();;
+let xadjsb x = if conf.leftscroll then x + vscrollw () else x;;
 
 let setfontsize n =
   fstate.fontsize <- n;
@@ -664,11 +665,7 @@ let itertiles l f =
         else (
           let dw = conf.tilew - x0 in
           let dw = min w dw in
-          let dispx' =
-            if conf.leftscroll
-            then dispx+conf.scrollbw
-            else dispx
-          in
+          let dispx' = xadjsb dispx in
           f col row dispx' dispy x0 y0 dw dh;
           colloop (col+1) 0 (dispx+dw) (w-dw)
         )
@@ -1430,7 +1427,7 @@ let reshape w h =
 
 let enttext () =
   let len = String.length state.text in
-  let x0 = if conf.leftscroll then conf.scrollbw else 0 in
+  let x0 = xadjsb 0 in
   let drawstring s =
     let hscrollh =
       match state.mode with
@@ -1723,7 +1720,7 @@ let act cmds =
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
-      let xoff = if conf.leftscroll then float conf.scrollbw else 0.0 in
+      let xoff = float (xadjsb 0) in
       let x0 = x0 +. xoff
       and x1 = x1 +. xoff
       and x2 = x2 +. xoff
@@ -1739,7 +1736,7 @@ let act cmds =
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
-      let xoff = if conf.leftscroll then float conf.scrollbw else 0.0 in
+      let xoff = float (xadjsb 0) in
       let x0 = x0 +. xoff
       and x1 = x1 +. xoff
       and x2 = x2 +. xoff
@@ -2605,7 +2602,7 @@ object (self)
     let minfo = source#getminfo in
     let x0, x1 =
       if conf.leftscroll
-      then float conf.scrollbw, float (state.winw - 1)
+      then float (xadjsb 0), float (state.winw - 1)
       else 0.0, float (state.winw - conf.scrollbw - 1)
     in
     let rec loop row =
@@ -2617,9 +2614,8 @@ object (self)
           let (s, level) = source#getitem row in
           let y = (row - m_first) * nfs in
           let x =
-            (if conf.leftscroll then float (conf.scrollbw + 5) else 5.0)
-              +. float (level + m_pan) *. ww
-          in
+            (if conf.leftscroll then float (xadjsb 0) else 5.0)
+              +. (float (level + m_pan)) *. ww in
           if helpmode
           then GlDraw.color
               (let c = if row land 1 = 0 then 1.0 else 0.92 in (c,c,c));
@@ -2631,8 +2627,13 @@ object (self)
             GlDraw.color (1., 1., 1.) ~alpha;
             linerect (x0 +. 1.) (float (y + 1)) (x1) (float (y + fs + 3));
             Gl.enable `texture_2d;
-            GlDraw.color (1., 1., 1.);
           );
+          let c =
+            if not helpmode && row land 1 = 1
+            then 0.8
+            else 1.0
+          in
+          GlDraw.color (c,c,c);
           let drawtabularstring s =
             let drawstr x s = drawstring1 fs (truncate (x +. x0)) (y+nfs) s in
             if trusted
@@ -2679,14 +2680,13 @@ object (self)
         then (
           let (s, level) = source#getitem row in
           let y = (row - m_first) * nfs in
-          let x = 5.0 +. float (level + m_pan) *. ww in
+          let x = float (level + m_pan) *. ww in
           let (first, last) = minfo.(row) in
           let prefix = String.sub s 0 first in
           let suffix = String.sub s first (last - first) in
           let w1 = measurestr fstate.fontsize prefix in
           let w2 = measurestr fstate.fontsize suffix in
-          let x = x +.
-            if conf.leftscroll then float (5+conf.scrollbw) else 0.0 in
+          let x = x +. if conf.leftscroll then float (xadjsb 5) else 5.0 in
           let x0 = x +. w1
           and y0 = (float (y+2)) in
           let x1 = x0 +. w2
@@ -5246,8 +5246,7 @@ let postdrawpage l linkindexbase =
   | Some opaque ->
       if tileready l l.pagex l.pagey
       then
-        let x = l.pagedispx - l.pagex
-            + (if conf.leftscroll then conf.scrollbw else 0)
+        let x = l.pagedispx - l.pagex + xadjsb 0
         and y = l.pagedispy - l.pagey in
         let hlmask =
           match conf.columns with
@@ -5336,7 +5335,7 @@ let display () =
     | LinkNav (Ltexact (pageno, linkno)) ->
         begin match getopaque pageno with
         | Some opaque ->
-            let dx = if conf.leftscroll then conf.scrollbw else 0 in
+            let dx = xadjsb 0 in
             let x0, y0, x1, y1 = getlinkrect opaque linkno in
             let x0 = x0 + dx and x1 = x1 + dx in
             (pageno, 5, (
