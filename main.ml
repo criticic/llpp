@@ -3088,8 +3088,6 @@ object (self)
 
   val m_autonarrow = false
 
-  method display = super#display
-
   method key key mask =
     let maxrows =
       if emptystr state.text
@@ -3388,9 +3386,7 @@ let genhistoutlines () =
       List.fold_left (fun accu (path, c, b, x, a) ->
         let hist = (path, (c, b, x, a)) in
         let base = mbtoutf8 (Filename.basename path) in
-        if emptystr c.title
-        then (base, 0, Ohistory hist) :: accu
-        else (c.title, 0, Ohistory hist) :: (base, 1, Ohistory hist) :: accu
+        (base ^ "\000" ^ c.title, 0, Ohistory hist) :: accu
       ) [] !list
     in
     Array.of_list ol;
