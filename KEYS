@@ -138,7 +138,7 @@ Ctrl-left/right         - pan text left/right
 Ctrl-up/down            - scroll view up/down
 Ctrl-insert             - copy active item's text to clipboard
 
------Outline mode-----
+-----Outline/history mode-----
 left/right              - go up/down a level
 Ctrl-a                  - toggle auto narrowing
 /                       - enter auto narrowing
