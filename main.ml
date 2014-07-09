@@ -2685,6 +2685,8 @@ object (self)
           let suffix = String.sub s first (last - first) in
           let w1 = measurestr fstate.fontsize prefix in
           let w2 = measurestr fstate.fontsize suffix in
+          let x = x +.
+            if conf.leftscroll then float (5+conf.scrollbw) else 0.0 in
           let x0 = x +. w1
           and y0 = (float (y+2)) in
           let x1 = x0 +. w2
