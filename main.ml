@@ -5990,7 +5990,6 @@ let () =
   let trimcachepath = ref E.s in
   let rcmdpath = ref E.s in
   let pageno = ref None in
-  let histmode = ref false in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -6028,8 +6027,6 @@ let () =
          ("-origin", Arg.String (fun s -> state.origin <- s),
          "<original-path> Set original path");
 
-         ("-hist", Arg.Set histmode, " Browse history");
-
          ("-v", Arg.Unit (fun () ->
            Printf.printf
              "%s\nconfiguration path: %s\n"
@@ -6045,9 +6042,7 @@ let () =
   if !wtmode
   then selfexec := !selfexec ^ " -wtmode";
 
-  if emptystr state.path
-  then (if not !histmode then (prerr_endline "file name missing"; exit 1))
-  else (if !histmode then (prerr_endline "extra file name"; exit 1));
+  let histmode = emptystr state.path in
 
   if not (Config.load ())
   then prerr_endline "failed to load configuration";
@@ -6231,7 +6226,7 @@ let () =
   state.sr <- sr;
   state.sw <- sw;
   reshape winw winh;
-  if !histmode
+  if histmode
   then (
     state.uioh <- uioh;
     enterhistmode ();
