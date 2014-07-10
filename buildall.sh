@@ -1,6 +1,10 @@
 # builds "hard" prerequisites and llpp
 set -e
 
+executable_p() {
+    command -v $1 >/dev/null 2>&1
+}
+
 filt='^$'
 btyp="release"
 mupdfrev=b2f096de23e5341fbbcd7c290f3a144423741906
@@ -23,6 +27,22 @@ mkdir -p 3rdp
 cd 3rdp
 root=$(pwd)
 
+if executable_p wget; then
+    dl() {
+        wget -nc $1 -O $2
+    }
+else
+    if executable_p curl; then
+        dl() {
+            echo "fetching " $1
+            curl $1 -o $2
+        }
+    else
+        echo "no program to fetch remote urls found"
+        exit 1
+    fi
+fi
+
 lablgl=http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgl-1.05.tar.gz
 baseurl="http://git.ghostscript.com/"
 
@@ -30,8 +50,9 @@ mudir=mupdf-$mupdfrev
 mutgz=mupdf-$mupdfrev.tgz
 muurl="${baseurl}?p=mupdf.git;a=snapshot;h=$mupdfrev;sf=tgz"
 
-test -d lablgl-1.05 || (wget -nc $lablgl && tar -xzf lablgl-1.05.tar.gz)
-test -e $mutgz || wget -nc $muurl -O $mutgz
+test -d lablgl-1.05 || \
+    (dl $lablgl $(basename $lablgl) && tar -xzf lablgl-1.05.tar.gz)
+test -e $mutgz || dl $muurl $mutgz
 test -d $mudir || \
     (mkdir $mudir && tar --strip-components 1 -C $mudir -xzf $mutgz)
 
@@ -41,7 +62,7 @@ fetch() {
         test $m = jbig2dec && p=$m || p=thirdparty/$m
         test $m = openjpeg && e=opj_config.h.in.user || e=README
         u="${baseurl}?p=$p.git;a=snapshot;h=$r;sf=tgz"
-        test -e $t || wget -nc $u -O $t
+        test -e $t || dl $u $t
         test -e $mudir/thirdparty/$m/$e ||
         (rm -fr $mudir/thirdparty/$m && mkdir $mudir/thirdparty/$m &&
             tar -xzf $t --strip-components 1 -C $mudir/thirdparty/$m)
@@ -55,10 +76,6 @@ grep -v -E "$filt" <<-EOF | fetch
 4c7d23d2cd00cee7822a61d1e8472439bd6d53c9 openjpeg
 c16b1b18ddaaf090caf321af831bccac6381a381 zlib
 EOF
-
-executable_p() {
-    command -v $1 >/dev/null 2>&1
-}
 
 executable_p gmake && make=gmake || make=make
 
