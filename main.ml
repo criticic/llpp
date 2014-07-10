@@ -2566,7 +2566,7 @@ let scrollph y maxy =
 
 let coe s = (s :> uioh);;
 
-class listview ?(helpmode=false) ~(source:lvsource) ~trusted ~modehash =
+class listview ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
 object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
@@ -2629,13 +2629,27 @@ object (self)
             Gl.enable `texture_2d;
           );
           let c =
-            if not helpmode && row land 1 = 1
+            if zebra && row land 1 = 1
             then 0.8
             else 1.0
           in
           GlDraw.color (c,c,c);
           let drawtabularstring s =
-            let drawstr x s = drawstring1 fs (truncate (x +. x0)) (y+nfs) s in
+            let drawstr x s =
+              let pos =
+                try String.index s '\000'
+                with Not_found -> -1
+              in
+              if pos = -1
+              then drawstring1 fs (truncate (x +. x0)) (y+nfs) s
+              else
+                let s1 = String.sub s 0 pos
+                and s2 = String.sub s (pos+1) (String.length s - pos - 1) in
+                let xx = ww +. drawstring1 fs (truncate (x+.x0)) (y+nfs) s1 in
+                let x2 = (wadjsb (xadjsb state.winw))/2 in
+                let x = max x2 (truncate xx) in
+                drawstring1 fs x (y+nfs) s2
+            in
             if trusted
             then
               let x = if helpmode && row > 0 then x +. ww else x in
@@ -2688,9 +2702,9 @@ object (self)
           let w2 = measurestr fstate.fontsize suffix in
           let x = x +. if conf.leftscroll then float (xadjsb 5) else 5.0 in
           let x0 = x +. w1
-          and y0 = (float (y+2)) in
+          and y0 = float (y+2) in
           let x1 = x0 +. w2
-          and y1 = (float (y+fs+3)) in
+          and y1 = float (y+fs+3) in
           filledrect x0 y0 x1 y1;
           loop (row+1)
         )
@@ -3069,7 +3083,7 @@ object (self)
   method eformsgs = false
 end;;
 
-class outlinelistview ~source =
+class outlinelistview ~zebra ~source =
   let settext autonarrow s =
     if autonarrow
     then
@@ -3082,6 +3096,7 @@ class outlinelistview ~source =
   in
 object (self)
   inherit listview
+    ~zebra
     ~helpmode:false
     ~source:(source :> lvsource)
     ~trusted:false
@@ -3600,7 +3615,8 @@ let enterselector sourcetype =
       Wsi.setcursor Wsi.CURSOR_INHERIT;
       let anchor = getanchor () in
       source#reset anchor outlines;
-      state.uioh <- coe (new outlinelistview ~source);
+      state.uioh <-
+        coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
       G.postRedisplay "enter selector";
     )
 ;;
@@ -3615,10 +3631,7 @@ let enterbookmarkmode =
   fun () -> f "Document has no bookmarks (yet)";
 ;;
 
-let enterhistmode =
-  let f = enterselector `history in
-  fun () -> f "No history (yet)";
-;;
+let enterhistmode () = enterselector `history "No history (yet)";;
 
 let makecheckers () =
   (* Based on lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had
@@ -3811,7 +3824,8 @@ let enterinfomode =
               in
               state.text <- E.s;
               let modehash = findkeyhash conf "info" in
-              coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
+              coe (new listview ~zebra:false ~helpmode:false
+                     ~source ~trusted:true ~modehash)
           )) :: m_l
 
       method paxmark name get set =
@@ -3837,7 +3851,8 @@ let enterinfomode =
               in
               state.text <- E.s;
               let modehash = findkeyhash conf "info" in
-              coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
+              coe (new listview ~zebra:false ~helpmode:false
+                     ~source ~trusted:true ~modehash)
           )) :: m_l
 
       method fitmodel name get set =
@@ -3863,7 +3878,8 @@ let enterinfomode =
               in
               state.text <- E.s;
               let modehash = findkeyhash conf "info" in
-              coe (new listview ~helpmode:false ~source ~trusted:true ~modehash)
+              coe (new listview ~zebra:false ~helpmode:false
+                     ~source ~trusted:true ~modehash)
           )) :: m_l
 
       method caption s offset =
@@ -4290,7 +4306,8 @@ let enterinfomode =
     let source = (src :> lvsource) in
     let modehash = findkeyhash conf "info" in
     state.uioh <- coe (object (self)
-      inherit listview ~helpmode:false  ~source ~trusted:true ~modehash as super
+      inherit listview ~zebra:false ~helpmode:false
+          ~source ~trusted:true ~modehash as super
       val mutable m_prevmemused = 0
       method infochanged = function
         | Memused ->
@@ -4350,7 +4367,8 @@ let enterhelpmode =
     let modehash = findkeyhash conf "help" in
     resetmstate ();
     state.uioh <- coe (new listview
-                         ~helpmode:true ~source ~trusted:true ~modehash);
+                         ~zebra:false ~helpmode:true
+                         ~source ~trusted:true ~modehash);
     G.postRedisplay "help";
 ;;
 
@@ -4398,7 +4416,8 @@ let entermsgsmode =
     let source = (msgsource :> lvsource) in
     let modehash = findkeyhash conf "listview" in
     state.uioh <- coe (object
-      inherit listview ~helpmode:false ~source ~trusted:false ~modehash as super
+      inherit listview ~zebra:false ~helpmode:false
+          ~source ~trusted:false ~modehash as super
       method display =
         if state.newerrmsgs
         then msgsource#reset;
