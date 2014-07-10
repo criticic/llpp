@@ -127,7 +127,7 @@ home/end                - go to first/last page
 enter                   - select the page and leave bird's eye mode
 1st mouse button        - select the page under cursor and leave bird's eye mode
 
------Outline/bookmark/help/info mode-----
+-----Outline/bookmark/help/info/history mode-----
 esc                     - leave outline/bookmark mode
 up/down                 - select previous/next item
 alpha-numeric           - quick search
