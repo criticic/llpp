@@ -3384,14 +3384,17 @@ let genhistoutlines () =
   let list = ref [] in
   if Config.gethist list
   then
+    let order (path1, c1, _, _, _) (path2, c2, _, _, _) =
+      -(compare (c1.lastvisit, path1) (c2.lastvisit, path2))
+    in
     let ol =
       List.fold_left (fun accu (path, c, b, x, a) ->
         let hist = (path, (c, b, x, a)) in
         let base = mbtoutf8 (Filename.basename path) in
         (base ^ "\000" ^ c.title, 0, Ohistory hist) :: accu
-      ) [] !list
+      ) [] (List.sort order !list)
     in
-    Array.of_list ol;
+    Array.of_list ol
   else E.a;
 ;;
 

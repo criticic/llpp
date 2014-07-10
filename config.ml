@@ -275,6 +275,7 @@ type conf =
     ; mutable paxmark        : mark
     ; mutable leftscroll     : bool
     ; mutable title          : string
+    ; mutable lastvisit      : float
     }
 and columns =
     | Csingle of singlecolumn
@@ -575,6 +576,7 @@ let defconf =
   ; paxmark        = Mark_word
   ; leftscroll     = false
   ; title          = E.s
+  ; lastvisit      = 0.0
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1099,6 +1101,7 @@ let config_of c attrs =
       | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
       | "title" -> { c with title = unent v }
+      | "last-visit" -> { c with lastvisit = float_of_string v }
       | _ -> c
     with exn ->
       prerr_endline ("Error processing attribute (`" ^
@@ -1527,7 +1530,7 @@ let gethist listref =
   load1 f
 ;;
 
-let add_attrs bb always dc c =
+let add_attrs bb always dc c time =
   let ob s a b =
     if always || a != b
     then Printf.bprintf bb "\n    %s='%b'" s a
@@ -1672,6 +1675,7 @@ let add_attrs bb always dc c =
   ob "scroll-bar-on-the-left" c.leftscroll dc.leftscroll;
   if not always
   then os "title" c.title dc.title;
+  oz "last-visit" time 0.0;
 ;;
 
 let keymapsbuf always dc c =
@@ -1773,7 +1777,7 @@ let save leavebirdseye =
     );
 
     Buffer.add_string bb "<defaults";
-    add_attrs bb true dc dc;
+    add_attrs bb true dc dc nan;
     let kb = keymapsbuf true dc dc in
     if Buffer.length kb > 0
     then (
@@ -1783,7 +1787,7 @@ let save leavebirdseye =
     )
     else Buffer.add_string bb "/>\n";
 
-    let adddoc path pan anchor c bookmarks =
+    let adddoc path pan anchor c bookmarks time =
       if bookmarks == [] && c = dc && anchor = emptyanchor
       then ()
       else (
@@ -1807,7 +1811,7 @@ let save leavebirdseye =
         if pan != 0
         then Printf.bprintf bb " pan='%d'" pan;
 
-        add_attrs bb false dc c;
+        add_attrs bb false dc c time;
         let kb = keymapsbuf false dc c in
 
         begin match bookmarks with
@@ -1885,11 +1889,12 @@ let save leavebirdseye =
        end;
        { conf with autoscrollstep = autoscrollstep }
       )
-      (if conf.savebmarks then state.bookmarks else []);
+      (if conf.savebmarks then state.bookmarks else [])
+      (now ());
 
     Hashtbl.iter (fun path (c, bookmarks, x, anchor) ->
       if docpath <> abspath path
-      then adddoc path x anchor c bookmarks
+      then adddoc path x anchor c bookmarks c.lastvisit
     ) h;
     Buffer.add_string bb "</llppconfig>\n";
     true;
