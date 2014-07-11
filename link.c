@@ -1821,7 +1821,7 @@ static void * mainloop (void *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
-            int wthack, off;
+            int wthack, off, ok = 0;
             char *password;
             char *filename;
             char *utf8filename;
@@ -1837,19 +1837,30 @@ static void * mainloop (void *unused)
             password = filename + filenamelen + 1;
 
             lock ("open");
-            openxref (filename, password);
-            pdfinfo ();
-            initpdims ();
+            fz_try (state.ctx) {
+                openxref (filename, password);
+                ok = 1;
+            }
+            fz_catch (state.ctx) {
+                utf8filename = mbtoutf8 (filename);
+                printd ("msg Could not open %s", utf8filename);
+            }
+            if (ok) {
+                pdfinfo ();
+                initpdims ();
+            }
             unlock ("open");
 
-            if (!wthack) {
-                utf8filename = mbtoutf8 (filename);
-                printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
-                if (utf8filename != filename) {
-                    free (utf8filename);
+            if (ok) {
+                if (!wthack) {
+                    utf8filename = mbtoutf8 (filename);
+                    printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
+                    if (utf8filename != filename) {
+                        free (utf8filename);
+                    }
                 }
+                state.needoutline = 1;
             }
-            state.needoutline = 1;
         }
         else if (!strncmp ("cs", p, 2)) {
             int i, colorspace;
