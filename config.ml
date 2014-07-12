@@ -937,6 +937,9 @@ let getanchor () =
 
 let fontpath = ref E.s;;
 
+type historder = [ `lastvisit | `title | `path | `file ];;
+let historder : historder ref = ref `lastvisit;;
+
 module KeyMap =
   Map.Make (struct type t = (int * int) let compare = compare end);;
 

@@ -3395,22 +3395,29 @@ let gotooutline (_, _, kind) =
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
 ;;
 
-let genhistoutlines () =
-  let list = ref [] in
-  if Config.gethist list
-  then
-    let order (path1, c1, _, _, _) (path2, c2, _, _, _) =
-      -(compare (c1.lastvisit, path1) (c2.lastvisit, path2))
-    in
-    let ol =
-      List.fold_left (fun accu (path, c, b, x, a) ->
-        let hist = (path, (c, b, x, a)) in
-        let base = mbtoutf8 (Filename.basename path) in
-        (base ^ "\000" ^ c.title, 0, Ohistory hist) :: accu
-      ) [] (List.sort order !list)
-    in
-    Array.of_list ol
-  else E.a;
+let genhistoutlines =
+  let order ty (p1, c1, _, _, _) (p2, c2, _, _, _) =
+    - match ty with
+    | `lastvisit -> compare c1.lastvisit c2.lastvisit
+    | `path -> compare p1 p2
+    | `file -> compare (Filename.basename p1) (Filename.basename p2)
+    | `title -> compare c1.title c2.title
+  in
+  fun orderty ->
+    let list = ref [] in
+    if Config.gethist list
+    then
+      let ol =
+        List.fold_left
+          (fun accu (path, c, b, x, a) ->
+            let hist = (path, (c, b, x, a)) in
+            let base = mbtoutf8 (Filename.basename path) in
+            (base ^ "\000" ^ c.title, 1, Ohistory hist) :: accu
+          )
+          [] (List.sort (order orderty) !list)
+      in
+      Array.of_list ol
+    else E.a;
 ;;
 
 let outlinesource sourcetype =
@@ -3517,7 +3524,7 @@ let outlinesource sourcetype =
         match sourcetype with
         | `bookmarks -> Array.of_list state.bookmarks
         | `outlines -> state.outlines
-        | `history -> genhistoutlines ()
+        | `history -> genhistoutlines !Config.historder
       );
       m_minfo <- m_orig_minfo;
       m_items <- m_orig_items
@@ -3604,7 +3611,7 @@ let enterselector sourcetype =
       match sourcetype with
       | `bookmarks -> Array.of_list state.bookmarks
       | `outlines -> state.outlines
-      | `history -> genhistoutlines ()
+      | `history -> genhistoutlines !Config.historder
     in
     if Array.length outlines = 0
     then (
