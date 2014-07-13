@@ -2714,7 +2714,7 @@ object (self)
           let x = float (level + m_pan) *. ww in
           let (first, last) = minfo.(row) in
           let prefix =
-            if first > pos0
+            if pos0 > 0 && first > pos0
             then String.sub s (pos0+1) (first-pos0-1)
             else String.sub s 0 first
           in
@@ -2722,7 +2722,7 @@ object (self)
           let w1 = measurestr fstate.fontsize prefix in
           let w2 = measurestr fstate.fontsize suffix in
           let x = x +. if conf.leftscroll then float (xadjsb 5) else 5.0 in
-          let x = if first > pos0 then x +. float hw else x in
+          let x = if pos0 > 0 && first > pos0 then x +. float hw else x in
           let x0 = x +. w1
           and y0 = float (y+2) in
           let x1 = x0 +. w2
