@@ -3412,6 +3412,7 @@ let gotooutline (_, _, kind) =
   | Oremote remote -> gotounder (Uremote remote)
   | Ohistory hist -> gotohist hist
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
+  | Oaction f -> f ()
 ;;
 
 let genhistoutlines =
@@ -3423,6 +3424,12 @@ let genhistoutlines =
     | `title -> compare c1.title c2.title
   in
   fun orderty ->
+    let setorty s t =
+      let s =
+        if orderty = t then "{ " ^ s  ^ " }" else "  " ^ s
+      in s, 0,
+      Oaction (fun () -> Config.historder := t)
+    in
     let list = ref [] in
     if Config.gethist list
     then
@@ -3433,7 +3440,11 @@ let genhistoutlines =
             let base = mbtoutf8 (Filename.basename path) in
             (base ^ "\000" ^ c.title, 1, Ohistory hist) :: accu
           )
-          [] (List.sort (order orderty) !list)
+          [ setorty "Sort by time of last visit" `lastvisit;
+            setorty "Sort by file name" `file;
+            setorty "Sort by path" `path;
+            setorty "Sort by title" `title
+          ] (List.sort (order orderty) !list)
       in
       Array.of_list ol
     else E.a;
@@ -3522,15 +3533,19 @@ let outlinesource sourcetype =
               m_minfo <- Array.of_list minfo;
             )
             else
-              let (s, _, _) as o = m_items.(n) in
+              let (s, _, t) as o = m_items.(n) in
               let accu, minfo =
-                let first =
-                  try Str.search_forward re s 0
-                  with Not_found -> -1
-                in
-                if first >= 0
-                then o :: accu, (first, Str.match_end ()) :: minfo
-                else accu, minfo
+                match t with
+                | Oaction _ -> o :: accu, (0, 0) :: minfo
+                | Onone | Oanchor _ | Ouri _ | Olaunch _
+                | Oremote _ | Oremotedest _ | Ohistory _ ->
+                    let first =
+                      try Str.search_forward re s 0
+                      with Not_found -> -1
+                    in
+                    if first >= 0
+                    then o :: accu, (first, Str.match_end ()) :: minfo
+                    else accu, minfo
               in
               loop accu minfo (n-1)
           in
@@ -3592,7 +3607,7 @@ let outlinesource sourcetype =
               then loop (n+1) n d
               else loop (n+1) best bestd
           | Onone | Oremote _ | Olaunch _
-          | Oremotedest _ | Ouri _ | Ohistory _ ->
+          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ ->
               loop (n+1) best bestd
       in
       loop 0 ~-1 max_int
@@ -6360,7 +6375,10 @@ let () =
               );
               checkfds rest
         in
+        let hoty = !Config.historder in
         checkfds l;
+        if hoty <> !Config.historder
+        then enterhistmode ();
         let newdeadline =
           let deadline1 =
             if deadline = infinity
