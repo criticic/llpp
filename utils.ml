@@ -147,3 +147,8 @@ let abspath path =
   else
     path
 ;;
+
+let nindex s c =
+  try String.index s c
+  with Not_found -> -1
+;;

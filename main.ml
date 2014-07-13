@@ -2638,10 +2638,7 @@ object (self)
           let drawtabularstring s =
             let drawstr x s =
               let x' = truncate (x0 +. x) in
-              let pos =
-                try String.index s '\000'
-                with Not_found -> -1
-              in
+              let pos = nindex s '\000' in
               if pos = -1
               then drawstring1 fs x' (y+nfs) s
               else
@@ -2669,7 +2666,7 @@ object (self)
             if trusted
             then
               let x = if helpmode && row > 0 then x +. ww else x in
-              let tabpos = try String.index s '\t' with Not_found -> -1 in
+              let tabpos = nindex s '\t' in
               if tabpos > 0
               then
                 let len = String.length s - tabpos - 1 in
@@ -2709,7 +2706,7 @@ object (self)
         if row >= 0 && row < itemcount
         then (
           let (s, level) = source#getitem row in
-          let pos0 = try String.index s '\000' with Not_found -> -1 in
+          let pos0 = nindex s '\000' in
           let y = (row - m_first) * nfs in
           let x = float (level + m_pan) *. ww in
           let (first, last) = minfo.(row) in
