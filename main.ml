@@ -2634,21 +2634,37 @@ object (self)
             else 1.0
           in
           GlDraw.color (c,c,c);
+          let hw = (wadjsb (xadjsb state.winw))/3 in
           let drawtabularstring s =
             let drawstr x s =
+              let x' = truncate (x0 +. x) in
               let pos =
                 try String.index s '\000'
                 with Not_found -> -1
               in
               if pos = -1
-              then drawstring1 fs (truncate (x +. x0)) (y+nfs) s
+              then drawstring1 fs x' (y+nfs) s
               else
                 let s1 = String.sub s 0 pos
                 and s2 = String.sub s (pos+1) (String.length s - pos - 1) in
-                let xx = ww +. drawstring1 fs (truncate (x+.x0)) (y+nfs) s1 in
-                let x2 = (wadjsb (xadjsb state.winw))/2 in
-                let x = max x2 (truncate xx) in
-                drawstring1 fs x (y+nfs) s2
+                let rec e s =
+                  if emptystr s
+                  then s
+                  else
+                    let s' = withoutlastutf8 s in
+                    let s = s' ^ "\xe2\x80\xa6" in
+                    let w = measurestr fs s in
+                    if float x' +. w +. ww < float (hw + x')
+                    then s
+                    else e s'
+                in
+                let s1 =
+                  if float x' +. ww +. measurestr fs s1 > float (hw + x')
+                  then e s1
+                  else s1
+                in
+                ignore (drawstring1 fs x' (y+nfs) s1);
+                drawstring1 fs (hw + x') (y+nfs) s2
             in
             if trusted
             then
@@ -2679,7 +2695,7 @@ object (self)
             else
               drawstr x s
           in
-          let _ = drawtabularstring s in
+          ignore (drawtabularstring s);
           loop (row+1)
         )
       )
