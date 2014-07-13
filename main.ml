@@ -2596,6 +2596,7 @@ object (self)
     Gl.enable `texture_2d;
     let fs = fstate.fontsize in
     let nfs = fs + 1 in
+    let hw = (wadjsb (xadjsb state.winw))/3 in
     let ww = fstate.wwidth in
     let tabw = 17.0*.ww in
     let itemcount = source#getitemcount in
@@ -2634,7 +2635,6 @@ object (self)
             else 1.0
           in
           GlDraw.color (c,c,c);
-          let hw = (wadjsb (xadjsb state.winw))/3 in
           let drawtabularstring s =
             let drawstr x s =
               let x' = truncate (x0 +. x) in
@@ -2709,14 +2709,20 @@ object (self)
         if row >= 0 && row < itemcount
         then (
           let (s, level) = source#getitem row in
+          let pos0 = try String.index s '\000' with Not_found -> -1 in
           let y = (row - m_first) * nfs in
           let x = float (level + m_pan) *. ww in
           let (first, last) = minfo.(row) in
-          let prefix = String.sub s 0 first in
+          let prefix =
+            if first > pos0
+            then String.sub s (pos0+1) (first-pos0-1)
+            else String.sub s 0 first
+          in
           let suffix = String.sub s first (last - first) in
           let w1 = measurestr fstate.fontsize prefix in
           let w2 = measurestr fstate.fontsize suffix in
           let x = x +. if conf.leftscroll then float (xadjsb 5) else 5.0 in
+          let x = if first > pos0 then x +. float hw else x in
           let x0 = x +. w1
           and y0 = float (y+2) in
           let x1 = x0 +. w2
