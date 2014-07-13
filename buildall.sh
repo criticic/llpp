@@ -7,7 +7,7 @@ executable_p() {
 
 filt='^$'
 btyp="release"
-mupdfrev=b2f096de23e5341fbbcd7c290f3a144423741906
+mupdfrev=803470e161539f9013f854188e57505f4878e891
 while getopts j:f:t:r:F opt; do
     case "$opt" in
         j) jobs="-j $OPTARG";;
