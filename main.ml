@@ -3417,11 +3417,11 @@ let gotooutline (_, _, kind) =
 
 let genhistoutlines =
   let order ty (p1, c1, _, _, _) (p2, c2, _, _, _) =
-    - match ty with
-    | `lastvisit -> compare c1.lastvisit c2.lastvisit
-    | `path -> compare p1 p2
-    | `file -> compare (Filename.basename p1) (Filename.basename p2)
-    | `title -> compare c1.title c2.title
+    match ty with
+    | `lastvisit -> compare c2.lastvisit c1.lastvisit
+    | `path -> compare p2 p1
+    | `file -> compare (Filename.basename p2) (Filename.basename p1)
+    | `title -> compare c2.title c1.title
   in
   fun orderty ->
     let setorty s t =
@@ -3451,13 +3451,12 @@ let genhistoutlines =
 ;;
 
 let outlinesource sourcetype =
-  let empty = E.a in
   (object (self)
     inherit lvsourcebase
-    val mutable m_items = empty
-    val mutable m_minfo = empty
-    val mutable m_orig_items = empty
-    val mutable m_orig_minfo = empty
+    val mutable m_items = E.a
+    val mutable m_minfo = E.a
+    val mutable m_orig_items = E.a
+    val mutable m_orig_minfo = E.a
     val mutable m_narrow_patterns = []
     val mutable m_hadremovals = false
     val mutable m_gen = -1
@@ -3619,8 +3618,8 @@ let outlinesource sourcetype =
         m_orig_items <- items;
         m_items <- items;
         m_narrow_patterns <- [];
-        m_minfo <- empty;
-        m_orig_minfo <- empty;
+        m_minfo <- E.a;
+        m_orig_minfo <- E.a;
         m_gen <- state.gen;
       )
       else (
