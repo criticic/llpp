@@ -3425,10 +3425,8 @@ let genhistoutlines =
   in
   fun orderty ->
     let setorty s t =
-      let s =
-        if orderty = t then "{ " ^ s  ^ " }" else "  " ^ s
-      in s, 0,
-      Oaction (fun () -> Config.historder := t)
+      let s = if orderty = t then "\xe2\x88\x9a " ^ s else "   " ^ s in
+      s, 4, Oaction (fun () -> Config.historder := t)
     in
     let list = ref [] in
     if Config.gethist list
