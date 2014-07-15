@@ -39,6 +39,7 @@ external rectofblock : opaque -> int -> int -> float array option
 external begintiles : unit -> unit = "ml_begintiles";;
 external endtiles : unit -> unit = "ml_endtiles";;
 
+let reeenterhist = ref false;;
 let selfexec = ref E.s;;
 
 let drawstring size x y s =
@@ -3426,7 +3427,7 @@ let genhistoutlines =
   fun orderty ->
     let setorty s t =
       let s = if orderty = t then "\xe2\x88\x9a " ^ s else "   " ^ s in
-      s, 4, Oaction (fun () -> Config.historder := t)
+      s, 4, Oaction (fun () -> Config.historder := t; reeenterhist := true)
     in
     let list = ref [] in
     if Config.gethist list
@@ -6372,10 +6373,11 @@ let () =
               );
               checkfds rest
         in
-        let hoty = !Config.historder in
         checkfds l;
-        if hoty <> !Config.historder
-        then enterhistmode ();
+        if !reeenterhist then (
+          enterhistmode ();
+          reeenterhist := false;
+        );
         let newdeadline =
           let deadline1 =
             if deadline = infinity
