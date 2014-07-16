@@ -43,6 +43,7 @@
 #endif
 
 #define PIGGYBACK
+#define SUMATRA_LOOKUP
 
 #ifndef __USE_GNU
 extern char **environ;
@@ -919,6 +920,57 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     return tile;
 }
 
+#ifdef SUMATRA_LOOKUP
+/* Following two functions are taken (almost) verbatim from SumatraPDF
+   PdfEngine.cpp
+ */
+static void
+pdf_load_page_objs_rec(pdf_document *doc, pdf_obj *node, int *page_no, pdf_obj **page_objs)
+{
+    fz_context *ctx = doc->ctx;
+
+    if (pdf_mark_obj(node))
+        fz_throw(ctx, FZ_ERROR_GENERIC, "cycle in page tree");
+
+    fz_try(ctx) {
+        pdf_obj *kids = pdf_dict_gets(node, "Kids");
+        int len = pdf_array_len(kids), i;
+        for (i = 0; i < len; i++) {
+            pdf_obj *kid = pdf_array_get(kids, i);
+            char *type = pdf_to_name(pdf_dict_gets(kid, "Type"));
+            if (!strcmp(type, "Page")) {
+                if (*page_no > pdf_count_pages(doc))
+                    fz_throw(ctx, FZ_ERROR_GENERIC, "found more /Page objects than anticipated");
+                page_objs[*page_no - 1] = kid;
+                (*page_no)++;
+            }
+            else if (!strcmp(type, "Pages")) {
+                int count = pdf_to_int(pdf_dict_gets(kid, "Count"));
+                if (count > 0)
+                    pdf_load_page_objs_rec(doc, kid, page_no, page_objs);
+            }
+            else {
+                fz_warn(ctx, "non-page object in page tree (%s)", type);
+            }
+        }
+    }
+    fz_always(ctx) {
+        pdf_unmark_obj(node);
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+}
+
+static void
+pdf_load_page_objs(pdf_document *doc, pdf_obj **page_objs)
+{
+    pdf_obj *pages = pdf_dict_getp(pdf_trailer(doc), "Root/Pages");
+    int page_no = 1;
+    pdf_load_page_objs_rec(doc, pages, &page_no, page_objs);
+}
+#endif
+
 static void initpdims (void)
 {
     double start, end;
@@ -957,8 +1009,34 @@ static void initpdims (void)
         switch (state.type) {
         case DPDF: {
             pdf_document *pdf = state.u.pdf;
+#ifdef SUMATRA_LOOKUP
+            pdf_obj *pageref, *pageobj;
+            static struct {
+                pdf_document *pdf;
+                pdf_obj **objs;
+                int count;
+            } s;
+
+            if (s.pdf != pdf) {
+                int i;
+                for (i = 0; i < s.count; ++i) {
+                    pdf_drop_obj (s.objs[i]);
+                }
+                s.objs = realloc (s.objs, sizeof (*s.objs) * cxcount);
+                if (!s.objs) {
+                    err (1, "realloc pageobjs %zu %d %zu failed",
+                         sizeof (*s.objs), cxcount, sizeof (*s.objs) * cxcount);
+                }
+                s.count = cxcount;
+                s.pdf = pdf;
+                pdf_load_page_objs (pdf, s.objs);
+            }
+            pageref = s.objs[pageno];
+            pageobj = pdf_resolve_indirect (pageref);
+#else
             pdf_obj *pageref = pdf_lookup_page_obj (pdf, pageno);
             pdf_obj *pageobj = pdf_resolve_indirect (pageref);
+#endif
 
             if (state.trimmargins) {
                 pdf_obj *obj;
@@ -1407,6 +1485,7 @@ static void process_outline (void)
     switch (state.type) {
     case DPDF:
         outline = pdf_load_outline (state.u.pdf);
+        outline = NULL;
         break;
     case DXPS:
         outline = xps_load_outline (state.u.xps);
