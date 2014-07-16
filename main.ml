@@ -3394,8 +3394,8 @@ let gotohist (path, (c, bookmarks, x, anchor)) =
   state.x <- x;
   state.bookmarks <- bookmarks;
   state.origin <- E.s;
+  setconf conf c;
   opendoc path E.s;
-  conf.presentation <- c.presentation;
 ;;
 
 let gotooutline (_, _, kind) =
@@ -3419,10 +3419,10 @@ let gotooutline (_, _, kind) =
 let genhistoutlines =
   let order ty (p1, c1, _, _, _) (p2, c2, _, _, _) =
     match ty with
-    | `lastvisit -> compare c2.lastvisit c1.lastvisit
-    | `path -> compare p2 p1
-    | `file -> compare (Filename.basename p2) (Filename.basename p1)
-    | `title -> compare c2.title c1.title
+    | `lastvisit -> compare c1.lastvisit c2.lastvisit
+    | `path -> compare p1 p2
+    | `file -> compare (Filename.basename p1) (Filename.basename p2)
+    | `title -> compare c1.title c2.title
   in
   let showfullpath = ref false in
   fun orderty ->
