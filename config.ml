@@ -1552,7 +1552,7 @@ let add_attrs bb always dc c time =
     then Printf.bprintf bb "\n    %s='%g'" s (a*.100.)
   and oF s a b =
     if always || a <> b
-    then Printf.bprintf bb "\n    %s='%f'" s a
+    then Printf.bprintf bb "\n    %s='%F'" s a
   and oc s a b =
     if always || a <> b
     then
@@ -1679,7 +1679,7 @@ let add_attrs bb always dc c time =
   ob "scroll-bar-on-the-left" c.leftscroll dc.leftscroll;
   if not always
   then os "title" c.title dc.title;
-  oF "last-visit" time 0.0;
+  oF "last-visit" (snd (modf time)) 0.0;
 ;;
 
 let keymapsbuf always dc c =
