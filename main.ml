@@ -3424,10 +3424,11 @@ let genhistoutlines =
     | `file -> compare (Filename.basename p2) (Filename.basename p1)
     | `title -> compare c2.title c1.title
   in
+  let showfullpath = ref false in
   fun orderty ->
     let setorty s t =
-      let s = if orderty = t then "\xe2\x88\x9a " ^ s else "   " ^ s in
-      s, 4, Oaction (fun () -> Config.historder := t; reeenterhist := true)
+      let s = if orderty = t then "[\xe2\x88\x9a] " ^ s else "[  ] " ^ s in
+      s, 0, Oaction (fun () -> Config.historder := t; reeenterhist := true)
     in
     let list = ref [] in
     if Config.gethist list
@@ -3436,13 +3437,17 @@ let genhistoutlines =
         List.fold_left
           (fun accu (path, c, b, x, a) ->
             let hist = (path, (c, b, x, a)) in
-            let base = mbtoutf8 (Filename.basename path) in
+            let s = if !showfullpath then path else Filename.basename path in
+            let base = mbtoutf8 s in
             (base ^ "\000" ^ c.title, 1, Ohistory hist) :: accu
           )
           [ setorty "Sort by time of last visit" `lastvisit;
             setorty "Sort by file name" `file;
             setorty "Sort by path" `path;
-            setorty "Sort by title" `title
+            setorty "Sort by title" `title;
+            (if !showfullpath then "\xe2\x88\x9a "
+            else "   ") ^ "Show full path", 0, Oaction (fun () ->
+              showfullpath := not !showfullpath; reeenterhist := true)
           ] (List.sort (order orderty) !list)
       in
       Array.of_list ol
