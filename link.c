@@ -1022,7 +1022,6 @@ static void initpdims (void)
     }
 
 #ifdef SUMATRA_LOOKUP
-    printf ("initpdims state %p lut %p\n", state.u.pdf, state.pdflut.pdf);
     if (state.type == DPDF && state.pdflut.pdf != state.u.pdf) {
         state.pdflut.objs = malloc (sizeof (*state.pdflut.objs) * cxcount);
         if (!state.pdflut.objs) {
