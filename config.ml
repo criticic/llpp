@@ -1679,7 +1679,7 @@ let add_attrs bb always dc c time =
   ob "scroll-bar-on-the-left" c.leftscroll dc.leftscroll;
   if not always
   then os "title" c.title dc.title;
-  oz "last-visit" time 0.0;
+  oF "last-visit" time 0.0;
 ;;
 
 let keymapsbuf always dc c =
