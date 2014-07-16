@@ -251,6 +251,14 @@ struct {
 
     GLfloat texcoords[8];
     GLfloat vertices[16];
+
+#ifdef SUMATRA_LOOKUP
+    struct {
+        int count;
+        pdf_obj **objs;
+        pdf_document *pdf;
+    } pdflut;
+#endif
 } state;
 
 struct pbo {
@@ -413,6 +421,18 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 
 static void closepdf (void)
 {
+#ifdef SUMATRA_LOOKUP
+    if (state.pdflut.objs) {
+        int i;
+
+        for (i = 0; i < state.pdflut.count; ++i) {
+            pdf_drop_obj (state.pdflut.objs[i]);
+        }
+        free (state.pdflut.objs);
+        state.pdflut.objs = NULL;
+    }
+#endif
+
     if (state.u.pdf) {
         pdf_close_document (state.u.pdf);
         state.u.pdf = NULL;
@@ -941,7 +961,7 @@ pdf_load_page_objs_rec(pdf_document *doc, pdf_obj *node, int *page_no, pdf_obj *
             if (!strcmp(type, "Page")) {
                 if (*page_no > pdf_count_pages(doc))
                     fz_throw(ctx, FZ_ERROR_GENERIC, "found more /Page objects than anticipated");
-                page_objs[*page_no - 1] = kid;
+                page_objs[*page_no - 1] = pdf_keep_obj(kid);
                 (*page_no)++;
             }
             else if (!strcmp(type, "Pages")) {
@@ -1001,6 +1021,21 @@ static void initpdims (void)
         pdf_to_rect (state.ctx, obj, &rootmediabox);
     }
 
+#ifdef SUMATRA_LOOKUP
+    printf ("initpdims state %p lut %p\n", state.u.pdf, state.pdflut.pdf);
+    if (state.type == DPDF && state.pdflut.pdf != state.u.pdf) {
+        state.pdflut.objs = malloc (sizeof (*state.pdflut.objs) * cxcount);
+        if (!state.pdflut.objs) {
+            err (1, "malloc pageobjs %zu %d %zu failed",
+                 sizeof (*state.pdflut.objs), cxcount,
+                 sizeof (*state.pdflut.objs) * cxcount);
+        }
+        state.pdflut.count = cxcount;
+        pdf_load_page_objs (state.u.pdf, state.pdflut.objs);
+        state.pdflut.pdf = state.u.pdf;
+    }
+#endif
+
     for (pageno = 0; pageno < cxcount; ++pageno) {
         int rotate = 0;
         struct pagedim *p;
@@ -1009,34 +1044,14 @@ static void initpdims (void)
         switch (state.type) {
         case DPDF: {
             pdf_document *pdf = state.u.pdf;
-#ifdef SUMATRA_LOOKUP
             pdf_obj *pageref, *pageobj;
-            static struct {
-                pdf_document *pdf;
-                pdf_obj **objs;
-                int count;
-            } s;
 
-            if (s.pdf != pdf) {
-                int i;
-                for (i = 0; i < s.count; ++i) {
-                    pdf_drop_obj (s.objs[i]);
-                }
-                s.objs = realloc (s.objs, sizeof (*s.objs) * cxcount);
-                if (!s.objs) {
-                    err (1, "realloc pageobjs %zu %d %zu failed",
-                         sizeof (*s.objs), cxcount, sizeof (*s.objs) * cxcount);
-                }
-                s.count = cxcount;
-                s.pdf = pdf;
-                pdf_load_page_objs (pdf, s.objs);
-            }
-            pageref = s.objs[pageno];
-            pageobj = pdf_resolve_indirect (pageref);
+#ifdef SUMATRA_LOOKUP
+            pageref = state.pdflut.objs[pageno];
 #else
-            pdf_obj *pageref = pdf_lookup_page_obj (pdf, pageno);
-            pdf_obj *pageobj = pdf_resolve_indirect (pageref);
+            pageref = pdf_lookup_page_obj (pdf, pageno);
 #endif
+            pageobj = pdf_resolve_indirect (pageref);
 
             if (state.trimmargins) {
                 pdf_obj *obj;
