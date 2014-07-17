@@ -1022,7 +1022,8 @@ static void initpdims (void)
     }
 
 #ifdef SUMATRA_LOOKUP
-    if (state.type == DPDF && state.pdflut.pdf != state.u.pdf) {
+    if (state.type == DPDF
+        && (!state.pdflut.objs || state.pdflut.pdf != state.u.pdf)) {
         state.pdflut.objs = malloc (sizeof (*state.pdflut.objs) * cxcount);
         if (!state.pdflut.objs) {
             err (1, "malloc pageobjs %zu %d %zu failed",
