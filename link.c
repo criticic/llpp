@@ -1500,7 +1500,6 @@ static void process_outline (void)
     switch (state.type) {
     case DPDF:
         outline = pdf_load_outline (state.u.pdf);
-        outline = NULL;
         break;
     case DXPS:
         outline = xps_load_outline (state.u.xps);
