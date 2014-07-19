@@ -77,3 +77,7 @@ s;@w;119;
 s;@x;120;
 s;@y;121;
 s;@z;122;
+s;@Uellipsis;\xe2\x80\xa6;
+s;@Uradical;\xe2\x88\x9a;
+s;@Ulguillemet;\xc2\xab;
+s;@Urguillemet;\xc2\xbb;

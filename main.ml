@@ -2650,7 +2650,7 @@ object (self)
                   then s
                   else
                     let s' = withoutlastutf8 s in
-                    let s = s' ^ "\xe2\x80\xa6" in
+                    let s = s' ^ "@Uellipsis" in
                     let w = measurestr fs s in
                     if float x' +. w +. ww < float (hw + x')
                     then s
@@ -3432,7 +3432,7 @@ let genhistoutlines =
   let showfullpath = ref false in
   fun orderty ->
     let setorty s t =
-      let s = if orderty = t then "[\xe2\x88\x9a] " ^ s else "[  ] " ^ s in
+      let s = if orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
       s, 0, Oaction (fun () -> Config.historder := t; reeenterhist := true)
     in
     let list = ref [] in
@@ -3450,7 +3450,7 @@ let genhistoutlines =
             setorty "Sort by file name" `file;
             setorty "Sort by path" `path;
             setorty "Sort by title" `title;
-            (if !showfullpath then "\xe2\x88\x9a "
+            (if !showfullpath then "@Uradical "
             else "   ") ^ "Show full path", 0, Oaction (fun () ->
               showfullpath := not !showfullpath; reeenterhist := true)
           ] (List.sort (order orderty) !list)
@@ -3518,7 +3518,7 @@ let outlinesource sourcetype =
         let s =
           match m_narrow_patterns with
           | one :: [] -> one
-          | many -> String.concat "\xe2\x80\xa6" (List.rev many)
+          | many -> String.concat "@Uellipsis" (List.rev many)
         in
         "Narrowed to " ^ s ^ " (ctrl-u to restore)"
       else E.s
@@ -3527,7 +3527,7 @@ let outlinesource sourcetype =
       match m_narrow_patterns with
       | [] -> E.s
       | one :: [] -> one
-      | head :: _ -> "\xe2\x80\xa6" ^ head
+      | head :: _ -> "@Uellipsis" ^ head
 
     method narrow pattern =
       let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
@@ -3598,7 +3598,7 @@ let outlinesource sourcetype =
       | list ->
           List.fold_left (fun accu pattern ->
             self#narrow pattern;
-            pattern ^ "\xe2\x80\xa6" ^ accu) E.s list
+            pattern ^ "@Uellipsis" ^ accu) E.s list
 
     method calcactive anchor =
       let rely = getanchory anchor in
@@ -3739,7 +3739,7 @@ let setpresentationmode v =
 ;;
 
 let enterinfomode =
-  let btos b = if b then "\xe2\x88\x9a" else E.s in
+  let btos b = if b then "@Uradical" else E.s in
   let showextended = ref false in
   let leave mode = function
     | Confirm -> state.mode <- mode
@@ -4151,7 +4151,7 @@ let enterinfomode =
     ;
 
     sep ();
-    let btos b = if b then "\xc2\xab" else "\xc2\xbb" in
+    let btos b = if b then "@Ulguillemet" else "@Urguillemet" in
     src#bool ~offset:0 ~btos "Extended parameters"
       (fun () -> !showextended)
       (fun v -> showextended := v; fillsrc prevmode prevuioh);
