@@ -37,10 +37,10 @@ mouse buttons 5/6       - pan left/right (aka horizontal mouse wheel)
 other mouse button[2]   - select rectangle to zoom to
 
 Note:
-(moving mouse while holding primary mouse button will pan the page,
- if the mouse is over selectable element (text/link) holding control
- will make the page pan instead of the default action (selecting text/
- clicking link))
+  moving mouse while holding primary mouse button will pan the page,
+  if the mouse is over selectable element (text/link) holding control
+  will make the page pan instead of the default action (selecting text/
+  clicking link)
 
 -----Bookmarks-----
 m                       - create named bookmark
