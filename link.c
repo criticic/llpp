@@ -1947,7 +1947,8 @@ static void * mainloop (void *unused)
             if (ok) {
                 if (!wthack) {
                     utf8filename = mbtoutf8 (filename);
-                    printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
+                    printd ("msg Opened %s (press h/F1 to get help)",
+                            utf8filename);
                     if (utf8filename != filename) {
                         free (utf8filename);
                     }
@@ -4344,7 +4345,9 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
 
 #ifdef USE_FONTCONFIG
-    fz_install_load_system_font_funcs (state.ctx, fc_load_system_font_func, NULL);
+    fz_install_load_system_font_funcs (
+        state.ctx, fc_load_system_font_func, NULL
+        );
 #endif
 
     state.trimmargins = Bool_val (Field (trim_v, 0));
