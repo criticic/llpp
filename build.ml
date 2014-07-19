@@ -135,7 +135,13 @@ let () =
   in
   let mkcmo name =
     let dirname = if name = "help" then Sys.getcwd () else srcdir in
-    cmopp ~flags:"-g -w A-7-6-4 -I +lablGL -thread" ~dirname name;
+    if name = "main"
+    then
+      let flags = "-g -w A-7-6-4 -I +lablGL -thread -pp 'sed -f " ^
+        (Filename.concat dirname "pp.sed") ^ "'"
+      in
+      cmopp ~flags ~dirname name
+    else cmopp ~flags:"-g -w A-7-6-4 -I +lablGL -thread" ~dirname name;
     (name ^ ".cmo")
   in
   let cmos = so :: List.map mkcmo

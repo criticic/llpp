@@ -155,7 +155,8 @@ $comp -c -o wsi.cmi $srcpath/wsi.mli
 $comp -c -o wsi.$osuf $srcpath/wsi.ml
 $comp -c -o parser.$osuf $srcpath/parser.ml
 $comp -c -o config.$osuf -I $root/lib/ocaml/lablGL $srcpath/config.ml
-$comp -c -o main.$osuf -I $root/lib/ocaml/lablGL $srcpath/main.ml
+$comp -c -pp "sed -f $srcpath/pp.sed" -o main.$osuf \
+      -I $root/lib/ocaml/lablGL $srcpath/main.ml
 
 $link -o llpp                          \
     -I $root/lib/ocaml/lablGL          \

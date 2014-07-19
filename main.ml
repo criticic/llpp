@@ -2471,7 +2471,7 @@ let textentrykeyboard
         G.postRedisplay "textentry histaction"
   in
   match key with
-  | 0xff08 ->                           (* backspace *)
+  | @backspace ->
       if emptystr text && cancelonempty
       then (
         onleave Cancel;
@@ -2481,17 +2481,17 @@ let textentrykeyboard
         let s = withoutlastutf8 text in
         enttext (c, s, opthist, onkey, ondone, cancelonempty)
 
-  | 0xff0d | 0xff8d ->                  (* (kp) enter *)
+  | @enter | @kpenter ->
       ondone text;
       onleave Confirm;
       G.postRedisplay "textentrykeyboard after confirm"
 
-  | 0xff52 | 0xff97 -> histaction HCprev (* (kp) up *)
-  | 0xff54 | 0xff99 -> histaction HCnext (* (kp) down *)
-  | 0xff50 | 0xff95 -> histaction HCfirst (* (kp) home) *)
-  | 0xff57 | 0xff9c -> histaction HClast (* (kp) end *)
+  | @up | @kpup -> histaction HCprev
+  | @down | @kpdown -> histaction HCnext
+  | @home | @kphome -> histaction HCfirst
+  | @jend | @kpend -> histaction HClast
 
-  | 0xff1b ->                           (* escape*)
+  | @escape ->
       if emptystr text
       then (
         begin match opthist with
@@ -2506,7 +2506,7 @@ let textentrykeyboard
         enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
       )
 
-  | 0xff9f | 0xffff -> ()               (* delete *)
+  | @delete | @kpdelete -> ()
 
   | _ when key != 0
       && key land 0xff00 != 0xff00      (* keyboard *)
@@ -2866,8 +2866,8 @@ object (self)
       set active first;
     in
     match key with
-    | (0x72|0x73) when Wsi.withctrl mask -> (* ctrl-r/ctlr-s *)
-        let incr = if key = 0x72 then -1 else 1 in
+    | (@r|@s) when Wsi.withctrl mask ->
+        let incr = if key = @r then -1 else 1 in
         let active, first =
           match search (m_active + incr) m_qsearch incr with
           | None ->
@@ -2880,7 +2880,7 @@ object (self)
         G.postRedisplay "listview ctrl-r/s";
         set1 active first m_qsearch;
 
-    | 0xff63 when Wsi.withctrl mask ->  (* ctrl-insert *)
+    | @insert when Wsi.withctrl mask ->
         if m_active >= 0 && m_active < source#getitemcount
         then (
           let s, _ = source#getitem m_active in
@@ -2888,7 +2888,7 @@ object (self)
         );
         coe self
 
-    | 0xff08 ->                         (* backspace *)
+    | @backspace ->
         if emptystr m_qsearch
         then coe self
         else (
@@ -2927,7 +2927,7 @@ object (self)
         G.postRedisplay "listview qsearch add";
         set1 active first pattern;
 
-    | 0xff1b ->                         (* escape *)
+    | @escape ->
         state.text <- E.s;
         if emptystr m_qsearch
         then (
@@ -2945,7 +2945,7 @@ object (self)
           coe {< m_qsearch = E.s >}
         )
 
-    | 0xff0d | 0xff8d ->                (* (kp) enter *)
+    | @enter | @kpenter ->
         state.text <- E.s;
         let self = {< m_qsearch = E.s >} in
         let opt =
@@ -2963,30 +2963,30 @@ object (self)
         | Some uioh -> uioh
         end
 
-    | 0xff9f | 0xffff ->                (* (kp) delete *)
+    | @delete | @kpdelete ->
         coe self
 
-    | 0xff52 | 0xff97 -> navigate ~-1   (* (kp) up *)
-    | 0xff54 | 0xff99 -> navigate   1   (* (kp) down *)
-    | 0xff55 | 0xff9a -> navigate ~-(fstate.maxrows) (* (kp) prior *)
-    | 0xff56 | 0xff9b -> navigate   fstate.maxrows (* (kp) next *)
+    | @up | @kpup -> navigate ~-1
+    | @down | @kpdown -> navigate 1
+    | 0xff55 | 0xff9a -> navigate ~-(fstate.maxrows)
+    | 0xff56 | 0xff9b -> navigate fstate.maxrows
 
-    | 0xff53 | 0xff98 ->                (* (kp) right *)
+    | @right | @kpright ->
         state.text <- E.s;
         G.postRedisplay "listview right";
         coe {< m_pan = m_pan - 1 >}
 
-    | 0xff51 | 0xff96 ->                (* (kp) left *)
+    | @left | @kpleft ->
         state.text <- E.s;
         G.postRedisplay "listview left";
         coe {< m_pan = m_pan + 1 >}
 
-    | 0xff50 | 0xff95 ->                (* (kp) home *)
+    | @home | @kphome ->
         let active = find 0 1 in
         G.postRedisplay "listview home";
         set active 0;
 
-    | 0xff57 | 0xff9c ->                (* (kp) end *)
+    | @jend | @kpend ->
         let first = max 0 (itemcount - fstate.maxrows) in
         let active = find (itemcount - 1) ~-1 in
         G.postRedisplay "listview end";
@@ -3161,7 +3161,7 @@ object (self)
     in
     let ctrl = Wsi.withctrl mask in
     match key with
-    | 97 when ctrl ->                   (* ctrl-a *)
+    | @a when ctrl ->
         let text =
           if m_autonarrow
           then (source#denarrow; E.s)
@@ -3176,25 +3176,25 @@ object (self)
         G.postRedisplay "toggle auto narrowing";
         coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
 
-    | 47 when emptystr m_qsearch && not m_autonarrow -> (* / *)
+    | @slash when emptystr m_qsearch && not m_autonarrow ->
         settext true E.s;
         G.postRedisplay "toggle auto narrowing";
         coe {< m_first = 0; m_active = 0; m_autonarrow = true >}
 
-    | 110 when ctrl ->                  (* ctrl-n *)
+    | @n when ctrl ->
         source#narrow m_qsearch;
         if not m_autonarrow
         then source#add_narrow_pattern m_qsearch;
         G.postRedisplay "outline ctrl-n";
         coe {< m_first = 0; m_active = 0 >}
 
-    | 83 when ctrl ->                   (* ctrl-S *)
+    | @S when ctrl ->
         let active = source#calcactive (getanchor ()) in
         let first = firstof m_first active in
         G.postRedisplay "outline ctrl-s";
         coe {< m_first = first; m_active = active >}
 
-    | 117 when ctrl ->                  (* ctrl-u *)
+    | @u when ctrl ->
         G.postRedisplay "outline ctrl-u";
         if m_autonarrow && nonemptystr m_qsearch
         then (
@@ -3212,12 +3212,12 @@ object (self)
           coe {< m_first = 0; m_active = 0; m_qsearch = E.s >}
         )
 
-    | 108 when ctrl ->                  (* ctrl-l *)
+    | @l when ctrl ->
         let first = max 0 (m_active - (fstate.maxrows / 2)) in
         G.postRedisplay "outline ctrl-l";
         coe {< m_first = first >}
 
-    | 0xff09 when m_autonarrow ->       (* tab *)
+    | @tab when m_autonarrow ->
         if nonemptystr m_qsearch
         then (
           G.postRedisplay "outline list view tab";
@@ -3227,12 +3227,12 @@ object (self)
         )
         else coe self
 
-    | 0xff1b when m_autonarrow ->       (* escape *)
+    | @escape when m_autonarrow ->
         if nonemptystr m_qsearch
         then source#add_narrow_pattern m_qsearch;
         super#key key mask
 
-    | 0xff0d | 0xff8d when m_autonarrow -> (* (kp) enter *)
+    | @enter | @kpenter when m_autonarrow ->
         if nonemptystr m_qsearch
         then source#add_narrow_pattern m_qsearch;
         super#key key mask
@@ -3244,7 +3244,7 @@ object (self)
         settext true pattern;
         coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-    | key when m_autonarrow && key = 0xff08 -> (* backspace *)
+    | key when m_autonarrow && key = @backspace ->
         if emptystr m_qsearch
         then coe self
         else
@@ -3255,27 +3255,25 @@ object (self)
           settext true pattern;
           coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-    | 0xff9f | 0xffff ->                (* (kp) delete *)
+    | @delete | @kpdelete ->
         source#remove m_active;
         G.postRedisplay "outline delete";
         let active = max 0 (m_active-1) in
         coe {< m_first = firstof m_first active;
                m_active = active >}
 
-    | 0xff52 | 0xff97 when ctrl ->      (* ctrl-(kp) up *)
+    | @up | @kpup when ctrl ->
         navscroll (max 0 (m_first - 1))
 
-    | 0xff54 | 0xff99 when ctrl ->      (* ctrl-(kp) down *)
+    | @down | @kpdown when ctrl ->
         navscroll (min (source#getitemcount - 1) (m_first + 1))
 
-    | 0xff52 | 0xff97 -> navigate ~-1   (* (kp) up *)
-    | 0xff54 | 0xff99 -> navigate 1     (* (kp) down *)
-    | 0xff55 | 0xff9a ->                (* (kp) prior *)
-        navigate ~-(fstate.maxrows)
-    | 0xff56 | 0xff9b ->                (* (kp) next *)
-        navigate fstate.maxrows
+    | @up | @kpup -> navigate ~-1
+    | @down | @kpdown -> navigate 1
+    | 0xff55 | 0xff9a -> navigate ~-(fstate.maxrows)
+    | 0xff56 | 0xff9b -> navigate fstate.maxrows
 
-    | 0xff53 | 0xff98 ->                (* [ctrl-] (kp) right *)
+    | @right | @kpright ->
         let o =
           if ctrl
           then (
@@ -3286,7 +3284,7 @@ object (self)
         in
         coe o
 
-    | 0xff51 | 0xff96 ->                (* [ctrl-] (kp) left *)
+    | @left | @kpleft ->
         let o =
           if ctrl
           then (
@@ -3297,11 +3295,11 @@ object (self)
         in
         coe o
 
-    | 0xff50 | 0xff95 ->                (* (kp) home *)
+    | @home | @kphome ->
         G.postRedisplay "outline home";
         coe {< m_first = 0; m_active = 0 >}
 
-    | 0xff57 | 0xff9c ->                (* (kp) end *)
+    | @jend | @kpend ->
         let active = source#getitemcount - 1 in
         let first = max 0 (active - fstate.maxrows) in
         G.postRedisplay "outline end";
@@ -4374,8 +4372,8 @@ let enterinfomode =
         if not (Wsi.withctrl mask)
         then
           match key with
-          | 0xff51 | 0xff96 -> coe (self#updownlevel ~-1) (* (kp) left *)
-          | 0xff53 | 0xff98 -> coe (self#updownlevel 1) (* (kp) right *)
+          | @left | @kpleft -> coe (self#updownlevel ~-1)
+          | @right | @kpright -> coe (self#updownlevel 1)
           | _ -> super#key key mask
         else super#key key mask
     end);
@@ -4619,10 +4617,8 @@ let viewkeyboard key mask =
     if key >= 0xffb0 && key < 0xffb9 then key - 0xffb0 + 48 else key
   in
   match key with
-  | 81 ->                               (* Q *)
-      exit 0
-
-  | 0xff63 ->                           (* insert *)
+  | @Q -> exit 0
+  | @insert ->
       if conf.angle mod 360 = 0 && not (isbirdseye state.mode)
       then (
         state.mode <- LinkNav (Ltgendir 0);
@@ -4630,7 +4626,7 @@ let viewkeyboard key mask =
       )
       else showtext '!' "Keyboard link navigation does not work under rotation"
 
-  | 0xff1b | 113 ->                     (* escape / q *)
+  | @escape | @q ->
       begin match state.mstate with
       | Mzoomrect _ ->
           resetmstate ();
@@ -4652,22 +4648,22 @@ let viewkeyboard key mask =
           end;
       end;
 
-  | 0xff08 ->                           (* backspace *)
+  | @backspace ->
       gotoghyll (getnav ~-1)
 
-  | 111 ->                              (* o *)
+  | @o ->
       enteroutlinemode ()
 
-  | 72 ->                               (* H *)
+  | @H ->
       enterhistmode ()
 
-  | 117 ->                              (* u *)
+  | @u ->
       state.rects <- [];
       state.text <- E.s;
       Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
       G.postRedisplay "dehighlight";
 
-  | 47 | 63 ->                          (* / ? *)
+  | @slash | @question ->
       let ondone isforw s =
         cbput state.hists.pat s;
         state.searchpattern <- s;
@@ -4676,13 +4672,13 @@ let viewkeyboard key mask =
       let s = String.create 1 in
       s.[0] <- Char.chr key;
       enttext (s, E.s, Some (onhist state.hists.pat),
-              textentry, ondone (key = 47), true)
+              textentry, ondone (key = @slash), true)
 
-  | 43 | 0xffab | 61 when ctrl ->       (* ctrl-+ or ctrl-= *)
+  | @plus | @kpplus | @equals when ctrl ->
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
       setzoom (conf.zoom +. incr)
 
-  | 43 | 0xffab ->                      (* + *)
+  | @plus | @kpplus ->
       let ondone s =
         let n =
           try int_of_string s with exc ->
@@ -4697,18 +4693,18 @@ let viewkeyboard key mask =
       in
       enttext ("page bias: ", E.s, None, intentry, ondone, true)
 
-  | 45 | 0xffad when ctrl ->            (* ctrl-- *)
+  | @minus | @kpminus when ctrl ->
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
       setzoom (max 0.01 (conf.zoom -. decr))
 
-  | 45 | 0xffad ->                      (* - *)
+  | @minus | @kpminus ->
       let ondone msg = state.text <- msg in
       enttext (
         "option [acfhilpstvxACFPRSZTISM]: ", E.s, None,
         optentry state.mode, ondone, true
       )
 
-  | 48 when ctrl ->                     (* ctrl-0 *)
+  | @0 when ctrl ->
       if conf.zoom = 1.0
       then (
         state.x <- 0;
@@ -4716,7 +4712,7 @@ let viewkeyboard key mask =
       )
       else setzoom 1.0
 
-  | (49 | 50) when ctrl && conf.fitmodel != FitPage -> (* ctrl-1/2 *)
+  | (@1 | @2) when ctrl && conf.fitmodel != FitPage -> (* ctrl-1/2 *)
       let cols =
         match conf.columns with
         | Csingle _ | Cmulti _ -> 1
@@ -4729,7 +4725,7 @@ let viewkeyboard key mask =
       if zoom > 0.0 && (key = 50 || zoom < 1.0)
       then setzoom zoom
 
-  | 51 when ctrl ->                     (* ctrl-3 *)
+  | @3 when ctrl ->
       let fm =
         match conf.fitmodel with
         | FitWidth -> FitProportional
@@ -4739,10 +4735,10 @@ let viewkeyboard key mask =
       state.text <- "fit model: " ^ FMTE.to_string fm;
       reqlayout conf.angle fm
 
-  | 0xffc6 ->                           (* f9 *)
+  | @F9 ->
       togglebirdseye ()
 
-  | 57 when ctrl ->                     (* ctrl-9 *)
+  | @9 when ctrl ->
       togglebirdseye ()
 
   | (48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57)
@@ -4768,21 +4764,21 @@ let viewkeyboard key mask =
       let text = "x" in text.[0] <- Char.chr key;
       enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone, true)
 
-  | 98 ->                               (* b *)
+  | @b ->
       conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
       reshape state.winw state.winh;
 
-  | 66 ->                               (* B *)
+  | @B ->
       state.bzoom <- not state.bzoom;
       state.rects <- [];
       showtext ' ' ("block zoom " ^ if state.bzoom then "on" else "off")
 
-  | 108 ->                              (* l *)
+  | @l ->
       conf.hlinks <- not conf.hlinks;
       state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
       G.postRedisplay "toggle highlightlinks";
 
-  | 70 ->                               (* F *)
+  | @F ->
       state.glinks <- true;
       let mode = state.mode in
       state.mode <- Textentry (
@@ -4794,7 +4790,7 @@ let viewkeyboard key mask =
       state.text <- E.s;
       G.postRedisplay "view:linkent(F)"
 
-  | 121 ->                              (* y *)
+  | @y ->
       state.glinks <- true;
       let mode = state.mode in
       state.mode <- Textentry (
@@ -4810,7 +4806,7 @@ let viewkeyboard key mask =
       state.text <- E.s;
       G.postRedisplay "view:linkent"
 
-  | 97 ->                               (* a *)
+  | @a ->
       begin match state.autoscroll with
       | Some step ->
           conf.autoscrollstep <- step;
@@ -4821,42 +4817,42 @@ let viewkeyboard key mask =
           else state.autoscroll <- Some conf.autoscrollstep
       end
 
-  | 112 when ctrl ->                    (* ctrl-p *)
+  | @p when ctrl ->
       launchpath ()
 
-  | 80 ->                               (* P *)
+  | @P ->
       setpresentationmode (not conf.presentation);
       showtext ' ' ("presentation mode " ^
                        if conf.presentation then "on" else "off");
 
-  | 102 ->                              (* f *)
+  | @f ->
       if List.mem Wsi.Fullscreen state.winstate
       then Wsi.reshape conf.cwinw conf.cwinh
       else Wsi.fullscreen ()
 
-  | 112 | 78 ->                         (* p|N *)
+  | @p | @N ->
       search state.searchpattern false
 
-  | 110 | 0xffc0 ->                     (* n|F3 *)
+  | @n | @F3 ->
       search state.searchpattern true
 
-  | 116 ->                              (* t *)
+  | @t ->
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
           gotoghyll (getpagey l.pageno)
       end
 
-  | 32 ->                               (* space *)
+  | @space ->
       nextpage ()
 
-  | 0xff9f | 0xffff ->                  (* delete *)
+  | @delete | @kpdelete ->                  (* delete *)
       prevpage ()
 
-  | 61 ->                               (* = *)
+  | @equals ->
       showtext ' ' (describe_location ());
 
-  | 119 ->                              (* w *)
+  | @w ->
       begin match state.layout with
       | [] -> ()
       | l :: _ ->
@@ -4864,19 +4860,19 @@ let viewkeyboard key mask =
           G.postRedisplay "w"
       end
 
-  | 39 ->                               (* ' *)
+  | @apos ->
       enterbookmarkmode ()
 
-  | 104 | 0xffbe ->                     (* h|F1 *)
+  | @h | @F1 ->
       enterhelpmode ()
 
-  | 105 ->                              (* i *)
+  | @i ->
       enterinfomode ()
 
-  | 101 when Buffer.length state.errmsgs > 0 -> (* e *)
+  | @e when Buffer.length state.errmsgs > 0 ->
       entermsgsmode ()
 
-  | 109 ->                              (* m *)
+  | @m ->
       let ondone s =
         match state.layout with
         | l :: _ ->
@@ -4888,11 +4884,11 @@ let viewkeyboard key mask =
       in
       enttext ("bookmark: ", E.s, None, textentry, ondone, true)
 
-  | 126 ->                              (* ~ *)
+  | @tilde ->
       quickbookmark ();
       showtext ' ' "Quick bookmark added";
 
-  | 122 ->                              (* z *)
+  | @z ->
       begin match state.layout with
       | l :: _ ->
           let rect = getpdimrect l.pagedimno in
@@ -4917,18 +4913,18 @@ let viewkeyboard key mask =
       | [] -> ()
       end
 
-  | 120 ->                              (* x *)
-      state.roam ()
-  | 60 | 62 ->                          (* < > *)
-      reqlayout (conf.angle + (if key = 62 then 30 else -30)) conf.fitmodel
+  | @x -> state.roam ()
 
-  | 91 | 93 ->                          (* [ ] *)
+  | @Lt | @Gt ->
+      reqlayout (conf.angle + (if key = @question then 30 else -30)) conf.fitmodel
+
+  | @Lb | @Rb ->
       conf.colorscale <-
         bound (conf.colorscale +. (if key = 93 then 0.1 else -0.1)) 0.0 1.0
       ;
       G.postRedisplay "brightness";
 
-  | 99 when state.mode = View ->        (* [alt-]c *)
+  | @c when state.mode = View ->
       if Wsi.withalt mask
       then (
         if conf.zoom > 1.0
@@ -4953,13 +4949,12 @@ let viewkeyboard key mask =
         setcolumns View c a b;
         setzoom z
 
-  | 0xff54 | 0xff52 when ctrl && Wsi.withshift mask
-        ->                              (* ctrl-shift- (kp) [up|down] *)
+  | @down | @up when ctrl && Wsi.withshift mask ->
       let zoom, x = state.prevzoom in
       setzoom zoom;
       state.x <- x;
 
-  | 107 | 0xff52 | 0xff97 ->            (* k (kp) up *)
+  | @k | @up | @kpup ->
       begin match state.autoscroll with
       | None ->
           begin match state.mode with
@@ -4977,7 +4972,7 @@ let viewkeyboard key mask =
           setautoscrollspeed n false
       end
 
-  | 106 | 0xff54 | 0xff99 ->            (* j (kp) down *)
+  | @j | @down | @kpdown ->
       begin match state.autoscroll with
       | None ->
           begin match state.mode with
@@ -4995,8 +4990,7 @@ let viewkeyboard key mask =
           setautoscrollspeed n true
       end
 
-  | 0xff51 | 0xff53 | 0xff96 | 0xff98
-        when not (Wsi.withalt mask) ->  (* (kp) left / right *)
+  | @left | @right | @kpleft | @kpright when not (Wsi.withalt mask) ->
       if canpan ()
       then
         let dx =
@@ -5004,7 +4998,7 @@ let viewkeyboard key mask =
           then state.winw / 2
           else conf.hscrollstep
         in
-        let dx = if key = 0xff51 || key = 0xff96 then dx else -dx in
+        let dx = if key = @left || key = @kpleft then dx else -dx in
         state.x <- panbound (state.x + dx);
         gotoy_and_clear_text state.y
       else (
@@ -5012,7 +5006,7 @@ let viewkeyboard key mask =
         G.postRedisplay "left/right"
       )
 
-  | 0xff55 | 0xff9a ->                  (* (kp) prior *)
+  | @prior | @kpprior ->
       let y =
         if ctrl
         then
@@ -5024,7 +5018,7 @@ let viewkeyboard key mask =
       in
       gotoghyll y
 
-  | 0xff56 | 0xff9b ->                  (* (kp) next *)
+  | @next | @kpnext ->
       let y =
         if ctrl
         then
@@ -5036,22 +5030,20 @@ let viewkeyboard key mask =
       in
       gotoghyll y
 
-  | 103 | 0xff50 | 0xff95 ->            (* g (kp) home *)
+  | @g | @home | @kphome ->
       gotoghyll 0
-  | 71 | 0xff57 | 0xff9c ->             (* G (kp) end *)
+  | @G | @jend | @kpend ->
       gotoghyll (clamp state.maxy)
 
-  | 0xff53 | 0xff98
-        when Wsi.withalt mask ->        (* alt-(kp) right *)
+  | @right | @kpright when Wsi.withalt mask ->
       gotoghyll (getnav 1)
-  | 0xff51 | 0xff96
-        when Wsi.withalt mask ->        (* alt-(kp) left *)
+  | @left | @kpleft when Wsi.withalt mask ->
       gotoghyll (getnav ~-1)
 
-  | 114 ->                              (* r *)
+  | @r ->
       reload ()
 
-  | 118 when conf.debug ->              (* v *)
+  | @v when conf.debug ->
       state.rects <- [];
       List.iter (fun l ->
         match getopaque l.pageno with
@@ -5068,7 +5060,7 @@ let viewkeyboard key mask =
       ) state.layout;
       G.postRedisplay "v";
 
-  | 124 ->                              (* | *)
+  | @pipe ->
       let mode = state.mode in
       let cmd = ref E.s in
       let onleave = function
@@ -5105,7 +5097,7 @@ let linknavkeyboard key mask linknav =
   let doexact (pageno, n) =
     match getopaque pageno, getpage pageno with
     | Some opaque, Some l ->
-        if key = 0xff0d || key = 0xff8d (* (kp)enter *)
+        if key = @enter || key = @kpenter
         then
           let under = getlink opaque n in
           G.postRedisplay "link gotounder";
@@ -5114,22 +5106,22 @@ let linknavkeyboard key mask linknav =
         else
           let opt, dir =
             match key with
-            | 0xff50 ->                 (* home *)
+            | @home ->
                 Some (findlink opaque LDfirst), -1
 
-            | 0xff57 ->                 (* end *)
+            | @jend ->
                 Some (findlink opaque LDlast), 1
 
-            | 0xff51 ->                 (* left *)
+            | @left ->
                 Some (findlink opaque (LDleft n)), -1
 
-            | 0xff53 ->                 (* right *)
+            | @right ->
                 Some (findlink opaque (LDright n)), 1
 
-            | 0xff52 ->                 (* up *)
+            | @up ->
                 Some (findlink opaque (LDup n)), -1
 
-            | 0xff54 ->                 (* down *)
+            | @down ->
                 Some (findlink opaque (LDdown n)), 1
 
             | _ -> None, 0
@@ -5188,7 +5180,7 @@ let linknavkeyboard key mask linknav =
           end;
     | _ -> viewkeyboard key mask
   in
-  if key = 0xff63
+  if key = @insert
   then (
     state.mode <- View;
     G.postRedisplay "leave linknav"
@@ -5215,19 +5207,18 @@ let birdseyekeyboard key mask
   in
   let pgh layout = List.fold_left (fun m l -> max l.pageh m) state.winh layout in
   match key with
-  | 108 when Wsi.withctrl mask ->      (* ctrl-l *)
+  | @l when Wsi.withctrl mask ->
       let y, h = getpageyh pageno in
       let top = (state.winh - h) / 2 in
       gotoy (max 0 (y - top))
-  | 0xff0d                              (* enter *)
-  | 0xff8d -> leavebirdseye beye false  (* kp enter *)
-  | 0xff1b -> leavebirdseye beye true   (* escape *)
-  | 0xff52 -> upbirdseye incr beye      (* up *)
-  | 0xff54 -> downbirdseye incr beye    (* down *)
-  | 0xff51 -> upbirdseye 1 beye         (* left *)
-  | 0xff53 -> downbirdseye 1 beye       (* right *)
+  | @enter | @kpenter -> leavebirdseye beye false
+  | @escape -> leavebirdseye beye true
+  | @up -> upbirdseye incr beye
+  | @down -> downbirdseye incr beye
+  | @left -> upbirdseye 1 beye
+  | @right -> downbirdseye 1 beye
 
-  | 0xff55 ->                           (* prior *)
+  | @prior ->
       begin match state.layout with
       | l :: _ ->
           if l.pagey != 0
@@ -5251,7 +5242,7 @@ let birdseyekeyboard key mask
       | [] -> gotoy (clamp (-state.winh))
       end;
 
-  | 0xff56 ->                           (* next *)
+  | @next ->
       begin match List.rev state.layout with
       | l :: _ ->
           let layout = layout (state.y + (pgh state.layout)) state.winh in
@@ -5277,11 +5268,11 @@ let birdseyekeyboard key mask
       | [] -> gotoy (clamp state.winh)
       end;
 
-  | 0xff50 ->                           (* home *)
+  | @home ->
       state.mode <- Birdseye (oconf, leftx, 0, hooverpageno, anchor);
       gotopage1 0 0
 
-  | 0xff57 ->                           (* end *)
+  | @jend ->
       let pageno = state.pagecount - 1 in
       state.mode <- Birdseye (oconf, leftx, pageno, hooverpageno, anchor);
       if not (pagevisible state.layout pageno)
@@ -5293,6 +5284,7 @@ let birdseyekeyboard key mask
         in
         gotoy (max 0 (getpagey pageno - (state.winh - h - conf.interpagespace)))
       else G.postRedisplay "birdseye end";
+
   | _ -> viewkeyboard key mask
 ;;
 
