@@ -2968,8 +2968,8 @@ object (self)
 
     | @up | @kpup -> navigate ~-1
     | @down | @kpdown -> navigate 1
-    | 0xff55 | 0xff9a -> navigate ~-(fstate.maxrows)
-    | 0xff56 | 0xff9b -> navigate fstate.maxrows
+    | @prior | @kpprior -> navigate ~-(fstate.maxrows)
+    | @next | @kpnext -> navigate fstate.maxrows
 
     | @right | @kpright ->
         state.text <- E.s;
@@ -3270,8 +3270,8 @@ object (self)
 
     | @up | @kpup -> navigate ~-1
     | @down | @kpdown -> navigate 1
-    | 0xff55 | 0xff9a -> navigate ~-(fstate.maxrows)
-    | 0xff56 | 0xff9b -> navigate fstate.maxrows
+    | @prior | @kpprior -> navigate ~-(fstate.maxrows)
+    | @next | @kpnext -> navigate fstate.maxrows
 
     | @right | @kpright ->
         let o =
