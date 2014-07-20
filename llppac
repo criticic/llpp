@@ -61,8 +61,6 @@ if test -z "$type"; then
     esac
 fi
 
-opts=
-
 case $type in
     ps) conv='ps2pdf - "$casp"';;
     image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
@@ -106,7 +104,7 @@ case $type in
 </fontconfig>
 EOF
         FONTCONFIG_PATH=. pango-view -q "$inpath" -o font.pdf
-        exec llpp $opts -origin "$@" font.pdf
+        exec llpp -origin "$@" font.pdf
     };;
     image) conv='convert - pdf:"$casp"';;
     dvi) {
@@ -121,4 +119,4 @@ hash=$(md5sum "$1") || die "$hash"
 casp=$CACHEDIR/${hash%% *}
 (test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
 
-exec llpp $opts -origin "$@" "$casp"
+exec llpp -origin "$@" "$casp"
