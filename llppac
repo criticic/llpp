@@ -94,7 +94,7 @@ case $type in
         test -z "$2" && die "path to the file with text required"
         # https://mail.gnome.org/archives/gtk-i18n-list/2010-June/msg00000.html
         mkdir -p $CACHEDIR/fonts
-        cp -f "$1" $CACHEDIR/fonts/font
+        eval $filt cat >$CACHEDIR/fonts/font
         cd $CACHEDIR/fonts
         cat >fonts.conf <<EOF
 <?xml version="1.0"?>
