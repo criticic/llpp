@@ -26,7 +26,7 @@ s;@kpprior;0xff9a;
 s;@kpright;0xff98;
 s;@kpup;0xff97;
 s;@left;0xff51;
-s;@minus;41;
+s;@minus;45;
 s;@next;0xff56;
 s;@pipe;124;
 s;@plus;43;
