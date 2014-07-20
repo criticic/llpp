@@ -56,6 +56,7 @@ if test -z "$type"; then
         image/png | image/jpeg) test -n "$dc" && type="image" || type="image2";;
         image/*) type=image;;
         application/x-dvi) type=dvi;;
+        application/x-font-ttf | application/vnd.ms-opentype) type=font;;
         *) die "unhandled file type: '$mime'";;
     esac
 fi
@@ -89,7 +90,7 @@ case $type in
             && conv='rsvg-convert -f pdf -o "$casp"'     \
             || conv='inkscape -z -A "$casp" -'
     };;
-    image) conv='convert - pdf:"$casp"';;
+    font|image) conv='convert - pdf:"$casp"';;
     dvi) {
         test -n "$dc" && die "can not convert compressed '$mime'"
         unset filt
