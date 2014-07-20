@@ -90,7 +90,25 @@ case $type in
             && conv='rsvg-convert -f pdf -o "$casp"'     \
             || conv='inkscape -z -A "$casp" -'
     };;
-    font|image) conv='convert - pdf:"$casp"';;
+    font) {
+        test -z "$2" && die "path to the file with text required"
+        # https://mail.gnome.org/archives/gtk-i18n-list/2010-June/msg00000.html
+        mkdir -p $CACHEDIR/fonts
+        cp -f "$1" $CACHEDIR/fonts/font
+        cd $CACHEDIR/fonts
+        cat >fonts.conf <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+	<dir>.</dir>
+	<cachedir>.</cachedir>
+	<config></config>
+</fontconfig>
+EOF
+        FONTCONFIG_PATH=. pango-view -q "$2" -o font.pdf
+        exec llpp $opts -origin "$@" font.pdf
+    };;
+    image) conv='convert - pdf:"$casp"';;
     dvi) {
         test -n "$dc" && die "can not convert compressed '$mime'"
         unset filt
