@@ -91,8 +91,8 @@ case $type in
             || conv='inkscape -z -A "$casp" -'
     };;
     font) {
-        test -z "$2" && die "path to the file with text required"
-        inpath="$(pwd)/$2"
+        test -e "$2" || die "path to the existing file with text required"
+        inpath="$2"
         # https://mail.gnome.org/archives/gtk-i18n-list/2010-June/msg00000.html
         eval $filt cat >$CACHEDIR/fonts/font
         cd $CACHEDIR/fonts
