@@ -3,6 +3,8 @@
 set -e
 
 CACHEDIR=$HOME/.cache/llpp
+caspsuf=
+type=
 
 die() {
     echo "$1" >&2
@@ -13,6 +15,26 @@ executable_p() {
     command -v "$1" >/dev/null 2>&1
 }
 
+maketext() {
+    cat >"$CACHEDIR/fonts/text" <<EOF
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
+minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+culpa qui officia deserunt mollit anim id est laborum.
+abcdefghizklmnopqrstwxyz
+ABCDEFGHIZKLMNOPQRSTWXYZ
+\`1234567890-=\\
+~!@#\$%^&*()_+|
+[];',./
+{}:"<>?
+
+EOF
+}
+
+md5of="$1"
 trap 'test -n "$casp" && rm -f "$casp"' 0
 
 test -d "$CACHEDIR" || die "cache directory '$CACHEDIR' does not exist"
@@ -27,7 +49,9 @@ done
 shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: path"
 
-ft=$(file -L --mime-type -b "$1") || die "$ft"
+test -z "$type" && {
+    $ft=$(file -L --mime-type -b "$1") || die "$ft"
+}
 
 case $ft in
     application/x-gzip | application/x-compress) dc=zcat;;
@@ -89,22 +113,39 @@ case $type in
             || conv='inkscape -z -A "$casp" -'
     };;
     font) {
-        test -e "$2" || die "path to the existing file with text required"
-        inpath="$2"
+        if test -e "$2"; then
+            arg="$2"
+        else
+            arg="--waterfall $CACHEDIR/fonts/text"
+            maketext
+        fi
         # https://mail.gnome.org/archives/gtk-i18n-list/2010-June/msg00000.html
         eval $filt cat >$CACHEDIR/fonts/font
-        cd $CACHEDIR/fonts
-        cat >fonts.conf <<EOF
+        cat >$CACHEDIR/fonts/fonts.conf <<EOF
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
-	<dir>.</dir>
-	<cachedir>.</cachedir>
+	<dir>$CACHEDIR/fonts/</dir>
+	<cachedir>$CACHEDIR/fonts/</cachedir>
 	<config></config>
 </fontconfig>
 EOF
-        FONTCONFIG_PATH=. pango-view -q "$inpath" -o font.pdf
-        exec llpp -origin "$@" font.pdf
+        unset filt
+        conv='FONTCONFIG_PATH=$CACHEDIR/fonts/ pango-view -q $arg -o $casp'
+        caspsuf=.pdf
+    };;
+    fcfont) {
+        if test -e "$2"; then
+            arg="$2"
+        else
+            arg="--waterfall $CACHEDIR/fonts/text"
+            maketext
+        fi
+        conv='pango-view --font="$1" -q $arg -o $casp'
+        caspsuf=.pdf
+        md5of=/dev/null
+        filt=
+        force=1
     };;
     image) conv='convert - pdf:"$casp"';;
     dvi) {
@@ -115,8 +156,8 @@ EOF
     *) die "unhandled filter type: '$type'";;
 esac
 
-hash=$(md5sum "$1") || die "$hash"
-casp=$CACHEDIR/${hash%% *}
+hash=$(md5sum "$md5of") || die "$hash"
+casp=$CACHEDIR/${hash%% *}$caspsuf
 (test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
 
 exec llpp -origin "$@" "$casp"
