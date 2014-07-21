@@ -50,7 +50,7 @@ shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: path"
 
 test -z "$type" && {
-    $ft=$(file -L --mime-type -b "$1") || die "$ft"
+    ft=$(file -L --mime-type -b "$1") || die "$ft"
 }
 
 case $ft in
