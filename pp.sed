@@ -1,3 +1,5 @@
+s;@F1;0xffbe;
+s;@F3;0xffc0;
 s;@F9;0xffc6;
 s;@Gt;62;
 s;@Lb;91;
