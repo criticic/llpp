@@ -510,6 +510,7 @@ static void openxref (char *filename, char *password)
         } tbl[] = {
             { "pdf", DPDF },
             { "xps", DXPS },
+            { "zip", DCBZ },
             { "cbz", DCBZ },
             { "jpg", DIMG },
             { "jpeg", DIMG },
