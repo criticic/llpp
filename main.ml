@@ -5031,8 +5031,10 @@ let viewkeyboard key mask =
       gotoghyll y
 
   | @g | @home | @kphome ->
+      addnav ();
       gotoghyll 0
   | @G | @jend | @kpend ->
+      addnav ();
       gotoghyll (clamp state.maxy)
 
   | @right | @kpright when Wsi.withalt mask ->
