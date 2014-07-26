@@ -45,7 +45,7 @@ let selfexec = ref E.s;;
 let drawstring size x y s =
   Gl.enable `blend;
   Gl.enable `texture_2d;
-  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+  GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
   ignore (drawstr size x y s);
   Gl.disable `blend;
   Gl.disable `texture_2d;
@@ -696,7 +696,7 @@ let filledrect x0 y0 x1 y1 =
   GlArray.disable `texture_coord;
   Raw.sets_float state.vraw ~pos:0 [| x0; y0; x0; y1; x1; y0; x1; y1 |];
   GlArray.vertex `two state.vraw;
-  GlArray.draw_arrays `triangle_strip 0 4;
+  GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
   GlArray.enable `texture_coord;
 ;;
 
@@ -704,7 +704,7 @@ let linerect x0 y0 x1 y1 =
   GlArray.disable `texture_coord;
   Raw.sets_float state.vraw ~pos:0 [| x0; y0; x0; y1; x1; y1; x1; y0 |];
   GlArray.vertex `two state.vraw;
-  GlArray.draw_arrays `line_loop 0 4;
+  GlArray.draw_arrays `line_loop ~first:0 ~count:4;
   GlArray.enable `texture_coord;
 ;;
 
@@ -755,7 +755,7 @@ let drawtiles l color =
         begin match state.checkerstexid with
         | Some id ->
             Gl.enable `texture_2d;
-            GlTex.bind_texture `texture_2d id;
+            GlTex.bind_texture ~target:`texture_2d id;
             let x0 = float x
             and y0 = float y
             and x1 = float (x+w)
@@ -773,7 +773,7 @@ let drawtiles l color =
               [| tx0; ty0; tx0; ty1; tx1; ty0; tx1; ty1 |];
             GlArray.vertex `two state.vraw;
             GlArray.tex_coord `two state.traw;
-            GlArray.draw_arrays `triangle_strip 0 4;
+            GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
             Gl.disable `texture_2d;
 
         | None ->
@@ -1386,7 +1386,7 @@ let represent () =
 ;;
 
 let reshape w h =
-  GlDraw.viewport 0 0 w h;
+  GlDraw.viewport ~x:0 ~y:0 ~w:w ~h:h;
   let firsttime = state.geomcmds == firstgeomcmds in
   if not firsttime && nogeomcmds state.geomcmds
   then state.anchor <- getanchor ();
@@ -2590,7 +2590,7 @@ object (self)
 
   method display =
     Gl.enable `blend;
-    GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+    GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
     GlDraw.color (0., 0., 0.) ~alpha:0.85;
     filledrect 0. 0. (float state.winw) (float state.winh);
     GlDraw.color (1., 1., 1.);
@@ -2934,7 +2934,7 @@ object (self)
           G.postRedisplay "list view escape";
           begin
             match
-              source#exit (coe self) true m_active m_first m_pan
+              source#exit ~uioh:(coe self) ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan
             with
             | None -> m_prev_uioh
             | Some uioh -> uioh
@@ -2952,10 +2952,10 @@ object (self)
           G.postRedisplay "listview enter";
           if m_active >= 0 && m_active < source#getitemcount
           then (
-            source#exit (coe self) false m_active m_first m_pan;
+            source#exit ~uioh:(coe self) ~cancel:false ~active:m_active ~first:m_first ~pan:m_pan;
           )
           else (
-            source#exit (coe self) true m_active m_first m_pan;
+            source#exit ~uioh:(coe self) ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan;
           );
         in
         begin match opt with
@@ -3029,7 +3029,7 @@ object (self)
           begin match self#elemunder y with
           | Some n ->
               G.postRedisplay "listview click";
-              source#exit (coe {< m_active = n >}) false n m_first m_pan
+              source#exit ~uioh:(coe {< m_active = n >}) ~cancel:false ~active:n ~first:m_first ~pan:m_pan
           | _ ->
               Some (coe self)
           end
@@ -3689,7 +3689,7 @@ let makecheckers () =
   let image = GlPix.create `ubyte ~format:`luminance ~width:2 ~height:2 in
   Raw.sets_string (GlPix.to_raw image) ~pos:0 "\255\200\200\255";
   let id = GlTex.gen_texture () in
-  GlTex.bind_texture `texture_2d id;
+  GlTex.bind_texture ~target:`texture_2d id;
   GlPix.store (`unpack_alignment 1);
   GlTex.image2d image;
   List.iter (GlTex.parameter ~target:`texture_2d)
@@ -5370,7 +5370,7 @@ let showsel () =
 let showrects = function [] -> () | rects ->
   Gl.enable `blend;
   GlDraw.color (0.0, 0.0, 1.0) ~alpha:0.5;
-  GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+  GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
   List.iter
     (fun (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) ->
       List.iter (fun l ->
@@ -5385,7 +5385,7 @@ let showrects = function [] -> () | rects ->
                x3+.dx; y3+.dy;
                x2+.dx; y2+.dy |];
           GlArray.vertex `two state.vraw;
-          GlArray.draw_arrays `triangle_strip 0 4;
+          GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
         )
       ) state.layout
     ) rects
@@ -5429,7 +5429,7 @@ let display () =
   | Mzoomrect ((x0, y0), (x1, y1)) ->
       Gl.enable `blend;
       GlDraw.color (0.3, 0.3, 0.3) ~alpha:0.5;
-      GlFunc.blend_func `src_alpha `one_minus_src_alpha;
+      GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
       filledrect (float x0) (float y0) (float x1) (float y1);
       Gl.disable `blend;
   | _ -> ()
