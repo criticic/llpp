@@ -3125,7 +3125,7 @@ object (self)
 
   val m_autonarrow = false
 
-  method key key mask =
+  method! key key mask =
     let maxrows =
       if emptystr state.text
       then fstate.maxrows
@@ -3559,7 +3559,7 @@ let outlinesource sourcetype =
           in
           loop [] [] (Array.length m_items - 1)
 
-    method getminfo = m_minfo
+    method! getminfo = m_minfo
 
     method denarrow =
       m_orig_items <- (
@@ -4358,7 +4358,7 @@ let enterinfomode =
       inherit listview ~zebra:false ~helpmode:false
           ~source ~trusted:true ~modehash as super
       val mutable m_prevmemused = 0
-      method infochanged = function
+      method! infochanged = function
         | Memused ->
             if m_prevmemused != state.memused
             then (
@@ -4368,7 +4368,7 @@ let enterinfomode =
         | Pdim -> G.postRedisplay "pdimchanged"
         | Docinfo -> fillsrc prevmode prevuioh
 
-      method key key mask =
+      method! key key mask =
         if not (Wsi.withctrl mask)
         then
           match key with
@@ -4467,7 +4467,7 @@ let entermsgsmode =
     state.uioh <- coe (object
       inherit listview ~zebra:false ~helpmode:false
           ~source ~trusted:false ~modehash as super
-      method display =
+      method! display =
         if state.newerrmsgs
         then msgsource#reset;
         super#display
