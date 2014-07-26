@@ -965,14 +965,14 @@ let getauth haddr dnum =
       really_input ic s 0 len;
       s;
     in
-    let r16 s =
+    let r16be s =
       let rb pos = Char.code (String.get s pos) in
       (rb 1) lor ((rb 0) lsl 8)
     in
     let rec find () =
       let rs () =
         let s = input_string ic 2 in
-        let n = r16 s in
+        let n = r16be s in
         input_string ic n
       in
       let family = input_string ic 2 in
