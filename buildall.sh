@@ -149,6 +149,7 @@ else
 fi
 
 $comp -c -o link.o -ccopt "$ccopt" $srcpath/link.c
+$comp -c -o bo.$osuf $srcpath/le/bo.ml
 $comp -c -o help.$osuf help.ml
 $comp -c -o utils.$osuf $srcpath/utils.ml
 $comp -c -o wsi.cmi $srcpath/wsi.mli
@@ -163,6 +164,7 @@ $link -o llpp                          \
     str.$asuf unix.$asuf lablgl.$asuf  \
     link.o                             \
     -cclib "$cclib"                    \
+    bo.$osuf                           \
     help.$osuf                         \
     utils.$osuf                        \
     parser.$osuf                       \
