@@ -11,16 +11,15 @@ rule cc
      deps = gcc
      depfile = $out.d
      command = $ocamlc -cc $cc -ccopt "$cflags -MMD -MF $out.d -o $out" -c $in
+     description = cc $out
 
 rule ocamlc
      command = sh $srcdir/doocaml $out $in -c $ocamlflags
-
-rule helpcmo
-     command = cd $builddir >/dev/null && $
-          $ocamlc $ocamlflags -c -o help.cmo help.ml
+     description = ocamlc $out
 
 rule genhelp
      command = sh $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS >$out
+     description = genhelp
 
 sedcmd = sed -f $srcdir/pp.sed
 
@@ -28,7 +27,7 @@ build $builddir/help.ml: genhelp
 build $builddir/link.o: cc $srcdir/link.c
       cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP $
              -DUSE_FONTCONFIGg
-build $builddir/help.cmo: helpcmo | $builddir/help.ml
+build $builddir/help.cmo: ocamlc $builddir/help.ml
 build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
 build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
 build $builddir/wsi.cmi: ocamlc $srcdir/wsi.mli
@@ -50,6 +49,7 @@ cmos = $builddir/help.cmo $
 
 rule linkso
      command = $cc -o $out -shared $in $libs
+     description = linkso $out
 
 build $builddir/link.so: linkso $builddir/link.o
 
@@ -57,6 +57,7 @@ rule link
       command = $ocamlc -custom $
               -cclib "$builddir/link.so $lflags" $
               -o $out -I +lablGL str.cma unix.cma lablgl.cma $cmos
+     description = link $out
 
 build $builddir/llpp: link | $
       $builddir/help.cmo $
