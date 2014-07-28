@@ -1,3 +1,3 @@
-#!/bin/sh -e
-
+#!/bin/sh
+set -e
 exec time ninja
