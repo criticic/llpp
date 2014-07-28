@@ -1,7 +1,6 @@
 cc = gcc
 include .config
 ocamlc = ocamlc.opt
-ocaml = ocamlc.opt
 ocamlflags = -w a -I $builddir
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
@@ -18,7 +17,7 @@ rule ocamlc
 
 rule helpcmo
      command = cd $builddir >/dev/null && $
-          $ocaml $ocamlflags -c -o help.cmo help.ml
+          $ocamlc $ocamlflags -c -o help.cmo help.ml
 
 rule genhelp
      command = sh $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS >$out
@@ -55,7 +54,7 @@ rule linkso
 build $builddir/link.so: linkso $builddir/link.o
 
 rule link
-      command = $ocaml -custom $
+      command = $ocamlc -custom $
               -cclib "$builddir/link.so $lflags" $
               -o $out -I +lablGL str.cma unix.cma lablgl.cma $cmos
 
