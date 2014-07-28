@@ -1,0 +1,72 @@
+cc = gcc
+include .config
+ocamlc = ocamlc.opt
+ocaml = ocamlc.opt
+ocamlflags = -g -w a -I $builddir
+libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
+
+cflags =$cflags  -Wall -Werror -I$mupdf/include -I$freetype $
+       -I$mupdf/include
+
+rule cc
+     deps = gcc
+     depfile = $out.d
+     command = $ocamlc -cc $cc -ccopt "$cflags -MMD -MF $out.d -o $out" -c $in
+
+rule ocamlc
+     command = sh $srcdir/doocaml $out $in -c $ocamlflags
+
+rule helpcmo
+     command = cd $builddir >/dev/null && $
+          $ocaml $ocamlflags -c -o help.cmo help.ml
+
+rule genhelp
+     command = sh $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS >$out
+
+sedcmd = sed -f $srcdir/pp.sed
+
+build $builddir/help.ml: genhelp
+build $builddir/link.o: cc $srcdir/link.c
+      cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP $
+             -DUSE_FONTCONFIG -g
+build $builddir/help.cmo: helpcmo | $builddir/help.ml
+build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
+build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
+build $builddir/wsi.cmi: ocamlc $srcdir/wsi.mli
+build $builddir/wsi.cmo: ocamlc $srcdir/wsi.ml | $
+      $builddir/wsi.cmi $builddir/bo.cmo
+build $builddir/parser.cmo: ocamlc $srcdir/parser.ml
+build $builddir/config.cmo: ocamlc $srcdir/config.ml
+      ocamlflags = $ocamlflags -I +lablGL
+build $builddir/main.cmo: ocamlc $srcdir/main.ml
+      ocamlflags = $ocamlflags -I +lablGL -pp "$sedcmd"
+
+cmos = $builddir/help.cmo $
+     $builddir/utils.cmo $
+     $builddir/parser.cmo $
+     $builddir/bo.cmo $
+     $builddir/wsi.cmo $
+     $builddir/config.cmo $
+     $builddir/main.cmo
+
+rule linkso
+     command = $cc -o $out -shared $in $libs
+
+build $builddir/link.so: linkso $builddir/link.o
+
+rule link
+      command = $ocaml -custom -g $
+              -cclib "$builddir/link.so $lflags" $
+              -o $out -I +lablGL str.cma unix.cma lablgl.cma $cmos
+
+build $builddir/llpp: link | $
+      $builddir/help.cmo $
+      $builddir/utils.cmo $
+      $builddir/parser.cmo $
+      $builddir/bo.cmo $
+      $builddir/wsi.cmo $
+      $builddir/config.cmo $
+      $builddir/main.cmo $
+      $builddir/link.so
+
+default $builddir/llpp

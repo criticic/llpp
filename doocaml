@@ -1,0 +1,7 @@
+#!/bin/sh -e
+
+out="$(basename "$1")"
+dir="$(dirname "$1")"
+expr "$2" : "/.*" >/dev/null && src="$2" || src="$PWD/$2"
+shift 2
+(cd "$dir" && ocamlc "$@" -o $out $src)
