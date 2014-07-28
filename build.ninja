@@ -2,7 +2,7 @@ cc = gcc
 include .config
 ocamlc = ocamlc.opt
 ocaml = ocamlc.opt
-ocamlflags = -g -w a -I $builddir
+ocamlflags = -w a -I $builddir
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
 cflags =$cflags  -Wall -Werror -I$mupdf/include -I$freetype $
@@ -28,7 +28,7 @@ sedcmd = sed -f $srcdir/pp.sed
 build $builddir/help.ml: genhelp
 build $builddir/link.o: cc $srcdir/link.c
       cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP $
-             -DUSE_FONTCONFIG -g
+             -DUSE_FONTCONFIGg
 build $builddir/help.cmo: helpcmo | $builddir/help.ml
 build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
 build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
@@ -55,7 +55,7 @@ rule linkso
 build $builddir/link.so: linkso $builddir/link.o
 
 rule link
-      command = $ocaml -custom -g $
+      command = $ocaml -custom $
               -cclib "$builddir/link.so $lflags" $
               -o $out -I +lablGL str.cma unix.cma lablgl.cma $cmos
 
