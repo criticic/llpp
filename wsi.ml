@@ -117,41 +117,23 @@ let state =
   }
 ;;
 
-let w8 s pos i = String.set s pos (Char.chr (i land 0xff));;
+include Bo;;
 
-let w16 s pos i =
-  w8 s pos i;
-  w8 s (pos+1) (i lsr 8);
+let makereq opcode len reqlen =
+  let s = String.make len '\000' in
+  w8 s 0 opcode;
+  w16 s 2 reqlen;
+  s;
 ;;
 
-let w32 s pos i =
-  w16 s pos i;
-  w16 s (pos+2) (i lsr 16);
-;;
-
-let r16 s pos =
-  let rb pos1 = Char.code (String.get s (pos + pos1)) in
-  (rb 0) lor ((rb 1) lsl 8)
-;;
-
-let r16s s pos =
-  let i = r16 s pos in
-  i - ((i land 0x8000) lsl 1);
-;;
-
-let r8 s pos = Char.code (String.get s pos);;
-
-let r32 s pos =
-  let rb pos1 = Char.code (String.get s (pos + pos1)) in
-  let l = (rb 0) lor ((rb 1) lsl 8)
-  and u = (rb 2) lor ((rb 3) lsl 8) in
-  (u lsl 16) lor l
+let recv fd s pos len =
+  Unix.recv fd s pos len [];
 ;;
 
 let readstr sock n =
   let s = String.create n in
   let rec loop pos n =
-    let m = tempfailureretry (Unix.read sock s pos) n in
+    let m = tempfailureretry (recv sock s pos) n in
     if m = 0
     then state.t#quit;
     if n != m
@@ -165,7 +147,7 @@ let readstr sock n =
 ;;
 
 let sendstr1 s pos len sock =
-  vlog "%d => %S" state.seq s;
+  vlog "%d <= %S" state.seq s;
   state.seq <- state.seq + 1;
   let n = tempfailureretry (Unix.send sock s pos len) [] in
   if n != len
@@ -204,6 +186,7 @@ let updmodmap sock resp =
     then readstr sock (len*4)
     else E.s
   in
+  if len > 0 then                      (*???*)
   let modmap = Array.make_matrix 8 n 0xffffff in
   let rec loop l = if l = 8 then () else
       let p = l*n in
@@ -272,7 +255,7 @@ let padcatl ss =
 let padcat s1 s2 = padcatl [s1; s2];;
 
 let internreq name onlyifexists =
-  let s = "\016\000\000\000\000\000\000\000" in
+  let s = makereq 16 8 8 in
   let s = padcat s name in
   if onlyifexists then w8 s 1 1;
   w16 s 2 (String.length s / 4);
@@ -286,7 +269,7 @@ let sendintern sock s onlyifexists f =
 ;;
 
 let createwindowreq wid parent x y w h bw mask =
-  let s = "\001\000\009\000wwwwppppxxyywwhhbwccvvvvmmmmeeee" in
+  let s = makereq 1 36 9 in
   w32 s 4 wid;
   w32 s 8 parent;
   w16 s 12 x;
@@ -302,26 +285,26 @@ let createwindowreq wid parent x y w h bw mask =
 ;;
 
 let getgeometryreq wid =
-  let s = "\014u\002\000dddd" in
+  let s = makereq 14 8 2 in
   w32 s 4 wid;
   s;
 ;;
 
 let mapreq wid =
-  let s = "\008u\002\000wwww" in
+  let s = makereq 8 8 2 in
   w32 s 4 wid;
   s;
 ;;
 
 let getkeymapreq first count =
-  let s = "\101u\002\000fcuu" in
+  let s = makereq 101 8 2 in
   w8 s 4 first;
   w8 s 5 count;
   s;
 ;;
 
 let changepropreq wid prop typ format props =
-  let s = "\018\000llwwwwppppttttfuuuLLLL" in
+  let s = makereq 18 24 0 in
   let s = padcat s props in
   w16 s 2 (String.length s / 4);
   w32 s 4 wid;
@@ -339,7 +322,7 @@ let changepropreq wid prop typ format props =
 ;;
 
 let getpropreq delete wid prop typ =
-  let s = "\020\000\006\000wwwwppppttttooooLLLL" in
+  let s = makereq 20 24 6 in
   if delete then w8 s 1 1;
   w32 s 4 wid;
   w32 s 8 prop;
@@ -350,7 +333,7 @@ let getpropreq delete wid prop typ =
 ;;
 
 let openfontreq fid name =
-  let s = "\045ullffffnnuu" in
+  let s = makereq 45 12 0 in
   let s = padcat s name in
   w16 s 2 (String.length s / 4);
   w32 s 4 fid;
@@ -359,7 +342,7 @@ let openfontreq fid name =
 ;;
 
 let createglyphcursorreq fid cid cindex =
-  let s = "\094u\008\000ccccffffffffssmmrrggbbRRGGBB" in
+  let s = makereq 94 32 8 in
   w32 s 4 cid;
   w32 s 8 fid;
   w32 s 12 fid;
@@ -375,7 +358,7 @@ let createglyphcursorreq fid cid cindex =
 ;;
 
 let changewindowattributesreq wid mask attrs =
-  let s = "\002ullwwwwmmmm" in
+  let s = makereq 2 12 0 in
   let s = padcat s attrs in
   w16 s 2 (String.length s / 4);
   w32 s 4 wid;
@@ -384,7 +367,7 @@ let changewindowattributesreq wid mask attrs =
 ;;
 
 let configurewindowreq wid mask values =
-  let s = "\012ullwwwwmmuu" in
+  let s = makereq 2 12 0 in
   let s = padcat s values in
   w16 s 2 (String.length s / 4);
   w32 s 4 wid;
@@ -399,7 +382,7 @@ let s32 n =
 ;;
 
 let clientmessage format seq wid typ data =
-  let s = "\033fsswwwwtttt" in
+  let s = makereq 33 12 0 in
   let s = padcat s data in
   w8 s 1 format;
   w16 s 2 seq;
@@ -409,17 +392,17 @@ let clientmessage format seq wid typ data =
 ;;
 
 let sendeventreq propagate destwid mask data =
-  let s = "\025p\011\000wwwwmmmm" in
+  let s = makereq 25 12 11 in
   let s = padcat s data in
   w8 s 1 propagate;
+  w16 s 2 11;
   w32 s 4 destwid;
   w32 s 8 mask;
   s;
 ;;
 
 let getmodifiermappingreq () =
-  let s = "\119u\001\000" in
-  s;
+  makereq 119 4 1;
 ;;
 
 let getkeysym code mask =
@@ -816,7 +799,7 @@ let setup sock screennum w h =
       );
 
       state.actwin <- (fun () ->
-        let s = "\000uuu" in
+        let s = String.create 4 in
         let s = configurewindowreq state.idbase 0x40 s in
         sendstr s state.sock;
         let s = mapreq state.idbase in
@@ -1102,9 +1085,10 @@ let init t w h osx =
       error "failed to connect to X: %s" (exntos exn)
   in
   cloexec fd;
-  let s = "luMMmmnndduu" in
+  let s = String.create 12 in
   let s = padcat s aname in
   let s = padcat s adata in
+  s.[0] <- ordermagic;
   w16 s 2 11;
   w16 s 4 0;
   w16 s 6 (String.length aname);

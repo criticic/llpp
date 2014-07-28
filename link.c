@@ -36,6 +36,7 @@
 #include <mupdf/xps.h>
 #include <mupdf/img.h>
 
+#include <ft2build.h>
 #include FT_FREETYPE_H
 
 #ifdef USE_FONTCONFIG
@@ -3988,8 +3989,10 @@ CAMLprim value ml_glxsync (value unit_v)
 {
     CAMLparam1 (unit_v);
     if (glx.dpy && glx.ctx) {
+#ifdef GLX_DO_WAIT
         glXWaitX ();
         glXWaitGL ();
+#endif
     }
     CAMLreturn (Val_unit);
 }
