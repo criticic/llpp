@@ -8,16 +8,18 @@ test -e "$mupdf" || {
     exit 1
 }
 pkgs="freetype2 fontconfig zlib x11 openssl libopenjp2" # j(peg|big2dec)?
+pwd=$(pwd -P)
 
 expr "$0" : "/.*" >/dev/null && {
     path="$0"
-    builddir="$PWD"
+    builddir="$pwd"
     helpcmdl=" -f $(dirname $path)/build.ninja"
 } || {
-    path="$PWD/$0"
-    builddir="$PWD/build"
+    path="$pwd/$0"
+    builddir="build"
     helcmdl=""
 }
+absbuilddir=$(cd $builddir && pwd -P)
 
 (printf "cflags=$(pkg-config --cflags $pkgs)\n"
  printf "lflags=$(pkg-config --libs $pkgs) -ljbig2dec -ljpeg -lz\n"
@@ -25,6 +27,7 @@ expr "$0" : "/.*" >/dev/null && {
  printf "buildtype=${2:-native}\n"
  printf "mupdf=$mupdf\n"
  printf "builddir=$builddir\n"
+ printf "absbuilddir=$absbuilddir\n"
  test $(uname -m) = "x86_64" && {
      printf "cflags=\$cflags -fPIC\n"
      printf "mujs=-lmujs\n"

@@ -54,9 +54,9 @@ rule linkso
 build $builddir/link.so: linkso $builddir/link.o
 
 rule link
-      command = $ocamlc -custom $
-              -cclib "$builddir/link.so $lflags" $
-              -o $out -I +lablGL str.cma unix.cma lablgl.cma $cmos
+     command = $ocamlc -custom $
+             -cclib "$absbuilddir/link.so $lflags" $
+             -o $out -I +lablGL str.cma unix.cma lablgl.cma $cmos
      description = link $out
 
 build $builddir/llpp: link | $
