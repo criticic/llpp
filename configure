@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-test -z "$1" && mupdf=/home/malc/x/rcs/git/mupdf
+test -z "$1" && mupdf=$HOME/x/rcs/git/mupdf
 test -e "$mupdf" || {
     printf >&2 "Pleas supply patch to mupdf\n"
     printf >&2 "$0 [path-to-git-clone-of-mupdf] [build-type[=native]]\n"
