@@ -8,7 +8,7 @@ dep="$3"
 shift 3
 
 fixdep() {
-   sed -e "/.*\.cmx.*/d" -e "s,${src%%.ml}.cm[oxi],$dir/$out,"
+   sed -e "/.*\.cmx.*/d" -e "s,${src%%.ml}.cm[oxi],$PWD/$out,"
 }
 
 dep=${dep#$dir/}
