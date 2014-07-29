@@ -14,7 +14,9 @@ rule cc
      description = cc $out
 
 rule ocamlc
-     command = sh $srcdir/doocaml $out $in -c $ocamlflags
+     deps = gcc
+     depfile = $out.d
+     command = sh $srcdir/doocaml $out $in $depfile -c $ocamlflags
      description = ocamlc $out
 
 rule genhelp
