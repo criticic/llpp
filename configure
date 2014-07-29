@@ -30,4 +30,4 @@ expr "$0" : "/.*" >/dev/null && {
      printf "mujs=-lmujs\n"
  }) >.config
 
-echo "To build type: ninja$helpcmdl"
+echo "To build - type: ninja$helpcmdl"
