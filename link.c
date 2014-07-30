@@ -3918,6 +3918,7 @@ CAMLprim value ml_setaalevel (value level_v)
 static struct {
     Display *dpy;
     GLXContext ctx;
+    XVisualInfo *visual;
     GLXDrawable drawable;
 } glx;
 
@@ -3939,11 +3940,11 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
     CAMLreturn (str_v);
 }
 
-CAMLprim value ml_glx (value win_v)
+CAMLprim value ml_glx1 (value unit_v)
 {
-    CAMLparam1 (win_v);
-    XVisualInfo *visual;
-    int screen, wid = Int_val (win_v);
+    CAMLparam1 (unit_v);
+    CAMLlocal1 (tup_v);
+    int screen;
     int attributes[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
 
     glx.dpy = XOpenDisplay (NULL);
@@ -3952,15 +3953,27 @@ CAMLprim value ml_glx (value win_v)
     }
 
     screen = DefaultScreen (glx.dpy);
-    visual = glXChooseVisual (glx.dpy, screen, attributes);
-    if (!visual) {
+    glx.visual = glXChooseVisual (glx.dpy, screen, attributes);
+    if (!glx.visual) {
         XCloseDisplay (glx.dpy);
         glx.dpy = NULL;
         caml_failwith ("glXChooseVisual");
     }
 
-    glx.ctx = glXCreateContext (glx.dpy, visual, NULL, True);
-    XFree (visual);
+    tup_v = caml_alloc_tuple (2);
+    Field (tup_v, 0) = Val_int (glx.visual->visualid);
+    Field (tup_v, 1) = Val_int (glx.visual->depth);
+    CAMLreturn (tup_v);
+}
+
+CAMLprim value ml_glx2 (value win_v)
+{
+    CAMLparam1 (win_v);
+    int wid = Int_val (win_v);
+
+    glx.ctx = glXCreateContext (glx.dpy, glx.visual, NULL, True);
+    XFree (glx.visual);
+    glx.visual = NULL;
     if (!glx.ctx) {
         XCloseDisplay (glx.dpy);
         glx.dpy = NULL;

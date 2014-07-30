@@ -14,7 +14,8 @@ type winstate =
     | Fullscreen
 ;;
 
-external glx : int -> unit = "ml_glx";;
+external glx1 : unit -> (int * int) = "ml_glx1";;
+external glx2 : int -> unit = "ml_glx2";;
 external glxsync : unit -> unit = "ml_glxsync";;
 external swapb : unit -> unit = "ml_swapb";;
 
@@ -63,6 +64,7 @@ type state =
     ; mutable maxhatom   : int
     ; mutable fulsatom   : int
     ; mutable idbase     : int
+    ; mutable fid        : int
     ; mutable fullscreen : (int -> unit)
     ; mutable setwmname  : (string -> unit)
     ; mutable actwin     : (unit -> unit)
@@ -98,6 +100,7 @@ let state =
   ; maxhatom   = -1
   ; fulsatom   = -1
   ; idbase     = -1
+  ; fid        = -1
   ; fullscreen = (fun _ -> ())
   ; setwmname  = (fun _ -> ())
   ; actwin     = (fun _ -> ())
@@ -268,8 +271,9 @@ let sendintern sock s onlyifexists f =
   sendwithrep sock s f;
 ;;
 
-let createwindowreq wid parent x y w h bw mask =
-  let s = makereq 1 36 9 in
+let createwindowreq wid parent x y w h bw eventmask vid depth mid =
+  let s = makereq 1 48 12 in
+  w8 s 1 depth;
   w32 s 4 wid;
   w32 s 8 parent;
   w16 s 12 x;
@@ -277,10 +281,22 @@ let createwindowreq wid parent x y w h bw mask =
   w16 s 16 w;
   w16 s 18 h;
   w16 s 20 bw;
-  w16 s 22 1;
-  w32 s 24 0;
-  w32 s 28 0x800;                       (* eventmask *)
-  w32 s 32 mask;
+  w16 s 22 0;                           (* inputoutput *)
+  w32 s 24 vid;                         (* visual *)
+  w32 s 28 0x280a;                      (* eventmask*)
+  w32 s 32 0;
+  w32 s 36 0;
+  w32 s 40 eventmask;
+  w32 s 44 mid;
+  s;
+;;
+
+let createcolormapreq mid wid vid =
+  let s = makereq 78 16 4 in
+  w8 s 1 0;
+  w32 s 4 mid;
+  w32 s 8 wid;
+  w32 s 12 vid;
   s;
 ;;
 
@@ -734,6 +750,18 @@ let setup sock screennum w h =
       vlog "minkk = %d maxkk = %d" minkk maxkk;
       vlog "idbase = %#x idmask = %#x" idbase idmask;
       vlog "root=%#x %dx%d" root rootw rooth;
+      vlog "wmm = %d, hmm = %d" (r16 data (pos+24)) (r16 data (pos+26));
+      vlog "visualid = %#x " (r32 data (pos+32));
+
+      let vid, depth = glx1 () in
+      let wid = state.idbase in
+      let mid = wid+1 in
+      let fid = mid+1 in
+
+      state.fid <- fid;
+
+      let s = createcolormapreq mid root vid in
+      sendstr s sock;
 
       let mask = 0
         + 0x00000001                    (* KeyPress *)
@@ -762,8 +790,7 @@ let setup sock screennum w h =
         (* + 0x00800000 *)              (* ColormapChange *)
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
-      let wid = state.idbase in
-      let s = createwindowreq wid root 0 0 w h 0 mask in
+      let s = createwindowreq wid root 0 0 w h 0 mask vid depth mid in
       sendstr s sock;
 
       sendintern sock "WM_PROTOCOLS" false (fun resp ->
@@ -800,9 +827,9 @@ let setup sock screennum w h =
 
       state.actwin <- (fun () ->
         let s = String.create 4 in
-        let s = configurewindowreq state.idbase 0x40 s in
+        let s = configurewindowreq wid 0x40 s in
         sendstr s state.sock;
-        let s = mapreq state.idbase in
+        let s = mapreq wid in
         sendstr s state.sock;
       );
 
@@ -829,11 +856,11 @@ let setup sock screennum w h =
       let s = getmodifiermappingreq () in
       sendwithrep sock s (updmodmap sock);
 
-      let s = openfontreq (wid+1) "cursor" in
+      let s = openfontreq fid "cursor" in
       sendstr s sock;
 
       Array.iteri (fun i glyphindex ->
-        let s = createglyphcursorreq (wid+1) (wid+2+i) glyphindex in
+        let s = createglyphcursorreq fid (fid+1+i) glyphindex in
         sendstr s sock;
       ) [|34;48;50;58;128;152|];
 
@@ -844,7 +871,7 @@ let setup sock screennum w h =
       );
 
       let setwmname s =
-        let s = changepropreq state.idbase 39 state.stringatom 8 s in
+        let s = changepropreq wid 39 state.stringatom 8 s in
         sendstr s state.sock;
       in
       state.setwmname <- setwmname;
@@ -853,7 +880,7 @@ let setup sock screennum w h =
         if atom != 0
         then state.setwmname <- (fun s ->
           setwmname s;
-          let s = changepropreq state.idbase atom state.stringatom 8 s in
+          let s = changepropreq wid atom state.stringatom 8 s in
           sendstr s state.sock;
         );
       );
@@ -915,7 +942,7 @@ let setup sock screennum w h =
       );
       let s = getgeometryreq wid in
       syncsendwithrep sock 2.0 s (fun resp ->
-        glx wid;
+        glx2 wid;
         let w = r16 resp 16
         and h = r16 resp 18 in
         state.w <- w;
@@ -1115,7 +1142,7 @@ let setcursor cursor =
       | CURSOR_CROSSHAIR -> 0
       | CURSOR_TEXT -> 5
     in
-    let s = s32 (if n = -1 then 0 else state.idbase+2+n) in
+    let s = s32 (if n = -1 then 0 else state.fid+1+n) in
     let s = changewindowattributesreq state.idbase (*cursor*)0x4000 s in
     sendstr s state.sock;
     state.curcurs <- cursor;
