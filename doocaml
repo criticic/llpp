@@ -4,12 +4,5 @@ set -e
 out="$(basename "$1")"
 dir="$(dirname "$1")"
 expr "$2" : "/.*" >/dev/null && src="$2" || src="$PWD/$2"
-dep="$3"
-shift 3
-
-fixdep() {
-   sed -e "/.*\.cmx.*/d" -e "s,${src%%.ml}.cm[oxi],$PWD/$out,"
-}
-
-dep=${dep#$dir/}
-(cd $dir && ocamlc "$@" -o $out $src && ocamldep $src | fixdep >$dep)
+shift 2
+(cd $dir && ocamlc "$@" -o $out $src)
