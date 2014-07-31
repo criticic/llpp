@@ -2,25 +2,28 @@
 set -e
 
 unset cflags
+buildtype=native
+
 usage () {
-    printf "usage: $0 [-e] [path-to-git-checkout-of-mupdf] " \
-           "[build-type[=native]]"
-    printf "\noptions:\n"
-    printf -- " -e: use EGL\n"
+    echo "usage: $0 [-e] [-b build-type] [path-to-git-checkout-of-mupdf]"
+    echo "options:"
+    echo -- " -e: use EGL"
+    echo -- " -b: mupdf build type [default native]"
     exit $1
 }
 
-while getopts e opt; do
+while getopts eb: opt; do
     case $opt in
         e) egl="egl"; cflags="-DUSE_EGL";;
-        ?) usage 0
+        b) buildtype="$OPTARG";;
+        ?) usage 0;;
     esac
 done
 shift $(($OPTIND - 1))
 
 mupdf="$1"
 test -e "$mupdf" || {
-    printf "Don't know where to find mupdf's git checkout\n"
+    echo "Don't know where to find mupdf's git checkout"
     usage 1
 }
 pkgs="freetype2 fontconfig zlib x11 openssl libopenjp2" # j(peg|big2dec)?
@@ -38,16 +41,16 @@ expr "$0" : "/.*" >/dev/null && {
 }
 absbuilddir=$(cd $builddir && pwd -P)
 
-(printf "cflags=$cflags $(pkg-config --cflags $pkgs)\n"
- printf "lflags=$(pkg-config --libs $pkgs) -ljbig2dec -ljpeg -lz\n"
- printf "srcdir=$(dirname $path)\n"
- printf "buildtype=${2:-native}\n"
- printf "mupdf=$mupdf\n"
- printf "builddir=$builddir\n"
- printf "absbuilddir=$absbuilddir\n"
+(echo "cflags=$cflags $(pkg-config --cflags $pkgs)"
+ echo "lflags=$(pkg-config --libs $pkgs) -ljbig2dec -ljpeg -lz"
+ echo "srcdir=$(dirname $path)"
+ echo "buildtype=$buildtype"
+ echo "mupdf=$mupdf"
+ echo "builddir=$builddir"
+ echo "absbuilddir=$absbuilddir"
  test $(uname -m) = "x86_64" && {
-     printf "cflags=\$cflags -fPIC\n"
-     printf "mujs=-lmujs\n"
+     echo "cflags=\$cflags -fPIC"
+     echo "mujs=-lmujs"
  }) >.config
 
 echo "To build - type: ninja$helpcmdl"
