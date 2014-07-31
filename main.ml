@@ -2196,6 +2196,7 @@ let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
     | _ :: rest -> loop rest
   in
   loop state.layout;
+  state.text <- E.s;
   state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor)
 ;;
 
@@ -2213,7 +2214,8 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
         else G.postRedisplay "downbirdseye"
     | _ :: rest -> loop rest
   in
-  loop state.layout
+  loop state.layout;
+  state.text <- E.s;
 ;;
 
 let boundastep h step =
