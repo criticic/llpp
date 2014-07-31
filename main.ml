@@ -5301,7 +5301,18 @@ let drawpage l =
         then scalecolor 0.9
         else (
           if l.pageno = pageno
-          then scalecolor 1.0
+          then (
+            let c = scalecolor 1.0 in
+            GlDraw.color c;
+            GlDraw.line_width 3.0;
+            let dispx = xadjsb l.pagedispx in
+            linerect
+              (float (dispx-1)) (float (l.pagedispy-1))
+              (float (dispx+l.pagevw+1))
+              (float (l.pagedispy+l.pagevh+1))
+              ;
+            c;
+           )
           else scalecolor 0.8
         )
   in
