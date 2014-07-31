@@ -3,6 +3,15 @@ set -e
 
 out="$(basename "$1")"
 dir="$(dirname "$1")"
-expr "$2" : "/.*" >/dev/null && src="$2" || src="$PWD/$2"
+expr >/dev/null "$2" : "/.*" && src="$2" || src="$PWD/$2"
 shift 2
-(cd $dir && ocamlc "$@" -o $out $src)
+expr >/dev/null "$*" : '.* -pp ' && {
+    ef=$(mktemp)
+    trap 'test -n "$ef" && rm -f "$ef"' 0
+    cd $dir && ocamlc 2>$ef "$@" -o $out $src
+    rc=$?
+    sed 1>&2 "s;File \"\([^\"]*\)\"\(.*\)$;File $src\2;" $ef
+    exit $rc
+} || {
+    cd $dir && ocamlc "$@" -o $out $src
+}
