@@ -2934,7 +2934,8 @@ object (self)
           G.postRedisplay "list view escape";
           begin
             match
-              source#exit ~uioh:(coe self) ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan
+              source#exit ~uioh:(coe self)
+                ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan
             with
             | None -> m_prev_uioh
             | Some uioh -> uioh
@@ -2952,10 +2953,12 @@ object (self)
           G.postRedisplay "listview enter";
           if m_active >= 0 && m_active < source#getitemcount
           then (
-            source#exit ~uioh:(coe self) ~cancel:false ~active:m_active ~first:m_first ~pan:m_pan;
+            source#exit ~uioh:(coe self) ~cancel:false
+              ~active:m_active ~first:m_first ~pan:m_pan;
           )
           else (
-            source#exit ~uioh:(coe self) ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan;
+            source#exit ~uioh:(coe self) ~cancel:true
+              ~active:m_active ~first:m_first ~pan:m_pan;
           );
         in
         begin match opt with
@@ -3029,7 +3032,8 @@ object (self)
           begin match self#elemunder y with
           | Some n ->
               G.postRedisplay "listview click";
-              source#exit ~uioh:(coe {< m_active = n >}) ~cancel:false ~active:n ~first:m_first ~pan:m_pan
+              source#exit ~uioh:(coe {< m_active = n >})
+                ~cancel:false ~active:n ~first:m_first ~pan:m_pan
           | _ ->
               Some (coe self)
           end
@@ -4762,7 +4766,8 @@ let viewkeyboard key mask =
         | _ -> intentry text key
       in
       let text = "x" in text.[0] <- Char.chr key;
-      enttext (":", text, Some (onhist state.hists.pag), pageentry, ondone, true)
+      enttext (":", text, Some (onhist state.hists.pag),
+               pageentry, ondone, true)
 
   | @b ->
       conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
@@ -4916,7 +4921,8 @@ let viewkeyboard key mask =
   | @x -> state.roam ()
 
   | @Lt | @Gt ->
-      reqlayout (conf.angle + (if key = @question then 30 else -30)) conf.fitmodel
+      reqlayout (conf.angle +
+                   (if key = @question then 30 else -30)) conf.fitmodel
 
   | @Lb | @Rb ->
       conf.colorscale <-
@@ -5207,7 +5213,8 @@ let birdseyekeyboard key mask
     | Cmulti ((c, _, _), _) -> c
     | Csplit _ -> failwith "bird's eye split mode"
   in
-  let pgh layout = List.fold_left (fun m l -> max l.pageh m) state.winh layout in
+  let pgh layout = List.fold_left
+      (fun m l -> max l.pageh m) state.winh layout in
   match key with
   | @l when Wsi.withctrl mask ->
       let y, h = getpageyh pageno in
