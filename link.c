@@ -3930,6 +3930,8 @@ static struct {
 
 static void failwithfmt (const char *fmt, ...)
 {
+    /* we are actually leaking memory here, so if someday failures
+     * begin to be tolerated things will go south */
     FILE *f;
     char *ptr;
     va_list ap;
