@@ -3914,6 +3914,8 @@ CAMLprim value ml_setaalevel (value level_v)
 #include <X11/Xlib.h>
 
 #ifdef USE_EGL
+/* EGL initialization mostly taken from eglxgears from mesa-demos:
+   http://cgit.freedesktop.org/mesa/demos/tree/src/egl/opengl/xeglgears.c */
 #include <EGL/egl.h>
 
 static struct {
@@ -3999,7 +4001,7 @@ CAMLprim value ml_glx1 (value unit_v)
     if (!val) {
         eglTerminate (egl.edpy);
         XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL; 
+        egl.xdpy = NULL;
         failwithfmt ("eglGetConfigAttrib %#x", eglGetError ());
     }
     vinfo_template.visualid = (VisualID) val;
@@ -4008,7 +4010,7 @@ CAMLprim value ml_glx1 (value unit_v)
     if (!vinfo) {
         eglTerminate (egl.edpy);
         XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL; 
+        egl.xdpy = NULL;
         caml_failwith ("XGetVisualInfo");
     }
 
