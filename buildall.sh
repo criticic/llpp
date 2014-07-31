@@ -13,6 +13,7 @@ while getopts j:f:t:r:F opt; do
         j) jobs="-j $OPTARG";;
         f) filt="$OPTARG";;
         t) btyp="$OPTARG";;
+        e) useegl=1;;
         r) mupdfrev="$OPTARG";;
         F) usefontconfig=1;;
         ?)
@@ -119,9 +120,14 @@ cclib="$cclib -lz -ljpeg -lopenjpeg -ljbig2dec -lpthread -lcrypto"
 cclib="$cclib -lX11"
 
 ccopt="$ccopt -D_GNU_SOURCE"
-test -z "$usefontconfig" || {
+test -n "$usefontconfig" && {
     ccopt="$ccopt -DUSE_FONTCONFIG $(pkg-config --cflags fontconfig)"
     cclib="$cclib $(pkg-config --libs fontconfig)"
+}
+
+test -n "$useegl" && {
+    ccopt="$ccopt -DUSE_EGL $(pkg-config --cflags egl)"
+    cclib="$cclib $(pkg-config --libs egl)"
 }
 
 expr "$filt" : '.*freetype.*' >/dev/null && {
