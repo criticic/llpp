@@ -3911,8 +3911,161 @@ CAMLprim value ml_setaalevel (value level_v)
     CAMLreturn (Val_unit);
 }
 
-#undef pixel
 #include <X11/Xlib.h>
+
+#ifdef USE_EGL
+#include <EGL/egl.h>
+
+static struct {
+    Display *xdpy;
+    EGLConfig conf;
+    EGLSurface win;
+    EGLContext ctx;
+    EGLDisplay *edpy;
+    EGLNativeWindowType wid;
+    XVisualInfo *visual;
+} egl;
+
+static void failwithfmt (const char *fmt, ...)
+{
+    FILE *f;
+    char *ptr;
+    va_list ap;
+    size_t size;
+
+    f = open_memstream (&ptr, &size);
+    va_start (ap, fmt);
+    vfprintf (f, fmt, ap);
+    va_end (ap);
+    caml_failwith (ptr);
+}
+
+CAMLprim value ml_glx1 (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    CAMLlocal1 (tup_v);
+    int major, minor;
+    EGLint num_conf;
+    EGLint val, num_vinfo;
+    XVisualInfo vinfo_template, *vinfo;
+    EGLint attribs[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RED_SIZE, 1,
+        EGL_GREEN_SIZE, 1,
+        EGL_BLUE_SIZE, 1,
+        EGL_DEPTH_SIZE, 0,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_NONE
+    };
+
+    if (!eglBindAPI(EGL_OPENGL_API)) {
+        failwithfmt ("eglBindAPI %#x", eglGetError ());
+    }
+
+    egl.xdpy = XOpenDisplay (NULL);
+    if (!egl.xdpy) {
+        caml_failwith ("XOpenDisplay");
+    }
+
+    egl.edpy = eglGetDisplay (egl.xdpy);
+    if (egl.edpy == EGL_NO_DISPLAY) {
+        XCloseDisplay (egl.xdpy);
+        egl.xdpy = NULL;
+        failwithfmt ("eglGetDisplay %#x", eglGetError ());
+    }
+
+    if (!eglInitialize (egl.edpy, &major, &minor)) {
+        XCloseDisplay (egl.xdpy);
+        egl.xdpy = NULL;
+        failwithfmt ("eglInitialize %#x", eglGetError ());
+    }
+
+    if (!eglChooseConfig (egl.edpy, attribs,
+                          &egl.conf, 1, &num_conf) ||
+        !num_conf) {
+        eglTerminate (egl.edpy);
+        XCloseDisplay (egl.xdpy);
+        egl.xdpy = NULL;
+        failwithfmt ("eglChooseConfig %#x", eglGetError ());
+    }
+
+    if (!eglGetConfigAttrib(egl.edpy, egl.conf,
+                            EGL_NATIVE_VISUAL_ID, &val)) {
+        eglTerminate (egl.edpy);
+        XCloseDisplay (egl.xdpy);
+        egl.xdpy = NULL;
+        failwithfmt ("eglGetConfigAttrib %#x", eglGetError ());
+    }
+    if (!val) {
+        eglTerminate (egl.edpy);
+        XCloseDisplay (egl.xdpy);
+        egl.xdpy = NULL; 
+        failwithfmt ("eglGetConfigAttrib %#x", eglGetError ());
+    }
+    vinfo_template.visualid = (VisualID) val;
+    vinfo = XGetVisualInfo (egl.xdpy, VisualIDMask,
+                            &vinfo_template, &num_vinfo);
+    if (!vinfo) {
+        eglTerminate (egl.edpy);
+        XCloseDisplay (egl.xdpy);
+        egl.xdpy = NULL; 
+        caml_failwith ("XGetVisualInfo");
+    }
+
+    tup_v = caml_alloc_tuple (2);
+    Field (tup_v, 0) = Val_int (vinfo->visualid);
+    Field (tup_v, 1) = Val_int (vinfo->depth);
+    XFree (vinfo);
+    CAMLreturn (tup_v);
+}
+
+CAMLprim value ml_glx2 (value win_v)
+{
+    CAMLparam1 (win_v);
+    int wid = Int_val (win_v);
+
+    egl.wid = wid;
+    egl.ctx = eglCreateContext (egl.edpy, egl.conf,
+                                EGL_NO_CONTEXT, NULL);
+    if (egl.ctx == EGL_NO_CONTEXT) {
+        eglTerminate (egl.edpy);
+        failwithfmt ("eglCreateContext %#x", eglGetError ());
+    }
+
+    egl.win = eglCreateWindowSurface(egl.edpy, egl.conf,
+                                     egl.wid, NULL);
+    if (egl.win == EGL_NO_SURFACE) {
+        failwithfmt ("eglCreateWindowSurface %#x", eglGetError ());
+    }
+
+    if (!eglMakeCurrent (egl.edpy, egl.win, egl.win, egl.ctx)) {
+        eglTerminate (egl.edpy);
+        XCloseDisplay (egl.xdpy);
+        egl.xdpy = NULL;
+        egl.edpy = NULL;
+        egl.ctx = NULL;
+        failwithfmt ("eglMakeCurrent %#x", eglGetError ());
+    }
+    egl.wid = wid;
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_swapb (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    eglSwapBuffers (egl.edpy, egl.win);
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_glxsync (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    eglWaitNative (EGL_CORE_NATIVE_ENGINE);
+    eglWaitGL ();
+    CAMLreturn (Val_unit);
+}
+#else
+#undef pixel
 #include <GL/glx.h>
 
 static struct {
@@ -3921,24 +4074,6 @@ static struct {
     XVisualInfo *visual;
     GLXDrawable drawable;
 } glx;
-
-#include "keysym2ucs.c"
-
-CAMLprim value ml_keysymtoutf8 (value keysym_v)
-{
-    CAMLparam1 (keysym_v);
-    CAMLlocal1 (str_v);
-    KeySym keysym = Int_val (keysym_v);
-    Rune rune;
-    int len;
-    char buf[5];
-
-    rune = keysym2ucs (keysym);
-    len = fz_runetochar (buf, rune);
-    buf[len] = 0;
-    str_v = caml_copy_string (buf);
-    CAMLreturn (str_v);
-}
 
 CAMLprim value ml_glx1 (value unit_v)
 {
@@ -4002,12 +4137,28 @@ CAMLprim value ml_glxsync (value unit_v)
 {
     CAMLparam1 (unit_v);
     if (glx.dpy && glx.ctx) {
-#ifdef GLX_DO_WAIT
         glXWaitX ();
         glXWaitGL ();
-#endif
     }
     CAMLreturn (Val_unit);
+}
+#endif
+#include "keysym2ucs.c"
+
+CAMLprim value ml_keysymtoutf8 (value keysym_v)
+{
+    CAMLparam1 (keysym_v);
+    CAMLlocal1 (str_v);
+    KeySym keysym = Int_val (keysym_v);
+    Rune rune;
+    int len;
+    char buf[5];
+
+    rune = keysym2ucs (keysym);
+    len = fz_runetochar (buf, rune);
+    buf[len] = 0;
+    str_v = caml_copy_string (buf);
+    CAMLreturn (str_v);
 }
 
 enum { piunknown, pilinux, piosx, pisun, pifreebsd,
@@ -4149,7 +4300,11 @@ CAMLprim value ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
+#ifdef USE_EGL
+#define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
+#else
 #define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
+#endif
     state.pbo_usable = GGPA (glBindBufferARB)
         && GGPA (glUnmapBufferARB)
         && GGPA (glMapBufferARB)

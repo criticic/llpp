@@ -5,7 +5,7 @@ ocamlflags = -w a -g
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
 cflags =$cflags  -Wall -Werror -I$mupdf/include -I$freetype $
-       -I$mupdf/include
+       -I$mupdf/include -g
 
 rule cc
      deps = gcc
