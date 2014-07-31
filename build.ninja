@@ -48,15 +48,15 @@ cmos = $builddir/help.cmo $
      $builddir/main.cmo
 
 rule linkso
-     command = $cc -o $out -shared $in $libs
+     command = $cc -o $out -shared $in $libs $lflags
      description = linkso $out
 
 build $builddir/link.so: linkso $builddir/link.o
 
 rule link
-     command = $ocamlc -custom -g $
-             -cclib "$absbuilddir/link.so $lflags" $
-             -o $out -I +lablGL str.cma unix.cma lablgl.cma $cmos
+     command = $ocamlc -g -o $out -I +lablGL $
+             str.cma unix.cma lablgl.cma $cmos $
+             $absbuilddir/link.so
      description = link $out
 
 build $builddir/llpp: link | $
