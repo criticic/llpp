@@ -4028,7 +4028,6 @@ CAMLprim value ml_glx2 (value win_v)
     CAMLparam1 (win_v);
     int wid = Int_val (win_v);
 
-    egl.wid = wid;
     egl.ctx = eglCreateContext (egl.edpy, egl.conf,
                                 EGL_NO_CONTEXT, NULL);
     if (egl.ctx == EGL_NO_CONTEXT) {
@@ -4037,7 +4036,7 @@ CAMLprim value ml_glx2 (value win_v)
     }
 
     egl.win = eglCreateWindowSurface(egl.edpy, egl.conf,
-                                     egl.wid, NULL);
+                                     wid, NULL);
     if (egl.win == EGL_NO_SURFACE) {
         failwithfmt ("eglCreateWindowSurface %#x", eglGetError ());
     }
@@ -4051,6 +4050,7 @@ CAMLprim value ml_glx2 (value win_v)
         egl.ctx = NULL;
         failwithfmt ("eglMakeCurrent %#x", eglGetError ());
     }
+    egl.wid = wid;
     CAMLreturn (Val_unit);
 }
 
@@ -4111,8 +4111,6 @@ CAMLprim value ml_glx2 (value win_v)
     int wid = Int_val (win_v);
 
     glx.ctx = glXCreateContext (glx.dpy, glx.visual, NULL, True);
-    XFree (glx.visual);
-    glx.visual = NULL;
     if (!glx.ctx) {
         XCloseDisplay (glx.dpy);
         glx.dpy = NULL;
