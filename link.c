@@ -4050,7 +4050,6 @@ CAMLprim value ml_glx2 (value win_v)
         egl.ctx = NULL;
         failwithfmt ("eglMakeCurrent %#x", eglGetError ());
     }
-    egl.wid = wid;
     CAMLreturn (Val_unit);
 }
 
