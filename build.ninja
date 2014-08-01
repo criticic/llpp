@@ -38,7 +38,7 @@ build $builddir/config.cmo: ocamlc $srcdir/config.ml
       ocamlflags = $ocamlflags -I +lablGL
 build $builddir/main.cmo: ocamlc $srcdir/main.ml | $
       $builddir/config.cmo $
-      $builddir/wsi.cmo
+      $builddir/wsi.cmi
       ocamlflags = $ocamlflags -I +lablGL -pp "$sedcmd"
 
 cmos = $builddir/help.cmo $

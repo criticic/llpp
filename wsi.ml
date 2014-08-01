@@ -14,7 +14,7 @@ type winstate =
     | Fullscreen
 ;;
 
-external glx1 : unit -> (int * int) = "ml_glx1";;
+external glx1 : unit -> int = "ml_glx1";;
 external glx2 : int -> unit = "ml_glx2";;
 external glxsync : unit -> unit = "ml_glxsync";;
 external swapb : unit -> unit = "ml_swapb";;
@@ -123,7 +123,7 @@ let state =
 include Bo;;
 
 let makereq opcode len reqlen =
-  let s = String.make len '\000' in
+  let s = String.create len in
   w8 s 0 opcode;
   w16 s 2 reqlen;
   s;
@@ -260,7 +260,7 @@ let padcat s1 s2 = padcatl [s1; s2];;
 let internreq name onlyifexists =
   let s = makereq 16 8 8 in
   let s = padcat s name in
-  if onlyifexists then w8 s 1 1;
+  w8 s 1 (if onlyifexists then 1 else 0);
   w16 s 2 (String.length s / 4);
   w16 s 4 (String.length name);
   s;
@@ -322,6 +322,7 @@ let getkeymapreq first count =
 let changepropreq wid prop typ format props =
   let s = makereq 18 24 0 in
   let s = padcat s props in
+  w8 s 1 0;
   w16 s 2 (String.length s / 4);
   w32 s 4 wid;
   w32 s 8 prop;
@@ -339,7 +340,7 @@ let changepropreq wid prop typ format props =
 
 let getpropreq delete wid prop typ =
   let s = makereq 20 24 6 in
-  if delete then w8 s 1 1;
+  w8 s 1 (if delete then 1 else 0);
   w32 s 4 wid;
   w32 s 8 prop;
   w32 s 12 typ;
@@ -753,7 +754,26 @@ let setup sock screennum w h =
       vlog "wmm = %d, hmm = %d" (r16 data (pos+24)) (r16 data (pos+26));
       vlog "visualid = %#x " (r32 data (pos+32));
 
-      let vid, depth = glx1 () in
+      let vid = glx1 () in
+      let ndepths = r8 data (pos+39) in
+      let rec finddepth n' pos =
+        if n' = ndepths
+        then error "couldn't find depth for visual %#x" vid;
+        let depth = r8 data pos in
+        let nvisuals = r16 data (pos+2) in
+        let rec findvisual n pos =
+          if n = nvisuals
+          then finddepth (n'+1) pos
+          else 
+            let id = r32 data pos in
+            if id = vid
+            then depth
+            else findvisual (n+1) (pos+24)
+        in
+        findvisual 0 (pos+8)
+      in
+      let depth = finddepth 0 (pos+40) in
+
       let wid = state.idbase in
       let mid = wid+1 in
       let fid = mid+1 in

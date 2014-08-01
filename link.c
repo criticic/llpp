@@ -3911,19 +3911,16 @@ CAMLprim value ml_setaalevel (value level_v)
     CAMLreturn (Val_unit);
 }
 
-#include <X11/Xlib.h>
-
 #ifdef USE_EGL
 /* EGL initialization mostly taken from eglxgears from mesa-demos:
    http://cgit.freedesktop.org/mesa/demos/tree/src/egl/opengl/xeglgears.c */
 #include <EGL/egl.h>
 
 static struct {
-    Display *xdpy;
     EGLConfig conf;
     EGLSurface win;
     EGLContext ctx;
-    EGLDisplay *edpy;
+    EGLDisplay *dpy;
     EGLNativeWindowType wid;
     XVisualInfo *visual;
 } egl;
@@ -3950,13 +3947,9 @@ CAMLprim value ml_glx1 (value unit_v)
     CAMLlocal1 (tup_v);
     int major, minor;
     EGLint num_conf;
-    EGLint val, num_vinfo;
-    XVisualInfo vinfo_template, *vinfo;
+    EGLint visualid;
     EGLint attribs[] = {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RED_SIZE, 1,
-        EGL_GREEN_SIZE, 1,
-        EGL_BLUE_SIZE, 1,
         EGL_DEPTH_SIZE, 0,
         EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
         EGL_NONE
@@ -3966,61 +3959,35 @@ CAMLprim value ml_glx1 (value unit_v)
         failwithfmt ("eglBindAPI %#x", eglGetError ());
     }
 
-    egl.xdpy = XOpenDisplay (NULL);
-    if (!egl.xdpy) {
-        caml_failwith ("XOpenDisplay");
-    }
-
-    egl.edpy = eglGetDisplay (egl.xdpy);
-    if (egl.edpy == EGL_NO_DISPLAY) {
-        XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL;
+    egl.dpy = eglGetDisplay (EGL_DEFAULT_DISPLAY);
+    if (egl.dpy == EGL_NO_DISPLAY) {
         failwithfmt ("eglGetDisplay %#x", eglGetError ());
     }
 
-    if (!eglInitialize (egl.edpy, &major, &minor)) {
-        XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL;
+    if (!eglInitialize (egl.dpy, &major, &minor)) {
         failwithfmt ("eglInitialize %#x", eglGetError ());
     }
 
-    if (!eglChooseConfig (egl.edpy, attribs,
+    if (!eglChooseConfig (egl.dpy, attribs,
                           &egl.conf, 1, &num_conf) ||
         !num_conf) {
-        eglTerminate (egl.edpy);
-        XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL;
+        eglTerminate (egl.dpy);
+        egl.dpy = NULL;
         failwithfmt ("eglChooseConfig %#x", eglGetError ());
     }
 
-    if (!eglGetConfigAttrib(egl.edpy, egl.conf,
-                            EGL_NATIVE_VISUAL_ID, &val)) {
-        eglTerminate (egl.edpy);
-        XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL;
+    if (!eglGetConfigAttrib(egl.dpy, egl.conf,
+                            EGL_NATIVE_VISUAL_ID, &visualid)) {
+        eglTerminate (egl.dpy);
+        egl.dpy = NULL;
         failwithfmt ("eglGetConfigAttrib %#x", eglGetError ());
     }
-    if (!val) {
-        eglTerminate (egl.edpy);
-        XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL;
+    if (!visualid) {
+        eglTerminate (egl.dpy);
         failwithfmt ("eglGetConfigAttrib %#x", eglGetError ());
-    }
-    vinfo_template.visualid = (VisualID) val;
-    vinfo = XGetVisualInfo (egl.xdpy, VisualIDMask,
-                            &vinfo_template, &num_vinfo);
-    if (!vinfo) {
-        eglTerminate (egl.edpy);
-        XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL;
-        caml_failwith ("XGetVisualInfo");
     }
 
-    tup_v = caml_alloc_tuple (2);
-    Field (tup_v, 0) = Val_int (vinfo->visualid);
-    Field (tup_v, 1) = Val_int (vinfo->depth);
-    XFree (vinfo);
-    CAMLreturn (tup_v);
+    CAMLreturn (Val_int (visualid));
 }
 
 CAMLprim value ml_glx2 (value win_v)
@@ -4028,25 +3995,26 @@ CAMLprim value ml_glx2 (value win_v)
     CAMLparam1 (win_v);
     int wid = Int_val (win_v);
 
-    egl.ctx = eglCreateContext (egl.edpy, egl.conf,
+    egl.ctx = eglCreateContext (egl.dpy, egl.conf,
                                 EGL_NO_CONTEXT, NULL);
     if (egl.ctx == EGL_NO_CONTEXT) {
-        eglTerminate (egl.edpy);
+        eglTerminate (egl.dpy);
+        egl.dpy = NULL;
         failwithfmt ("eglCreateContext %#x", eglGetError ());
     }
 
-    egl.win = eglCreateWindowSurface(egl.edpy, egl.conf,
+    egl.win = eglCreateWindowSurface(egl.dpy, egl.conf,
                                      wid, NULL);
     if (egl.win == EGL_NO_SURFACE) {
+        eglTerminate (egl.dpy);
+        egl.dpy = NULL;
         failwithfmt ("eglCreateWindowSurface %#x", eglGetError ());
     }
 
-    if (!eglMakeCurrent (egl.edpy, egl.win, egl.win, egl.ctx)) {
-        eglDestroySurface (egl.edpy, egl.win);
-        eglTerminate (egl.edpy);
-        XCloseDisplay (egl.xdpy);
-        egl.xdpy = NULL;
-        egl.edpy = NULL;
+    if (!eglMakeCurrent (egl.dpy, egl.win, egl.win, egl.ctx)) {
+        eglDestroySurface (egl.dpy, egl.win);
+        eglTerminate (egl.dpy);
+        egl.dpy = NULL;
         egl.ctx = NULL;
         failwithfmt ("eglMakeCurrent %#x", eglGetError ());
     }
@@ -4057,7 +4025,7 @@ CAMLprim value ml_glx2 (value win_v)
 CAMLprim value ml_swapb (value unit_v)
 {
     CAMLparam1 (unit_v);
-    eglSwapBuffers (egl.edpy, egl.win);
+    eglSwapBuffers (egl.dpy, egl.win);
     CAMLreturn (Val_unit);
 }
 
@@ -4070,6 +4038,7 @@ CAMLprim value ml_glxsync (value unit_v)
 }
 #else
 #undef pixel
+#include <X11/Xlib.h>
 #include <GL/glx.h>
 
 static struct {
@@ -4082,7 +4051,6 @@ static struct {
 CAMLprim value ml_glx1 (value unit_v)
 {
     CAMLparam1 (unit_v);
-    CAMLlocal1 (tup_v);
     int screen;
     int attributes[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
 
@@ -4099,10 +4067,7 @@ CAMLprim value ml_glx1 (value unit_v)
         caml_failwith ("glXChooseVisual");
     }
 
-    tup_v = caml_alloc_tuple (2);
-    Field (tup_v, 0) = Val_int (glx.visual->visualid);
-    Field (tup_v, 1) = Val_int (glx.visual->depth);
-    CAMLreturn (tup_v);
+    CAMLreturn (Val_int (glx.visual->visualid));
 }
 
 CAMLprim value ml_glx2 (value win_v)

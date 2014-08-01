@@ -25,14 +25,14 @@ while getopts eb: opt; do
         ?) usage "" 0;;
     esac
 done
-shift $(($OPTIND - 1))
+shift $((OPTIND - 1))
 
 mupdf="$1"
 test -e "$mupdf" || {
     usage "Don't know where to find MuPDF's git checkout" 1
 }
-pkgs="freetype2 fontconfig zlib x11 openssl libopenjp2" # j(peg|big2dec)?
-test -z "$egl" || pkgs="$pkgs egl"
+pkgs="freetype2 fontconfig zlib openssl libopenjp2" # j(peg|big2dec)?
+test -n "$egl" && pkgs="$pkgs egl" || pkgs="$pkgs x11"
 pwd=$(pwd -P)
 
 expr "$0" : "/.*" >/dev/null && {
@@ -54,7 +54,7 @@ absbuilddir=$(cd >/dev/null $builddir && pwd -P)
  echo "builddir=$builddir"
  echo "absbuilddir=$absbuilddir"
  test $(uname -m) = "x86_64" && {
-     echo "cflags=\$cflags -fPIC"
+     echo 'cflags=$cflags -fPIC'
      echo "mujs=-lmujs"
  }) >.config || true
 
