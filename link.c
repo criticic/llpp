@@ -4043,6 +4043,7 @@ CAMLprim value ml_glx2 (value win_v)
     }
 
     if (!eglMakeCurrent (egl.edpy, egl.win, egl.win, egl.ctx)) {
+        eglDestroySurface (egl.edpy, egl.win);
         eglTerminate (egl.edpy);
         XCloseDisplay (egl.xdpy);
         egl.xdpy = NULL;
