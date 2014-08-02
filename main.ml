@@ -1458,7 +1458,7 @@ let enttext () =
 
     GlDraw.color (1.0, 1.0, 1.0);
     drawstring fstate.fontsize
-      (if conf.leftscroll then x0 else x0 + if len > 0 then 8 else 2)
+      (if conf.leftscroll then x0 + 2 else x0 + if len > 0 then 8 else 2)
       (state.winh - hscrollh - 5) s;
   in
   let s =
