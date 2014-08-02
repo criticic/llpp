@@ -1,0 +1,14 @@
+<defaults>
+  <keymap mode='view'>
+    <!-- meta to follow links -->
+    <map in='0xff67' out='F'/>
+    <!-- ret to enter bird's eye and turn off proportional display -->
+    <map in='ret' out='f9 - l'/>
+    <!-- F11 to enter fullscreen -->
+    <map in='f11' out='f'/>
+    <!-- ignore escape -->
+    <map in='esc' out=''/>
+    <!-- tab goes to outline (table of contents) -->
+    <map in='tab' out='o'/>
+  </keymap>
+</defaults>
