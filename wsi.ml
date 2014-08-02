@@ -764,7 +764,7 @@ let setup sock screennum w h =
         let rec findvisual n pos =
           if n = nvisuals
           then finddepth (n'+1) pos
-          else 
+          else
             let id = r32 data pos in
             if id = vid
             then depth
