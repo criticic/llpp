@@ -7,9 +7,10 @@ buildtype=native
 usage () {
     echo "$1"
     cat 1>&2 <<EOF
-usage: $0 [-e] [-b build-type] [mudir]
+usage: $0 [-e] [-F] [-b build-type] [mudir]
 options:
  -e: use EGL
+ -F: use fontconfig
  -b: MuPDF's build type [default native]
 
  build-type = debug|release|native
@@ -18,9 +19,10 @@ EOF
     exit $2
 }
 
-while getopts eb: opt; do
+while getopts eFb: opt; do
     case $opt in
-        e) egl="egl"; cflags="-DUSE_EGL";;
+        e) egl=true; cflags="$cflags -DUSE_EGL ";;
+        F) fontconfig=true; cflags="$cflags -DUSE_FONTCONFIG";;
         b) buildtype="$OPTARG";;
         ?) usage "" 0;;
     esac
@@ -28,14 +30,14 @@ done
 shift $((OPTIND - 1))
 
 mupdf="$1"
-test -e "$mupdf" || {
-    usage "Don't know where to find MuPDF's git checkout" 1
-}
-pkgs="freetype2 fontconfig zlib openssl libopenjp2" # j(peg|big2dec)?
-test -n "$egl" && pkgs="$pkgs egl" || pkgs="$pkgs x11"
+test -e "$mupdf" || usage "Don't know where to find MuPDF's git checkout" 1
+
+pkgs="freetype2 zlib openssl libopenjp2" # j(peg|big2dec)?
+test $egl && pkgs="$pkgs egl" || pkgs="$pkgs x11"
+test $fontconfig && pkgs="$pkgs fontconfig" || true
 pwd=$(pwd -P)
 
-expr "$0" : "/.*" >/dev/null && {
+expr >/dev/null "$0" : "/.*" && {
     path="$0"
     builddir="$pwd"
     helpcmdl=" -f $(dirname $path)/build.ninja"
@@ -46,16 +48,23 @@ expr "$0" : "/.*" >/dev/null && {
 }
 absbuilddir=$(cd >/dev/null $builddir && pwd -P)
 
-(echo "cflags=$cflags $(pkg-config --cflags $pkgs)"
- echo "lflags=$(pkg-config --libs $pkgs) -ljbig2dec -ljpeg -lz"
- echo "srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)"
- echo "buildtype=$buildtype"
- echo "mupdf=$mupdf"
- echo "builddir=$builddir"
- echo "absbuilddir=$absbuilddir"
+libs="$(pkg-config --libs $pkgs) -ljpeg -ljbig2dec"
+
+(cat <<EOF
+cflags=$cflags $(pkg-config --cflags $pkgs)
+lflags=$libs
+srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)
+buildtype=$buildtype
+mupdf=$mupdf
+builddir=$builddir
+absbuilddir=$absbuilddir
+EOF
  test $(uname -m) = "x86_64" && {
      echo 'cflags=$cflags -fPIC'
      echo "mujs=-lmujs"
  }) >.config || true
 
-echo "To build - type: ninja$helpcmdl"
+cat <<EOF
+Configuration results are saved in $(pwd -P)/.config
+To build - type: ninja$helpcmdl
+EOF
