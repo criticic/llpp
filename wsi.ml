@@ -1219,6 +1219,7 @@ let xlatt, xlatf =
   add "backspace" [] 0xff08;
   add "up" [] 0xff52;
   add "down" [] 0xff54;
+  add "menu" [] 0xff67;
   t, f;
 ;;
 
