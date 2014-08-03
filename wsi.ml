@@ -14,10 +14,13 @@ type winstate =
     | Fullscreen
 ;;
 
-external glxinit : int -> int = "ml_glxinit";;
+type winconfig = (rootwid * parentwid * x * y * w * h)
+and rootwid = wid and parentwid = wid and wid = int
+and x = int and y = int and w = int and h = int;;
+
+external glxinit : string -> int -> int = "ml_glxinit";;
 external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
-external glxcreatewin : int -> int -> int = "ml_glxcreatewin";;
-external glxsync : unit -> unit = "ml_glxsync";;
+external glxcreatewin : winconfig -> wid = "ml_glxcreatewin";;
 external swapb : unit -> unit = "ml_swapb";;
 
 let vlog fmt = Format.kprintf ignore fmt;;
@@ -544,7 +547,6 @@ let readresp sock =
         state.x state.y state.w state.h
         x y w h
       ;
-      glxsync ();
       if w != state.w || h != state.h
       then (
         state.t#reshape w h;
@@ -730,7 +732,13 @@ let setup sock screennum w h =
       vlog "visualid = %#x " (r32 data (pos+32));
       vlog "root depth = %d" rootdepth;
 
-      let vid = glxinit 32 in
+      let vid =
+        let disp =
+          try Sys.getenv "DISPLAY"
+          with Not_found -> E.s
+        in
+        glxinit disp 32
+      in
       let ndepths = r8 data (pos+39) in
       let rec finddepth n' pos =
         if n' = ndepths
@@ -753,6 +761,7 @@ let setup sock screennum w h =
       let fid = state.idbase in
       state.fid <- fid;
 
+      let wid = glxcreatewin (root, root, 0, 0, w, h) in
       let mask = 0
         + 0x00000001                    (* KeyPress *)
         (* + 0x00000002 *)              (* KeyRelease *)
@@ -780,14 +789,11 @@ let setup sock screennum w h =
         (* + 0x00800000 *)              (* ColormapChange *)
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
-
-      let wid = glxcreatewin root root in
       let s = String.create 4 in
       w32 s 0 mask;
       let s = changewindowattributesreq wid 0x800(*event-mask*) s in
       sendstr s state.sock;
       state.wid <- wid;
-      mapwin ();
 
       sendintern sock "WM_PROTOCOLS" false (fun resp ->
         state.protoatom <- r32 resp 8;

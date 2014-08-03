@@ -3921,25 +3921,27 @@ static struct {
     XVisualInfo *visual;
 } glx;
 
+#ifdef SET_SWAP_INTERVAL
 static void UNUSED_ATTR setswapinterval (int interval)
 {
     static PFNGLXSWAPINTERVALSGIPROC swap;
 
     if (!swap) {
         *(void (**) ()) &swap =
-            glXGetProcAddress ((GLubyte *) "glXSwapIntervalSGI");
+            glXGetProcAddress ((GLubyte *) "glXSwapIntervalMESA");
     }
     if (!swap) abort ();
     if (swap (interval)) abort ();
 }
+#endif
 
-CAMLprim value ml_glxinit (value depth_v)
+CAMLprim value ml_glxinit (value display_v, value depth_v)
 {
-    CAMLparam1 (depth_v);
+    CAMLparam2 (display_v, depth_v);
     int items_return;
     XVisualInfo template;
 
-    glx.dpy = XOpenDisplay (NULL);
+    glx.dpy = XOpenDisplay (String_val (display_v));
     if (!glx.dpy) {
         caml_failwith ("XOpenDisplay");
     }
@@ -3973,47 +3975,45 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
     }
     XFree (glx.visual);
     glx.visual = NULL;
+#ifdef SET_SWAP_INTERVAL
     setswapinterval (1);
+#endif
     CAMLreturn (Val_unit);
 }
 
-CAMLprim value ml_glxcreatewin (value root_v, value parent_v)
+CAMLprim value ml_glxcreatewin (value config_v)
 {
-    CAMLparam2 (root_v, parent_v);
+    CAMLparam1 (config_v);
     Window wid;
     XSetWindowAttributes attr;
     unsigned long mask;
+    int root = Int_val (Field (config_v, 0));
+    int parent = Int_val (Field (config_v, 1));
+    int x = Int_val (Field (config_v, 2));
+    int y = Int_val (Field (config_v, 3));
+    int w = Int_val (Field (config_v, 4));
+    int h = Int_val (Field (config_v, 5));
 
     /* window attributes */
     attr.background_pixel = 0;
     attr.border_pixel = 0;
-    attr.colormap = XCreateColormap (glx.dpy, Int_val (root_v),
+    attr.colormap = XCreateColormap (glx.dpy, root,
                                      glx.visual->visual, AllocNone);
-    mask = CWBackPixel | CWBorderPixel | CWColormap;
 
-    wid = XCreateWindow (glx.dpy, Int_val (parent_v), 0, 0, 900, 900,
-                         0, glx.visual->depth, InputOutput,
-                         glx.visual->visual, mask, &attr );
-    XSync (glx.dpy, False);
+    mask = CWBackPixel | CWBorderPixel | CWColormap;
+    wid = XCreateWindow (glx.dpy, parent, x, y, w, h,
+                         /*border width*/0,
+                         glx.visual->depth, InputOutput,
+                         glx.visual->visual, mask, &attr);
+    XSync (glx.dpy, True);
     glx.wid = wid;
     CAMLreturn (Val_int (wid));
 }
-
 
 CAMLprim value ml_swapb (value unit_v)
 {
     CAMLparam1 (unit_v);
     glXSwapBuffers (glx.dpy, glx.wid);
-    CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_glxsync (value unit_v)
-{
-    CAMLparam1 (unit_v);
-    if (glx.dpy && glx.ctx) {
-        glXWaitX ();
-        glXWaitGL ();
-    }
     CAMLreturn (Val_unit);
 }
 

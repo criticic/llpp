@@ -10,7 +10,7 @@ cflags =$cflags  -Wall -Werror -I$mupdf/include -I$freetype $
 rule cc
      deps = gcc
      depfile = $out.d
-     command = $ocamlc -cc $cc -ccopt "$cflags -MMD -MF $out.d -o $out" -c $in
+     command = $ocamlc -cc "$cc" -ccopt "$cflags -MMD -MF $out.d -o $out" -c $in
      description = cc $out
 
 rule ocamlc
