@@ -14,8 +14,9 @@ type winstate =
     | Fullscreen
 ;;
 
-external glx1 : unit -> int = "ml_glx1";;
-external glx2 : int -> unit = "ml_glx2";;
+external glxinit : int -> int = "ml_glxinit";;
+external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
+external glxcreatewin : int -> int -> int = "ml_glxcreatewin";;
 external glxsync : unit -> unit = "ml_glxsync";;
 external swapb : unit -> unit = "ml_swapb";;
 
@@ -64,6 +65,7 @@ type state =
     ; mutable maxhatom   : int
     ; mutable fulsatom   : int
     ; mutable idbase     : int
+    ; mutable wid        : int
     ; mutable fid        : int
     ; mutable fullscreen : (int -> unit)
     ; mutable setwmname  : (string -> unit)
@@ -100,6 +102,7 @@ let state =
   ; maxhatom   = -1
   ; fulsatom   = -1
   ; idbase     = -1
+  ; wid        = -1
   ; fid        = -1
   ; fullscreen = (fun _ -> ())
   ; setwmname  = (fun _ -> ())
@@ -269,35 +272,6 @@ let internreq name onlyifexists =
 let sendintern sock s onlyifexists f =
   let s = internreq s onlyifexists in
   sendwithrep sock s f;
-;;
-
-let createwindowreq wid parent x y w h bw eventmask vid depth mid =
-  let s = makereq 1 48 12 in
-  w8 s 1 depth;
-  w32 s 4 wid;
-  w32 s 8 parent;
-  w16 s 12 x;
-  w16 s 14 y;
-  w16 s 16 w;
-  w16 s 18 h;
-  w16 s 20 bw;
-  w16 s 22 0;                           (* inputoutput *)
-  w32 s 24 vid;                         (* visual *)
-  w32 s 28 0x280a;                      (* eventmask*)
-  w32 s 32 0;
-  w32 s 36 0;
-  w32 s 40 eventmask;
-  w32 s 44 mid;
-  s;
-;;
-
-let createcolormapreq mid wid vid =
-  let s = makereq 78 16 4 in
-  w8 s 1 0;
-  w32 s 4 mid;
-  w32 s 8 wid;
-  w32 s 12 vid;
-  s;
 ;;
 
 let getgeometryreq wid =
@@ -585,7 +559,7 @@ let readresp sock =
       let atom = r32 resp 8 in
       if atom = state.nwmsatom
       then
-        let s = getpropreq false state.idbase atom 4 in
+        let s = getpropreq false state.wid atom 4 in
         sendwithrep sock s (fun resp ->
           let len = r32 resp 4 in
           let nitems = r32 resp 16 in
@@ -641,9 +615,9 @@ let reshape w h =
     let s = "wwuuhhuu" in
     w32 s 0 w;
     w32 s 4 h;
-    let s = configurewindowreq state.idbase 0x000c s in
+    let s = configurewindowreq state.wid 0x000c s in
     sendstr s state.sock;
-  else state.fullscreen state.idbase
+  else state.fullscreen state.wid
 ;;
 
 let activatewin () =
@@ -674,7 +648,7 @@ let syncsendwithrep sock secstowait s f =
 ;;
 
 let mapwin () =
-  let s = mapreq state.idbase in
+  let s = mapreq state.wid in
   sendstr s state.sock;
 ;;
 
@@ -723,13 +697,12 @@ let setup sock screennum w h =
       then error "invalid screen %d, max %d" screennum (screens-1);
 
       let pos =
-        let s = data in
         let rec findscreen n pos = if n = screennum then pos else
             let pos =
-              let ndepths = r8 s (pos+39) in
+              let ndepths = r8 data (pos+39) in
               let rec skipdepths n pos = if n = ndepths then pos else
                   let pos =
-                    let nvisiuals = r16 s (pos+2) in
+                    let nvisiuals = r16 data (pos+2) in
                     pos + nvisiuals*24 + 8
                   in
                   skipdepths (n+1) pos
@@ -742,7 +715,9 @@ let setup sock screennum w h =
       in
       let root = r32 data pos in
       let rootw = r16 data (pos+20)
-      and rooth = r16 data (pos+22) in
+      and rooth = r16 data (pos+22)
+      and rootdepth = r8 data (pos+38)in
+
       state.mink <- minkk;
       state.maxk <- maxkk;
       state.idbase <- idbase;
@@ -753,8 +728,9 @@ let setup sock screennum w h =
       vlog "root=%#x %dx%d" root rootw rooth;
       vlog "wmm = %d, hmm = %d" (r16 data (pos+24)) (r16 data (pos+26));
       vlog "visualid = %#x " (r32 data (pos+32));
+      vlog "root depth = %d" rootdepth;
 
-      let vid = glx1 () in
+      let vid = glxinit 32 in
       let ndepths = r8 data (pos+39) in
       let rec finddepth n' pos =
         if n' = ndepths
@@ -774,14 +750,8 @@ let setup sock screennum w h =
       in
       let depth = finddepth 0 (pos+40) in
 
-      let wid = state.idbase in
-      let mid = wid+1 in
-      let fid = mid+1 in
-
+      let fid = state.idbase in
       state.fid <- fid;
-
-      let s = createcolormapreq mid root vid in
-      sendstr s sock;
 
       let mask = 0
         + 0x00000001                    (* KeyPress *)
@@ -810,8 +780,14 @@ let setup sock screennum w h =
         (* + 0x00800000 *)              (* ColormapChange *)
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
-      let s = createwindowreq wid root 0 0 w h 0 mask vid depth mid in
-      sendstr s sock;
+
+      let wid = glxcreatewin root root in
+      let s = String.create 4 in
+      w32 s 0 mask;
+      let s = changewindowattributesreq wid 0x800(*event-mask*) s in
+      sendstr s state.sock;
+      state.wid <- wid;
+      mapwin ();
 
       sendintern sock "WM_PROTOCOLS" false (fun resp ->
         state.protoatom <- r32 resp 8;
@@ -840,7 +816,7 @@ let setup sock screennum w h =
             let atom = r32 resp 8 in
             let pid = Unix.getpid () in
             let s = s32 pid in
-            let s = changepropreq wid atom (* cardinal *)6 32 s in
+            let s = changepropreq wid atom 6(*cardinal*) 32 s in
             sendstr s sock;
         )
       );
@@ -962,7 +938,7 @@ let setup sock screennum w h =
       );
       let s = getgeometryreq wid in
       syncsendwithrep sock 2.0 s (fun resp ->
-        glx2 wid;
+        glxcompleteinit ();
         let w = r16 resp 16
         and h = r16 resp 18 in
         state.w <- w;
@@ -1163,13 +1139,13 @@ let setcursor cursor =
       | CURSOR_TEXT -> 5
     in
     let s = s32 (if n = -1 then 0 else state.fid+1+n) in
-    let s = changewindowattributesreq state.idbase (*cursor*)0x4000 s in
+    let s = changewindowattributesreq state.wid 0x4000(*cursor*) s in
     sendstr s state.sock;
     state.curcurs <- cursor;
 ;;
 
 let fullscreen () =
-  state.fullscreen state.idbase;
+  state.fullscreen state.wid;
 ;;
 
 let metamask = 0x40;;

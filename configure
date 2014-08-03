@@ -7,9 +7,8 @@ buildtype=native
 usage () {
     echo "$1"
     cat 1>&2 <<EOF
-usage: $0 [-e] [-F] [-b build-type] [mudir]
+usage: $0 [-F] [-b build-type] [mudir]
 options:
- -e: use EGL
  -F: use fontconfig
  -b: MuPDF's build type [default native]
 
@@ -21,7 +20,6 @@ EOF
 
 while getopts eFb: opt; do
     case $opt in
-        e) egl=true; cflags="$cflags -DUSE_EGL ";;
         F) fontconfig=true; cflags="$cflags -DUSE_FONTCONFIG";;
         b) buildtype="$OPTARG";;
         ?) usage "" 0;;
@@ -33,7 +31,6 @@ mupdf="$1"
 test -e "$mupdf" || usage "Don't know where to find MuPDF's git checkout" 1
 
 pkgs="freetype2 zlib openssl libopenjp2" # j(peg|big2dec)?
-test $egl && pkgs="$pkgs egl" || pkgs="$pkgs x11"
 test $fontconfig && pkgs="$pkgs fontconfig" || true
 pwd=$(pwd -P)
 
@@ -62,7 +59,7 @@ EOF
  test $(uname -m) = "x86_64" && {
      echo 'cflags=$cflags -fPIC'
      echo "mujs=-lmujs"
- }) >.config || true
+ }) >.config
 
 cat <<EOF
 Configuration results are saved in $(pwd -P)/.config

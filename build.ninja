@@ -25,8 +25,7 @@ sedcmd = sed -f $srcdir/pp.sed
 
 build $builddir/help.ml: genhelp
 build $builddir/link.o: cc $srcdir/link.c
-      cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP $
-             -DUSE_FONTCONFIG
+      cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP
 build $builddir/help.cmo: ocamlc $builddir/help.ml
 build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
 build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
