@@ -136,7 +136,7 @@ let makereq opcode len reqlen =
 ;;
 
 let recv fd s pos len =
-  Unix.recv fd s pos len [];
+  Unix.read fd s pos len;
 ;;
 
 let readstr sock n =
@@ -158,7 +158,7 @@ let readstr sock n =
 let sendstr1 s pos len sock =
   vlog "%d <= %S" state.seq s;
   state.seq <- state.seq + 1;
-  let n = tempfailureretry (Unix.send sock s pos len) [] in
+  let n = tempfailureretry (Unix.write sock s pos) len in
   if n != len
   then error "send %d returned %d" len n;
 ;;
