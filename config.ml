@@ -1162,7 +1162,7 @@ let map_of attrs =
     | _ :: rest -> fold ls rs rest
     | [] -> ls, rs
   in
-  fold E.s "" attrs
+  fold E.s E.s attrs
 ;;
 
 let setconf dst src =
