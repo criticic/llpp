@@ -32,12 +32,14 @@ build $builddir/help.cmo: ocamlc $builddir/help.ml
 build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
 build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
 build $builddir/wsi.cmi: ocamlc $srcdir/wsi.mli
-build $builddir/wsi.cmo: ocamlc $srcdir/wsi.ml | $
-      $builddir/wsi.cmi
+build $builddir/wsi.cmo: ocamlc $srcdir/wsi.ml $
+      | $builddir/bo.cmo $builddir/utils.cmo $builddir/wsi.cmi
 build $builddir/parser.cmo: ocamlc $srcdir/parser.ml
-build $builddir/config.cmo: ocamlc $srcdir/config.ml
+build $builddir/config.cmo: ocamlc $srcdir/config.ml $
+      | $builddir/wsi.cmi $builddir/utils.cmo $builddir/parser.cmo
       ocamlflags = $ocamlflags -I +lablGL
-build $builddir/main.cmo: ocamlc $srcdir/main.ml
+build $builddir/main.cmo: ocamlc $srcdir/main.ml $
+      | $builddir/wsi.cmi $builddir/utils.cmo $builddir/config.cmo
       ocamlflags = $ocamlflags -I +lablGL -pp "$sedcmd"
 
 cmos = $builddir/help.cmo $
@@ -47,13 +49,6 @@ cmos = $builddir/help.cmo $
      $builddir/wsi.cmo $
      $builddir/config.cmo $
      $builddir/main.cmo
-
-rule predep
-      deps = gcc
-      depfile = $out.d
-      command = sh $srcdir/dodeps $out $srcdir $builddir
-
-build $builddir/predeps: predep
 
 rule linkso
      command = $cc -o $out -shared $in $libs $lflags
@@ -67,7 +62,7 @@ rule link
              $builddir/link.so
      description = link $out
 
-build $builddir/llpp: link | $builddir/predeps $
+build $builddir/llpp: link $
       $builddir/help.cmo $
       $builddir/utils.cmo $
       $builddir/parser.cmo $
