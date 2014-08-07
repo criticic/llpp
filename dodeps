@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+out="$1"
+srcdir="$2"
+objdir="$3"
+
+(cd >/dev/null $srcdir && ocamldep *.ml) |              \
+    (sed >$out.d                                        \
+         -e "/.cmx/d"                                   \
+         -e 's;\([[:alnum:]\.]\+\);'$objdir'/\1;g'      \
+         -e '/:$/d') && cp $out.d $out
