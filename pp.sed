@@ -38,7 +38,7 @@ s;@right;0xff53;
 s;@slash;47;
 s;@space;32;
 s;@tab;0xff09;
-s;@tilde;96;
+s;@tilde;0x7e;
 s;@up;0xff52;
 s;@up;0xff52;
 s;@0;48;

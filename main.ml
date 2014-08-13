@@ -3,9 +3,7 @@ open Config;;
 
 exception Quit;;
 
-type pipe = (Unix.file_descr * Unix.file_descr);;
-
-external init : pipe -> params -> unit = "ml_init";;
+external init : Unix.file_descr -> params -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;
 external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
@@ -129,35 +127,11 @@ let launchpath () =
   );
 ;;
 
-module Ne = struct
-  type 'a t = | Res of 'a | Exn of exn;;
-
-  let res f =
-    try Res (f ())
-    with exn -> Exn exn
-  ;;
-
-  let clo fd f =
-    try tempfailureretry Unix.close fd
-    with exn -> f (exntos exn)
-  ;;
-
-  let dup fd =
-    try Res (tempfailureretry Unix.dup fd)
-    with exn -> Exn exn
-  ;;
-
-  let dup2 fd1 fd2 =
-    try Res (tempfailureretry (Unix.dup2 fd1) fd2)
-    with exn -> Exn exn
-  ;;
-end;;
-
 let redirectstderr () =
   let clofail what errmsg = dolog "failed to close %s: %s" what errmsg in
   if conf.redirectstderr
   then
-    match Ne.res Unix.pipe with
+    match Ne.res Unix.pipe () with
     | Ne.Exn exn ->
         dolog "failed to create stderr redirection pipes: %s" (exntos exn)
 
@@ -285,7 +259,7 @@ let showtext c s =
 let pipesel opaque cmd =
   if hassel opaque
   then
-    match Ne.res Unix.pipe with
+    match Ne.res Unix.pipe () with
     | Ne.Exn exn ->
         showtext '!'
           (Printf.sprintf "pipesel can not create pipe: %s" (exntos exn));
@@ -332,7 +306,7 @@ let paxunder x y =
 ;;
 
 let selstring s =
-  match Ne.res Unix.pipe with
+  match Ne.res Unix.pipe () with
   | Ne.Exn exn ->
       showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
   | Ne.Res (r, w) ->
@@ -486,7 +460,7 @@ let wcmd fmt =
       s.[1] <- Char.chr ((len lsr 16) land 0xff);
       s.[2] <- Char.chr ((len lsr  8) land 0xff);
       s.[3] <- Char.chr (len land 0xff);
-      let n' = tempfailureretry (Unix.write state.sw s 0) n in
+      let n' = tempfailureretry (Unix.write state.ss s 0) n in
       if n' != n then error "write failed %d vs %d" n' n;
     ) b fmt;
 ;;
@@ -5727,7 +5701,7 @@ let viewmouse button down x y mask =
                         match getopaque l.pageno with
                         | Some opaque ->
                             let dosel cmd () =
-                              match Ne.res Unix.pipe with
+                              match Ne.res Unix.pipe () with
                               | Ne.Exn exn ->
                                   showtext '!'
                                     (Printf.sprintf
@@ -6053,6 +6027,7 @@ let remoteopen path =
 ;;
 
 let () =
+  let gcconfig = ref E.s in
   let trimcachepath = ref E.s in
   let rcmdpath = ref E.s in
   let pageno = ref None in
@@ -6093,6 +6068,8 @@ let () =
          ("-origin", Arg.String (fun s -> state.origin <- s),
          "<original-path> Set original path");
 
+         ("-gc", Arg.Set_string gcconfig, " collect garbage");
+
          ("-v", Arg.Unit (fun () ->
            Printf.printf
              "%s\nconfiguration path: %s\n"
@@ -6117,8 +6094,24 @@ let () =
   | None -> ()
   end;
 
+  if not (emptystr !gcconfig)
+  then (
+    let c, s =
+      match Ne.res
+          (Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM) 0 with
+      | Ne.Exn exn ->
+          error "gc socketpair failed: %s" (exntos exn)
+      | Ne.Res rw -> rw
+    in
+    match Ne.res (popen !gcconfig) [(c, 0); (c, 1)] with
+    | Ne.Res () ->
+        Config.gc s s;
+        exit 0
+    | Ne.Exn exn ->
+        error "failed to popen gc script: %s" (exntos exn);
+   );
+
   let wsfd, winw, winh = Wsi.init (object (self)
-    val mutable m_hack = false
     val mutable m_clicks = 0
     val mutable m_click_x = 0
     val mutable m_click_y = 0
@@ -6126,13 +6119,20 @@ let () =
 
     method private cleanup =
       state.roam <- noroam;
-      Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
-    method expose = if not m_hack then G.postRedisplay "expose"
-    method visible = G.postRedisplay "visible"
-    method display = m_hack <- false; display ()
+      Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap
+    method expose = G.postRedisplay"expose"
+    method visible v =
+      let name =
+        match v with
+        | Wsi.Unobscured -> "unobscured"
+        | Wsi.PartiallyObscured -> "partiallyobscured"
+        | Wsi.FullyObscured -> "fullyobjscured"
+      in
+      vlog "visibility change %s" name
+    method display = display ()
+    method map mapped = vlog "mappped %b" mapped
     method reshape w h =
       self#cleanup;
-      m_hack <- w < state.winw && h < state.winh;
       reshape w h
     method mouse b d x y m =
       if d && canselect ()
@@ -6209,7 +6209,7 @@ let () =
       state.mpos <- (x, y);
       state.uioh <- state.uioh#pmotion x y
     method leave = state.mpos <- (-1, -1)
-    method winstate wsl = state.winstate <- wsl; m_hack <- false
+    method winstate wsl = state.winstate <- wsl
     method quit = raise Quit
   end) conf.cwinw conf.cwinh (platform = Posx) in
 
@@ -6235,24 +6235,16 @@ let () =
     defconf.usepbo <- true;
   );
 
-  let cr, sw =
-    match Ne.res Unix.pipe with
+  let cs, ss =
+    match Ne.res (Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM) 0 with
     | Ne.Exn exn ->
-        Printf.eprintf "pipe/crsw failed: %s" (exntos exn);
+        Printf.eprintf "socketpair failed: %s" (exntos exn);
         exit 1
-    | Ne.Res rw -> rw
-  and sr, cw =
-    match Ne.res Unix.pipe with
-    | Ne.Exn exn ->
-        Printf.eprintf "pipe/srcw failed: %s" (exntos exn);
-        exit 1
-    | Ne.Res rw -> rw
+    | Ne.Res (r, w) ->
+        cloexec r;
+        cloexec w;
+        r, w
   in
-
-  cloexec cr;
-  cloexec sw;
-  cloexec sr;
-  cloexec cw;
 
   setcheckers conf.checkers;
   redirectstderr ();
@@ -6282,19 +6274,19 @@ let () =
     )
   ;
 
-  init (cr, cw) (
+  init cs (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
     !Config.fontpath, !trimcachepath,
     GlMisc.check_extension "GL_ARB_pixel_buffer_object"
   );
   List.iter GlArray.enable [`texture_coord; `vertex];
-  state.sr <- sr;
-  state.sw <- sw;
+  state.ss <- ss;
   reshape winw winh;
   if histmode
   then (
     state.uioh <- uioh;
+    Wsi.settitle "llpp (history)";
     enterhistmode ();
   )
   else (
@@ -6316,8 +6308,8 @@ let () =
   let rec loop deadline =
     let r =
       match state.errfd with
-      | None -> [state.sr; state.wsfd]
-      | Some fd -> [state.sr; state.wsfd; fd]
+      | None -> [state.ss; state.wsfd]
+      | Some fd -> [state.ss; state.wsfd; fd]
     in
     let r =
       match !optrfd with
@@ -6369,8 +6361,8 @@ let () =
     | l ->
         let rec checkfds = function
           | [] -> ()
-          | fd :: rest when fd = state.sr ->
-              let cmd = readcmd state.sr in
+          | fd :: rest when fd = state.ss ->
+              let cmd = readcmd state.ss in
               act cmd;
               checkfds rest
 

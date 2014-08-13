@@ -231,7 +231,7 @@ struct {
     fz_pixmap *pig;
 
     pthread_t thread;
-    int cr, cw;
+    int csock;
     FT_Face face;
 
     void (*closedoc) (void);
@@ -336,7 +336,7 @@ static double now (void)
 static int hasdata (void)
 {
     int ret, avail;
-    ret = ioctl (state.cr, FIONREAD, &avail);
+    ret = ioctl (state.csock, FIONREAD, &avail);
     if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
     return avail > 0;
 }
@@ -356,7 +356,7 @@ static void readdata (void *p, int size)
     ssize_t n;
 
  again:
-    n = read (state.cr, p, size);
+    n = read (state.csock, p, size);
     if (n < 0) {
         if (errno == EINTR) goto again;
         err (1, "read (req %d, ret %zd)", size, n);
@@ -376,7 +376,7 @@ static void writedata (char *p, int size)
     p[2] = (size >>  8) & 0xff;
     p[3] = (size >>  0) & 0xff;
 
-    n = write (state.cw, p, size + 4);
+    n = write (state.csock, p, size + 4);
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
         err (1, "write (req %d, ret %zd)", size + 4, n);
@@ -3921,37 +3921,23 @@ static struct {
     XVisualInfo *visual;
 } glx;
 
-#ifdef SET_SWAP_INTERVAL
-static void UNUSED_ATTR setswapinterval (int interval)
+CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
 {
-    static PFNGLXSWAPINTERVALSGIPROC swap;
-
-    if (!swap) {
-        *(void (**) ()) &swap =
-            glXGetProcAddress ((GLubyte *) "glXSwapIntervalMESA");
-    }
-    if (!swap) abort ();
-    if (swap (interval)) abort ();
-}
-#endif
-
-CAMLprim value ml_glxinit (value display_v, value depth_v)
-{
-    CAMLparam2 (display_v, depth_v);
-    int items_return;
-    XVisualInfo template;
+    CAMLparam3 (display_v, wid_v, screen_v);
+    int attribs[] = {GLX_RGBA,  GLX_DOUBLEBUFFER, None};
 
     glx.dpy = XOpenDisplay (String_val (display_v));
     if (!glx.dpy) {
         caml_failwith ("XOpenDisplay");
     }
 
-    template.depth = Int_val (depth_v);
-    glx.visual = XGetVisualInfo (glx.dpy, VisualDepthMask,
-                                 &template, &items_return);
-    if (!glx.visual || !items_return) {
-        caml_failwith ("XGetVisualInfo");
+    glx.visual = glXChooseVisual (glx.dpy, Int_val (screen_v), attribs);
+    if (!glx.visual) {
+        XCloseDisplay (glx.dpy);
+        caml_failwith ("glXChooseVisual");
     }
+
+    glx.wid = Int_val (wid_v);
     CAMLreturn (Val_int (glx.visual->visualid));
 }
 
@@ -3961,53 +3947,18 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
 
     glx.ctx = glXCreateContext (glx.dpy, glx.visual, NULL, True);
     if (!glx.ctx) {
-        XCloseDisplay (glx.dpy);
-        glx.dpy = NULL;
         caml_failwith ("glXCreateContext");
     }
 
+    XFree (glx.visual);
+    glx.visual = NULL;
+
     if (!glXMakeCurrent (glx.dpy, glx.wid, glx.ctx)) {
         glXDestroyContext (glx.dpy, glx.ctx);
-        XCloseDisplay (glx.dpy);
-        glx.dpy = NULL;
         glx.ctx = NULL;
         caml_failwith ("glXMakeCurrent");
     }
-    XFree (glx.visual);
-    glx.visual = NULL;
-#ifdef SET_SWAP_INTERVAL
-    setswapinterval (1);
-#endif
     CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_glxcreatewin (value config_v)
-{
-    CAMLparam1 (config_v);
-    Window wid;
-    XSetWindowAttributes attr;
-    unsigned long mask;
-    int root = Int_val (Field (config_v, 0));
-    int parent = Int_val (Field (config_v, 1));
-    int x = Int_val (Field (config_v, 2));
-    int y = Int_val (Field (config_v, 3));
-    int w = Int_val (Field (config_v, 4));
-    int h = Int_val (Field (config_v, 5));
-
-    /* window attributes */
-    attr.background_pixel = 0;
-    attr.border_pixel = 0;
-    attr.colormap = XCreateColormap (glx.dpy, root,
-                                     glx.visual->visual, AllocNone);
-
-    mask = CWBackPixel | CWBorderPixel | CWColormap;
-    wid = XCreateWindow (glx.dpy, parent, x, y, w, h,
-                         /*border width*/0,
-                         glx.visual->depth, InputOutput,
-                         glx.visual->visual, mask, &attr);
-    XSync (glx.dpy, True);
-    glx.wid = wid;
-    CAMLreturn (Val_int (wid));
 }
 
 CAMLprim value ml_swapb (value unit_v)
@@ -4174,11 +4125,7 @@ CAMLprim value ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
-#ifdef USE_EGL
-#define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
-#else
 #define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
-#endif
     state.pbo_usable = GGPA (glBindBufferARB)
         && GGPA (glUnmapBufferARB)
         && GGPA (glMapBufferARB)
@@ -4358,9 +4305,9 @@ static fz_font *fc_load_system_font_func (fz_context *ctx,
 }
 #endif
 
-CAMLprim value ml_init (value pipe_v, value params_v)
+CAMLprim value ml_init (value csock_v, value params_v)
 {
-    CAMLparam2 (pipe_v, params_v);
+    CAMLparam2 (csock_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
     int ret;
     int texcount;
@@ -4370,8 +4317,7 @@ CAMLprim value ml_init (value pipe_v, value params_v)
     int haspboext;
     struct sigaction sa;
 
-    state.cr            = Int_val (Field (pipe_v, 0));
-    state.cw            = Int_val (Field (pipe_v, 1));
+    state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
     state.fitmodel      = Int_val (Field (params_v, 1));
     trim_v              = Field (params_v, 2);

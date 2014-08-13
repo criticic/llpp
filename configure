@@ -42,8 +42,9 @@ expr >/dev/null "$0" : "/.*" && {
     path="$pwd/$0"
     builddir="build"
     helcmdl=""
+    mkdir -p $builddir
 }
-builddir=$(cd >/dev/null $builddir && pwd -P)
+builddir=$(cd $builddir >/dev/null $builddir && pwd -P)
 
 libs="$(pkg-config --libs $pkgs) -ljpeg -ljbig2dec"
 

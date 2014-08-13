@@ -22,7 +22,7 @@ expr >/dev/null "$*" : '.* -pp ' && {
     trap 'test -n "$ef" && rm -f "$ef"' 0
     (cd >/dev/null $outdir && $compiler 2>$ef "$@" -o $out $in)
     rc=$?
-    if test "$rc" = 0; then
+    if test "$rc" != 0; then
         sed 1>&2 "s;File \"\([^\"]*\)\"\(.*\)$;File $in\2;" $ef
     else
         dodep

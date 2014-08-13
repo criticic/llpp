@@ -1,11 +1,10 @@
 cc = gcc
 include .config
 ocamlc = ocamlc.opt
-ocamlflags = -w a -g
+ocamlflags = -warn-error +a -w +a-6-4 -g
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
-cflags =$cflags  -Wall -Werror -I$mupdf/include -I$freetype $
-       -I$mupdf/include -g
+cflags =$cflags  -Wall -Werror -I$mupdf/include -I$freetype -g
 
 rule cc
      deps = gcc
@@ -25,7 +24,8 @@ rule genhelp
 
 sedcmd = sed -f $srcdir/pp.sed
 
-build $builddir/help.ml: genhelp
+build $builddir/help.ml: genhelp $
+      $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS
 build $builddir/link.o: cc $srcdir/link.c
       cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP
 build $builddir/help.cmo: ocamlc $builddir/help.ml
@@ -33,13 +33,14 @@ build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
 build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
 build $builddir/wsi.cmi: ocamlc $srcdir/wsi.mli
 build $builddir/wsi.cmo: ocamlc $srcdir/wsi.ml $
-      | $builddir/bo.cmo $builddir/utils.cmo $builddir/wsi.cmi
+      || $builddir/bo.cmo $builddir/utils.cmo $builddir/wsi.cmi
 build $builddir/parser.cmo: ocamlc $srcdir/parser.ml
 build $builddir/config.cmo: ocamlc $srcdir/config.ml $
-      | $builddir/wsi.cmi $builddir/utils.cmo $builddir/parser.cmo
+      || $builddir/wsi.cmi $builddir/utils.cmo $builddir/parser.cmo
       ocamlflags = $ocamlflags -I +lablGL
 build $builddir/main.cmo: ocamlc $srcdir/main.ml $
-      | $builddir/wsi.cmi $builddir/utils.cmo $builddir/config.cmo
+      || $builddir/wsi.cmi $builddir/utils.cmo $builddir/config.cmo $
+        $builddir/help.cmo
       ocamlflags = $ocamlflags -I +lablGL -pp "$sedcmd"
 
 cmos = $builddir/help.cmo $

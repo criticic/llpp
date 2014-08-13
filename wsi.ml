@@ -14,21 +14,25 @@ type winstate =
     | Fullscreen
 ;;
 
-type winconfig = (rootwid * parentwid * x * y * w * h)
-and rootwid = wid and parentwid = wid and wid = int
-and x = int and y = int and w = int and h = int;;
+type visiblestate =
+  | Unobscured
+  | PartiallyObscured
+  | FullyObscured
+;;
 
-external glxinit : string -> int -> int = "ml_glxinit";;
+type wid = int and screenno = int and vid = int and atom = int;;
+
+external glxinit : string -> wid -> screenno -> vid = "ml_glxinit";;
 external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
-external glxcreatewin : winconfig -> wid = "ml_glxcreatewin";;
 external swapb : unit -> unit = "ml_swapb";;
 
 let vlog fmt = Format.kprintf ignore fmt;;
 
 let onot = object
   method display         = ()
+  method map _           = ()
   method expose          = ()
-  method visible         = ()
+  method visible _       = ()
   method reshape _ _     = ()
   method mouse _ _ _ _ _ = ()
   method motion _ _      = ()
@@ -42,8 +46,9 @@ end;;
 
 class type t = object
   method display  : unit
+  method map      : bool -> unit
   method expose   : unit
-  method visible  : unit
+  method visible  : visiblestate -> unit
   method reshape  : int -> int -> unit
   method mouse    : int -> bool -> int -> int -> int -> unit
   method motion   : int -> int -> unit
@@ -61,12 +66,12 @@ type state =
     ; mutable keymap     : int array array
     ; fifo               : (string -> unit) Queue.t
     ; mutable seq        : int
-    ; mutable protoatom  : int
-    ; mutable deleatom   : int
-    ; mutable nwmsatom   : int
-    ; mutable maxvatom   : int
-    ; mutable maxhatom   : int
-    ; mutable fulsatom   : int
+    ; mutable protoatom  : atom
+    ; mutable deleatom   : atom
+    ; mutable nwmsatom   : atom
+    ; mutable maxvatom   : atom
+    ; mutable maxhatom   : atom
+    ; mutable fulsatom   : atom
     ; mutable idbase     : int
     ; mutable wid        : int
     ; mutable fid        : int
@@ -255,7 +260,7 @@ let padcatl ss =
   let pl = bl land 3 in
   if pl != 0
   then (
-    let pad = "123" in
+    let pad = String.create 3 in
     Buffer.add_substring b pad 0 (4 - pl);
   );
   Buffer.contents b;
@@ -275,6 +280,35 @@ let internreq name onlyifexists =
 let sendintern sock s onlyifexists f =
   let s = internreq s onlyifexists in
   sendwithrep sock s f;
+;;
+
+let createwindowreq wid parent x y w h bw eventmask vid depth mid =
+  let s = makereq 1 48 12 in
+  w8 s 1 depth;
+  w32 s 4 wid;
+  w32 s 8 parent;
+  w16 s 12 x;
+  w16 s 14 y;
+  w16 s 16 w;
+  w16 s 18 h;
+  w16 s 20 bw;
+  w16 s 22 0;                           (* inputoutput *)
+  w32 s 24 vid;                         (* visual *)
+  w32 s 28 0x280a;                      (* eventmask*)
+  w32 s 32 0;
+  w32 s 36 0;
+  w32 s 40 eventmask;
+  w32 s 44 mid;
+  s;
+;;
+
+let createcolormapreq mid wid vid =
+  let s = makereq 78 16 4 in
+  w8 s 1 0;
+  w32 s 4 mid;
+  w32 s 8 wid;
+  w32 s 12 vid;
+  s;
 ;;
 
 let getgeometryreq wid =
@@ -370,7 +404,7 @@ let configurewindowreq wid mask values =
 ;;
 
 let s32 n =
-  let s = "1234" in
+  let s = String.create 4 in
   w32 s 0 n;
   s;
 ;;
@@ -500,9 +534,12 @@ let readresp sock =
   | 8 ->                                (* leave *)
       state.t#leave
 
-  | 18 -> vlog "unmap";
+  | 18 ->                               (* unmap *)
+      state.t#map false;
+      vlog "unmap";
 
   | 19 ->                               (* map *)
+      state.t#map true;
       vlog "map";
 
   | 12 ->                               (* exposure *)
@@ -510,9 +547,18 @@ let readresp sock =
       state.t#expose
 
   | 15 ->                               (* visibility *)
-      let vis = r8 resp 8 in
-      if vis != 2 then state.t#visible;
-      vlog "visibility %d" vis;
+      let v = r8 resp 8 in
+      let vis =
+        match v with
+        | 0 -> Unobscured
+        | 1 -> PartiallyObscured
+        | 2 -> FullyObscured
+        | _ ->
+            dolog "unknown visibility %d" v;
+            Unobscured
+      in
+      state.t#visible vis;
+      vlog "visibility %d" v;
 
   | 34 ->                               (* mapping *)
       state.keymap <- E.a;
@@ -614,7 +660,7 @@ let sendstr s ?(pos=0) ?(len=String.length s) sock =
 let reshape w h =
   if state.fs = NoFs
   then
-    let s = "wwuuhhuu" in
+    let s = String.create 8 in
     w32 s 0 w;
     w32 s 4 h;
     let s = configurewindowreq state.wid 0x000c s in
@@ -732,12 +778,19 @@ let setup sock screennum w h =
       vlog "visualid = %#x " (r32 data (pos+32));
       vlog "root depth = %d" rootdepth;
 
+      let wid = state.idbase in
+      let mid = wid+1 in
+      let fid = mid+1 in
+
+      state.wid <- wid;
+      state.fid <- fid;
+
       let vid =
         let disp =
           try Sys.getenv "DISPLAY"
           with Not_found -> E.s
         in
-        glxinit disp 32
+        glxinit disp wid screennum
       in
       let ndepths = r8 data (pos+39) in
       let rec finddepth n' pos =
@@ -758,10 +811,9 @@ let setup sock screennum w h =
       in
       let depth = finddepth 0 (pos+40) in
 
-      let fid = state.idbase in
-      state.fid <- fid;
+      let s = createcolormapreq mid root vid in
+      sendstr s sock;
 
-      let wid = glxcreatewin (root, root, 0, 0, w, h) in
       let mask = 0
         + 0x00000001                    (* KeyPress *)
         (* + 0x00000002 *)              (* KeyRelease *)
@@ -789,11 +841,9 @@ let setup sock screennum w h =
         (* + 0x00800000 *)              (* ColormapChange *)
         (* + 0x01000000 *)              (* OwnerGrabButton *)
       in
-      let s = String.create 4 in
-      w32 s 0 mask;
-      let s = changewindowattributesreq wid 0x800(*event-mask*) s in
-      sendstr s state.sock;
-      state.wid <- wid;
+
+      let s = createwindowreq wid root 0 0 w h 0 mask vid depth mid in
+      sendstr s sock;
 
       sendintern sock "WM_PROTOCOLS" false (fun resp ->
         state.protoatom <- r32 resp 8;
@@ -888,7 +938,7 @@ let setup sock screennum w h =
       );
 
       state.fullscreen <- (fun wid ->
-        let s = "xxuuyyuuwwuuhhuu" in
+        let s = String.create 16 in
         match state.fs with
         | NoFs ->
             w32 s 0 0;

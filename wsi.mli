@@ -12,10 +12,17 @@ type winstate =
     | Fullscreen
 ;;
 
+type visiblestate =
+  | Unobscured
+  | PartiallyObscured
+  | FullyObscured
+;;
+
 class type t = object
   method display  : unit
+  method map      : bool -> unit
   method expose   : unit
-  method visible  : unit
+  method visible  : visiblestate -> unit
   method reshape  : int -> int -> unit
   method mouse    : int -> bool -> int -> int -> int -> unit
   method motion   : int -> int -> unit
