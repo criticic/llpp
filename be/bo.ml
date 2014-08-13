@@ -1,6 +1,5 @@
 let w8 s pos i = String.set s pos (Char.chr (i land 0xff));;
-    let r8 s pos = Char.code (String.get s pos)
-;;
+let r8 s pos = Char.code (String.get s pos);;
 
 let ordermagic = 'B';;
 
