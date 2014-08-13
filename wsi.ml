@@ -705,7 +705,7 @@ let syncsendintern sock secstowait s onlyifexists f =
   syncsendwithrep sock secstowait s f;
 ;;
 
-let setup sock screennum w h =
+let setup sock rootwid screennum w h =
   let s = readstr sock 2 in
   let n = String.length s in
   if n != 2
@@ -761,7 +761,7 @@ let setup sock screennum w h =
         in
         findscreen 0 pos
       in
-      let root = r32 data pos in
+      let root = if rootwid = 0 then r32 data pos else rootwid in
       let rootw = r16 data (pos+20)
       and rooth = r16 data (pos+22)
       and rootdepth = r8 data (pos+38)in
@@ -1087,7 +1087,7 @@ let getauth haddr dnum =
   | Some ic -> readauth ic
 ;;
 
-let init t w h osx =
+let init t rootwid w h osx =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
@@ -1174,7 +1174,7 @@ let init t w h osx =
   w16 s 8 (String.length adata);
   sendstr1 s 0 (String.length s) fd;
   state.sock <- fd;
-  setup fd screennum w h;
+  setup fd rootwid screennum w h;
   state.t <- t;
   fd, state.w, state.h;
 ;;
