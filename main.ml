@@ -6031,6 +6031,7 @@ let () =
   let trimcachepath = ref E.s in
   let rcmdpath = ref E.s in
   let pageno = ref None in
+  let rootwid = ref 0 in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -6077,6 +6078,9 @@ let () =
              Config.defconfpath
            ;
            exit 0), " Print version and exit");
+
+         ("-embed", Arg.Set_int rootwid,
+          "<window-id> Embed into window")
         ]
     )
     (fun s -> state.path <- s)
@@ -6211,7 +6215,7 @@ let () =
     method leave = state.mpos <- (-1, -1)
     method winstate wsl = state.winstate <- wsl
     method quit = raise Quit
-  end) conf.cwinw conf.cwinh (platform = Posx) in
+  end) !rootwid conf.cwinw conf.cwinh (platform = Posx) in
 
   state.wsfd <- wsfd;
 
