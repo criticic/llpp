@@ -19,7 +19,7 @@ let isname = function
 
 exception Parse_error of string * string * int
 
-let error msg s pos =
+let parse_error msg s pos =
   raise (Parse_error (msg, s, pos))
 ;;
 
@@ -156,7 +156,7 @@ let parse v s =
       try
         Str.search_forward r s pos
       with Not_found ->
-        error ("couldn't find substring " ^ subs) s pos
+        parse_error ("couldn't find substring " ^ subs) s pos
     in
     pos
   in
@@ -175,7 +175,8 @@ let parse v s =
 
   let find_non_white pos =
     let rec forward i =
-      if i >= slen then error "couldn't find non white space character" s pos;
+      if i >= slen
+      then parse_error "couldn't find non white space character" s pos;
       if iswhite s.[i] then forward (i+1) else i in
     forward pos
   in
@@ -183,7 +184,7 @@ let parse v s =
   let getname pos =
     let non_name_pos =
       let rec find_non_name i =
-        if i >= slen then error "couldn't find  non name character" s pos;
+        if i >= slen then parse_error "couldn't find  non name character" s pos;
         if isname s.[i] then find_non_name (i+1) else i
       in
       find_non_name pos
@@ -193,7 +194,7 @@ let parse v s =
 
   let rec collect v pos t =
     if pos >= slen && t != `text
-    then error ("not enough data for " ^ ts t) s pos;
+    then parse_error ("not enough data for " ^ ts t) s pos;
 
     match t with
     | `text ->
@@ -206,7 +207,7 @@ let parse v s =
               then -1
               else (
                 if not (iswhite s.[pos+i])
-                then error "garbage at the end" s pos
+                then parse_error "garbage at the end" s pos
                 else trailsbywhite (i+1)
               )
             in
@@ -242,7 +243,7 @@ let parse v s =
           | '!' -> (pos+1), `exclam
           | '?' -> (pos+1), `question
           | c when isname c -> pos, `tag
-          | _ -> error "invalid data after <" s pos
+          | _ -> parse_error "invalid data after <" s pos
         in
         collect v pos t
 
@@ -251,7 +252,7 @@ let parse v s =
         let tag_name_end_pos, close_tag_name = getname tag_name_pos in
         let close_tag_pos = find_non_white tag_name_end_pos in
         if s.[close_tag_pos] != '>'
-        then error "missing >" s pos;
+        then parse_error "missing >" s pos;
         let pos' = close_tag_pos + 1 in
         let v = v.f v (Vclose close_tag_name) pos pos' in
         collect v pos' `text
@@ -261,7 +262,7 @@ let parse v s =
           try
             String.index_from s pos '>'
           with Not_found ->
-            error "doctype is not terminated" s pos
+            parse_error "doctype is not terminated" s pos
         in
         collect v (close_tag_pos+1) `text
 
@@ -270,7 +271,7 @@ let parse v s =
           try
             find_substr pos "-->" r_comment_terminator
           with Not_found ->
-            error "comment is not terminated" s pos
+            parse_error "comment is not terminated" s pos
         in
         collect v (pos+3) `text
 
@@ -288,7 +289,7 @@ let parse v s =
           else (
             if begins_with pos "--"
             then collect v (pos+2) `comment
-            else error "unknown shit after exclamation mark" s pos
+            else parse_error "unknown shit after exclamation mark" s pos
           )
         )
 
@@ -311,16 +312,16 @@ let parse v s =
         then
           let qpos = pos+1 in
           if qpos = slen
-          then error "not enough data for attribute" s pos;
+          then parse_error "not enough data for attribute" s pos;
 
           let qc = s.[qpos] in
           if not (qc = '\'' || qc = '"')
-          then error "assignment is not followed by a quote" s pos;
+          then parse_error "assignment is not followed by a quote" s pos;
 
           let closing_q_pos =
             let rec find i =
               if i = slen
-              then error "not enough data for attribute value" s pos;
+              then parse_error "not enough data for attribute value" s pos;
 
               if s.[i] = qc then i else find (i+1)
             in
@@ -331,7 +332,7 @@ let parse v s =
           let val' = String.sub s (qpos+1) vallen in
           (name, val'), closing_q_pos+1
 
-        else error "attribute name not followed by '='" s pos
+        else parse_error "attribute name not followed by '='" s pos
       in
 
       let pos = find_non_white pos in
@@ -349,7 +350,7 @@ let parse v s =
             let accu = nameval :: accu in
             f accu pos
           )
-          else error "malformed attribute list" s pos;
+          else parse_error "malformed attribute list" s pos;
         )
       )
     in

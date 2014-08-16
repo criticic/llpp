@@ -76,8 +76,19 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog "}";
 ;;
 
-let isbirdseye = function Birdseye _ -> true | _ -> false;;
-let istextentry = function Textentry _ -> true | _ -> false;;
+let isbirdseye = function
+  | Birdseye _ -> true
+  | Textentry _
+  | View
+  | LinkNav _ -> false
+;;
+
+let istextentry = function
+  | Textentry _ -> true
+  | Birdseye _
+  | View
+  | LinkNav _ -> false
+;;
 
 let wtmode = ref false;;
 let cxack = ref false;;
@@ -234,10 +245,18 @@ let getunder x y =
           state.rects <- [l.pageno, l.pageno mod 3, rect];
           G.postRedisplay "getunder";
       | None -> ()
-    );
-    match whatsunder opaque px py with
+     );
+    let under = whatsunder opaque px py in
+    match under with
     | Unone -> None
-    | under -> Some under
+    | Ulinkuri _
+    | Ulinkgoto _
+    | Utext _
+    | Uunexpected _
+    | Ulaunch _
+    | Unamed _
+    | Uremote _
+    | Uremotedest _ -> Some under
   in
   onppundermouse g x y Unone
 ;;
@@ -397,7 +416,14 @@ let showlinktype under =
   then
     match under with
     | Unone -> ()
-    | under ->
+    | Ulinkuri _
+    | Ulinkgoto _
+    | Utext _
+    | Uunexpected _
+    | Ulaunch _
+    | Unamed _
+    | Uremote _
+    | Uremotedest _ ->
         let s = undertext under in
         showtext ' ' s
 ;;
@@ -802,7 +828,9 @@ let tilevisible layout n x y =
         tilevisible1 l x y || (
           match conf.columns with
           | Csplit (c, _) when c > m -> findpageinlayout (m+1) rest
-          | _ -> false
+          | Csplit _
+          | Csingle _
+          | Cmulti _ -> false
         )
     | _ :: rest -> findpageinlayout 0 rest
     | [] -> false
@@ -954,24 +982,30 @@ let gotoy y =
     state.y <- y;
     state.layout <- layout;
     begin match state.mode with
-    | LinkNav (Ltexact (pageno, linkno)) ->
-        let rec loop = function
-          | [] ->
-              state.mode <- LinkNav (Ltgendir 0)
-          | l :: _ when l.pageno = pageno ->
-              begin match getopaque pageno with
-              | None ->
+    | LinkNav ln  ->
+        begin match ln with
+        | Ltexact (pageno, linkno) ->
+            let rec loop = function
+              | [] ->
                   state.mode <- LinkNav (Ltgendir 0)
-              | Some opaque ->
-                  let x0, y0, x1, y1 = getlinkrect opaque linkno in
-                  if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
-                           && y0 >= l.pagey && y1 <= l.pagey + l.pagevh)
-                  then state.mode <- LinkNav (Ltgendir 0)
-              end
-          | _ :: rest -> loop rest
-        in
-        loop layout
-    | _ -> ()
+              | l :: _ when l.pageno = pageno ->
+                  begin match getopaque pageno with
+                  | None ->
+                      state.mode <- LinkNav (Ltgendir 0)
+                  | Some opaque ->
+                      let x0, y0, x1, y1 = getlinkrect opaque linkno in
+                      if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
+                                && y0 >= l.pagey && y1 <= l.pagey + l.pagevh)
+                      then state.mode <- LinkNav (Ltgendir 0)
+                  end
+              | _ :: rest -> loop rest
+            in
+            loop layout
+        | Ltgendir _ -> ()
+        end
+    | Birdseye _
+    | Textentry _
+    | View -> ()
     end;
     begin match state.mode with
     | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
@@ -984,34 +1018,39 @@ let gotoy y =
                 conf, leftx, l.pageno, hooverpageno, anchor
               )
         );
-    | LinkNav (Ltgendir dir as lt) ->
-        let linknav =
-          let rec loop = function
-            | [] -> lt
-            | l :: rest ->
-                match getopaque l.pageno with
-                | None -> loop rest
-                | Some opaque ->
-                    let link =
-                      let ld =
-                        if dir = 0
-                        then LDfirstvisible (l.pagex, l.pagey, dir)
-                        else (
-                          if dir > 0 then LDfirst else LDlast
-                        )
-                      in
-                      findlink opaque ld
-                    in
-                    match link with
-                    | Lnotfound -> loop rest
-                    | Lfound n ->
-                        showlinktype (getlink opaque n);
-                        Ltexact (l.pageno, n)
-          in
-          loop state.layout
-        in
-        state.mode <- LinkNav linknav
-    | _ -> ()
+    | LinkNav lt ->
+        begin match lt with
+        | Ltgendir dir ->
+            let linknav =
+              let rec loop = function
+                | [] -> lt
+                | l :: rest ->
+                    match getopaque l.pageno with
+                    | None -> loop rest
+                    | Some opaque ->
+                        let link =
+                          let ld =
+                            if dir = 0
+                            then LDfirstvisible (l.pagex, l.pagey, dir)
+                            else (
+                              if dir > 0 then LDfirst else LDlast
+                             )
+                          in
+                          findlink opaque ld
+                        in
+                        match link with
+                        | Lnotfound -> loop rest
+                        | Lfound n ->
+                            showlinktype (getlink opaque n);
+                            Ltexact (l.pageno, n)
+              in
+              loop state.layout
+            in
+            state.mode <- LinkNav linknav
+        | Ltexact _ -> ()
+        end
+    | Textentry _
+    | View -> ()
     end;
     preload layout;
   );
@@ -1351,7 +1390,9 @@ let represent () =
         let y, h = getpageyh pageno in
         let top = (state.winh - h) / 2 in
         gotoy (max 0 (y - top))
-    | _ -> gotoanchor state.anchor
+    | Textentry _
+    | View
+    | LinkNav _ -> gotoanchor state.anchor
   )
   else (
     state.reprf ();
@@ -1409,7 +1450,7 @@ let enttext () =
       | Textentry _ | View | LinkNav _ ->
           let h, _, _ = state.uioh#scrollpw in
           h
-      | _ -> 0
+      | Birdseye _ -> 0
     in
     let rect x w =
       filledrect x (float (state.winh - (fstate.fontsize + 4) - hscrollh))
@@ -1447,7 +1488,9 @@ let enttext () =
         in
         s
 
-    | _ -> state.text
+    | Birdseye _
+    | View
+    | LinkNav _ -> state.text
   in
   let s =
     if state.newerrmsgs
@@ -1607,7 +1650,9 @@ let gotopagexy1 pageno x y =
 let gotopagexy pageno x y =
   match state.mode with
   | Birdseye _ -> gotopage pageno 0.0
-  | _ -> gotopagexy1 pageno x y
+  | Textentry _
+  | View
+  | LinkNav _ -> gotopagexy1 pageno x y
 ;;
 
 let act cmds =
@@ -1624,9 +1669,10 @@ let act cmds =
     | Outlining outlines ->
         state.currently <- Outlining (outline :: outlines)
     | Idle -> state.currently <- Outlining [outline]
-    | currently ->
+    | Loading _
+    | Tiling _ ->
         dolog "invalid outlining state";
-        logcurrently currently
+        logcurrently state.currently
   in
   match cl with
   | "clear" :: [] ->
@@ -1644,7 +1690,9 @@ let act cmds =
       | Outlining l ->
           state.currently <- Idle;
           state.outlines <- Array.of_list (List.rev l)
-      | _ -> ()
+      | Idle
+      | Loading _
+      | Tiling _ -> ()
       end;
 
       let cur, cmds = state.geomcmds in
@@ -1768,7 +1816,9 @@ let act cmds =
               load state.layout
           end;
 
-      | _ ->
+      | Idle
+      | Tiling _
+      | Outlining _ ->
           dolog "Inconsistent loading state";
           logcurrently state.currently;
           exit 1
@@ -1835,7 +1885,9 @@ let act cmds =
             end;
           );
 
-      | _ ->
+      | Idle
+      | Loading _
+      | Outlining _ ->
           dolog "Inconsistent tiling state";
           logcurrently state.currently;
           exit 1
@@ -1846,9 +1898,12 @@ let act cmds =
         scan args "%u %u %u %u" (fun n w h x -> n, w, h, x)
       in
       let pdim =
-        match conf.fitmodel, conf.columns with
-        | (FitPage | FitProportional), Csplit _ -> (n, w, h, 0)
-        | _ -> pdim
+        match conf.fitmodel with
+        | FitWidth -> pdim
+        | FitPage | FitProportional ->
+            match conf.columns with
+            | Csplit _ ->  (n, w, h, 0)
+            | Csingle _ | Cmulti _ -> pdim
       in
       state.uioh#infochanged Pdim;
       state.pdims <- pdim :: state.pdims
@@ -1905,7 +1960,8 @@ let search pattern forward =
   match conf.columns with
   | Csplit _ ->
       showtext '!' "searching does not work properly in split columns mode"
-  | _ ->
+  | Csingle _
+  | Cmulti _ ->
       if nonemptystr pattern
       then
         let pn, py =
@@ -1994,7 +2050,9 @@ let reqlayout angle fitmodel =
       then (
         match state.mode with
         | LinkNav _ -> state.mode <- View
-        | _ -> ()
+        | Birdseye _
+        | Textentry _
+        | View -> ()
       );
       conf.fitmodel <- fitmodel;
       invalidate "reqlayout"
@@ -2156,7 +2214,8 @@ let togglebirdseye () =
   match state.mode with
   | Birdseye vals -> leavebirdseye vals true
   | View -> enterbirdseye ()
-  | _ -> ()
+  | Textentry _
+  | LinkNav _ -> ()
 ;;
 
 let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
@@ -2252,7 +2311,9 @@ let optentry mode _ key =
             | Birdseye beye ->
                 leavebirdseye beye false;
                 enterbirdseye ();
-            | _ -> ();
+            | Textentry _
+            | View
+            | LinkNav _ -> ();
             end
           with exc ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
@@ -2342,7 +2403,7 @@ let optentry mode _ key =
         let fm =
           match conf.fitmodel with
           | FitProportional -> FitWidth
-          | _ -> FitProportional
+          | FitWidth | FitPage -> FitProportional
         in
         reqlayout conf.angle fm;
         TEdone ("proportional display " ^ btos (fm == FitProportional))
@@ -2980,7 +3041,9 @@ object (self)
   method key key mask =
     match state.mode with
     | Textentry te -> textentrykeyboard key mask te; coe self
-    | _ -> self#key1 key mask
+    | Birdseye _
+    | View
+    | LinkNav _ -> self#key1 key mask
 
   method button button down x y _ =
     let opt =
@@ -3046,7 +3109,12 @@ object (self)
         let first = min source#getitemcount first in
         G.postRedisplay "listview motion";
         coe {< m_first = first; m_active = first >}
-    | _ -> coe self
+    | Msel _
+    | Mpan _
+    | Mscrollx
+    | Mzoom _
+    | Mzoomrect _
+    | Mnone -> coe self
 
   method pmotion x y =
     if x < state.winw - conf.scrollbw
@@ -3747,7 +3815,7 @@ let enterinfomode =
             else
               match m_a.(n) with
               | _, _, _, Action _ -> m_active <- n
-              | _ -> loop (n+1)
+              | _, _, _, Noaction -> loop (n+1)
           in
           loop 0;
           m_first_time <- false;
@@ -3942,7 +4010,7 @@ let enterinfomode =
             let uioh =
               match m_a.(active) with
               | _, _, _, Action f -> f uioh
-              | _ -> uioh
+              | _, _, _, Noaction -> uioh
             in
             Some uioh
           )
@@ -3956,7 +4024,7 @@ let enterinfomode =
       method hasaction n =
         match m_a.(n) with
         | _, _, _, Action _ -> true
-        | _ -> false
+        | _, _, _, Noaction -> false
     end)
   in
   let rec fillsrc prevmode prevuioh =
@@ -4080,7 +4148,9 @@ let enterinfomode =
         | Birdseye beye ->
             leavebirdseye beye false;
             enterbirdseye ()
-        | _ -> ()
+        | Textentry _
+        | View
+        | LinkNav _ -> ()
       );
 
     let mode = state.mode in
@@ -4375,7 +4445,7 @@ let enterhelpmode =
           then (
             match state.help.(active) with
             | _, _, Action f -> Some (f uioh)
-            | _ -> Some (uioh)
+            | _, _, Noaction -> Some uioh
           )
           else None
         in
@@ -4387,7 +4457,7 @@ let enterhelpmode =
       method hasaction n =
         match state.help.(n) with
         | _, _, Action _ -> true
-        | _ -> false
+        | _, _, Noaction -> false
 
       initializer
         m_active <- -1
@@ -4485,7 +4555,7 @@ let setautoscrollspeed step goingdown =
 let canpan () =
   match conf.columns with
   | Csplit _ -> true
-  | _ -> state.x != 0 || conf.zoom > 1.0
+  | Csingle _ | Cmulti _ -> state.x != 0 || conf.zoom > 1.0
 ;;
 
 let panbound x = bound x (-state.w) (wadjsb state.winw);;
@@ -4611,12 +4681,18 @@ let viewkeyboard key mask =
       | Mzoomrect _ ->
           resetmstate ();
           G.postRedisplay "kill zoom rect";
-      | _ ->
+      | Msel _
+      | Mpan _
+      | Mscrolly | Mscrollx
+      | Mzoom _
+      | Mnone ->
           begin match state.mode with
           | LinkNav _ ->
               state.mode <- View;
               G.postRedisplay "esc leave linknav"
-          | _ ->
+          | Birdseye _
+          | Textentry _
+          | View ->
               match state.ranchors with
               | [] -> raise Quit
               | (path, password, anchor, origin) :: rest ->
@@ -4941,7 +5017,9 @@ let viewkeyboard key mask =
       | None ->
           begin match state.mode with
           | Birdseye beye -> upbirdseye 1 beye
-          | _ ->
+          | Textentry _
+          | View
+          | LinkNav _ ->
               if ctrl
               then gotoy_and_clear_text (clamp ~-(state.winh/2))
               else (
@@ -4959,7 +5037,9 @@ let viewkeyboard key mask =
       | None ->
           begin match state.mode with
           | Birdseye beye -> downbirdseye 1 beye
-          | _ ->
+          | Textentry _
+          | View
+          | LinkNav _ ->
               if ctrl
               then gotoy_and_clear_text (clamp (state.winh/2))
               else (
@@ -5135,7 +5215,7 @@ let linknavkeyboard key mask linknav =
                         showlinktype (getlink opaque m);
                         state.mode <- LinkNav (Ltexact (pageno, m));
                         G.postRedisplay "linknav jpage";
-                    | _ -> notfound dir
+                    | Lnotfound -> notfound dir
                     end;
                 | _ -> notfound dir
                 end;
@@ -5316,12 +5396,15 @@ let postdrawpage l linkindexbase =
               (if conf.hlinks then 1 else 0)
               + (if state.glinks
                   && not (isbirdseye state.mode) then 2 else 0)
-          | _ -> 0
+          | Csplit _ -> 0
         in
         let s =
           match state.mode with
           | Textentry ((_, s, _, _, _, _), _) when state.glinks -> s
-          | _ -> E.s
+          | Textentry _
+          | Birdseye _
+          | View
+          | LinkNav _ -> E.s
         in
         postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
       else 0
@@ -5408,7 +5491,10 @@ let display () =
             ) :: state.rects
         | None -> state.rects
         end
-    | _ -> state.rects
+    | LinkNav (Ltgendir _)
+    | Birdseye _
+    | Textentry _
+    | View -> state.rects
   in
   showrects rects;
   let rec postloop linkindexbase = function
@@ -5427,7 +5513,11 @@ let display () =
       GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
       filledrect (float x0) (float y0) (float x1) (float y1);
       Gl.disable `blend;
-  | _ -> ()
+  | Msel _
+  | Mpan _
+  | Mscrolly | Mscrollx
+  | Mzoom _
+  | Mnone -> ()
   end;
   enttext ();
   scrollindicator ();
@@ -5442,15 +5532,19 @@ let zoomrect x y x1 y1 =
   state.anchor <- getanchor ();
   let zoom = (float state.w) /. float (x1 - x0) in
   let margin =
-    match conf.fitmodel, conf.columns with
-    | FitPage, Csplit _ ->
-        onppundermouse (fun _ l _ _ -> Some l.pagedispx) x0 y0 x0
-
-    | _, _ ->
-        let adjw = wadjsb state.winw in
-        if state.w < adjw
-        then (adjw - state.w) / 2
-        else 0
+    let simple () =
+      let adjw = wadjsb state.winw in
+      if state.w < adjw
+      then (adjw - state.w) / 2
+      else 0
+    in
+    match conf.fitmodel with
+    | FitWidth | FitProportional -> simple ()
+    | FitPage ->
+        match conf.columns with
+        | Csplit _ ->
+            onppundermouse (fun _ l _ _ -> Some l.pagedispx) x0 y0 x0
+        | Cmulti _ | Csingle _ -> simple ()
   in
   state.x <- (state.x + margin) - x0;
   setzoom zoom;
@@ -5477,7 +5571,7 @@ let zoomblock x y =
   match conf.columns with
   | Csplit _ ->
       showtext '!' "block zooming does not work properly in split columns mode"
-  | _ -> onppundermouse g x y ()
+  | Cmulti _ | Csingle _ -> onppundermouse g x y ()
 ;;
 
 let scrollx x =
@@ -5555,7 +5649,11 @@ let viewmouse button down x y mask =
             )
             else state.mstate <- Mzoom (n, 0)
 
-        | _ -> state.mstate <- Mzoom (n, 0)
+        | Msel _
+        | Mpan _
+        | Mscrolly | Mscrollx
+        | Mzoomrect _
+        | Mnone -> state.mstate <- Mzoom (n, 0)
       )
       else (
         match state.autoscroll with
@@ -5622,7 +5720,11 @@ let viewmouse button down x y mask =
               resetmstate ();
               G.postRedisplay "kill accidental zoom rect";
             )
-        | _ ->
+        | Msel _
+        | Mpan _
+        | Mscrolly | Mscrollx
+        | Mzoom _
+        | Mnone ->
             resetmstate ()
       )
 
@@ -6206,8 +6308,7 @@ let () =
           state.keystate <- KSnone
       | KSinto ((k', m') :: keys, insrt) when k'=k && m' land mascm = m' ->
           state.keystate <- KSinto (keys, insrt)
-      | _ ->
-          state.keystate <- KSnone
+      | KSinto _ -> state.keystate <- KSnone
 
     method enter x y =
       state.mpos <- (x, y);

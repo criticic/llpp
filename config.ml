@@ -78,7 +78,7 @@ and interpagespace = int
 and multicolumns   = multicol * pagegeom
 and singlecolumn   = pagegeom
 and splitcolumns   = columncount * pagegeom
-and pagegeom       = ((pdimno * x * y * (pageno * width * height * leftx)) array)
+and pagegeom       = (pdimno * x * y * (pageno * width * height * leftx)) array
 and multicol       = columncount * covercount * covercount
 and pdimno         = int
 and columncount    = int
@@ -733,8 +733,8 @@ let state =
   ; origin        = E.s
   ; roam          = noroam
   ; bzoom         = false
-  ; traw          = Raw.create_static `float 8
-  ; vraw          = Raw.create_static `float 8
+  ; traw          = Raw.create_static `float ~len:8
+  ; vraw          = Raw.create_static `float ~len:8
   }
 ;;
 
@@ -1416,13 +1416,13 @@ let get s =
     | Vclose "bookmarks" ->
         { v with f = doc path pan anchor c bookmarks }
 
-    | Vclose _ -> error "unexpected close in bookmarks" s spos
+    | Vclose _ -> Parser.parse_error "unexpected close in bookmarks" s spos
 
   and skip tag f v t spos _ =
     match t with
     | Vdata | Vcdata -> v
     | Vend ->
-        error ("unexpected end of input in skipped " ^ tag) s spos
+        Parser.parse_error ("unexpected end of input in skipped " ^ tag) s spos
     | Vopen (tag', _, closed) ->
         if closed
         then v
@@ -1432,7 +1432,7 @@ let get s =
     | Vclose ctag ->
         if tag = ctag
         then f ()
-        else error ("unexpected close in skipped " ^ tag) s spos
+        else Parser.parse_error ("unexpected close in skipped " ^ tag) s spos
   in
 
   parse { f = toplevel; accu = () } s;
