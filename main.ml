@@ -6130,7 +6130,7 @@ let () =
         match v with
         | Wsi.Unobscured -> "unobscured"
         | Wsi.PartiallyObscured -> "partiallyobscured"
-        | Wsi.FullyObscured -> "fullyobjscured"
+        | Wsi.FullyObscured -> "fullyobscured"
       in
       vlog "visibility change %s" name
     method display = display ()
