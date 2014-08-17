@@ -3603,7 +3603,9 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     value earg_v = Nothing;
     posix_spawnattr_t attr;
     posix_spawn_file_actions_t fa;
-    char *argv[] = { "/bin/sh", "-c", String_val (command_v), NULL };
+    char *argv[] = { "/bin/sh", "-c", NULL, NULL };
+
+    argv[2] = String_val (command_v);
 
     if ((ret = posix_spawn_file_actions_init (&fa)) != 0) {
         unix_error (ret, "posix_spawn_file_actions_init", Nothing);
