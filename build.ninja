@@ -4,7 +4,7 @@ ocamlc = ocamlc.opt
 ocamlflags = -warn-error +a -w +a -g
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
-cflags =$cflags  -Wall -Werror -I$mupdf/include -I$freetype -g
+cflags = $cflags -Wall -Werror -I$mupdf/include -I$freetype -g
 
 rule cc
      deps = gcc
