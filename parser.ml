@@ -1,6 +1,5 @@
 (* based on Tor Andersson's XML parser from MuPDF's XPS module *)
 
-let dolog fmt = Printf.kprintf prerr_endline fmt;;
 let r_comment_terminator = Str.regexp "-->";;
 let r_CDATA_terminator = Str.regexp "\\]\\]>";;
 let r_q_terminator = Str.regexp "\\?>";;
