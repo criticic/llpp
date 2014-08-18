@@ -22,6 +22,7 @@
 #include <regex.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <inttypes.h>
 
 #include <GL/gl.h>
 
@@ -71,9 +72,10 @@ extern char **environ;
 
 #define FMT_s "zu"
 
-#define FMT_ptr "p"
-#define FMT_ptr_cast(p) (p)
-#define FMT_ptr_cast2(p) (p)
+#define FMT_ptr PRIxPTR
+#define SCN_ptr SCNxPTR
+#define FMT_ptr_cast(p) ((uintptr_t) (p))
+#define SCN_ptr_cast(p) ((uintptr_t *) (p))
 
 static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...)
@@ -316,7 +318,7 @@ static void *parse_pointer (const char *cap, const char *s)
     int ret;
     void *ptr;
 
-    ret = sscanf (s, "%" FMT_ptr, FMT_ptr_cast (&ptr));
+    ret = sscanf (s, "%" SCN_ptr, SCN_ptr_cast (&ptr));
     if (ret != 1) {
         errx (1, "%s: cannot parse pointer in `%s'", cap, s);
     }
@@ -1976,7 +1978,7 @@ static void * mainloop (void *unused)
         else if (!strncmp ("freepage", p, 8)) {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" FMT_ptr, FMT_ptr_cast (&ptr));
+            ret = sscanf (p + 8, " %" SCN_ptr, SCN_ptr_cast (&ptr));
             if (ret != 1) {
                 errx (1, "malformed freepage `%.*s' ret=%d", len, p, ret);
             }
@@ -1985,7 +1987,7 @@ static void * mainloop (void *unused)
         else if (!strncmp ("freetile", p, 8)) {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" FMT_ptr, FMT_ptr_cast (&ptr));
+            ret = sscanf (p + 8, " %" SCN_ptr, SCN_ptr_cast (&ptr));
             if (ret != 1) {
                 errx (1, "malformed freetile `%.*s' ret=%d", len, p, ret);
             }
@@ -2111,7 +2113,7 @@ static void * mainloop (void *unused)
             b = now ();
             unlock ("page");
 
-            printd ("page %" FMT_ptr " %f", FMT_ptr_cast2 (page), b - a);
+            printd ("page %" FMT_ptr " %f", FMT_ptr_cast (page), b - a);
         }
         else if (!strncmp ("tile", p, 4)) {
             int x, y, w, h, ret;
@@ -2120,8 +2122,9 @@ static void * mainloop (void *unused)
             double a, b;
             void *data;
 
-            ret = sscanf (p + 4, " %" FMT_ptr " %d %d %d %d %" FMT_ptr,
-                          FMT_ptr_cast (&page), &x, &y, &w, &h, &data);
+            ret = sscanf (p + 4, " %" SCN_ptr " %d %d %d %d %" SCN_ptr,
+                          SCN_ptr_cast (&page), &x, &y, &w, &h,
+                          SCN_ptr_cast (&data));
             if (ret != 6) {
                 errx (1, "bad tile line `%.*s' ret=%d", len, p, ret);
             }
@@ -2134,7 +2137,7 @@ static void * mainloop (void *unused)
 
             printd ("tile %d %d %" FMT_ptr " %u %f",
                     x, y,
-                    FMT_ptr_cast2 (tile),
+                    FMT_ptr_cast (tile),
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
         }
@@ -3913,7 +3916,11 @@ CAMLprim value ml_setaalevel (value level_v)
     CAMLreturn (Val_unit);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvariadic-macros"
 #include <X11/Xlib.h>
+#pragma GCC diagnostic pop
+
 #include <GL/glx.h>
 
 static struct {
@@ -4071,17 +4078,17 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
             int res;
             char *s;
 
-            res = snprintf (NULL, 0, "%" FMT_ptr, pbo);
+            res = snprintf (NULL, 0, "%" FMT_ptr, FMT_ptr_cast (pbo));
             if (res < 0) {
-                err (1, "snprintf %" FMT_ptr " failed", pbo);
+                err (1, "snprintf %" FMT_ptr " failed", FMT_ptr_cast (pbo));
             }
             s = malloc (res+1);
             if (!s) {
                 err (1, "malloc %d bytes failed", res+1);
             }
-            res = sprintf (s, "%" FMT_ptr, pbo);
+            res = sprintf (s, "%" FMT_ptr, FMT_ptr_cast (pbo));
             if (res < 0) {
-                err (1, "sprintf %" FMT_ptr " failed", pbo);
+                err (1, "sprintf %" FMT_ptr " failed", FMT_ptr_cast (pbo));
             }
             ret_v = caml_copy_string (s);
             free (s);
