@@ -6171,7 +6171,8 @@ let () =
          ("-origin", Arg.String (fun s -> state.origin <- s),
          "<original-path> Set original path");
 
-         ("-gc", Arg.Set_string gcconfig, " collect garbage");
+         ("-gc", Arg.Set_string gcconfig,
+          "<script-path> collect garbage with the help of a script");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
