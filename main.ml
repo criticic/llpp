@@ -6172,7 +6172,7 @@ let () =
          "<original-path> Set original path");
 
          ("-gc", Arg.Set_string gcconfig,
-          "<script-path> collect garbage with the help of a script");
+          "<script-path> Collect garbage with the help of a script");
 
          ("-v", Arg.Unit (fun () ->
            Printf.printf
