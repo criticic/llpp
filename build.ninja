@@ -4,7 +4,7 @@ ocamlc = ocamlc.opt
 ocamlflags = -warn-error +a -w +a -g
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
-cflags = $cflags -Wall -Werror -I$mupdf/include -I$freetype -g $
+cflags = -O $cflags -Wall -Werror -I$mupdf/include -I$freetype -g $
        -std=c99 -pedantic-errors
 
 rule cc
@@ -16,7 +16,7 @@ rule cc
 rule ocamlc
      deps = gcc
      depfile = $out.d
-     command = sh $srcdir/doocaml $ocamlc $out $in -c $ocamlflags
+     command = sh $srcdir/doocaml.sh $ocamlc $out $in -c $ocamlflags
      description = ocamlc $out
 
 rule genhelp
