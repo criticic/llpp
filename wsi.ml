@@ -705,7 +705,7 @@ let syncsendintern sock secstowait s onlyifexists f =
   syncsendwithrep sock secstowait s f;
 ;;
 
-let setup sock rootwid screennum w h =
+let setup disp sock rootwid screennum w h =
   let s = readstr sock 2 in
   let n = String.length s in
   if n != 2
@@ -785,13 +785,7 @@ let setup sock rootwid screennum w h =
       state.wid <- wid;
       state.fid <- fid;
 
-      let vid =
-        let disp =
-          try Sys.getenv "DISPLAY"
-          with Not_found -> E.s
-        in
-        glxinit disp wid screennum
-      in
+      let vid = glxinit disp wid screennum in
       let ndepths = r8 data (pos+39) in
       let rec finddepth n' pos =
         if n' = ndepths
@@ -1174,7 +1168,7 @@ let init t rootwid w h osx =
   w16 s 8 (String.length adata);
   sendstr1 s 0 (String.length s) fd;
   state.sock <- fd;
-  setup fd rootwid screennum w h;
+  setup d fd rootwid screennum w h;
   state.t <- t;
   fd, state.w, state.h;
 ;;
