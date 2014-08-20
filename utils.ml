@@ -176,3 +176,9 @@ module Ne = struct
     with exn -> Exn exn
   ;;
 end;;
+
+let getenvwithdef name def =
+  try
+    Sys.getenv name
+  with Not_found -> def
+;;

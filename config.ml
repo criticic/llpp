@@ -1456,10 +1456,14 @@ let do_load f ic =
 
 let defconfpath =
   let dir =
-    try
-      let dir = Filename.concat home ".config" in
-      if Sys.is_directory dir then dir else home
-    with _ -> home
+    let xdgconfdir = Utils.getenvwithdef "XDG_CONFIG_HOME" E.s in
+    if xdgconfdir == E.s
+    then
+      try
+        let dir = Filename.concat home ".config" in
+        if Sys.is_directory dir then dir else home
+      with _ -> home
+    else xdgconfdir
   in
   Filename.concat dir "llpp.conf"
 ;;

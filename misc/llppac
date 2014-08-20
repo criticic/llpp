@@ -1,14 +1,19 @@
 #!/bin/sh
 set -e
 
-CACHEDIR=$HOME/.cache/llpp
-caspsuf=
-type=
-
 die() {
     echo "$1" >&2
     exit 1
 }
+
+test -n "$XDG_CACHE_HOME" \
+    && cachedir="$XDG_CACHE_HOME" || cachedir="$HOME/.cache"
+
+CACHEDIR=$cachedir/llpp
+test -d "$CACHEDIR" || die "cache directory '$CACHEDIR' does not exist"
+
+caspsuf=
+type=
 
 executable_p() {
     command -v "$1" >/dev/null 2>&1
@@ -36,7 +41,6 @@ EOF
 
 trap 'test -n "$casp" && rm -f "$casp"' 0
 
-test -d "$CACHEDIR" || die "cache directory '$CACHEDIR' does not exist"
 while getopts m:t:f opt; do
     case $opt in
         m) mime=$OPTARG;;
