@@ -73,7 +73,7 @@ let unent b s pos len =
             let semipos = String.index_from s (amppos+1) ';' in
             if semipos >= pos + len then raise Not_found;
             semipos
-          with Not_found -> failwith "amp not followed by semi colon"
+          with Not_found -> failwith "amp not followed by semicolon"
         in
 
         let subslen = semipos-amppos-1 in
