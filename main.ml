@@ -6134,6 +6134,7 @@ let () =
   let rcmdpath = ref E.s in
   let pageno = ref None in
   let rootwid = ref 0 in
+  let openlast = ref false in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -6152,6 +6153,8 @@ let () =
              selfexec := !selfexec ^ " -c " ^ Filename.quote s;
              Config.confpath := s),
          "<path> Set path to the configuration file");
+
+         ("-last", Arg.Set openlast, " open last document");
 
          ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
          "<page-number> Jump to page");
@@ -6192,7 +6195,7 @@ let () =
   if !wtmode
   then selfexec := !selfexec ^ " -wtmode";
 
-  let histmode = emptystr state.path in
+  let histmode = emptystr state.path && not !openlast in
 
   if not (Config.load ())
   then prerr_endline "failed to load configuration";
@@ -6200,6 +6203,26 @@ let () =
   | Some pageno -> state.anchor <- (pageno, 0.0, 0.0)
   | None -> ()
   end;
+
+  if !openlast
+  then (
+    let list = ref [] in
+    if Config.gethist list
+    then (
+      match !list with
+      | hd :: tl ->
+          let f ((_, c1, _, _, _) as h1) ((_, c2, _, _, _) as h2)=
+            if c1.lastvisit > c2.lastvisit
+            then h1 else h2
+          in
+          let p1, _, _, _, _ = List.fold_left f hd tl in
+          state.path <- p1;
+          if not (Config.load ())
+          then prerr_endline "failed to load last configuration"
+      | [] -> error "no idea what was last"
+     )
+    else error "no idea what was last"
+   );
 
   if not (emptystr !gcconfig)
   then (
