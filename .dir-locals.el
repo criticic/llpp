@@ -1,1 +1,1 @@
-((nil . ((compile-command . "time -p ninja"))))
+((nil . ((compile-command . "\\time -p ninja"))))
