@@ -5,7 +5,7 @@ import os, sys, zipfile, string
 if len (sys.argv) < 2:
     print """\
 usage: find . -name \*.jpg -or -name \*.png -print0 | python cbzl.py curimgs.cbz
-   or: locate -0 .jpg | python cbzl.py allimgs.cbz
+   or: locate -0 .jpg | python cbzl.py alljpegs.cbz
 """
     sys.exit (1)
 
