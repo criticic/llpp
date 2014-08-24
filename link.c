@@ -1440,8 +1440,6 @@ desttoanchor (fz_link_dest *dest)
             p.x = 0.0;
         p.y = dest->ld.gotor.lt.y;
         fz_transform_point (&p, &pdim->lctm);
-        a.y = p.y;
-        a.x = p.x;
     }
     if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
         double x0, x1, y0, y1;
@@ -2985,6 +2983,7 @@ enum  { uuri, ugoto, utext, uunexpected,
             if (link->dest.ld.gotor.flags & fz_link_flag_t_valid) {     \
                 p.y = link->dest.ld.gotor.lt.y;                         \
                 fz_transform_point (&p, &pdim->lctm);                   \
+                if (p.y < 0) p.y = 0;                                   \
             }                                                           \
             tup_v = caml_alloc_tuple (2);                               \
             ret_v = caml_alloc_small (1, ugoto);                        \
