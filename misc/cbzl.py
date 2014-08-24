@@ -13,8 +13,8 @@ with zipfile.ZipFile (sys.argv[1], "w") as z:
     zerosep = sys.stdin.read ()
     files = string.split (zerosep, '\0')
     for name in files:
-        a  =  zipfile.ZipInfo ()
-        a.filename  =  os.path.basename (name)
-        a.create_system  =  3
-        a.external_attr  =  2716663808L
+        a = zipfile.ZipInfo ()
+        a.filename = os.path.basename (name)
+        a.create_system = 3
+        a.external_attr = 2716663808L
         z.writestr (a, name)
