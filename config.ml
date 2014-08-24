@@ -1500,8 +1500,21 @@ let load1 f =
     f (Hashtbl.create 0, defconf)
 ;;
 
-let load () =
+let load openlast =
   let f (h, dc) =
+    if openlast
+    then (
+      let path, _ =
+        Hashtbl.fold
+          (fun path (conf, _, _, _) ((_, besttime) as best) ->
+            if conf.lastvisit > besttime
+            then (path, conf.lastvisit)
+            else best)
+          h
+          (state.path, -.infinity)
+      in
+      state.path <- path;
+     );
     let pc, pb, px, pa =
       try
         let path =

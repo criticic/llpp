@@ -6197,32 +6197,12 @@ let () =
 
   let histmode = emptystr state.path && not !openlast in
 
-  if not (Config.load ())
+  if not (Config.load !openlast)
   then prerr_endline "failed to load configuration";
   begin match !pageno with
   | Some pageno -> state.anchor <- (pageno, 0.0, 0.0)
   | None -> ()
   end;
-
-  if !openlast
-  then (
-    let list = ref [] in
-    if Config.gethist list
-    then (
-      match !list with
-      | hd :: tl ->
-          let f ((_, c1, _, _, _) as h1) ((_, c2, _, _, _) as h2)=
-            if c1.lastvisit > c2.lastvisit
-            then h1 else h2
-          in
-          let p1, _, _, _, _ = List.fold_left f hd tl in
-          state.path <- p1;
-          if not (Config.load ())
-          then prerr_endline "failed to load last configuration"
-      | [] -> error "no idea what was last"
-     )
-    else error "no idea what was last"
-   );
 
   if not (emptystr !gcconfig)
   then (
