@@ -6207,8 +6207,7 @@ let () =
   if not (emptystr !gcconfig)
   then (
     let c, s =
-      match Ne.res
-          (Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM) 0 with
+      match Ne.res (Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM) 0 with
       | Ne.Exn exn ->
           error "gc socketpair failed: %s" (exntos exn)
       | Ne.Res rw -> rw
