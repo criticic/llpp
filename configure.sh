@@ -30,7 +30,7 @@ shift $((OPTIND - 1))
 mupdf="$1"
 test -e "$mupdf" || usage "Don't know where to find MuPDF's git checkout" 1
 
-pkgs="freetype2 zlib openssl libopenjp2" # j(peg|big2dec)?
+pkgs="freetype2 zlib openssl " # j(peg|big2dec)?
 test $fontconfig && pkgs="$pkgs fontconfig" || true
 pwd=$(pwd -P)
 
@@ -46,7 +46,7 @@ expr >/dev/null "$0" : "/.*" && {
 }
 builddir=$(cd $builddir >/dev/null $builddir && pwd -P)
 
-libs="$(pkg-config --libs $pkgs) -ljpeg -ljbig2dec"
+libs="$(pkg-config --libs $pkgs) -ljpeg -ljbig2dec -lopenjpeg"
 
 (cat <<EOF
 cflags=$cflags $(pkg-config --cflags $pkgs)
