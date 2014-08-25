@@ -1,8 +1,8 @@
 diff --git a/source/cbz/mucbz.c b/source/cbz/mucbz.c
-index f018d1c..ebaf743 100644
+index f018d1c..dc92724 100644
 --- a/source/cbz/mucbz.c
 +++ b/source/cbz/mucbz.c
-@@ -116,8 +116,17 @@ cbz_read_zip_entry(cbz_document *doc, int offset, int *sizep)
+@@ -116,8 +116,19 @@ cbz_read_zip_entry(cbz_document *doc, int offset, int *sizep)
  
  	if (method == 0)
  	{
@@ -11,13 +11,15 @@ index f018d1c..ebaf743 100644
 +		fz_buffer *buf;
 +		fz_stream *stm;
 +		unsigned char *udata;
++		char *tmp = fz_malloc(ctx, csize + 1);
 +
-+		cdata[csize] = 0;
-+		stm = fz_open_file (ctx, (char *) cdata);
-+		buf = fz_read_all (stm, 0);
-+		fz_close (stm);
-+		fz_free (ctx, cdata);
-+		*sizep = fz_buffer_storage (ctx, buf, &udata);;
++		csize[(char *) memcpy(tmp, cdata, csize)] = 0;
++		stm = fz_open_file(ctx, tmp);
++		buf = fz_read_all(stm, 0);
++		fz_close(stm);
++		fz_free(ctx, cdata);
++		fz_free(ctx, tmp);
++		*sizep = fz_buffer_storage(ctx, buf, &udata);;
 +		return udata;
  	}
  
