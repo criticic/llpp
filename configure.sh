@@ -30,7 +30,7 @@ shift $((OPTIND - 1))
 mupdf="$1"
 test -e "$mupdf" || usage "Don't know where to find MuPDF's git checkout" 1
 
-pkgs="freetype2 zlib openssl " # j(peg|big2dec)?
+pkgs="freetype2 zlib openssl" # j(peg|big2dec)?
 test $fontconfig && pkgs="$pkgs fontconfig" || true
 pwd=$(pwd -P)
 
