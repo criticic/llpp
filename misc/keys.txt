@@ -1,7 +1,7 @@
 <defaults>
   <keymap mode='view'>
     <!-- menu to follow links -->
-    <map in='menu out='F'/>
+    <map in='menu' out='F'/>
     <!-- ret to enter bird's eye and turn off proportional display -->
     <map in='ret' out='f9 - l'/>
     <!-- F11 to enter fullscreen -->
