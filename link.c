@@ -1440,6 +1440,8 @@ desttoanchor (fz_link_dest *dest)
             p.x = 0.0;
         p.y = dest->ld.gotor.lt.y;
         fz_transform_point (&p, &pdim->lctm);
+        a.x = p.x;
+        a.y = p.y;
     }
     if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
         double x0, x1, y0, y1;
