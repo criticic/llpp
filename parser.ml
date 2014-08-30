@@ -87,8 +87,7 @@ let unent b s pos len =
           let code =
             if subs.[1] = 'x'
             then (
-              subs.[0] <- '0';
-              int_of_string subs
+              Scanf.sscanf subs "#x%x" (fun n -> n)
             )
             else (
               int_of_string (String.sub subs 1 (subslen-1))

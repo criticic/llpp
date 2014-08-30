@@ -1,5 +1,7 @@
 open Utils;;
 
+let (~>) = Bytes.unsafe_of_string;;
+
 type cursor =
     | CURSOR_INHERIT
     | CURSOR_INFO
@@ -26,7 +28,7 @@ external glxinit : string -> wid -> screenno -> vid = "ml_glxinit";;
 external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
 external swapb : unit -> unit = "ml_swapb";;
 
-let vlog fmt = Format.kprintf ignore fmt;;
+let vlog fmt = Format.ksprintf ignore fmt;;
 
 let onot = object
   method display         = ()
@@ -64,7 +66,7 @@ type state =
     { mutable mink       : int
     ; mutable maxk       : int
     ; mutable keymap     : int array array
-    ; fifo               : (string -> unit) Queue.t
+    ; fifo               : (bytes -> unit) Queue.t
     ; mutable seq        : int
     ; mutable protoatom  : atom
     ; mutable deleatom   : atom
@@ -76,7 +78,7 @@ type state =
     ; mutable wid        : int
     ; mutable fid        : int
     ; mutable fullscreen : (int -> unit)
-    ; mutable setwmname  : (string -> unit)
+    ; mutable setwmname  : (bytes -> unit)
     ; mutable actwin     : (unit -> unit)
     ; mutable stringatom : int
     ; mutable t          : t
@@ -134,7 +136,7 @@ let state =
 include Bo;;
 
 let makereq opcode len reqlen =
-  let s = String.create len in
+  let s = Bytes.create len in
   w8 s 0 opcode;
   w16 s 2 reqlen;
   s;
@@ -145,7 +147,7 @@ let recv fd s pos len =
 ;;
 
 let readstr sock n =
-  let s = String.create n in
+  let s = Bytes.create n in
   let rec loop pos n =
     let m = tempfailureretry (recv sock s pos) n in
     if m = 0
@@ -161,9 +163,10 @@ let readstr sock n =
 ;;
 
 let sendstr1 s pos len sock =
+  let s = Bytes.unsafe_to_string s in
   vlog "%d <= %S" state.seq s;
   state.seq <- state.seq + 1;
-  let n = tempfailureretry (Unix.write sock s pos) len in
+  let n = tempfailureretry (Unix.write_substring sock s pos) len in
   if n != len
   then error "send %d returned %d" len n;
 ;;
@@ -174,7 +177,7 @@ let updkmap sock resp =
   let data =
     if len > 0
     then readstr sock (4*len)
-    else E.s
+    else E.b
   in
   let m = len / syms in
   state.keymap <- Array.make_matrix
@@ -198,7 +201,7 @@ let updmodmap sock resp =
   let data =
     if len > 0
     then readstr sock (len*4)
-    else E.s
+    else E.b
   in
   if len > 0 then                      (*???*)
   let modmap = Array.make_matrix 8 n 0xffffff in
@@ -250,20 +253,21 @@ let updmodmap sock resp =
 
 let sendwithrep sock s f =
   Queue.push f state.fifo;
-  sendstr1 s 0 (String.length s) sock;
+  sendstr1 s 0 (Bytes.length s) sock;
 ;;
 
-let padcatl ss =
-  let b = Buffer.create 16 in
-  List.iter (Buffer.add_string b) ss;
-  let bl = Buffer.length b in
-  let pl = bl land 3 in
-  if pl != 0
-  then (
-    let pad = String.create 3 in
-    Buffer.add_substring b pad 0 (4 - pl);
-  );
-  Buffer.contents b;
+let padcatl =
+  let pad = "123" in
+  fun ss ->
+    let b = Buffer.create 16 in
+    List.iter (Buffer.add_bytes b) ss;
+    let bl = Buffer.length b in
+    let pl = bl land 3 in
+    if pl != 0
+    then (
+      Buffer.add_substring b pad 0 (4 - pl);
+     );
+    Buffer.to_bytes b;
 ;;
 
 let padcat s1 s2 = padcatl [s1; s2];;
@@ -272,8 +276,8 @@ let internreq name onlyifexists =
   let s = makereq 16 8 8 in
   let s = padcat s name in
   w8 s 1 (if onlyifexists then 1 else 0);
-  w16 s 2 (String.length s / 4);
-  w16 s 4 (String.length name);
+  w16 s 2 (Bytes.length s / 4);
+  w16 s 4 (Bytes.length name);
   s;
 ;;
 
@@ -334,12 +338,12 @@ let changepropreq wid prop typ format props =
   let s = makereq 18 24 0 in
   let s = padcat s props in
   w8 s 1 0;
-  w16 s 2 (String.length s / 4);
+  w16 s 2 (Bytes.length s / 4);
   w32 s 4 wid;
   w32 s 8 prop;
   w32 s 12 typ;
   w8 s 16 format;
-  let ful = String.length props / (match format with
+  let ful = Bytes.length props / (match format with
     | 8 -> 1
     | 16 -> 2
     | 32 -> 4
@@ -363,9 +367,9 @@ let getpropreq delete wid prop typ =
 let openfontreq fid name =
   let s = makereq 45 12 0 in
   let s = padcat s name in
-  w16 s 2 (String.length s / 4);
+  w16 s 2 (Bytes.length s / 4);
   w32 s 4 fid;
-  w16 s 8 (String.length name);
+  w16 s 8 (Bytes.length name);
   s;
 ;;
 
@@ -388,7 +392,7 @@ let createglyphcursorreq fid cid cindex =
 let changewindowattributesreq wid mask attrs =
   let s = makereq 2 12 0 in
   let s = padcat s attrs in
-  w16 s 2 (String.length s / 4);
+  w16 s 2 (Bytes.length s / 4);
   w32 s 4 wid;
   w32 s 8 mask;
   s;
@@ -397,14 +401,14 @@ let changewindowattributesreq wid mask attrs =
 let configurewindowreq wid mask values =
   let s = makereq 2 12 0 in
   let s = padcat s values in
-  w16 s 2 (String.length s / 4);
+  w16 s 2 (Bytes.length s / 4);
   w32 s 4 wid;
   w16 s 8 mask;
   s;
 ;;
 
 let s32 n =
-  let s = String.create 4 in
+  let s = Bytes.create 4 in
   w32 s 0 n;
   s;
 ;;
@@ -475,7 +479,7 @@ let readresp sock =
       and min = r16 s 8
       and maj = r8 s 10 in
       error "code=%d serial=%d resid=%#x min=%d maj=%d\n%S"
-        code serial resid min maj resp;
+        code serial resid min maj (Bytes.unsafe_to_string resp);
 
   | 1 ->                                (* response *)
       let rep = Queue.pop state.fifo in
@@ -641,7 +645,7 @@ let readresp sock =
         );
 
   | n ->
-      dolog "event %d %S" n resp
+      dolog "event %d %S" n (Bytes.unsafe_to_string resp)
 ;;
 
 let readresp sock =
@@ -652,7 +656,7 @@ let readresp sock =
   loop ();
 ;;
 
-let sendstr s ?(pos=0) ?(len=String.length s) sock =
+let sendstr s ?(pos=0) ?(len=Bytes.length s) sock =
   sendstr1 s pos len sock;
   if hasdata sock then readresp sock;
 ;;
@@ -660,7 +664,7 @@ let sendstr s ?(pos=0) ?(len=String.length s) sock =
 let reshape w h =
   if state.fs = NoFs
   then
-    let s = String.create 8 in
+    let s = Bytes.create 8 in
     w32 s 0 w;
     w32 s 4 h;
     let s = configurewindowreq state.wid 0x000c s in
@@ -707,10 +711,10 @@ let syncsendintern sock secstowait s onlyifexists f =
 
 let setup disp sock rootwid screennum w h =
   let s = readstr sock 2 in
-  let n = String.length s in
+  let n = Bytes.length s in
   if n != 2
   then error "failed to read X connection setup response n=%d" n;
-  match s.[0] with
+  match Bytes.get s 0 with
   | '\000' ->
       let reasonlen = r8 s 1 in
       let s = readstr sock 6 in
@@ -719,9 +723,9 @@ let setup disp sock rootwid screennum w h =
       and add = r16 s 4 in
       let len = add*4 in
       let data = readstr sock len in
-      let reason = String.sub data 0 reasonlen in
+      let reason = Bytes.sub data 0 reasonlen in
       error "X connection failed maj=%d min=%d reason=%S"
-        maj min reason
+        maj min (Bytes.unsafe_to_string reason)
 
   | '\002' -> failwith "X connection setup failed: authentication required";
 
@@ -738,7 +742,7 @@ let setup disp sock rootwid screennum w h =
       and minkk   = r8 s 32
       and maxkk   = r8 s 33 in
       let data = readstr sock (4*add-32) in
-      let vendor = String.sub data 0 vlen in
+      let vendor = Bytes.sub data 0 vlen in
       let pos = ((vlen+3) land lnot 3) + formats*8 in
 
       if screennum >= screens
@@ -769,7 +773,7 @@ let setup disp sock rootwid screennum w h =
       state.mink <- minkk;
       state.maxk <- maxkk;
       state.idbase <- idbase;
-      vlog "vendor = %S, maj=%d min=%d" vendor maj min;
+      vlog "vendor = %S, maj=%d min=%d" (Bytes.unsafe_to_string vendor) maj min;
       vlog "screens = %d formats = %d" screens formats;
       vlog "minkk = %d maxkk = %d" minkk maxkk;
       vlog "idbase = %#x idmask = %#x" idbase idmask;
@@ -839,9 +843,10 @@ let setup disp sock rootwid screennum w h =
       let s = createwindowreq wid root 0 0 w h 0 mask vid depth mid in
       sendstr s sock;
 
-      sendintern sock "WM_PROTOCOLS" false (fun resp ->
+      sendintern sock (~> "WM_PROTOCOLS") false (fun resp ->
         state.protoatom <- r32 resp 8;
-        sendintern sock "WM_DELETE_WINDOW" false (fun resp ->
+        sendintern
+          sock (~> "WM_DELETE_WINDOW") false (fun resp ->
           state.deleatom <- r32 resp 8;
           let s = s32 state.deleatom in
           let s = changepropreq wid state.protoatom 4 32 s in
@@ -849,7 +854,7 @@ let setup disp sock rootwid screennum w h =
         );
       );
 
-      sendintern sock "WM_CLIENT_MACHINE" false (fun resp ->
+      sendintern sock (~> "WM_CLIENT_MACHINE") false (fun resp ->
         let atom = r32 resp 8 in
         let empty = E.s in
         let hostname =
@@ -860,9 +865,10 @@ let setup disp sock rootwid screennum w h =
         in
         if hostname != empty
         then
-          let s = changepropreq wid atom state.stringatom 8 hostname in
+          let s = changepropreq wid atom state.stringatom 8
+              (~> hostname) in
           sendstr s sock;
-          sendintern sock "_NET_WM_PID" false (fun resp ->
+          sendintern sock (~> "_NET_WM_PID") false (fun resp ->
             let atom = r32 resp 8 in
             let pid = Unix.getpid () in
             let s = s32 pid in
@@ -872,26 +878,26 @@ let setup disp sock rootwid screennum w h =
       );
 
       state.actwin <- (fun () ->
-        let s = String.create 4 in
+        let s = Bytes.create 4 in
         let s = configurewindowreq wid 0x40 s in
         sendstr s state.sock;
         let s = mapreq wid in
         sendstr s state.sock;
       );
 
-      sendintern sock "_NET_ACTIVE_WINDOW" true (fun resp ->
+      sendintern sock (~> "_NET_ACTIVE_WINDOW") true (fun resp ->
         let atom = r32 resp 8 in
         state.actwin <- (fun () ->
-          let data = String.make 20 '\000' in
+          let data = Bytes.make 20 '\000' in
           let cm = clientmessage 32 0 wid atom data in
           let s = sendeventreq 0 root 0x180000 cm in
           sendstr s state.sock;
         );
       );
 
-      syncsendintern sock 2.0 "WM_CLASS" false (fun resp ->
+      syncsendintern sock 2.0 (~> "WM_CLASS") false (fun resp ->
         let atom = r32 resp 8 in
-        let llpp = "llpp\000llpp\000" in
+        let llpp = ~> "llpp\000llpp\000" in
         let s = changepropreq wid atom 31 8 llpp in
         sendstr s sock;
       );
@@ -902,7 +908,7 @@ let setup disp sock rootwid screennum w h =
       let s = getmodifiermappingreq () in
       sendwithrep sock s (updmodmap sock);
 
-      let s = openfontreq fid "cursor" in
+      let s = openfontreq fid (~> "cursor") in
       sendstr s sock;
 
       Array.iteri (fun i glyphindex ->
@@ -910,7 +916,7 @@ let setup disp sock rootwid screennum w h =
         sendstr s sock;
       ) [|34;48;50;58;128;152|];
 
-      sendintern sock "UTF8_STRING" true (fun resp ->
+      sendintern sock (~> "UTF8_STRING") true (fun resp ->
         let atom = r32 resp 8 in
         if atom != 0
         then state.stringatom <- atom;
@@ -921,7 +927,7 @@ let setup disp sock rootwid screennum w h =
         sendstr s state.sock;
       in
       state.setwmname <- setwmname;
-      sendintern sock "_NET_WM_NAME" true (fun resp ->
+      sendintern sock (~> "_NET_WM_NAME") true (fun resp ->
         let atom = r32 resp 8 in
         if atom != 0
         then state.setwmname <- (fun s ->
@@ -932,7 +938,7 @@ let setup disp sock rootwid screennum w h =
       );
 
       state.fullscreen <- (fun wid ->
-        let s = String.create 16 in
+        let s = Bytes.create 16 in
         match state.fs with
         | NoFs ->
             w32 s 0 0;
@@ -953,23 +959,23 @@ let setup disp sock rootwid screennum w h =
             state.fs <- NoFs;
       );
 
-      sendintern sock "_NET_WM_STATE" true (fun resp ->
+      sendintern sock (~> "_NET_WM_STATE") true (fun resp ->
         state.nwmsatom <- r32 resp 8;
         if state.nwmsatom != 0
         then (
-          sendintern sock "_NET_WM_STATE_MAXIMIZED_VERT" true (fun resp ->
+          sendintern sock (~> "_NET_WM_STATE_MAXIMIZED_VERT") true (fun resp ->
             state.maxvatom <- r32 resp 8;
           );
-          sendintern sock "_NET_WM_STATE_MAXIMIZED_HORZ" true (fun resp ->
+          sendintern sock (~> "_NET_WM_STATE_MAXIMIZED_HORZ") true (fun resp ->
             state.maxhatom <- r32 resp 8;
           );
-          sendintern sock "_NET_WM_STATE_FULLSCREEN" true (fun resp ->
+          sendintern sock (~> "_NET_WM_STATE_FULLSCREEN") true (fun resp ->
             state.fulsatom <- r32 resp 8;
             if state.fulsatom != 0
             then
               state.fullscreen <-
                 (fun wid ->
-                  let data = String.make 20 '\000' in
+                  let data = Bytes.make 20 '\000' in
                   let fs, f =
                     match state.fs with
                     | NoFs -> Fs (-1, -1, -1, -1), 1
@@ -1016,22 +1022,17 @@ let getauth haddr dnum =
       with Not_found -> E.s
   in
   let readauth ic =
-    let input_string ic len =
-      let s = String.create len in
-      really_input ic s 0 len;
-      s;
-    in
     let r16be s =
-      let rb pos = Char.code (String.get s pos) in
+      let rb pos = Char.code (Bytes.get s pos) in
       (rb 1) lor ((rb 0) lsl 8)
     in
     let rec find () =
       let rs () =
-        let s = input_string ic 2 in
-        let n = r16be s in
-        input_string ic n
+        let s = really_input_string ic 2 in
+        let n = r16be (~> s) in
+        really_input_string ic n
       in
-      let family = input_string ic 2 in
+      let family = really_input_string ic 2 in
       let addr = rs () in
       let nums = rs () in
       let optnum =
@@ -1158,15 +1159,15 @@ let init t rootwid w h osx =
       error "failed to connect to X: %s" (exntos exn)
   in
   cloexec fd;
-  let s = String.create 12 in
-  let s = padcat s aname in
-  let s = padcat s adata in
-  s.[0] <- ordermagic;
+  let s = Bytes.create 12 in
+  let s = padcat s (~> aname) in
+  let s = padcat s (~> adata) in
+  Bytes.set s 0 ordermagic;
   w16 s 2 11;
   w16 s 4 0;
   w16 s 6 (String.length aname);
   w16 s 8 (String.length adata);
-  sendstr1 s 0 (String.length s) fd;
+  sendstr1 s 0 (Bytes.length s) fd;
   state.sock <- fd;
   setup d fd rootwid screennum w h;
   state.t <- t;
@@ -1174,7 +1175,7 @@ let init t rootwid w h osx =
 ;;
 
 let settitle s =
-  state.setwmname s;
+  state.setwmname (~> s);
 ;;
 
 let setcursor cursor =
@@ -1217,8 +1218,7 @@ let xlatt, xlatf =
     Hashtbl.add f k n
   in
   let addc c =
-    let s = String.create 1 in
-    s.[0] <- c;
+    let s = String.make 1 c in
     add s [] (Char.code c)
   in
   let addcr a b =

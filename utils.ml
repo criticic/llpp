@@ -1,5 +1,6 @@
 module E = struct
-  let s = ""
+  let s = "";;
+  let b = Bytes.of_string s;;
   let a = [||];;
 end;;
 
@@ -23,7 +24,7 @@ external platform : unit -> platform = "ml_platform";;
 
 let now = Unix.gettimeofday;;
 let platform = platform ();;
-let dolog fmt = Format.kprintf prerr_endline fmt;;
+let dolog fmt = Format.ksprintf prerr_endline fmt;;
 
 let exntos = function
   | Unix.Unix_error (e, s, a) -> Printf.sprintf "%s(%s) : %s (%d)"

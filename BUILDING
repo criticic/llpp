@@ -4,24 +4,10 @@ to be built and installed to use llpp.
 Note that MuPDF is a moving target therefore below is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
-803470e161539f9013f854188e57505f4878e891
+61de1fe7e510fdd425686c478439209f6f7a4b73
 
 llpp also depends on OCaml[2], lablGL[3] having a C compiler wouldn't
 hurt either. (mupdf depends on libcrypto[4] part of openssl)
-
-To build llpp one can invoke `sh buildall.sh' which will first attempt
-to automatically fetch lablGL, mupdf, mupdf's prerequisites and build
-them, then, if everything goes fine, it will proceed building llpp
-itself. Note that OCaml and libcrypto still needs to be installed
-separately, also, in addition to the usual suspects (i.e.  GCC, make,
-binutils, OCaml), you will need `wget' (or `curl'), `GNU tar' and
-`unzip' for this script to work.
-
-If everything goes fine llpp binary will appear, it can be used like so:
-
-$ ./llpp /path/to/some.pdf
-or
-$ ./llpp -p password /path/to/some.password.protected.pdf
 
 [1] http://www.mupdf.com
 [2] http://caml.inria.fr/

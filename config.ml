@@ -628,7 +628,7 @@ let makehelp () =
 ;;
 
 let cbnew n v =
-  { store = Array.create n v
+  { store = Array.make n v
   ; rc = 0
   ; wc = 0
   ; len = 0
@@ -1442,8 +1442,7 @@ let get s =
 let do_load f ic =
   try
     let len = in_channel_length ic in
-    let s = String.create len in
-    really_input ic s 0 len;
+    let s = really_input_string ic len in
     f s;
   with
   | Parse_error (msg, s, pos) ->
@@ -1941,7 +1940,7 @@ let save leavebirdseye =
 
 let gc fdi fdo =
   let wr s n =
-    let n' = Unix.write fdo s 0 n in
+    let n' = Unix.write fdo (Bytes.of_string s) 0 n in
     if n != n'
     then Utils.error "Unix.write %d = %d" n n'
   in
@@ -1966,12 +1965,12 @@ let gc fdi fdo =
   ignore (load1 push);
   let s =
     let b = Buffer.create 32768 in
-    let s = String.create 4096 in
+    let s = Bytes.create 4096 in
     let rec f () =
-      let n = rd s (String.length s) in
+      let n = rd s (Bytes.length s) in
       if n = 0
       then Buffer.contents b
-      else (Buffer.add_substring b s 0 n; f ())
+      else (Buffer.add_subbytes b s 0 n; f ())
     in
     f ()
   in

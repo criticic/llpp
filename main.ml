@@ -346,7 +346,8 @@ let selstring s =
       then (
         try
           let l = String.length s in
-          let n = tempfailureretry (Unix.write w s 0) l in
+          let bytes = Bytes.unsafe_of_string s in
+          let n = tempfailureretry (Unix.write w bytes 0) l in
           if n != l
           then
             showtext '!'
@@ -456,19 +457,18 @@ let intentry_with_suffix text key =
 ;;
 
 let readcmd fd =
-  let s = "xxxx" in
+  let s = Bytes.create 4 in
   let n = tempfailureretry (Unix.read fd s 0) 4 in
   if n != 4 then error "incomplete read(len) = %d" n;
-  let len = 0
-    lor (Char.code s.[0] lsl 24)
-    lor (Char.code s.[1] lsl 16)
-    lor (Char.code s.[2] lsl  8)
-    lor (Char.code s.[3] lsl  0)
+  let len = (Char.code (Bytes.get s 0) lsl 24)
+      lor (Char.code (Bytes.get s 1) lsl 16)
+      lor (Char.code (Bytes.get s 2) lsl  8)
+      lor (Char.code (Bytes.get s 3))
   in
-  let s = String.create len in
+  let s = Bytes.create len in
   let n = tempfailureretry (Unix.read fd s 0) len in
   if n != len then error "incomplete read(data) %d vs %d" n len;
-  s
+  Bytes.to_string s
 ;;
 
 let btod b = if b then 1 else 0;;
@@ -478,14 +478,14 @@ let wcmd fmt =
   Buffer.add_string b "llll";
   Printf.kbprintf
     (fun b ->
-      let s = Buffer.contents b in
-      let n = String.length s in
+      let s = Buffer.to_bytes b in
+      let n = Bytes.length s in
       let len = n - 4 in
       (* dolog "wcmd %S" (String.sub s 4 len); *)
-      s.[0] <- Char.chr ((len lsr 24) land 0xff);
-      s.[1] <- Char.chr ((len lsr 16) land 0xff);
-      s.[2] <- Char.chr ((len lsr  8) land 0xff);
-      s.[3] <- Char.chr (len land 0xff);
+      Bytes.set s 0 (Char.chr ((len lsr 24) land 0xff));
+      Bytes.set s 1 (Char.chr ((len lsr 16) land 0xff));
+      Bytes.set s 2 (Char.chr ((len lsr  8) land 0xff));
+      Bytes.set s 3 (Char.chr (len land 0xff));
       let n' = tempfailureretry (Unix.write state.ss s 0) n in
       if n' != n then error "write failed %d vs %d" n' n;
     ) b fmt;
@@ -2160,7 +2160,7 @@ let enterbirdseye () =
   conf.presentation <- false;
   conf.interpagespace <- 10;
   conf.hlinks <- false;
-  conf.fitmodel <- FitProportional;
+  conf.fitmodel <- FitPage;
   state.x <- 0;
   conf.maxwait <- None;
   conf.columns <- (
@@ -4725,8 +4725,7 @@ let viewkeyboard key mask =
         state.searchpattern <- s;
         search s isforw
       in
-      let s = String.create 1 in
-      s.[0] <- Char.chr key;
+      let s = String.make 1 (Char.chr key) in
       enttext (s, E.s, Some (onhist state.hists.pat),
               textentry, ondone (key = @slash), true)
 
@@ -4817,7 +4816,7 @@ let viewkeyboard key mask =
         | 'g' -> TEdone text
         | _ -> intentry text key
       in
-      let text = "x" in text.[0] <- Char.chr key;
+      let text = String.make 1 (Char.chr key) in
       enttext (":", text, Some (onhist state.hists.pag),
                pageentry, ondone, true)
 
@@ -6016,7 +6015,7 @@ let adderrmsg src msg =
 ;;
 
 let adderrfmt src fmt =
-  Format.kprintf (fun s -> adderrmsg src s) fmt;
+  Format.ksprintf (fun s -> adderrmsg src s) fmt;
 ;;
 
 let ract cmds =
@@ -6074,7 +6073,7 @@ let ract cmds =
 ;;
 
 let remote =
-  let scratch = String.create 80 in
+  let scratch = Bytes.create 80 in
   let buf = Buffer.create 80 in
   fun fd ->
     let rec tempfr () =
@@ -6102,20 +6101,20 @@ let remote =
           let rec eat ppos =
             let nlpos =
               try
-                let pos = String.index_from scratch ppos '\n' in
+                let pos = Bytes.index_from scratch ppos '\n' in
                 if pos >= n then -1 else pos
               with Not_found -> -1
             in
             if nlpos >= 0
             then (
-              Buffer.add_substring buf scratch ppos (nlpos-ppos);
+              Buffer.add_subbytes buf scratch ppos (nlpos-ppos);
               let s = Buffer.contents buf in
               Buffer.clear buf;
               ract s;
               eat (nlpos+1);
             )
             else (
-              Buffer.add_substring buf scratch ppos (n-ppos);
+              Buffer.add_subbytes buf scratch ppos (n-ppos);
               Some fd
             )
           in eat 0
@@ -6359,25 +6358,26 @@ let () =
   if conf.redirectstderr
   then
     at_exit (fun () ->
-      let s = Buffer.contents state.errmsgs ^
-        (match state.errfd with
-        | Some fd ->
-            let s = String.create (80*24) in
-            let n =
-              try
-                let r, _, _ = Unix.select [fd] [] [] 0.0 in
-                if List.mem fd r
-                then Unix.read fd s 0 (String.length s)
-                else 0
-              with _ -> 0
-            in
-            if n = 0
-            then E.s
-            else String.sub s 0 n
-        | None -> E.s
+      let s = Bytes.cat
+          (Buffer.to_bytes state.errmsgs)
+          (match state.errfd with
+          | Some fd ->
+              let s = Bytes.create (80*24) in
+              let n =
+                try
+                  let r, _, _ = Unix.select [fd] [] [] 0.0 in
+                  if List.mem fd r
+                  then Unix.read fd s 0 (Bytes.length s)
+                  else 0
+                with _ -> 0
+              in
+              if n = 0
+              then E.b
+              else Bytes.sub s 0 n
+        | None -> E.b
         )
       in
-      try ignore (Unix.write state.stderr s 0 (String.length s))
+      try ignore (Unix.write state.stderr s 0 (Bytes.length s))
       with exn -> print_endline (exntos exn)
     )
   ;
@@ -6486,16 +6486,16 @@ let () =
               checkfds rest
 
           | fd :: rest ->
-              let s = String.create 80 in
+              let s = Bytes.create 80 in
               let n = tempfailureretry (Unix.read fd s 0) 80 in
               if conf.redirectstderr
               then (
-                Buffer.add_substring state.errmsgs s 0 n;
+                Buffer.add_substring state.errmsgs (Bytes.to_string s) 0 n;
                 state.newerrmsgs <- true;
                 state.redisplay <- true;
               )
               else (
-                prerr_string (String.sub s 0 n);
+                prerr_string (String.sub (Bytes.to_string s) 0 n);
                 flush stderr;
               );
               checkfds rest

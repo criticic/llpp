@@ -1,7 +1,8 @@
 cc = gcc
 include .config
+pp =
 ocamlc = ocamlc.opt
-ocamlflags = -warn-error +a -w +a -g
+ocamlflags = -warn-error +a -w +a -g -safe-string
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
 cflags = $cflags -Wall -Werror -I$mupdf/include -I$freetype -g $
