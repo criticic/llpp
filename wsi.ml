@@ -399,7 +399,7 @@ let changewindowattributesreq wid mask attrs =
 ;;
 
 let configurewindowreq wid mask values =
-  let s = makereq 2 12 0 in
+  let s = makereq 12 12 0 in
   let s = padcat s values in
   w16 s 2 (Bytes.length s / 4);
   w32 s 4 wid;
