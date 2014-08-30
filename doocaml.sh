@@ -13,9 +13,8 @@ dodep ()
 {
     (cd >/dev/null $srcdir && ocamldep.opt ${1+"$@"} $(basename $in)) | \
         (sed >$objdir/$out.d                                            \
-             -e "/.cmx/d"                                               \
-             -e 's;\([[:alnum:]\.]\+\);'$outdir'/\1;g'                  \
-             -e '/:$/d')
+             -e '/\(.cmx\|:$\)/d'                                       \
+             -e 's;\([[:alnum:]\.]\+\);'$outdir'/\1;g')
 }
 
 test "x" = "x$pp" || {
