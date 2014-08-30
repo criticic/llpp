@@ -463,17 +463,13 @@ let platform_to_string = function
   | Plinux        -> "Linux"
   | Posx          -> "OSX"
   | Psun          -> "Sun"
-  | Pfreebsd      -> "FreeBSD"
-  | Pdragonflybsd -> "DragonflyBSD"
-  | Popenbsd      -> "OpenBSD"
-  | Pnetbsd       -> "NetBSD"
+  | Pbsd          -> "BSD"
   | Pcygwin       -> "Cygwin"
 ;;
 
 let version () =
-  Printf.sprintf "llpp version %s, fitz %s, ocaml %s (%s/%dbit)"
-    Help.version (fz_version ()) Sys.ocaml_version
-    (platform_to_string platform) Sys.word_size
+  Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
+    Help.version (fz_version ()) Sys.ocaml_version Sys.word_size
 ;;
 
 let geturl s =
@@ -544,16 +540,14 @@ let defconf =
   ; aalevel        = 8
   ; urilauncher    =
       (match platform with
-      | Plinux | Pfreebsd | Pdragonflybsd
-      | Popenbsd | Pnetbsd | Psun -> "xdg-open \"%s\""
+      | Plinux | Psun | Pbsd -> "xdg-open \"%s\""
       | Posx -> "open \"%s\""
       | Pcygwin -> "cygstart \"%s\""
       | Punknown -> "echo %s")
   ; pathlauncher   = "lp \"%s\""
   ; selcmd         =
       (match platform with
-      | Plinux | Pfreebsd | Pdragonflybsd
-      | Popenbsd | Pnetbsd | Psun -> "xsel -i"
+      | Plinux | Pbsd | Psun -> "xsel -i"
       | Posx -> "pbcopy"
       | Pcygwin -> "wsel"
       | Punknown -> "cat")

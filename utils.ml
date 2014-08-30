@@ -4,10 +4,7 @@ module E = struct
   let a = [||];;
 end;;
 
-type platform =
-  | Punknown | Plinux | Posx | Psun | Pfreebsd
-  | Pdragonflybsd | Popenbsd | Pnetbsd | Pcygwin
-;;
+type platform = | Punknown | Plinux | Posx | Psun | Pbsd | Pcygwin;;
 
 let tempfailureretry f a =
   let rec g () =
@@ -20,10 +17,10 @@ external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
 external toutf8 : int -> string = "ml_keysymtoutf8";;
 external mbtoutf8 : string -> string = "ml_mbtoutf8";;
 external popen : string -> (Unix.file_descr * int) list -> unit = "ml_popen";;
-external platform : unit -> platform = "ml_platform";;
+external platform : unit -> (platform * string array)  = "ml_platform";;
 
 let now = Unix.gettimeofday;;
-let platform = platform ();;
+let platform, uname = platform ();;
 let dolog fmt = Format.ksprintf prerr_endline fmt;;
 
 let exntos = function

@@ -12,6 +12,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include <sys/utsname.h>
 
 #ifdef __CYGWIN__
 #include <cygwin/socket.h>      /* FIONREAD */
@@ -3996,32 +3997,43 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
     CAMLreturn (str_v);
 }
 
-enum { piunknown, pilinux, piosx, pisun, pifreebsd,
-       pidragonflybsd, piopenbsd, pinetbsd, picygwin };
+enum { piunknown, pilinux, piosx, pisun, pibsd, picygwin };
 
 CAMLprim value ml_platform (value unit_v)
 {
     CAMLparam1 (unit_v);
+    CAMLlocal2 (tup_v, arr_v);
     int platid = piunknown;
+    struct utsname buf;
 
 #if defined __linux__
     platid = pilinux;
 #elif defined __CYGWIN__
     platid = picygwin;
-#elif defined __DragonFly__
-    platid = pidragonflybsd;
-#elif defined __FreeBSD__
-    platid = pifreebsd;
-#elif defined __OpenBSD__
-    platid = piopenbsd;
-#elif defined __NetBSD__
-    platid = pinetbsd;
+#elif defined __DragonFly__ || defined __FreeBSD__
+    || defined __OpenBSD__ || defined __NetBSD__
+    platid = pibsd;
 #elif defined __sun__
     platid = pisun;
 #elif defined __APPLE__
     platid = piosx;
 #endif
-    CAMLreturn (Val_int (platid));
+    if (uname (&buf)) err (1, "uname");
+
+    tup_v = caml_alloc_tuple (2);
+    {
+        char const *sar[] = {
+            buf.sysname,
+            buf.release,
+            buf.version,
+            buf.machine,
+            NULL
+        };
+        arr_v = caml_copy_string_array (sar);
+    }
+    Field (tup_v, 0) = Val_int (platid);
+    Field (tup_v, 1) = arr_v;
+    CAMLreturn (tup_v);
 }
 
 CAMLprim value ml_cloexec (value fd_v)
