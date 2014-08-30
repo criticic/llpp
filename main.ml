@@ -6153,7 +6153,7 @@ let () =
              Config.confpath := s),
          "<path> Set path to the configuration file");
 
-         ("-last", Arg.Set openlast, " open last document");
+         ("-last", Arg.Set openlast, " Open last document");
 
          ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
          "<page-number> Jump to page");
