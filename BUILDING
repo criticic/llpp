@@ -6,10 +6,13 @@ of the git version of MuPDF that this version of llpp is known to work
 with:
 61de1fe7e510fdd425686c478439209f6f7a4b73
 
-llpp also depends on OCaml[2], lablGL[3] having a C compiler wouldn't
-hurt either. (mupdf depends on libcrypto[4] part of openssl)
+llpp also depends on OCaml[2] (version 4.02.x, LablGL[3] having a C
+compiler wouldn't hurt either.
+         * MuPDF depends on libcrypto[4] part of openssl
+         * Building LablGL from sources requires camlp4[5]
 
 [1] http://www.mupdf.com
-[2] http://caml.inria.fr/
+[2] http://caml.inria.fr/ http://ocaml.org/
 [3] http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgl.html
 [4] http://www.openssl.org/docs/crypto/crypto.html
+[5] https://github.com/ocaml/camlp4
