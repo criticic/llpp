@@ -9,30 +9,9 @@ srcdir="$(pwd -P)"
 
 shift 3
 
-incs=""
-pp=""
-extractpp ()
-{
-    test $# -eq 0 || {
-        case "$1" in
-            "-I")
-                shift
-                incs="$incs -I $1"
-                ;;
-            "-pp")
-                shift
-                pp="$1"
-                ;;
-        esac
-        shift
-        extractpp "$@"
-    }
-}
-extractpp "$@"
-
 dodep ()
 {
-    (cd >/dev/null $srcdir && ocamldep.opt $1 $(basename $in)) |        \
+    (cd >/dev/null $srcdir && ocamldep.opt ${1+"$@"} $(basename $in)) | \
         (sed >$objdir/$out.d                                            \
              -e "/.cmx/d"                                               \
              -e 's;\([[:alnum:]\.]\+\);'$outdir'/\1;g'                  \
@@ -42,14 +21,14 @@ dodep ()
 test "x" = "x$pp" || {
     ef=$(mktemp)
     trap 'test -n "$ef" && rm -f "$ef"' 0
-    (cd >/dev/null $outdir && $compiler 2>$ef "$@" -o $out $in)
+    (cd >/dev/null $outdir && $compiler -pp "$pp" $incs 2>$ef "$@" -o $out $in)
     rc=$?
     if test "$rc" != 0; then
         sed 1>&2 "s;File \"\([^\"]*\)\"\(.*\)$;File $in\2;" $ef
     else
-        dodep -pp $pp
+        dodep -pp "$pp"
     fi
     exit $rc
 } && {
-    (cd >/dev/null $outdir && $compiler "$@" -o $out $in) && dodep
+    (cd >/dev/null $outdir && $compiler "$@" $incs -o $out $in) && dodep
 }

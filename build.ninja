@@ -16,14 +16,13 @@ rule cc
 rule ocamlc
      deps = gcc
      depfile = $out.d
-     command = sh $srcdir/doocaml.sh $ocamlc $out $in -c $ocamlflags
+     command = env incs="$incs" pp="$pp" /bin/sh $srcdir/doocaml.sh $
+             $ocamlc $out $in -c $ocamlflags
      description = ocamlc $out
 
 rule genhelp
      command = sh $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS >$out
      description = genhelp
-
-sedcmd = sed -f $srcdir/pp.sed
 
 build $builddir/help.ml: genhelp $
       $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS
@@ -38,11 +37,12 @@ build $builddir/wsi.cmo: ocamlc $srcdir/wsi.ml $
 build $builddir/parser.cmo: ocamlc $srcdir/parser.ml
 build $builddir/config.cmo: ocamlc $srcdir/config.ml $
       | $builddir/wsi.cmi $builddir/utils.cmo $builddir/parser.cmo
-      ocamlflags = $ocamlflags -I +lablGL
+      incs = -I +lablGL
 build $builddir/main.cmo: ocamlc $srcdir/main.ml $
       | $builddir/wsi.cmi $builddir/utils.cmo $builddir/config.cmo $
-        $builddir/help.cmo
-      ocamlflags = $ocamlflags -I +lablGL -pp "$sedcmd"
+        $builddir/help.cmo $srcdir/doocaml.sh
+        incs = -I +lablGL
+        pp = sed -f $srcdir/pp.sed
 
 cmos = $builddir/help.cmo $
      $builddir/utils.cmo $
