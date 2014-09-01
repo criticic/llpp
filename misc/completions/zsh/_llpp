@@ -1,3 +1,0 @@
-#compdef llpp
-
-_files -g '*.(pdf|xps|zip|cbz|jpg|jpeg|png)'

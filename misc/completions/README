@@ -2,24 +2,30 @@ Shell completion
 ================
 
 This directory contains files for enabling tab completion in user shells.
-Instruction for some shells follows:
+
+  Makefile
+  mkcomp.sh    Script which generates completion files from the following:
+  llpp.in      Config file with file extensions for llpp
+  llppac.in    Config file with file extensions for llppac
+  */*.mk       Shell completion templates
+
+Building
+--------
+
+Run `make` to generate bash and zsh completions for llpp and llppac from
+`llpp.in`, `llppac.in`, and the templates in `bash/` and `zsh/`.
+
+Installation
+------------
 
 Bash
-----
+~~~~
 
-If you have `bash-completion` installed, you can install `llpp` in the `bash/`
-directory into wherever that package's completions are stored, typically in
-`/usr/share/bash-completion/completions/`.  Alternatively, you can just copy
-the contents into or source it in your `~/.bashrc`.
+Install the completions into wherever the `bash-completion` package's
+completions are stored, typically in `/usr/share/bash-completion/completions/`.
 
 Zsh
----
+~~~
 
-To enable completion for `llpp`, install `_llpp` to a directory in zsh's
-`$fpath`.  Packages generally put their zsh completions in the directory
-`/usr/share/zsh/site-functions/`.  Alternatively, for the same effect, one can
-add something like:
-
-  compdef "_files -g '*.(pdf|xps|zip|cbz|jpg|png)'" llpp
-
-to `.zshrc`.
+Install the completions to a directory in zsh's `$fpath`.  Packages generally
+put their zsh completions in the directory `/usr/share/zsh/site-functions/`.
