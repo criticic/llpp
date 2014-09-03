@@ -1,1 +1,0 @@
-complete -f -X '!*.@(pdf|xps|zip|cbz|jpg|jpeg|png|gz|Z|xz|bz2|ps|eps|djv|djvu|dvi|doc|docx|ppt|pptx|xls|odf|odg|odp|ods|odt|bmp|gif|pbm|ppm|pgm|svg|svgz|tif|tiff|xbm|xpm|xcf|arw|cr2|crw|nef|nrw|raf|raw|x3f|otf|ttf)' -o plusdirs llppac
