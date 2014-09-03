@@ -585,7 +585,7 @@ static void pdfinfo (void)
 
         infoobj = pdf_dict_gets (pdf_trailer (state.u.pdf), "Info");
         if (infoobj) {
-            int i;
+            unsigned int i;
             char *s;
             char *items[] = { "Title", "Author", "Creator",
                               "Producer", "CreationDate" };
@@ -842,7 +842,7 @@ struct obs {
     fz_irect b;
 };
 
-static void obs_fill_image (fz_device *dev, fz_image *image,
+static void obs_fill_image (fz_device *dev, fz_image UNUSED_ATTR *image,
                             const fz_matrix *ctm, float alpha)
 {
     struct obs *obs = dev->user;
@@ -1544,8 +1544,8 @@ static char *strofspan (fz_text_span *span)
     return p;
 }
 
-static int matchspan (regex_t *re, fz_text_page *page,
-                      fz_text_span *span, fz_matrix ctm,
+static int matchspan (regex_t *re, fz_text_page UNUSED_ATTR *page,
+                      fz_text_span *span, fz_matrix UNUSED_ATTR ctm,
                       int stop, int pageno, double start)
 {
     int ret;
@@ -1897,7 +1897,7 @@ CAMLprim value ml_mbtoutf8 (value s_v)
     CAMLreturn (ret_v);
 }
 
-static void * mainloop (void *unused)
+static void * mainloop (void UNUSED_ATTR *unused)
 {
     char *p = NULL;
     int len, ret, oldlen = 0;
@@ -1995,7 +1995,7 @@ static void * mainloop (void *unused)
             freetile (ptr);
         }
         else if (!strncmp ("search", p, 6)) {
-            int icase, pageno, y, ret, len2, forward;
+            int icase, pageno, y, len2, forward;
             char *pattern;
             regex_t re;
 
@@ -2048,10 +2048,11 @@ static void * mainloop (void *unused)
         }
         else if (!strncmp ("reqlayout", p, 9)) {
             char *nameddest;
-            int rotate, fitmodel, off, h;
+            int rotate, off, h;
+            unsigned int fitmodel;
 
             printd ("clear");
-            ret = sscanf (p + 9, " %d %d %d %n",
+            ret = sscanf (p + 9, " %d %u %d %n",
                           &rotate, &fitmodel, &h, &off);
             if (ret != 3) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
@@ -2101,7 +2102,7 @@ static void * mainloop (void *unused)
         else if (!strncmp ("page", p, 4)) {
             double a, b;
             struct page *page;
-            int pageno, pindex, ret;
+            int pageno, pindex;
 
             ret = sscanf (p + 4, " %d %d", &pageno, &pindex);
             if (ret != 2) {
@@ -2117,7 +2118,7 @@ static void * mainloop (void *unused)
             printd ("page %" FMT_ptr " %f", FMT_ptr_cast (page), b - a);
         }
         else if (!strncmp ("tile", p, 4)) {
-            int x, y, w, h, ret;
+            int x, y, w, h;
             struct page *page;
             struct tile *tile;
             double a, b;
@@ -2495,7 +2496,7 @@ static void ensureslinks (struct page *page)
 static void fmt_linkn (char *s, unsigned int u)
 {
   unsigned int len; unsigned int q;
-  int zma = 'z' - 'a' + 1;
+  unsigned int zma = 'z' - 'a' + 1;
   len = 1; q = u;
   while (q > zma - 1) { ++len; q /= zma; }
   if (s) {
@@ -3121,7 +3122,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
     fz_link *link;
     struct page *page;
-    char *s = String_val (ptr_v);
+    char *ptr = String_val (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
     struct pagedim *pdim;
 
@@ -3130,7 +3131,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
         goto done;
     }
 
-    page = parse_pointer ("ml_whatsunder", s);
+    page = parse_pointer ("ml_whatsunder", ptr);
     pdim = &state.pagedims[page->pdimno];
     x += pdim->bounds.x0;
     y += pdim->bounds.y0;
@@ -3522,7 +3523,6 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            fz_text_span *span;
 
             for (span = line->first_span; span; span = span->next) {
                 for (i = 0; i < span->len; ++i) {
@@ -4227,7 +4227,7 @@ static void makestippletex (void)
         );
 }
 
-CAMLprim value ml_fz_version (value unit_v)
+CAMLprim value ml_fz_version (value UNUSED_ATTR unit_v)
 {
     return caml_copy_string (FZ_VERSION);
 }
