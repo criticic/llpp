@@ -507,7 +507,7 @@ static void openxref (char *filename, char *password)
 
     state.type = DPDF;
     {
-        int i;
+        size_t j;
         struct {
             char *ext;
             int type;
@@ -521,11 +521,12 @@ static void openxref (char *filename, char *password)
             { "png", DIMG }
         };
 
-        for (i = 0; i < sizeof (tbl) / sizeof (*tbl); ++i) {
-            int len2 = strlen (tbl[i].ext);
+        for (j = 0; j < sizeof (tbl) / sizeof (*tbl); ++j) {
+            const char *ext = tbl[j].ext;
+            int len2 = strlen (ext);
 
-            if (len2 < len && !strcasecmp (tbl[i].ext, filename + len - len2)) {
-                state.type = tbl[i].type;
+            if (len2 < len && !strcasecmp (ext, filename + len - len2)) {
+                state.type = tbl[j].type;
                 break;
             }
         }
@@ -1410,10 +1411,10 @@ static void layout (void)
         int y0 = MIN (p->bounds.y0, p->bounds.y1);
         int x1 = MAX (p->bounds.x0, p->bounds.x1);
         int y1 = MAX (p->bounds.y0, p->bounds.y1);
-        int w = x1 - x0;
-        int h = y1 - y0;
+        int boundw = x1 - x0;
+        int boundh = y1 - y0;
 
-        printd ("pdim %d %d %d %d", p->pageno, w, h, p->left);
+        printd ("pdim %d %d %d %d", p->pageno, boundw, boundh, p->left);
     } while (p-- != state.pagedims);
 }
 
@@ -2285,9 +2286,9 @@ static void showsel (struct page *page, int ox, int oy)
 
                 if (seen) {
                     for (i = j; i <= k; ++i) {
-                        fz_rect bbox;
+                        fz_rect bbox1;
                         fz_union_rect (&rect,
-                                       fz_text_char_bbox (&bbox, span, i));
+                                       fz_text_char_bbox (&bbox1, span, i));
                     }
                     fz_round_rect (&bbox, &rect);
                     lprintf ("%d %d %d %d oy=%d ox=%d\n",
@@ -4242,7 +4243,7 @@ static fz_font *fc_load_system_font_func (fz_context *ctx,
                                           const char *name,
                                           int bold,
                                           int italic,
-                                          int needs_exact_metrics)
+                                          int UNUSED_ATTR needs_exact_metrics)
 {
     char *buf;
     size_t i, size;

@@ -5,7 +5,7 @@ ocamlflags = -warn-error +a -w +a -g -safe-string
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
 cflags = $cflags -Wall -Werror -I$mupdf/include -I$freetype -g $
-       -std=c99 -pedantic-errors
+       -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow
 
 rule cc
      deps = gcc
