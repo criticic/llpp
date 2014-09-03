@@ -1,0 +1,1 @@
+complete -f -X '!*.@(pdf|xps|zip|cbz|jpg|jpeg|png)' -o plusdirs llpp
