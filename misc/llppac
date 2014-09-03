@@ -6,11 +6,8 @@ die() {
     exit 1
 }
 
-test -n "$XDG_CACHE_HOME" \
-    && cachedir="$XDG_CACHE_HOME" || cachedir="$HOME/.cache"
-
-CACHEDIR=$cachedir/llpp
-test -d "$CACHEDIR" || die "cache directory '$CACHEDIR' does not exist"
+cachedir="${XDG_CACHE_HOME:-$HOME/.cache}/llpp"
+test -d "$cachedir" || die "cache directory '$cachedir' does not exist"
 
 caspsuf=
 type=
@@ -20,7 +17,7 @@ executable_p() {
 }
 
 maketext() {
-    cat >"$CACHEDIR/fonts/text" <<EOF
+    cat >"$cachedir/fonts/text" <<EOF
 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
 minim veniam, quis nostrud exercitation ullamco laboris nisi ut
@@ -52,28 +49,25 @@ done
 shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: path"
 
-test ! -e "$1" && expr >/dev/null "$1" : "\(ftp\|https\?\)://" && {
-        if executable_p wget; then
-            dl() {
-                wget -q -c -nc $1 -O $2
-            }
-        else
-            if executable_p curl; then
-                dl() {
-                    curl $1 -o $2
-                }
-            else
-                echo "no program to fetch remote urls found"
-                exit 1
-            fi
-        fi
+if test ! -e "$1" && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
+    if executable_p wget; then
+        dl() {
+            wget -q -c -nc $1 -O $2
+        }
+    elif executable_p curl; then
+        dl() {
+            curl $1 -o $2
+        }
+    else
+        die "no program to fetch remote urls found"
+    fi
 
-        md5of="$CACHEDIR/$(basename "$1")"
-        dl "$1" "$md5of" || test -e "$md5of"
-        set -- "$md5of" ${2+"@"}
-    } || {
-        md5of="$1"
-    }
+    md5of="$cachedir/$(basename "$1")"
+    dl "$1" "$md5of" || test -e "$md5of"
+    set -- "$md5of" ${2+"@"}
+else
+    md5of="$1"
+fi
 
 test -z "$type" && {
     ft=$(file -L --mime-type -b "$1") || die "$ft"
@@ -116,7 +110,7 @@ case $type in
     image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
     djvu) conv='djvups - | ps2pdf - "$casp"';;
     html) {
-        test -n "$dc" && die "can not convert compressed '$mime'"
+        test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
         conv='prince "$1" -o "$casp"'
     };;
@@ -129,7 +123,7 @@ case $type in
         fi
     };;
     uno) {
-        test -n "$dc" && die "can not convert compressed '$mime'"
+        test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
         conv='unoconv -o "$casp" "$1"'
     };;
@@ -142,29 +136,29 @@ case $type in
         if test -e "$2"; then
             arg="$2"
         else
-            arg="--waterfall $CACHEDIR/fonts/text"
+            arg="--waterfall $cachedir/fonts/text"
             maketext
         fi
         # https://mail.gnome.org/archives/gtk-i18n-list/2010-June/msg00000.html
-        eval $filt cat >$CACHEDIR/fonts/font
-        cat >$CACHEDIR/fonts/fonts.conf <<EOF
+        eval $filt cat >$cachedir/fonts/font
+        cat >$cachedir/fonts/fonts.conf <<EOF
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
-<dir>$CACHEDIR/fonts/</dir>
-<cachedir>$CACHEDIR/fonts/</cachedir>
+<dir>$cachedir/fonts/</dir>
+<cachedir>$cachedir/fonts/</cachedir>
 <config></config>
 </fontconfig>
 EOF
         unset filt
-        conv='FONTCONFIG_PATH=$CACHEDIR/fonts/ pango-view -q $arg -o $casp'
+        conv='FONTCONFIG_PATH=$cachedir/fonts/ pango-view -q $arg -o $casp'
         caspsuf=.pdf
     };;
     fcfont) {
         if test -e "$2"; then
             arg="$2"
         else
-            arg="--waterfall $CACHEDIR/fonts/text"
+            arg="--waterfall $cachedir/fonts/text"
             maketext
         fi
         conv='pango-view --font="$1" -q $arg -o $casp'
@@ -175,7 +169,7 @@ EOF
     };;
     image) conv='convert - pdf:"$casp"';;
     dvi) {
-        test -n "$dc" && die "can not convert compressed '$mime'"
+        test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
         conv='dvipdf "$1" "$casp"'
     };;
@@ -183,7 +177,7 @@ EOF
 esac
 
 hash=$(md5sum "$md5of") || die "$hash"
-casp=$CACHEDIR/${hash%% *}$caspsuf
+casp=$cachedir/${hash%% *}$caspsuf
 (test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
 
 exec llpp -origin "$@" "$casp"
