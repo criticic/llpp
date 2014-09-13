@@ -1219,6 +1219,7 @@ let opendoc path password =
   state.password <- password;
   state.gen <- state.gen + 1;
   state.docinfo <- [];
+  state.outlines <- [||];
 
   flushpages ();
   setaalevel conf.aalevel;
