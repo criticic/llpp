@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import os, sys, string, subprocess, socket
+import os, sys, subprocess, socket
 
-fields = string.split (sys.stdin.read (), '\x00')
+fields = sys.stdin.read ().split ('\x00')
 
 while len (fields) > 1:
     opath, atime = fields[0:2]
