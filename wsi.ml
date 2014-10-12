@@ -296,11 +296,15 @@ let createwindowreq wid parent x y w h bw eventmask vid depth mid =
   w16 s 16 w;
   w16 s 18 h;
   w16 s 20 bw;
-  w16 s 22 0;                           (* inputoutput *)
+  w16 s 22 0;                           (* copyfromparent *)
   w32 s 24 vid;                         (* visual *)
-  w32 s 28 0x280a;                      (* eventmask*)
-  w32 s 32 0;
-  w32 s 36 0;
+  w32 s 28 0x280a;                      (* valuemask =
+                                         | background pixel
+                                         | border pixel
+                                         | event mask
+                                         | colormap *)
+  w32 s 32 0;                           (* background pixel *)
+  w32 s 36 0;                           (* border pixel*)
   w32 s 40 eventmask;
   w32 s 44 mid;
   s;
