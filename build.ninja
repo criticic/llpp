@@ -64,7 +64,7 @@ rule link
              $ocamllflags
      description = link $out
 
-build $builddir/llpp.nocustom: link $
+build $builddir/llpp.custom: link $
      $builddir/help.cmo $
      $builddir/utils.cmo $
      $builddir/parser.cmo $
