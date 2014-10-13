@@ -61,17 +61,29 @@ build $builddir/link.so: linkso $builddir/link.o
 rule link
      command = $ocamlc -g -o $out -I +lablGL $
              str.cma unix.cma lablgl.cma $cmos $
-             $builddir/link.so
+             $ocamllflags
      description = link $out
 
+build $builddir/llpp.nocustom: link $
+     $builddir/help.cmo $
+     $builddir/utils.cmo $
+     $builddir/parser.cmo $
+     $builddir/bo.cmo $
+     $builddir/wsi.cmo $
+     $builddir/config.cmo $
+     $builddir/main.cmo $
+     $builddir/link.o
+     ocamllflags = -custom -cclib "$builddir/link.o $libs -lX11 $lflags"
+
 build $builddir/llpp: link $
-      $builddir/help.cmo $
-      $builddir/utils.cmo $
-      $builddir/parser.cmo $
-      $builddir/bo.cmo $
-      $builddir/wsi.cmo $
-      $builddir/config.cmo $
-      $builddir/main.cmo $
-      $builddir/link.so
+     $builddir/help.cmo $
+     $builddir/utils.cmo $
+     $builddir/parser.cmo $
+     $builddir/bo.cmo $
+     $builddir/wsi.cmo $
+     $builddir/config.cmo $
+     $builddir/main.cmo $
+     $builddir/link.so
+     ocamllflags = $builddir/link.so
 
 default $builddir/llpp
