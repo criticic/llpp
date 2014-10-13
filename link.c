@@ -165,7 +165,7 @@ struct slink  {
     fz_link *link;
 };
 
-enum { DPDF, DXPS, DCBZ, DIMG };
+enum { DNONE, DPDF, DXPS, DCBZ, DIMG };
 
 struct page {
     int tgen;
