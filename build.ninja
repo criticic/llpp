@@ -44,14 +44,6 @@ build $builddir/main.cmo: ocamlc $srcdir/main.ml $
         incs = -I +lablGL
         pp = sed -f $srcdir/pp.sed
 
-cmos = $builddir/help.cmo $
-     $builddir/utils.cmo $
-     $builddir/parser.cmo $
-     $builddir/bo.cmo $
-     $builddir/wsi.cmo $
-     $builddir/config.cmo $
-     $builddir/main.cmo
-
 rule linkso
      command = $cc -o $out -shared $in $libs $lflags
      description = linkso $out
@@ -60,7 +52,7 @@ build $builddir/link.so: linkso $builddir/link.o
 
 rule link
      command = $ocamlc -g -o $out -I +lablGL $
-             str.cma unix.cma lablgl.cma $cmos $
+             str.cma unix.cma lablgl.cma $in $
              $ocamllflags
      description = link $out
 
@@ -73,7 +65,7 @@ build $builddir/llpp.custom: link $
      $builddir/config.cmo $
      $builddir/main.cmo $
      $builddir/link.o
-     ocamllflags = -custom -cclib "$builddir/link.o $libs -lX11 $lflags"
+     ocamllflags = -custom -cclib "$libs -lX11 $lflags"
 
 build $builddir/llpp: link $
      $builddir/help.cmo $
