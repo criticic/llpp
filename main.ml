@@ -3790,9 +3790,7 @@ let setpresentationmode v =
 let enterinfomode =
   let btos b = if b then "@Uradical" else E.s in
   let showextended = ref false in
-  let leave mode = function
-    | Confirm -> state.mode <- mode
-    | Cancel -> state.mode <- mode in
+  let leave mode _ =  state.mode <- mode in
   let src =
     (object
       val mutable m_first_time = true
