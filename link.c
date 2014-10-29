@@ -3204,7 +3204,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                                     }
                                 }
                             }
-                            if (str_v == 0) {
+                            if (str_v == Val_unit) {
                                 str_v = caml_copy_string (n2);
                             }
                             ret_v = caml_alloc_small (1, utext);
