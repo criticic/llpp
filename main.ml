@@ -6317,7 +6317,7 @@ let () =
     method leave = state.mpos <- (-1, -1)
     method winstate wsl = state.winstate <- wsl
     method quit = raise Quit
-  end) !rootwid conf.cwinw conf.cwinh (platform = Posx) in
+  end) !rootwid conf.cwinw conf.cwinh platform in
 
   state.wsfd <- wsfd;
 

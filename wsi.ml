@@ -1086,7 +1086,7 @@ let getauth haddr dnum =
   | Some ic -> readauth ic
 ;;
 
-let init t rootwid w h osx =
+let init t rootwid w h platform =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
@@ -1138,15 +1138,17 @@ let init t rootwid w h osx =
   let aname, adata = getauth host dispnum in
   let fd =
     let fd, addr =
-      if osx || String.length host = 0 || host = "unix"
+      if String.length host = 0 || host = "unix"
       then
         let addr =
-          if osx
-          then Unix.ADDR_UNIX d
-          else Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum)
+          match platform with
+          | Utils.Posx -> Unix.ADDR_UNIX d
+          | Utils.Plinux ->
+             Unix.ADDR_UNIX ("\000/tmp/.X11-unix/X" ^ string_of_int dispnum)
+          | Utils.Punknown | Utils.Psun | Utils.Pbsd | Utils.Pcygwin ->
+             Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum)
         in
-        let fd = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-        fd, addr
+        Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0, addr
       else
         let h =
           try Unix.gethostbyname host
