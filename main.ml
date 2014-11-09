@@ -1219,6 +1219,7 @@ let opendoc path password =
   state.password <- password;
   state.gen <- state.gen + 1;
   state.docinfo <- [];
+  state.outlines <- [||];
 
   flushpages ();
   setaalevel conf.aalevel;
@@ -1686,7 +1687,6 @@ let act cmds =
   | "continue" :: args :: [] ->
       let n = scan args "%u" (fun n -> n) in
       state.pagecount <- n;
-      state.outlines <- [||];
       begin match state.currently with
       | Outlining l ->
           state.currently <- Idle;
