@@ -4972,7 +4972,7 @@ let viewkeyboard key mask =
 
   | @Lt | @Gt ->
       reqlayout (conf.angle +
-                   (if key = @question then 30 else -30)) conf.fitmodel
+                   (if key = @Gt then 30 else -30)) conf.fitmodel
 
   | @Lb | @Rb ->
       conf.colorscale <-
