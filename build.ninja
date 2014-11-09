@@ -38,11 +38,11 @@ build $builddir/parser.cmo: ocamlc $srcdir/parser.ml
 build $builddir/config.cmo: ocamlc $srcdir/config.ml $
       | $builddir/wsi.cmi $builddir/utils.cmo $
         $builddir/parser.cmo $builddir/help.cmo
-      incs = -I +lablGL
+      incs = $lablglcflags
 build $builddir/main.cmo: ocamlc $srcdir/main.ml $
       | $builddir/wsi.cmi $builddir/utils.cmo $builddir/config.cmo $
         $builddir/help.cmo $srcdir/doocaml.sh
-        incs = -I +lablGL
+        incs = $lablglcflags
         pp = sed -f $srcdir/pp.sed
 
 rule linkso
@@ -52,7 +52,7 @@ rule linkso
 build $builddir/link.so: linkso $builddir/link.o
 
 rule link
-     command = $ocamlc -g -o $out -I +lablGL $
+     command = $ocamlc -g -o $out $lablglcflags $
              str.cma unix.cma lablgl.cma $in $
              $ocamllflags
      description = link $out

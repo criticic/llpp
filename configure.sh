@@ -7,10 +7,11 @@ buildtype=native
 usage () {
     echo "$1"
     cat 1>&2 <<EOF
-usage: $0 [-F] [-b build-type] [mudir]
+usage: $0 [-F] [-b build-type] [-O] [mudir]
 options:
  -F: use fontconfig
  -b: MuPDF's build type [default native]
+ -O: use ocamlfind for lablGL discovery
 
  build-type = debug|release|native
  mudir      = path to MuPDF's git checkout
@@ -18,10 +19,11 @@ EOF
     exit $2
 }
 
-while getopts eFb: opt; do
+while getopts eFb:O opt; do
     case $opt in
         F) fontconfig=true; cflags="$cflags -DUSE_FONTCONFIG";;
         b) buildtype="$OPTARG";;
+        O) ocamlfind=true;;
         ?) usage "" 0;;
     esac
 done
@@ -56,6 +58,12 @@ buildtype=$buildtype
 mupdf=$mupdf
 builddir=$builddir
 EOF
+ test $ocamlfind && {
+     lablgldir="$(ocamlfind query lablgl)"
+     echo "lablglcflags=-I $lablgldir"
+ } || {
+     echo "lablglcflags=-I +lablGL"
+ }
  test $(uname -m) = "x86_64" && {
      echo 'cflags=$cflags -fPIC'
      echo "mujs=-lmujs"
