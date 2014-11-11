@@ -1560,7 +1560,7 @@ let add_attrs bb always dc c time =
     then Printf.bprintf bb "\n    %s='%g'" s (a*.100.)
   and oF s a b =
     if always || a <> b
-    then Printf.bprintf bb "\n    %s='%F'" s a
+    then Printf.bprintf bb "\n    %s='%f'" s a
   and oc s a b =
     if always || a <> b
     then
