@@ -30,8 +30,10 @@ build $builddir/link.o: cc $srcdir/link.c
       cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP
 build $builddir/help.cmo: ocamlc $builddir/help.ml
 build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
+build $builddir/utils.cmi: ocamlc $srcdir/utils.ml
 build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
-build $builddir/wsi.cmi: ocamlc $srcdir/wsi.mli
+build $builddir/wsi.cmi: ocamlc $srcdir/wsi.mli $
+      | $builddir/utils.cmi
 build $builddir/wsi.cmo: ocamlc $srcdir/wsi.ml $
       | $builddir/bo.cmo $builddir/utils.cmo $builddir/wsi.cmi
 build $builddir/parser.cmo: ocamlc $srcdir/parser.ml
