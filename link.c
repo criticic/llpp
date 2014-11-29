@@ -4360,9 +4360,11 @@ CAMLprim value ml_init (value csock_v, value params_v)
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
 
 #ifdef USE_FONTCONFIG
-    fz_install_load_system_font_funcs (
-        state.ctx, fc_load_system_font_func, NULL
-        );
+    if (Bool_val (Field (params_v, 10))) {
+        fz_install_load_system_font_funcs (
+            state.ctx, fc_load_system_font_func, NULL
+            );
+    }
 #endif
 
     state.trimmargins = Bool_val (Field (trim_v, 0));

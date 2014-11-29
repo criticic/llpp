@@ -93,7 +93,7 @@ and angle          = int
 and params         = (angle * fitmodel * trimparams
                          * texcount * sliceheight * memsize
                          * colorspace * fontpath * trimcachepath
-                         * haspbo)
+                         * haspbo * usefontconfig)
 and width          = int
 and height         = int
 and leftx          = int
@@ -109,6 +109,7 @@ and aalevel        = int
 and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray
 and haspbo         = bool
+and usefontconfig  = bool
 and uri            = string
 and caption        = string
 and x              = int
