@@ -46,7 +46,7 @@
 #endif
 
 #define PIGGYBACK
-#define SUMATRA_LOOKUP
+/* #define SUMATRA_LOOKUP */
 
 #ifndef __USE_GNU
 extern char **environ;
@@ -951,41 +951,9 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
    PdfEngine.cpp
  */
 static void
-pdf_load_page_objs_rec(pdf_document *doc, pdf_obj *node, int *page_no, pdf_obj **page_objs)
+pdf_load_page_objs(pdf_document *doc, pdf_obj **page_objs)
 {
-    fz_context *ctx = doc->ctx;
-
-    if (pdf_mark_obj(node))
-        fz_throw(ctx, FZ_ERROR_GENERIC, "cycle in page tree");
-
-    fz_try(ctx) {
-        pdf_obj *kids = pdf_dict_gets(node, "Kids");
-        int len = pdf_array_len(kids), i;
-        for (i = 0; i < len; i++) {
-            pdf_obj *kid = pdf_array_get(kids, i);
-            char *type = pdf_to_name(pdf_dict_gets(kid, "Type"));
-            if (!strcmp(type, "Page")) {
-                if (*page_no > pdf_count_pages(doc))
-                    fz_throw(ctx, FZ_ERROR_GENERIC, "found more /Page objects than anticipated");
-                page_objs[*page_no - 1] = pdf_keep_obj(kid);
-                (*page_no)++;
-            }
-            else if (!strcmp(type, "Pages")) {
-                int count = pdf_to_int(pdf_dict_gets(kid, "Count"));
-                if (count > 0)
-                    pdf_load_page_objs_rec(doc, kid, page_no, page_objs);
-            }
-            else {
-                fz_warn(ctx, "non-page object in page tree (%s)", type);
-            }
-        }
-    }
-    fz_always(ctx) {
-        pdf_unmark_obj(node);
-    }
-    fz_catch(ctx) {
-        fz_rethrow(ctx);
-    }
+#error broken for now
 }
 
 static void
