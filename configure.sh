@@ -50,6 +50,13 @@ builddir=$(cd $builddir >/dev/null $builddir && pwd -P)
 
 libs="$(pkg-config --libs $pkgs) -ljpeg -ljbig2dec -lopenjpeg"
 
+test $ocamlfind && {
+    lablgldir="$(ocamlfind query lablgl)" || exit 1
+    lablglcflags="-I $lablgldir"
+} || {
+    lablglcflags="-I +lablGL"
+}
+
 (cat <<EOF
 cflags=$cflags $(pkg-config --cflags $pkgs)
 lflags=$libs
@@ -57,13 +64,8 @@ srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)
 buildtype=$buildtype
 mupdf=$mupdf
 builddir=$builddir
+lablglcflags=$lablglcflags
 EOF
- test $ocamlfind && {
-     lablgldir="$(ocamlfind query lablgl)"
-     echo "lablglcflags=-I $lablgldir"
- } || {
-     echo "lablglcflags=-I +lablGL"
- }
  test $(uname -m) = "x86_64" && {
      echo 'cflags=$cflags -fPIC'
      echo "mujs=-lmujs"
