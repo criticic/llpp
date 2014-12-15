@@ -161,5 +161,5 @@ end;;
 let getenvwithdef name def =
   match Sys.getenv name with
   | env -> env
-  | exception  Not_found -> def
+  | exception Not_found -> def
 ;;
