@@ -75,7 +75,8 @@ build $builddir/llpp: link $
      $builddir/bo$cmo $
      $builddir/wsi$cmo $
      $builddir/config$cmo $
-     $builddir/main$cmo
+     $builddir/main$cmo $
+     | $builddir/link.so
      ocamllflags = $linksocclib $builddir/link.so
 
 default $builddir/llpp
