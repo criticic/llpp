@@ -1,6 +1,5 @@
 cc = gcc
 include .config
-ocamlc = ocamlc.opt
 ocamlflags = -warn-error +a -w +a -g -safe-string
 libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
 
@@ -28,21 +27,21 @@ build $builddir/help.ml: genhelp $
       $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS
 build $builddir/link.o: cc $srcdir/link.c
       cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP
-build $builddir/help.cmo: ocamlc $builddir/help.ml
-build $builddir/utils.cmo: ocamlc $srcdir/utils.ml
-build $builddir/bo.cmo: ocamlc $srcdir/le/bo.ml
+build $builddir/help$cmo: ocamlc $builddir/help.ml
+build $builddir/utils$cmo: ocamlc $srcdir/utils.ml
+build $builddir/bo$cmo: ocamlc $srcdir/le/bo.ml
 build $builddir/wsi.cmi: ocamlc $srcdir/wsi.mli $
-      | $builddir/utils.cmo
-build $builddir/wsi.cmo: ocamlc $srcdir/wsi.ml $
-      | $builddir/bo.cmo $builddir/utils.cmo $builddir/wsi.cmi
-build $builddir/parser.cmo: ocamlc $srcdir/parser.ml
-build $builddir/config.cmo: ocamlc $srcdir/config.ml $
-      | $builddir/wsi.cmi $builddir/utils.cmo $
-        $builddir/parser.cmo $builddir/help.cmo
+      | $builddir/utils$cmo
+build $builddir/wsi$cmo: ocamlc $srcdir/wsi.ml $
+      | $builddir/bo$cmo $builddir/utils$cmo $builddir/wsi.cmi
+build $builddir/parser$cmo: ocamlc $srcdir/parser.ml
+build $builddir/config$cmo: ocamlc $srcdir/config.ml $
+      | $builddir/wsi.cmi $builddir/utils$cmo $
+        $builddir/parser$cmo $builddir/help$cmo
       incs = $lablglcflags
-build $builddir/main.cmo: ocamlc $srcdir/main.ml $
-      | $builddir/wsi.cmi $builddir/utils.cmo $builddir/config.cmo $
-        $builddir/help.cmo $srcdir/doocaml.sh
+build $builddir/main$cmo: ocamlc $srcdir/main.ml $
+      | $builddir/wsi.cmi $builddir/utils$cmo $builddir/config$cmo $
+        $builddir/help$cmo $srcdir/doocaml.sh
         incs = $lablglcflags
         pp = sed -f $srcdir/pp.sed
 
@@ -54,30 +53,29 @@ build $builddir/link.so: linkso $builddir/link.o
 
 rule link
      command = $ocamlc -g -o $out $lablglcflags $
-             str.cma unix.cma lablgl.cma $in $
+             str$cma unix$cma lablgl$cma $in $
              $ocamllflags
      description = link $out
 
 build $builddir/llpp.custom: link $
-     $builddir/help.cmo $
-     $builddir/utils.cmo $
-     $builddir/parser.cmo $
-     $builddir/bo.cmo $
-     $builddir/wsi.cmo $
-     $builddir/config.cmo $
-     $builddir/main.cmo $
+     $builddir/help$cmo $
+     $builddir/utils$cmo $
+     $builddir/parser$cmo $
+     $builddir/bo$cmo $
+     $builddir/wsi$cmo $
+     $builddir/config$cmo $
+     $builddir/main$cmo $
      $builddir/link.o
-     ocamllflags = -custom -cclib "$libs -lX11 $lflags"
+     ocamllflags = $customflag -cclib "$libs -lX11 $lflags"
 
 build $builddir/llpp: link $
-     $builddir/help.cmo $
-     $builddir/utils.cmo $
-     $builddir/parser.cmo $
-     $builddir/bo.cmo $
-     $builddir/wsi.cmo $
-     $builddir/config.cmo $
-     $builddir/main.cmo $
-     $builddir/link.so
-     ocamllflags = $builddir/link.so
+     $builddir/help$cmo $
+     $builddir/utils$cmo $
+     $builddir/parser$cmo $
+     $builddir/bo$cmo $
+     $builddir/wsi$cmo $
+     $builddir/config$cmo $
+     $builddir/main$cmo
+     ocamllflags = $linksocclib $builddir/link.so
 
 default $builddir/llpp
