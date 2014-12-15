@@ -142,26 +142,26 @@ let redirectstderr () =
   let clofail what errmsg = dolog "failed to close %s: %s" what errmsg in
   if conf.redirectstderr
   then
-    match Ne.res Unix.pipe () with
-    | Ne.Exn exn ->
+    match Unix.pipe () with
+    | exception exn ->
         dolog "failed to create stderr redirection pipes: %s" (exntos exn)
 
-    | Ne.Res (r, w) ->
-        begin match Ne.dup Unix.stderr with
-        | Ne.Exn exn ->
+    | (r, w) ->
+        begin match Unix.dup Unix.stderr with
+        | exception exn ->
             dolog "failed to dup stderr: %s" (exntos exn);
             Ne.clo r (clofail "pipe/r");
             Ne.clo w (clofail "pipe/w");
 
-        | Ne.Res dupstderr ->
-            begin match Ne.dup2 w Unix.stderr with
-            | Ne.Exn exn ->
+        | dupstderr ->
+            begin match Unix.dup2 w Unix.stderr with
+            | exception exn ->
                 dolog "failed to dup2 to stderr: %s" (exntos exn);
                 Ne.clo dupstderr (clofail "stderr duplicate");
                 Ne.clo r (clofail "redir pipe/r");
                 Ne.clo w (clofail "redir pipe/w");
 
-            | Ne.Res () ->
+            | () ->
                 state.stderr <- dupstderr;
                 state.errfd <- Some r;
             end;
@@ -170,10 +170,10 @@ let redirectstderr () =
     state.newerrmsgs <- false;
     begin match state.errfd with
     | Some fd ->
-        begin match Ne.dup2 state.stderr Unix.stderr with
-        | Ne.Exn exn ->
+        begin match Unix.dup2 state.stderr Unix.stderr with
+        | exception exn ->
             dolog "failed to dup2 original stderr: %s" (exntos exn)
-        | Ne.Res () ->
+        | () ->
             Ne.clo fd (clofail "dup of stderr");
             state.errfd <- None;
         end;
@@ -278,11 +278,11 @@ let showtext c s =
 let pipesel opaque cmd =
   if hassel opaque
   then
-    match Ne.res Unix.pipe () with
-    | Ne.Exn exn ->
+    match Unix.pipe () with
+    | exception exn ->
         showtext '!'
           (Printf.sprintf "pipesel can not create pipe: %s" (exntos exn));
-    | Ne.Res (r, w) ->
+    | (r, w) ->
         let doclose what fd =
           Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
         in
@@ -325,10 +325,10 @@ let paxunder x y =
 ;;
 
 let selstring s =
-  match Ne.res Unix.pipe () with
-  | Ne.Exn exn ->
+  match Unix.pipe () with
+  | exception exn ->
       showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
-  | Ne.Res (r, w) ->
+  | (r, w) ->
       let clo cap fd =
         Ne.clo fd (fun msg ->
           showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
@@ -5801,13 +5801,13 @@ let viewmouse button down x y mask =
                         match getopaque l.pageno with
                         | Some opaque ->
                             let dosel cmd () =
-                              match Ne.res Unix.pipe () with
-                              | Ne.Exn exn ->
+                              match Unix.pipe () with
+                              | exception exn ->
                                   showtext '!'
                                     (Printf.sprintf
                                         "can not create sel pipe: %s"
                                         (exntos exn));
-                              | Ne.Res (r, w) ->
+                              | (r, w) ->
                                   let clo what fd =
                                     Ne.clo fd (fun msg ->
                                       dolog "%s close failed: %s" what msg)
@@ -6208,16 +6208,16 @@ let () =
   if not (emptystr !gcconfig)
   then (
     let c, s =
-      match Ne.res (Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM) 0 with
-      | Ne.Exn exn ->
+      match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
+      | exception exn ->
           error "gc socketpair failed: %s" (exntos exn)
-      | Ne.Res rw -> rw
+      | rw -> rw
     in
-    match Ne.res (popen !gcconfig) [(c, 0); (c, 1)] with
-    | Ne.Res () ->
+    match popen !gcconfig [(c, 0); (c, 1)] with
+    | () ->
         Config.gc s s;
         exit 0
-    | Ne.Exn exn ->
+    | exception exn ->
         error "failed to popen gc script: %s" (exntos exn);
    );
 
@@ -6345,11 +6345,11 @@ let () =
   );
 
   let cs, ss =
-    match Ne.res (Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM) 0 with
-    | Ne.Exn exn ->
+    match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
+    | exception exn ->
         Printf.eprintf "socketpair failed: %s" (exntos exn);
         exit 1
-    | Ne.Res (r, w) ->
+    | (r, w) ->
         cloexec r;
         cloexec w;
         r, w

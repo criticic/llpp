@@ -152,31 +152,14 @@ let nindex s c =
 ;;
 
 module Ne = struct
-  type 'a t = | Res of 'a | Exn of exn;;
-
-  let res f arg =
-    try Res (f arg)
-    with exn -> Exn exn
-  ;;
-
   let clo fd f =
     try tempfailureretry Unix.close fd
     with exn -> f (exntos exn)
   ;;
-
-  let dup fd =
-    try Res (tempfailureretry Unix.dup fd)
-    with exn -> Exn exn
-  ;;
-
-  let dup2 fd1 fd2 =
-    try Res (tempfailureretry (Unix.dup2 fd1) fd2)
-    with exn -> Exn exn
-  ;;
 end;;
 
 let getenvwithdef name def =
-  try
-    Sys.getenv name
-  with Not_found -> def
+  match Sys.getenv name with
+  | env -> env
+  | exception  Not_found -> def
 ;;
