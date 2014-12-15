@@ -66,10 +66,9 @@ mupdf=$mupdf
 builddir=$builddir
 lablglcflags=$lablglcflags
 EOF
- test $(uname -m) = "x86_64" && {
-     echo 'cflags=$cflags -fPIC'
-     echo "mujs=-lmujs"
- }) >.config || true
+ test $(uname -m) = "x86_64" && echo 'cflags=$cflags -fPIC'
+ test -e $mupdf/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
+) >.config || true
 
 cat <<EOF
 Configuration results are saved in $(pwd -P)/.config
