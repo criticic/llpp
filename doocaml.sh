@@ -4,16 +4,17 @@ set -e
 compiler="$1"
 out="$2"
 in="$3"
+ignext="$4"
 outdir="$(dirname "$out")"
 srcdir="$(pwd -P)"
 
-shift 3
+shift 4
 
 dodep ()
 {
     (cd >/dev/null $srcdir && ocamldep.opt ${1+"$@"} $(basename $in)) | \
         (sed >$objdir/$out.d                                            \
-             -e '/\(.cmx\|:$\)/d'                                       \
+             -e "/\($ignext\|:\$\)/d"                                   \
              -e 's;\([[:alnum:]\.]\+\);'$outdir'/\1;g')
 }
 

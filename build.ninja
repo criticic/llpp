@@ -16,7 +16,7 @@ rule ocamlc
      deps = gcc
      depfile = $out.d
      command = env incs="$incs" pp="$pp" /bin/sh $srcdir/doocaml.sh $
-             $ocamlc $out $in -c $ocamlflags
+             $ocamlc $out $in $ignext -c $ocamlflags
      description = ocamlc $out
 
 rule genhelp
