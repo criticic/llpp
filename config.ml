@@ -1970,11 +1970,12 @@ let gc fdi fdo =
     f ()
   in
   let rec f ppos =
-    match  String.index_from s ppos '\000' with
+    match String.index_from s ppos '\000' with
     | zpos1 ->
        let zpos2 =
          try String.index_from s (zpos1+1) '\000' with Not_found -> -1 in
-       if zpos2 = -1 then failwith "moo2"
+       if zpos2 = -1
+       then error "Incorrect gc input in (%S) at %d" s zpos1
        else
          let okey = StringLabels.sub s ~pos:ppos ~len:(zpos1-ppos) in
          let nkey = StringLabels.sub s ~pos:(zpos1+1) ~len:(zpos2-zpos1-1) in
