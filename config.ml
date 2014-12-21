@@ -1970,27 +1970,25 @@ let gc fdi fdo =
     f ()
   in
   let rec f ppos =
-    let zpos1 = try String.index_from s ppos '\000' with Not_found -> -1 in
-    if zpos1 = -1 then ()
-    else (
-      let zpos2 =
-        try String.index_from s (zpos1+1) '\000' with Not_found -> -1 in
-      if zpos2 = -1 then failwith "moo2"
-      else (
-        let okey = StringLabels.sub s ~pos:ppos ~len:(zpos1-ppos) in
-        let nkey = StringLabels.sub s ~pos:(zpos1+1) ~len:(zpos2-zpos1-1) in
-        if emptystr nkey
-        then (Hashtbl.remove !href okey; f (zpos2+1))
-        else
-          let v =
-            try Hashtbl.find !href okey
-            with Not_found -> Utils.error "gc: could not find %S" okey
-          in
-          Hashtbl.remove !href okey;
-          Hashtbl.replace !href nkey v;
-          f (zpos2+1)
-       )
-     )
+    match  String.index_from s ppos '\000' with
+    | zpos1 ->
+       let zpos2 =
+         try String.index_from s (zpos1+1) '\000' with Not_found -> -1 in
+       if zpos2 = -1 then failwith "moo2"
+       else
+         let okey = StringLabels.sub s ~pos:ppos ~len:(zpos1-ppos) in
+         let nkey = StringLabels.sub s ~pos:(zpos1+1) ~len:(zpos2-zpos1-1) in
+         if emptystr nkey
+         then (Hashtbl.remove !href okey; f (zpos2+1))
+         else
+           let v =
+             try Hashtbl.find !href okey
+             with Not_found -> Utils.error "gc: could not find %S" okey
+           in
+           Hashtbl.remove !href okey;
+           Hashtbl.replace !href nkey v;
+           f (zpos2+1)
+    | exception Not_found -> ()
   in
   f 0;
   let bb = Buffer.create 32768 in
