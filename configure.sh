@@ -73,14 +73,12 @@ EOF
  test $native && {
      echo "cmo=.cmx"
      echo "cma=.cmxa"
-     echo "ignext=.cmo"
      echo "ocamlc=ocamlopt.opt"
      echo "linksocclib=-cclib"
      echo "customflag="
  } || {
      echo "cmo=.cmo"
      echo "cma=.cma"
-     echo "ignext=.cmx"
      echo "ocamlc=ocamlc.opt"
      echo "linksocclib="
      echo "customflag=-custom"

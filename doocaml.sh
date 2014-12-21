@@ -4,19 +4,9 @@ set -e
 compiler="$1"
 out="$2"
 in="$3"
-ignext="$4"
 outdir="$(dirname "$out")"
 srcdir="$(pwd -P)"
-
-shift 4
-
-dodep ()
-{
-    (cd >/dev/null $srcdir && ocamldep.opt ${1+"$@"} $(basename $in)) | \
-        (sed >$objdir/$out.d                                            \
-             -e "/\($ignext\|:\$\)/d"                                   \
-             -e 's;\([[:alnum:]\.]\+\);'$outdir'/\1;g')
-}
+shift 3
 
 test "x" = "x$pp" || {
     ef=$(mktemp)
@@ -25,10 +15,8 @@ test "x" = "x$pp" || {
     rc=$?
     if test "$rc" != 0; then
         sed 1>&2 "s;File \"\([^\"]*\)\"\(.*\)$;File $in\2;" $ef
-    else
-        dodep -pp "$pp"
     fi
     exit $rc
 } && {
-    (cd >/dev/null $outdir && $compiler "$@" $incs -o $out $in) && dodep
+    cd >/dev/null $outdir && $compiler "$@" $incs -o $out $in
 }
