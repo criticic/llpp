@@ -947,21 +947,10 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 }
 
 #ifdef SUMATRA_LOOKUP
-/* Following two functions are taken (almost) verbatim from SumatraPDF
-   PdfEngine.cpp
- */
 static void
 pdf_load_page_objs(pdf_document *doc, pdf_obj **page_objs)
 {
-#error broken for now
-}
-
-static void
-pdf_load_page_objs(pdf_document *doc, pdf_obj **page_objs)
-{
-    pdf_obj *pages = pdf_dict_getp(pdf_trailer(doc), "Root/Pages");
-    int page_no = 1;
-    pdf_load_page_objs_rec(doc, pages, &page_no, page_objs);
+#error not yet ready
 }
 #endif
 
@@ -1024,6 +1013,12 @@ static void initpdims (void)
             pageref = state.pdflut.objs[pageno];
 #else
             pageref = pdf_lookup_page_obj (pdf, pageno);
+            show = !trim && pageno % 20 == 0;
+            if (show) {
+                printd ("progress %f Gathering dimensions %d",
+                        (double) (pageno) / state.pagecount,
+                        pageno);
+            }
 #endif
             pageobj = pdf_resolve_indirect (pageref);
 
@@ -1270,8 +1265,12 @@ static void initpdims (void)
                 state.pagecount, end - start);
     }
     else {
-        printd ("vmsg Processed %d pages in %f seconds",
-                state.pagecount, end - start);
+        if (state.type == DPDF)
+            printd ("progress 1 Processed %d pages in %f seconds",
+                    state.pagecount, end - start);
+        else
+            printd ("vmsg Processed %d pages in %f seconds",
+                    state.pagecount, end - start);
     }
     state.trimanew = 0;
     if (trimf) {
@@ -1468,7 +1467,7 @@ static void process_outline (void)
 {
     fz_outline *outline;
 
-    if (!state.needoutline) return;
+    if (!state.needoutline || !state.pagedimcount) return;
 
     state.needoutline = 0;
     switch (state.type) {
@@ -1912,10 +1911,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 utf8filename = mbtoutf8 (filename);
                 printd ("msg Could not open %s", utf8filename);
             }
-            if (ok) {
-                pdfinfo ();
-                initpdims ();
-            }
+            if (ok) pdfinfo ();
             unlock ("open");
 
             if (ok) {
