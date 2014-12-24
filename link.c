@@ -2111,6 +2111,23 @@ static void * mainloop (void UNUSED_ATTR *unused)
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
         }
+        else if (!strncmp ("trimset", p, 7))  {
+            fz_irect fuzz;
+            int trimmargins;
+
+            ret = sscanf (p + 7, " %d %d %d %d %d",
+                          &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
+            if (ret != 5) {
+                errx (1, "malformed trimset `%.*s' ret=%d", len, p, ret);
+            }
+            lock ("trimset");
+            state.trimmargins = trimmargins;
+            if (memcmp (&fuzz, &state.trimfuzz, sizeof (fuzz))) {
+                state.trimanew = 1;
+                state.trimfuzz = fuzz;
+            }
+            unlock ("trimset");
+        }
         else if (!strncmp ("settrim", p, 7))  {
             fz_irect fuzz;
             int trimmargins;

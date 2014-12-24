@@ -3442,6 +3442,8 @@ let gotohist (path, (c, bookmarks, x, anchor)) =
   state.bookmarks <- bookmarks;
   state.origin <- E.s;
   setconf conf c;
+  let x0, y0, x1, y1 = conf.trimfuzz in
+  wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   opendoc path E.s;
 ;;
 
