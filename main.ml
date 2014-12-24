@@ -3443,7 +3443,6 @@ let gotohist (path, (c, bookmarks, x, anchor)) =
   state.origin <- E.s;
   setconf conf c;
   opendoc path E.s;
-  settrim conf.trimmargins conf.trimfuzz;
 ;;
 
 let gotooutline (_, _, kind) =

@@ -1911,7 +1911,10 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 utf8filename = mbtoutf8 (filename);
                 printd ("msg Could not open %s", utf8filename);
             }
-            if (ok) pdfinfo ();
+            if (ok) {
+                pdfinfo ();
+                initpdims ();
+            }
             unlock ("open");
 
             if (ok) {
