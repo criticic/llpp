@@ -46,7 +46,7 @@
 #endif
 
 #define PIGGYBACK
-/* #define SUMATRA_LOOKUP */
+#define CACHE_PAGEREFS
 
 #ifndef __USE_GNU
 extern char **environ;
@@ -256,8 +256,9 @@ struct {
     GLfloat texcoords[8];
     GLfloat vertices[16];
 
-#ifdef SUMATRA_LOOKUP
+#ifdef CACHE_PAGEREFS
     struct {
+        int idx;
         int count;
         pdf_obj **objs;
         pdf_document *pdf;
@@ -946,11 +947,57 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     return tile;
 }
 
-#ifdef SUMATRA_LOOKUP
+#ifdef CACHE_PAGEREFS
+/* modified mupdf/source/pdf/pdf-page.c:pdf_lookup_page_loc_imp
+   thanks to Robin Watts */
 static void
-pdf_load_page_objs(pdf_document *doc, pdf_obj **page_objs)
+pdf_collect_pages(pdf_document *doc, pdf_obj *node)
 {
-#error not yet ready
+    fz_context *ctx = doc->ctx;
+    pdf_obj *kids;
+    int i, len;
+
+    if (state.pdflut.idx == state.pagecount) return;
+
+    kids = pdf_dict_gets (node, "Kids");
+    len = pdf_array_len (kids);
+
+    if (len == 0)
+        fz_throw (ctx, FZ_ERROR_GENERIC, "Malformed pages tree");
+
+    if (pdf_mark_obj (node))
+        fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
+    for (i = 0; i < len; i++) {
+        pdf_obj *kid = pdf_array_get (kids, i);
+        char *type = pdf_to_name (pdf_dict_gets (kid, "Type"));
+        if (*type
+            ? !strcmp (type, "Pages")
+            : pdf_dict_gets (kid, "Kids")
+            && !pdf_dict_gets (kid, "MediaBox")) {
+            pdf_collect_pages (doc, kid);
+        }
+        else {
+            if (*type
+                ? strcmp (type, "Page") != 0
+                : !pdf_dict_gets (kid, "MediaBox"))
+                fz_warn (ctx, "non-page object in page tree (%s)", type);
+            state.pdflut.objs[state.pdflut.idx++] = pdf_keep_obj (kid);
+        }
+    }
+    pdf_unmark_obj (node);
+}
+
+static void
+pdf_load_page_objs (pdf_document *doc)
+{
+    pdf_obj *root = pdf_dict_gets (pdf_trailer (doc), "Root");
+    pdf_obj *node = pdf_dict_gets (root, "Pages");
+
+    if (!node)
+        fz_throw (doc->ctx, FZ_ERROR_GENERIC, "cannot find page tree");
+
+    state.pdflut.idx = 0;
+    pdf_collect_pages (doc, node);
 }
 #endif
 
@@ -984,17 +1031,17 @@ static void initpdims (void)
         pdf_to_rect (state.ctx, obj, &rootmediabox);
     }
 
-#ifdef SUMATRA_LOOKUP
+#ifdef CACHE_PAGEREFS
     if (state.type == DPDF
         && (!state.pdflut.objs || state.pdflut.pdf != state.u.pdf)) {
-        state.pdflut.objs = malloc (sizeof (*state.pdflut.objs) * cxcount);
+        state.pdflut.objs = calloc (sizeof (*state.pdflut.objs), cxcount);
         if (!state.pdflut.objs) {
             err (1, "malloc pageobjs %zu %d %zu failed",
                  sizeof (*state.pdflut.objs), cxcount,
                  sizeof (*state.pdflut.objs) * cxcount);
         }
         state.pdflut.count = cxcount;
-        pdf_load_page_objs (state.u.pdf, state.pdflut.objs);
+        pdf_load_page_objs (state.u.pdf);
         state.pdflut.pdf = state.u.pdf;
     }
 #endif
@@ -1009,7 +1056,7 @@ static void initpdims (void)
             pdf_document *pdf = state.u.pdf;
             pdf_obj *pageref, *pageobj;
 
-#ifdef SUMATRA_LOOKUP
+#ifdef CACHE_PAGEREFS
             pageref = state.pdflut.objs[pageno];
 #else
             pageref = pdf_lookup_page_obj (pdf, pageno);
