@@ -1013,7 +1013,7 @@ static void initpdims (void)
             pageref = state.pdflut.objs[pageno];
 #else
             pageref = pdf_lookup_page_obj (pdf, pageno);
-            show = !trim && pageno % 20 == 0;
+            show = !state.trimmargins && pageno % 20 == 0;
             if (show) {
                 printd ("progress %f Gathering dimensions %d",
                         (double) (pageno) / state.pagecount,
