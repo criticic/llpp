@@ -60,7 +60,7 @@ test $ocamlfind && {
 }
 
 (cat <<EOF
-cflags=$cflags $(pkg-config --cflags $pkgs)
+cflags=$cflags -O $(pkg-config --cflags $pkgs)
 lflags=$libs
 srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)
 buildtype=$buildtype
