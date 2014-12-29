@@ -426,7 +426,7 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 
 static void closepdf (void)
 {
-#ifdef SUMATRA_LOOKUP
+#ifdef CACHE_PAGEREFS
     if (state.pdflut.objs) {
         int i;
 
@@ -435,6 +435,7 @@ static void closepdf (void)
         }
         free (state.pdflut.objs);
         state.pdflut.objs = NULL;
+        state.pdflut.idx = 0;
     }
 #endif
 
