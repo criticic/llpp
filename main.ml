@@ -1712,10 +1712,6 @@ let act cmds =
       if conf.maxwait = None && not !wtmode
       then G.postRedisplay "continue";
 
-  | "title" :: args :: [] ->
-      conf.title <- args;
-      Wsi.settitle args
-
   | "msg" :: args :: [] ->
       showtext ' ' args
 
@@ -1936,6 +1932,12 @@ let act cmds =
       state.reprf <- (fun () -> gotopagexy n (float l) (float t))
 
   | "info" :: args :: [] ->
+      let pos = nindex args '\t' in
+      if pos >= 0 && String.sub args 0 pos = "Title"
+      then
+        let s = String.sub args (pos+1) @@ String.length args - pos - 1 in
+        conf.title <- s;
+        Wsi.settitle s;
       state.docinfo <- (1, args) :: state.docinfo
 
   | "infoend" :: [] ->
