@@ -1,4 +1,6 @@
 /* lots of code c&p-ed directly from mupdf */
+#define CAML_NAME_SPACE
+
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
