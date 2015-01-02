@@ -44,7 +44,7 @@ build $builddir/main$cmo: ocamlc $srcdir/main.ml $
         pp = sed -f $srcdir/pp.sed
 
 rule linkso
-     command = $cc -o $out -shared $in $libs $lflags
+     command = $cc -g -o $out -shared $in $libs $lflags
      description = linkso $out
 
 build $builddir/link.so: linkso $builddir/link.o
