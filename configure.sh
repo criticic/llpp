@@ -2,7 +2,7 @@
 set -e
 
 unset cflags
-buildtype=native
+test $(uname -m) = "x86)_64" && buildtype=native || buildtype=release
 
 usage () {
     echo "$1"
@@ -59,7 +59,16 @@ test $ocamlfind && {
     lablglcflags="-I +lablGL"
 }
 
-(cat <<EOF
+(
+    if test $(uname -m) = "x86_64"; then
+        cflags="$cflags -fPIC"
+    else
+        if test $buildtype = "native"; then
+            echo "native build type does not work for non x86_64 targets"
+            exit 1
+        fi
+    fi;
+    cat <<EOF
 cflags=$cflags -O $(pkg-config --cflags $pkgs)
 lflags=$libs
 srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)
@@ -68,7 +77,6 @@ mupdf=$mupdf
 builddir=$builddir
 lablglcflags=$lablglcflags
 EOF
- test $(uname -m) = "x86_64" && echo 'cflags=$cflags -fPIC'
  test -e $mupdf/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
  test $native && {
      echo "cmo=.cmx"
