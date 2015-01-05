@@ -93,6 +93,7 @@ type state =
     ; mutable numlmask   : int
     ; mutable levl3mask  : int
     ; mutable levl5mask  : int
+    ; mutable xkb        : bool
     }
 and fs =
     | NoFs
@@ -130,6 +131,7 @@ let state =
   ; numlmask   = 0
   ; levl3mask  = 0
   ; levl5mask  = 0
+  ; xkb        = false
   }
 ;;
 
@@ -441,10 +443,17 @@ let getmodifiermappingreq () =
   makereq 119 4 1;
 ;;
 
-let getkeysym code mask =
-  let pkpk = state.keymap.(code-state.mink).(0) in
+let queryextensionreq name =
+  let s = makereq 98 8 0 in
+  let s = padcat s name in
+  w16 s 2 (Bytes.length s / 4);
+  w16 s 4 (Bytes.length name);
+  s;
+;;
+
+let getkeysym pkpk code mask =
   if (pkpk >= 0xff80 && pkpk <= 0xffbd)
-    || (pkpk >= 0x11000000 && pkpk <= 0x1100ffff)
+     || (pkpk >= 0x11000000 && pkpk <= 0x1100ffff)
   then (
     if mask land state.numlmask != 0
     then
@@ -459,16 +468,27 @@ let getkeysym code mask =
       else (mask land 1) lxor ((mask land state.capslmask) lsr 1)
     in
     let index =
-      let l3 = (mask land state.levl3mask) != 0 in
-      let l4 = (mask land state.levl5mask) != 0 in
-      shift +
-        if l3 then (if l4 then 8 else 4) else (if l4 then 6 else 0)
+      if state.xkb && mask land 0x2000 != 0
+      then
+        shift + 2
+      else
+        let l3 = (mask land state.levl3mask) != 0 in
+        let l4 = (mask land state.levl5mask) != 0 in
+        shift +
+          if l3 then (if l4 then 8 else 4) else (if l4 then 6 else 0)
     in
     let keysym = state.keymap.(code-state.mink).(index) in
     if index land 1 = 1 && keysym = 0
     then state.keymap.(code-state.mink).(index - 1)
     else keysym
   )
+;;
+
+let getkeysym code mask =
+  let pkpk = state.keymap.(code-state.mink).(0) in
+  if state.xkb && pkpk lsr 8 = 0xfe (* XKB *)
+  then 0
+  else getkeysym pkpk code mask
 ;;
 
 let readresp sock =
@@ -996,6 +1016,27 @@ let setup disp sock rootwid screennum w h =
           );
         );
       );
+      let s = queryextensionreq (~> "XKEYBOARD") in
+      sendwithrep
+        sock s (fun resp ->
+                let present = r8 resp 8 in
+                if present != 0
+                then (
+                  let maj = r8 resp 9 in
+                  let s = Bytes.create 8 in
+                  w8 s 0 maj;
+                  w8 s 1 0;
+                  w16 s 2 2;
+                  w16 s 4 1;
+                  w16 s 6 0;
+                  sendwithrep
+                    sock s
+                    (fun resp ->
+                     let supported = r8 resp 1 in
+                     state.xkb <- supported != 0
+                    )
+                );
+               );
       let s = getgeometryreq wid in
       syncsendwithrep sock 2.0 s (fun resp ->
         glxcompleteinit ();
