@@ -1024,11 +1024,11 @@ let setup disp sock rootwid screennum w h =
                 then (
                   let maj = r8 resp 9 in
                   let s = Bytes.create 8 in
-                  w8 s 0 maj;
-                  w8 s 1 0;
-                  w16 s 2 2;
-                  w16 s 4 1;
-                  w16 s 6 0;
+                  w8 s 0 maj;   (* XKB *)
+                  w8 s 1 0;     (* XKBUseExtension *)
+                  w16 s 2 2;    (* request-length *)
+                  w16 s 4 1;    (* wantedMajor *)
+                  w16 s 6 0;    (* watnedMinor *)
                   sendwithrep
                     sock s
                     (fun resp ->
