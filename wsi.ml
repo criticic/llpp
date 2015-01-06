@@ -1110,21 +1110,14 @@ let getauth haddr dnum =
     close_in ic;
     name, data;
   in
-  let opt =
-    try
-      if String.length path = 0
-      then None
-      else Some (open_in_bin path)
-    with exn ->
-      if Sys.file_exists path
-      then
-        dolog "failed to open X authority file `%S' : %s"
-          path (exntos exn);
-      None
-  in
-  match opt with
-  | None -> E.s, E.s
-  | Some ic -> readauth ic
+  if String.length path = 0
+  then E.s, E.s
+  else
+    match open_in_bin path with
+    | ic -> readauth ic
+    | (exception exn) ->
+       dolog "failed to open X authority file `%S' : %s" path (exntos exn);
+       E.s, E.s
 ;;
 
 let init t rootwid w h platform =
