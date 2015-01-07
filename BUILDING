@@ -4,7 +4,7 @@ to be built and installed to use llpp.
 Note that MuPDF is a moving target therefore below is the commit id
 of the git version of MuPDF that this version of llpp is known to work
 with:
-61de1fe7e510fdd425686c478439209f6f7a4b73
+90c560641d9b459a658029eefc4cbb02fdbca0b5
 
 llpp also depends on OCaml[2] (version 4.02.x), LablGL[3] having a C
 compiler wouldn't hurt either.
