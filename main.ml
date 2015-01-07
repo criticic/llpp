@@ -3077,7 +3077,7 @@ object (self)
             state.mstate <- Mnone;
             Some (coe self);
           );
-      | 1 when not down ->
+      | 1 when down ->
           begin match self#elemunder y with
           | Some n ->
               G.postRedisplay "listview click";
