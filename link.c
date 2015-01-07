@@ -167,6 +167,11 @@ struct slink  {
     fz_link *link;
 };
 
+struct annot  {
+    fz_irect bbox;
+    pdf_annot *annot;
+};
+
 enum { DNONE, DPDF, DXPS, DCBZ, DIMG };
 
 struct page {
@@ -187,6 +192,8 @@ struct page {
     fz_display_list *dlist;
     int slinkcount;
     struct slink *slinks;
+    int annotcount;
+    struct annot *annots;
     struct mark {
         int i;
         fz_text_span *span;
@@ -2343,8 +2350,47 @@ static void showsel (struct page *page, int ox, int oy)
 
 #include "glfont.c"
 
+static void stipplerect (fz_matrix *m,
+                         fz_point *p1,
+                         fz_point *p2,
+                         fz_point *p3,
+                         fz_point *p4,
+                         GLfloat *texcoords,
+                         GLfloat *vertices)
+{
+    fz_transform_point (p1, m);
+    fz_transform_point (p2, m);
+    fz_transform_point (p3, m);
+    fz_transform_point (p4, m);
+    {
+        float w, h, s, t;
+
+        w = p2->x - p1->x;
+        h = p2->y - p1->y;
+        t = sqrtf (w*w + h*h) * .25f;
+
+        w = p3->x - p2->x;
+        h = p3->y - p2->y;
+        s = sqrtf (w*w + h*h) * .25f;
+
+        texcoords[0] = 0; vertices[0] = p1->x; vertices[1] = p1->y;
+        texcoords[1] = t; vertices[2] = p2->x; vertices[3] = p2->y;
+
+        texcoords[2] = 0; vertices[4] = p2->x; vertices[5] = p2->y;
+        texcoords[3] = s; vertices[6] = p3->x; vertices[7] = p3->y;
+
+        texcoords[4] = 0; vertices[8] = p3->x; vertices[9] = p3->y;
+        texcoords[5] = t; vertices[10] = p4->x; vertices[11] = p4->y;
+
+        texcoords[6] = 0; vertices[12] = p4->x; vertices[13] = p4->y;
+        texcoords[7] = s; vertices[14] = p1->x; vertices[15] = p1->y;
+    }
+    glDrawArrays (GL_LINES, 0, 8);
+}
+
 static void highlightlinks (struct page *page, int xoff, int yoff)
 {
+    int i;
     fz_matrix ctm, tm, pm;
     fz_link *link, *links;
     GLfloat *texcoords = state.texcoords;
@@ -2392,42 +2438,33 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         p4.x = link->rect.x0;
         p4.y = link->rect.y1;
 
-        fz_transform_point (&p1, &ctm);
-        fz_transform_point (&p2, &ctm);
-        fz_transform_point (&p3, &ctm);
-        fz_transform_point (&p4, &ctm);
-
         switch (link->dest.kind) {
         case FZ_LINK_GOTO: glColor3ub (255, 0, 0); break;
         case FZ_LINK_URI: glColor3ub (0, 0, 255); break;
         case FZ_LINK_LAUNCH: glColor3ub (0, 255, 0); break;
         default: glColor3ub (0, 0, 0); break;
         }
+        stipplerect (&ctm, &p1, &p2, &p3, &p4, texcoords, vertices);
+    }
 
-        {
-            float w, h, s, t;
+    for (i = 0; i < page->annotcount; ++i) {
+        fz_point p1, p2, p3, p4;
+        struct annot *annot = &page->annots[i];
 
-            w = p2.x - p1.x;
-            h = p2.y - p1.y;
-            t = sqrtf (w*w + h*h) * .25f;
+        p1.x = annot->bbox.x0;
+        p1.y = annot->bbox.y0;
 
-            w = p3.x - p2.x;
-            h = p3.y - p2.y;
-            s = sqrtf (w*w + h*h) * .25f;
+        p2.x = annot->bbox.x1;
+        p2.y = annot->bbox.y0;
 
-            texcoords[0] = 0; vertices[0] = p1.x; vertices[1] = p1.y;
-            texcoords[1] = t; vertices[2] = p2.x; vertices[3] = p2.y;
+        p3.x = annot->bbox.x1;
+        p3.y = annot->bbox.y1;
 
-            texcoords[2] = 0; vertices[4] = p2.x; vertices[5] = p2.y;
-            texcoords[3] = s; vertices[6] = p3.x; vertices[7] = p3.y;
+        p4.x = annot->bbox.x0;
+        p4.y = annot->bbox.y1;
 
-            texcoords[4] = 0; vertices[8] = p3.x; vertices[9] = p3.y;
-            texcoords[5] = t; vertices[10] = p4.x; vertices[11] = p4.y;
-
-            texcoords[6] = 0; vertices[12] = p4.x; vertices[13] = p4.y;
-            texcoords[7] = s; vertices[14] = p1.x; vertices[15] = p1.y;
-        }
-        glDrawArrays (GL_LINES, 0, 8);
+        glColor3ub (0, 0, 128);
+        stipplerect (&ctm, &p1, &p2, &p3, &p4, texcoords, vertices);
     }
 
     glDisable (GL_BLEND);
@@ -2507,7 +2544,7 @@ static void ensureslinks (struct page *page)
         page->slinkcount = count;
         page->slinks = calloc (count, slinksize);
         if (!page->slinks) {
-            err (1, "realloc slinks %d", count);
+            err (1, "calloc slinks %d", count);
         }
 
         for (i = 0, link = links; link; ++i, link = link->next) {
@@ -2519,6 +2556,66 @@ static void ensureslinks (struct page *page)
             fz_round_rect (&page->slinks[i].bbox, &rect);
         }
         qsort (page->slinks, count, slinksize, compareslinks);
+    }
+}
+
+static void dropanots (struct page *page)
+{
+    if (page->annots) {
+        free (page->annots);
+        page->annots = NULL;
+        page->annotcount = 0;
+    }
+}
+
+static void ensureanots (struct page *page)
+{
+    fz_matrix ctm;
+    int i, count = 0;
+    size_t anotsize = sizeof (*page->annots);
+    pdf_annot *annot;
+
+    if (state.gen != page->sgen) {
+        dropanots (page);
+        page->sgen = state.gen;
+    }
+    if (page->annots) return;
+
+    switch (page->type) {
+    case DPDF:
+        trimctm (page->u.pdfpage, page->pdimno);
+        fz_concat (&ctm,
+                   &state.pagedims[page->pdimno].tctm,
+                   &state.pagedims[page->pdimno].ctm);
+        break;
+
+    default:
+        return;
+    }
+
+    for (annot = pdf_first_annot (state.u.pdf, page->u.pdfpage);
+         annot;
+         annot = pdf_next_annot (state.u.pdf, annot)) {
+        count++;
+    }
+
+    if (count > 0) {
+        page->annotcount = count;
+        page->annots = calloc (count, anotsize);
+        if (!page->annots) {
+            err (1, "calloc annots %d", count);
+        }
+
+        for (annot = pdf_first_annot (state.u.pdf, page->u.pdfpage), i = 0;
+             annot;
+             annot = pdf_next_annot (state.u.pdf, annot), i++) {
+            fz_rect rect;
+
+            pdf_bound_annot (state.u.pdf, annot, &rect);
+            fz_transform_rect (&rect, &ctm);
+            page->annots[i].annot = annot;
+            fz_round_rect (&page->annots[i].bbox, &annot->pagerect);
+        }
     }
 }
 
@@ -2734,6 +2831,8 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         goto done;
     }
 
+    ensureanots (page);
+
     if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (trylock ("ml_postprocess")) {
         noff = 0;
@@ -2750,6 +2849,47 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
 
  done:
     CAMLreturn (Val_int (noff));
+}
+
+static struct annot *getannot (struct page *page, int x, int y)
+{
+    int i;
+    fz_point p;
+    fz_matrix ctm;
+    const fz_matrix *tctm;
+
+    if (!page->annots) return NULL;
+
+    switch (page->type) {
+    case DPDF:
+        trimctm (page->u.pdfpage, page->pdimno);
+        tctm = &state.pagedims[page->pdimno].tctm;
+        break;
+
+    case DXPS:
+        tctm = &fz_identity;
+        break;
+
+    default:
+        return NULL;
+    }
+
+    p.x = x;
+    p.y = y;
+
+    fz_concat (&ctm, tctm, &state.pagedims[page->pdimno].ctm);
+    fz_invert_matrix (&ctm, &ctm);
+    fz_transform_point (&p, &ctm);
+
+    for (i = 0; i < page->annotcount; ++i) {
+        struct annot *a = &page->annots[i];
+        if (p.x >= a->annot->pagerect.x0 && p.x <= a->annot->pagerect.x1) {
+            if (p.y >= a->annot->pagerect.y0 && p.y <= a->annot->pagerect.y1) {
+                return a;
+            }
+        }
+    }
+    return NULL;
 }
 
 static fz_link *getlink (struct page *page, int x, int y)
@@ -2998,8 +3138,8 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     CAMLreturn (ret_v);
 }
 
-enum  { uuri, ugoto, utext, uunexpected,
-        ulaunch, unamed, uremote, uremotedest };
+enum  { uuri, ugoto, utext, uunexpected, ulaunch,
+        unamed, uremote, uremotedest, uannot };
 
 #define LINKTOVAL                                                       \
 {                                                                       \
@@ -3151,6 +3291,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
     fz_link *link;
+    struct annot *annot;
     struct page *page;
     char *ptr = String_val (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
@@ -3165,6 +3306,19 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     pdim = &state.pagedims[page->pdimno];
     x += pdim->bounds.x0;
     y += pdim->bounds.y0;
+
+    if (state.type == DPDF) {
+        annot = getannot (page, x, y);
+        if (annot) {
+            str_v = caml_copy_string (
+                pdf_annot_contents (state.u.pdf, annot->annot)
+                );
+            ret_v = caml_alloc_small (1, uannot);
+            Field (ret_v, 0) = str_v;
+            goto unlock;
+        }
+    }
+
     link = getlink (page, x, y);
     if (link) {
         LINKTOVAL;

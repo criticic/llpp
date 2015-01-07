@@ -256,7 +256,8 @@ let getunder x y =
     | Ulaunch _
     | Unamed _
     | Uremote _
-    | Uremotedest _ -> Some under
+    | Uremotedest _
+    | Uannotation _ -> Some under
   in
   onppundermouse g x y Unone
 ;;
@@ -378,6 +379,8 @@ let undertext = function
       Printf.sprintf "%s: page %d" filename (pageno+1)
   | Uremotedest (filename, destname) ->
       Printf.sprintf "%s: destination %S" filename destname
+  | Uannotation contents ->
+      Printf.sprintf "annotation " ^ contents
 ;;
 
 let updateunder x y =
@@ -410,6 +413,9 @@ let updateunder x y =
       if conf.underinfo then showtext 'r'
         (Printf.sprintf "emote destination: %s (%S)" filename destname);
       Wsi.setcursor Wsi.CURSOR_INFO
+  | Uannotation _ ->
+      if conf.underinfo then showtext 'a' "nnotation";
+      Wsi.setcursor Wsi.CURSOR_INFO
 ;;
 
 let showlinktype under =
@@ -424,7 +430,8 @@ let showlinktype under =
     | Ulaunch _
     | Unamed _
     | Uremote _
-    | Uremotedest _ ->
+    | Uremotedest _
+    | Uannotation _ ->
         let s = undertext under in
         showtext ' ' s
 ;;
@@ -3434,7 +3441,8 @@ let gotounder under =
       )
       else showtext '!' ("Could not find " ^ filename)
 
-  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
+  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone
+  | Uannotation _  -> ()
 ;;
 
 let gotohist (path, (c, bookmarks, x, anchor)) =
@@ -4526,6 +4534,55 @@ let entermsgsmode =
         super#display
     end);
     G.postRedisplay "msgs";
+;;
+
+let enterannotmode =
+  let msgsource =
+    (object
+      inherit lvsourcebase
+      val mutable m_items = E.a
+
+      method getitemcount = Array.length m_items
+
+      method getitem n =
+        m_items.(n), 0
+
+      method exit ~uioh ~cancel ~active ~first ~pan =
+        ignore (uioh, cancel, active, first, pan);
+        None
+
+      method hasaction _ = true
+
+      method reset s =
+        state.newerrmsgs <- false;
+        let rec split accu b i =
+          let p = b+i in
+          if p = String.length s
+          then String.sub s b (p-b) :: accu
+          else
+            if (i > 70 && s.[p] = ' ') || s.[p] = '\r' || s.[p] = '\n'
+            then
+              let ss = if i = 0 then E.s else String.sub s b i in
+              split (ss::accu) (p+1) 0
+            else
+              split accu b (i+1)
+        in
+        m_items <- split [] 0 0 |> List.rev |> Array.of_list
+
+      initializer
+        m_active <- 0
+    end)
+  in fun s ->
+    state.text <- E.s;
+    resetmstate ();
+    msgsource#reset s;
+    let source = (msgsource :> lvsource) in
+    let modehash = findkeyhash conf "listview" in
+    state.uioh <- coe (object
+      inherit listview ~zebra:false ~helpmode:false
+          ~source ~trusted:false ~modehash
+    end);
+    G.postRedisplay "annot";
 ;;
 
 let quickbookmark ?title () =
@@ -5764,6 +5821,8 @@ let viewmouse button down x y mask =
       | Unone when down ->
           Wsi.setcursor Wsi.CURSOR_CROSSHAIR;
           state.mstate <- Mpan (x, y);
+
+      | Uannotation contents -> enterannotmode contents
 
       | Unone | Utext _ ->
           if down

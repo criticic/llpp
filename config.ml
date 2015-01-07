@@ -127,6 +127,7 @@ and under =
     | Unamed of destname
     | Uremote of (filename * pageno)
     | Uremotedest of (filename * destname)
+    | Uannotation of string
 and facename = string
 and launchcommand = string
 and filename = string
