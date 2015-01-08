@@ -2995,7 +2995,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
 
                 fz_try (state.ctx) {
                     page = pdf_load_page (state.u.pdf, i);
-                    found = !!page->links;
+                    found = !!page->links || !!page->annots;
                 }
                 fz_catch (state.ctx) {
                     found = 0;
