@@ -5474,21 +5474,22 @@ let scrollindicator () =
   let sbw, ph, sh = state.uioh#scrollph in
   let sbh, pw, sw = state.uioh#scrollpw in
 
-  let x0,x1 =
+  let x0,x1,hx0 =
     if conf.leftscroll
-    then (0, sbw)
-    else (state.winw - sbw), state.winw
+    then (0, sbw, sbw)
+    else ((state.winw - sbw), state.winw, 0)
   in
 
   GlDraw.color (0.64, 0.64, 0.64);
   filledrect (float x0) 0. (float x1) (float state.winh);
   filledrect
-    0. (float (state.winh - sbh))
-    (float (wadjsb state.winw - 1)) (float state.winh)
+    (float hx0) (float (state.winh - sbh))
+    (float (hx0 + wadjsb state.winw)) (float state.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
   filledrect (float x0) ph (float x1) (ph +. sh);
+  let pw = pw +. float hx0 in 
   filledrect pw (float (state.winh - sbh)) (pw +. sw) (float state.winh);
 ;;
 
