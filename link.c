@@ -3806,7 +3806,7 @@ static int UNUSED_ATTR pipespan (FILE *f, fz_text_span *span, int a, int b)
 }
 
 #ifdef __CYGWIN__
-value ml_popen (value UNUSED_ATTR u1, value UNUSED_ATTR u2)
+CAMLprim value ml_popen (value UNUSED_ATTR u1, value UNUSED_ATTR u2)
 {
     caml_failwith ("ml_popen not implemented under Cygwin");
 }
