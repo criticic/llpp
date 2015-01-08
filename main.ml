@@ -96,14 +96,14 @@ let cxack = ref false;;
 let pgscale h = truncate (float h *. conf.pgscale);;
 
 let hscrollh () =
-  if (conf.scrollb land scrollbhv = 0)
-    || (state.x = 0 && state.w <= state.winw - conf.scrollbw)
+  if not state.uioh#alwaysscrolly && (conf.scrollb land scrollbhv = 0)
+         || (state.x = 0 && state.w <= state.winw - conf.scrollbw)
   then 0
   else conf.scrollbw
 ;;
 
 let vscrollw () =
-  if (conf.scrollb land scrollbvv = 0)
+  if not state.uioh#alwaysscrolly && (conf.scrollb land scrollbvv = 0)
   then 0
   else conf.scrollbw
 ;;
@@ -3159,6 +3159,7 @@ object (self)
 
   method modehash = modehash
   method eformsgs = false
+  method alwaysscrolly = true
 end;;
 
 class outlinelistview ~zebra ~source =
@@ -6069,6 +6070,7 @@ let uioh = object
     findkeyhash conf modename
 
   method eformsgs = true
+  method alwaysscrolly = false
 end;;
 
 let adderrmsg src msg =
