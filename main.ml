@@ -5489,7 +5489,7 @@ let scrollindicator () =
   GlDraw.color (0.0, 0.0, 0.0);
 
   filledrect (float x0) ph (float x1) (ph +. sh);
-  let pw = pw +. float hx0 in 
+  let pw = pw +. float hx0 in
   filledrect pw (float (state.winh - sbh)) (pw +. sw) (float state.winh);
 ;;
 
