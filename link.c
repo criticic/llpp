@@ -163,8 +163,12 @@ struct pagedim {
 };
 
 struct slink  {
+    enum { SLINK, SANNOT } tag;
     fz_irect bbox;
-    fz_link *link;
+    union {
+        fz_link *link;
+        pdf_annot *annot;
+    } u;
 };
 
 struct annot  {
@@ -1564,8 +1568,7 @@ static char *strofspan (fz_text_span *span)
     return p;
 }
 
-static int matchspan (regex_t *re, fz_text_page UNUSED_ATTR *page,
-                      fz_text_span *span, fz_matrix UNUSED_ATTR ctm,
+static int matchspan (regex_t *re, fz_text_span *span,
                       int stop, int pageno, double start)
 {
     int ret;
@@ -1752,8 +1755,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 }
 
                 for (span = line->first_span; span; span = span->next) {
-                    switch (matchspan (re, text, span, ctm,
-                                       stop, pageno, start)) {
+                    switch (matchspan (re, span, stop, pageno, start)) {
                     case 0: break;
                     case 1: stop = 1; break;
                     case -1: stop = 1; goto endloop;
@@ -2497,68 +2499,6 @@ static void droptext (struct page *page)
     }
 }
 
-static void dropslinks (struct page *page)
-{
-    if (page->slinks) {
-        free (page->slinks);
-        page->slinks = NULL;
-        page->slinkcount = 0;
-    }
-}
-
-static void ensureslinks (struct page *page)
-{
-    fz_matrix ctm;
-    int i, count = 0;
-    size_t slinksize = sizeof (*page->slinks);
-    fz_link *link, *links;
-
-    if (state.gen != page->sgen) {
-        dropslinks (page);
-        page->sgen = state.gen;
-    }
-    if (page->slinks) return;
-
-    switch (page->type) {
-    case DPDF:
-        links = page->u.pdfpage->links;
-        trimctm (page->u.pdfpage, page->pdimno);
-        fz_concat (&ctm,
-                   &state.pagedims[page->pdimno].tctm,
-                   &state.pagedims[page->pdimno].ctm);
-        break;
-
-    case DXPS:
-        links = page->u.xpspage->links;
-        ctm = state.pagedims[page->pdimno].ctm;
-        break;
-
-    default:
-        return;
-    }
-
-    for (link = links; link; link = link->next) {
-        count++;
-    }
-    if (count > 0) {
-        page->slinkcount = count;
-        page->slinks = calloc (count, slinksize);
-        if (!page->slinks) {
-            err (1, "calloc slinks %d", count);
-        }
-
-        for (i = 0, link = links; link; ++i, link = link->next) {
-            fz_rect rect;
-
-            rect = link->rect;
-            fz_transform_rect (&rect, &ctm);
-            page->slinks[i].link = link;
-            fz_round_rect (&page->slinks[i].bbox, &rect);
-        }
-        qsort (page->slinks, count, slinksize, compareslinks);
-    }
-}
-
 static void dropanots (struct page *page)
 {
     if (page->annots) {
@@ -2616,6 +2556,83 @@ static void ensureanots (struct page *page)
             page->annots[i].annot = annot;
             fz_round_rect (&page->annots[i].bbox, &annot->pagerect);
         }
+    }
+}
+
+static void dropslinks (struct page *page)
+{
+    if (page->slinks) {
+        free (page->slinks);
+        page->slinks = NULL;
+        page->slinkcount = 0;
+    }
+}
+
+static void ensureslinks (struct page *page)
+{
+    fz_matrix ctm;
+    int i, count;
+    size_t slinksize = sizeof (*page->slinks);
+    fz_link *link, *links;
+
+    ensureanots (page);
+    if (state.gen != page->sgen) {
+        dropslinks (page);
+        page->sgen = state.gen;
+    }
+    if (page->slinks) return;
+
+    switch (page->type) {
+    case DPDF:
+        links = page->u.pdfpage->links;
+        trimctm (page->u.pdfpage, page->pdimno);
+        fz_concat (&ctm,
+                   &state.pagedims[page->pdimno].tctm,
+                   &state.pagedims[page->pdimno].ctm);
+        break;
+
+    case DXPS:
+        links = page->u.xpspage->links;
+        ctm = state.pagedims[page->pdimno].ctm;
+        break;
+
+    default:
+        return;
+    }
+
+    count = page->annotcount;
+    for (link = links; link; link = link->next) {
+        count++;
+    }
+    if (count > 0) {
+        int j;
+
+        page->slinkcount = count;
+        page->slinks = calloc (count, slinksize);
+        if (!page->slinks) {
+            err (1, "calloc slinks %d", count);
+        }
+
+        for (i = 0, link = links; link; ++i, link = link->next) {
+            fz_rect rect;
+
+            rect = link->rect;
+            fz_transform_rect (&rect, &ctm);
+            page->slinks[i].tag = SLINK;
+            page->slinks[i].u.link = link;
+            fz_round_rect (&page->slinks[i].bbox, &rect);
+        }
+        for (j = 0; j < page->annotcount; ++j, ++i) {
+            fz_rect rect;
+
+            rect = page->annots[j].annot->pagerect;
+            fz_transform_rect (&rect, &ctm);
+            fz_round_rect (&page->slinks[i].bbox, &rect);
+
+            page->slinks[i].tag = SANNOT;
+            page->slinks[i].u.annot = page->annots[j].annot;
+        }
+        qsort (page->slinks, count, slinksize, compareslinks);
     }
 }
 
@@ -3229,6 +3246,7 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     struct page *page;
     struct pagedim *pdim;
     char *s = String_val (ptr_v);
+    struct slink *slink;
 
     ret_v = Val_int (0);
     if (trylock ("ml_getlink")) {
@@ -3238,8 +3256,18 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     page = parse_pointer ("ml_getlink", s);
     ensureslinks (page);
     pdim = &state.pagedims[page->pdimno];
-    link = page->slinks[Int_val (n_v)].link;
-    LINKTOVAL;
+    slink = &page->slinks[Int_val (n_v)];
+    if (slink->tag == SLINK) {
+        link = slink->u.link;
+        LINKTOVAL;
+    }
+    else {
+        str_v = caml_copy_string (
+            pdf_annot_contents (state.u.pdf, slink->u.annot)
+            );
+        ret_v = caml_alloc_small (1, uannot);
+        Field (ret_v, 0) = str_v;
+    }
 
     unlock ("ml_getlink");
  done:

@@ -3377,115 +3377,6 @@ object (self)
     | _ -> super#key key mask
 end
 
-let gotounder under =
-  let getpath filename =
-    let path =
-      if nonemptystr filename
-      then
-        if Filename.is_relative filename
-        then
-          let dir = Filename.dirname state.path in
-          let dir =
-            if Filename.is_implicit dir
-            then Filename.concat (Sys.getcwd ()) dir
-            else dir
-          in
-          Filename.concat dir filename
-        else filename
-      else E.s
-    in
-    if Sys.file_exists path
-    then path
-    else E.s
-  in
-  match under with
-  | Ulinkgoto (pageno, top) ->
-      if pageno >= 0
-      then (
-        addnav ();
-        gotopage1 pageno top;
-      )
-
-  | Ulinkuri s ->
-      gotouri s
-
-  | Uremote (filename, pageno) ->
-      let path = getpath filename in
-      if nonemptystr path
-      then (
-        if conf.riani
-        then
-          let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
-          try popen command []
-          with exn ->
-            Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
-            flush stderr;
-        else
-          let anchor = getanchor () in
-          let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- E.s;
-          state.anchor <- (pageno, 0.0, 0.0);
-          state.ranchors <- ranchor :: state.ranchors;
-          opendoc path E.s;
-      )
-      else showtext '!' ("Could not find " ^ filename)
-
-  | Uremotedest (filename, destname) ->
-      let path = getpath filename in
-      if nonemptystr path
-      then (
-        if conf.riani
-        then
-          let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
-          try popen command []
-          with exn ->
-            Printf.eprintf
-              "failed to execute `%s': %s\n" command (exntos exn);
-            flush stderr;
-        else
-          let anchor = getanchor () in
-          let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- E.s;
-          state.nameddest <- destname;
-          state.ranchors <- ranchor :: state.ranchors;
-          opendoc path E.s;
-      )
-      else showtext '!' ("Could not find " ^ filename)
-
-  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone
-  | Uannotation _  -> ()
-;;
-
-let gotohist (path, (c, bookmarks, x, anchor)) =
-  Config.save leavebirdseye;
-  state.anchor <- anchor;
-  state.x <- x;
-  state.bookmarks <- bookmarks;
-  state.origin <- E.s;
-  setconf conf c;
-  let x0, y0, x1, y1 = conf.trimfuzz in
-  wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
-  opendoc path E.s;
-;;
-
-let gotooutline (_, _, kind) =
-  match kind with
-  | Onone -> ()
-  | Oanchor anchor ->
-      let (pageno, y, _) = anchor in
-      let y = getanchory
-        (if conf.presentation then (pageno, y, 1.0) else anchor)
-      in
-      addnav ();
-      gotoghyll y
-  | Ouri uri -> gotounder (Ulinkuri uri)
-  | Olaunch cmd -> gotounder (Ulaunch cmd)
-  | Oremote remote -> gotounder (Uremote remote)
-  | Ohistory hist -> gotohist hist
-  | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
-  | Oaction f -> f ()
-;;
-
 let genhistoutlines =
   let order ty (p1, c1, _, _, _) (p2, c2, _, _, _) =
     match ty with
@@ -3531,228 +3422,17 @@ let genhistoutlines =
     else E.a;
 ;;
 
-let outlinesource sourcetype =
-  (object (self)
-    inherit lvsourcebase
-    val mutable m_items = E.a
-    val mutable m_minfo = E.a
-    val mutable m_orig_items = E.a
-    val mutable m_orig_minfo = E.a
-    val mutable m_narrow_patterns = []
-    val mutable m_hadremovals = false
-    val mutable m_gen = -1
-
-    method getitemcount =
-      Array.length m_items + (if m_hadremovals then 1 else 0)
-
-    method getitem n =
-      if n == Array.length m_items && m_hadremovals
-      then
-        ("[Confirm removal]", 0)
-      else
-        let s, n, _ = m_items.(n) in
-        (s, n)
-
-    method exit ~uioh ~cancel ~active ~first ~pan =
-      ignore (uioh, first);
-      let confrimremoval = m_hadremovals && active = Array.length m_items in
-      let items, minfo =
-        if m_narrow_patterns = []
-        then m_orig_items, m_orig_minfo
-        else m_items, m_minfo
-      in
-      if not cancel
-      then (
-        if not confrimremoval
-        then (
-          gotooutline m_items.(active);
-          m_items <- items;
-          m_minfo <- minfo;
-        )
-        else (
-          state.bookmarks <- Array.to_list m_items;
-          m_orig_items <- m_items;
-          m_orig_minfo <- m_minfo;
-        )
-      )
-      else (
-        m_items <- items;
-        m_minfo <- minfo;
-      );
-      m_pan <- pan;
-      None
-
-    method hasaction _ = true
-
-    method greetmsg =
-      if Array.length m_items != Array.length m_orig_items
-      then
-        let s =
-          match m_narrow_patterns with
-          | one :: [] -> one
-          | many -> String.concat "@Uellipsis" (List.rev many)
-        in
-        "Narrowed to " ^ s ^ " (ctrl-u to restore)"
-      else E.s
-
-    method statestr =
-      match m_narrow_patterns with
-      | [] -> E.s
-      | one :: [] -> one
-      | head :: _ -> "@Uellipsis" ^ head
-
-    method narrow pattern =
-      let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
-      match reopt with
-      | None -> ()
-      | Some re ->
-          let rec loop accu minfo n =
-            if n = -1
-            then (
-              m_items <- Array.of_list accu;
-              m_minfo <- Array.of_list minfo;
-            )
-            else
-              let (s, _, t) as o = m_items.(n) in
-              let accu, minfo =
-                match t with
-                | Oaction _ -> o :: accu, (0, 0) :: minfo
-                | Onone | Oanchor _ | Ouri _ | Olaunch _
-                | Oremote _ | Oremotedest _ | Ohistory _ ->
-                    let first =
-                      try Str.search_forward re s 0
-                      with Not_found -> -1
-                    in
-                    if first >= 0
-                    then o :: accu, (first, Str.match_end ()) :: minfo
-                    else accu, minfo
-              in
-              loop accu minfo (n-1)
-          in
-          loop [] [] (Array.length m_items - 1)
-
-    method! getminfo = m_minfo
-
-    method denarrow =
-      m_orig_items <- (
-        match sourcetype with
-        | `bookmarks -> Array.of_list state.bookmarks
-        | `outlines -> state.outlines
-        | `history -> genhistoutlines !Config.historder
-      );
-      m_minfo <- m_orig_minfo;
-      m_items <- m_orig_items
-
-    method remove m =
-      if sourcetype = `bookmarks
-      then
-        if m >= 0 && m < Array.length m_items
-        then (
-          m_hadremovals <- true;
-          m_items <- Array.init (Array.length m_items - 1) (fun n ->
-            let n = if n >= m then n+1 else n in
-            m_items.(n)
-          )
-        )
-
-    method add_narrow_pattern pattern =
-      m_narrow_patterns <- pattern :: m_narrow_patterns
-
-    method del_narrow_pattern =
-      match m_narrow_patterns with
-      | _ :: rest -> m_narrow_patterns <- rest
-      | [] -> ()
-
-    method renarrow =
-      self#denarrow;
-      match m_narrow_patterns with
-      | pattern :: [] -> self#narrow pattern; pattern
-      | list ->
-          List.fold_left (fun accu pattern ->
-            self#narrow pattern;
-            pattern ^ "@Uellipsis" ^ accu) E.s list
-
-    method calcactive anchor =
-      let rely = getanchory anchor in
-      let rec loop n best bestd =
-        if n = Array.length m_items
-        then best
-        else
-          let _, _, kind = m_items.(n) in
-          match kind with
-          | Oanchor anchor ->
-              let orely = getanchory anchor in
-              let d = abs (orely - rely) in
-              if d < bestd
-              then loop (n+1) n d
-              else loop (n+1) best bestd
-          | Onone | Oremote _ | Olaunch _
-          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ ->
-              loop (n+1) best bestd
-      in
-      loop 0 ~-1 max_int
-
-    method reset anchor items =
-      m_hadremovals <- false;
-      if state.gen != m_gen
-      then (
-        m_orig_items <- items;
-        m_items <- items;
-        m_narrow_patterns <- [];
-        m_minfo <- E.a;
-        m_orig_minfo <- E.a;
-        m_gen <- state.gen;
-      )
-      else (
-        if items != m_orig_items
-        then (
-          m_orig_items <- items;
-          if m_narrow_patterns == []
-          then m_items <- items;
-        )
-      );
-      let active = self#calcactive anchor in
-      m_active <- active;
-      m_first <- firstof m_first active
-  end)
+let gotohist (path, (c, bookmarks, x, anchor)) =
+  Config.save leavebirdseye;
+  state.anchor <- anchor;
+  state.x <- x;
+  state.bookmarks <- bookmarks;
+  state.origin <- E.s;
+  setconf conf c;
+  let x0, y0, x1, y1 = conf.trimfuzz in
+  wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
+  opendoc path E.s;
 ;;
-
-let enterselector sourcetype =
-  resetmstate ();
-  let source = outlinesource sourcetype in
-  fun errmsg ->
-    let outlines =
-      match sourcetype with
-      | `bookmarks -> Array.of_list state.bookmarks
-      | `outlines -> state.outlines
-      | `history -> genhistoutlines !Config.historder
-    in
-    if Array.length outlines = 0
-    then (
-      showtext ' ' errmsg;
-    )
-    else (
-      state.text <- source#greetmsg;
-      Wsi.setcursor Wsi.CURSOR_INHERIT;
-      let anchor = getanchor () in
-      source#reset anchor outlines;
-      state.uioh <-
-        coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
-      G.postRedisplay "enter selector";
-    )
-;;
-
-let enteroutlinemode =
-  let f = enterselector `outlines in
-  fun () -> f "Document has no outline";
-;;
-
-let enterbookmarkmode =
-  let f = enterselector `bookmarks in
-  fun () -> f "Document has no bookmarks (yet)";
-;;
-
-let enterhistmode () = enterselector `history "No history (yet)";;
 
 let makecheckers () =
   (* Based on lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had
@@ -4595,6 +4275,326 @@ let enterannotmode =
     end);
     G.postRedisplay "annot";
 ;;
+
+let gotounder under =
+  let getpath filename =
+    let path =
+      if nonemptystr filename
+      then
+        if Filename.is_relative filename
+        then
+          let dir = Filename.dirname state.path in
+          let dir =
+            if Filename.is_implicit dir
+            then Filename.concat (Sys.getcwd ()) dir
+            else dir
+          in
+          Filename.concat dir filename
+        else filename
+      else E.s
+    in
+    if Sys.file_exists path
+    then path
+    else E.s
+  in
+  match under with
+  | Ulinkgoto (pageno, top) ->
+      if pageno >= 0
+      then (
+        addnav ();
+        gotopage1 pageno top;
+      )
+
+  | Ulinkuri s ->
+      gotouri s
+
+  | Uremote (filename, pageno) ->
+      let path = getpath filename in
+      if nonemptystr path
+      then (
+        if conf.riani
+        then
+          let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
+          try popen command []
+          with exn ->
+            Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
+            flush stderr;
+        else
+          let anchor = getanchor () in
+          let ranchor = state.path, state.password, anchor, state.origin in
+          state.origin <- E.s;
+          state.anchor <- (pageno, 0.0, 0.0);
+          state.ranchors <- ranchor :: state.ranchors;
+          opendoc path E.s;
+      )
+      else showtext '!' ("Could not find " ^ filename)
+
+  | Uremotedest (filename, destname) ->
+      let path = getpath filename in
+      if nonemptystr path
+      then (
+        if conf.riani
+        then
+          let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
+          try popen command []
+          with exn ->
+            Printf.eprintf
+              "failed to execute `%s': %s\n" command (exntos exn);
+            flush stderr;
+        else
+          let anchor = getanchor () in
+          let ranchor = state.path, state.password, anchor, state.origin in
+          state.origin <- E.s;
+          state.nameddest <- destname;
+          state.ranchors <- ranchor :: state.ranchors;
+          opendoc path E.s;
+      )
+      else showtext '!' ("Could not find " ^ filename)
+
+  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
+  | Uannotation annot -> enterannotmode annot
+;;
+
+let gotooutline (_, _, kind) =
+  match kind with
+  | Onone -> ()
+  | Oanchor anchor ->
+      let (pageno, y, _) = anchor in
+      let y = getanchory
+        (if conf.presentation then (pageno, y, 1.0) else anchor)
+      in
+      addnav ();
+      gotoghyll y
+  | Ouri uri -> gotounder (Ulinkuri uri)
+  | Olaunch cmd -> gotounder (Ulaunch cmd)
+  | Oremote remote -> gotounder (Uremote remote)
+  | Ohistory hist -> gotohist hist
+  | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
+  | Oaction f -> f ()
+;;
+
+let outlinesource sourcetype =
+  (object (self)
+    inherit lvsourcebase
+    val mutable m_items = E.a
+    val mutable m_minfo = E.a
+    val mutable m_orig_items = E.a
+    val mutable m_orig_minfo = E.a
+    val mutable m_narrow_patterns = []
+    val mutable m_hadremovals = false
+    val mutable m_gen = -1
+
+    method getitemcount =
+      Array.length m_items + (if m_hadremovals then 1 else 0)
+
+    method getitem n =
+      if n == Array.length m_items && m_hadremovals
+      then
+        ("[Confirm removal]", 0)
+      else
+        let s, n, _ = m_items.(n) in
+        (s, n)
+
+    method exit ~uioh ~cancel ~active ~first ~pan =
+      ignore (uioh, first);
+      let confrimremoval = m_hadremovals && active = Array.length m_items in
+      let items, minfo =
+        if m_narrow_patterns = []
+        then m_orig_items, m_orig_minfo
+        else m_items, m_minfo
+      in
+      if not cancel
+      then (
+        if not confrimremoval
+        then (
+          gotooutline m_items.(active);
+          m_items <- items;
+          m_minfo <- minfo;
+        )
+        else (
+          state.bookmarks <- Array.to_list m_items;
+          m_orig_items <- m_items;
+          m_orig_minfo <- m_minfo;
+        )
+      )
+      else (
+        m_items <- items;
+        m_minfo <- minfo;
+      );
+      m_pan <- pan;
+      None
+
+    method hasaction _ = true
+
+    method greetmsg =
+      if Array.length m_items != Array.length m_orig_items
+      then
+        let s =
+          match m_narrow_patterns with
+          | one :: [] -> one
+          | many -> String.concat "@Uellipsis" (List.rev many)
+        in
+        "Narrowed to " ^ s ^ " (ctrl-u to restore)"
+      else E.s
+
+    method statestr =
+      match m_narrow_patterns with
+      | [] -> E.s
+      | one :: [] -> one
+      | head :: _ -> "@Uellipsis" ^ head
+
+    method narrow pattern =
+      let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
+      match reopt with
+      | None -> ()
+      | Some re ->
+          let rec loop accu minfo n =
+            if n = -1
+            then (
+              m_items <- Array.of_list accu;
+              m_minfo <- Array.of_list minfo;
+            )
+            else
+              let (s, _, t) as o = m_items.(n) in
+              let accu, minfo =
+                match t with
+                | Oaction _ -> o :: accu, (0, 0) :: minfo
+                | Onone | Oanchor _ | Ouri _ | Olaunch _
+                | Oremote _ | Oremotedest _ | Ohistory _ ->
+                    let first =
+                      try Str.search_forward re s 0
+                      with Not_found -> -1
+                    in
+                    if first >= 0
+                    then o :: accu, (first, Str.match_end ()) :: minfo
+                    else accu, minfo
+              in
+              loop accu minfo (n-1)
+          in
+          loop [] [] (Array.length m_items - 1)
+
+    method! getminfo = m_minfo
+
+    method denarrow =
+      m_orig_items <- (
+        match sourcetype with
+        | `bookmarks -> Array.of_list state.bookmarks
+        | `outlines -> state.outlines
+        | `history -> genhistoutlines !Config.historder
+      );
+      m_minfo <- m_orig_minfo;
+      m_items <- m_orig_items
+
+    method remove m =
+      if sourcetype = `bookmarks
+      then
+        if m >= 0 && m < Array.length m_items
+        then (
+          m_hadremovals <- true;
+          m_items <- Array.init (Array.length m_items - 1) (fun n ->
+            let n = if n >= m then n+1 else n in
+            m_items.(n)
+          )
+        )
+
+    method add_narrow_pattern pattern =
+      m_narrow_patterns <- pattern :: m_narrow_patterns
+
+    method del_narrow_pattern =
+      match m_narrow_patterns with
+      | _ :: rest -> m_narrow_patterns <- rest
+      | [] -> ()
+
+    method renarrow =
+      self#denarrow;
+      match m_narrow_patterns with
+      | pattern :: [] -> self#narrow pattern; pattern
+      | list ->
+          List.fold_left (fun accu pattern ->
+            self#narrow pattern;
+            pattern ^ "@Uellipsis" ^ accu) E.s list
+
+    method calcactive anchor =
+      let rely = getanchory anchor in
+      let rec loop n best bestd =
+        if n = Array.length m_items
+        then best
+        else
+          let _, _, kind = m_items.(n) in
+          match kind with
+          | Oanchor anchor ->
+              let orely = getanchory anchor in
+              let d = abs (orely - rely) in
+              if d < bestd
+              then loop (n+1) n d
+              else loop (n+1) best bestd
+          | Onone | Oremote _ | Olaunch _
+          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ ->
+              loop (n+1) best bestd
+      in
+      loop 0 ~-1 max_int
+
+    method reset anchor items =
+      m_hadremovals <- false;
+      if state.gen != m_gen
+      then (
+        m_orig_items <- items;
+        m_items <- items;
+        m_narrow_patterns <- [];
+        m_minfo <- E.a;
+        m_orig_minfo <- E.a;
+        m_gen <- state.gen;
+      )
+      else (
+        if items != m_orig_items
+        then (
+          m_orig_items <- items;
+          if m_narrow_patterns == []
+          then m_items <- items;
+        )
+      );
+      let active = self#calcactive anchor in
+      m_active <- active;
+      m_first <- firstof m_first active
+  end)
+;;
+
+let enterselector sourcetype =
+  resetmstate ();
+  let source = outlinesource sourcetype in
+  fun errmsg ->
+    let outlines =
+      match sourcetype with
+      | `bookmarks -> Array.of_list state.bookmarks
+      | `outlines -> state.outlines
+      | `history -> genhistoutlines !Config.historder
+    in
+    if Array.length outlines = 0
+    then (
+      showtext ' ' errmsg;
+    )
+    else (
+      state.text <- source#greetmsg;
+      Wsi.setcursor Wsi.CURSOR_INHERIT;
+      let anchor = getanchor () in
+      source#reset anchor outlines;
+      state.uioh <-
+        coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
+      G.postRedisplay "enter selector";
+    )
+;;
+
+let enteroutlinemode =
+  let f = enterselector `outlines in
+  fun () -> f "Document has no outline";
+;;
+
+let enterbookmarkmode =
+  let f = enterselector `bookmarks in
+  fun () -> f "Document has no bookmarks (yet)";
+;;
+
+let enterhistmode () = enterselector `history "No history (yet)";;
 
 let quickbookmark ?title () =
   match state.layout with
