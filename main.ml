@@ -4237,8 +4237,9 @@ let enterannotmode =
         method getitemcount = 1 + Array.length m_items
 
         method getitem n =
-          if n = 0 then "[Copy text to clipboard]", 0
-          else m_items.(n - 1), 0
+          if n = Array.length m_items
+          then "[Copy text to the clipboard]", 0
+          else m_items.(n), 0
 
         method exit ~uioh ~cancel ~active ~first ~pan =
           ignore (uioh, first, pan);
