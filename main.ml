@@ -108,8 +108,8 @@ let vscrollw () =
   else conf.scrollbw
 ;;
 
-let wadjsb w = w - vscrollw ();;
-let xadjsb x = if conf.leftscroll then x + vscrollw () else x;;
+let wadjsb () = -vscrollw ();;
+let xadjsb () = if conf.leftscroll then vscrollw () else 0;;
 
 let setfontsize n =
   fstate.fontsize <- n;
@@ -506,6 +506,7 @@ let nogeomcmds cmds =
 
 let layoutN ((columns, coverA, coverB), b) y sh =
   let sh = sh - (hscrollh ()) in
+  let wadj = wadjsb () in
   let rec fold accu n =
     if n = Array.length b
     then accu
@@ -525,7 +526,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
             let pagedispx, pagex =
               let pdx =
                 if n = coverA - 1 || n = state.pagecount - coverB
-                then state.x + (wadjsb state.winw - w) / 2
+                then state.x + (wadj + state.winw - w) / 2
                 else dx + xoff + state.x
               in
               if pdx < 0
@@ -533,7 +534,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
               else pdx, 0
             in
             let pagevw =
-              let vw = wadjsb state.winw - pagedispx in
+              let vw = wadj + state.winw - pagedispx in
               let pw = w - pagex in
               min vw pw
             in
@@ -569,6 +570,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
 
 let layoutS (columns, b) y sh =
   let sh = sh - hscrollh () in
+  let wadj = wadjsb () in
   let rec fold accu n =
     if n = Array.length b
     then accu
@@ -600,11 +602,11 @@ let layoutS (columns, b) y sh =
             let pagecolw = pagew/columns in
             let pagedispx =
               if pagecolw < state.winw
-              then pagedispx + ((wadjsb state.winw - pagecolw) / 2)
+              then pagedispx + ((wadj + state.winw - pagecolw) / 2)
               else pagedispx
             in
             let pagevw =
-              let vw = wadjsb state.winw - pagedispx in
+              let vw = wadj + state.winw - pagedispx in
               let pw = pagew - pagex in
               min vw pw
             in
@@ -661,6 +663,7 @@ let itertiles l f =
   let col = l.pagex / conf.tilew in
   let row = l.pagey / conf.tileh in
 
+  let xadj = xadjsb () in
   let rec rowloop row y0 dispy h =
     if h = 0
     then ()
@@ -673,7 +676,7 @@ let itertiles l f =
         else (
           let dw = conf.tilew - x0 in
           let dw = min w dw in
-          let dispx' = xadjsb dispx in
+          let dispx' = xadj + dispx in
           f col row dispx' dispy x0 y0 dw dh;
           colloop (col+1) 0 (dispx+dw) (w-dw)
         )
@@ -717,6 +720,7 @@ let linerect x0 y0 x1 y1 =
 
 let drawtiles l color =
   GlDraw.color color;
+  let wadj = wadjsb () in
   begintiles ();
   let f col row x y tilex tiley w h =
     match gettileopaque l col row with
@@ -751,7 +755,7 @@ let drawtiles l color =
           if conf.leftscroll
           then w
           else
-            let lw = wadjsb state.winw - x in
+            let lw = wadj + state.winw - x in
             min lw w
         and h =
           let lh = state.winh - y in
@@ -1259,9 +1263,12 @@ let scalecolor2 (r, g, b) =
   (r *. conf.colorscale, g *. conf.colorscale, b *. conf.colorscale);
 ;;
 
-let docolumns = function
+let docolumns columns =
+  let wadj = wadjsb () in
+  match columns with
   | Csingle _ ->
       let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
+      let wadj = wadjsb () in
       let rec loop pageno pdimno pdim y ph pdims =
         if pageno = state.pagecount
         then ()
@@ -1273,7 +1280,7 @@ let docolumns = function
             | _ ->
                 pdimno, pdim, pdims
           in
-          let x = max 0 (((wadjsb state.winw - w) / 2) - xoff) in
+          let x = max 0 (((wadj + state.winw - w) / 2) - xoff) in
           let y = y +
             (if conf.presentation
             then (if pageno = 0 then calcips h else calcips ph + calcips h)
@@ -1311,7 +1318,7 @@ let docolumns = function
           let x, y, rowh' =
             if pageno = coverA - 1 || pageno = state.pagecount - coverB
             then (
-              let x = (wadjsb state.winw - w) / 2 in
+              let x = (wadj + state.winw - w) / 2 in
               let ips =
                 if conf.presentation then calcips h else conf.interpagespace in
               x, y + ips + rowh, h
@@ -1319,7 +1326,7 @@ let docolumns = function
             else (
               if (pageno - coverA) mod columns = 0
               then (
-                let x = max 0 (wadjsb state.winw - state.w) / 2 in
+                let x = max 0 (wadj + state.winw - state.w) / 2 in
                 let y =
                   if conf.presentation
                   then
@@ -1415,7 +1422,7 @@ let reshape w h =
   then state.anchor <- getanchor ();
 
   state.winw <- w;
-  let w = wadjsb (truncate (float w *. conf.zoom)) in
+  let w = wadjsb () + (truncate (float w *. conf.zoom)) in
   let w = max w 2 in
   state.winh <- h;
   setfontsize fstate.fontsize;
@@ -1451,7 +1458,7 @@ let reshape w h =
 
 let enttext () =
   let len = String.length state.text in
-  let x0 = xadjsb 0 in
+  let x0 = xadjsb () in
   let drawstring s =
     let hscrollh =
       match state.mode with
@@ -1465,7 +1472,7 @@ let enttext () =
         (x+.w) (float (state.winh - hscrollh))
     in
 
-    let w = float (wadjsb state.winw - 1) in
+    let w = float (wadjsb () + state.winw - 1) in
     if state.progress >= 0.0 && state.progress < 1.0
     then (
       GlDraw.color (0.3, 0.3, 0.3);
@@ -1605,8 +1612,9 @@ let gotopagexy1 pageno x y =
   let wh = state.winh - hscrollh () in
   let x = left *. (float w) in
   let x = leftx + state.x + truncate x in
+  let wadj = wadjsb () in
   let sx =
-    if x < 0 || x >= wadjsb state.winw
+    if x < 0 || x >= wadj + state.winw
     then state.x - x
     else state.x
   in
@@ -1630,7 +1638,7 @@ let gotopagexy1 pageno x y =
     let x, y =
       if !wtmode
       then (
-        let ww = wadjsb state.winw in
+        let ww = wadj + state.winw in
         let qx = sx / ww
         and qy = pdy / wh in
         let x = qx * ww
@@ -1747,7 +1755,7 @@ let act cmds =
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
-      let xoff = float (xadjsb 0) in
+      let xoff = float (xadjsb ()) in
       let x0 = x0 +. xoff
       and x1 = x1 +. xoff
       and x2 = x2 +. xoff
@@ -1763,7 +1771,7 @@ let act cmds =
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
             (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
       in
-      let xoff = float (xadjsb 0) in
+      let xoff = float (xadjsb ()) in
       let x0 = x0 +. xoff
       and x1 = x1 +. xoff
       and x2 = x2 +. xoff
@@ -2644,16 +2652,17 @@ object (self)
     Gl.enable `texture_2d;
     let fs = fstate.fontsize in
     let nfs = fs + 1 in
-    let hw = (wadjsb (xadjsb state.winw))/3 in
+    let hw = (wadjsb () + xadjsb () + state.winw)/3 in
     let ww = fstate.wwidth in
     let tabw = 17.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
     let x0, x1 =
       if conf.leftscroll
-      then float (xadjsb 0), float (state.winw - 1)
+      then float (xadjsb ()), float (state.winw - 1)
       else 0.0, float (state.winw - conf.scrollbw - 1)
     in
+    let xadj = xadjsb () in
     let rec loop row =
       if (row - m_first) > fstate.maxrows
       then ()
@@ -2663,7 +2672,7 @@ object (self)
           let (s, level) = source#getitem row in
           let y = (row - m_first) * nfs in
           let x =
-            (if conf.leftscroll then float (xadjsb 0) else 5.0)
+            (if conf.leftscroll then float xadj else 5.0)
               +. (float (level + m_pan)) *. ww in
           if helpmode
           then GlDraw.color
@@ -2747,6 +2756,7 @@ object (self)
     in
     loop m_first;
     GlDraw.color (1.0, 1.0, 1.0) ~alpha:0.5;
+    let xadj = float (xadjsb () + 5) in
     let rec loop row =
       if (row - m_first) > fstate.maxrows
       then ()
@@ -2766,7 +2776,7 @@ object (self)
           let suffix = String.sub s first (last - first) in
           let w1 = measurestr fstate.fontsize prefix in
           let w2 = measurestr fstate.fontsize suffix in
-          let x = x +. if conf.leftscroll then float (xadjsb 5) else 5.0 in
+          let x = x +. if conf.leftscroll then xadj else 5.0 in
           let x = if pos0 > 0 && first > pos0 then x +. float hw else x in
           let x0 = x +. w1
           and y0 = float (y+2) in
@@ -4619,7 +4629,7 @@ let canpan () =
   | Csingle _ | Cmulti _ -> state.x != 0 || conf.zoom > 1.0
 ;;
 
-let panbound x = bound x (-state.w) (wadjsb state.winw);;
+let panbound x = bound x (-state.w) (wadjsb () + state.winw);;
 
 let existsinrow pageno (columns, coverA, coverB) p =
   let last = ((pageno - coverA) mod columns) + columns in
@@ -5047,7 +5057,7 @@ let viewkeyboard key mask =
       then (
         if conf.zoom > 1.0
         then
-          let m = (wadjsb state.winw - state.w) / 2 in
+          let m = (wadjsb () + state.winw - state.w) / 2 in
           state.x <- m;
           gotoy_and_clear_text state.y
       )
@@ -5428,7 +5438,7 @@ let drawpage l =
             let c = scalecolor 1.0 in
             GlDraw.color c;
             GlDraw.line_width 3.0;
-            let dispx = xadjsb l.pagedispx in
+            let dispx = xadjsb () + l.pagedispx in
             linerect
               (float (dispx-1)) (float (l.pagedispy-1))
               (float (dispx+l.pagevw+1))
@@ -5448,7 +5458,7 @@ let postdrawpage l linkindexbase =
   | Some opaque ->
       if tileready l l.pagex l.pagey
       then
-        let x = l.pagedispx - l.pagex + xadjsb 0
+        let x = l.pagedispx - l.pagex + xadjsb ()
         and y = l.pagedispy - l.pagey in
         let hlmask =
           match conf.columns with
@@ -5485,7 +5495,7 @@ let scrollindicator () =
   filledrect (float x0) 0. (float x1) (float state.winh);
   filledrect
     (float hx0) (float (state.winh - sbh))
-    (float (hx0 + wadjsb state.winw)) (float state.winh)
+    (float (hx0 + wadjsb () + state.winw)) (float state.winh)
   ;
   GlDraw.color (0.0, 0.0, 0.0);
 
@@ -5541,7 +5551,7 @@ let display () =
     | LinkNav (Ltexact (pageno, linkno)) ->
         begin match getopaque pageno with
         | Some opaque ->
-            let dx = xadjsb 0 in
+            let dx = xadjsb () in
             let x0, y0, x1, y1 = getlinkrect opaque linkno in
             let x0 = x0 + dx and x1 = x1 + dx in
             (pageno, 5, (
@@ -5594,7 +5604,7 @@ let zoomrect x y x1 y1 =
   let zoom = (float state.w) /. float (x1 - x0) in
   let margin =
     let simple () =
-      let adjw = wadjsb state.winw in
+      let adjw = wadjsb () + state.winw in
       if state.w < adjw
       then (adjw - state.w) / 2
       else 0
@@ -5636,7 +5646,7 @@ let zoomblock x y =
 ;;
 
 let scrollx x =
-  let winw = wadjsb state.winw - 1 in
+  let winw = wadjsb () + state.winw - 1 in
   let s = float x /. float winw in
   let destx = truncate (float (state.w + winw) *. s) in
   state.x <- winw - destx;
@@ -6044,7 +6054,7 @@ let uioh = object
     vscrollw (), p, h
 
   method scrollpw =
-    let winw = wadjsb state.winw in
+    let winw = wadjsb () + state.winw in
     let fwinw = float winw in
     let sw =
       let sw = fwinw /. float state.w in
