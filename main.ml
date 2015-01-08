@@ -4230,50 +4230,55 @@ let entermsgsmode =
 let enterannotmode =
   let msgsource =
     (object
-      inherit lvsourcebase
-      val mutable m_items = E.a
+        inherit lvsourcebase
+        val mutable m_text = E.s
+        val mutable m_items = E.a
 
-      method getitemcount = Array.length m_items
+        method getitemcount = 1 + Array.length m_items
 
-      method getitem n =
-        m_items.(n), 0
+        method getitem n =
+          if n = 0 then "[Copy text to clipboard]", 0
+          else m_items.(n - 1), 0
 
-      method exit ~uioh ~cancel ~active ~first ~pan =
-        ignore (uioh, cancel, active, first, pan);
-        None
+        method exit ~uioh ~cancel ~active ~first ~pan =
+          ignore (uioh, first, pan);
+          if not cancel && active = 0
+          then selstring m_text;
+          None
 
-      method hasaction _ = true
+        method hasaction _ = true
 
-      method reset s =
-        state.newerrmsgs <- false;
-        let rec split accu b i =
-          let p = b+i in
-          if p = String.length s
-          then String.sub s b (p-b) :: accu
-          else
-            if (i > 70 && s.[p] = ' ') || s.[p] = '\r' || s.[p] = '\n'
-            then
-              let ss = if i = 0 then E.s else String.sub s b i in
-              split (ss::accu) (p+1) 0
+        method reset s =
+          state.newerrmsgs <- false;
+          let rec split accu b i =
+            let p = b+i in
+            if p = String.length s
+            then String.sub s b (p-b) :: accu
             else
-              split accu b (i+1)
-        in
-        m_items <- split [] 0 0 |> List.rev |> Array.of_list
+              if (i > 70 && s.[p] = ' ') || s.[p] = '\r' || s.[p] = '\n'
+              then
+                let ss = if i = 0 then E.s else String.sub s b i in
+                split (ss::accu) (p+1) 0
+              else
+                split accu b (i+1)
+          in
+          m_text <- s;
+          m_items <- split [] 0 0 |> List.rev |> Array.of_list
 
-      initializer
-        m_active <- 0
-    end)
+        initializer
+          m_active <- 0
+      end)
   in fun s ->
-    state.text <- E.s;
-    resetmstate ();
-    msgsource#reset s;
-    let source = (msgsource :> lvsource) in
-    let modehash = findkeyhash conf "listview" in
-    state.uioh <- coe (object
-      inherit listview ~zebra:false ~helpmode:false
-          ~source ~trusted:false ~modehash
-    end);
-    G.postRedisplay "annot";
+     state.text <- E.s;
+     resetmstate ();
+     msgsource#reset s;
+     let source = (msgsource :> lvsource) in
+     let modehash = findkeyhash conf "listview" in
+     state.uioh <- coe (object
+                           inherit listview ~zebra:false ~helpmode:false
+                                            ~source ~trusted:false ~modehash
+                         end);
+     G.postRedisplay "annot";
 ;;
 
 let gotounder under =
