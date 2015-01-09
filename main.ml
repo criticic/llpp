@@ -4250,7 +4250,6 @@ let enterannotmode =
         method hasaction _ = true
 
         method reset s =
-          state.newerrmsgs <- false;
           let rec split accu b i =
             let p = b+i in
             if p = String.length s
