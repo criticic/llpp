@@ -3044,10 +3044,10 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
 
     page = parse_pointer ("ml_findlink", s);
     ret_v = Val_int (0);
-    if (trylock ("ml_findlink")) {
-        goto done;
-    }
-
+    /* This is scary we are not taking locks here ensureslinks does
+       not modify state and given that we obtained the page it can not
+       disappear under us either */
+    lock ("ml_findlink");
     ensureslinks (page);
 
     if (Is_block (dir_v)) {
@@ -3151,7 +3151,6 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     }
 
     unlock ("ml_findlink");
- done:
     CAMLreturn (ret_v);
 }
 
@@ -3248,11 +3247,9 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     char *s = String_val (ptr_v);
     struct slink *slink;
 
-    ret_v = Val_int (0);
-    if (trylock ("ml_getlink")) {
-        goto done;
-    }
+    /* See ml_findlink for caveat */
 
+    ret_v = Val_int (0);
     page = parse_pointer ("ml_getlink", s);
     ensureslinks (page);
     pdim = &state.pagedims[page->pdimno];
@@ -3270,7 +3267,6 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     }
 
     unlock ("ml_getlink");
- done:
     CAMLreturn (ret_v);
 }
 
@@ -3291,16 +3287,10 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
     struct page *page;
     struct slink *slink;
     char *s = String_val (ptr_v);
+    /* See ml_findlink for caveat */
 
     page = parse_pointer ("ml_getlinkrect", s);
     ret_v = caml_alloc_tuple (4);
-    if (trylock ("ml_getlinkrect")) {
-        Field (ret_v, 0) = Val_int (0);
-        Field (ret_v, 1) = Val_int (0);
-        Field (ret_v, 2) = Val_int (0);
-        Field (ret_v, 3) = Val_int (0);
-        goto done;
-    }
     ensureslinks (page);
 
     slink = &page->slinks[Int_val (n_v)];
@@ -3309,8 +3299,6 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
     Field (ret_v, 2) = Val_int (slink->bbox.x1);
     Field (ret_v, 3) = Val_int (slink->bbox.y1);
     unlock ("ml_getlinkrect");
-
- done:
     CAMLreturn (ret_v);
 }
 

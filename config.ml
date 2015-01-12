@@ -349,8 +349,10 @@ and action =
     | Noaction
     | Action of (uioh -> uioh)
 and linktarget =
-    | Ltexact of (pageno * int)
-    | Ltgendir of int
+    | Ltexact of (pageno * direction)
+    | Ltgendir of direction
+    | Ltnotready of (pageno * direction)
+and direction = int             (* -1, 0, 1 *)
 and textentry = string * string * onhist option * onkey * ondone * cancelonempty
 and onkey = string -> int -> te
 and ondone = string -> unit

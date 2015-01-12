@@ -1001,8 +1001,7 @@ let gotoy y =
                   state.mode <- LinkNav (Ltgendir 0)
               | l :: _ when l.pageno = pageno ->
                   begin match getopaque pageno with
-                  | None ->
-                      state.mode <- LinkNav (Ltgendir 0)
+                  | None -> state.mode <- LinkNav (Ltnotready (pageno, 0))
                   | Some opaque ->
                       let x0, y0, x1, y1 = getlinkrect opaque linkno in
                       if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
@@ -1012,7 +1011,7 @@ let gotoy y =
               | _ :: rest -> loop rest
             in
             loop layout
-        | Ltgendir _ -> ()
+        | Ltnotready _ | Ltgendir _ -> ()
         end
     | Birdseye _
     | Textentry _
@@ -1031,13 +1030,14 @@ let gotoy y =
         );
     | LinkNav lt ->
         begin match lt with
+        | Ltnotready (_, dir)
         | Ltgendir dir ->
             let linknav =
               let rec loop = function
                 | [] -> lt
                 | l :: rest ->
                     match getopaque l.pageno with
-                    | None -> loop rest
+                    | None -> Ltnotready (l.pageno, dir)
                     | Some opaque ->
                         let link =
                           let ld =
@@ -1817,9 +1817,40 @@ let act cmds =
                 tilepage l.pageno pageopaque state.layout;
                 load state.layout;
                 load preloadedpages;
-                if pagevisible state.layout l.pageno
-                  && layoutready state.layout
-                then G.postRedisplay "page";
+                let visible = pagevisible state.layout l.pageno in
+                if visible
+                then (
+                  match state.mode with
+                  | LinkNav (Ltnotready (pageno, dir)) ->
+                      if pageno = l.pageno
+                      then (
+                        let link =
+                          let ld =
+                            if dir = 0
+                            then LDfirstvisible (l.pagex, l.pagey, dir)
+                            else (
+                              if dir > 0 then LDfirst else LDlast
+                             )
+                          in
+                          findlink pageopaque ld
+                        in
+                        match link with
+                        | Lnotfound -> ()
+                        | Lfound n ->
+                            showlinktype (getlink pageopaque n);
+                            state.mode <- LinkNav (Ltexact (l.pageno, n))
+                       )
+                  | LinkNav (Ltgendir _)
+                  | LinkNav (Ltexact _)
+                  | View
+                  | Birdseye _
+                  | Textentry _ -> ()
+                 );
+
+                if visible && layoutready state.layout
+                then (
+                  G.postRedisplay "page";
+                 )
               )
 
           | Some (layout, _, _) ->
@@ -5326,7 +5357,7 @@ let linknavkeyboard key mask linknav =
   )
   else
     match linknav with
-    | Ltgendir _ -> viewkeyboard key mask
+    | Ltgendir _ | Ltnotready _ -> viewkeyboard key mask
     | Ltexact exact -> doexact exact
 ;;
 
@@ -5567,7 +5598,7 @@ let display () =
             ) :: state.rects
         | None -> state.rects
         end
-    | LinkNav (Ltgendir _)
+    | LinkNav (Ltgendir _) | LinkNav (Ltnotready _)
     | Birdseye _
     | Textentry _
     | View -> state.rects
