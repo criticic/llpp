@@ -4274,7 +4274,7 @@ let enterannotmode =
 
         method exit ~uioh ~cancel ~active ~first ~pan =
           ignore (uioh, first, pan);
-          if not cancel && active = 0
+          if not cancel && active = Array.length m_items
           then selstring m_text;
           None
 
