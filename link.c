@@ -181,6 +181,7 @@ enum { DNONE, DPDF, DXPS, DCBZ, DIMG };
 struct page {
     int tgen;
     int sgen;
+    int agen;
     int type;
     int pageno;
     int pdimno;
@@ -817,6 +818,7 @@ static void *loadpage (int pageno, int pindex)
     page->pdimno = pindex;
     page->pageno = pageno;
     page->sgen = state.gen;
+    page->agen = state.gen;
     page->tgen = state.gen;
     page->type = state.type;
 
@@ -2515,9 +2517,9 @@ static void ensureanots (struct page *page)
     size_t anotsize = sizeof (*page->annots);
     pdf_annot *annot;
 
-    if (state.gen != page->sgen) {
+    if (state.gen != page->agen) {
         dropanots (page);
-        page->sgen = state.gen;
+        page->agen = state.gen;
     }
     if (page->annots) return;
 
