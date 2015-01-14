@@ -266,6 +266,7 @@ type conf =
     ; mutable beyecolumns    : columncount option
     ; mutable selcmd         : string
     ; mutable paxcmd         : string
+    ; mutable passcmd        : string
     ; mutable updatecurs     : bool
     ; mutable keyhashes      : (string * keyhash) list
     ; mutable hfsize         : int
@@ -558,6 +559,7 @@ let defconf =
       | Pcygwin -> "wsel"
       | Punknown -> "cat")
   ; paxcmd         = "cat"
+  ; passcmd        = E.s
   ; colorspace     = Rgb
   ; invert         = false
   ; colorscale     = 1.0
@@ -1075,6 +1077,7 @@ let config_of c attrs =
       | "selection-command" -> { c with selcmd = unent v }
       | "synctex-command" -> { c with stcmd = unent v }
       | "pax-command" -> { c with paxcmd = unent v }
+      | "askpass-command" -> { c with passcmd = unent v }
       | "update-cursor" -> { c with updatecurs = bool_of_string v }
       | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
       | "page-scroll-scale" -> { c with pgscale = float_of_string v }
@@ -1217,6 +1220,7 @@ let setconf dst src =
   dst.wheelbypage    <- src.wheelbypage;
   dst.stcmd          <- src.stcmd;
   dst.paxcmd         <- src.paxcmd;
+  dst.passcmd        <- src.passcmd;
   dst.scrollb        <- src.scrollb;
   dst.riani          <- src.riani;
   dst.paxmark        <- src.paxmark;
@@ -1681,6 +1685,7 @@ let add_attrs bb always dc c time =
   os "selection-command" c.selcmd dc.selcmd;
   os "synctex-command" c.stcmd dc.stcmd;
   os "pax-command" c.paxcmd dc.paxcmd;
+  os "askpass-command" c.passcmd dc.passcmd;
   ob "update-cursor" c.updatecurs dc.updatecurs;
   oi "hint-font-size" c.hfsize dc.hfsize;
   oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;

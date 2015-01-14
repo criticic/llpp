@@ -508,7 +508,7 @@ static void freeimgpage (void *ptr)
     image_free_page (state.u.img, ptr);
 }
 
-static void openxref (char *filename, char *password)
+static int openxref (char *filename, char *password)
 {
     int i, len;
 
@@ -559,9 +559,16 @@ static void openxref (char *filename, char *password)
     case DPDF:
         state.u.pdf = pdf_open_document (state.ctx, filename);
         if (pdf_needs_password (state.u.pdf)) {
-            int okay = pdf_authenticate_password (state.u.pdf, password);
-            if (!okay) {
-                errx (1, "invalid password");
+            if (password && !*password) {
+                printd ("pass");
+                return 0;
+            }
+            else {
+                int ok = pdf_authenticate_password (state.u.pdf, password);
+                if (!ok) {
+                    printd ("pass fail");
+                    return 0;
+                }
             }
         }
         state.pagecount = pdf_count_pages (state.u.pdf);
@@ -590,6 +597,7 @@ static void openxref (char *filename, char *password)
         state.freepage = freeimgpage;
         break;
     }
+    return 1;
 }
 
 static void pdfinfo (void)
@@ -1960,8 +1968,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             lock ("open");
             fz_try (state.ctx) {
-                openxref (filename, password);
-                ok = 1;
+                ok = openxref (filename, password);
             }
             fz_catch (state.ctx) {
                 utf8filename = mbtoutf8 (filename);

@@ -1671,6 +1671,22 @@ let gotopagexy pageno x y =
   | LinkNav _ -> gotopagexy1 pageno x y
 ;;
 
+let getpassword () =
+  let passcmd = getenvwithdef "LLPP_ASKPASS" conf.passcmd in
+  if emptystr passcmd
+  then E.s
+  else
+    match Unix.open_process_in passcmd with
+    | (exception exn) ->
+       showtext '!' (Printf.sprintf "open_process_in failed: %s" (exntos exn));
+       E.s
+    | ic ->
+       let s = try input_line ic
+               with End_of_file -> E.s in
+       ignore (Unix.close_process_in ic);
+       s
+;;
+
 let act cmds =
   (* dolog "%S" cmds; *)
   let cl = splitatspace cmds in
@@ -1989,6 +2005,14 @@ let act cmds =
   | "infoend" :: [] ->
       state.uioh#infochanged Docinfo;
       state.docinfo <- List.rev state.docinfo
+
+  | "pass" :: l ->
+     if l = "fail" :: []
+     then Wsi.settitle "Wrong password";
+     let password = getpassword () in
+     if password == E.s
+     then raise Quit
+     else opendoc state.path password
 
   | _ ->
       error "unknown cmd `%S'" cmds
@@ -4078,6 +4102,9 @@ let enterinfomode =
       src#string "pax command"
         (fun () -> conf.paxcmd)
         (fun v -> conf.paxcmd <- v);
+      src#string "ask password command"
+        (fun () -> conf.passcmd)
+        (fun v -> conf.passcmd <- v);
       src#colorspace "color space"
         (fun () -> CSTE.to_string conf.colorspace)
         (fun v ->
