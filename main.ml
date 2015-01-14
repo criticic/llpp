@@ -2013,7 +2013,7 @@ let act cmds =
      then Wsi.settitle "Wrong password";
      let password = getpassword () in
      if password == E.s
-     then raise Quit
+     then error "document is password protected"
      else opendoc state.path password
 
   | _ ->
