@@ -1683,7 +1683,9 @@ let getpassword () =
     | ic ->
        let s = try input_line ic
                with End_of_file -> E.s in
-       ignore (Unix.close_process_in ic);
+       begin try ignore (Unix.close_process_in ic);
+             with Unix.Unix_error (Unix.ECHILD, _, _) -> vlog "ECHILD"
+       end;
        s
 ;;
 
