@@ -3268,15 +3268,28 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
         LINKTOVAL;
     }
     else {
-        str_v = caml_copy_string (
-            pdf_annot_contents (state.u.pdf, slink->u.annot)
-            );
         ret_v = caml_alloc_small (1, uannot);
-        Field (ret_v, 0) = str_v;
+        tup_v = caml_alloc_tuple (2);
+        Field (ret_v, 0) = tup_v;
+        Field (tup_v, 0) = ptr_v;
+        Field (tup_v, 1) = n_v;
     }
 
     unlock ("ml_getlink");
     CAMLreturn (ret_v);
+}
+
+CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
+{
+    CAMLparam2 (ptr_v, n_v);
+    char *s = String_val (ptr_v);
+    struct page *page;
+    struct slink *slink;
+
+    page = parse_pointer ("ml_getannotcontent", s);
+    slink = &page->slinks[Int_val (n_v)];
+    CAMLreturn (caml_copy_string (pdf_annot_contents (state.u.pdf,
+                                                      slink->u.annot)));
 }
 
 CAMLprim value ml_getlinkcount (value ptr_v)
@@ -4437,6 +4450,22 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
         p.y = Int_val (y_v);
         pdf_set_annot_contents (pdf, annot, String_val (contents_v));
         pdf_set_text_annot_position (pdf, annot, p);
+    }
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_delannot (value ptr_v, value n_v)
+{
+    CAMLparam2 (ptr_v, n_v);
+
+    if (state.type == DPDF) {
+        struct page *page;
+        char *s = String_val (ptr_v);
+        struct slink *slink;
+
+        page = parse_pointer ("ml_delannot", s);
+        slink = &page->slinks[Int_val (n_v)];
+        pdf_delete_annot (state.u.pdf, page->u.pdfpage, slink->u.annot);
     }
     CAMLreturn (Val_unit);
 }

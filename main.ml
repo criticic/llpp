@@ -37,8 +37,11 @@ external rectofblock : opaque -> int -> int -> float array option
 external begintiles : unit -> unit = "ml_begintiles";;
 external endtiles : unit -> unit = "ml_endtiles";;
 external addannot : opaque -> int -> int -> string -> unit = "ml_addannot";;
+external delannot : opaque -> slinkindex -> unit = "ml_delannot";;
 external hasunsavedchanges : unit -> bool = "ml_hasunsavedchanges";;
 external savedoc : string -> unit = "ml_savedoc";;
+external getannotcontents : opaque -> slinkindex -> string
+  = "ml_getannotcontents";;
 
 let reeenterhist = ref false;;
 let selfexec = ref E.s;;
@@ -387,8 +390,8 @@ let undertext = function
       Printf.sprintf "%s: page %d" filename (pageno+1)
   | Uremotedest (filename, destname) ->
       Printf.sprintf "%s: destination %S" filename destname
-  | Uannotation contents ->
-      Printf.sprintf "annotation " ^ contents
+  | Uannotation (opaque, slinkindex) ->
+     "annotation: " ^ getannotcontents opaque slinkindex
 ;;
 
 let updateunder x y =
@@ -4304,24 +4307,44 @@ let entermsgsmode =
     G.postRedisplay "msgs";
 ;;
 
-let enterannotmode =
+let enterannotmode opaque slinkindex =
   let msgsource =
     (object
         inherit lvsourcebase
         val mutable m_text = E.s
         val mutable m_items = E.a
 
-        method getitemcount = 1 + Array.length m_items
+        method getitemcount = 2 + Array.length m_items
 
         method getitem n =
           if n = Array.length m_items
           then "[Copy text to the clipboard]", 0
-          else m_items.(n), 0
+          else
+            if n = Array.length m_items + 1
+            then "[Delete annotation]", 0
+            else m_items.(n), 0
 
         method exit ~uioh ~cancel ~active ~first ~pan =
           ignore (uioh, first, pan);
-          if not cancel && active = Array.length m_items
-          then selstring m_text;
+          if not cancel
+          then (
+            if active = Array.length m_items
+            then selstring m_text
+            else
+              if active = Array.length m_items + 1
+              then (
+                delannot opaque slinkindex;
+                wcmd "freepage %s" (~> opaque);
+                let keys =
+                  Hashtbl.fold (fun key opaque' accu ->
+                                if opaque' = opaque'
+                                then key :: accu else accu) state.pagemap []
+                in
+                List.iter (Hashtbl.remove state.pagemap) keys;
+                flushtiles ();
+                gotoy state.y;
+              );
+          );
           None
 
         method hasaction _ = true
@@ -4345,17 +4368,18 @@ let enterannotmode =
         initializer
           m_active <- 0
       end)
-  in fun s ->
-     state.text <- E.s;
-     resetmstate ();
-     msgsource#reset s;
-     let source = (msgsource :> lvsource) in
-     let modehash = findkeyhash conf "listview" in
-     state.uioh <- coe (object
-                           inherit listview ~zebra:false ~helpmode:false
-                                            ~source ~trusted:false ~modehash
-                         end);
-     G.postRedisplay "annot";
+  in
+  state.text <- E.s;
+  let s = getannotcontents opaque slinkindex in
+  resetmstate ();
+  msgsource#reset s;
+  let source = (msgsource :> lvsource) in
+  let modehash = findkeyhash conf "listview" in
+  state.uioh <- coe (object
+                        inherit listview ~zebra:false ~helpmode:false
+                                         ~source ~trusted:false ~modehash
+                      end);
+  G.postRedisplay "enterannotmode";
 ;;
 
 let gotounder under =
@@ -4434,7 +4458,7 @@ let gotounder under =
       else showtext '!' ("Could not find " ^ filename)
 
   | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
-  | Uannotation annot -> enterannotmode annot
+  | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
 ;;
 
 let gotooutline (_, _, kind) =
@@ -6031,7 +6055,7 @@ let viewmouse button down x y mask =
           Wsi.setcursor Wsi.CURSOR_CROSSHAIR;
           state.mstate <- Mpan (x, y);
 
-      | Uannotation contents -> enterannotmode contents
+      | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
 
       | Unone | Utext _ ->
           if down
