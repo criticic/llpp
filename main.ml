@@ -36,6 +36,9 @@ external rectofblock : opaque -> int -> int -> float array option
   = "ml_rectofblock";;
 external begintiles : unit -> unit = "ml_begintiles";;
 external endtiles : unit -> unit = "ml_endtiles";;
+external addannot : opaque -> int -> int -> string -> unit = "ml_addannot";;
+external hasunsavedchanges : unit -> bool = "ml_hasunsavedchanges";;
+external savedoc : string -> unit = "ml_savedoc";;
 
 let reeenterhist = ref false;;
 let selfexec = ref E.s;;
@@ -125,13 +128,16 @@ let vlog fmt =
     Printf.kprintf ignore fmt
 ;;
 
-let launchpath () =
+let addpid pid = if pid > 0 then incr pidcount;;
+
+let launchpath =
+  let re = Str.regexp "%s" in
+  fun () ->
   if emptystr conf.pathlauncher
   then print_endline state.path
   else (
-    let re = Str.regexp "%s" in
     let command = Str.global_replace re state.path conf.pathlauncher in
-    try popen command []
+    try addpid @@ popen command []
     with exn ->
       Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
       flush stderr;
@@ -265,7 +271,7 @@ let getunder x y =
 let unproject x y =
   let g opaque l x y =
     match unproject opaque x y with
-    | Some (x, y) -> Some (Some (l.pageno, x, y))
+    | Some (x, y) -> Some (Some (opaque, l.pageno, x, y))
     | None -> None
   in
   onppundermouse g x y None;
@@ -287,13 +293,14 @@ let pipesel opaque cmd =
         let doclose what fd =
           Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
         in
-        let popened =
-          try popen cmd [r, 0; w, -1]; true
+        let pid =
+          try popen cmd [r, 0; w, -1]
           with exn ->
             dolog "can not execute %S: %s" cmd (exntos exn);
-            false
+            -1
         in
-        if popened
+        addpid pid;
+        if pid > 0
         then (
           copysel w opaque;
           G.postRedisplay "pipesel";
@@ -335,15 +342,16 @@ let selstring s =
           showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
         )
       in
-      let popened =
-        try popen conf.selcmd [r, 0; w, -1]; true
+      let pid =
+        try popen conf.selcmd [r, 0; w, -1]
         with exn ->
           showtext '!'
             (Printf.sprintf "failed to execute %s: %s"
-                conf.selcmd (exntos exn));
-          false
+                            conf.selcmd (exntos exn));
+          -1
       in
-      if popened
+      addpid pid;
+      if pid > 0
       then (
         try
           let l = String.length s in
@@ -1678,14 +1686,21 @@ let getpassword () =
   else
     match Unix.open_process_in passcmd with
     | (exception exn) ->
-       showtext '!' (Printf.sprintf "open_process_in failed: %s" (exntos exn));
+       showtext '!'
+                (Printf.sprintf
+                   "getpassword: open_process_in failed: %s" (exntos exn));
        E.s
     | ic ->
-       let s = try input_line ic
-               with End_of_file -> E.s in
-       begin try ignore (Unix.close_process_in ic);
-             with Unix.Unix_error (Unix.ECHILD, _, _) -> vlog "ECHILD"
-       end;
+       let s = try input_line ic with End_of_file -> E.s in
+       let s =
+         match Unix.close_process_in ic with
+         | (exception exn) ->
+            showtext '!'
+                     (Printf.sprintf "getpassword: close_process_in failed: %s"
+                                     (exntos exn));
+            E.s
+         | _ -> s
+       in
        s
 ;;
 
@@ -4107,6 +4122,9 @@ let enterinfomode =
       src#string "ask password command"
         (fun () -> conf.passcmd)
         (fun v -> conf.passcmd <- v);
+      src#string "save path command"
+        (fun () -> conf.savecmd)
+        (fun v -> conf.savecmd <- v);
       src#colorspace "color space"
         (fun () -> CSTE.to_string conf.colorspace)
         (fun v ->
@@ -4235,7 +4253,6 @@ let enterhelpmode =
 
 let entermsgsmode =
   let msgsource =
-    let re = Str.regexp "[\r\n]" in
     (object
       inherit lvsourcebase
       val mutable m_items = E.a
@@ -4264,7 +4281,7 @@ let entermsgsmode =
 
       method reset =
         state.newerrmsgs <- false;
-        let l = Str.split re (Buffer.contents state.errmsgs) in
+        let l = Str.split newlinere (Buffer.contents state.errmsgs) in
         m_items <- Array.of_list l
 
       initializer
@@ -4371,7 +4388,7 @@ let gotounder under =
       )
 
   | Ulinkuri s ->
-      gotouri s
+      addpid @@ gotouri s
 
   | Uremote (filename, pageno) ->
       let path = getpath filename in
@@ -4380,7 +4397,7 @@ let gotounder under =
         if conf.riani
         then
           let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
-          try popen command []
+          try addpid @@ popen command []
           with exn ->
             Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
             flush stderr;
@@ -4401,7 +4418,7 @@ let gotounder under =
         if conf.riani
         then
           let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
-          try popen command []
+          try addpid @@ popen command []
           with exn ->
             Printf.eprintf
               "failed to execute `%s': %s\n" command (exntos exn);
@@ -4816,7 +4833,7 @@ let viewkeyboard key mask =
       begin match state.mstate with
       | Mzoomrect _ ->
           resetmstate ();
-          G.postRedisplay "kill zoom rect";
+          G.postRedisplay "kill rect";
       | Msel _
       | Mpan _
       | Mscrolly | Mscrollx
@@ -5687,6 +5704,76 @@ let zoomrect x y x1 y1 =
   resetmstate ();
 ;;
 
+let filecontents path =
+  let ic = open_in path in
+  let b = Buffer.create (in_channel_length ic) in
+  let rec loop () =
+    match input_line ic with
+    | (exception End_of_file) -> Buffer.contents b
+    | line ->
+       if Buffer.length b > 0
+       then Buffer.add_char b '\n';
+       Buffer.add_string b line;
+       loop ()
+  in
+  loop ();
+;;
+
+let getusertext () =
+  let editor = getenvwithdef "EDITOR" E.s in
+  if emptystr editor
+  then E.s
+  else
+    let tmppath = Filename.temp_file "llpp" "note" in
+    let execstr = editor ^ " " ^ tmppath in
+    let s =
+    match Unix.system execstr with
+    | (exception exn) ->
+       showtext '!' @@
+         Printf.sprintf "Unix.system(%S) failed: %s" execstr (exntos exn);
+       E.s
+    | Unix.WEXITED 0 -> filecontents tmppath
+    | Unix.WEXITED n ->
+       showtext '!' @@
+         Printf.sprintf "editor process(%s) exited abnormally: %d"
+                        execstr n;
+       E.s
+    | Unix.WSIGNALED n ->
+       showtext '!' @@
+         Printf.sprintf "editor process(%s) was killed by signal %d"
+                        execstr n;
+       E.s
+    | Unix.WSTOPPED n ->
+       showtext '!' @@
+         Printf.sprintf "editor(%s) process was stopped by signal %d"
+                        execstr n;
+       E.s
+    in
+    match Unix.unlink tmppath with
+    | (exception exn) ->
+       showtext '!' @@
+         Printf.sprintf "failed to ulink %S: %s"
+                        tmppath (exntos exn);
+       s
+    | () -> s
+;;
+
+let annot x y =
+  match unproject x y with
+  | Some (opaque, n, ux, uy) ->
+     let text =
+       let s = getusertext () in
+       let l = Str.split newlinere s in
+       String.concat " " l
+     in
+     addannot opaque ux uy text;
+     wcmd "freepage %s" (~> opaque);
+     Hashtbl.remove state.pagemap (n, state.gen);
+     flushtiles ();
+     gotoy state.y
+  | _ -> ()
+;;
+
 let zoomblock x y =
   let g opaque l px py =
     match rectofblock opaque px py with
@@ -5822,12 +5909,12 @@ let viewmouse button down x y mask =
       if not down
       then (
         match unproject x y with
-        | Some (pageno, ux, uy) ->
+        | Some (_, pageno, ux, uy) ->
             let cmd = Printf.sprintf
               "%s %s %d %d %d"
               conf.stcmd state.path pageno ux uy
             in
-            popen cmd []
+            addpid @@ popen cmd []
         | None -> ()
       )
 
@@ -5843,9 +5930,15 @@ let viewmouse button down x y mask =
   | 3 ->
       if down
       then (
-        Wsi.setcursor Wsi.CURSOR_CYCLE;
-        let p = (x, y) in
-        state.mstate <- Mzoomrect (p, p)
+        if Wsi.withshift mask
+        then (
+          annot x y;
+          G.postRedisplay "addannot"
+        )
+        else
+          let p = (x, y) in
+          Wsi.setcursor Wsi.CURSOR_CYCLE;
+          state.mstate <- Mzoomrect (p, p)
       )
       else (
         match state.mstate with
@@ -5952,14 +6045,15 @@ let viewmouse button down x y mask =
                                     Ne.clo fd (fun msg ->
                                       dolog "%s close failed: %s" what msg)
                                   in
-                                  let popened =
-                                    try popen cmd [r, 0; w, -1]; true
+                                  let pid =
+                                    try popen cmd [r, 0; w, -1]
                                     with exn ->
                                       dolog "can not execute %S: %s"
                                         cmd (exntos exn);
-                                      false
+                                      -1
                                   in
-                                  if popened
+                                  addpid pid;
+                                  if pid > 0
                                   then (
                                     copysel w opaque;
                                     G.postRedisplay "copysel";
@@ -6089,8 +6183,7 @@ let uioh = object
     | LinkNav _
     | View ->
         match state.mstate with
-        | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ ->
-            ()
+        | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ -> ()
         | Mnone ->
             updateunder x y;
             if canselect ()
@@ -6267,6 +6360,26 @@ let remoteopen path =
     None
 ;;
 
+let save () =
+  if emptystr conf.savecmd
+  then error "don't know how to save modfied document"
+  else
+    match Unix.open_process_in conf.savecmd with
+    | (exception exn) ->
+       showtext '!'
+                (Printf.sprintf "savecmd open_process_in failed: %s"
+                                (exntos exn));
+    | ic ->
+       let path = try input_line ic with End_of_file -> E.s in
+       let path =
+         match Unix.close_process_in ic with
+         | (exception exn) ->
+            error "error obtaining save path: %s" (exntos exn)
+         | _ -> path
+       in
+       savedoc path
+;;
+
 let () =
   let gcconfig = ref E.s in
   let trimcachepath = ref E.s in
@@ -6354,12 +6467,12 @@ let () =
           error "gc socketpair failed: %s" (exntos exn)
       | rw -> rw
     in
-    match popen !gcconfig [(c, 0); (c, 1)] with
-    | () ->
-        Config.gc s s;
-        exit 0
+    match addpid @@ popen !gcconfig [(c, 0); (c, 1)] with
     | exception exn ->
         error "failed to popen gc script: %s" (exntos exn);
+    | _ ->
+        Config.gc s s;
+        exit 0
    );
 
   let wsfd, winw, winh = Wsi.init (object (self)
@@ -6558,6 +6671,17 @@ let () =
   in
 
   let rec loop deadline =
+    let rec reap () =
+      if pidcount.contents > 0
+      then
+        match Unix.wait () with
+        | (exception exn) -> dolog "Unix.wait: %s" @@ exntos exn
+        | pid, _flags ->
+           dolog "reaped %d pidcount %d" pid pidcount.contents;
+           decr pidcount;
+           reap ()
+    in
+    reap ();
     let r =
       match state.errfd with
       | None -> [state.ss; state.wsfd]
@@ -6666,4 +6790,6 @@ let () =
     loop infinity;
   with Quit ->
     Config.save leavebirdseye;
+    if hasunsavedchanges ()
+    then save ();
 ;;

@@ -3813,6 +3813,7 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     CAMLparam2 (command_v, fds_v);
     CAMLlocal2 (l_v, tup_v);
     int ret;
+    pid_t pid;
     char *msg = NULL;
     value earg_v = Nothing;
     posix_spawnattr_t attr;
@@ -3859,7 +3860,7 @@ CAMLprim value ml_popen (value command_v, value fds_v)
         }
     }
 
-    if ((ret = posix_spawn (NULL, "/bin/sh", &fa, &attr, argv, environ))) {
+    if ((ret = posix_spawn (&pid, "/bin/sh", &fa, &attr, argv, environ))) {
         msg = "posix_spawn";
         goto fail;
     }
@@ -3878,7 +3879,7 @@ CAMLprim value ml_popen (value command_v, value fds_v)
     if (msg)
         unix_error (ret, msg, earg_v);
 
-    CAMLreturn (Val_unit);
+    CAMLreturn (Val_int (pid));
 }
 #endif
 
@@ -4417,6 +4418,50 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
+CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
+                            value contents_v)
+{
+    CAMLparam4 (ptr_v, x_v, y_v, contents_v);
+
+    if (state.type == DPDF) {
+        pdf_document *pdf;
+        pdf_annot *annot;
+        struct page *page;
+        fz_point p;
+        char *s = String_val (ptr_v);
+
+        pdf = state.u.pdf;
+        page = parse_pointer ("ml_addannot", s);
+        annot = pdf_create_annot (pdf, page->u.pdfpage, FZ_ANNOT_TEXT);
+        p.x = Int_val (x_v);
+        p.y = Int_val (y_v);
+        pdf_set_annot_contents (pdf, annot, String_val (contents_v));
+        pdf_set_text_annot_position (pdf, annot, p);
+    }
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_hasunsavedchanges (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    int modified = 0;
+
+    if (state.type == DPDF) {
+        modified = pdf_has_unsaved_changes (state.u.pdf);
+    }
+    CAMLreturn (Val_bool (modified));
+}
+
+CAMLprim value ml_savedoc (value path_v)
+{
+    CAMLparam1 (path_v);
+
+    if (state.type == DPDF) {
+        pdf_write_document (state.u.pdf, String_val (path_v), NULL);
+    }
+    CAMLreturn (Val_unit);
+}
+
 static void makestippletex (void)
 {
     const char pixels[] = "\xff\xff\0\0";
@@ -4546,7 +4591,6 @@ CAMLprim value ml_init (value csock_v, value params_v)
     int colorspace;
     int mustoresize;
     int haspboext;
-    struct sigaction sa;
 
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
@@ -4641,20 +4685,6 @@ CAMLprim value ml_init (value csock_v, value params_v)
     }
 
     makestippletex ();
-
-#ifdef __CYGWIN__
-    sa.sa_handler = SIG_IGN;
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-#else
-    sa.sa_handler = SIG_DFL;
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP | SA_NOCLDWAIT;
-#endif
-    if (sigemptyset (&sa.sa_mask)) {
-        err (1, "sigemptyset");
-    }
-    if (sigaction (SIGCHLD, &sa, NULL)) {
-        err (1, "sigaction");
-    }
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {

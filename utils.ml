@@ -16,7 +16,7 @@ external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
 external toutf8 : int -> string = "ml_keysymtoutf8";;
 external mbtoutf8 : string -> string = "ml_mbtoutf8";;
-external popen : string -> (Unix.file_descr * int) list -> unit = "ml_popen";;
+external popen : string -> (Unix.file_descr * int) list -> int = "ml_popen";;
 external platform : unit -> (platform * string array)  = "ml_platform";;
 
 let now = Unix.gettimeofday;;
@@ -39,21 +39,7 @@ let bound v minv maxv = max minv (min maxv v);;
 
 let popen cmd fda =
   if platform = Pcygwin
-  then (
-    let sh = "/bin/sh" in
-    let args = [|sh; "-c"; cmd|] in
-    let rec std si so se = function
-      | [] -> si, so, se
-      | (fd, 0) :: rest -> std fd so se rest
-      | (fd, -1) :: rest ->
-          Unix.set_close_on_exec fd;
-          std si so se rest
-      | (_, n) :: _ ->
-          failwith ("unexpected fdn in cygwin popen " ^ string_of_int n)
-    in
-    let si, so, se = std Unix.stdin Unix.stdout Unix.stderr fda in
-    ignore (Unix.create_process sh args si so se)
-  )
+  then failwith "popen not implemented under cygwin yet"
   else popen cmd fda;
 ;;
 
@@ -163,3 +149,5 @@ let getenvwithdef name def =
   | env -> env
   | exception Not_found -> def
 ;;
+
+let newlinere = Str.regexp "[\r\n]";;

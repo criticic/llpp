@@ -20,6 +20,7 @@ let scrollbvv = 1;;
 let scrollbhv = 2;;
 let fastghyllscroll = (5,1,2);;
 let neatghyllscroll = (10,1,9);;
+let pidcount = ref 0;;
 
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
@@ -267,6 +268,7 @@ type conf =
     ; mutable selcmd         : string
     ; mutable paxcmd         : string
     ; mutable passcmd        : string
+    ; mutable savecmd        : string
     ; mutable updatecurs     : bool
     ; mutable keyhashes      : (string * keyhash) list
     ; mutable hfsize         : int
@@ -333,9 +335,11 @@ and mstate =
     | Msel of (mpos * mpos)
     | Mpan of mpos
     | Mscrolly | Mscrollx
-    | Mzoom of (int * int)
+    | Mzoom of (buttonno * step)
     | Mzoomrect of (mpos * mpos)
     | Mnone
+and buttonno = int
+and step = int
 ;;
 
 type mode =
@@ -560,6 +564,7 @@ let defconf =
       | Punknown -> "cat")
   ; paxcmd         = "cat"
   ; passcmd        = E.s
+  ; savecmd        = E.s
   ; colorspace     = Rgb
   ; invert         = false
   ; colorscale     = 1.0
@@ -598,11 +603,11 @@ let conf = { defconf with angle = defconf.angle };;
 
 let gotouri uri =
   if emptystr conf.urilauncher
-  then print_endline uri
+  then (print_endline uri; -1)
   else (
     let url = geturl uri in
     if emptystr url
-    then Printf.eprintf "obtained empty url from uri %S\n" uri
+    then (Printf.eprintf "obtained empty url from uri %S\n" uri; -1)
     else
       let re = Str.regexp "%s" in
       let command = Str.global_replace re url conf.urilauncher in
@@ -611,6 +616,7 @@ let gotouri uri =
         Printf.eprintf
           "failed to execute `%s': %s\n" command (exntos exn);
         flush stderr;
+        -1
   );
 ;;
 
@@ -624,7 +630,9 @@ let makehelp () =
     List.map (fun s ->
       let url = geturl s in
       if nonemptystr url
-      then (s, 0, Action (fun u -> gotouri url; u))
+      then (s, 0, Action (fun u ->
+                          if gotouri url > 0
+                          then incr pidcount; u))
       else (s, 0, Noaction)
     ) strings);
 ;;
@@ -1078,6 +1086,7 @@ let config_of c attrs =
       | "synctex-command" -> { c with stcmd = unent v }
       | "pax-command" -> { c with paxcmd = unent v }
       | "askpass-command" -> { c with passcmd = unent v }
+      | "savepath-command" -> { c with savecmd = unent v }
       | "update-cursor" -> { c with updatecurs = bool_of_string v }
       | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
       | "page-scroll-scale" -> { c with pgscale = float_of_string v }
@@ -1221,6 +1230,7 @@ let setconf dst src =
   dst.stcmd          <- src.stcmd;
   dst.paxcmd         <- src.paxcmd;
   dst.passcmd        <- src.passcmd;
+  dst.savecmd        <- src.savecmd;
   dst.scrollb        <- src.scrollb;
   dst.riani          <- src.riani;
   dst.paxmark        <- src.paxmark;
@@ -1686,6 +1696,7 @@ let add_attrs bb always dc c time =
   os "synctex-command" c.stcmd dc.stcmd;
   os "pax-command" c.paxcmd dc.paxcmd;
   os "askpass-command" c.passcmd dc.passcmd;
+  os "savepath-command" c.savecmd dc.savecmd;
   ob "update-cursor" c.updatecurs dc.updatecurs;
   oi "hint-font-size" c.hfsize dc.hfsize;
   oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
