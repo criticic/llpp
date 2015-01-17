@@ -4475,7 +4475,7 @@ CAMLprim value ml_hasunsavedchanges (value unit_v)
     CAMLparam1 (unit_v);
     int modified = 0;
 
-    if (state.type == DPDF) {
+    if (state.type == DPDF && state.u.pdf) {
         modified = pdf_has_unsaved_changes (state.u.pdf);
     }
     CAMLreturn (Val_bool (modified));
