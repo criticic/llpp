@@ -133,13 +133,11 @@ let vlog fmt =
 
 let addpid pid = if pid > 0 then incr pidcount;;
 
-let launchpath =
-  let re = Str.regexp "%s" in
-  fun () ->
+let launchpath () =
   if emptystr conf.pathlauncher
   then print_endline state.path
   else (
-    let command = Str.global_replace re state.path conf.pathlauncher in
+    let command = Str.global_replace percentsre state.path conf.pathlauncher in
     try addpid @@ popen command []
     with exn ->
       Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
@@ -4835,7 +4833,8 @@ let save () =
   if emptystr conf.savecmd
   then error "don't know where to save modified document"
   else
-    match Unix.open_process_in conf.savecmd with
+    let command = Str.global_replace percentsre state.path conf.savecmd in
+    match Unix.open_process_in command with
     | (exception exn) ->
        showtext '!'
                 (Printf.sprintf "savecmd open_process_in failed: %s"
