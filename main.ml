@@ -4848,7 +4848,9 @@ let save () =
             error "error obtaining save path: %s" (exntos exn)
          | _ -> path
        in
-       savedoc path
+       let tmp = path ^ ".tmp" in
+       savedoc tmp;
+       Unix.rename tmp path;
 ;;
 
 let viewkeyboard key mask =

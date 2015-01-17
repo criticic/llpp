@@ -600,6 +600,26 @@ static int openxref (char *filename, char *password)
     return 1;
 }
 
+static void closedoc (void)
+{
+    int i;
+
+    for (i = 0; i < state.texcount; ++i)  {
+        state.texowners[i].w = -1;
+        state.texowners[i].slice = NULL;
+        state.texcount = 0;
+    }
+    if (state.closedoc) {
+        state.closedoc ();
+        state.closedoc = NULL;
+    }
+    if (state.pagedims) {
+        free (state.pagedims);
+        state.pagedims = NULL;
+    }
+    state.pagedimcount = 0;
+}
+
 static void pdfinfo (void)
 {
     if (state.type == DPDF) {
@@ -1992,6 +2012,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 state.needoutline = 1;
             }
         }
+        else if (!strncmp ("close", p, 5)) {
+            closedoc ();
+        }
         else if (!strncmp ("cs", p, 2)) {
             int i, colorspace;
 
@@ -3348,11 +3371,21 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     if (state.type == DPDF) {
         annot = getannot (page, x, y);
         if (annot) {
-            str_v = caml_copy_string (
-                pdf_annot_contents (state.u.pdf, annot->annot)
-                );
+            int i, n = -1;
+
+            ensureslinks (page);
+            for (i = 0; i < page->slinkcount; ++i) {
+                if (page->slinks[i].tag == SANNOT
+                    && page->slinks[i].u.annot == annot->annot) {
+                    n = i;
+                    break;
+                }
+            }
             ret_v = caml_alloc_small (1, uannot);
-            Field (ret_v, 0) = str_v;
+            tup_v = caml_alloc_tuple (2);
+            Field (ret_v, 0) = tup_v;
+            Field (tup_v, 0) = ptr_v;
+            Field (tup_v, 1) = Val_int (n);
             goto unlock;
         }
     }
