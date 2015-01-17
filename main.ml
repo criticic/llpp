@@ -4833,7 +4833,7 @@ let prevpage () =
 
 let save () =
   if emptystr conf.savecmd
-  then error "don't know how to save modified document"
+  then error "don't know where to save modified document"
   else
     match Unix.open_process_in conf.savecmd with
     | (exception exn) ->
