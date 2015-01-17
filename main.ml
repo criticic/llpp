@@ -4807,6 +4807,26 @@ let prevpage () =
           gotoghyll y
 ;;
 
+let save () =
+  if emptystr conf.savecmd
+  then error "don't know how to save modified document"
+  else
+    match Unix.open_process_in conf.savecmd with
+    | (exception exn) ->
+       showtext '!'
+                (Printf.sprintf "savecmd open_process_in failed: %s"
+                                (exntos exn));
+    | ic ->
+       let path = try input_line ic with End_of_file -> E.s in
+       let path =
+         match Unix.close_process_in ic with
+         | (exception exn) ->
+            error "error obtaining save path: %s" (exntos exn)
+         | _ -> path
+       in
+       savedoc path
+;;
+
 let viewkeyboard key mask =
   let enttext te =
     let mode = state.mode in
@@ -4821,6 +4841,11 @@ let viewkeyboard key mask =
   in
   match key with
   | @Q -> exit 0
+
+  | @W ->
+    if hasunsavedchanges ()
+    then save ()
+
   | @insert ->
       if conf.angle mod 360 = 0 && not (isbirdseye state.mode)
       then (
@@ -5727,50 +5752,64 @@ let getusertext () =
     let tmppath = Filename.temp_file "llpp" "note" in
     let execstr = editor ^ " " ^ tmppath in
     let s =
-    match Unix.system execstr with
-    | (exception exn) ->
-       showtext '!' @@
-         Printf.sprintf "Unix.system(%S) failed: %s" execstr (exntos exn);
-       E.s
-    | Unix.WEXITED 0 -> filecontents tmppath
-    | Unix.WEXITED n ->
-       showtext '!' @@
-         Printf.sprintf "editor process(%s) exited abnormally: %d"
-                        execstr n;
-       E.s
-    | Unix.WSIGNALED n ->
-       showtext '!' @@
-         Printf.sprintf "editor process(%s) was killed by signal %d"
-                        execstr n;
-       E.s
-    | Unix.WSTOPPED n ->
-       showtext '!' @@
-         Printf.sprintf "editor(%s) process was stopped by signal %d"
-                        execstr n;
-       E.s
+      match Unix.system execstr with
+      | (exception exn) ->
+         showtext '!' @@
+           Printf.sprintf "Unix.system(%S) failed: %s" execstr (exntos exn);
+         E.s
+      | Unix.WEXITED 0 -> filecontents tmppath
+      | Unix.WEXITED n ->
+         showtext '!' @@
+           Printf.sprintf "editor process(%s) exited abnormally: %d"
+                          execstr n;
+         E.s
+      | Unix.WSIGNALED n ->
+         showtext '!' @@
+           Printf.sprintf "editor process(%s) was killed by signal %d"
+                          execstr n;
+         E.s
+      | Unix.WSTOPPED n ->
+         showtext '!' @@
+           Printf.sprintf "editor(%s) process was stopped by signal %d"
+                          execstr n;
+         E.s
     in
     match Unix.unlink tmppath with
-    | (exception exn) ->
-       showtext '!' @@
-         Printf.sprintf "failed to ulink %S: %s"
-                        tmppath (exntos exn);
-       s
-    | () -> s
+      | (exception exn) ->
+         showtext '!' @@
+           Printf.sprintf "failed to ulink %S: %s"
+                          tmppath (exntos exn);
+         s
+      | () -> s
 ;;
 
-let annot x y =
+let annot inline x y =
   match unproject x y with
   | Some (opaque, n, ux, uy) ->
-     let text =
-       let s = getusertext () in
-       let l = Str.split newlinere s in
-       String.concat " " l
+     let add text =
+       addannot opaque ux uy text;
+       wcmd "freepage %s" (~> opaque);
+       Hashtbl.remove state.pagemap (n, state.gen);
+       flushtiles ();
+       gotoy state.y
      in
-     addannot opaque ux uy text;
-     wcmd "freepage %s" (~> opaque);
-     Hashtbl.remove state.pagemap (n, state.gen);
-     flushtiles ();
-     gotoy state.y
+     if inline
+     then
+       let ondone s = add s in
+       let mode = state.mode in
+       state.mode <- Textentry (
+                         ("annotation: ", E.s, None, textentry, ondone, true),
+                         fun _ -> state.mode <- mode);
+       state.text <- E.s;
+       enttext ();
+       G.postRedisplay "annot"
+     else
+       let text =
+         let s = getusertext () in
+         let l = Str.split newlinere s in
+         String.concat " " l
+       in
+       add text
   | _ -> ()
 ;;
 
@@ -5932,7 +5971,7 @@ let viewmouse button down x y mask =
       then (
         if Wsi.withshift mask
         then (
-          annot x y;
+          annot (not (Wsi.withctrl mask)) x y;
           G.postRedisplay "addannot"
         )
         else
@@ -6360,26 +6399,6 @@ let remoteopen path =
     None
 ;;
 
-let save () =
-  if emptystr conf.savecmd
-  then error "don't know how to save modified document"
-  else
-    match Unix.open_process_in conf.savecmd with
-    | (exception exn) ->
-       showtext '!'
-                (Printf.sprintf "savecmd open_process_in failed: %s"
-                                (exntos exn));
-    | ic ->
-       let path = try input_line ic with End_of_file -> E.s in
-       let path =
-         match Unix.close_process_in ic with
-         | (exception exn) ->
-            error "error obtaining save path: %s" (exntos exn)
-         | _ -> path
-       in
-       savedoc path
-;;
-
 let () =
   let gcconfig = ref E.s in
   let trimcachepath = ref E.s in
@@ -6676,8 +6695,7 @@ let () =
       then
         match Unix.wait () with
         | (exception exn) -> dolog "Unix.wait: %s" @@ exntos exn
-        | pid, _flags ->
-           dolog "reaped %d pidcount %d" pid pidcount.contents;
+        | _pid, _flags ->
            decr pidcount;
            reap ()
     in

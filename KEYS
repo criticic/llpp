@@ -1,6 +1,7 @@
 -----Quitting-----
 escape/q                - quit
-Q                       - quit without saving the configuration
+Q                       - quit without saving the configuration or changes
+W                       - save changes
 
 -----Movement-----
 up/down arrow           - scroll up/down
