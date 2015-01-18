@@ -91,7 +91,7 @@ l                       - toggle highlighting of the links
 f                       - toggle fullscreen
 insert                  - toggle link navigation mode
 B                       - toggle zoom block mode
-o                       - switch to outline mode
+o                       - switch to outline/table of contents mode
 '                       - switch to bookmark mode
 H                       - switch to history mode
 h,F1                    - switch to help mode
