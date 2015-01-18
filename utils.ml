@@ -171,3 +171,45 @@ let filelines path =
 ;;
 
 let unit () = ();;
+
+let addchar s c =
+  let b = Buffer.create (String.length s + 1) in
+  Buffer.add_string b s;
+  Buffer.add_char b c;
+  Buffer.contents b;
+;;
+
+let btod b = if b then 1 else 0;;
+
+let splitatspace =
+  let r = Str.regexp " " in
+  fun s -> Str.bounded_split r s 2;
+;;
+
+let boundastep h step =
+  if step < 0
+  then bound step ~-h 0
+  else bound step 0 h
+;;
+
+let withoutlastutf8 s =
+  let len = String.length s in
+  if len = 0
+  then s
+  else
+    let rec find pos =
+      if pos = 0
+      then pos
+      else
+        let b = Char.code s.[pos] in
+        if b land 0b11000000 = 0b11000000
+        then pos
+        else find (pos-1)
+    in
+    let first =
+      if Char.code s.[len-1] land 0x80 = 0
+      then len-1
+      else find (len-1)
+    in
+    String.sub s 0 first;
+;;

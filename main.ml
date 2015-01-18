@@ -446,13 +446,6 @@ let showlinktype under =
         showtext ' ' s
 ;;
 
-let addchar s c =
-  let b = Buffer.create (String.length s + 1) in
-  Buffer.add_string b s;
-  Buffer.add_char b c;
-  Buffer.contents b;
-;;
-
 let intentry_with_suffix text key =
   let c =
     if key >= 32 && key < 127
@@ -487,8 +480,6 @@ let readcmd fd =
   if n != len then error "incomplete read(data) %d vs %d" n len;
   Bytes.to_string s
 ;;
-
-let btod b = if b then 1 else 0;;
 
 let wcmd fmt =
   let b = Buffer.create 16 in
@@ -1577,30 +1568,6 @@ let gctiles () =
   loop 0
 ;;
 
-let logcurrently = function
-  | Idle -> dolog "Idle"
-  | Loading (l, gen) ->
-      dolog "Loading %d gen=%d curgen=%d" l.pageno gen state.gen
-  | Tiling (l, pageopaque, colorspace, angle, gen, col, row, tilew, tileh) ->
-      dolog
-        "Tiling %d[%d,%d] page=%s cs=%s angle"
-        l.pageno col row (~> pageopaque)
-        (CSTE.to_string colorspace)
-      ;
-      dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
-        angle gen conf.angle state.gen
-        tilew tileh
-        conf.tilew conf.tileh
-      ;
-  | Outlining _ ->
-      dolog "outlining"
-;;
-
-let splitatspace =
-  let r = Str.regexp " " in
-  fun s -> Str.bounded_split r s 2;
-;;
-
 let onpagerect pageno f =
   let b =
     match conf.columns with
@@ -2343,12 +2310,6 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   state.text <- E.s;
 ;;
 
-let boundastep h step =
-  if step < 0
-  then bound step ~-h 0
-  else bound step 0 h
-;;
-
 let optentry mode _ key =
   let btos b = if b then "on" else "off" in
   if key >= 32 && key < 127
@@ -2555,28 +2516,6 @@ class virtual lvsourcebase = object
   method getpan = m_pan
   method getminfo : (int * int) array = E.a
 end;;
-
-let withoutlastutf8 s =
-  let len = String.length s in
-  if len = 0
-  then s
-  else
-    let rec find pos =
-      if pos = 0
-      then pos
-      else
-        let b = Char.code s.[pos] in
-        if b land 0b11000000 = 0b11000000
-        then pos
-        else find (pos-1)
-    in
-    let first =
-      if Char.code s.[len-1] land 0x80 = 0
-      then len-1
-      else find (len-1)
-    in
-    String.sub s 0 first;
-;;
 
 let textentrykeyboard
     key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
