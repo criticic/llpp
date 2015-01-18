@@ -4938,9 +4938,8 @@ let viewkeyboard key mask =
   | @Q -> exit 0
 
   | @W ->
-     dolog "hasunsavedchanges %b" @@ hasunsavedchanges ();
-    if hasunsavedchanges ()
-    then save ()
+      if hasunsavedchanges ()
+      then save ()
 
   | @insert ->
       if conf.angle mod 360 = 0 && not (isbirdseye state.mode)
