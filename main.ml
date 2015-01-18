@@ -255,17 +255,7 @@ let getunder x y =
       | None -> ()
      );
     let under = whatsunder opaque px py in
-    match under with
-    | Unone -> None
-    | Ulinkuri _
-    | Ulinkgoto _
-    | Utext _
-    | Uunexpected _
-    | Ulaunch _
-    | Unamed _
-    | Uremote _
-    | Uremotedest _
-    | Uannotation _ -> Some under
+    if under = Unone then None else Some under
   in
   onppundermouse g x y Unone
 ;;
@@ -429,21 +419,8 @@ let updateunder x y =
 ;;
 
 let showlinktype under =
-  if conf.underinfo
-  then
-    match under with
-    | Unone -> ()
-    | Ulinkuri _
-    | Ulinkgoto _
-    | Utext _
-    | Uunexpected _
-    | Ulaunch _
-    | Unamed _
-    | Uremote _
-    | Uremotedest _
-    | Uannotation _ ->
-        let s = undertext under in
-        showtext ' ' s
+  if conf.underinfo && under != Unone
+  then showtext ' ' @@ undertext under
 ;;
 
 let intentry_with_suffix text key =
