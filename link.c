@@ -256,6 +256,7 @@ struct {
 
     char *trimcachepath;
     int cxack;
+    int dirty;
 
     GLuint stid;
 
@@ -519,6 +520,7 @@ static int openxref (char *filename, char *password)
 
     if (state.closedoc) state.closedoc ();
 
+    state.dirty = 0;
     len = strlen (filename);
 
     state.type = DPDF;
@@ -4460,6 +4462,7 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
         p.y = Int_val (y_v);
         pdf_set_annot_contents (pdf, annot, String_val (contents_v));
         pdf_set_text_annot_position (pdf, annot, p);
+        state.dirty = 1;
     }
     CAMLreturn (Val_unit);
 }
@@ -4476,6 +4479,7 @@ CAMLprim value ml_delannot (value ptr_v, value n_v)
         page = parse_pointer ("ml_delannot", s);
         slink = &page->slinks[Int_val (n_v)];
         pdf_delete_annot (state.u.pdf, page->u.pdfpage, slink->u.annot);
+        state.dirty = 1;
     }
     CAMLreturn (Val_unit);
 }
@@ -4493,8 +4497,7 @@ CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
         slink = &page->slinks[Int_val (n_v)];
         pdf_set_annot_contents (state.u.pdf, slink->u.annot,
                                 String_val (str_v));
-        /* Erm... dirty */
-        state.u.pdf->dirty = 1;
+        state.dirty = 1;
     }
     CAMLreturn (Val_unit);
 }
@@ -4502,12 +4505,7 @@ CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
 CAMLprim value ml_hasunsavedchanges (value unit_v)
 {
     CAMLparam1 (unit_v);
-    int modified = 0;
-
-    if (state.type == DPDF && state.u.pdf) {
-        modified = pdf_has_unsaved_changes (state.u.pdf);
-    }
-    CAMLreturn (Val_bool (modified));
+    CAMLreturn (Val_bool (state.dirty));
 }
 
 CAMLprim value ml_savedoc (value path_v)
