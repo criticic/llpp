@@ -4289,7 +4289,7 @@ let enterannotmode opaque slinkindex =
           );
           None
 
-        method hasaction _ = true
+        method hasaction n = not @@ emptystr @@ fst m_items.(n)
 
         method reset s =
           let rec split accu b i =
@@ -4346,7 +4346,7 @@ let enterannotmode opaque slinkindex =
             (   "[Copy]", fun () -> selstring m_text)
             :: ("[Delete]", dele)
             :: ("[Edit]", edit true)
-            :: ("", unit)
+            :: (E.s, unit)
             :: split [] 0 0 |> List.rev |> Array.of_list
 
         initializer
