@@ -37,6 +37,7 @@ external rectofblock : opaque -> int -> int -> float array option
 external begintiles : unit -> unit = "ml_begintiles";;
 external endtiles : unit -> unit = "ml_endtiles";;
 external addannot : opaque -> int -> int -> string -> unit = "ml_addannot";;
+external modannot : opaque -> slinkindex -> string -> unit = "ml_modannot";;
 external delannot : opaque -> slinkindex -> unit = "ml_delannot";;
 external hasunsavedchanges : unit -> bool = "ml_hasunsavedchanges";;
 external savedoc : string -> unit = "ml_savedoc";;
@@ -4305,6 +4306,51 @@ let entermsgsmode =
     G.postRedisplay "msgs";
 ;;
 
+let getusertext s =
+  let editor = getenvwithdef "EDITOR" E.s in
+  if emptystr editor
+  then E.s
+  else
+    let tmppath = Filename.temp_file "llpp" "note" in
+    if not (emptystr s)
+    then (
+      let oc = open_out tmppath in
+      output_string oc s;
+      close_out oc;
+    );
+    let execstr = editor ^ " " ^ tmppath in
+    let s =
+      match Unix.system execstr with
+      | (exception exn) ->
+         showtext '!' @@
+           Printf.sprintf "Unix.system(%S) failed: %s" execstr (exntos exn);
+         E.s
+      | Unix.WEXITED 0 -> filelines tmppath
+      | Unix.WEXITED n ->
+         showtext '!' @@
+           Printf.sprintf "editor process(%s) exited abnormally: %d"
+                          execstr n;
+         E.s
+      | Unix.WSIGNALED n ->
+         showtext '!' @@
+           Printf.sprintf "editor process(%s) was killed by signal %d"
+                          execstr n;
+         E.s
+      | Unix.WSTOPPED n ->
+         showtext '!' @@
+           Printf.sprintf "editor(%s) process was stopped by signal %d"
+                          execstr n;
+         E.s
+    in
+    match Unix.unlink tmppath with
+      | (exception exn) ->
+         showtext '!' @@
+           Printf.sprintf "failed to ulink %S: %s"
+                          tmppath (exntos exn);
+         s
+      | () -> s
+;;
+
 let enterannotmode opaque slinkindex =
   let msgsource =
     (object
@@ -4312,36 +4358,18 @@ let enterannotmode opaque slinkindex =
         val mutable m_text = E.s
         val mutable m_items = E.a
 
-        method getitemcount = 2 + Array.length m_items
+        method getitemcount = Array.length m_items
 
         method getitem n =
-          if n = Array.length m_items
-          then "[Copy text to the clipboard]", 0
-          else
-            if n = Array.length m_items + 1
-            then "[Delete annotation]", 0
-            else m_items.(n), 0
+          let label, _func = m_items.(n) in
+          label, 0
 
         method exit ~uioh ~cancel ~active ~first ~pan =
           ignore (uioh, first, pan);
           if not cancel
           then (
-            if active = Array.length m_items
-            then selstring m_text
-            else
-              if active = Array.length m_items + 1
-              then (
-                delannot opaque slinkindex;
-                wcmd "freepage %s" (~> opaque);
-                let keys =
-                  Hashtbl.fold (fun key opaque' accu ->
-                                if opaque' = opaque'
-                                then key :: accu else accu) state.pagemap []
-                in
-                List.iter (Hashtbl.remove state.pagemap) keys;
-                flushtiles ();
-                gotoy state.y;
-              );
+            let _label, func = m_items.(active) in
+            func ()
           );
           None
 
@@ -4351,17 +4379,59 @@ let enterannotmode opaque slinkindex =
           let rec split accu b i =
             let p = b+i in
             if p = String.length s
-            then String.sub s b (p-b) :: accu
+            then (String.sub s b (p-b), unit) :: accu
             else
               if (i > 70 && s.[p] = ' ') || s.[p] = '\r' || s.[p] = '\n'
               then
                 let ss = if i = 0 then E.s else String.sub s b i in
-                split (ss::accu) (p+1) 0
+                split ((ss, unit)::accu) (p+1) 0
               else
                 split accu b (i+1)
           in
+          let cleanup () =
+            wcmd "freepage %s" (~> opaque);
+            let keys =
+              Hashtbl.fold (fun key opaque' accu ->
+                            if opaque' = opaque'
+                            then key :: accu else accu) state.pagemap []
+            in
+            List.iter (Hashtbl.remove state.pagemap) keys;
+            flushtiles ();
+            gotoy state.y
+          in
+          let dele () =
+            delannot opaque slinkindex;
+            cleanup ();
+          in
+          let edit inline () =
+            let update s =
+              if emptystr s
+              then dele ()
+              else (
+                modannot opaque slinkindex s;
+                cleanup ();
+              )
+            in
+            if inline
+            then
+              let mode = state.mode in
+              state.mode <-
+                Textentry (
+                    ("annotation: ", m_text, None, textentry, update, true),
+                    fun _ -> state.mode <- mode);
+              state.text <- E.s;
+              enttext ();
+            else
+              let s = getusertext m_text in
+              update s
+          in
           m_text <- s;
-          m_items <- split [] 0 0 |> List.rev |> Array.of_list
+          m_items <-
+            (   "[Copy]", fun () -> selstring m_text)
+            :: ("[Delete]", dele)
+            :: ("[Edit]", edit true)
+            :: ("", unit)
+            :: split [] 0 0 |> List.rev |> Array.of_list
 
         initializer
           m_active <- 0
@@ -4868,6 +4938,7 @@ let viewkeyboard key mask =
   | @Q -> exit 0
 
   | @W ->
+     dolog "hasunsavedchanges %b" @@ hasunsavedchanges ();
     if hasunsavedchanges ()
     then save ()
 
@@ -5754,60 +5825,6 @@ let zoomrect x y x1 y1 =
   resetmstate ();
 ;;
 
-let filecontents path =
-  let ic = open_in path in
-  let b = Buffer.create (in_channel_length ic) in
-  let rec loop () =
-    match input_line ic with
-    | (exception End_of_file) -> Buffer.contents b
-    | line ->
-       if Buffer.length b > 0
-       then Buffer.add_char b '\n';
-       Buffer.add_string b line;
-       loop ()
-  in
-  loop ();
-;;
-
-let getusertext () =
-  let editor = getenvwithdef "EDITOR" E.s in
-  if emptystr editor
-  then E.s
-  else
-    let tmppath = Filename.temp_file "llpp" "note" in
-    let execstr = editor ^ " " ^ tmppath in
-    let s =
-      match Unix.system execstr with
-      | (exception exn) ->
-         showtext '!' @@
-           Printf.sprintf "Unix.system(%S) failed: %s" execstr (exntos exn);
-         E.s
-      | Unix.WEXITED 0 -> filecontents tmppath
-      | Unix.WEXITED n ->
-         showtext '!' @@
-           Printf.sprintf "editor process(%s) exited abnormally: %d"
-                          execstr n;
-         E.s
-      | Unix.WSIGNALED n ->
-         showtext '!' @@
-           Printf.sprintf "editor process(%s) was killed by signal %d"
-                          execstr n;
-         E.s
-      | Unix.WSTOPPED n ->
-         showtext '!' @@
-           Printf.sprintf "editor(%s) process was stopped by signal %d"
-                          execstr n;
-         E.s
-    in
-    match Unix.unlink tmppath with
-      | (exception exn) ->
-         showtext '!' @@
-           Printf.sprintf "failed to ulink %S: %s"
-                          tmppath (exntos exn);
-         s
-      | () -> s
-;;
-
 let annot inline x y =
   match unproject x y with
   | Some (opaque, n, ux, uy) ->
@@ -5830,7 +5847,7 @@ let annot inline x y =
        G.postRedisplay "annot"
      else
        let text =
-         let s = getusertext () in
+         let s = getusertext E.s in
          let l = Str.split newlinere s in
          String.concat " " l
        in

@@ -152,3 +152,22 @@ let getenvwithdef name def =
 
 let newlinere = Str.regexp "[\r\n]";;
 let percentsre = Str.regexp "%s";;
+
+let filelines path =
+  let ic = open_in path in
+  let b = Buffer.create (in_channel_length ic) in
+  let rec loop () =
+    match input_line ic with
+    | (exception End_of_file) -> Buffer.contents b
+    | line ->
+       if Buffer.length b > 0
+       then Buffer.add_char b '\n';
+       Buffer.add_string b line;
+       loop ()
+  in
+  let s = loop () in
+  close_in ic;
+  s;
+;;
+
+let unit () = ();;

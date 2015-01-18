@@ -4480,6 +4480,25 @@ CAMLprim value ml_delannot (value ptr_v, value n_v)
     CAMLreturn (Val_unit);
 }
 
+CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
+{
+    CAMLparam3 (ptr_v, n_v, str_v);
+
+    if (state.type == DPDF) {
+        struct page *page;
+        char *s = String_val (ptr_v);
+        struct slink *slink;
+
+        page = parse_pointer ("ml_modannot", s);
+        slink = &page->slinks[Int_val (n_v)];
+        pdf_set_annot_contents (state.u.pdf, slink->u.annot,
+                                String_val (str_v));
+        /* Erm... dirty */
+        state.u.pdf->dirty = 1;
+    }
+    CAMLreturn (Val_unit);
+}
+
 CAMLprim value ml_hasunsavedchanges (value unit_v)
 {
     CAMLparam1 (unit_v);
