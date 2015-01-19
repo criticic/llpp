@@ -6647,8 +6647,8 @@ let () =
   let rec loop deadline =
     let rec reap () =
       if not (ispidsetempty ())
-      then
-        match Unix.waitpid [Unix.WNOHANG] 0 with
+      then (
+        match Unix.waitpid [Unix.WNOHANG] ~-1 with
         | (exception exn) -> dolog "Unix.waitpid: %s" @@ exntos exn
         | 0, _ -> ()
         | pid, status ->
@@ -6657,6 +6657,7 @@ let () =
             | Unix.WSTOPPED _ -> ()
             end;
             reap ()
+       )
     in
     reap ();
     let r =
