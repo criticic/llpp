@@ -289,7 +289,6 @@ let pipesel opaque cmd =
             dolog "can not execute %S: %s" cmd (exntos exn);
             -1
         in
-        addpid pid;
         if pid > 0
         then (
           copysel w opaque;
@@ -340,7 +339,6 @@ let selstring s =
                             conf.selcmd (exntos exn));
           -1
       in
-      addpid pid;
       if pid > 0
       then (
         try
@@ -6043,10 +6041,9 @@ let viewmouse button down x y mask =
                                     try popen cmd [r, 0; w, -1]
                                     with exn ->
                                       dolog "can not execute %S: %s"
-                                        cmd (exntos exn);
+                                            cmd (exntos exn);
                                       -1
                                   in
-                                  addpid pid;
                                   if pid > 0
                                   then (
                                     copysel w opaque;
@@ -6636,6 +6633,16 @@ let () =
   display ();
   Wsi.mapwin ();
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
+
+  let rec reap signum =
+    match Unix.waitpid [Unix.WNOHANG] ~-1 with
+    | (exception (Unix.Unix_error (Unix.ECHILD, _, _))) -> ()
+    | (exception exn) -> dolog "Unix.waitpid: %s" @@ exntos exn
+    | 0, _ -> ()
+    | _pid, _status -> reap signum
+  in
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle reap);
+
   let optrfd =
     ref (
       if nonemptystr !rcmdpath
@@ -6645,21 +6652,6 @@ let () =
   in
 
   let rec loop deadline =
-    let rec reap () =
-      if not (ispidsetempty ())
-      then (
-        match Unix.waitpid [Unix.WNOHANG] ~-1 with
-        | (exception exn) -> dolog "Unix.waitpid: %s" @@ exntos exn
-        | 0, _ -> ()
-        | pid, status ->
-            begin match status with
-            | Unix.WEXITED _ | Unix.WSIGNALED _ -> delpid pid
-            | Unix.WSTOPPED _ -> ()
-            end;
-            reap ()
-       )
-    in
-    reap ();
     let r =
       match state.errfd with
       | None -> [state.ss; state.wsfd]

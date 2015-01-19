@@ -20,11 +20,7 @@ let scrollbvv = 1;;
 let scrollbhv = 2;;
 let fastghyllscroll = (5,1,2);;
 let neatghyllscroll = (10,1,9);;
-let pidset = ref IntSet.empty;;
-let addpid pid = if pid > 0 then pidset := IntSet.add pid !pidset;;
-let haspid pid = IntSet.mem pid !pidset;;
-let delpid pid = pidset := IntSet.remove pid !pidset;;
-let ispidsetempty () = IntSet.is_empty !pidset;;
+let addpid = ignore;;
 
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
@@ -608,20 +604,19 @@ let conf = { defconf with angle = defconf.angle };;
 
 let gotouri uri =
   if emptystr conf.urilauncher
-  then (print_endline uri; -1)
+  then print_endline uri
   else (
     let url = geturl uri in
     if emptystr url
-    then (Printf.eprintf "obtained empty url from uri %S\n" uri; -1)
+    then (Printf.eprintf "obtained empty url from uri %S\n" uri)
     else
       let re = Str.regexp "%s" in
       let command = Str.global_replace re url conf.urilauncher in
-      try popen command []
+      try ignore (popen command [])
       with exn ->
         Printf.eprintf
           "failed to execute `%s': %s\n" command (exntos exn);
         flush stderr;
-        -1
   );
 ;;
 
@@ -635,7 +630,7 @@ let makehelp () =
     List.map (fun s ->
       let url = geturl s in
       if nonemptystr url
-      then (s, 0, Action (fun u -> addpid @@ gotouri url;  u))
+      then (s, 0, Action (fun u -> gotouri url;  u))
       else (s, 0, Noaction)
     ) strings);
 ;;
