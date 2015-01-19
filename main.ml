@@ -6359,6 +6359,7 @@ let () =
   let rootwid = ref 0 in
   let openlast = ref false in
   let nofc = ref false in
+  let doreap = ref false in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -6633,14 +6634,14 @@ let () =
   Wsi.mapwin ();
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
 
-  let rec reap signum =
+  let rec reap () =
     match Unix.waitpid [Unix.WNOHANG] ~-1 with
     | (exception (Unix.Unix_error (Unix.ECHILD, _, _))) -> ()
     | (exception exn) -> dolog "Unix.waitpid: %s" @@ exntos exn
     | 0, _ -> ()
-    | _pid, _status -> reap signum
+    | _pid, _status -> reap ()
   in
-  Sys.set_signal Sys.sigchld (Sys.Signal_handle reap);
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle (fun _ -> doreap := true));
 
   let optrfd =
     ref (
@@ -6651,6 +6652,11 @@ let () =
   in
 
   let rec loop deadline =
+    if !doreap
+    then (
+      doreap := false;
+      reap ()
+    );
     let r =
       match state.errfd with
       | None -> [state.ss; state.wsfd]
