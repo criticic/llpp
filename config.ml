@@ -20,7 +20,11 @@ let scrollbvv = 1;;
 let scrollbhv = 2;;
 let fastghyllscroll = (5,1,2);;
 let neatghyllscroll = (10,1,9);;
-let pidcount = ref 0;;
+let pidset = ref IntSet.empty;;
+let addpid pid = if pid > 0 then pidset := IntSet.add pid !pidset;;
+let haspid pid = IntSet.mem pid !pidset;;
+let delpid pid = pidset := IntSet.remove pid !pidset;;
+let ispidsetempty () = IntSet.is_empty !pidset;;
 
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
@@ -631,9 +635,7 @@ let makehelp () =
     List.map (fun s ->
       let url = geturl s in
       if nonemptystr url
-      then (s, 0, Action (fun u ->
-                          if gotouri url > 0
-                          then incr pidcount; u))
+      then (s, 0, Action (fun u -> addpid @@ gotouri url;  u))
       else (s, 0, Noaction)
     ) strings);
 ;;

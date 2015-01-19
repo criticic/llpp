@@ -132,8 +132,6 @@ let vlog fmt =
     Printf.kprintf ignore fmt
 ;;
 
-let addpid pid = if pid > 0 then incr pidcount;;
-
 let launchpath () =
   if emptystr conf.pathlauncher
   then print_endline state.path
@@ -6648,13 +6646,17 @@ let () =
 
   let rec loop deadline =
     let rec reap () =
-      if pidcount.contents > 0
+      if not (ispidsetempty ())
       then
-        match Unix.wait () with
+        match Unix.waitpid [Unix.WNOHANG] 0 with
         | (exception exn) -> dolog "Unix.wait: %s" @@ exntos exn
-        | _pid, _flags ->
-           decr pidcount;
-           reap ()
+        | 0, _ -> ()
+        | pid, status ->
+            begin match status with
+            | Unix.WEXITED _ | Unix.WSIGNALED _ -> delpid pid
+            | Unix.WSTOPPED _ -> ()
+            end;
+            reap ()
     in
     reap ();
     let r =
