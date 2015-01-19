@@ -6619,16 +6619,15 @@ let () =
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;
   reshape winw winh;
+  state.uioh <- uioh;
   if histmode
   then (
-    state.uioh <- uioh;
     Wsi.settitle "llpp (history)";
     enterhistmode ();
   )
   else (
     state.text <- "Opening " ^ (mbtoutf8 state.path);
     opendoc state.path state.password;
-    state.uioh <- uioh;
   );
   display ();
   Wsi.mapwin ();
