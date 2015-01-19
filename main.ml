@@ -6649,7 +6649,7 @@ let () =
       if not (ispidsetempty ())
       then
         match Unix.waitpid [Unix.WNOHANG] 0 with
-        | (exception exn) -> dolog "Unix.wait: %s" @@ exntos exn
+        | (exception exn) -> dolog "Unix.waitpid: %s" @@ exntos exn
         | 0, _ -> ()
         | pid, status ->
             begin match status with
