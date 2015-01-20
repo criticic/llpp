@@ -1625,25 +1625,10 @@ let getpassword () =
   let passcmd = getenvwithdef "LLPP_ASKPASS" conf.passcmd in
   if emptystr passcmd
   then E.s
-  else
-    match Unix.open_process_in passcmd with
-    | (exception exn) ->
-       showtext '!'
-                (Printf.sprintf
-                   "getpassword: open_process_in failed: %s" (exntos exn));
-       E.s
-    | ic ->
-       let s = try input_line ic with End_of_file -> E.s in
-       let s =
-         match Unix.close_process_in ic with
-         | (exception exn) ->
-            showtext '!'
-                     (Printf.sprintf "getpassword: close_process_in failed: %s"
-                                     (exntos exn));
-            E.s
-         | _ -> s
-       in
-       s
+  else getcmdoutput
+         (fun s ->
+          showtext '!' @@ "error getting password: " ^ s;
+          dolog "%s" s) passcmd;
 ;;
 
 let act cmds =
@@ -4232,35 +4217,43 @@ let getusertext s =
     );
     let execstr = editor ^ " " ^ tmppath in
     let s =
-      match Unix.system execstr with
+      match popen execstr [] with
       | (exception exn) ->
          showtext '!' @@
-           Printf.sprintf "Unix.system(%S) failed: %s" execstr (exntos exn);
+           Printf.sprintf "popen(%S) failed: %s" execstr (exntos exn);
          E.s
-      | Unix.WEXITED 0 -> filelines tmppath
-      | Unix.WEXITED n ->
-         showtext '!' @@
-           Printf.sprintf "editor process(%s) exited abnormally: %d"
-                          execstr n;
-         E.s
-      | Unix.WSIGNALED n ->
-         showtext '!' @@
-           Printf.sprintf "editor process(%s) was killed by signal %d"
-                          execstr n;
-         E.s
-      | Unix.WSTOPPED n ->
-         showtext '!' @@
-           Printf.sprintf "editor(%s) process was stopped by signal %d"
-                          execstr n;
-         E.s
+      | pid ->
+         match Unix.waitpid [] pid
+         with
+         | (exception exn) ->
+            showtext '!' @@
+              Printf.sprintf "waitpid(%d) failed: %s" pid (exntos exn);
+            E.s
+         | (_pid, status) ->
+            match status with
+            | Unix.WEXITED 0 -> filelines tmppath
+            | Unix.WEXITED n ->
+               showtext '!' @@
+                 Printf.sprintf "editor process(%s) exited abnormally: %d"
+                                execstr n;
+               E.s
+            | Unix.WSIGNALED n ->
+               showtext '!' @@
+                 Printf.sprintf "editor process(%s) was killed by signal %d"
+                                execstr n;
+               E.s
+            | Unix.WSTOPPED n ->
+               showtext '!' @@
+                 Printf.sprintf "editor(%s) process was stopped by signal %d"
+                                execstr n;
+               E.s
     in
     match Unix.unlink tmppath with
-      | (exception exn) ->
-         showtext '!' @@
-           Printf.sprintf "failed to ulink %S: %s"
-                          tmppath (exntos exn);
-         s
-      | () -> s
+    | (exception exn) ->
+       showtext '!' @@ Printf.sprintf "failed to ulink %S: %s"
+                                      tmppath (exntos exn);
+       s
+    | () -> s
 ;;
 
 let enterannotmode opaque slinkindex =
@@ -4815,23 +4808,17 @@ let save () =
   if emptystr conf.savecmd
   then error "don't know where to save modified document"
   else
-    let command = Str.global_replace percentsre state.path conf.savecmd in
-    match Unix.open_process_in command with
-    | (exception exn) ->
-       showtext '!'
-                (Printf.sprintf "savecmd open_process_in failed: %s"
-                                (exntos exn));
-    | ic ->
-       let path = try input_line ic with End_of_file -> E.s in
-       let path =
-         match Unix.close_process_in ic with
-         | (exception exn) ->
-            error "error obtaining save path: %s" (exntos exn)
-         | _ -> path
-       in
-       let tmp = path ^ ".tmp" in
-       savedoc tmp;
-       Unix.rename tmp path;
+    let savecmd = Str.global_replace percentsre state.path conf.savecmd in
+    let path =
+      getcmdoutput
+        (fun s -> error "failed to obtain path to the saved copy: %s" s)
+        savecmd
+    in
+    if not (emptystr path)
+    then
+      let tmp = path ^ ".tmp" in
+      savedoc tmp;
+      Unix.rename tmp path;
 ;;
 
 let viewkeyboard key mask =

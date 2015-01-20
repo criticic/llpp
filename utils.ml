@@ -213,3 +213,64 @@ let withoutlastutf8 s =
     in
     String.sub s 0 first;
 ;;
+
+let fdcontents fd =
+  let l = 4096 in
+  let b = Buffer.create l in
+  let s = Bytes.create l in
+  let rec loop () =
+    let n = tempfailureretry (Unix.read fd s 0) l in
+    if n = 0
+    then Buffer.contents b
+    else (
+      Buffer.add_subbytes b s 0 n;
+      loop ()
+    )
+  in
+  loop ()
+;;
+
+let getcmdoutput errstr cmd =
+  let error fmt = Printf.kprintf errstr fmt in
+  let clofail s e = error "failed to close %s: %s" s e in
+  match Unix.pipe () with
+  | (exception exn) ->
+     error "pipe failed: %s" (exntos exn);
+     E.s
+  | (r, w) ->
+     match popen cmd [r, -1; w, 1] with
+     | (exception exn) ->
+        error "exec %S failed: %s" cmd (exntos exn);
+        E.s
+     | pid ->
+        Ne.clo w @@ clofail "write end of the pipe";
+        let s =
+          match Unix.waitpid [] pid with
+          | (exception exn) ->
+             error "waitpid on %S %d failed: %s" cmd pid (exntos exn);
+             E.s
+          | _pid, Unix.WEXITED 0 ->
+             begin
+               match fdcontents r with
+               | (exception exn) ->
+                  error "failed to read output of %S: %s" cmd (exntos exn);
+                  E.s
+               | s ->
+                  let l = String.length s in
+                  if l > 0 && s.[l-1] = '\n'
+                  then String.sub s 0 (l-1)
+                  else s
+             end;
+          | _pid, Unix.WEXITED n ->
+             error "%S exited with error code %d" cmd n;
+             E.s
+          | _pid, Unix.WSIGNALED n ->
+             error "%S was killed with signal %d" cmd n;
+             E.s
+          | _pid, Unix.WSTOPPED n ->
+             error "%S was stopped by signal %d" cmd n;
+             E.s
+        in
+        Ne.clo r @@ clofail "read end of the pipe";
+        s
+;;
