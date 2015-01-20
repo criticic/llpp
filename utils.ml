@@ -240,7 +240,7 @@ let getcmdoutput errstr cmd =
   | (r, w) ->
      match popen cmd [r, -1; w, 1] with
      | (exception exn) ->
-        error "exec %S failed: %s" cmd (exntos exn);
+        error "failed to execute %S: %s" cmd (exntos exn);
         E.s
      | pid ->
         Ne.clo w @@ clofail "write end of the pipe";
