@@ -37,8 +37,6 @@ mouse buttons 3/4       - scroll up/down (aka mouse wheel)
 mouse buttons 5/6       - pan left/right (aka horizontal mouse wheel)
 other mouse button[2]   - select rectangle to zoom to
   when shift is held    - add text annotation
-  when shift and control
-       are held         - ($EDITOR will be spawned to get the text)
 
 Note:
   moving mouse while holding primary mouse button will pan the page,

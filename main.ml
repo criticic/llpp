@@ -4045,6 +4045,9 @@ let enterinfomode =
       src#bool "open remote links in a new instance"
         (fun () -> conf.riani)
         (fun v -> conf.riani <- v);
+      src#bool "edit annotations inline"
+        (fun () -> conf.annotinline)
+        (fun v -> conf.annotinline <- v);
     );
 
     sep ();
@@ -4334,7 +4337,7 @@ let enterannotmode opaque slinkindex =
           m_items <-
             (   "[Copy]", fun () -> selstring m_text)
             :: ("[Delete]", dele)
-            :: ("[Edit]", edit true)
+            :: ("[Edit]", edit conf.annotinline)
             :: (E.s, unit)
             :: split [] 0 0 |> List.rev |> Array.of_list
 
@@ -5911,7 +5914,7 @@ let viewmouse button down x y mask =
       then (
         if Wsi.withshift mask
         then (
-          annot (not (Wsi.withctrl mask)) x y;
+          annot conf.annotinline x y;
           G.postRedisplay "addannot"
         )
         else

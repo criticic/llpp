@@ -283,6 +283,7 @@ type conf =
     ; mutable leftscroll     : bool
     ; mutable title          : string
     ; mutable lastvisit      : float
+    ; mutable annotinline    : bool
     }
 and columns =
     | Csingle of singlecolumn
@@ -585,6 +586,7 @@ let defconf =
   ; leftscroll     = false
   ; title          = E.s
   ; lastvisit      = 0.0
+  ; annotinline    = true
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1114,6 +1116,7 @@ let config_of c attrs =
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
       | "title" -> { c with title = unent v }
       | "last-visit" -> { c with lastvisit = float_of_string v }
+      | "edit-annots-inline" -> { c with annotinline = bool_of_string v }
       | _ -> c
     with exn ->
       prerr_endline ("Error processing attribute (`" ^
@@ -1234,6 +1237,7 @@ let setconf dst src =
   dst.paxmark        <- src.paxmark;
   dst.leftscroll     <- src.leftscroll;
   dst.title          <- src.title;
+  dst.annotinline    <- src.annotinline;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1708,6 +1712,7 @@ let add_attrs bb always dc c time =
   if not always
   then os "title" c.title dc.title;
   oF "last-visit" (snd (modf time)) 0.0;
+  ob "edit-annotations-inline" c.annotinline dc.annotinline;
 ;;
 
 let keymapsbuf always dc c =
