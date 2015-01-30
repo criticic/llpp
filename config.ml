@@ -1898,7 +1898,7 @@ let save1 bb leavebirdseye x h dc =
     | View
     | LinkNav _ -> x, conf
   in
-  let docpath = abspath state.path in
+  let docpath = if nonemptystr state.path then abspath state.path else E.s in
   adddoc docpath pan (getanchor ())
     (
      let autoscrollstep =
