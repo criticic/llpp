@@ -34,11 +34,11 @@
 #include <caml/memory.h>
 #include <caml/unixsupport.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <mupdf/fitz.h>
-#include <mupdf/cbz.h>
+#pragma GCC diagnostic pop
 #include <mupdf/pdf.h>
-#include <mupdf/xps.h>
-#include <mupdf/img.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -176,7 +176,7 @@ struct annot  {
     pdf_annot *annot;
 };
 
-enum { DNONE, DPDF, DXPS, DCBZ, DIMG };
+enum { DPDF, DANY };
 
 struct page {
     int tgen;
@@ -189,10 +189,8 @@ struct page {
     fz_text_sheet *sheet;
     union {
         void *ptr;
+        fz_page *anypage;
         pdf_page *pdfpage;
-        xps_page *xpspage;
-        cbz_page *cbzpage;
-        image_page *imgpage;
     } u;
     fz_display_list *dlist;
     int slinkcount;
@@ -213,10 +211,8 @@ struct {
     int pagecount;
     int pagedimcount;
     union {
+        fz_document *doc;
         pdf_document *pdf;
-        xps_document *xps;
-        cbz_document *cbz;
-        image_document *img;
     } u;
     fz_context *ctx;
     int w, h;
@@ -446,7 +442,7 @@ static void closepdf (void)
         int i;
 
         for (i = 0; i < state.pdflut.count; ++i) {
-            pdf_drop_obj (state.pdflut.objs[i]);
+            pdf_drop_obj (state.ctx, state.pdflut.objs[i]);
         }
         free (state.pdflut.objs);
         state.pdflut.objs = NULL;
@@ -455,38 +451,22 @@ static void closepdf (void)
 #endif
 
     if (state.u.pdf) {
-        pdf_close_document (state.u.pdf);
+        pdf_close_document (state.ctx, state.u.pdf);
         state.u.pdf = NULL;
     }
 }
 
-static void closexps (void)
+static void closedoc (void)
 {
-    if (state.u.xps) {
-        xps_close_document (state.u.xps);
-        state.u.xps = NULL;
-    }
-}
-
-static void closecbz (void)
-{
-    if (state.u.cbz) {
-        cbz_close_document (state.u.cbz);
-        state.u.cbz = NULL;
-    }
-}
-
-static void closeimg (void)
-{
-    if (state.u.img) {
-        image_close_document (state.u.img);
-        state.u.img = NULL;
+    if (state.u.doc) {
+        fz_drop_document (state.ctx, state.u.doc);
+        state.u.doc = NULL;
     }
 }
 
 static void freepdfpage (void *ptr)
 {
-    pdf_free_page (state.u.pdf, ptr);
+    fz_drop_page (state.ctx, ptr);
 }
 
 static void freeemptyxxxpage (void *ptr)
@@ -494,19 +474,9 @@ static void freeemptyxxxpage (void *ptr)
     (void) ptr;
 }
 
-static void freexpspage (void *ptr)
+static void freeanypage (void *ptr)
 {
-    xps_free_page (state.u.xps, ptr);
-}
-
-static void freecbzpage (void *ptr)
-{
-    cbz_free_page (state.u.cbz, ptr);
-}
-
-static void freeimgpage (void *ptr)
-{
-    image_free_page (state.u.img, ptr);
+    fz_drop_page (state.ctx, ptr);
 }
 
 static int openxref (char *filename, char *password)
@@ -523,7 +493,7 @@ static int openxref (char *filename, char *password)
     state.dirty = 0;
     len = strlen (filename);
 
-    state.type = DPDF;
+    state.type = DANY;
     {
         size_t j;
         struct {
@@ -531,12 +501,6 @@ static int openxref (char *filename, char *password)
             int type;
         } tbl[] = {
             { "pdf", DPDF },
-            { "xps", DXPS },
-            { "zip", DCBZ },
-            { "cbz", DCBZ },
-            { "jpg", DIMG },
-            { "jpeg", DIMG },
-            { "png", DIMG }
         };
 
         for (j = 0; j < sizeof (tbl) / sizeof (*tbl); ++j) {
@@ -560,43 +524,30 @@ static int openxref (char *filename, char *password)
     switch (state.type) {
     case DPDF:
         state.u.pdf = pdf_open_document (state.ctx, filename);
-        if (pdf_needs_password (state.u.pdf)) {
+        if (pdf_needs_password (state.ctx, state.u.pdf)) {
             if (password && !*password) {
                 printd ("pass");
                 return 0;
             }
             else {
-                int ok = pdf_authenticate_password (state.u.pdf, password);
+                int ok = pdf_authenticate_password (state.ctx, state.u.pdf,
+                                                    password);
                 if (!ok) {
                     printd ("pass fail");
                     return 0;
                 }
             }
         }
-        state.pagecount = pdf_count_pages (state.u.pdf);
+        state.pagecount = pdf_count_pages (state.ctx, state.u.pdf);
         state.closedoc = closepdf;
         state.freepage = freepdfpage;
         break;
 
-    case DXPS:
-        state.u.xps = xps_open_document (state.ctx, filename);
-        state.pagecount = xps_count_pages (state.u.xps);
-        state.closedoc = closexps;
-        state.freepage = freexpspage;
-        break;
-
-    case DCBZ:
-        state.u.cbz = cbz_open_document (state.ctx, filename);
-        state.pagecount = cbz_count_pages (state.u.cbz);
-        state.closedoc = closecbz;
-        state.freepage = freecbzpage;
-        break;
-
-    case DIMG:
-        state.u.img = image_open_document (state.ctx, filename);
-        state.pagecount = 1;
-        state.closedoc = closeimg;
-        state.freepage = freeimgpage;
+    case DANY:
+        state.u.doc = fz_open_document (state.ctx, filename);
+        state.pagecount = fz_count_pages (state.ctx, state.u.doc);
+        state.closedoc = closedoc;
+        state.freepage = freeanypage;
         break;
     }
     return 1;
@@ -610,7 +561,8 @@ static void pdfinfo (void)
         printd ("info PDF version\t%d.%d",
                 state.u.pdf->version / 10, state.u.pdf->version % 10);
 
-        infoobj = pdf_dict_gets (pdf_trailer (state.u.pdf), "Info");
+        infoobj = pdf_dict_gets (state.ctx, pdf_trailer (state.ctx,
+                                                         state.u.pdf), "Info");
         if (infoobj) {
             unsigned int i;
             char *s;
@@ -618,8 +570,8 @@ static void pdfinfo (void)
                               "Producer", "CreationDate" };
 
             for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
-                pdf_obj *obj = pdf_dict_gets (infoobj, items[i]);
-                s = pdf_to_utf8 (state.u.pdf, obj);
+                pdf_obj *obj = pdf_dict_gets (state.ctx, infoobj, items[i]);
+                s = pdf_to_utf8 (state.ctx, state.u.pdf, obj);
                 if (*s) printd ("info %s\t%s", items[i], s);
                 fz_free (state.ctx, s);
             }
@@ -646,10 +598,10 @@ static void unlinktile (struct tile *tile)
 static void freepage (struct page *page)
 {
     if (page->text) {
-        fz_free_text_page (state.ctx, page->text);
+        fz_drop_text_page (state.ctx, page->text);
     }
     if (page->sheet) {
-        fz_free_text_sheet (state.ctx, page->sheet);
+        fz_drop_text_sheet (state.ctx, page->sheet);
     }
     if (page->slinks) {
         free (page->slinks);
@@ -791,31 +743,17 @@ static void *loadpage (int pageno, int pindex)
     fz_try (state.ctx) {
         switch (state.type) {
         case DPDF:
-            page->u.pdfpage = pdf_load_page (state.u.pdf, pageno);
-            pdf_run_page (state.u.pdf, page->u.pdfpage, dev,
+            page->u.pdfpage = pdf_load_page (state.ctx, state.u.pdf, pageno);
+            pdf_run_page (state.ctx, page->u.pdfpage, dev,
                           &fz_identity, NULL);
             page->freepage = freepdfpage;
             break;
 
-        case DXPS:
-            page->u.xpspage = xps_load_page (state.u.xps, pageno);
-            xps_run_page (state.u.xps, page->u.xpspage, dev,
-                          &fz_identity, NULL);
-            page->freepage = freexpspage;
-            break;
-
-        case DCBZ:
-            page->u.cbzpage = cbz_load_page (state.u.cbz, pageno);
-            cbz_run_page (state.u.cbz, page->u.cbzpage, dev,
-                          &fz_identity, NULL);
-            page->freepage = freecbzpage;
-            break;
-
-        case DIMG:
-            page->u.imgpage = image_load_page (state.u.img, pageno);
-            image_run_page (state.u.img, page->u.imgpage, dev,
-                            &fz_identity, NULL);
-            page->freepage = freeimgpage;
+        case DANY:
+            page->u.anypage = fz_load_page (state.ctx, state.u.doc, pageno);
+            fz_run_page (state.ctx, page->u.anypage, dev,
+                         &fz_identity, NULL);
+            page->freepage = freeanypage;
             break;
         }
     }
@@ -823,7 +761,7 @@ static void *loadpage (int pageno, int pindex)
         page->u.ptr = NULL;
         page->freepage = freeemptyxxxpage;
     }
-    fz_free_device (dev);
+    fz_drop_device (state.ctx, dev);
 
     page->pdimno = pindex;
     page->pageno = pageno;
@@ -861,14 +799,17 @@ static struct tile *alloctile (int h)
 
 #ifdef OBSCURED_OPT
 struct obs {
+    fz_device super;
     int cured;
     fz_irect b;
 };
 
-static void obs_fill_image (fz_device *dev, fz_image UNUSED_ATTR *image,
+static void obs_fill_image (fz_context *ctx, fz_device *dev,
+                            fz_image UNUSED_ATTR *image,
                             const fz_matrix *ctm, float alpha)
 {
-    struct obs *obs = dev->user;
+    struct obs *obs = (struct obs *) dev;
+    (void) ctx;
 
     if (!obs->cured && fabs (1.0 - alpha) < 1e6) {
         fz_irect b;
@@ -888,20 +829,16 @@ static int obscured (struct page *page, fz_irect bbox)
 {
     fz_rect rect;
     fz_matrix ctm;
-    fz_device dev;
     struct obs obs;
 
-    memset (&dev, 0, sizeof (dev));
     memset (&obs, 0, sizeof (obs));
-    dev.hints = 0;
-    dev.flags = 0;
-    dev.user = &obs;
-    dev.ctx = state.ctx;
-    dev.fill_image = obs_fill_image;
+    obs.super.hints = 0;
+    obs.super.flags = 0;
+    obs.super.fill_image = obs_fill_image;
     obs.b = bbox;
     fz_rect_from_irect (&rect, &bbox);
     ctm = pagectm (page);
-    fz_run_display_list (page->dlist, &dev, &ctm, &rect, NULL);
+    fz_run_display_list (state.ctx, page->dlist, &obs.super, &ctm, &rect, NULL);
     return obs.cured;
 }
 #define OBSCURED obscured
@@ -962,8 +899,8 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     dev = fz_new_draw_device (state.ctx, tile->pixmap);
     ctm = pagectm (page);
     fz_rect_from_irect (&rect, &bbox);
-    fz_run_display_list (page->dlist, dev, &ctm, &rect, NULL);
-    fz_free_device (dev);
+    fz_run_display_list (state.ctx, page->dlist, dev, &ctm, &rect, NULL);
+    fz_drop_device (state.ctx, dev);
 
     return tile;
 }
@@ -974,48 +911,49 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 static void
 pdf_collect_pages(pdf_document *doc, pdf_obj *node)
 {
-    fz_context *ctx = doc->ctx;
+    fz_context *ctx = state.ctx; /* doc->ctx; */
     pdf_obj *kids;
     int i, len;
 
     if (state.pdflut.idx == state.pagecount) return;
 
-    kids = pdf_dict_gets (node, "Kids");
-    len = pdf_array_len (kids);
+    kids = pdf_dict_gets (ctx, node, "Kids");
+    len = pdf_array_len (ctx, kids);
 
     if (len == 0)
         fz_throw (ctx, FZ_ERROR_GENERIC, "Malformed pages tree");
 
-    if (pdf_mark_obj (node))
+    if (pdf_mark_obj (ctx, node))
         fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
     for (i = 0; i < len; i++) {
-        pdf_obj *kid = pdf_array_get (kids, i);
-        char *type = pdf_to_name (pdf_dict_gets (kid, "Type"));
+        pdf_obj *kid = pdf_array_get (ctx, kids, i);
+        char *type = pdf_to_name (ctx, pdf_dict_gets (ctx, kid, "Type"));
         if (*type
             ? !strcmp (type, "Pages")
-            : pdf_dict_gets (kid, "Kids")
-            && !pdf_dict_gets (kid, "MediaBox")) {
+            : pdf_dict_gets (ctx, kid, "Kids")
+            && !pdf_dict_gets (ctx, kid, "MediaBox")) {
             pdf_collect_pages (doc, kid);
         }
         else {
             if (*type
                 ? strcmp (type, "Page") != 0
-                : !pdf_dict_gets (kid, "MediaBox"))
+                : !pdf_dict_gets (ctx, kid, "MediaBox"))
                 fz_warn (ctx, "non-page object in page tree (%s)", type);
-            state.pdflut.objs[state.pdflut.idx++] = pdf_keep_obj (kid);
+            state.pdflut.objs[state.pdflut.idx++] = pdf_keep_obj (ctx, kid);
         }
     }
-    pdf_unmark_obj (node);
+    pdf_unmark_obj (ctx, node);
 }
 
 static void
 pdf_load_page_objs (pdf_document *doc)
 {
-    pdf_obj *root = pdf_dict_gets (pdf_trailer (doc), "Root");
-    pdf_obj *node = pdf_dict_gets (root, "Pages");
+    pdf_obj *root = pdf_dict_gets (state.ctx,
+                                   pdf_trailer (state.ctx, doc), "Root");
+    pdf_obj *node = pdf_dict_gets (state.ctx, root, "Pages");
 
     if (!node)
-        fz_throw (doc->ctx, FZ_ERROR_GENERIC, "cannot find page tree");
+        fz_throw (state.ctx, FZ_ERROR_GENERIC, "cannot find page tree");
 
     state.pdflut.idx = 0;
     pdf_collect_pages (doc, node);
@@ -1047,7 +985,7 @@ static void initpdims (void)
 
     if (state.type == DPDF) {
         pdf_obj *obj;
-        obj = pdf_dict_getp (pdf_trailer (state.u.pdf),
+        obj = pdf_dict_getp (state.ctx, pdf_trailer (state.ctx, state.u.pdf),
                              "Root/Pages/MediaBox");
         pdf_to_rect (state.ctx, obj, &rootmediabox);
     }
@@ -1081,33 +1019,28 @@ static void initpdims (void)
             pageref = state.pdflut.objs[pageno];
 #else
             pageref = pdf_lookup_page_obj (pdf, pageno);
-            show = !state.trimmargins && pageno % 20 == 0;
-            if (show) {
-                printd ("progress %f Gathering dimensions %d",
-                        (double) (pageno) / state.pagecount,
-                        pageno);
-            }
 #endif
-            pageobj = pdf_resolve_indirect (pageref);
+            pageobj = pdf_resolve_indirect (state.ctx, pageref);
 
             if (state.trimmargins) {
+                fz_context *ctx = state.ctx;
                 pdf_obj *obj;
                 pdf_page *page;
 
                 fz_try (state.ctx) {
-                    page = pdf_load_page (pdf, pageno);
-                    obj = pdf_dict_gets (pageobj, "llpp.TrimBox");
+                    page = pdf_load_page (ctx, pdf, pageno);
+                    obj = pdf_dict_gets (ctx, pageobj, "llpp.TrimBox");
                     trim = state.trimanew || !obj;
                     if (trim) {
                         fz_rect rect;
                         fz_matrix ctm;
                         fz_device *dev;
 
-                        dev = fz_new_bbox_device (state.ctx, &rect);
+                        dev = fz_new_bbox_device (ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
                         fz_invert_matrix (&ctm, &page->ctm);
-                        pdf_run_page (pdf, page, dev, &fz_identity, NULL);
-                        fz_free_device (dev);
+                        pdf_run_page (ctx, page, dev, &fz_identity, NULL);
+                        fz_drop_device (ctx, dev);
 
                         rect.x0 += state.trimfuzz.x0;
                         rect.x1 += state.trimfuzz.x1;
@@ -1123,22 +1056,30 @@ static void initpdims (void)
                             mediabox = rect;
                         }
 
-                        obj = pdf_new_array (pdf, 4);
-                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.x0));
-                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.y0));
-                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.x1));
-                        pdf_array_push (obj, pdf_new_real (pdf, mediabox.y1));
-                        pdf_dict_puts (pageobj, "llpp.TrimBox", obj);
+                        obj = pdf_new_array (ctx, pdf, 4);
+                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                                                                mediabox.x0));
+                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                                                                mediabox.y0));
+                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                                                                mediabox.x1));
+                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                                                                mediabox.y1));
+                        pdf_dict_puts (state.ctx, pageobj, "llpp.TrimBox", obj);
                     }
                     else {
-                        mediabox.x0 = pdf_to_real (pdf_array_get (obj, 0));
-                        mediabox.y0 = pdf_to_real (pdf_array_get (obj, 1));
-                        mediabox.x1 = pdf_to_real (pdf_array_get (obj, 2));
-                        mediabox.y1 = pdf_to_real (pdf_array_get (obj, 3));
+                        mediabox.x0 = pdf_to_real (ctx,
+                                                   pdf_array_get (ctx, obj, 0));
+                        mediabox.y0 = pdf_to_real (ctx,
+                                                   pdf_array_get (ctx, obj, 1));
+                        mediabox.x1 = pdf_to_real (ctx,
+                                                   pdf_array_get (ctx, obj, 2));
+                        mediabox.y1 = pdf_to_real (ctx,
+                                                   pdf_array_get (ctx, obj, 3));
                     }
 
                     rotate = page->rotate;
-                    pdf_free_page (pdf, page);
+                    fz_drop_page (ctx, &page->super);
 
                     show = trim ? pageno % 5 == 0 : pageno % 20 == 0;
                     if (show) {
@@ -1155,7 +1096,8 @@ static void initpdims (void)
                 int empty = 0;
                 fz_rect cropbox;
 
-                pdf_to_rect (state.ctx, pdf_dict_gets (pageobj, "MediaBox"),
+                pdf_to_rect (state.ctx,
+                             pdf_dict_gets (state.ctx, pageobj, "MediaBox"),
                              &mediabox);
                 if (fz_is_empty_rect (&mediabox)) {
                     mediabox.x0 = 0;
@@ -1165,7 +1107,8 @@ static void initpdims (void)
                     empty = 1;
                 }
 
-                pdf_to_rect (state.ctx, pdf_dict_gets (pageobj, "CropBox"),
+                pdf_to_rect (state.ctx,
+                             pdf_dict_gets (state.ctx, pageobj, "CropBox"),
                              &cropbox);
                 if (!fz_is_empty_rect (&cropbox)) {
                     if (empty) {
@@ -1187,18 +1130,20 @@ static void initpdims (void)
                         }
                     }
                 }
-                rotate = pdf_to_int (pdf_dict_gets (pageobj, "Rotate"));
+                rotate = pdf_to_int (state.ctx,
+                                     pdf_dict_gets (state.ctx,
+                                                    pageobj, "Rotate"));
             }
             break;
         }
 
-        case DXPS:
-            {
-                xps_page *page;
+        case DANY:
+            if (state.trimmargins && trimw) {
+                fz_page *page;
 
                 fz_try (state.ctx) {
-                    page = xps_load_page (state.u.xps, pageno);
-                    xps_bound_page (state.u.xps, page, &mediabox);
+                    page = fz_load_page (state.ctx, state.u.doc, pageno);
+                    fz_bound_page (state.ctx, page, &mediabox);
                     rotate = 0;
                     if (state.trimmargins) {
                         fz_rect rect;
@@ -1206,9 +1151,9 @@ static void initpdims (void)
 
                         dev = fz_new_bbox_device (state.ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
-                        xps_run_page (state.u.xps, page, dev,
-                                      &fz_identity, NULL);
-                        fz_free_device (dev);
+                        fz_run_page (state.ctx, page, dev,
+                                     &fz_identity, NULL);
+                        fz_drop_device (state.ctx, dev);
 
                         rect.x0 += state.trimfuzz.x0;
                         rect.x1 += state.trimfuzz.x1;
@@ -1220,7 +1165,7 @@ static void initpdims (void)
                             mediabox = rect;
                         }
                     }
-                    xps_free_page (state.u.xps, page);
+                    fz_drop_page (state.ctx, page);
                     if (!state.cxack) {
                         printd ("progress %f loading %d",
                                 (double) (pageno + 1) / state.pagecount,
@@ -1229,78 +1174,38 @@ static void initpdims (void)
                 }
                 fz_catch (state.ctx) {
                 }
+                if (trimf) {
+                    int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
+                    if (n - 1)  {
+                        err (1, "fwrite trim mediabox");
+                    }
+                }
             }
-            break;
-
-        case DCBZ:
-            {
-                rotate = 0;
-                mediabox.x0 = 0;
-                mediabox.y0 = 0;
-                mediabox.x1 = 900;
-                mediabox.y1 = 900;
-                if (state.trimmargins && trimw) {
-                    cbz_page *page;
-
-                    fz_try (state.ctx) {
-                        page = cbz_load_page (state.u.cbz, pageno);
-                        cbz_bound_page (state.u.cbz, page, &mediabox);
-                        cbz_free_page (state.u.cbz, page);
-                        printd ("progress %f Trimming %d",
-                                (double) (pageno + 1) / state.pagecount,
-                                pageno + 1);
-                    }
-                    fz_catch (state.ctx) {
-                        fprintf (stderr, "failed to load page %d\n", pageno+1);
-                    }
-                    if (trimf) {
-                        int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
-                        if (n - 1)  {
-                            err (1, "fwrite trim mediabox");
-                        }
+            else {
+                if (trimf) {
+                    int n = fread (&mediabox, sizeof (mediabox), 1, trimf);
+                    if (n - 1) {
+                        err (1, "fread trim mediabox %d", pageno);
                     }
                 }
                 else {
-                    if (trimf) {
-                        int n = fread (&mediabox, sizeof (mediabox), 1, trimf);
-                        if (n - 1) {
-                            err (1, "fread trim mediabox");
+                    fz_page *page;
+                    fz_try (state.ctx) {
+                        page = fz_load_page (state.ctx,
+                                             state.u.doc, pageno);
+                        fz_bound_page (state.ctx, page, &mediabox);
+                        fz_drop_page (state.ctx, page);
+
+                        show = !state.trimmargins && pageno % 20 == 0;
+                        if (show) {
+                            printd ("progress %f Gathering dimensions %d",
+                                    (double) (pageno) / state.pagecount,
+                                    pageno);
                         }
                     }
-                    else {
-                        if (state.cxack) {
-                            cbz_page *page;
-                            fz_try (state.ctx) {
-                                page = cbz_load_page (state.u.cbz, pageno);
-                                cbz_bound_page (state.u.cbz, page, &mediabox);
-                                cbz_free_page (state.u.cbz, page);
-                            }
-                            fz_catch (state.ctx) {
-                                fprintf (stderr, "failed to load cbz page\n");
-                            }
-                        }
+                    fz_catch (state.ctx) {
+                        fprintf (stderr, "failed to load page %d\n", pageno);
                     }
-                }
-            }
-            break;
-
-        case DIMG:
-            {
-                image_page *page;
-
-                rotate = 0;
-                mediabox.x0 = 0;
-                mediabox.y0 = 0;
-                mediabox.x1 = 900;
-                mediabox.y1 = 900;
-
-                fz_try (state.ctx) {
-                    page = image_load_page (state.u.img, pageno);
-                    image_bound_page (state.u.img, page, &mediabox);
-                    image_free_page (state.u.img, page);
-                }
-                fz_catch (state.ctx) {
-                    fprintf (stderr, "failed to load page %d\n", pageno+1);
                 }
             }
             break;
@@ -1538,20 +1443,10 @@ static void process_outline (void)
     if (!state.needoutline || !state.pagedimcount) return;
 
     state.needoutline = 0;
-    switch (state.type) {
-    case DPDF:
-        outline = pdf_load_outline (state.u.pdf);
-        break;
-    case DXPS:
-        outline = xps_load_outline (state.u.xps);
-        break;
-    default:
-        outline = NULL;
-        break;
-    }
+    outline = fz_load_outline (state.ctx, state.u.doc);
     if (outline) {
         recurse_outline (outline, 0);
-        fz_free_outline (state.ctx, outline);
+        fz_drop_outline (state.ctx, outline);
     }
 }
 
@@ -1620,8 +1515,8 @@ static int matchspan (regex_t *re, fz_text_span *span,
             b = MAX (0, b-1);
         }
 
-        fz_text_char_bbox (&sb, span, a);
-        fz_text_char_bbox (&eb, span, b);
+        fz_text_char_bbox (state.ctx, &sb, span, a);
+        fz_text_char_bbox (state.ctx, &eb, span, b);
 
         p1.x = sb.x0;
         p1.y = sb.y0;
@@ -1670,15 +1565,16 @@ static void search (regex_t *re, int pageno, int y, int forward)
     int i, j;
     fz_matrix ctm;
     fz_device *tdev;
-    union { void *ptr; pdf_page *pdfpage; xps_page *xpspage; } u;
+    union {
+        void *ptr;
+        pdf_page *pdfpage;
+        fz_page *anypage;
+    } u;
     fz_text_page *text;
     fz_text_sheet *sheet;
     struct pagedim *pdim, *pdimprev;
     int stop = 0, niters = 0;
     double start, end;
-
-    if (!(state.type == DPDF || state.type == DXPS))
-        return;
 
     start = now ();
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
@@ -1718,23 +1614,23 @@ static void search (regex_t *re, int pageno, int y, int forward)
         case DPDF:
             u.ptr = NULL;
             fz_try (state.ctx) {
-                u.pdfpage = pdf_load_page (state.u.pdf, pageno);
+                u.pdfpage = pdf_load_page (state.ctx, state.u.pdf, pageno);
                 trimctm (u.pdfpage, pdim - state.pagedims);
                 fz_concat (&ctm, &pdim->tctm, &pdim->zoomctm);
-                fz_begin_page (tdev, &fz_infinite_rect, &ctm);
-                pdf_run_page (state.u.pdf, u.pdfpage, tdev, &ctm, NULL);
-                fz_end_page (tdev);
+                fz_begin_page (state.ctx, tdev, &fz_infinite_rect, &ctm);
+                pdf_run_page (state.ctx, u.pdfpage, tdev, &ctm, NULL);
+                fz_end_page (state.ctx, tdev);
             }
             fz_catch (state.ctx) {
-                fz_free_device (tdev);
+                fz_drop_device (state.ctx, tdev);
                 u.ptr = NULL;
                 goto nextiter;
             }
             break;
 
-        case DXPS:
-            u.xpspage = xps_load_page (state.u.xps, pageno);
-            xps_run_page (state.u.xps, u.xpspage, tdev, &pdim->ctm, NULL);
+        case DANY:
+            u.anypage = fz_load_page (state.ctx, state.u.doc, pageno);
+            fz_run_page (state.ctx, u.anypage, tdev, &pdim->ctm, NULL);
             break;
 
         default:
@@ -1742,7 +1638,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         }
 
         qsort (text->blocks, text->len, sizeof (*text->blocks), compareblocks);
-        fz_free_device (tdev);
+        fz_drop_device (state.ctx, tdev);
 
         for (j = 0; j < text->len; ++j) {
             int k;
@@ -1785,8 +1681,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
             y = INT_MAX;
         }
     endloop:
-        fz_free_text_page (state.ctx, text);
-        fz_free_text_sheet (state.ctx, sheet);
+        fz_drop_text_page (state.ctx, text);
+        fz_drop_text_sheet (state.ctx, sheet);
         if (u.ptr) {
             state.freepage (u.ptr);
         }
@@ -2106,11 +2002,12 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 fz_link_dest dest;
                 pdf_obj *needle, *obj;
 
-                needle = pdf_new_string (state.u.pdf, nameddest,
+                needle = pdf_new_string (state.ctx, state.u.pdf, nameddest,
                                          strlen (nameddest));
-                obj = pdf_lookup_dest (state.u.pdf, needle);
+                obj = pdf_lookup_dest (state.ctx, state.u.pdf, needle);
                 if (obj) {
-                    dest = pdf_parse_link_dest (state.u.pdf, FZ_LINK_GOTO, obj);
+                    dest = pdf_parse_link_dest (state.ctx, state.u.pdf,
+                                                FZ_LINK_GOTO, obj);
 
                     a = desttoanchor (&dest);
                     if (a.n >= 0) {
@@ -2125,7 +2022,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                     printd ("emsg destination `%s' not found\n",
                             nameddest);
                 }
-                pdf_drop_obj (needle);
+                pdf_drop_obj (state.ctx, needle);
             }
 
             state.gen++;
@@ -2337,7 +2234,8 @@ static void showsel (struct page *page, int ox, int oy)
                     for (i = j; i <= k; ++i) {
                         fz_rect bbox1;
                         fz_union_rect (&rect,
-                                       fz_text_char_bbox (&bbox1, span, i));
+                                       fz_text_char_bbox (state.ctx, &bbox1,
+                                                          span, i));
                     }
                     fz_round_rect (&bbox, &rect);
                     lprintf ("%d %d %d %d oy=%d ox=%d\n",
@@ -2409,18 +2307,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     GLfloat *texcoords = state.texcoords;
     GLfloat *vertices = state.vertices;
 
-    switch (page->type) {
-    case DPDF:
-        links = page->u.pdfpage->links;
-        break;
-
-    case DXPS:
-        links = page->u.xpspage->links;
-        break;
-
-    default:
-        return;
-    }
+    links = fz_load_links (state.ctx, page->u.anypage);
 
     glEnable (GL_TEXTURE_1D);
     glEnable (GL_BLEND);
@@ -2497,7 +2384,7 @@ static int compareslinks (const void *l, const void *r)
 static void droptext (struct page *page)
 {
     if (page->text) {
-        fz_free_text_page (state.ctx, page->text);
+        fz_drop_text_page (state.ctx, page->text);
         page->fmark.i = -1;
         page->lmark.i = -1;
         page->fmark.span = NULL;
@@ -2505,7 +2392,7 @@ static void droptext (struct page *page)
         page->text = NULL;
     }
     if (page->sheet) {
-        fz_free_text_sheet (state.ctx, page->sheet);
+        fz_drop_text_sheet (state.ctx, page->sheet);
         page->sheet = NULL;
     }
 }
@@ -2544,9 +2431,9 @@ static void ensureanots (struct page *page)
         return;
     }
 
-    for (annot = pdf_first_annot (state.u.pdf, page->u.pdfpage);
+    for (annot = pdf_first_annot (state.ctx, page->u.pdfpage);
          annot;
-         annot = pdf_next_annot (state.u.pdf, annot)) {
+         annot = pdf_next_annot (state.ctx, page->u.pdfpage, annot)) {
         count++;
     }
 
@@ -2557,12 +2444,12 @@ static void ensureanots (struct page *page)
             err (1, "calloc annots %d", count);
         }
 
-        for (annot = pdf_first_annot (state.u.pdf, page->u.pdfpage), i = 0;
+        for (annot = pdf_first_annot (state.ctx, page->u.pdfpage), i = 0;
              annot;
-             annot = pdf_next_annot (state.u.pdf, annot), i++) {
+             annot = pdf_next_annot (state.ctx, page->u.pdfpage, annot), i++) {
             fz_rect rect;
 
-            pdf_bound_annot (state.u.pdf, annot, &rect);
+            pdf_bound_annot (state.ctx, page->u.pdfpage, annot, &rect);
             fz_transform_rect (&rect, &ctm);
             page->annots[i].annot = annot;
             fz_round_rect (&page->annots[i].bbox, &annot->pagerect);
@@ -2602,8 +2489,8 @@ static void ensureslinks (struct page *page)
                    &state.pagedims[page->pdimno].ctm);
         break;
 
-    case DXPS:
-        links = page->u.xpspage->links;
+    case DANY:
+        links = fz_load_links (state.ctx, page->u.anypage);
         ctm = state.pagedims[page->pdimno].ctm;
         break;
 
@@ -2894,7 +2781,7 @@ static struct annot *getannot (struct page *page, int x, int y)
         tctm = &state.pagedims[page->pdimno].tctm;
         break;
 
-    case DXPS:
+    case DANY:
         tctm = &fz_identity;
         break;
 
@@ -2928,15 +2815,15 @@ static fz_link *getlink (struct page *page, int x, int y)
     fz_link *link, *links;
 
     switch (page->type) {
-    case DPDF:
+    case DPDF + 10:
         trimctm (page->u.pdfpage, page->pdimno);
         tctm = &state.pagedims[page->pdimno].tctm;
         links = page->u.pdfpage->links;
         break;
 
-    case DXPS:
+    case DANY:
         tctm = &fz_identity;
-        links = page->u.xpspage->links;
+        links = fz_load_links (state.ctx, page->u.anypage);
         break;
 
     default:
@@ -2973,12 +2860,13 @@ static void ensuretext (struct page *page)
         page->sheet = fz_new_text_sheet (state.ctx);
         tdev = fz_new_text_device (state.ctx, page->sheet, page->text);
         ctm = pagectm (page);
-        fz_begin_page (tdev, &fz_infinite_rect, &ctm);
-        fz_run_display_list (page->dlist, tdev, &ctm, &fz_infinite_rect, NULL);
+        fz_begin_page (state.ctx, tdev, &fz_infinite_rect, &ctm);
+        fz_run_display_list (state.ctx, page->dlist,
+                             tdev, &ctm, &fz_infinite_rect, NULL);
         qsort (page->text->blocks, page->text->len,
                sizeof (*page->text->blocks), compareblocks);
-        fz_end_page (tdev);
-        fz_free_device (tdev);
+        fz_end_page (state.ctx, tdev);
+        fz_drop_device (state.ctx, tdev);
     }
 }
 
@@ -2991,10 +2879,6 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
     int end_page = dir > 0 ? state.pagecount : -1;
 
     ret_v = Val_int (0);
-    if (!(state.type == DPDF || state.type == DXPS))  {
-        goto done;
-    }
-
     lock ("ml_findpage_with_links");
     for (i = start_page + dir; i != end_page; i += dir) {
         int found;
@@ -3005,7 +2889,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
                 pdf_page *page = NULL;
 
                 fz_try (state.ctx) {
-                    page = pdf_load_page (state.u.pdf, i);
+                    page = pdf_load_page (state.ctx, state.u.pdf, i);
                     found = !!page->links || !!page->annots;
                 }
                 fz_catch (state.ctx) {
@@ -3016,11 +2900,11 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
                 }
             }
             break;
-        case DXPS:
+        case DANY:
             {
-                xps_page *page = xps_load_page (state.u.xps, i);
-                found = !!page->links;
-                freexpspage (page);
+                fz_page *page = fz_load_page (state.ctx, state.u.doc, i);
+                found = !!fz_load_links (state.ctx, page);
+                fz_drop_page (state.ctx, page);
             }
             break;
 
@@ -3036,8 +2920,6 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
     }
  unlock:
     unlock ("ml_findpage_with_links");
-
- done:
     CAMLreturn (ret_v);
 }
 
@@ -3290,7 +3172,7 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
 
     page = parse_pointer ("ml_getannotcontent", s);
     slink = &page->slinks[Int_val (n_v)];
-    CAMLreturn (caml_copy_string (pdf_annot_contents (state.u.pdf,
+    CAMLreturn (caml_copy_string (pdf_annot_contents (state.ctx, state.u.pdf,
                                                       slink->u.annot)));
 }
 
@@ -3347,7 +3229,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     x += pdim->bounds.x0;
     y += pdim->bounds.y0;
 
-    if (state.type == DPDF) {
+    if (1 || state.type == DPDF) {
         annot = getannot (page, x, y);
         if (annot) {
             int i, n = -1;
@@ -3408,7 +3290,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
                     for (charnum = 0; charnum < span->len; ++charnum) {
                         fz_rect bbox;
-                        fz_text_char_bbox (&bbox, span, charnum);
+                        fz_text_char_bbox (state.ctx, &bbox, span, charnum);
                         b = &bbox;
 
                         if (x >= b->x0 && x <= b->x1
@@ -3594,7 +3476,7 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 
                 for (charnum = 0; charnum < span->len; ++charnum) {
                     fz_rect bbox;
-                    fz_text_char_bbox (&bbox, span, charnum);
+                    fz_text_char_bbox (state.ctx, &bbox, span, charnum);
                     b = &bbox;
 
                     if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
@@ -3762,7 +3644,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
                 for (i = 0; i < span->len; ++i) {
                     int selected = 0;
 
-                    fz_text_char_bbox (&b, span, i);
+                    fz_text_char_bbox (state.ctx, &b, span, i);
 
                     if (x0 >= b.x0 && x0 <= b.x1
                         && y0 >= b.y0 && y0 <= b.y1) {
@@ -4122,12 +4004,12 @@ CAMLprim value ml_getpagebox (value opaque_v)
     switch (page->type) {
     case DPDF:
         ctm = pagectm (page);
-        pdf_run_page (state.u.pdf, page->u.pdfpage, dev, &ctm, NULL);
+        pdf_run_page (state.ctx, page->u.pdfpage, dev, &ctm, NULL);
         break;
 
-    case DXPS:
+    case DANY:
         ctm = pagectm (page);
-        xps_run_page (state.u.xps, page->u.xpspage, dev, &ctm, NULL);
+        fz_run_page (state.ctx, page->u.anypage, dev, &ctm, NULL);
         break;
 
     default:
@@ -4135,7 +4017,7 @@ CAMLprim value ml_getpagebox (value opaque_v)
         break;
     }
 
-    fz_free_device (dev);
+    fz_drop_device (state.ctx, dev);
     fz_round_rect (&bbox, &rect);
     Field (ret_v, 0) = Val_int (bbox.x0);
     Field (ret_v, 1) = Val_int (bbox.y0);
@@ -4457,11 +4339,12 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
 
         pdf = state.u.pdf;
         page = parse_pointer ("ml_addannot", s);
-        annot = pdf_create_annot (pdf, page->u.pdfpage, FZ_ANNOT_TEXT);
+        annot = pdf_create_annot (state.ctx, pdf,
+                                  page->u.pdfpage, FZ_ANNOT_TEXT);
         p.x = Int_val (x_v);
         p.y = Int_val (y_v);
-        pdf_set_annot_contents (pdf, annot, String_val (contents_v));
-        pdf_set_text_annot_position (pdf, annot, p);
+        pdf_set_annot_contents (state.ctx, pdf, annot, String_val (contents_v));
+        pdf_set_text_annot_position (state.ctx, pdf, annot, p);
         state.dirty = 1;
     }
     CAMLreturn (Val_unit);
@@ -4478,7 +4361,8 @@ CAMLprim value ml_delannot (value ptr_v, value n_v)
 
         page = parse_pointer ("ml_delannot", s);
         slink = &page->slinks[Int_val (n_v)];
-        pdf_delete_annot (state.u.pdf, page->u.pdfpage, slink->u.annot);
+        pdf_delete_annot (state.ctx, state.u.pdf,
+                          page->u.pdfpage, slink->u.annot);
         state.dirty = 1;
     }
     CAMLreturn (Val_unit);
@@ -4495,7 +4379,7 @@ CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
 
         page = parse_pointer ("ml_modannot", s);
         slink = &page->slinks[Int_val (n_v)];
-        pdf_set_annot_contents (state.u.pdf, slink->u.annot,
+        pdf_set_annot_contents (state.ctx, state.u.pdf, slink->u.annot,
                                 String_val (str_v));
         state.dirty = 1;
     }
@@ -4513,7 +4397,7 @@ CAMLprim value ml_savedoc (value path_v)
     CAMLparam1 (path_v);
 
     if (state.type == DPDF) {
-        pdf_write_document (state.u.pdf, String_val (path_v), NULL);
+        pdf_write_document (state.ctx, state.u.pdf, String_val (path_v), NULL);
     }
     CAMLreturn (Val_unit);
 }
@@ -4669,6 +4553,7 @@ CAMLprim value ml_init (value csock_v, value params_v)
     haspboext           = Bool_val (Field (params_v, 9));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
+    fz_register_document_handlers (state.ctx);
 
 #ifdef USE_FONTCONFIG
     if (Bool_val (Field (params_v, 10))) {
@@ -4728,7 +4613,7 @@ CAMLprim value ml_init (value csock_v, value params_v)
     }
     else {
         unsigned int len;
-        void *base = pdf_lookup_substitute_font (0, 0, 0, 0, &len);
+        void *base = pdf_lookup_substitute_font (state.ctx, 0, 0, 0, 0, &len);
 
         state.face = load_builtin_font (base, len);
     }
