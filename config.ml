@@ -1583,22 +1583,21 @@ let add_attrs bb always dc c time =
   and oF s a b =
     if always || a <> b
     then Printf.bprintf bb "\n    %s='%f'" s a
+  and oL s a b =
+    if always || a <> b
+    then Printf.bprintf bb "\n    %s='%Ld'" s a
   and oc s a b =
     if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%s'" s (color_to_string a)
+    then Printf.bprintf bb "\n    %s='%s'" s (color_to_string a)
   and oC s a b =
     if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%s'" s (CSTE.to_string a)
+    then Printf.bprintf bb "\n    %s='%s'" s (CSTE.to_string a)
   and oR s a b =
     if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%s'" s (irect_to_string a)
+    then Printf.bprintf bb "\n    %s='%s'" s (irect_to_string a)
   and os s a b =
     if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%s'" s (enent a 0 (String.length a))
+    then Printf.bprintf bb "\n    %s='%s'" s (enent a 0 (String.length a))
   and og s a b =
     if always || a <> b
     then
@@ -1639,16 +1638,13 @@ let add_attrs bb always dc c time =
       | _ -> ()
   and oFm s a b =
     if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%s'" s (FMTE.to_string a)
+    then Printf.bprintf bb "\n    %s='%s'" s (FMTE.to_string a)
   and oSv s a b m =
     if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%b'" s (a land m != 0)
+    then Printf.bprintf bb "\n    %s='%b'" s (a land m != 0)
   and oPm s a b =
     if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%s'" s (MTE.to_string a)
+    then Printf.bprintf bb "\n    %s='%s'" s (MTE.to_string a)
   in
   oi "width" c.cwinw dc.cwinw;
   oi "height" c.cwinh dc.cwinh;
@@ -1711,7 +1707,7 @@ let add_attrs bb always dc c time =
   ob "scroll-bar-on-the-left" c.leftscroll dc.leftscroll;
   if not always
   then os "title" c.title dc.title;
-  oF "last-visit" (snd (modf time)) 0.0;
+  oL "last-visit" (Int64.of_float time) 0L;
   ob "edit-annotations-inline" c.annotinline dc.annotinline;
 ;;
 
