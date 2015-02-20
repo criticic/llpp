@@ -1018,7 +1018,7 @@ static void initpdims (void)
 #ifdef CACHE_PAGEREFS
             pageref = state.pdflut.objs[pageno];
 #else
-            pageref = pdf_lookup_page_obj (pdf, pageno);
+            pageref = pdf_lookup_page_obj (state.ctx, pdf, pageno);
 #endif
             pageobj = pdf_resolve_indirect (state.ctx, pageref);
 
