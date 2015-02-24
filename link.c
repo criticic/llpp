@@ -1238,12 +1238,8 @@ static void initpdims (void)
                 state.pagecount, end - start);
     }
     else {
-        if (state.type == DPDF)
-            printd ("progress 1 Processed %d pages in %f seconds",
-                    state.pagecount, end - start);
-        else
-            printd ("vmsg Processed %d pages in %f seconds",
-                    state.pagecount, end - start);
+        printd ("progress 1 Processed %d pages in %f seconds\n",
+                state.pagecount, end - start);
     }
     state.trimanew = 0;
     if (trimf) {
