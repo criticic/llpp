@@ -1940,10 +1940,11 @@ let act cmds =
   | "info" :: args :: [] ->
       let pos = nindex args '\t' in
       if pos >= 0 && String.sub args 0 pos = "Title"
-      then
+      then (
         let s = String.sub args (pos+1) @@ String.length args - pos - 1 in
         conf.title <- s;
         Wsi.settitle s;
+      );
       state.docinfo <- (1, args) :: state.docinfo
 
   | "infoend" :: [] ->
