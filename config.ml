@@ -1532,12 +1532,7 @@ let load openlast =
      );
     let pc, pb, px, pa =
       try
-        let path =
-          if emptystr state.origin
-          then state.path
-          else state.origin
-        in
-        let absname = abspath path in
+        let absname = abspath state.path in
         Hashtbl.find h absname
       with Not_found -> dc, [], 0, emptyanchor
     in
