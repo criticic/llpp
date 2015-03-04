@@ -451,7 +451,6 @@ and hists =
 
 let emptyanchor = (0, 0.0, 0.0);;
 let emptykeyhash = Hashtbl.create 0;;
-let firstgeomcmds = E.s, [];;
 let noghyll _ = ();;
 let noreprf () = ();;
 let noroam () = ();;
@@ -714,7 +713,7 @@ let state =
   ; path          = E.s
   ; password      = E.s
   ; nameddest     = E.s
-  ; geomcmds      = firstgeomcmds
+  ; geomcmds      = E.s, []
   ; hists         =
       { nav       = cbnew 10 emptyanchor
       ; pat       = cbnew 10 E.s

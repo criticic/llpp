@@ -1389,9 +1389,8 @@ let represent () =
   );
 ;;
 
-let reshape ?(xisfine=false) w h =
+let reshape ?(firsttime=false) w h =
   GlDraw.viewport ~x:0 ~y:0 ~w:w ~h:h;
-  let firsttime = state.geomcmds == firstgeomcmds in
   if not firsttime && nogeomcmds state.geomcmds
   then state.anchor <- getanchor ();
 
@@ -1410,14 +1409,14 @@ let reshape ?(xisfine=false) w h =
   GlMat.scale3 (2.0 /. float state.winw, 2.0 /. float state.winh, 1.0);
 
   let relx =
-    if xisfine || conf.zoom <= 1.0
+    if not firsttime || conf.zoom <= 1.0
     then 0.0
     else float state.x /. float state.w
   in
   invalidate "geometry"
     (fun () ->
       state.w <- w;
-      if not (firsttime || xisfine)
+      if not firsttime
       then state.x <- truncate (relx *. float w);
       let w =
         match conf.columns with
@@ -3404,7 +3403,7 @@ let gotohist (path, (c, bookmarks, x, anchor)) =
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   opendoc path E.s;
-  reshape ~xisfine:true conf.cwinw conf.cwinh;
+  reshape ~firsttime:true conf.cwinw conf.cwinh;
 ;;
 
 let makecheckers () =
@@ -6611,7 +6610,7 @@ let () =
   );
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;
-  reshape winw winh;
+  reshape ~firsttime:true winw winh;
   state.uioh <- uioh;
   if histmode
   then (
