@@ -1409,7 +1409,7 @@ let reshape ?(firsttime=false) w h =
   GlMat.scale3 (2.0 /. float state.winw, 2.0 /. float state.winh, 1.0);
 
   let relx =
-    if not firsttime || conf.zoom <= 1.0
+    if conf.zoom <= 1.0
     then 0.0
     else float state.x /. float state.w
   in
