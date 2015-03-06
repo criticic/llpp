@@ -3396,14 +3396,14 @@ let genhistoutlines =
 let gotohist (path, (c, bookmarks, x, anchor)) =
   Config.save leavebirdseye;
   state.anchor <- anchor;
-  state.x <- x;
   state.bookmarks <- bookmarks;
   state.origin <- E.s;
+  setzoom c.zoom;
+  state.x <- x;
   setconf conf c;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   opendoc path E.s;
-  reshape ~firsttime:true conf.cwinw conf.cwinh;
 ;;
 
 let makecheckers () =
