@@ -2,7 +2,7 @@
 set -e
 
 unset cflags
-test $(uname -m) = "x86)_64" && buildtype=native || buildtype=release
+test $(uname -m) = "x86_64" && buildtype=native || buildtype=release
 
 usage () {
     echo "$1"

@@ -1549,7 +1549,7 @@ let onpagerect pageno f =
   in
   if pageno >= 0 && pageno < Array.length b
   then
-    let (_, _, _, (w, h, _, _)) = b.(pageno) in
+    let (_, _, _, (_, w, h, _)) = b.(pageno) in
     f w h
 ;;
 
