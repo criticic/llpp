@@ -1,10 +1,14 @@
 MuPDF[1] rendering library is used to do the actual work, so it needs
 to be built and installed to use llpp.
 
-Note that MuPDF is a moving target therefore below is the commit id
-of the git version of MuPDF that this version of llpp is known to work
-with:
-7dc088630b8b8871decad9d58985a9205790185e
+MuPDF is included as a git submodule, which needs to be initialized
+before building llpp. This is done with the following two commands
+  git submodule init
+  git submodule update
+
+After that, change into the MuPDF directory and build it:
+  cd mupdf
+  make
 
 llpp also depends on OCaml[2] (version 4.02.x), LablGL[3] having a C
 compiler wouldn't hurt either.

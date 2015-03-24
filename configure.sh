@@ -7,7 +7,7 @@ test $(uname -m) = "x86_64" && buildtype=native || buildtype=release
 usage () {
     echo "$1"
     cat 1>&2 <<EOF
-usage: $0 [-F] [-b build-type] [-O] [-n] [mudir]
+usage: $0 [-F] [-b build-type] [-O] [-n]
 options:
  -F: use fontconfig
  -b: MuPDF's build type [default native]
@@ -15,7 +15,6 @@ options:
  -n: use native OCaml compiler (bytecode otherwise)
 
  build-type = debug|release|native
- mudir      = path to MuPDF's git checkout
 EOF
     exit $2
 }
@@ -29,10 +28,6 @@ while getopts nFb:O opt; do
         ?) usage "" 0;;
     esac
 done
-shift $((OPTIND - 1))
-
-mupdf="$1"
-test -e "$mupdf" || usage "Don't know where to find MuPDF's git checkout" 1
 
 pkgs="freetype2 zlib openssl" # j(peg|big2dec)?
 test $fontconfig && pkgs="$pkgs fontconfig" || true
@@ -73,11 +68,10 @@ cflags=$cflags -O $(pkg-config --cflags $pkgs)
 lflags=$libs
 srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)
 buildtype=$buildtype
-mupdf=$mupdf
 builddir=$builddir
 lablglcflags=$lablglcflags
 EOF
- test -e $mupdf/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
+ test -e mupdf/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
  test $native && {
      echo "cmo=.cmx"
      echo "cma=.cmxa"

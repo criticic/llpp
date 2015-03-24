@@ -1,9 +1,9 @@
 cc = gcc
 include .config
 ocamlflags = -warn-error +a -w +a -g -safe-string
-libs = -lmupdf $mujs -lpthread -L$mupdf/build/$buildtype
+libs = -lmupdf $mujs -lpthread -Lmupdf/build/$buildtype
 
-cflags = $cflags -Wall -Werror -I$mupdf/include -g $
+cflags = $cflags -Wall -Werror -Imupdf/include -g $
        -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow
 
 rule cc
