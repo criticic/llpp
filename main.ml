@@ -3398,12 +3398,12 @@ let gotohist (path, (c, bookmarks, x, anchor)) =
   state.anchor <- anchor;
   state.bookmarks <- bookmarks;
   state.origin <- E.s;
-  setzoom c.zoom;
   state.x <- x;
   setconf conf c;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   opendoc path E.s;
+  setzoom c.zoom;
 ;;
 
 let makecheckers () =
