@@ -109,7 +109,7 @@ fi
 case $type in
     ps) conv='ps2pdf - "$casp"';;
     image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
-    djvu) conv='djvups - | ps2pdf - "$casp"';;
+    djvu) conv='ddjvu -format=pdf - "$casp"';;
     html) {
         test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
