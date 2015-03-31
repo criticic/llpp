@@ -75,13 +75,15 @@ EOF
     test $native && {
         echo "cmo=.cmx"
         echo "cma=.cmxa"
-        echo "ocamlc=ocamlopt.opt"
+        command &>/dev/null -v ocamlopt.opt && optsuf=".opt" || optsuf=""
+        echo "ocamlc=ocamlopt$optsuf"
         echo "linksocclib=-cclib"
         echo "customflag="
     } || {
         echo "cmo=.cmo"
         echo "cma=.cma"
-        echo "ocamlc=ocamlc.opt"
+        command &>/dev/null -v ocamlc.opt && optsuf=".opt" || optsuf=""
+        echo "ocamlc=ocamlc$optsuf"
         echo "linksocclib="
         echo "customflag=-custom"
     }
