@@ -1889,23 +1889,26 @@ let save1 bb leavebirdseye x h dc =
     | LinkNav _ -> x, conf
   in
   let docpath = if nonemptystr state.path then abspath state.path else E.s in
-  adddoc docpath pan (getanchor ())
-    (
-     let autoscrollstep =
-       match state.autoscroll with
-       | Some step -> step
-       | None -> conf.autoscrollstep
-     in
-     begin match state.mode with
-     | Birdseye beye -> leavebirdseye beye true
-     | Textentry _
-     | View
-     | LinkNav _ -> ()
-     end;
-     { conf with autoscrollstep = autoscrollstep }
-    )
+  if docpath <> E.s
+  then (
+    adddoc docpath pan (getanchor ())
+           (
+             let autoscrollstep =
+               match state.autoscroll with
+               | Some step -> step
+               | None -> conf.autoscrollstep
+             in
+             begin match state.mode with
+                   | Birdseye beye -> leavebirdseye beye true
+                   | Textentry _
+                   | View
+                   | LinkNav _ -> ()
+             end;
+             { conf with autoscrollstep = autoscrollstep }
+           )
     (if conf.savebmarks then state.bookmarks else [])
-    (now ());
+    (now ())
+  );
 
   Hashtbl.iter (fun path (c, bookmarks, x, anchor) ->
     if docpath <> abspath path
