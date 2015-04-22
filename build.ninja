@@ -24,7 +24,7 @@ rule genhelp
 build $builddir/help.ml: genhelp $
       $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS
 build $builddir/link.o: cc $srcdir/link.c
-      cflags = $cflags -D_GNU_SOURCE -DOBSCURED_OPT -DFFP
+      cflags = $cflags -D_GNU_SOURCE -DFFP
 build $builddir/help$cmo: ocamlc $builddir/help.ml
 build $builddir/utils$cmo: ocamlc $srcdir/utils.ml
 build $builddir/bo$cmo: ocamlc $srcdir/le/bo.ml

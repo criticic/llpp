@@ -710,55 +710,6 @@ static struct tile *alloctile (int h)
     return tile;
 }
 
-#ifdef OBSCURED_OPT
-struct obs {
-    fz_device super;
-    int cured;
-    fz_irect b;
-};
-
-static void obs_fill_image (fz_context *ctx, fz_device *dev,
-                            fz_image UNUSED_ATTR *image,
-                            const fz_matrix *ctm, float alpha)
-{
-    struct obs *obs = (struct obs *) dev;
-    (void) ctx;
-
-    if (!obs->cured && fabs (1.0 - alpha) < 1e6) {
-        fz_irect b;
-        fz_rect rect = fz_unit_rect;
-
-        fz_transform_rect (&rect, ctm);
-        fz_round_rect (&b, &rect);
-        fz_intersect_irect (&b, &obs->b);
-        obs->cured = b.x0 == obs->b.x0
-            && b.x1 == obs->b.x1
-            && b.y0 == obs->b.y0
-            && b.y1 == obs->b.y1;
-    }
-}
-
-static int obscured (struct page *page, fz_irect bbox)
-{
-    fz_rect rect;
-    fz_matrix ctm;
-    struct obs obs;
-
-    memset (&obs, 0, sizeof (obs));
-    obs.super.hints = 0;
-    obs.super.flags = 0;
-    obs.super.fill_image = obs_fill_image;
-    obs.b = bbox;
-    fz_rect_from_irect (&rect, &bbox);
-    ctm = pagectm (page);
-    fz_run_display_list (state.ctx, page->dlist, &obs.super, &ctm, &rect, NULL);
-    return obs.cured;
-}
-#define OBSCURED obscured
-#else
-#define OBSCURED(a, b) 0
-#endif
-
 static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
                                 struct pbo *pbo)
 {
@@ -806,9 +757,8 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 
     tile->w = w;
     tile->h = h;
-    if (!page->fzpage || ((w < 128 && h < 128) || !OBSCURED (page, bbox))) {
-        clearpixmap (tile->pixmap);
-    }
+    clearpixmap (tile->pixmap);
+
     dev = fz_new_draw_device (state.ctx, tile->pixmap);
     ctm = pagectm (page);
     fz_rect_from_irect (&rect, &bbox);
