@@ -2933,7 +2933,6 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
         Field (tup_v, 1) = n_v;
     }
 
-    unlock ("ml_getlink");
     CAMLreturn (ret_v);
 }
 
