@@ -3706,7 +3706,7 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
 CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
                                    value dw_v, value cols_v)
 {
-    CAMLparam3 (winw_v, winh_v, dw_v);
+    CAMLparam4 (winw_v, winh_v, dw_v, cols_v);
     CAMLlocal1 (ret_v);
     int i;
     double zoom = -1.;
