@@ -1487,16 +1487,8 @@ let confpath = ref defconfpath;;
 let load1 f =
   if Sys.file_exists !confpath
   then
-    match
-      (try Some (open_in_bin !confpath)
-        with exn ->
-          prerr_endline
-            ("Error opening configuration file `" ^ !confpath ^ "': " ^
-                exntos exn);
-          None
-      )
-    with
-    | Some ic ->
+    match open_in_bin !confpath with
+    | ic ->
         let success =
           try
             f (do_load get ic)
@@ -1509,7 +1501,11 @@ let load1 f =
         close_in ic;
         success
 
-    | None -> false
+    | (exception exn) ->
+        prerr_endline
+          ("Error opening configuration file `" ^ !confpath ^ "': " ^
+           exntos exn);
+        false
   else
     f (Hashtbl.create 0, defconf)
 ;;
