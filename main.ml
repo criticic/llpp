@@ -3402,6 +3402,7 @@ let gotohist (path, (c, bookmarks, x, anchor)) =
   setconf conf c;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
+  reshape ~firsttime:true state.winw state.winh;
   opendoc path E.s;
   setzoom c.zoom;
 ;;
