@@ -274,3 +274,30 @@ let getcmdoutput errstr cmd =
         Ne.clo r @@ clofail "read end of the pipe";
         s
 ;;
+
+let geturl s =
+  let colonpos = try String.index s ':' with Not_found -> -1 in
+  let len = String.length s in
+  if colonpos >= 0 && colonpos + 3 < len
+  then (
+    if s.[colonpos+1] = '/' && s.[colonpos+2] = '/'
+    then
+      let schemestartpos =
+        try String.rindex_from s colonpos ' '
+        with Not_found -> -1
+      in
+      let scheme =
+        String.sub s (schemestartpos+1) (colonpos-1-schemestartpos)
+      in
+      match scheme with
+      | "http" | "https" | "ftp" | "mailto" ->
+          let epos =
+            try String.index_from s colonpos ' '
+            with Not_found -> len
+          in
+          String.sub s (schemestartpos+1) (epos-1-schemestartpos)
+      | _ -> E.s
+    else E.s
+  )
+  else E.s
+;;

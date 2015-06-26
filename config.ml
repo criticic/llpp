@@ -484,33 +484,6 @@ let version () =
     Help.version (fz_version ()) Sys.ocaml_version Sys.word_size
 ;;
 
-let geturl s =
-  let colonpos = try String.index s ':' with Not_found -> -1 in
-  let len = String.length s in
-  if colonpos >= 0 && colonpos + 3 < len
-  then (
-    if s.[colonpos+1] = '/' && s.[colonpos+2] = '/'
-    then
-      let schemestartpos =
-        try String.rindex_from s colonpos ' '
-        with Not_found -> -1
-      in
-      let scheme =
-        String.sub s (schemestartpos+1) (colonpos-1-schemestartpos)
-      in
-      match scheme with
-      | "http" | "ftp" | "mailto" ->
-          let epos =
-            try String.index_from s colonpos ' '
-            with Not_found -> len
-          in
-          String.sub s (schemestartpos+1) (epos-1-schemestartpos)
-      | _ -> E.s
-    else E.s
-  )
-  else E.s
-;;
-
 let defconf =
   { scrollbw       = 7
   ; scrollh        = 12
