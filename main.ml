@@ -2960,6 +2960,8 @@ object (self)
         if emptystr m_qsearch
         then (
           G.postRedisplay "list view escape";
+          let mx, my = state.mpos in
+          updateunder mx my;
           begin
             match
               source#exit ~uioh:(coe self)
