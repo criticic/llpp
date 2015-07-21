@@ -92,6 +92,7 @@ if test -z "$type"; then
         application/pdf) type=pdf;;
         image/vnd.djvu) type=djvu;;
         text/html) type=html;;
+        text/plain) type=text;;
         application/msword) type=word;;
         application/vnd.openxmlformats-officedocument.*  \
             | application/vnd.ms-powerpoint              \
@@ -173,6 +174,10 @@ EOF
         test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
         conv='dvipdf "$1" "$casp"'
+    };;
+    text) {
+        conv='pandoc -t epub - -o "$casp"'
+        caspsuf=.epub
     };;
     *) die "unhandled filter type: '$type'";;
 esac

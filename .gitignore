@@ -1,2 +1,6 @@
 /.config
 /build/
+/misc/completions/bash/llpp
+/misc/completions/bash/llppac
+/misc/completions/zsh/llpp
+/misc/completions/zsh/llppac
