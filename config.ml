@@ -1504,7 +1504,7 @@ let load openlast =
       try
         let absname = abspath state.path in
         Hashtbl.find h absname
-      with Not_found -> dc, [], 0, emptyanchor, E.s
+      with Not_found -> dc, [], 0, emptyanchor, state.origin
     in
     setconf defconf dc;
     setconf conf pc;
@@ -1779,7 +1779,7 @@ let save1 bb leavebirdseye x h dc =
 
       if nonemptystr origin
       then
-        Printf.bprintf bb "origin='%s'"
+        Printf.bprintf bb "\n    origin='%s'"
           (enent origin 0 (String.length origin));
 
       if anchor <> emptyanchor
