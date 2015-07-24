@@ -4,3 +4,5 @@
 /misc/completions/bash/llppac
 /misc/completions/zsh/llpp
 /misc/completions/zsh/llppac
+/.gdb_history
+/.shake
