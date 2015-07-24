@@ -296,7 +296,7 @@ and outlinekind =
     | Olaunch of launchcommand
     | Oremote of (filename * pageno)
     | Oremotedest of (filename * destname)
-    | Ohistory of (filename * (conf * outline list * x * anchor))
+    | Ohistory of (filename * (conf * outline list * x * anchor * filename))
     | Oaction of (unit -> unit)
 and outline = (caption * outlinelevel * outlinekind)
 and outlinelevel = int
@@ -1126,16 +1126,17 @@ let bookmark_of attrs =
 ;;
 
 let doc_of attrs =
-  let rec fold path page rely pan visy = function
-    | ("path", v) :: rest -> fold v page rely pan visy rest
-    | ("page", v) :: rest -> fold path v rely pan visy rest
-    | ("rely", v) :: rest -> fold path page v pan visy rest
-    | ("pan", v) :: rest -> fold path page rely v visy rest
-    | ("visy", v) :: rest -> fold path page rely pan v rest
-    | _ :: rest -> fold path page rely pan visy rest
-    | [] -> path, page, rely, pan, visy
+  let rec fold path page rely pan visy origin = function
+    | ("path", v) :: rest -> fold v page rely pan visy origin rest
+    | ("page", v) :: rest -> fold path v rely pan visy origin rest
+    | ("rely", v) :: rest -> fold path page v pan visy origin rest
+    | ("pan", v) :: rest -> fold path page rely v visy origin rest
+    | ("visy", v) :: rest -> fold path page rely pan v origin rest
+    | ("origin", v) :: rest -> fold path page rely pan visy v rest
+    | _ :: rest -> fold path page rely pan visy origin rest
+    | [] -> path, page, rely, pan, visy, origin
   in
-  fold E.s "0" "0" "0" "0" attrs
+  fold E.s "0" "0" "0" "0" E.s attrs
 ;;
 
 let map_of attrs =
@@ -1261,8 +1262,9 @@ let get s =
         else { v with f = uifont (Buffer.create 10) }
 
     | Vopen ("doc", attrs, closed) ->
-        let pathent, spage, srely, span, svisy = doc_of attrs in
+        let pathent, spage, srely, span, svisy, origin = doc_of attrs in
         let path = unent pathent
+        and origin = unent origin
         and pageno = fromstring int_of_string spos "page" spage 0
         and rely = fromstring float_of_string spos "rely" srely 0.0
         and pan = fromstring int_of_string spos "pan" span 0
@@ -1270,8 +1272,8 @@ let get s =
         let c = config_of dc attrs in
         let anchor = (pageno, rely, visy) in
         if closed
-        then (Hashtbl.add h path (c, [], pan, anchor); v)
-        else { v with f = doc path pan anchor c [] }
+        then (Hashtbl.add h path (c, [], pan, anchor, origin); v)
+        else { v with f = doc path origin pan anchor c [] }
 
     | Vopen _ ->
         error "unexpected subelement in llppconfig" s spos
@@ -1319,14 +1321,14 @@ let get s =
     | Vclose _ -> error "unexpected close in ui-font" s spos
     | Vend -> error "unexpected end of input in ui-font" s spos
 
-  and doc path pan anchor c bookmarks v t spos _ =
+  and doc path origin pan anchor c bookmarks v t spos _ =
     match t with
     | Vdata | Vcdata -> v
     | Vend -> error "unexpected end of input in doc" s spos
     | Vopen ("bookmarks", _, closed) ->
         if closed
         then v
-        else { v with f = pbookmarks path pan anchor c bookmarks }
+        else { v with f = pbookmarks path origin pan anchor c bookmarks }
 
     | Vopen ("keymap", attrs, closed) ->
         let modename =
@@ -1339,7 +1341,7 @@ let get s =
           let ret keymap =
             let h = findkeyhash c modename in
             KeyMap.iter (Hashtbl.replace h) keymap;
-            doc path pan anchor c bookmarks
+            doc path origin pan anchor c bookmarks
           in
           { v with f = pkeymap ret KeyMap.empty }
 
@@ -1347,7 +1349,7 @@ let get s =
         error "unexpected subelement in doc" s spos
 
     | Vclose "doc" ->
-        Hashtbl.add h path (c, List.rev bookmarks, pan, anchor);
+        Hashtbl.add h path (c, List.rev bookmarks, pan, anchor, origin);
         { v with f = llppconfig }
 
     | Vclose _ -> error "unexpected close in doc" s spos
@@ -1380,7 +1382,7 @@ let get s =
 
     | Vclose _ -> error "unexpected close in keymap" s spos
 
-  and pbookmarks path pan anchor c bookmarks v t spos _ =
+  and pbookmarks path origin pan anchor c bookmarks v t spos _ =
     match t with
     | Vdata | Vcdata -> v
     | Vend -> error "unexpected end of input in bookmarks" s spos
@@ -1393,7 +1395,7 @@ let get s =
           (unent titleent, 0, Oanchor (page, rely, visy)) :: bookmarks
         in
         if closed
-        then { v with f = pbookmarks path pan anchor c bookmarks }
+        then { v with f = pbookmarks path origin pan anchor c bookmarks }
         else
           let f () = v in
           { v with f = skip "item" f }
@@ -1402,7 +1404,7 @@ let get s =
         error "unexpected subelement in bookmarks" s spos
 
     | Vclose "bookmarks" ->
-        { v with f = doc path pan anchor c bookmarks }
+        { v with f = doc path origin pan anchor c bookmarks }
 
     | Vclose _ -> Parser.parse_error "unexpected close in bookmarks" s spos
 
@@ -1489,7 +1491,7 @@ let load openlast =
     then (
       let path, _ =
         Hashtbl.fold
-          (fun path (conf, _, _, _) ((_, besttime) as best) ->
+          (fun path (conf, _, _, _, _) ((_, besttime) as best) ->
             if conf.lastvisit > besttime
             then (path, conf.lastvisit)
             else best)
@@ -1498,16 +1500,17 @@ let load openlast =
       in
       state.path <- path;
      );
-    let pc, pb, px, pa =
+    let pc, pb, px, pa, po =
       try
         let absname = abspath state.path in
         Hashtbl.find h absname
-      with Not_found -> dc, [], 0, emptyanchor
+      with Not_found -> dc, [], 0, emptyanchor, E.s
     in
     setconf defconf dc;
     setconf conf pc;
     state.bookmarks <- pb;
     state.x <- px;
+    state.origin <- po;
     if conf.jumpback
     then state.anchor <- pa;
     cbput state.hists.nav pa;
@@ -1519,8 +1522,8 @@ let load openlast =
 let gethist listref =
   let f (h, _) =
     listref :=
-      Hashtbl.fold (fun path (pc, pb, px, pa) accu ->
-        (path, pc, pb, px, pa) :: accu)
+      Hashtbl.fold (fun path (pc, pb, px, pa, po) accu ->
+        (path, pc, pb, px, pa, po) :: accu)
         h [];
     true
   in
@@ -1767,12 +1770,17 @@ let save1 bb leavebirdseye x h dc =
    )
   else Buffer.add_string bb "/>\n";
 
-  let adddoc path pan anchor c bookmarks time =
+  let adddoc path pan anchor c bookmarks time origin =
     if bookmarks == [] && c = dc && anchor = emptyanchor
     then ()
     else (
       Printf.bprintf bb "<doc path='%s'"
         (enent path 0 (String.length path));
+
+      if nonemptystr origin
+      then
+        Printf.bprintf bb "origin='%s'"
+          (enent origin 0 (String.length origin));
 
       if anchor <> emptyanchor
       then (
@@ -1858,30 +1866,30 @@ let save1 bb leavebirdseye x h dc =
     | LinkNav _ -> x, conf
   in
   let docpath = if nonemptystr state.path then abspath state.path else E.s in
-  if docpath <> E.s
+  if nonemptystr docpath
   then (
     adddoc docpath pan (getanchor ())
-           (
-             let autoscrollstep =
-               match state.autoscroll with
-               | Some step -> step
-               | None -> conf.autoscrollstep
-             in
-             begin match state.mode with
-                   | Birdseye beye -> leavebirdseye beye true
-                   | Textentry _
-                   | View
-                   | LinkNav _ -> ()
-             end;
-             { conf with autoscrollstep = autoscrollstep }
-           )
-    (if conf.savebmarks then state.bookmarks else [])
-    (now ())
+      (
+       let autoscrollstep =
+         match state.autoscroll with
+         | Some step -> step
+         | None -> conf.autoscrollstep
+       in
+       begin match state.mode with
+       | Birdseye beye -> leavebirdseye beye true
+       | Textentry _
+       | View
+       | LinkNav _ -> ()
+       end;
+       { conf with autoscrollstep = autoscrollstep }
+      )
+      (if conf.savebmarks then state.bookmarks else [])
+      (now ())
+      state.origin
   );
-
-  Hashtbl.iter (fun path (c, bookmarks, x, anchor) ->
+  Hashtbl.iter (fun path (c, bookmarks, x, anchor, origin) ->
     if docpath <> abspath path
-    then adddoc path x anchor c bookmarks c.lastvisit
+    then adddoc path x anchor c bookmarks c.lastvisit origin
                ) h;
   Buffer.add_string bb "</llppconfig>\n";
   true;
@@ -1931,7 +1939,7 @@ let gc fdi fdo =
   let href = ref (Hashtbl.create 0) in
   let cref = ref defconf in
   let push (h, dc) =
-    let f path (pc, _pb, _px, _pa) =
+    let f path (pc, _pb, _px, _pa, _po) =
       let s =
         Printf.sprintf "%s\000%ld\000" path (Int32.of_float pc.lastvisit)
       in

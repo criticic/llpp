@@ -3351,7 +3351,7 @@ object (self)
 end
 
 let genhistoutlines =
-  let order ty (p1, c1, _, _, _) (p2, c2, _, _, _) =
+  let order ty (p1, c1, _, _, _, _) (p2, c2, _, _, _, _) =
     match ty with
     | `lastvisit -> compare c1.lastvisit c2.lastvisit
     | `path -> compare p2 p1
@@ -3366,6 +3366,7 @@ let genhistoutlines =
         else compare c1.title c2.title
   in
   let showfullpath = ref false in
+  let showorigin = ref true in
   fun orderty ->
     let setorty s t =
       let s = if orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
@@ -3376,9 +3377,12 @@ let genhistoutlines =
     then
       let ol =
         List.fold_left
-          (fun accu (path, c, b, x, a) ->
-            let hist = (path, (c, b, x, a)) in
-            let s = if !showfullpath then path else Filename.basename path in
+          (fun accu (path, c, b, x, a, o) ->
+            let hist = (path, (c, b, x, a, o)) in
+            let s =
+              let s = if nonemptystr o && !showorigin then o else path in
+              if !showfullpath then s else Filename.basename s
+            in
             let base = mbtoutf8 s in
             (base ^ "\000" ^ c.title, 1, Ohistory hist) :: accu
           )
@@ -3388,24 +3392,27 @@ let genhistoutlines =
             setorty "Sort by title" `title;
             (if !showfullpath then "@Uradical "
             else "   ") ^ "Show full path", 0, Oaction (fun () ->
-              showfullpath := not !showfullpath; reeenterhist := true)
+              showfullpath := not !showfullpath; reeenterhist := true);
+            (if !showorigin then "@Uradical "
+            else "   ") ^ "Show origin", 0, Oaction (fun () ->
+              showorigin := not !showorigin; reeenterhist := true)
           ] (List.sort (order orderty) !list)
       in
       Array.of_list ol
     else E.a;
 ;;
 
-let gotohist (path, (c, bookmarks, x, anchor)) =
+let gotohist (path, (c, bookmarks, x, anchor, origin)) =
   Config.save leavebirdseye;
   state.anchor <- anchor;
   state.bookmarks <- bookmarks;
-  state.origin <- E.s;
+  state.origin <- origin;
   state.x <- x;
   setconf conf c;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   reshape ~firsttime:true state.winw state.winh;
-  opendoc path E.s;
+  opendoc path origin;
   setzoom c.zoom;
 ;;
 
