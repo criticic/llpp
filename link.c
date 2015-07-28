@@ -2220,7 +2220,7 @@ static void droptext (struct page *page)
     }
 }
 
-static void dropanots (struct page *page)
+static void dropannots (struct page *page)
 {
     if (page->annots) {
         free (page->annots);
@@ -2229,14 +2229,14 @@ static void dropanots (struct page *page)
     }
 }
 
-static void ensureanots (struct page *page)
+static void ensureannots (struct page *page)
 {
     int i, count = 0;
-    size_t anotsize = sizeof (*page->annots);
+    size_t annotsize = sizeof (*page->annots);
     fz_annot *annot;
 
     if (state.gen != page->agen) {
-        dropanots (page);
+        dropannots (page);
         page->agen = state.gen;
     }
     if (page->annots) return;
@@ -2249,7 +2249,7 @@ static void ensureanots (struct page *page)
 
     if (count > 0) {
         page->annotcount = count;
-        page->annots = calloc (count, anotsize);
+        page->annots = calloc (count, annotsize);
         if (!page->annots) {
             err (1, "calloc annots %d", count);
         }
@@ -2282,7 +2282,7 @@ static void ensureslinks (struct page *page)
     size_t slinksize = sizeof (*page->slinks);
     fz_link *link, *links;
 
-    ensureanots (page);
+    ensureannots (page);
     if (state.gen != page->sgen) {
         dropslinks (page);
         page->sgen = state.gen;
@@ -2542,7 +2542,7 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         goto done;
     }
 
-    ensureanots (page);
+    ensureannots (page);
 
     if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (trylock ("ml_postprocess")) {
