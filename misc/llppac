@@ -134,7 +134,7 @@ case $type in
     uno) {
         test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
-        missing pandoc "unoconv(http://dag.wiee.rs/home-made/unoconv/)"
+        missing unoconv "unoconv(http://dag.wiee.rs/home-made/unoconv/)"
         conv='unoconv -o "$casp" "$1"'
     };;
     svg) {
