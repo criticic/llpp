@@ -32,7 +32,7 @@ let enent s pos len =
       | '<' -> Buffer.add_string b "&lt;"
       | '>' -> Buffer.add_string b "&gt;"
       | '\'' -> Buffer.add_string b "&apos;"
-      | '"' -> Buffer.add_string b "&quot;"
+      | '\"' -> Buffer.add_string b "&quot;"
       | '&' -> Buffer.add_string b "&amp;"
       | c ->
           let code = Char.code c in
@@ -102,7 +102,7 @@ let unent b s pos len =
           | "gt" -> Buffer.add_char b '>'
           | "amp" -> Buffer.add_char b '&'
           | "apos" -> Buffer.add_char b '\''
-          | "quot" -> Buffer.add_char b '"'
+          | "quot" -> Buffer.add_char b '\"'
           | _ -> failwith ("unknown amp " ^ String.escaped subs)
         );
         loop (semipos+1)
@@ -313,7 +313,7 @@ let parse v s =
           then parse_error "not enough data for attribute" s pos;
 
           let qc = s.[qpos] in
-          if not (qc = '\'' || qc = '"')
+          if not (qc = '\'' || qc = '\"')
           then parse_error "assignment is not followed by a quote" s pos;
 
           let closing_q_pos =
