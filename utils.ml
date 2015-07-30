@@ -76,7 +76,7 @@ let int_of_string_with_suffix s =
   let n = int_of_string s1 in
   let m = n lsl shift in
   if m < 0 || m < n
-  then raise (Failure "value too large")
+  then error "value too large"
   else m
 ;;
 
