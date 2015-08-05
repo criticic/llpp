@@ -363,10 +363,13 @@ let selstring s =
       clo "selstring pipe/w" w;
 ;;
 
-let undertext = function
+let undertext ?(nopath=false) = function
   | Unone -> "none"
   | Ulinkuri s -> s
-  | Ulinkgoto (pageno, _) -> Printf.sprintf "%s: page %d" state.path (pageno+1)
+  | Ulinkgoto (pageno, _) ->
+      if nopath
+      then "page " ^ string_of_int (pageno+1)
+      else Printf.sprintf "%s: page %d" state.path (pageno+1)
   | Utext s -> "font: " ^ s
   | Uunexpected s -> "unexpected: " ^ s
   | Ulaunch s -> "launch: " ^ s
@@ -2007,23 +2010,7 @@ let intentry text key =
       TEcont text
 ;;
 
-let linknentry text key =
-  let c =
-    if key >= 32 && key < 127
-    then Char.chr key
-    else '\000'
-  in
-  match c with
-  | 'a' .. 'z' ->
-      let text = addchar text c in
-      TEcont text
-
-  | _ ->
-      state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
-      TEcont text
-;;
-
-let linkndone f s =
+let linknact f s =
   if nonemptystr s
   then (
     let n =
@@ -2049,6 +2036,23 @@ let linkndone f s =
     in
     loop n state.layout;
   )
+;;
+
+let linknentry text key =
+  let c =
+    if key >= 32 && key < 127
+    then Char.chr key
+    else '\000'
+  in
+  match c with
+  | 'a' .. 'z' ->
+      let text = addchar text c in
+      linknact (fun under -> state.text <- undertext ~nopath:true under) text;
+      TEcont text
+
+  | _ ->
+      state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
+      TEcont text
 ;;
 
 let textentry text key =
@@ -2483,7 +2487,6 @@ let textentrykeyboard
   in
   let enttext te =
     state.mode <- Textentry (te, onleave);
-    state.text <- E.s;
     enttext ();
     G.postRedisplay "textentrykeyboard enttext";
   in
@@ -5024,7 +5027,7 @@ let viewkeyboard key mask =
       state.glinks <- true;
       let mode = state.mode in
       state.mode <- Textentry (
-        (":", E.s, None, linknentry, linkndone gotounder, false),
+        (":", E.s, None, linknentry, linknact gotounder, false),
         (fun _ ->
           state.glinks <- false;
           state.mode <- mode)
@@ -5037,7 +5040,7 @@ let viewkeyboard key mask =
       let mode = state.mode in
       state.mode <- Textentry (
         (
-          ":", E.s, None, linknentry, linkndone (fun under ->
+          ":", E.s, None, linknentry, linknact (fun under ->
             selstring (undertext under);
           ), false
         ),
