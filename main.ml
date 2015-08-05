@@ -2481,6 +2481,7 @@ end;;
 
 let textentrykeyboard
     key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
+  state.text <- E.s;
   let key =
     if key >= 0xffb0 && key <= 0xffb9
     then key - 0xffb0 + 48 else key
