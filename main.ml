@@ -3371,10 +3371,11 @@ let genhistoutlines =
   in
   let showfullpath = ref false in
   let showorigin = ref true in
-  fun orderty ->
+  let orderty : historder ref = ref `lastvisit in
+  fun () ->
     let setorty s t =
-      let s = if orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
-      s, 0, Oaction (fun () -> Config.historder := t; reenterhist := true)
+      let s = if !orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
+      s, 0, Oaction (fun () -> orderty := t; reenterhist := true)
     in
     match Config.gethist () with
     | [] -> E.a
@@ -3400,7 +3401,7 @@ let genhistoutlines =
             (if !showorigin then "@Uradical "
             else "   ") ^ "Show origin", 0, Oaction (fun () ->
               showorigin := not !showorigin; reenterhist := true)
-          ] (List.sort (order orderty) list)
+          ] (List.sort (order !orderty) list)
       in
       Array.of_list ol
 ;;
@@ -4576,7 +4577,7 @@ let outlinesource sourcetype =
         match sourcetype with
         | `bookmarks -> Array.of_list state.bookmarks
         | `outlines -> state.outlines
-        | `history -> genhistoutlines !Config.historder
+        | `history -> genhistoutlines ()
       );
       m_minfo <- m_orig_minfo;
       m_items <- m_orig_items
@@ -4663,7 +4664,7 @@ let enterselector sourcetype =
       match sourcetype with
       | `bookmarks -> Array.of_list state.bookmarks
       | `outlines -> state.outlines
-      | `history -> genhistoutlines !Config.historder
+      | `history -> genhistoutlines ()
     in
     if Array.length outlines = 0
     then (
