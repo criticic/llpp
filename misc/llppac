@@ -194,7 +194,7 @@ EOF
     text) {
         conv='pandoc -t epub - -o "$casp"'
         caspsuf=.epub
-        missing "pandoc(http://pandoc.org/)"
+        missing pandoc "pandoc(http://pandoc.org/)"
     };;
     *) die "unhandled filter type: '$type'";;
 esac
