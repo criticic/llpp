@@ -3376,9 +3376,9 @@ let genhistoutlines =
       let s = if orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
       s, 0, Oaction (fun () -> Config.historder := t; reeenterhist := true)
     in
-    let list = ref [] in
-    if Config.gethist list
-    then
+    match Config.gethist () with
+    | [] -> E.a
+    | list ->
       let ol =
         List.fold_left
           (fun accu (path, c, b, x, a, o) ->
@@ -3400,10 +3400,9 @@ let genhistoutlines =
             (if !showorigin then "@Uradical "
             else "   ") ^ "Show origin", 0, Oaction (fun () ->
               showorigin := not !showorigin; reeenterhist := true)
-          ] (List.sort (order orderty) !list)
+          ] (List.sort (order orderty) list)
       in
       Array.of_list ol
-    else E.a;
 ;;
 
 let gotohist (path, (c, bookmarks, x, anchor, origin)) =

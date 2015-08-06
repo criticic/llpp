@@ -1459,31 +1459,29 @@ let defconfpath =
 
 let confpath = ref defconfpath;;
 
-let load1 f =
-  if Sys.file_exists !confpath
-  then
-    match open_in_bin !confpath with
-    | ic ->
-        let success =
-          try
-            f (do_load get ic)
-          with exn ->
-            prerr_endline
-              ("Error loading configuration from `" ^ !confpath ^ "': " ^
-                  exntos exn);
-            false
-        in
-        close_in ic;
-        success
+let load2 f default =
+  match open_in_bin !confpath with
+  | ic ->
+      let res =
+        try
+          f (do_load get ic)
+        with exn ->
+          prerr_endline
+            ("Error loading configuration from `" ^ !confpath ^ "': " ^
+             exntos exn);
+          default
+      in
+      close_in ic;
+      res
 
-    | (exception exn) ->
-        prerr_endline
-          ("Error opening configuration file `" ^ !confpath ^ "': " ^
-           exntos exn);
-        false
-  else
-    f (Hashtbl.create 0, defconf)
+  | (exception exn) ->
+      prerr_endline
+        ("Error opening configuration file `" ^ !confpath ^ "': " ^
+         exntos exn);
+      default
 ;;
+
+let load1 f = load2 f false;;
 
 let load openlast =
   let f (h, dc) =
@@ -1519,15 +1517,13 @@ let load openlast =
   load1 f
 ;;
 
-let gethist listref =
+let gethist () =
   let f (h, _) =
-    listref :=
-      Hashtbl.fold (fun path (pc, pb, px, pa, po) accu ->
-        (path, pc, pb, px, pa, po) :: accu)
-        h [];
-    true
+    Hashtbl.fold (fun path (pc, pb, px, pa, po) accu ->
+      (path, pc, pb, px, pa, po) :: accu)
+      h [];
   in
-  load1 f
+  load2 f []
 ;;
 
 let add_attrs bb always dc c time =
