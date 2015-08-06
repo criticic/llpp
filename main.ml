@@ -44,7 +44,7 @@ external savedoc : string -> unit = "ml_savedoc";;
 external getannotcontents : opaque -> slinkindex -> string
   = "ml_getannotcontents";;
 
-let reeenterhist = ref false;;
+let reenterhist = ref false;;
 let selfexec = ref E.s;;
 
 let drawstring size x y s =
@@ -3374,7 +3374,7 @@ let genhistoutlines =
   fun orderty ->
     let setorty s t =
       let s = if orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
-      s, 0, Oaction (fun () -> Config.historder := t; reeenterhist := true)
+      s, 0, Oaction (fun () -> Config.historder := t; reenterhist := true)
     in
     match Config.gethist () with
     | [] -> E.a
@@ -3396,10 +3396,10 @@ let genhistoutlines =
             setorty "Sort by title" `title;
             (if !showfullpath then "@Uradical "
             else "   ") ^ "Show full path", 0, Oaction (fun () ->
-              showfullpath := not !showfullpath; reeenterhist := true);
+              showfullpath := not !showfullpath; reenterhist := true);
             (if !showorigin then "@Uradical "
             else "   ") ^ "Show origin", 0, Oaction (fun () ->
-              showorigin := not !showorigin; reeenterhist := true)
+              showorigin := not !showorigin; reenterhist := true)
           ] (List.sort (order orderty) list)
       in
       Array.of_list ol
@@ -6748,9 +6748,9 @@ let () =
               checkfds rest
         in
         checkfds l;
-        if !reeenterhist then (
+        if !reenterhist then (
           enterhistmode ();
-          reeenterhist := false;
+          reenterhist := false;
         );
         let newdeadline =
           let deadline1 =
