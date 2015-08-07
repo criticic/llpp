@@ -4681,16 +4681,10 @@ let enterselector sourcetype =
     )
 ;;
 
-let enteroutlinemode =
-  let f = enterselector `outlines in
-  fun () -> f "Document has no outline";
+let enteroutlinemode () = enterselector `outlines "Document has no outline";;
+let enterbookmarkmode () =
+  enterselector `bookmarks "Document has no bookmarks (yet)"
 ;;
-
-let enterbookmarkmode =
-  let f = enterselector `bookmarks in
-  fun () -> f "Document has no bookmarks (yet)";
-;;
-
 let enterhistmode () = enterselector `history "No history (yet)";;
 
 let quickbookmark ?title () =
