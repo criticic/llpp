@@ -44,7 +44,6 @@ external savedoc : string -> unit = "ml_savedoc";;
 external getannotcontents : opaque -> slinkindex -> string
   = "ml_getannotcontents";;
 
-let reenterhist = ref false;;
 let selfexec = ref E.s;;
 
 let drawstring size x y s =
@@ -3375,7 +3374,7 @@ let genhistoutlines =
   fun () ->
     let setorty s t =
       let s = if !orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
-      s, 0, Oaction (fun () -> orderty := t; reenterhist := true)
+      s, 0, Oaction (fun () -> orderty := t)
     in
     match Config.gethist () with
     | [] -> E.a
@@ -3397,10 +3396,10 @@ let genhistoutlines =
             setorty "Sort by title" `title;
             (if !showfullpath then "@Uradical "
             else "   ") ^ "Show full path", 0, Oaction (fun () ->
-              showfullpath := not !showfullpath; reenterhist := true);
+              showfullpath := not !showfullpath);
             (if !showorigin then "@Uradical "
             else "   ") ^ "Show origin", 0, Oaction (fun () ->
-              showorigin := not !showorigin; reenterhist := true)
+              showorigin := not !showorigin)
           ] (List.sort (order !orderty) list)
       in
       Array.of_list ol
@@ -4519,7 +4518,10 @@ let outlinesource sourcetype =
         m_minfo <- minfo;
       );
       m_pan <- pan;
-      None
+      if not cancel
+          && sourcetype = `history && active > Array.length m_items - 7
+      then (self#reset emptyanchor @@ genhistoutlines (); Some uioh)
+      else None
 
     method hasaction _ = true
 
@@ -6744,10 +6746,6 @@ let () =
               checkfds rest
         in
         checkfds l;
-        if !reenterhist then (
-          enterhistmode ();
-          reenterhist := false;
-        );
         let newdeadline =
           let deadline1 =
             if deadline = infinity
