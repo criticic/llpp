@@ -3374,7 +3374,7 @@ let genhistoutlines =
   fun () ->
     let setorty s t =
       let s = if !orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
-      s, 0, Oaction (fun () -> orderty := t)
+      s, 0, Oreaction (fun () -> orderty := t)
     in
     match Config.gethist () with
     | [] -> E.a
@@ -3395,10 +3395,10 @@ let genhistoutlines =
             setorty "Sort by path" `path;
             setorty "Sort by title" `title;
             (if !showfullpath then "@Uradical "
-            else "   ") ^ "Show full path", 0, Oaction (fun () ->
+            else "   ") ^ "Show full path", 0, Oreaction (fun () ->
               showfullpath := not !showfullpath);
             (if !showorigin then "@Uradical "
-            else "   ") ^ "Show origin", 0, Oaction (fun () ->
+            else "   ") ^ "Show origin", 0, Oreaction (fun () ->
               showorigin := not !showorigin)
           ] (List.sort (order !orderty) list)
       in
@@ -4466,7 +4466,7 @@ let gotooutline (_, _, kind) =
   | Oremote remote -> gotounder (Uremote remote)
   | Ohistory hist -> gotohist hist
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
-  | Oaction f -> f ()
+  | Oaction f | Oreaction f -> f ()
 ;;
 
 let outlinesource sourcetype =
@@ -4518,10 +4518,16 @@ let outlinesource sourcetype =
         m_minfo <- minfo;
       );
       m_pan <- pan;
-      if not cancel
-          && sourcetype = `history && active > Array.length m_items - 7
-      then (self#reset emptyanchor @@ genhistoutlines (); Some uioh)
-      else None
+      if cancel
+      then None
+      else
+        let _, _, kind = m_items.(active) in
+        match kind with
+        | Oreaction _ ->
+            self#reset emptyanchor @@ genhistoutlines ();
+            Some uioh
+        | Oanchor _ | Ohistory _ | Onone | Ouri _ | Oremote _
+        | Oremotedest _ | Olaunch _ | Oaction _ -> None
 
     method hasaction _ = true
 
@@ -4557,7 +4563,7 @@ let outlinesource sourcetype =
               let (s, _, t) as o = m_items.(n) in
               let accu, minfo =
                 match t with
-                | Oaction _ -> o :: accu, (0, 0) :: minfo
+                | Oaction _ | Oreaction _ -> o :: accu, (0, 0) :: minfo
                 | Onone | Oanchor _ | Ouri _ | Olaunch _
                 | Oremote _ | Oremotedest _ | Ohistory _ ->
                     let first =
@@ -4628,7 +4634,7 @@ let outlinesource sourcetype =
               then loop (n+1) n d
               else loop (n+1) best bestd
           | Onone | Oremote _ | Olaunch _
-          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ ->
+          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ | Oreaction _ ->
               loop (n+1) best bestd
       in
       loop 0 ~-1 max_int
