@@ -4227,7 +4227,7 @@ let getusertext s =
   then E.s
   else
     let tmppath = Filename.temp_file "llpp" "note" in
-    if not (emptystr s)
+    if nonemptystr s
     then (
       let oc = open_out tmppath in
       output_string oc s;
@@ -4296,7 +4296,7 @@ let enterannotmode opaque slinkindex =
           );
           None
 
-        method hasaction n = not @@ emptystr @@ fst m_items.(n)
+        method hasaction n = nonemptystr @@ fst m_items.(n)
 
         method reset s =
           let rec split accu b i =
@@ -4827,7 +4827,7 @@ let save () =
         (fun s -> error "failed to obtain path to the saved copy: %s" s)
         savecmd
     in
-    if not (emptystr path)
+    if nonemptystr path
     then
       let tmp = path ^ ".tmp" in
       savedoc tmp;
@@ -6431,7 +6431,7 @@ let () =
   | None -> ()
   end;
 
-  if not (emptystr !gcconfig)
+  if nonemptystr !gcconfig
   then (
     let c, s =
       match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
