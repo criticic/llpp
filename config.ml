@@ -298,6 +298,7 @@ and outlinekind =
     | Oremotedest of (filename * destname)
     | Ohistory of (filename * (conf * outline list * x * anchor * filename))
     | Oaction of (unit -> unit)
+    | Oreaction of (unit -> outline array)
 and outline = (caption * outlinelevel * outlinekind)
 and outlinelevel = int
 ;;
@@ -1825,7 +1826,7 @@ let save1 bb leavebirdseye x h dc =
                   Printf.bprintf bb " visy='%f'" visy
                     ;
             | Ohistory _ | Onone | Ouri _ | Oremote _
-            | Oremotedest _ | Olaunch _ | Oaction _ ->
+            | Oremotedest _ | Olaunch _ | Oaction _ | Oreaction _ ->
                 failwith "unexpected link in bookmarks"
             end;
             Buffer.add_string bb "/>\n";

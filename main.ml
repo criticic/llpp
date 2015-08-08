@@ -3371,10 +3371,10 @@ let genhistoutlines =
   let showfullpath = ref false in
   let showorigin = ref true in
   let orderty : historder ref = ref `lastvisit in
-  fun () ->
+  let rec f () =
     let setorty s t =
       let s = if !orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
-      s, 0, Oreaction (fun () -> orderty := t)
+      s, 0, Oreaction (fun () -> orderty := t; f ())
     in
     match Config.gethist () with
     | [] -> E.a
@@ -3396,13 +3396,16 @@ let genhistoutlines =
             setorty "Sort by title" `title;
             (if !showfullpath then "@Uradical "
             else "   ") ^ "Show full path", 0, Oreaction (fun () ->
-              showfullpath := not !showfullpath);
+              showfullpath := not !showfullpath;
+              f ());
             (if !showorigin then "@Uradical "
             else "   ") ^ "Show origin", 0, Oreaction (fun () ->
-              showorigin := not !showorigin)
+              showorigin := not !showorigin;
+              f ())
           ] (List.sort (order !orderty) list)
       in
       Array.of_list ol
+  in f
 ;;
 
 let gotohist (path, (c, bookmarks, x, anchor, origin)) =
@@ -4453,20 +4456,22 @@ let gotounder under =
 
 let gotooutline (_, _, kind) =
   match kind with
-  | Onone -> ()
+  | Onone -> None
   | Oanchor anchor ->
       let (pageno, y, _) = anchor in
       let y = getanchory
         (if conf.presentation then (pageno, y, 1.0) else anchor)
       in
       addnav ();
-      gotoghyll y
-  | Ouri uri -> gotounder (Ulinkuri uri)
-  | Olaunch cmd -> gotounder (Ulaunch cmd)
-  | Oremote remote -> gotounder (Uremote remote)
-  | Ohistory hist -> gotohist hist
-  | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
-  | Oaction f | Oreaction f -> f ()
+      gotoghyll y;
+      None
+  | Ouri uri -> gotounder (Ulinkuri uri); None
+  | Olaunch cmd -> gotounder (Ulaunch cmd); None
+  | Oremote remote -> gotounder (Uremote remote); None
+  | Ohistory hist -> gotohist hist; None
+  | Oremotedest remotedest -> gotounder (Uremotedest remotedest); None
+  | Oaction f -> f (); None
+  | Oreaction f -> Some (f ())
 ;;
 
 let outlinesource sourcetype =
@@ -4499,35 +4504,37 @@ let outlinesource sourcetype =
         then m_orig_items, m_orig_minfo
         else m_items, m_minfo
       in
-      if not cancel
-      then (
-        if not confrimremoval
+      let optoutlines =
+        if not cancel
         then (
-          gotooutline m_items.(active);
+          if not confrimremoval
+          then (
+            m_items <- items;
+            m_minfo <- minfo;
+            gotooutline m_items.(active);
+           )
+          else (
+            state.bookmarks <- Array.to_list m_items;
+            m_orig_items <- m_items;
+            m_orig_minfo <- m_minfo;
+            None
+           )
+         )
+        else (
           m_items <- items;
           m_minfo <- minfo;
-        )
-        else (
-          state.bookmarks <- Array.to_list m_items;
-          m_orig_items <- m_items;
-          m_orig_minfo <- m_minfo;
-        )
-      )
-      else (
-        m_items <- items;
-        m_minfo <- minfo;
-      );
+          None
+         )
+      in
       m_pan <- pan;
       if cancel
       then None
       else
-        let _, _, kind = m_items.(active) in
-        match kind with
-        | Oreaction _ ->
-            self#reset emptyanchor @@ genhistoutlines ();
+        match optoutlines with
+        | None -> None
+        | Some outlines ->
+            self#reset emptyanchor outlines;
             Some uioh
-        | Oanchor _ | Ohistory _ | Onone | Ouri _ | Oremote _
-        | Oremotedest _ | Olaunch _ | Oaction _ -> None
 
     method hasaction _ = true
 
