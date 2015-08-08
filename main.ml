@@ -4504,37 +4504,31 @@ let outlinesource sourcetype =
         then m_orig_items, m_orig_minfo
         else m_items, m_minfo
       in
-      let optoutlines =
-        if not cancel
+      m_pan <- pan;
+      if not cancel
+      then (
+        if not confrimremoval
         then (
-          if not confrimremoval
-          then (
-            m_items <- items;
-            m_minfo <- minfo;
-            gotooutline m_items.(active);
-           )
-          else (
-            state.bookmarks <- Array.to_list m_items;
-            m_orig_items <- m_items;
-            m_orig_minfo <- m_minfo;
-            None
-           )
-         )
-        else (
           m_items <- items;
           m_minfo <- minfo;
+          match gotooutline m_items.(active) with
+          | None -> None
+          | Some outlines ->
+              self#reset emptyanchor outlines;
+              Some uioh
+         )
+        else (
+          state.bookmarks <- Array.to_list m_items;
+          m_orig_items <- m_items;
+          m_orig_minfo <- m_minfo;
           None
          )
-      in
-      m_pan <- pan;
-      if cancel
-      then None
-      else
-        match optoutlines with
-        | None -> None
-        | Some outlines ->
-            self#reset emptyanchor outlines;
-            Some uioh
+       )
+      else (
+        m_items <- items;
+        m_minfo <- minfo;
+        None
+       )
 
     method hasaction _ = true
 
