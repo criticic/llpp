@@ -290,7 +290,7 @@ let geturl s =
         String.sub s (schemestartpos+1) (colonpos-1-schemestartpos)
       in
       match scheme with
-      | "http" | "https" | "ftp" | "mailto" ->
+      | "http" | "https" | "ftp" | "mailto" | "file" ->
           let epos =
             try String.index_from s colonpos ' '
             with Not_found -> len
