@@ -3805,6 +3805,7 @@ CAMLprim value ml_setaalevel (value level_v)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 #include <X11/Xlib.h>
+#include <X11/cursorfont.h>
 #pragma GCC diagnostic pop
 
 #include <GL/glx.h>
@@ -3814,12 +3815,14 @@ static struct {
     Display *dpy;
     GLXContext ctx;
     XVisualInfo *visual;
+    Cursor curs[6];
 } glx;
 
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
 {
     CAMLparam3 (display_v, wid_v, screen_v);
     int attribs[] = {GLX_RGBA,  GLX_DOUBLEBUFFER, None};
+    int shapes[] = { XC_arrow, XC_hand2, XC_exchange, XC_crosshair, XC_xterm };
 
     glx.dpy = XOpenDisplay (String_val (display_v));
     if (!glx.dpy) {
@@ -3830,6 +3833,10 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     if (!glx.visual) {
         XCloseDisplay (glx.dpy);
         caml_failwith ("glXChooseVisual");
+    }
+
+    for (size_t n = 0; n < sizeof (shapes) / sizeof (shapes[0]); ++n) {
+        glx.curs[n] = XCreateFontCursor (glx.dpy, shapes[n]);
     }
 
     glx.wid = Int_val (wid_v);
@@ -3853,6 +3860,15 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("glXMakeCurrent");
     }
+    CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_setcursor (value cursor_v)
+{
+    CAMLparam1 (cursor_v);
+    XSetWindowAttributes wa = { .cursor = glx.curs[Int_val (cursor_v)] };
+    XChangeWindowAttributes (glx.dpy, glx.wid, CWCursor, &wa);
+    XFlush (glx.dpy);
     CAMLreturn (Val_unit);
 }
 

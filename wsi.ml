@@ -27,6 +27,7 @@ type wid = int and screenno = int and vid = int and atom = int;;
 external glxinit : string -> wid -> screenno -> vid = "ml_glxinit";;
 external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
 external swapb : unit -> unit = "ml_swapb";;
+external setcursor : cursor -> unit = "ml_setcursor";;
 
 let vlog fmt = Format.ksprintf ignore fmt;;
 
@@ -367,40 +368,6 @@ let getpropreq delete wid prop typ =
   w32 s 12 typ;
   w32 s 16 0;
   w32 s 20 2;
-  s;
-;;
-
-let openfontreq fid name =
-  let s = makereq 45 12 0 in
-  let s = padcat s name in
-  w16 s 2 (Bytes.length s / 4);
-  w32 s 4 fid;
-  w16 s 8 (Bytes.length name);
-  s;
-;;
-
-let createglyphcursorreq fid cid cindex =
-  let s = makereq 94 32 8 in
-  w32 s 4 cid;
-  w32 s 8 fid;
-  w32 s 12 fid;
-  w16 s 16 cindex;
-  w16 s 18 (cindex+1);
-  w16 s 20 0;
-  w16 s 22 0;
-  w16 s 24 0;
-  w16 s 26 0xffff;
-  w16 s 28 0xffff;
-  w16 s 30 0xffff;
-  s;
-;;
-
-let changewindowattributesreq wid mask attrs =
-  let s = makereq 2 12 0 in
-  let s = padcat s attrs in
-  w16 s 2 (Bytes.length s / 4);
-  w32 s 4 wid;
-  w32 s 8 mask;
   s;
 ;;
 
@@ -932,14 +899,6 @@ let setup disp sock rootwid screennum w h =
       let s = getmodifiermappingreq () in
       sendwithrep sock s (updmodmap sock);
 
-      let s = openfontreq fid (~> "cursor") in
-      sendstr s sock;
-
-      Array.iteri (fun i glyphindex ->
-        let s = createglyphcursorreq fid (fid+1+i) glyphindex in
-        sendstr s sock;
-      ) [|34;48;50;58;128;152|];
-
       sendintern sock (~> "UTF8_STRING") true (fun resp ->
         let atom = r32 resp 8 in
         if atom != 0
@@ -1220,19 +1179,10 @@ let settitle s =
 
 let setcursor cursor =
   if cursor != state.curcurs
-  then
-    let n =
-      match cursor with
-      | CURSOR_INHERIT -> -1
-      | CURSOR_INFO -> 3
-      | CURSOR_CYCLE -> 2
-      | CURSOR_CROSSHAIR -> 0
-      | CURSOR_TEXT -> 5
-    in
-    let s = s32 (if n = -1 then 0 else state.fid+1+n) in
-    let s = changewindowattributesreq state.wid 0x4000(*cursor*) s in
-    sendstr s state.sock;
+  then (
+    setcursor cursor;
     state.curcurs <- cursor;
+   )
 ;;
 
 let fullscreen () =
