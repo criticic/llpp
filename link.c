@@ -3815,7 +3815,7 @@ static struct {
     Display *dpy;
     GLXContext ctx;
     XVisualInfo *visual;
-    Cursor curs[6];
+    Cursor curs[5];
 } glx;
 
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
