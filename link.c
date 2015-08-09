@@ -3810,19 +3810,24 @@ CAMLprim value ml_setaalevel (value level_v)
 
 #include <GL/glx.h>
 
+static const int shapes[] = {
+    XC_arrow, XC_hand2, XC_exchange, XC_crosshair, XC_xterm
+};
+
+#define CURS_COUNT (sizeof (shapes)/ sizeof (shapes[0]))
+
 static struct {
     Window wid;
     Display *dpy;
     GLXContext ctx;
     XVisualInfo *visual;
-    Cursor curs[5];
+    Cursor curs[CURS_COUNT];
 } glx;
 
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
 {
     CAMLparam3 (display_v, wid_v, screen_v);
     int attribs[] = { GLX_RGBA,  GLX_DOUBLEBUFFER, None };
-    int shapes[] = { XC_arrow, XC_hand2, XC_exchange, XC_crosshair, XC_xterm };
 
     glx.dpy = XOpenDisplay (String_val (display_v));
     if (!glx.dpy) {
@@ -3835,7 +3840,7 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         caml_failwith ("glXChooseVisual");
     }
 
-    for (size_t n = 0; n < sizeof (shapes) / sizeof (shapes[0]); ++n) {
+    for (size_t n = 0; n < CURS_COUNT; ++n) {
         glx.curs[n] = XCreateFontCursor (glx.dpy, shapes[n]);
     }
 
@@ -3866,7 +3871,11 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
 CAMLprim value ml_setcursor (value cursor_v)
 {
     CAMLparam1 (cursor_v);
-    XSetWindowAttributes wa = { .cursor = glx.curs[Int_val (cursor_v)] };
+    size_t cursn = Int_val (cursor_v);
+    XSetWindowAttributes wa;
+
+    if (cursn >= CURS_COUNT) caml_failwith ("cursor index out of range");
+    wa.cursor = glx.curs[cursn];
     XChangeWindowAttributes (glx.dpy, glx.wid, CWCursor, &wa);
     XFlush (glx.dpy);
     CAMLreturn (Val_unit);
