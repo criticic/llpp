@@ -3821,8 +3821,8 @@ static struct {
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
 {
     CAMLparam3 (display_v, wid_v, screen_v);
-    int attribs[] = {GLX_RGBA,  GLX_DOUBLEBUFFER, None};
-    int shapes[] = {XC_arrow, XC_hand2, XC_exchange, XC_crosshair, XC_xterm};
+    int attribs[] = { GLX_RGBA,  GLX_DOUBLEBUFFER, None };
+    int shapes[] = { XC_arrow, XC_hand2, XC_exchange, XC_crosshair, XC_xterm };
 
     glx.dpy = XOpenDisplay (String_val (display_v));
     if (!glx.dpy) {
