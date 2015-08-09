@@ -4665,44 +4665,38 @@ let outlinesource sourcetype =
   end)
 ;;
 
-let enterselector sourcetype =
-  resetmstate ();
-  let source = outlinesource sourcetype in
-  fun errmsg ->
-    let outlines =
-      match sourcetype with
-      | `bookmarks -> Array.of_list state.bookmarks
-      | `outlines -> state.outlines
-      | `history -> genhistoutlines ()
-    in
-    if Array.length outlines = 0
-    then (
-      showtext ' ' errmsg;
-    )
-    else (
-      state.text <- source#greetmsg;
-      Wsi.setcursor Wsi.CURSOR_INHERIT;
-      let anchor = getanchor () in
-      source#reset anchor outlines;
-      state.uioh <-
-        coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
-      G.postRedisplay "enter selector";
-    )
-;;
-
-let enteroutlinemode =
-  let f = enterselector `outlines in
-  fun () -> f "Document has no outline"
-;;
-
-let enterbookmarkmode =
-  let f = enterselector `bookmarks in
-  fun () -> f "Document has no bookmarks (yet)"
-;;
-
-let enterhistmode =
-  let f = enterselector `history in
-  fun () -> f "No history (yet)"
+let enteroutlinemode, enterbookmarkmode, enterhistmode =
+  let mkselector sourcetype =
+    let source = outlinesource sourcetype in
+    fun errmsg ->
+      let outlines =
+        match sourcetype with
+        | `bookmarks -> Array.of_list state.bookmarks
+        | `outlines -> state.outlines
+        | `history -> genhistoutlines ()
+      in
+      if Array.length outlines = 0
+      then (
+        showtext ' ' errmsg;
+       )
+      else (
+        resetmstate ();
+        state.text <- source#greetmsg;
+        Wsi.setcursor Wsi.CURSOR_INHERIT;
+        let anchor = getanchor () in
+        source#reset anchor outlines;
+        state.uioh <-
+          coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
+        G.postRedisplay "enter selector";
+       )
+  in
+  let mkenter sourcetype errmsg =
+    let enter = mkselector sourcetype in
+    fun () -> enter errmsg
+  in
+  (**)mkenter `outlines "Document has no outline"
+    , mkenter `bookmarks "Document has no bookmarks (yet)"
+    , mkenter `history "History is empty"
 ;;
 
 let quickbookmark ?title () =
