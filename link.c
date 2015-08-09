@@ -3814,7 +3814,7 @@ static const int shapes[] = {
     XC_arrow, XC_hand2, XC_exchange, XC_crosshair, XC_xterm
 };
 
-#define CURS_COUNT (sizeof (shapes)/ sizeof (shapes[0]))
+#define CURS_COUNT (sizeof (shapes) / sizeof (shapes[0]))
 
 static struct {
     Window wid;
