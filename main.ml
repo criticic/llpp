@@ -5925,7 +5925,7 @@ let viewmouse button down x y mask =
   | 1 when Wsi.withctrl mask ->
       if down
       then (
-        Wsi.setcursor Wsi.CURSOR_CROSSHAIR;
+        Wsi.setcursor Wsi.CURSOR_FLEUR;
         state.mstate <- Mpan (x, y)
       )
       else
@@ -5993,7 +5993,7 @@ let viewmouse button down x y mask =
           gotounder dest
 
       | Unone when down ->
-          Wsi.setcursor Wsi.CURSOR_CROSSHAIR;
+          Wsi.setcursor Wsi.CURSOR_FLEUR;
           state.mstate <- Mpan (x, y);
 
       | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex

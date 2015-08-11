@@ -2,7 +2,7 @@ type cursor =
     | CURSOR_INHERIT
     | CURSOR_INFO
     | CURSOR_CYCLE
-    | CURSOR_CROSSHAIR
+    | CURSOR_FLEUR
     | CURSOR_TEXT
 ;;
 

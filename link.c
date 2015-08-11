@@ -3811,7 +3811,7 @@ CAMLprim value ml_setaalevel (value level_v)
 #include <GL/glx.h>
 
 static const int shapes[] = {
-    XC_arrow, XC_hand2, XC_exchange, XC_crosshair, XC_xterm
+    XC_arrow, XC_hand2, XC_exchange, XC_fleur, XC_xterm
 };
 
 #define CURS_COUNT (sizeof (shapes) / sizeof (shapes[0]))
