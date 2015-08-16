@@ -138,11 +138,13 @@ case $type in
         conv='unoconv -o "$casp" "$1"'
     };;
     svg) {
-        missing rsvg-convert "rsvg-convert"
-        missing inkscape "inkscape(https://inkscape.org/en/)"
-        executable_p rsvg-convert                        \
-            && conv='rsvg-convert -f pdf -o "$casp"'     \
-            || conv='inkscape -z -A "$casp" -'
+        if executable_p inkscape && test -z "$dc"; then
+            unset filt
+            conv='inkscape -z -A "$casp" "$1"'
+        else
+            missing rsvg-convert "rsvg-convert"
+            conv='rsvg-convert -f pdf -o "$casp"'
+        fi
     };;
     font) {
         if test -e "$2"; then
