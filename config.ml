@@ -1108,8 +1108,7 @@ let fromstring f pos n v d =
   try f v
   with exn ->
     dolog "Error processing attribute (%S=%S) at %d\n%s"
-      n v pos (exntos exn)
-    ;
+      n v pos (exntos exn);
     d
 ;;
 
