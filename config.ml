@@ -1088,7 +1088,7 @@ let config_of c attrs =
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
       | "title" -> { c with title = unent v }
       | "last-visit" -> { c with lastvisit = float_of_string v }
-      | "edit-annots-inline" -> { c with annotinline = bool_of_string v }
+      | "edit-annotations-inline" -> { c with annotinline = bool_of_string v }
       | _ -> c
     with exn ->
       prerr_endline ("Error processing attribute (`" ^
