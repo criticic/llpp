@@ -5769,12 +5769,7 @@ let annot inline x y =
        enttext ();
        G.postRedisplay "annot"
      else
-       let text =
-         let s = getusertext E.s in
-         let l = Str.split newlinere s in
-         String.concat " " l
-       in
-       add text
+       add @@ getusertext E.s
   | _ -> ()
 ;;
 
