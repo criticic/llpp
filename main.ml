@@ -4243,8 +4243,7 @@ let getusertext s =
            Printf.sprintf "popen(%S) failed: %s" execstr (exntos exn);
          E.s
       | pid ->
-         match Unix.waitpid [] pid
-         with
+         match Unix.waitpid [] pid with
          | (exception exn) ->
             showtext '!' @@
               Printf.sprintf "waitpid(%d) failed: %s" pid (exntos exn);
