@@ -117,10 +117,8 @@ case $type in
     image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
     djvu) conv='ddjvu -format=pdf - "$casp"';;
     html) {
-        test -n "$dc" && die "cannot convert compressed '$mime'"
-        unset filt
         missing prince "PrinceXML(http://www.princexml.com/)"
-        conv='prince "$1" -o "$casp"'
+        conv='prince - -o "$casp"'
     };;
     word) {
         if executable_p unoconv && test -z "$dc"; then
