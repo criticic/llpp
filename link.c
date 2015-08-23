@@ -1088,14 +1088,9 @@ static void initpdims (void)
         }
     }
     end = now ();
-    if (state.trimmargins) {
-        printd ("progress 1 Trimmed %d pages in %f seconds",
-                state.pagecount, end - start);
-    }
-    else {
-        printd ("progress 1 Processed %d pages in %f seconds\n",
-                state.pagecount, end - start);
-    }
+    printd ("progress 1 %s %d pages in %f seconds",
+            state.trimmargins ? "Trimmed" : "Processed",
+            state.pagecount, end - start);
     state.trimanew = 0;
     if (trimf) {
         if (fclose (trimf)) {
