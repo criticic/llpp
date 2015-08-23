@@ -25,15 +25,12 @@ let tabify s =
 ;;
 
 let lines =
-  let lines =
-    let rec fold accu =
-      match input_line stdin with
-      | line -> fold (tabify line :: accu)
-      | exception End_of_file -> List.rev accu
-    in
-    fold []
+  let rec fold accu =
+    match input_line stdin with
+    | line -> fold (tabify line :: accu)
+    | exception End_of_file -> List.rev accu
   in
-  lines
+  fold []
 ;;
 
 let _ =
