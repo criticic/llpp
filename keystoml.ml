@@ -1,5 +1,3 @@
-open Printf
-
 let r_dash = Str.regexp " - ";;
 let tabify s =
   let dashpos = try Str.search_forward r_dash s 0 with Not_found -> -1 in
@@ -42,7 +40,7 @@ let lines =
 ;;
 
 let _ =
-  printf "let keys = [\n";
-  List.iter (fun l -> printf "  %S;\n" l) lines;
-  printf "];;\n"
+  print_endline "let keys = [";
+  List.iter (Printf.printf "  %S;\n") lines;
+  print_endline "];;"
 ;;
