@@ -4248,7 +4248,7 @@ let getusertext s =
             E.s
          | (_pid, status) ->
             match status with
-            | Unix.WEXITED 0 -> filelines tmppath
+            | Unix.WEXITED 0 -> filecontents tmppath
             | Unix.WEXITED n ->
                showtext '!' @@
                  Printf.sprintf "editor process(%s) exited abnormally: %d"

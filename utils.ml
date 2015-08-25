@@ -213,7 +213,7 @@ let fdcontents fd =
   loop ()
 ;;
 
-let filelines path =
+let filecontents path =
   let fd = Unix.openfile path [Unix.O_RDONLY] 0o0 in
   match fdcontents fd with
   | (exception exn) ->
