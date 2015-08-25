@@ -998,7 +998,7 @@ let config_of c attrs =
             | "false" -> None
             | f -> Some (float_of_string f)
           in
-          { c with maxwait = mw}
+          { c with maxwait = mw }
       | "highlight-links" -> { c with hlinks = bool_of_string v }
       | "under-cursor-info" -> { c with underinfo = bool_of_string v }
       | "vertical-margin" ->
