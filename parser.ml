@@ -16,7 +16,7 @@ let isname = function
       || (c >= 'A' && c <= 'Z')
 ;;
 
-exception Parse_error of string * string * int
+exception Parse_error of string * string * int;;
 
 let parse_error msg s pos =
   raise (Parse_error (msg, s, pos))
