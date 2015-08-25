@@ -1438,7 +1438,7 @@ let do_load f contents =
 let defconfpath =
   let dir =
     let xdgconfdir = Utils.getenvwithdef "XDG_CONFIG_HOME" E.s in
-    if xdgconfdir == E.s
+    if emptystr xdgconfdir
     then
       try
         let dir = Filename.concat home ".config" in

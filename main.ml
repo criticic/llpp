@@ -1954,7 +1954,7 @@ let act cmds =
      if l = "fail" :: []
      then Wsi.settitle "Wrong password";
      let password = getpassword () in
-     if password == E.s
+     if emptystr password
      then error "document is password protected"
      else opendoc state.path password
 
