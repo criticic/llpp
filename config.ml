@@ -924,12 +924,10 @@ type historder = [ `lastvisit | `title | `path | `file ];;
 module KeyMap =
   Map.Make (struct type t = (int * int) let compare = compare end);;
 
-open Parser;;
-
-let unent s =
+let unentS s =
   let l = String.length s in
   let b = Buffer.create l in
-  unent b s 0 l;
+  Parser.unent b s 0 l;
   Buffer.contents b;
 ;;
 
@@ -1040,8 +1038,8 @@ let config_of c attrs =
       | "aalevel" -> { c with aalevel = max 0 (int_of_string v) }
       | "trim-margins" -> { c with trimmargins = bool_of_string v }
       | "trim-fuzz" -> { c with trimfuzz = irect_of_string v }
-      | "uri-launcher" -> { c with urilauncher = unent v }
-      | "path-launcher" -> { c with pathlauncher = unent v }
+      | "uri-launcher" -> { c with urilauncher = unentS v }
+      | "path-launcher" -> { c with pathlauncher = unentS v }
       | "color-space" -> { c with colorspace = CSTE.of_string v }
       | "invert-colors" -> { c with invert = bool_of_string v }
       | "brightness" -> { c with colorscale = float_of_string v }
@@ -1054,11 +1052,11 @@ let config_of c attrs =
           else { c with columns = Cmulti (nab, E.a) }
       | "birds-eye-columns" ->
           { c with beyecolumns = Some (max (int_of_string v) 2) }
-      | "selection-command" -> { c with selcmd = unent v }
-      | "synctex-command" -> { c with stcmd = unent v }
-      | "pax-command" -> { c with paxcmd = unent v }
-      | "askpass-command" -> { c with passcmd = unent v }
-      | "savepath-command" -> { c with savecmd = unent v }
+      | "selection-command" -> { c with selcmd = unentS v }
+      | "synctex-command" -> { c with stcmd = unentS v }
+      | "pax-command" -> { c with paxcmd = unentS v }
+      | "askpass-command" -> { c with passcmd = unentS v }
+      | "savepath-command" -> { c with savecmd = unentS v }
       | "update-cursor" -> { c with updatecurs = bool_of_string v }
       | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
       | "page-scroll-scale" -> { c with pgscale = float_of_string v }
@@ -1086,7 +1084,7 @@ let config_of c attrs =
               else None }
       | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
-      | "title" -> { c with title = unent v }
+      | "title" -> { c with title = unentS v }
       | "last-visit" -> { c with lastvisit = float_of_string v }
       | "edit-annotations-inline" -> { c with annotinline = bool_of_string v }
       | _ -> c
@@ -1222,6 +1220,7 @@ let findkeyhash c name =
 ;;
 
 let get s =
+  let open Parser in
   let h = Hashtbl.create 10 in
   let dc = { defconf with angle = defconf.angle } in
   let rec toplevel v t spos _ =
@@ -1262,8 +1261,8 @@ let get s =
 
     | Vopen ("doc", attrs, closed) ->
         let pathent, spage, srely, span, svisy, origin = doc_of attrs in
-        let path = unent pathent
-        and origin = unent origin
+        let path = unentS pathent
+        and origin = unentS origin
         and pageno = fromstring int_of_string spos "page" spage 0
         and rely = fromstring float_of_string spos "rely" srely 0.0
         and pan = fromstring int_of_string spos "pan" span 0
@@ -1391,7 +1390,7 @@ let get s =
         and rely = fromstring float_of_string spos "rely" srely 0.0
         and visy = fromstring float_of_string spos "visy" svisy 0.0 in
         let bookmarks =
-          (unent titleent, 0, Oanchor (page, rely, visy)) :: bookmarks
+          (unentS titleent, 0, Oanchor (page, rely, visy)) :: bookmarks
         in
         if closed
         then { v with f = pbookmarks path origin pan anchor c bookmarks }
@@ -1434,8 +1433,8 @@ let do_load f ic =
     let s = really_input_string ic len in
     f s;
   with
-  | Parse_error (msg, s, pos) ->
-      let subs = subs s pos in
+  | Parser.Parse_error (msg, s, pos) ->
+      let subs = Parser.subs s pos in
       Utils.error "parse error: %s: at %d [..%s..]" msg pos subs
 
   | exn ->
@@ -1558,7 +1557,8 @@ let add_attrs bb always dc c time =
     then Printf.bprintf bb "\n    %s='%s'" s (irect_to_string a)
   and os s a b =
     if always || a <> b
-    then Printf.bprintf bb "\n    %s='%s'" s (enent a 0 (String.length a))
+    then
+      Printf.bprintf bb "\n    %s='%s'" s (Parser.enent a 0 (String.length a))
   and og s a b =
     if always || a <> b
     then
@@ -1770,12 +1770,12 @@ let save1 bb leavebirdseye x h dc =
     then ()
     else (
       Printf.bprintf bb "<doc path='%s'"
-        (enent path 0 (String.length path));
+        (Parser.enent path 0 (String.length path));
 
       if nonemptystr origin
       then
         Printf.bprintf bb "\n    origin='%s'"
-          (enent origin 0 (String.length origin));
+          (Parser.enent origin 0 (String.length origin));
 
       if anchor <> emptyanchor
       then (
@@ -1813,7 +1813,7 @@ let save1 bb leavebirdseye x h dc =
             | Oanchor (page, rely, visy) ->
                 Printf.bprintf bb
                   "<item title='%s' page='%d'"
-                  (enent title 0 (String.length title))
+                  (Parser.enent title 0 (String.length title))
                   page
                   ;
                 if rely > 1e-6
