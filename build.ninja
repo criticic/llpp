@@ -18,11 +18,10 @@ rule ocamlc
      description = ocamlc $out
 
 rule genhelp
-     command = sh $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS >$out
+     command = sh $srcdir/mkhelp.sh $srcdir/KEYS >$out
      description = genhelp
 
-build $builddir/help.ml: genhelp $
-      $srcdir/mkhelp.sh $srcdir/keystoml.ml $srcdir/KEYS
+build $builddir/help.ml: genhelp $srcdir/mkhelp.sh $srcdir/KEYS
 build $builddir/link.o: cc $srcdir/link.c
       cflags = $cflags -D_GNU_SOURCE -DFFP
 build $builddir/help$cmo: ocamlc $builddir/help.ml
