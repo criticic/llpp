@@ -1424,11 +1424,8 @@ let get s =
   h, dc;
 ;;
 
-let do_load f ic =
-  try
-    let len = in_channel_length ic in
-    let s = really_input_string ic len in
-    f s;
+let do_load f contents =
+  try f contents
   with
   | Parser.Parse_error (msg, s, pos) ->
       let subs = Parser.subs s pos in
@@ -1454,25 +1451,13 @@ let defconfpath =
 
 let confpath = ref defconfpath;;
 
-let load2 f default =
-  match open_in_bin !confpath with
-  | ic ->
-      let res =
-        try
-          f (do_load get ic)
-        with exn ->
-          prerr_endline
-            ("Error loading configuration from `" ^ !confpath ^ "': " ^
-             exntos exn);
-          default
-      in
-      close_in ic;
-      res
-
-  | (exception exn) ->
-      prerr_endline
-        ("Error opening configuration file `" ^ !confpath ^ "': " ^
-         exntos exn);
+let load2 f default=
+  match filecontents !confpath with
+  | contents -> f @@ do_load get contents
+  | exception Unix.Unix_error (Unix.ENOENT, "open", _) ->
+      f (Hashtbl.create 0, defconf)
+  | exception exn ->
+      dolog "Error loading config from `%S': %s" !confpath @@ exntos exn;
       default
 ;;
 
