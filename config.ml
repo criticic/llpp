@@ -588,10 +588,7 @@ let gotouri uri =
       let re = Str.regexp "%s" in
       let command = Str.global_replace re url conf.urilauncher in
       try ignore (popen command [])
-      with exn ->
-        Printf.eprintf
-          "failed to execute `%s': %s\n" command (exntos exn);
-        flush stderr;
+      with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
   );
 ;;
 

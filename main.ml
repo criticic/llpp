@@ -137,9 +137,7 @@ let launchpath () =
   else (
     let command = Str.global_replace percentsre state.path conf.pathlauncher in
     try addpid @@ popen command []
-    with exn ->
-      Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
-      flush stderr;
+    with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
   );
 ;;
 
@@ -4414,9 +4412,7 @@ let gotounder under =
         then
           let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
           try addpid @@ popen command []
-          with exn ->
-            Printf.eprintf "failed to execute `%s': %s\n" command (exntos exn);
-            flush stderr;
+          with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
@@ -4435,10 +4431,7 @@ let gotounder under =
         then
           let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
           try addpid @@ popen command []
-          with exn ->
-            Printf.eprintf
-              "failed to execute `%s': %s\n" command (exntos exn);
-            flush stderr;
+          with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
@@ -6579,7 +6572,7 @@ let () =
   let cs, ss =
     match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
     | exception exn ->
-        Printf.eprintf "socketpair failed: %s" (exntos exn);
+        dolog "socketpair failed: %s" (exntos exn);
         exit 1
     | (r, w) ->
         cloexec r;
