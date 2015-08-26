@@ -584,7 +584,7 @@ let gotouri uri =
   else (
     let url = geturl uri in
     if emptystr url
-    then (Printf.eprintf "obtained empty url from uri %S\n" uri)
+    then Printf.eprintf "obtained empty url from uri %S\n" uri
     else
       let re = Str.regexp "%s" in
       let command = Str.global_replace re url conf.urilauncher in
@@ -603,7 +603,7 @@ let makehelp () =
     List.map (fun s ->
       let url = geturl s in
       if nonemptystr url
-      then (s, 0, Action (fun u -> gotouri url;  u))
+      then (s, 0, Action (fun u -> gotouri url; u))
       else (s, 0, Noaction)
     ) strings);
 ;;
