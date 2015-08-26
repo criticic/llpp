@@ -3,8 +3,8 @@ set -e
 v=$(cd $(dirname $0) && git describe --tags --dirty 2>/dev/null || echo unknown)
 ocaml str.cma -stdin "$1" "$v" <<EOF
 let fixup = let open Str in
-  let dash = regexp "\\\\([^ ]*\\\\) +- +\\\\(.*\\\\)"
-  and head = regexp "-----\\\\(.*\\\\)-----" in
+  let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
+  and head = regexp {|-----\(.*\)-----|} in
   fun s -> global_replace dash "\\\\1\\t\\\\2" s |>
            global_replace head "\\xc2\\xb7\\\\1";;
 let rec iter ic = match input_line ic with
