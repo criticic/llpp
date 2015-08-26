@@ -40,7 +40,6 @@ s;@space;32;
 s;@tab;0xff09;
 s;@tilde;0x7e;
 s;@up;0xff52;
-s;@up;0xff52;
 s;@0;48;
 s;@1;49;
 s;@2;50;
