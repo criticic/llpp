@@ -268,29 +268,10 @@ let getcmdoutput errfun cmd =
         s
 ;;
 
-let geturl s =
-  let colonpos = try String.index s ':' with Not_found -> -1 in
-  let len = String.length s in
-  if colonpos >= 0 && colonpos + 3 < len
-  then (
-    if s.[colonpos+1] = '/' && s.[colonpos+2] = '/'
-    then
-      let schemestartpos =
-        try String.rindex_from s colonpos ' '
-        with Not_found -> -1
-      in
-      let scheme =
-        String.sub s (schemestartpos+1) (colonpos-1-schemestartpos)
-      in
-      match scheme with
-      | "http" | "https" | "ftp" | "mailto" | "file" ->
-          let epos =
-            try String.index_from s colonpos ' '
-            with Not_found -> len
-          in
-          String.sub s (schemestartpos+1) (epos-1-schemestartpos)
-      | _ -> E.s
+let geturl =
+  let re = Str.regexp {|.*\(\(https?\|ftp\|mailto\|file\)://[^ ]+\).*|} in
+  fun s ->
+    if Str.string_match re s 0
+    then Str.matched_group 1 s
     else E.s
-  )
-  else E.s
 ;;
