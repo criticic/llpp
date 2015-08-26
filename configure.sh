@@ -63,15 +63,16 @@ test $ocamlfind && {
             exit 1
         fi
     fi;
+    srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)
     cat <<EOF
 cflags=$cflags -O $(pkg-config --cflags $pkgs)
 lflags=$libs
-srcdir=$(cd >/dev/null $(dirname $0) && pwd -P)
+srcdir=$srcdir
 buildtype=$buildtype
 builddir=$builddir
 lablglcflags=$lablglcflags
 EOF
-    test -e mupdf/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
+    test -e $srcdir/mupdf/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
     test $native && {
         echo "cmo=.cmx"
         echo "cma=.cmxa"
