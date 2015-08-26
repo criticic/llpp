@@ -62,7 +62,8 @@ let multicolumns_of_string s =
   with _ ->
     Scanf.sscanf s "%u,%u,%u" (fun n a b ->
       if a > 1 || b > 1
-      then failwith "subtly broken"; (n, a, b)
+      then failwith "subtly broken";
+      (n, a, b)
     );
 ;;
 
