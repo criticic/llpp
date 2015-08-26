@@ -603,7 +603,7 @@ let makehelp () =
     List.map (fun s ->
       let url = geturl s in
       if nonemptystr url
-      then (s, 0, Action (fun u -> gotouri url; u))
+      then (s, 0, Action (fun uioh -> gotouri url; uioh))
       else (s, 0, Noaction)
     ) strings);
 ;;
