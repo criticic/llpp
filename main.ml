@@ -6733,12 +6733,12 @@ let () =
               let n = tempfailureretry (Unix.read fd s 0) 80 in
               if conf.redirectstderr
               then (
-                Buffer.add_substring state.errmsgs (Bytes.to_string s) 0 n;
+                Buffer.add_subbytes state.errmsgs s 0 n;
                 state.newerrmsgs <- true;
                 state.redisplay <- true;
               )
               else (
-                prerr_string (String.sub (Bytes.to_string s) 0 n);
+                prerr_string @@ Bytes.sub_string s 0 n;
                 flush stderr;
               );
               checkfds rest
