@@ -6631,6 +6631,7 @@ let () =
   );
   display ();
   Wsi.mapwin ();
+  Wsi.setcursor Wsi.CURSOR_INHERIT;
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
 
   let rec reap () =
