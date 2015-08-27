@@ -4542,10 +4542,9 @@ let outlinesource sourcetype =
       | head :: _ -> "@Uellipsis" ^ head
 
     method narrow pattern =
-      let reopt = try Some (Str.regexp_case_fold pattern) with _ -> None in
-      match reopt with
-      | None -> ()
-      | Some re ->
+      match Str.regexp_case_fold pattern with
+      | exception _ -> ()
+      | re ->
           let rec loop accu minfo n =
             if n = -1
             then (
@@ -4559,13 +4558,9 @@ let outlinesource sourcetype =
                 | Oaction _ | Oreaction _ -> o :: accu, (0, 0) :: minfo
                 | Onone | Oanchor _ | Ouri _ | Olaunch _
                 | Oremote _ | Oremotedest _ | Ohistory _ ->
-                    let first =
-                      try Str.search_forward re s 0
-                      with Not_found -> -1
-                    in
-                    if first >= 0
-                    then o :: accu, (first, Str.match_end ()) :: minfo
-                    else accu, minfo
+                    match Str.search_forward re s 0 with
+                    | exception Not_found -> accu, minfo
+                    | first -> o :: accu, (first, Str.match_end ()) :: minfo
               in
               loop accu minfo (n-1)
           in

@@ -586,8 +586,7 @@ let gotouri uri =
     if emptystr url
     then Printf.eprintf "obtained empty url from uri %S\n" uri
     else
-      let re = Str.regexp "%s" in
-      let command = Str.global_replace re url conf.urilauncher in
+      let command = Str.global_replace percentsre url conf.urilauncher in
       try ignore (popen command [])
       with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
   );
@@ -945,9 +944,8 @@ let modifier_of_string = function
   | _ -> 0
 ;;
 
-let key_of_string =
-  let r = Str.regexp "-" in
-  fun s ->
+let keys_of_string s =
+  let key_of_string r s =
     let elems = Str.full_split r s in
     let f n k m =
       let g s =
@@ -967,13 +965,9 @@ let key_of_string =
           loop (n+1) k m xs
     in
     loop 0 0 0 elems
-;;
-
-let keys_of_string =
-  let r = Str.regexp "[ \t]" in
-  fun s ->
-    let elems = Str.split r s in
-    List.map key_of_string elems
+  in
+  let elems = Str.split whitere s in
+  List.map (key_of_string (Str.regexp "-")) elems
 ;;
 
 let config_of c attrs =

@@ -152,6 +152,7 @@ let getenvwithdef name def =
 
 let newlinere = Str.regexp "[\r\n]";;
 let percentsre = Str.regexp "%s";;
+let whitere = Str.regexp "[ \t]";;
 
 let unit () = ();;
 
