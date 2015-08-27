@@ -125,15 +125,13 @@ let setfontsize n =
 
 let vlog fmt =
   if conf.verbose
-  then
-    Printf.kprintf prerr_endline fmt
-  else
-    Printf.kprintf ignore fmt
+  then dolog fmt
+  else Printf.kprintf ignore fmt
 ;;
 
 let launchpath () =
   if emptystr conf.pathlauncher
-  then print_endline state.path
+  then dolog "%s" state.path
   else (
     let command = Str.global_replace percentsre state.path conf.pathlauncher in
     try addpid @@ popen command []
@@ -144,8 +142,7 @@ let launchpath () =
 module G =
 struct
   let postRedisplay who =
-    if conf.verbose
-    then prerr_endline ("redisplay for " ^ who);
+    vlog "redisplay for [%S]" who;
     state.redisplay <- true;
   ;;
 end;;
@@ -6358,7 +6355,7 @@ let () =
   let histmode = emptystr state.path && not !openlast in
 
   if not (Config.load !openlast)
-  then prerr_endline "failed to load configuration";
+  then dolog "Failed to load configuration";
   begin match !pageno with
   | Some pageno -> state.anchor <- (pageno, 0.0, 0.0)
   | None -> ()
@@ -6489,7 +6486,7 @@ let () =
       ; "GL_EXT_texture_recangle"
       ; "GL_NV_texture_rectangle" ]
   )
-  then (prerr_endline "OpenGL does not suppport rectangular textures"; exit 1);
+  then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
 
   if (
     let r = GlMisc.get_string `renderer in

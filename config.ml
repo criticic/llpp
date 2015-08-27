@@ -577,7 +577,7 @@ let conf = { defconf with angle = defconf.angle };;
 
 let gotouri uri =
   if emptystr conf.urilauncher
-  then print_endline uri
+  then dolog "%s" uri
   else (
     let url = geturl uri in
     if emptystr url
@@ -927,8 +927,7 @@ let unentS s =
 let home =
   try Sys.getenv "HOME"
   with exn ->
-    prerr_endline
-      ("Can not determine home directory location: " ^ exntos exn);
+    dolog "Can not determine home directory location: %S" @@ exntos exn;
     E.s
 ;;
 
@@ -1076,8 +1075,7 @@ let config_of c attrs =
       | "edit-annotations-inline" -> { c with annotinline = bool_of_string v }
       | _ -> c
     with exn ->
-      prerr_endline ("Error processing attribute (`" ^
-                        k ^ "'=`" ^ v ^ "'): " ^ exntos exn);
+      dolog "Error processing attribute (`%S' =`%S'): %S" k v @@ exntos exn;
       c
   in
   let rec fold c = function
@@ -1861,8 +1859,7 @@ let save leavebirdseye =
       close_out oc;
       Unix.rename tmp !confpath;
     with exn ->
-      prerr_endline
-        ("error while saving configuration: " ^ exntos exn)
+      dolog "Error while saving configuration: %S" @@ exntos exn
 ;;
 
 let gc fdi fdo =
@@ -1935,8 +1932,7 @@ let gc fdi fdo =
       close_out oc;
       Unix.rename tmp !confpath;
     with exn ->
-      prerr_endline
-        ("error while saving configuration: " ^ exntos exn)
+      dolog "Error while saving configuration: %S" @@ exntos exn
    );
 ;;
 
