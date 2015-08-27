@@ -135,7 +135,7 @@ let launchpath () =
   else (
     let command = Str.global_replace percentsre state.path conf.pathlauncher in
     try addpid @@ popen command []
-    with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
+    with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
   );
 ;;
 
@@ -223,9 +223,7 @@ let pipesel opaque cmd =
   if hassel opaque
   then
     match Unix.pipe () with
-    | exception exn ->
-        showtext '!'
-          (Printf.sprintf "pipesel can not create pipe: %s" (exntos exn));
+    | exception exn -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
     | (r, w) ->
         let doclose what fd =
           Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
@@ -233,7 +231,7 @@ let pipesel opaque cmd =
         let pid =
           try popen cmd [r, 0; w, -1]
           with exn ->
-            dolog "can not execute %S: %s" cmd (exntos exn);
+            dolog "cannot execute %S: %s" cmd @@ exntos exn;
             -1
         in
         if pid > 0
@@ -271,7 +269,7 @@ let paxunder x y =
 let selstring s =
   match Unix.pipe () with
   | exception exn ->
-      showtext '!' (Printf.sprintf "pipe failed: %s" (exntos exn))
+      showtext '!' (Printf.sprintf "pipe failed: %s" @@ exntos exn)
   | (r, w) ->
       let clo cap fd =
         Ne.clo fd (fun msg ->
@@ -283,7 +281,7 @@ let selstring s =
         with exn ->
           showtext '!'
             (Printf.sprintf "failed to execute %s: %s"
-                            conf.selcmd (exntos exn));
+               conf.selcmd @@ exntos exn);
           -1
       in
       if pid > 0
@@ -301,9 +299,7 @@ let selstring s =
               )
         with exn ->
           showtext '!'
-            (Printf.sprintf "failed to write to sel pipe: %s"
-                (exntos exn)
-            )
+            (Printf.sprintf "failed to write to sel pipe: %s" @@ exntos exn)
       )
       else dolog "%s" s;
       clo "selstring pipe/r" r;
@@ -1586,7 +1582,7 @@ let act cmds =
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
-      dolog "error processing '%S': %s" cmds (exntos exn);
+      dolog "error processing '%S': %s" cmds @@ exntos exn;
       exit 1
   in
   let addoutline outline =
@@ -2228,7 +2224,7 @@ let optentry mode _ key =
     | 's' ->
         let ondone s =
           try conf.scrollstep <- int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
         in
         TEswitch ("scroll step: ", E.s, None, intentry, ondone, true)
 
@@ -2239,7 +2235,7 @@ let optentry mode _ key =
             if state.autoscroll <> None
             then state.autoscroll <- Some conf.autoscrollstep
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
         in
         TEswitch ("auto scroll step: ", E.s, None, intentry, ondone, true)
 
@@ -2249,7 +2245,7 @@ let optentry mode _ key =
             let n, a, b = multicolumns_of_string s in
             setcolumns mode n a b;
           with exc ->
-            state.text <- Printf.sprintf "bad columns `%s': %s" s (exntos exc)
+            state.text <- Printf.sprintf "bad columns `%s': %s" s @@ exntos exc
         in
         TEswitch ("columns: ", E.s, None, textentry, ondone, true)
 
@@ -2259,7 +2255,7 @@ let optentry mode _ key =
             let zoom = float (int_of_string s) /. 100.0 in
             setzoom zoom
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
         in
         TEswitch ("zoom: ", E.s, None, intentry, ondone, true)
 
@@ -2278,7 +2274,7 @@ let optentry mode _ key =
             | LinkNav _ -> ();
             end
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
         in
         TEswitch ("thumbnail width: ", E.s, None, intentry, ondone, true)
 
@@ -2287,8 +2283,8 @@ let optentry mode _ key =
           match try
               Some (int_of_string s)
             with exc ->
-              state.text <- Printf.sprintf "bad integer `%s': %s"
-                s (exntos exc);
+              state.text <-
+                Printf.sprintf "bad integer `%s': %s" s @@ exntos exc;
               None
           with
           | Some angle -> reqlayout angle conf.fitmodel
@@ -2357,7 +2353,7 @@ let optentry mode _ key =
             let y = getpagey pageno in
             gotoy (y + py)
           with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc)
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
         in
         TEswitch ("vertical margin: ", E.s, None, intentry, ondone, true)
 
@@ -3467,7 +3463,7 @@ let enterinfomode =
                 try set (int_of_string s)
                 with exn ->
                   state.text <- Printf.sprintf "bad integer `%s': %s"
-                    s (exntos exn)
+                    s @@ exntos exn
               in
               state.text <- E.s;
               let te = name ^ ": ", E.s, None, intentry, ondone, true in
@@ -3483,7 +3479,7 @@ let enterinfomode =
                 try set (int_of_string_with_suffix s)
                 with exn ->
                   state.text <- Printf.sprintf "bad integer `%s': %s"
-                    s (exntos exn)
+                    s @@ exntos exn
               in
               state.text <- E.s;
               let te =
@@ -3512,7 +3508,7 @@ let enterinfomode =
                   try color_of_string s
                   with exn ->
                     state.text <- Printf.sprintf "bad color `%s': %s"
-                      s (exntos exn);
+                      s @@ exntos exn;
                     invalid
                 in
                 if c <> invalid
@@ -3675,7 +3671,7 @@ let enterinfomode =
             let c = color_of_string v in
             set c
           with exn ->
-            state.text <- Printf.sprintf "bad color `%s': %s" v (exntos exn)
+            state.text <- Printf.sprintf "bad color `%s': %s" v @@ exntos exn
         )
     in
     let oldmode = state.mode in
@@ -3885,7 +3881,7 @@ let enterinfomode =
             flushtiles ();
           with exn ->
             state.text <- Printf.sprintf "bad tile size `%s': %s"
-              v (exntos exn)
+              v @@ exntos exn
         );
       src#int "texture count"
         (fun () -> conf.texcount)
@@ -3915,7 +3911,7 @@ let enterinfomode =
             conf.pgscale <- s
           with exn ->
             state.text <- Printf.sprintf
-              "bad page scroll scaling factor `%s': %s" v (exntos exn)
+              "bad page scroll scaling factor `%s': %s" v @@ exntos exn
         )
       ;
       src#int "ui font size"
@@ -3938,7 +3934,7 @@ let enterinfomode =
             if conf.trimmargins
             then settrim true conf.trimfuzz;
           with exn ->
-            state.text <- Printf.sprintf "bad irect `%s': %s" v (exntos exn)
+            state.text <- Printf.sprintf "bad irect `%s': %s" v @@ exntos exn
         );
       src#string "throttle"
         (fun () ->
@@ -3958,7 +3954,7 @@ let enterinfomode =
             then conf.maxwait <- None
             else conf.maxwait <- Some f
           with exn ->
-            state.text <- Printf.sprintf "bad time `%s': %s" v (exntos exn)
+            state.text <- Printf.sprintf "bad time `%s': %s" v @@ exntos exn
         );
       src#string "ghyll scroll"
         (fun () ->
@@ -3969,7 +3965,7 @@ let enterinfomode =
         (fun v ->
           try conf.ghyllscroll <- ghyllscroll_of_string v
           with exn ->
-            state.text <- Printf.sprintf "bad ghyll `%s': %s" v (exntos exn)
+            state.text <- Printf.sprintf "bad ghyll `%s': %s" v @@ exntos exn
         );
       src#string "selection command"
         (fun () -> conf.selcmd)
@@ -4185,13 +4181,13 @@ let getusertext s =
       match popen execstr [] with
       | (exception exn) ->
          showtext '!' @@
-           Printf.sprintf "popen(%S) failed: %s" execstr (exntos exn);
+           Printf.sprintf "popen(%S) failed: %s" execstr @@ exntos exn;
          E.s
       | pid ->
          match Unix.waitpid [] pid with
          | (exception exn) ->
             showtext '!' @@
-              Printf.sprintf "waitpid(%d) failed: %s" pid (exntos exn);
+              Printf.sprintf "waitpid(%d) failed: %s" pid @@ exntos exn;
             E.s
          | (_pid, status) ->
             match status with
@@ -4215,7 +4211,7 @@ let getusertext s =
     match Unix.unlink tmppath with
     | (exception exn) ->
        showtext '!' @@ Printf.sprintf "failed to ulink %S: %s"
-                                      tmppath (exntos exn);
+                                      tmppath @@ exntos exn;
        s
     | () -> s
 ;;
@@ -4359,7 +4355,7 @@ let gotounder under =
         then
           let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
           try addpid @@ popen command []
-          with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
+          with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
@@ -4368,7 +4364,7 @@ let gotounder under =
           state.ranchors <- ranchor :: state.ranchors;
           opendoc path E.s;
       )
-      else showtext '!' ("Could not find " ^ filename)
+      else showtext '!' ("cannot find " ^ filename)
 
   | Uremotedest (filename, destname) ->
       let path = getpath filename in
@@ -4378,7 +4374,7 @@ let gotounder under =
         then
           let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
           try addpid @@ popen command []
-          with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
+          with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
@@ -4387,7 +4383,7 @@ let gotounder under =
           state.ranchors <- ranchor :: state.ranchors;
           opendoc path E.s;
       )
-      else showtext '!' ("Could not find " ^ filename)
+      else showtext '!' ("Cannot find " ^ filename)
 
   | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
@@ -4868,7 +4864,7 @@ let viewkeyboard key mask =
       let ondone s =
         let n =
           try int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc);
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc;
             max_int
         in
         if n != max_int
@@ -4932,7 +4928,7 @@ let viewkeyboard key mask =
       let ondone s =
         let n =
           try int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s (exntos exc);
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc;
             -1
         in
         if n >= 0
@@ -5971,8 +5967,8 @@ let viewmouse button down x y mask =
                               | exception exn ->
                                   showtext '!'
                                     (Printf.sprintf
-                                        "can not create sel pipe: %s"
-                                        (exntos exn));
+                                        "cannot create sel pipe: %s"
+                                        @@ exntos exn);
                               | (r, w) ->
                                   let clo what fd =
                                     Ne.clo fd (fun msg ->
@@ -5981,8 +5977,8 @@ let viewmouse button down x y mask =
                                   let pid =
                                     try popen cmd [r, 0; w, -1]
                                     with exn ->
-                                      dolog "can not execute %S: %s"
-                                            cmd (exntos exn);
+                                      dolog "cannot execute %S: %s"
+                                            cmd @@ exntos exn;
                                       -1
                                   in
                                   if pid > 0
@@ -6189,7 +6185,7 @@ let ract cmds =
     try Scanf.sscanf s fmt f
     with exn ->
       adderrfmt "remote exec"
-        "error processing '%S': %s\n" cmds (exntos exn)
+        "error processing '%S': %s\n" cmds @@ exntos exn
   in
   match cl with
   | "reload" :: [] -> reload ()
@@ -6277,7 +6273,7 @@ let remote =
 let remoteopen path =
   try Some (Unix.openfile path [Unix.O_NONBLOCK; Unix.O_RDONLY] 0o0)
   with exn ->
-    adderrfmt "remoteopen" "error opening %S: %s" path (exntos exn);
+    adderrfmt "remoteopen" "error opening %S: %s" path @@ exntos exn;
     None
 ;;
 
@@ -6355,7 +6351,7 @@ let () =
   let histmode = emptystr state.path && not !openlast in
 
   if not (Config.load !openlast)
-  then dolog "Failed to load configuration";
+  then dolog "failed to load configuration";
   begin match !pageno with
   | Some pageno -> state.anchor <- (pageno, 0.0, 0.0)
   | None -> ()
@@ -6366,12 +6362,12 @@ let () =
     let c, s =
       match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
       | exception exn ->
-          error "gc socketpair failed: %s" (exntos exn)
+          error "gc socketpair failed: %s" @@ exntos exn
       | rw -> rw
     in
     match addpid @@ popen !gcconfig [(c, 0); (c, 1)] with
     | exception exn ->
-        error "failed to popen gc script: %s" (exntos exn);
+        error "failed to popen gc script: %s" @@ exntos exn;
     | _ ->
         Config.gc s s;
         exit 0
@@ -6503,7 +6499,7 @@ let () =
   let cs, ss =
     match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
     | exception exn ->
-        dolog "socketpair failed: %s" (exntos exn);
+        dolog "socketpair failed: %s" @@ exntos exn;
         exit 1
     | (r, w) ->
         cloexec r;

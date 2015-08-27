@@ -697,7 +697,7 @@ static struct tile *alloctile (int h)
     tilesize = sizeof (*tile) + ((slicecount - 1) * sizeof (struct slice));
     tile = calloc (tilesize, 1);
     if (!tile) {
-        err (1, "can not allocate tile (%" FMT_s " bytes)", tilesize);
+        err (1, "cannot allocate tile (%" FMT_s " bytes)", tilesize);
     }
     for (i = 0; i < slicecount; ++i) {
         int sh = MIN (h, state.sliceheight);

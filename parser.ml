@@ -154,7 +154,7 @@ let parse v s =
       try
         Str.search_forward r s pos
       with Not_found ->
-        parse_error ("couldn't find substring " ^ subs) s pos
+        parse_error ("cannot find substring " ^ subs) s pos
     in
     pos
   in
@@ -174,7 +174,7 @@ let parse v s =
   let find_non_white pos =
     let rec forward i =
       if i >= slen
-      then parse_error "couldn't find non white space character" s pos;
+      then parse_error "cannot find non white space character" s pos;
       if iswhite s.[i] then forward (i+1) else i in
     forward pos
   in
@@ -182,7 +182,7 @@ let parse v s =
   let getname pos =
     let non_name_pos =
       let rec find_non_name i =
-        if i >= slen then parse_error "couldn't find  non name character" s pos;
+        if i >= slen then parse_error "cannot find non name character" s pos;
         if isname s.[i] then find_non_name (i+1) else i
       in
       find_non_name pos

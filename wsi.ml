@@ -784,7 +784,7 @@ let setup disp sock rootwid screennum w h =
       let ndepths = r8 data (pos+39) in
       let rec finddepth n' pos =
         if n' = ndepths
-        then error "couldn't find depth for visual %#x" vid;
+        then error "cannot find depth for visual %#x" vid;
         let depth = r8 data pos in
         let nvisuals = r16 data (pos+2) in
         let rec findvisual n pos =
@@ -851,7 +851,7 @@ let setup disp sock rootwid screennum w h =
         let hostname =
           try Unix.gethostname ()
           with exn ->
-            dolog "error getting host name: %s" (exntos exn);
+            dolog "error getting host name: %s" @@ exntos exn;
             empty
         in
         if hostname != empty
@@ -1015,7 +1015,7 @@ let getauth haddr dnum =
     then
       try Unix.gethostname ()
       with exn ->
-        dolog "failed to resolve `%S': %s" haddr (exntos exn);
+        dolog "failed to resolve `%S': %s" haddr @@ exntos exn;
         haddr
     else haddr
   in
@@ -1044,7 +1044,7 @@ let getauth haddr dnum =
         with exn ->
           dolog
             "display number(%S) is not an integer (corrupt %S?): %s"
-            nums path (exntos exn);
+            nums path @@ exntos exn;
           None
       in
       let name = rs () in
@@ -1063,7 +1063,7 @@ let getauth haddr dnum =
       | End_of_file -> E.s, E.s
       | exn ->
         dolog "exception while reading X authority data (%S): %s"
-          path (exntos exn);
+          path @@ exntos exn;
         E.s, E.s
     in
     close_in ic;
@@ -1075,7 +1075,7 @@ let getauth haddr dnum =
     match open_in_bin path with
     | ic -> readauth ic
     | (exception exn) ->
-       dolog "failed to open X authority file `%S' : %s" path (exntos exn);
+       dolog "failed to open X authority file `%S' : %s" path @@ exntos exn;
        E.s, E.s
 ;;
 
@@ -1083,8 +1083,7 @@ let init t rootwid w h platform =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
-      error "could not get DISPLAY evironment variable: %s"
-        (exntos exn)
+      error "cannot get DISPLAY evironment variable: %s" @@ exntos exn
   in
   let getnum w b e =
     if b = e
@@ -1094,7 +1093,7 @@ let init t rootwid w h platform =
       try int_of_string s
       with exn ->
         error "invalid DISPLAY %S can not parse %s(%S): %s"
-          d w s (exntos exn)
+          d w s @@ exntos exn
   in
   let rec phost pos =
     if pos = String.length d
@@ -1145,8 +1144,7 @@ let init t rootwid w h platform =
       else
         let h =
           try Unix.gethostbyname host
-          with exn ->
-            error "cannot resolve %S: %s" host (exntos exn)
+          with exn -> error "cannot resolve %S: %s" host @@ exntos exn
         in
         let addr = h.Unix.h_addr_list.(0) in
         let port = 6000 + dispnum in
@@ -1154,8 +1152,7 @@ let init t rootwid w h platform =
         fd, (Unix.ADDR_INET (addr, port))
     in
     try Unix.connect fd addr; fd
-    with exn ->
-      error "failed to connect to X: %s" (exntos exn)
+    with exn -> error "failed to connect to X: %s" @@ exntos exn
   in
   cloexec fd;
   let s = Bytes.create 12 in

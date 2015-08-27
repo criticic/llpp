@@ -585,7 +585,7 @@ let gotouri uri =
     else
       let command = Str.global_replace percentsre url conf.urilauncher in
       try ignore (popen command [])
-      with exn -> dolog "failed to execute `%s': %s" command (exntos exn)
+      with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
   );
 ;;
 
@@ -927,7 +927,7 @@ let unentS s =
 let home =
   try Sys.getenv "HOME"
   with exn ->
-    dolog "Can not determine home directory location: %S" @@ exntos exn;
+    dolog "cannot determine home directory location: %s" @@ exntos exn;
     E.s
 ;;
 
@@ -1075,7 +1075,7 @@ let config_of c attrs =
       | "edit-annotations-inline" -> { c with annotinline = bool_of_string v }
       | _ -> c
     with exn ->
-      dolog "Error processing attribute (`%S' =`%S'): %S" k v @@ exntos exn;
+      dolog "error processing attribute (`%S' = `%S'): %s" k v @@ exntos exn;
       c
   in
   let rec fold c = function
@@ -1090,8 +1090,7 @@ let config_of c attrs =
 let fromstring f pos n v d =
   try f v
   with exn ->
-    dolog "Error processing attribute (%S=%S) at %d\n%s"
-      n v pos (exntos exn);
+    dolog "error processing attribute (%S=%S) at %d\n%s" n v pos @@ exntos exn;
     d
 ;;
 
@@ -1416,10 +1415,9 @@ let do_load f contents =
   with
   | Parser.Parse_error (msg, s, pos) ->
       let subs = Parser.subs s pos in
-      Utils.error "parse error: %s: at %d [..%s..]" msg pos subs
+      Utils.error "parse error: %s: at %d [..%S..]" msg pos subs
 
-  | exn ->
-      failwith ("config load error: " ^ exntos exn)
+  | exn -> Utils.error "parse error: %s" @@ exntos exn
 ;;
 
 let defconfpath =
@@ -1444,7 +1442,7 @@ let load2 f default =
   | exception Unix.Unix_error (Unix.ENOENT, "open", _) ->
       f (Hashtbl.create 0, defconf)
   | exception exn ->
-      dolog "Error loading config from `%S': %s" !confpath @@ exntos exn;
+      dolog "error loading configuration from `%S': %s" !confpath @@ exntos exn;
       default
 ;;
 
@@ -1859,7 +1857,7 @@ let save leavebirdseye =
       close_out oc;
       Unix.rename tmp !confpath;
     with exn ->
-      dolog "Error while saving configuration: %S" @@ exntos exn
+      dolog "error saving configuration: %s" @@ exntos exn
 ;;
 
 let gc fdi fdo =
@@ -1870,7 +1868,7 @@ let gc fdi fdo =
   in
   let rd s n =
     try Unix.read fdi s 0 n
-    with exn -> Utils.error "reading gc pipe %s" (exntos exn) in
+    with exn -> Utils.error "reading gc pipe %s" @@ exntos exn in
   let href = ref (Hashtbl.create 0) in
   let cref = ref defconf in
   let push (h, dc) =
@@ -1904,7 +1902,7 @@ let gc fdi fdo =
        let zpos2 =
          try String.index_from s (zpos1+1) '\000' with Not_found -> -1 in
        if zpos2 = -1
-       then error "Incorrect gc input in (%S) at %d" s zpos1
+       then error "invalid gc input in (%S) at %d" s zpos1
        else
          let okey = StringLabels.sub s ~pos:ppos ~len:(zpos1-ppos) in
          let nkey = StringLabels.sub s ~pos:(zpos1+1) ~len:(zpos2-zpos1-1) in
@@ -1913,7 +1911,7 @@ let gc fdi fdo =
          else
            let v =
              try Hashtbl.find !href okey
-             with Not_found -> Utils.error "gc: could not find %S" okey
+             with Not_found -> Utils.error "gc: cannot find %S" okey
            in
            Hashtbl.remove !href okey;
            Hashtbl.replace !href nkey v;
@@ -1932,7 +1930,7 @@ let gc fdi fdo =
       close_out oc;
       Unix.rename tmp !confpath;
     with exn ->
-      dolog "Error while saving configuration: %S" @@ exntos exn
+      dolog "error saving configuration: %s" @@ exntos exn
    );
 ;;
 

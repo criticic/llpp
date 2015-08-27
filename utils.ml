@@ -26,7 +26,7 @@ let dolog fmt = Format.ksprintf prerr_endline fmt;;
 let exntos = function
   | Unix.Unix_error (e, s, a) -> Printf.sprintf "%s(%s) : %s (%d)"
       s a (Unix.error_message e) (Obj.magic e)
-  | exn -> Printexc.to_string exn;
+  | exn -> Printexc.to_string exn
 ;;
 
 let error fmt = Printf.kprintf failwith fmt;;
@@ -140,7 +140,7 @@ let nindex s c =
 module Ne = struct
   let clo fd f =
     try tempfailureretry Unix.close fd
-    with exn -> f (exntos exn)
+    with exn -> f @@ exntos exn
   ;;
 end;;
 
@@ -229,25 +229,25 @@ let getcmdoutput errfun cmd =
   let clofail s e = error "failed to close %s: %s" s e in
   match Unix.pipe () with
   | (exception exn) ->
-     reperror "pipe failed: %s" (exntos exn);
+     reperror "pipe failed: %s" @@ exntos exn;
      E.s
   | (r, w) ->
      match popen cmd [r, -1; w, 1] with
      | (exception exn) ->
-        reperror "failed to execute %S: %s" cmd (exntos exn);
+        reperror "failed to execute %S: %s" cmd @@ exntos exn;
         E.s
      | pid ->
         Ne.clo w @@ clofail "write end of the pipe";
         let s =
           match Unix.waitpid [] pid with
           | (exception exn) ->
-             reperror "waitpid on %S %d failed: %s" cmd pid (exntos exn);
+             reperror "waitpid on %S %d failed: %s" cmd pid @@ exntos exn;
              E.s
           | _pid, Unix.WEXITED 0 ->
              begin
                match fdcontents r with
                | (exception exn) ->
-                  reperror "failed to read output of %S: %s" cmd (exntos exn);
+                  reperror "failed to read output of %S: %s" cmd @@ exntos exn;
                   E.s
                | s ->
                   let l = String.length s in
