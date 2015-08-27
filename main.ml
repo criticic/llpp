@@ -6294,48 +6294,37 @@ let remote =
   let scratch = Bytes.create 80 in
   let buf = Buffer.create 80 in
   fun fd ->
-    let rec tempfr () =
-      try Some (Unix.read fd scratch 0 80)
-      with
-      | Unix.Unix_error (Unix.EAGAIN, _, _) -> None
-      | Unix.Unix_error (Unix.EINTR, _, _) -> tempfr ()
-      | exn -> raise exn
-    in
-    match tempfr () with
-    | None -> Some fd
-    | Some n ->
-        if n = 0
+    match tempfailureretry (Unix.read fd scratch 0) 80 with
+    | exception Unix.Unix_error (Unix.EAGAIN, _, _) -> None
+    | 0 ->
+        Unix.close fd;
+        if Buffer.length buf > 0
         then (
-          Unix.close fd;
-          if Buffer.length buf > 0
+          let s = Buffer.contents buf in
+          Buffer.clear buf;
+          ract s;
+         );
+        None
+    | n ->
+        let rec eat ppos =
+          let nlpos =
+            match Bytes.index_from scratch ppos '\n' with
+            | pos -> if pos >= n then -1 else pos
+            | exception Not_found -> -1
+          in
+          if nlpos >= 0
           then (
+            Buffer.add_subbytes buf scratch ppos (nlpos-ppos);
             let s = Buffer.contents buf in
             Buffer.clear buf;
             ract s;
-          );
-          None
-        )
-        else
-          let rec eat ppos =
-            let nlpos =
-              try
-                let pos = Bytes.index_from scratch ppos '\n' in
-                if pos >= n then -1 else pos
-              with Not_found -> -1
-            in
-            if nlpos >= 0
-            then (
-              Buffer.add_subbytes buf scratch ppos (nlpos-ppos);
-              let s = Buffer.contents buf in
-              Buffer.clear buf;
-              ract s;
-              eat (nlpos+1);
-            )
-            else (
-              Buffer.add_subbytes buf scratch ppos (n-ppos);
-              Some fd
-            )
-          in eat 0
+            eat (nlpos+1);
+           )
+          else (
+            Buffer.add_subbytes buf scratch ppos (n-ppos);
+            Some fd
+           )
+        in eat 0
 ;;
 
 let remoteopen path =
