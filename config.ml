@@ -581,7 +581,7 @@ let gotouri uri =
   else (
     let url = geturl uri in
     if emptystr url
-    then Printf.eprintf "obtained empty url from uri %S\n" uri
+    then dolog "obtained empty url from uri %S\n" uri
     else
       let command = Str.global_replace percentsre url conf.urilauncher in
       try ignore (popen command [])
