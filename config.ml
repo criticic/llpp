@@ -1446,7 +1446,7 @@ let defconfpath =
 
 let confpath = ref defconfpath;;
 
-let load2 f default=
+let load2 f default =
   match filecontents !confpath with
   | contents -> f @@ do_load get contents
   | exception Unix.Unix_error (Unix.ENOENT, "open", _) ->
