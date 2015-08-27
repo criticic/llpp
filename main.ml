@@ -141,53 +141,6 @@ let launchpath () =
   );
 ;;
 
-let redirectstderr () =
-  let clofail what errmsg = dolog "failed to close %s: %s" what errmsg in
-  if conf.redirectstderr
-  then
-    match Unix.pipe () with
-    | exception exn ->
-        dolog "failed to create stderr redirection pipes: %s" (exntos exn)
-
-    | (r, w) ->
-        begin match Unix.dup Unix.stderr with
-        | exception exn ->
-            dolog "failed to dup stderr: %s" (exntos exn);
-            Ne.clo r (clofail "pipe/r");
-            Ne.clo w (clofail "pipe/w");
-
-        | dupstderr ->
-            begin match Unix.dup2 w Unix.stderr with
-            | exception exn ->
-                dolog "failed to dup2 to stderr: %s" (exntos exn);
-                Ne.clo dupstderr (clofail "stderr duplicate");
-                Ne.clo r (clofail "redir pipe/r");
-                Ne.clo w (clofail "redir pipe/w");
-
-            | () ->
-                state.stderr <- dupstderr;
-                state.errfd <- Some r;
-            end;
-        end
-  else (
-    state.newerrmsgs <- false;
-    begin match state.errfd with
-    | Some fd ->
-        begin match Unix.dup2 state.stderr Unix.stderr with
-        | exception exn ->
-            dolog "failed to dup2 original stderr: %s" (exntos exn)
-        | () ->
-            Ne.clo fd (clofail "dup of stderr");
-            state.errfd <- None;
-        end;
-    | None -> ()
-    end;
-    prerr_string (Buffer.contents state.errmsgs);
-    flush stderr;
-    Buffer.clear state.errmsgs;
-  )
-;;
-
 module G =
 struct
   let postRedisplay who =
@@ -3913,9 +3866,6 @@ let enterinfomode =
       src#bool "max fit"
         (fun () -> conf.maxhfit)
         (fun v -> conf.maxhfit <- v);
-      src#bool "redirect stderr"
-        (fun () -> conf.redirectstderr)
-        (fun v -> conf.redirectstderr <- v; redirectstderr ());
       src#bool "pax mode"
         (fun () -> conf.pax != None)
         (fun v ->
@@ -6565,33 +6515,6 @@ let () =
   in
 
   setcheckers conf.checkers;
-  redirectstderr ();
-  if conf.redirectstderr
-  then
-    at_exit (fun () ->
-      let s = Bytes.cat
-          (Buffer.to_bytes state.errmsgs)
-          (match state.errfd with
-          | Some fd ->
-              let s = Bytes.create (80*24) in
-              let n =
-                try
-                  let r, _, _ = Unix.select [fd] [] [] 0.0 in
-                  if List.mem fd r
-                  then Unix.read fd s 0 (Bytes.length s)
-                  else 0
-                with _ -> 0
-              in
-              if n = 0
-              then E.b
-              else Bytes.sub s 0 n
-        | None -> E.b
-        )
-      in
-      try ignore (Unix.write state.stderr s 0 (Bytes.length s))
-      with exn -> print_endline (exntos exn)
-    )
-  ;
 
   init cs (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
@@ -6641,11 +6564,7 @@ let () =
       doreap := false;
       reap ()
     );
-    let r =
-      match state.errfd with
-      | None -> [state.ss; state.wsfd]
-      | Some fd -> [state.ss; state.wsfd; fd]
-    in
+    let r = [state.ss; state.wsfd] in
     let r =
       match !optrfd with
       | None -> r
@@ -6712,19 +6631,8 @@ let () =
               end;
               checkfds rest
 
-          | fd :: rest ->
-              let s = Bytes.create 80 in
-              let n = tempfailureretry (Unix.read fd s 0) 80 in
-              if conf.redirectstderr
-              then (
-                Buffer.add_subbytes state.errmsgs s 0 n;
-                state.newerrmsgs <- true;
-                state.redisplay <- true;
-              )
-              else (
-                prerr_string @@ Bytes.sub_string s 0 n;
-                flush stderr;
-              );
+          | _ :: rest ->
+              dolog "select returned unknown descriptor";
               checkfds rest
         in
         checkfds l;

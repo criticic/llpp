@@ -263,7 +263,6 @@ type conf =
     ; mutable colorspace     : colorspace
     ; mutable invert         : bool
     ; mutable colorscale     : float
-    ; mutable redirectstderr : bool
     ; mutable ghyllscroll    : (int * int * int) option
     ; mutable columns        : columns
     ; mutable beyecolumns    : columncount option
@@ -387,7 +386,6 @@ type 'a circbuf =
 type state =
     { mutable ss            : Unix.file_descr
     ; mutable wsfd          : Unix.file_descr
-    ; mutable errfd         : Unix.file_descr option
     ; mutable stderr        : Unix.file_descr
     ; mutable errmsgs       : Buffer.t
     ; mutable newerrmsgs    : bool
@@ -544,7 +542,6 @@ let defconf =
   ; colorspace     = Rgb
   ; invert         = false
   ; colorscale     = 1.0
-  ; redirectstderr = false
   ; ghyllscroll    = None
   ; columns        = Csingle [||]
   ; beyecolumns    = None
@@ -655,7 +652,6 @@ let cbgetc b = cbgetg b true;;
 let state =
   { ss            = Unix.stdin
   ; wsfd          = Unix.stdin
-  ; errfd         = None
   ; stderr        = Unix.stderr
   ; errmsgs       = Buffer.create 0
   ; newerrmsgs    = false
@@ -1035,7 +1031,6 @@ let config_of c attrs =
       | "color-space" -> { c with colorspace = CSTE.of_string v }
       | "invert-colors" -> { c with invert = bool_of_string v }
       | "brightness" -> { c with colorscale = float_of_string v }
-      | "redirectstderr" -> { c with redirectstderr = bool_of_string v }
       | "ghyllscroll" -> { c with ghyllscroll = ghyllscroll_of_string v }
       | "columns" ->
           let (n, _, _) as nab = multicolumns_of_string v in
@@ -1177,7 +1172,6 @@ let setconf dst src =
   dst.colorspace     <- src.colorspace;
   dst.invert         <- src.invert;
   dst.colorscale     <- src.colorscale;
-  dst.redirectstderr <- src.redirectstderr;
   dst.ghyllscroll    <- src.ghyllscroll;
   dst.columns        <- src.columns;
   dst.beyecolumns    <- src.beyecolumns;
@@ -1597,7 +1591,6 @@ let add_attrs bb always dc c time =
   oC "color-space" c.colorspace dc.colorspace;
   ob "invert-colors" c.invert dc.invert;
   oF "brightness" c.colorscale dc.colorscale;
-  ob "redirectstderr" c.redirectstderr dc.redirectstderr;
   og "ghyllscroll" c.ghyllscroll dc.ghyllscroll;
   oco "columns" c.columns dc.columns;
   obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
