@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-v=$(cd $(dirname $0) && git describe --tags --dirty 2>/dev/null || echo unknown)
+v=$(cd $(dirname $0) && git describe --tags --dirty) 2>/dev/null || v=unknown
 ocaml str.cma -stdin "$1" "$v" <<EOF
 let fixup = let open Str in
   let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
