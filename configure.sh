@@ -7,7 +7,7 @@ test $(uname -m) = "x86_64" && buildtype=native || buildtype=release
 usage () {
     echo "$1"
     cat 1>&2 <<EOF
-usage: $0 [-F] [-b build-type] [-O] [-n]
+usage: $0 [-F] [-b build-type] [-O] [-n] path-to-mupdf
 options:
  -F: use fontconfig
  -b: MuPDF's build type [default native]
@@ -18,6 +18,8 @@ options:
 EOF
     exit $2
 }
+
+mudir="$1"
 
 while getopts nFb:O opt; do
     case $opt in
@@ -71,8 +73,9 @@ srcdir=$srcdir
 buildtype=$buildtype
 builddir=$builddir
 lablglcflags=$lablglcflags
+mudir=$mudir
 EOF
-    test -e $srcdir/mupdf/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
+    test -e $mudir/build/$buildtype/libmujs.a && echo 'mujs=-lmujs'
     test $native && {
         echo "cmo=.cmx"
         echo "cma=.cmxa"

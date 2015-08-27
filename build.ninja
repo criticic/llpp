@@ -2,11 +2,11 @@ cc = gcc
 include .config
 ocamlflags = -warn-error +a -w +a -g -safe-string
 libs = -lmupdf -lz -lfreetype -ljpeg -ljbig2dec -lopenjpeg $
-     $mujs -lpthread -L$srcdir/mupdf/build/$buildtype
+     $mujs -lpthread -L$mudir/build/$buildtype
 
-cflags = $cflags -Wall -Werror -I$srcdir/mupdf/include -g $
+cflags = $cflags -Wall -Werror -I$mudir/include -g $
        -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow $
-       -I $srcdir/mupdf/thirdparty/freetype/include
+       -I $mudir/thirdparty/freetype/include
 
 rule cc
      deps = gcc
