@@ -1502,51 +1502,35 @@ let gethist () =
 ;;
 
 let add_attrs bb always dc c time =
-  let ob s a b =
-    if always || a != b
-    then Printf.bprintf bb "\n    %s='%b'" s a
-  and op s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%b'" s (a != None)
-  and oi s a b =
-    if always || a != b
-    then Printf.bprintf bb "\n    %s='%d'" s a
-  and oI s a b =
-    if always || a != b
-    then Printf.bprintf bb "\n    %s='%s'" s (string_with_suffix_of_int a)
-  and oz s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%g'" s (a*.100.)
-  and oF s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%f'" s a
-  and oL s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%Ld'" s a
-  and oc s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%s'" s (color_to_string a)
-  and oC s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%s'" s (CSTE.to_string a)
-  and oR s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%s'" s (irect_to_string a)
+  let o' fmt s =
+    Buffer.add_string bb "\n    ";
+    Printf.bprintf bb fmt s
+  in
+  let o c fmt s = if c then o' fmt s else ignore in
+  let ob s a b = o (always || a != b) "%s='%b'" s a
+  and op s a b = o (always || a <> b) "%s='%b'" s (a != None)
+  and oi s a b = o (always || a != b) "%s='%d'" s a
+  and oI s a b = o (always || a != b) "%s='%s'" s (string_with_suffix_of_int a)
+  and oz s a b = o (always || a <> b) "%s='%g'" s (a*.100.)
+  and oF s a b = o (always || a <> b) "%s='%f'" s a
+  and oL s a b = o (always || a <> b) "%s='%Ld'" s a
+  and oc s a b = o (always || a <> b) "%s='%s'" s (color_to_string a)
+  and oC s a b = o (always || a <> b) "%s='%s'" s (CSTE.to_string a)
+  and oR s a b = o (always || a <> b) "%s='%s'" s (irect_to_string a)
+  and oFm s a b = o (always || a <> b) "%s='%s'" s (FMTE.to_string a)
+  and oSv s a b m = o (always || a <> b) "%s='%b'" s (a land m != 0)
+  and oPm s a b = o (always || a <> b) "%s='%s'" s (MTE.to_string a)
   and os s a b =
-    if always || a <> b
-    then
-      Printf.bprintf bb "\n    %s='%s'" s (Parser.enent a 0 (String.length a))
+    o (always || a <> b) "%s='%s'" s @@ Parser.enent a 0 (String.length a)
   and og s a b =
     if always || a <> b
     then
       match a with
-      | Some (_N, _A, _B) ->
-          Printf.bprintf bb "\n    %s='%u,%u,%u'" s _N _A _B
+      | Some (_N, _A, _B) -> o' "%s='%u,%u,%u'" s _N _A _B
       | None ->
           match b with
           | None -> ()
-          | _ ->
-              Printf.bprintf bb "\n    %s='none'" s
+          | _ -> o' "%s='none'" s
   and oW s a b =
     if always || a <> b
     then
@@ -1558,31 +1542,20 @@ let add_attrs bb always dc c time =
             then "true"
             else string_of_float f
       in
-      Printf.bprintf bb "\n    %s='%s'" s v
+      o' "%s='%s'" s v
   and oco s a b =
     if always || a <> b
     then
       match a with
-      | Cmulti ((n, a, b), _) when n > 1 ->
-          Printf.bprintf bb "\n    %s='%d,%d,%d'" s n a b
-      | Csplit (n, _) when n > 1 ->
-          Printf.bprintf bb "\n    %s='%d'" s ~-n
+      | Cmulti ((n, a, b), _) when n > 1 -> o' "%s='%d,%d,%d'" s n a b
+      | Csplit (n, _) when n > 1 -> o' "%s='%d'" s ~-n
       | Cmulti _ | Csplit _ | Csingle _ -> ()
   and obeco s a b =
     if always || a <> b
     then
       match a with
-      | Some c when c > 1 -> Printf.bprintf bb "\n    %s='%d'" s c
+      | Some c when c > 1 -> o' "%s='%d'" s c
       | _ -> ()
-  and oFm s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%s'" s (FMTE.to_string a)
-  and oSv s a b m =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%b'" s (a land m != 0)
-  and oPm s a b =
-    if always || a <> b
-    then Printf.bprintf bb "\n    %s='%s'" s (MTE.to_string a)
   in
   oi "width" c.cwinw dc.cwinw;
   oi "height" c.cwinh dc.cwinh;
