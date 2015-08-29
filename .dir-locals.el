@@ -1,1 +1,1 @@
-((nil . ((compile-command . "\\time -p ninja $PWD/build/llpp.custom"))))
+((nil . ((compile-command . "runghc Build.hs --digest"))))
