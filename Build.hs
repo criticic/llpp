@@ -1,8 +1,14 @@
-import Data.Maybe
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 import Development.Shake
 import Development.Shake.Util
+import Development.Shake.Config
+import Development.Shake.Classes
 import Development.Shake.FilePath
 
+newtype OcamlCmdLineO = OcamlCmdLineO String
+                    deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+newtype GitDescribeOracle = GitDescribeOracle ()
+                  deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 data CM = CMO | CMI
 
 outdir = "build"
@@ -13,7 +19,8 @@ ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string"
 ocamlflagstbl = [("main.cmo", ("-I +lablGL", "sed -f pp.sed"))
                 ,("config.cmo", ("-I +lablGL", ""))
-                ,("wsi.cmo", ("-I " ++ outdir ++ "/le", ""))]
+                ,("wsi.cmo", ("-I " ++ outdir ++ "/le", ""))
+                ]
 
 cc = "gcc"
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
@@ -24,38 +31,66 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include")
   ]
+cmos = map (\name -> outdir </> name ++ ".cmo")
+       ["help", "utils", "parser", "le/bo", "wsi", "config", "main"]
+cclib = "-lmupdf -lz -lfreetype -ljpeg \
+        \-ljbig2dec -lopenjpeg -lmujs \
+        \-lpthread -L" ++ mudir ++ "/build/native -lcrypto"
 
-cm' outdir t =
+getincludes :: [String] -> [String]
+getincludes [] = []
+getincludes ("-I":arg:tl) = arg : getincludes tl
+getincludes (_:tl) = getincludes tl
+
+isabsinc :: String -> Bool
+isabsinc [] = False
+isabsinc (hd:tl) = hd == '+' || hd == '/'
+
+fixincludes [] = []
+fixincludes ("-I":d:tl) =
+  if not $ isabsinc d
+  then "-I":d:"-I":(outdir </> d):fixincludes tl
+  else "-I":d:fixincludes tl
+fixincludes (e:tl) = e:fixincludes tl
+
+ocamlKey key =
+  case lookup key ocamlflagstbl of
+  Nothing -> (ocamlc, ocamlflags, [])
+  Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
+  Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
+
+cm' outdir t oracle =
   target `op` \out -> do
     let key = dropDirectory1 out
-    let src = key -<.> suffix
+    let src' = key -<.> suffix
+    let src = if src' == "help.ml" then outdir </> src' else src'
     need [src]
-    let (flags, pp) = case lookup key ocamlflagstbl of
-          Nothing -> (ocamlflags, [])
-          Just (f, []) -> (ocamlflags ++ " " ++ f, [])
-          Just (f, pp) -> (ocamlflags ++ " " ++ f, ["-pp", pp])
-    Stdout stdout <- cmd ocamldep "-one-line -I" outdir "-I le" pp src
+    (comp, flags, ppflags) <- oracle $ OcamlCmdLineO key
+    Stdout stdout <- cmd ocamldep "-one-line -I le -I" outdir ppflags src
     need $ deplist $ parseMakefile stdout
-    cmd ocamlc "-c -I" outdir flags "-o" out pp src
+    cmd comp "-c -I" outdir flags "-o" out ppflags src
   where (target, suffix, op) = case t of
-          CMO -> (outdir ++ "/*.cmo", ".ml", (%>))
-          CMI -> (outdir ++ "/*.cmi", ".mli", (%>))
-        deplist [] = []
+          CMO -> ("//*.cmo", ".ml", (%>))
+          CMI -> ("//*.cmi", ".mli", (%>))
         deplist ((_, reqs) : _) =
-          map
-            (\n -> if takeDirectory1 n == outdir then n else outdir </> n) reqs
+          [if takeDirectory1 n == outdir then n else outdir </> n | n <- reqs]
 
 main = shakeArgs shakeOptions { shakeFiles = outdir
                               , shakeVerbosity = Normal } $ do
-  want $ map ((</>) outdir) ["main.cmo", "help.ml", "link.o"]
+  want ["build/llpp"]
+
+  gitDescribeOracle <- addOracle $ \(GitDescribeOracle ()) -> do
+    Stdout out <- cmd "git describe --tags --dirty"
+    return $ words out
+
+  ocamlOracle <- addOracle $ \(OcamlCmdLineO s) -> do return $ ocamlKey s
+
   outdir ++ "/help.ml" %> \out -> do
+    version <- gitDescribeOracle $ GitDescribeOracle ()
     need ["mkhelp.sh", "KEYS"]
-    Stdout f <- cmd "/bin/sh mkhelp.sh KEYS"
+    Stdout f <- cmd "/bin/sh mkhelp.sh KEYS" version
     writeFileChanged out f
-  outdir ++ "/help.cmo" %> \out -> do
-    let src = outdir </> "help.ml"
-    need [src]
-    cmd "ocamlc -c -o" out src
+
   outdir ++ "/link.o" %> \out -> do
     let key = dropDirectory1 out
     let flags = case lookup key cflagstbl of
@@ -64,17 +99,13 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     let src = key -<.> ".c"
     let dep = out -<.> ".d"
     unit $ cmd ocamlc "-ccopt"
-      [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out]  "-c" src
+      [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
     needMakefileDependencies dep
-  let cmos = map (\name -> outdir </> name ++ ".cmo")
-             ["help", "utils", "parser", "le/bo", "wsi", "config", "main"]
+
   outdir ++ "/llpp" %> \out -> do
     need $ map ((</>) outdir) ["link.o", "main.cmo", "wsi.cmo", "help.ml"]
-    let cclib = "-lmupdf -lz -lfreetype -ljpeg \
-                \-ljbig2dec -lopenjpeg -lmujs \
-                \-lpthread -L" ++ mudir ++ "/build/native -lcrypto"
     unit $ cmd ocamlc "-custom -I +lablGL -o " out
       "unix.cma str.cma lablgl.cma" cmos (outdir </> "link.o") "-cclib" [cclib]
-  cm' outdir CMI
-  cm' outdir CMO
-  cm' (outdir ++ "/le") CMO
+
+  cm' outdir CMI ocamlOracle
+  cm' outdir CMO ocamlOracle

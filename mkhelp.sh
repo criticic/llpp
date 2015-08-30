@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
-v=$(cd $(dirname $0) && git describe --tags --dirty) 2>/dev/null || v=unknown
-ocaml str.cma -stdin "$1" "$v" <<EOF
+ocaml str.cma -stdin "$1" "$2" <<EOF
 let fixup = let open Str in
   let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
   and head = regexp {|-----\(.*\)-----|} in
