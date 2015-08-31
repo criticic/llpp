@@ -3306,11 +3306,17 @@ let genhistoutlines =
     | `title ->
         let e1 = emptystr c1.title
         and e2 = emptystr c2.title in
-        (**) if e1 && e2
+        if e1 && e2
         then compare (Filename.basename p2) (Filename.basename p1)
-        else if e1 then -1
-        else if e2 then 1
-        else compare c1.title c2.title
+        else (
+          if e1
+          then -1
+          else (
+            if e2
+            then 1
+            else compare c1.title c2.title
+           )
+         )
   in
   let showfullpath = ref false in
   let showorigin = ref true in
