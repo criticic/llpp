@@ -1,6 +1,6 @@
 module E = struct
   let s = "";;
-  let b = Bytes.of_string s;;
+  let b = Bytes.empty;;
   let a = [||];;
 end;;
 
