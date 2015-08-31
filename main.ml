@@ -4617,10 +4617,10 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
        )
       else (
         resetmstate ();
-        state.text <- source#greetmsg;
         Wsi.setcursor Wsi.CURSOR_INHERIT;
         let anchor = getanchor () in
         source#reset anchor outlines;
+        state.text <- source#greetmsg;
         state.uioh <-
           coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
         G.postRedisplay "enter selector";
