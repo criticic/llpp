@@ -575,6 +575,12 @@ let defconf =
 
 let conf = { defconf with angle = defconf.angle };;
 
+let gotourl url =
+  let command = Str.global_replace percentsre url conf.urilauncher in
+  try ignore (popen command [])
+  with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
+;;
+
 let gotouri uri =
   if emptystr conf.urilauncher
   then dolog "%s" uri
@@ -582,10 +588,7 @@ let gotouri uri =
     let url = geturl uri in
     if emptystr url
     then dolog "obtained empty url from uri %S\n" uri
-    else
-      let command = Str.global_replace percentsre url conf.urilauncher in
-      try ignore (popen command [])
-      with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
+    else gotourl url
   );
 ;;
 
@@ -599,7 +602,7 @@ let makehelp () =
     List.map (fun s ->
       let url = geturl s in
       if nonemptystr url
-      then (s, 0, Action (fun uioh -> gotouri url; uioh))
+      then (s, 0, Action (fun uioh -> gotourl url; uioh))
       else (s, 0, Noaction)
     ) strings);
 ;;
