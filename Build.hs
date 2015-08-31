@@ -5,7 +5,7 @@ import Development.Shake.Config
 import Development.Shake.Classes
 import Development.Shake.FilePath
 
-newtype OcamlCmdLineO = OcamlCmdLineO String
+newtype OcamlCmdLineOracle = OcamlCmdLineOracle String
                     deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype GitDescribeOracle = GitDescribeOracle ()
                   deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
@@ -19,7 +19,7 @@ ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string"
 ocamlflagstbl = [("main.cmo", ("-I +lablGL", "sed -f pp.sed"))
                 ,("config.cmo", ("-I +lablGL", ""))
-                ,("wsi.cmo", ("-I " ++ outdir ++ "/le", ""))
+                ,("wsi.cmo", ("-I le", ""))
                 ]
 
 cc = "gcc"
@@ -47,10 +47,9 @@ isabsinc [] = False
 isabsinc (hd:tl) = hd == '+' || hd == '/'
 
 fixincludes [] = []
-fixincludes ("-I":d:tl) =
-  if not $ isabsinc d
-  then "-I":d:"-I":(outdir </> d):fixincludes tl
-  else "-I":d:fixincludes tl
+fixincludes ("-I":d:tl)
+  | isabsinc d = "-I":d:fixincludes tl
+  | otherwise = "-I":d:"-I":(outdir </> d):fixincludes tl
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey key =
@@ -65,10 +64,14 @@ cm' outdir t oracle =
     let src' = key -<.> suffix
     let src = if src' == "help.ml" then outdir </> src' else src'
     need [src]
-    (comp, flags, ppflags) <- oracle $ OcamlCmdLineO key
-    Stdout stdout <- cmd ocamldep "-one-line -I le -I" outdir ppflags src
+    (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
+    let flagl = words flags
+    let incs = unwords $ ["-I " ++ d | d <- getincludes flagl
+                                     , not $ isabsinc d]
+    Stdout stdout <- cmd ocamldep "-one-line -I" outdir incs ppflags src
     need $ deplist $ parseMakefile stdout
-    cmd comp "-c -I" outdir flags "-o" out ppflags src
+    let fixedflags = fixincludes flagl
+    cmd comp "-c -I" outdir fixedflags  "-o" out ppflags src
   where (target, suffix, op) = case t of
           CMO -> ("//*.cmo", ".ml", (%>))
           CMI -> ("//*.cmi", ".mli", (%>))
@@ -83,7 +86,7 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     Stdout out <- cmd "git describe --tags --dirty"
     return $ words out
 
-  ocamlOracle <- addOracle $ \(OcamlCmdLineO s) -> do return $ ocamlKey s
+  ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> do return $ ocamlKey s
 
   outdir ++ "/help.ml" %> \out -> do
     version <- gitDescribeOracle $ GitDescribeOracle ()
