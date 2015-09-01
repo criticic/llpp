@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+import System.Exit
 import Development.Shake
 import Development.Shake.Util
 import Development.Shake.Config
@@ -58,6 +59,15 @@ ocamlKey key =
   Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
   Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
 
+fixppfile :: String -> [String] -> [String]
+fixppfile s ("File":_:tl) = ["File \"" ++ s ++ "\","] ++ tl
+fixppfile _ l = l
+
+fixpp :: String -> String -> String
+fixpp r s =
+  unlines $ (unwords $ fixppfile r $ words hd) : tl
+  where hd:tl = lines s
+
 cm' outdir t oracle =
   target `op` \out -> do
     let key = dropDirectory1 out
@@ -68,10 +78,18 @@ cm' outdir t oracle =
     let flagl = words flags
     let incs = unwords $ ["-I " ++ d | d <- getincludes flagl
                                      , not $ isabsinc d]
-    Stdout stdout <- cmd ocamldep "-one-line -I" outdir incs ppflags src
+    (Stdout stdout, Stderr emsg, Exit ex) <-
+          cmd ocamldep "-one-line -I" outdir incs ppflags src
+    if ex /= ExitSuccess
+      then error $ fixpp src emsg
+      else do
     need $ deplist $ parseMakefile stdout
     let fixedflags = fixincludes flagl
-    cmd comp "-c -I" outdir fixedflags  "-o" out ppflags src
+    (Stderr emsg, Exit ex) <-
+      cmd comp "-c -I" outdir fixedflags  "-o" out ppflags src
+    if ex == ExitSuccess
+      then return ()
+      else error $ fixpp src emsg
   where (target, suffix, op) = case t of
           CMO -> ("//*.cmo", ".ml", (%>))
           CMI -> ("//*.cmi", ".mli", (%>))
