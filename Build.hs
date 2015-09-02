@@ -92,7 +92,7 @@ cm' outdir t oracle ordoracle =
     need $ deplist $ parseMakefile stdout
     let fixedflags = fixincludes flagl
     (Stderr emsg, Exit ex) <-
-      cmd comp "-c -I" outdir fixedflags  "-o" out ppflags src
+      cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
     ppppe ex src emsg
     ordoracle $ OcamlOrdOracle out
     return ()
