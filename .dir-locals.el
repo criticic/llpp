@@ -1,1 +1,1 @@
-((nil . ((compile-command . "runghc Build.hs --digest"))))
+((nil . ((compile-command . "runghc Build.hs"))))
