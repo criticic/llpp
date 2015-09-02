@@ -96,7 +96,7 @@ cm' outdir t oracle =
           CMI -> ("//*.cmi", ".mli", (%>))
         deplist ((_, reqs) : _) =
           [if takeDirectory1 n == outdir then n else outdir </> n | n <- reqs]
-        ppppe ExitSuccess _ _ = do return ()
+        ppppe ExitSuccess _ _ = return ()
         ppppe _ src emsg = error $ fixpp src emsg
 
 main = shakeArgs shakeOptions { shakeFiles = outdir
@@ -106,7 +106,7 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   gitDescribeOracle <- addOracle $ \(GitDescribeOracle ()) -> do
     Stdout out <- cmd "git describe --tags --dirty"
-    return $ (out :: String)
+    return (out :: String)
 
   ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> do return $ ocamlKey s
 
