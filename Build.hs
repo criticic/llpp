@@ -60,7 +60,7 @@ ocamlKey key =
   Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
 
 fixppfile :: String -> [String] -> [String]
-fixppfile s ("File":_:tl) = ["File \"" ++ s ++ "\","] ++ tl
+fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
 fixppfile _ l = l
 
 fixpp :: String -> String -> String
@@ -80,29 +80,28 @@ cm' outdir t oracle =
                                      , not $ isabsinc d]
     (Stdout stdout, Stderr emsg, Exit ex) <-
           cmd ocamldep "-one-line -I" outdir incs ppflags src
-    if ex /= ExitSuccess
-      then error $ fixpp src emsg
-      else do
+    ppppe ex src emsg
     need $ deplist $ parseMakefile stdout
     let fixedflags = fixincludes flagl
     (Stderr emsg, Exit ex) <-
       cmd comp "-c -I" outdir fixedflags  "-o" out ppflags src
-    if ex == ExitSuccess
-      then return ()
-      else error $ fixpp src emsg
+    ppppe ex src emsg
   where (target, suffix, op) = case t of
           CMO -> ("//*.cmo", ".ml", (%>))
           CMI -> ("//*.cmi", ".mli", (%>))
         deplist ((_, reqs) : _) =
           [if takeDirectory1 n == outdir then n else outdir </> n | n <- reqs]
+        ppppe ExitSuccess _ _ = do return ()
+        ppppe _ src emsg = error $ fixpp src emsg
 
 main = shakeArgs shakeOptions { shakeFiles = outdir
-                              , shakeVerbosity = Normal } $ do
+                              , shakeVerbosity = Normal
+                              , shakeChange = ChangeModtimeAndDigest } $ do
   want ["build/llpp"]
 
   gitDescribeOracle <- addOracle $ \(GitDescribeOracle ()) -> do
     Stdout out <- cmd "git describe --tags --dirty"
-    return $ words out
+    return $ (out :: String)
 
   ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> do return $ ocamlKey s
 
