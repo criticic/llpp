@@ -832,6 +832,8 @@ static void initpdims (void)
     int trimw = 0, cxcount;
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
 
+    fz_var (trimw);
+    fz_var (cxcount);
     start = now ();
 
     if (state.trimmargins && state.trimcachepath) {
@@ -1649,6 +1651,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
     char *p = NULL;
     int len, ret, oldlen = 0;
 
+    fz_var (p);
+    fz_var (oldlen);
     for (;;) {
         len = readlen ();
         if (len == 0) {
@@ -1672,6 +1676,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             char *utf8filename;
             size_t filenamelen;
 
+            fz_var (ok);
             ret = sscanf (p + 5, " %d %d %n", &wthack, &state.cxack, &off);
             if (ret != 2) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
@@ -2656,11 +2661,13 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
     int end_page = dir > 0 ? state.pagecount : -1;
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
 
+    fz_var (end_page);
     ret_v = Val_int (0);
     lock ("ml_findpage_with_links");
     for (i = start_page + dir; i != end_page; i += dir) {
         int found;
 
+        fz_var (found);
         if (pdf) {
             pdf_page *page = NULL;
 

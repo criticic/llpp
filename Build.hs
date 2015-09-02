@@ -30,7 +30,7 @@ cflags = "-Wall -Werror -D_GNU_SOURCE -O\
 cflagstbl =
   [("link.o"
    ,"-I " ++ mudir ++ "/include -I "
-    ++ mudir ++ "/thirdparty/freetype/include")
+    ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
 cmos = map (\name -> outdir </> name ++ ".cmo")
        ["help", "utils", "parser", "le/bo", "wsi", "config", "main"]
