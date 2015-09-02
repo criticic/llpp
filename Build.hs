@@ -1,11 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+import System.IO.Unsafe
 import System.Exit
+import Control.Concurrent.MVar
 import Development.Shake
 import Development.Shake.Util
 import Development.Shake.Config
 import Development.Shake.Classes
 import Development.Shake.FilePath
 
+newtype OcamlOrdOracle = OcamlOrdOracle String
+                       deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype OcamlCmdLineOracle = OcamlCmdLineOracle String
                            deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype CCmdLineOracle = CCmdLineOracle String
@@ -33,8 +37,6 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cmos = map (\name -> inOutDir name ++ ".cmo")
-       ["help", "utils", "parser", "le/bo", "wsi", "config", "main"]
 cclib = "-lmupdf -lz -lfreetype -ljpeg \
         \-ljbig2dec -lopenjpeg -lmujs \
         \-lpthread -L" ++ mudir ++ "/build/native -lcrypto"
@@ -74,7 +76,7 @@ fixpp r s =
   unlines $ unwords (fixppfile r $ words hd) : tl
   where hd:tl = lines s
 
-cm' outdir t oracle =
+cm' outdir t oracle ordoracle =
   target `op` \out -> do
     let key = dropDirectory1 out
     let src' = key -<.> suffix
@@ -92,6 +94,8 @@ cm' outdir t oracle =
     (Stderr emsg, Exit ex) <-
       cmd comp "-c -I" outdir fixedflags  "-o" out ppflags src
     ppppe ex src emsg
+    ordoracle $ OcamlOrdOracle out
+    return ()
   where (target, suffix, op) = case t of
           CMO -> ("//*.cmo", ".ml", (%>))
           CMI -> ("//*.cmi", ".mli", (%>))
@@ -99,6 +103,9 @@ cm' outdir t oracle =
           [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
         ppppe ExitSuccess _ _ = return ()
         ppppe _ src emsg = error $ fixpp src emsg
+
+depl :: MVar [String]
+depl = unsafePerformIO $ newMVar []
 
 main = shakeArgs shakeOptions { shakeFiles = outdir
                               , shakeVerbosity = Normal
@@ -109,7 +116,12 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     Stdout out <- cmd "git describe --tags --dirty"
     return (out :: String)
 
-  ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> return $ ocamlKey s
+  ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> do
+    return $ ocamlKey s
+
+  ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) -> do
+    liftIO $ modifyMVar_ depl $ \l -> return $ s:l
+    return ()
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
 
@@ -130,8 +142,10 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   inOutDir "llpp" %> \out -> do
     need $ map inOutDir ["link.o", "main.cmo", "wsi.cmo", "help.ml"]
+    cmos1 <- liftIO $ readMVar depl
+    let cmos = [o | o <- reverse cmos1, takeExtension o /= ".cmi"]
     unit $ cmd ocamlc "-custom -I +lablGL -o " out
       "unix.cma str.cma lablgl.cma" cmos (inOutDir "link.o") "-cclib" [cclib]
 
-  cm' outdir CMI ocamlOracle
-  cm' outdir CMO ocamlOracle
+  cm' outdir CMI ocamlOracle ocamlOrdOracle
+  cm' outdir CMO ocamlOracle ocamlOrdOracle
