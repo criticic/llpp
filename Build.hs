@@ -70,7 +70,7 @@ fixppfile _ l = l
 
 fixpp :: String -> String -> String
 fixpp r s =
-  unlines $ (unwords $ fixppfile r $ words hd) : tl
+  unlines $ unwords (fixppfile r $ words hd) : tl
   where hd:tl = lines s
 
 cm' outdir t oracle =
@@ -81,8 +81,8 @@ cm' outdir t oracle =
     need [src]
     (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
     let flagl = words flags
-    let incs = unwords $ ["-I " ++ d | d <- getincludes flagl
-                                     , not $ isabsinc d]
+    let incs = unwords ["-I " ++ d | d <- getincludes flagl
+                                   , not $ isabsinc d]
     (Stdout stdout, Stderr emsg, Exit ex) <-
           cmd ocamldep "-one-line -I" outdir incs ppflags src
     ppppe ex src emsg
@@ -108,9 +108,9 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     Stdout out <- cmd "git describe --tags --dirty"
     return (out :: String)
 
-  ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> do return $ ocamlKey s
+  ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> return $ ocamlKey s
 
-  cOracle <- addOracle $ \(CCmdLineOracle s) -> do return $ cKey s
+  cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
 
   outdir ++ "/help.ml" %> \out -> do
     version <- gitDescribeOracle $ GitDescribeOracle ()
@@ -128,7 +128,7 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     needMakefileDependencies dep
 
   outdir ++ "/llpp" %> \out -> do
-    need $ map ((</>) outdir) ["link.o", "main.cmo", "wsi.cmo", "help.ml"]
+    need $ map (outdir </>) ["link.o", "main.cmo", "wsi.cmo", "help.ml"]
     unit $ cmd ocamlc "-custom -I +lablGL -o " out
       "unix.cma str.cma lablgl.cma" cmos (outdir </> "link.o") "-cclib" [cclib]
 
