@@ -63,7 +63,7 @@ let drawstring2 size x y fmt =
   Printf.kprintf (drawstring size (x+1) (y+size+1)) fmt
 ;;
 
-let debugl l =
+let _debugl l =
   dolog "l %d dim=%d {" l.pageno l.pagedimno;
   dolog "  WxH     %dx%d" l.pagew l.pageh;
   dolog "  vWxH    %dx%d" l.pagevw l.pagevh;
@@ -150,10 +150,6 @@ end;;
 let getopaque pageno =
   try Some (Hashtbl.find state.pagemap (pageno, state.gen))
   with Not_found -> None
-;;
-
-let putopaque pageno opaque =
-  Hashtbl.replace state.pagemap (pageno, state.gen) opaque
 ;;
 
 let pagetranslatepoint l x y =
