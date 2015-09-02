@@ -16,6 +16,7 @@ data CM = CMO | CMI
 
 outdir = "build"
 mudir = "/home/malc/x/rcs/git/mupdf"
+inOutDir s = outdir </> s
 
 ocamlc = "ocamlc.opt"
 ocamldep = "ocamldep.opt"
@@ -32,7 +33,7 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cmos = map (\name -> outdir </> name ++ ".cmo")
+cmos = map (\name -> inOutDir name ++ ".cmo")
        ["help", "utils", "parser", "le/bo", "wsi", "config", "main"]
 cclib = "-lmupdf -lz -lfreetype -ljpeg \
         \-ljbig2dec -lopenjpeg -lmujs \
@@ -50,7 +51,7 @@ isabsinc (hd:tl) = hd == '+' || hd == '/'
 fixincludes [] = []
 fixincludes ("-I":d:tl)
   | isabsinc d = "-I":d:fixincludes tl
-  | otherwise = "-I":d:"-I":(outdir </> d):fixincludes tl
+  | otherwise = "-I":d:"-I":(inOutDir d):fixincludes tl
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey key =
@@ -77,7 +78,7 @@ cm' outdir t oracle =
   target `op` \out -> do
     let key = dropDirectory1 out
     let src' = key -<.> suffix
-    let src = if src' == "help.ml" then outdir </> src' else src'
+    let src = if src' == "help.ml" then inOutDir src' else src'
     need [src]
     (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
     let flagl = words flags
@@ -95,7 +96,7 @@ cm' outdir t oracle =
           CMO -> ("//*.cmo", ".ml", (%>))
           CMI -> ("//*.cmi", ".mli", (%>))
         deplist ((_, reqs) : _) =
-          [if takeDirectory1 n == outdir then n else outdir </> n | n <- reqs]
+          [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
         ppppe ExitSuccess _ _ = return ()
         ppppe _ src emsg = error $ fixpp src emsg
 
@@ -112,13 +113,13 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
 
-  outdir ++ "/help.ml" %> \out -> do
+  inOutDir "help.ml" %> \out -> do
     version <- gitDescribeOracle $ GitDescribeOracle ()
     need ["mkhelp.sh", "KEYS"]
     Stdout f <- cmd "/bin/sh mkhelp.sh KEYS" version
     writeFileChanged out f
 
-  outdir ++ "/link.o" %> \out -> do
+  inOutDir "link.o" %> \out -> do
     let key = dropDirectory1 out
     flags <- cOracle $ CCmdLineOracle key
     let src = key -<.> ".c"
@@ -127,10 +128,10 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
       [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
     needMakefileDependencies dep
 
-  outdir ++ "/llpp" %> \out -> do
-    need $ map (outdir </>) ["link.o", "main.cmo", "wsi.cmo", "help.ml"]
+  inOutDir "llpp" %> \out -> do
+    need $ map inOutDir ["link.o", "main.cmo", "wsi.cmo", "help.ml"]
     unit $ cmd ocamlc "-custom -I +lablGL -o " out
-      "unix.cma str.cma lablgl.cma" cmos (outdir </> "link.o") "-cclib" [cclib]
+      "unix.cma str.cma lablgl.cma" cmos (inOutDir "link.o") "-cclib" [cclib]
 
   cm' outdir CMI ocamlOracle
   cm' outdir CMO ocamlOracle
