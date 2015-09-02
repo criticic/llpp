@@ -51,7 +51,7 @@ isabsinc (hd:tl) = hd == '+' || hd == '/'
 fixincludes [] = []
 fixincludes ("-I":d:tl)
   | isabsinc d = "-I":d:fixincludes tl
-  | otherwise = "-I":d:"-I":(inOutDir d):fixincludes tl
+  | otherwise = "-I":inOutDir d:fixincludes tl
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey key =
