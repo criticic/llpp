@@ -7,9 +7,11 @@ import Development.Shake.Classes
 import Development.Shake.FilePath
 
 newtype OcamlCmdLineOracle = OcamlCmdLineOracle String
-                    deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+newtype CCmdLineOracle = CCmdLineOracle String
+                       deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype GitDescribeOracle = GitDescribeOracle ()
-                  deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+                          deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 data CM = CMO | CMI
 
 outdir = "build"
@@ -22,8 +24,6 @@ ocamlflagstbl = [("main.cmo", ("-I +lablGL", "sed -f pp.sed"))
                 ,("config.cmo", ("-I +lablGL", ""))
                 ,("wsi.cmo", ("-I le", ""))
                 ]
-
-cc = "gcc"
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow"
@@ -58,6 +58,11 @@ ocamlKey key =
   Nothing -> (ocamlc, ocamlflags, [])
   Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
   Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
+
+cKey key =
+  case lookup key cflagstbl of
+  Nothing -> cflags
+  Just f -> f ++ " " ++ cflags
 
 fixppfile :: String -> [String] -> [String]
 fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
@@ -105,6 +110,8 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> do return $ ocamlKey s
 
+  cOracle <- addOracle $ \(CCmdLineOracle s) -> do return $ cKey s
+
   outdir ++ "/help.ml" %> \out -> do
     version <- gitDescribeOracle $ GitDescribeOracle ()
     need ["mkhelp.sh", "KEYS"]
@@ -113,9 +120,7 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   outdir ++ "/link.o" %> \out -> do
     let key = dropDirectory1 out
-    let flags = case lookup key cflagstbl of
-          Nothing -> cflags
-          Just f -> cflags ++ " " ++ f
+    flags <- cOracle $ CCmdLineOracle key
     let src = key -<.> ".c"
     let dep = out -<.> ".d"
     unit $ cmd ocamlc "-ccopt"
