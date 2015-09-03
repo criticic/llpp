@@ -18,7 +18,7 @@ executable_p() {
 
 missing() {
     executable_p $1 || \
-        eval "$1() { die \"$1 is needed for \$type conversion\"; }"
+        eval "$1() { die \"$2 is needed for \$type conversion\"; }"
 }
 
 maketext() {
@@ -189,7 +189,7 @@ EOF
         test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
         conv='dvipdf "$1" "$casp"'
-        missing "dvipdf"
+        missing dvipdf "dvipdf(http://ghostscript.com/)"
     };;
     text) {
         conv='pandoc -t epub - -o "$casp"'
