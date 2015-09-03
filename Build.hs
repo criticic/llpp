@@ -1,10 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 import System.IO.Unsafe
 import System.Exit
 import Control.Concurrent.MVar
 import Development.Shake
 import Development.Shake.Util
-import Development.Shake.Config
+import Development.Shake.Config ()
 import Development.Shake.Classes
 import Development.Shake.FilePath
 
@@ -48,7 +49,7 @@ getincludes (_:tl) = getincludes tl
 
 isabsinc :: String -> Bool
 isabsinc [] = False
-isabsinc (hd:tl) = hd == '+' || hd == '/'
+isabsinc (hd:_) = hd == '+' || hd == '/'
 
 fixincludes [] = []
 fixincludes ("-I":d:tl)
@@ -76,7 +77,7 @@ fixpp r s =
   unlines $ unwords (fixppfile r $ words hd) : tl
   where hd:tl = lines s
 
-cm' outdir t oracle ordoracle =
+cm' t oracle ordoracle =
   target `op` \out -> do
     let key = dropDirectory1 out
     let src' = key -<.> suffix
@@ -91,14 +92,15 @@ cm' outdir t oracle ordoracle =
     ppppe ex src emsg
     need $ deplist $ parseMakefile stdout
     let fixedflags = fixincludes flagl
-    (Stderr emsg, Exit ex) <-
+    (Stderr emsg2, Exit ex2) <-
       cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
-    ppppe ex src emsg
-    ordoracle $ OcamlOrdOracle out
+    ppppe ex2 src emsg2
+    unit $ ordoracle $ OcamlOrdOracle out
     return ()
   where (target, suffix, op) = case t of
           CMO -> ("//*.cmo", ".ml", (%>))
           CMI -> ("//*.cmi", ".mli", (%>))
+        deplist [] = []
         deplist ((_, reqs) : _) =
           [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
         ppppe ExitSuccess _ _ = return ()
@@ -141,11 +143,11 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     needMakefileDependencies dep
 
   inOutDir "llpp" %> \out -> do
-    need $ map inOutDir ["link.o", "main.cmo", "wsi.cmo", "help.ml"]
+    need $ map inOutDir ["link.o", "main.cmo", "wsi.cmo", "help.cmo"]
     cmos1 <- liftIO $ readMVar depl
     let cmos = [o | o <- reverse cmos1, takeExtension o /= ".cmi"]
     unit $ cmd ocamlc "-custom -I +lablGL -o " out
       "unix.cma str.cma lablgl.cma" cmos (inOutDir "link.o") "-cclib" [cclib]
 
-  cm' outdir CMI ocamlOracle ocamlOrdOracle
-  cm' outdir CMO ocamlOracle ocamlOrdOracle
+  cm' CMI ocamlOracle ocamlOrdOracle
+  cm' CMO ocamlOracle ocamlOrdOracle
