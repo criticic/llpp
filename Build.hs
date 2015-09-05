@@ -38,7 +38,7 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cclib = "-lmupdf -lz -lfreetype -ljpeg \
+cclib = "-lGL -lX11 -lmupdf -lz -lfreetype -ljpeg \
         \-ljbig2dec -lopenjpeg -lmujs \
         \-lpthread -L" ++ mudir ++ "/build/native -lcrypto"
 
@@ -57,20 +57,17 @@ fixincludes ("-I":d:tl)
   | otherwise = "-I":inOutDir d:fixincludes tl
 fixincludes (e:tl) = e:fixincludes tl
 
-ocamlKey key =
-  if take 7 key == "lablGL/" then (ocamlc, "-I lablGL", [])
-  else
-    case lookup key ocamlflagstbl of
-    Nothing -> (ocamlc, ocamlflags, [])
-    Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
-    Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
+ocamlKey key | take 7 key == "lablGL/" = (ocamlc, "-I lablGL", [])
+             | otherwise =
+               case lookup key ocamlflagstbl of
+               Nothing -> (ocamlc, ocamlflags, [])
+               Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
+               Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
 
-cKey key =
-  if take 7 key == "lablGL/" then ""
-  else
-    case lookup key cflagstbl of
-    Nothing -> cflags
-    Just f -> f ++ " " ++ cflags
+cKey key | take 7 key == "lablGL/" = "-Wno-pointer-sign"
+         | otherwise = case lookup key cflagstbl of
+           Nothing -> cflags
+           Just f -> f ++ " " ++ cflags
 
 fixppfile :: String -> [String] -> [String]
 fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
@@ -156,14 +153,15 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     needMakefileDependencies dep
 
   inOutDir "llpp" %> \out -> do
-    need $ map (inOutDir . (</>) "lablGL") ["ml_gl.o", "ml_glarray.o", "ml_raw.o"]
+    let objs = map (inOutDir . (</>) "lablGL")
+                ["ml_gl.o", "ml_glarray.o", "ml_raw.o"]
+    need objs
     need $ map inOutDir ["link.o", "main.cmo", "wsi.cmo", "help.cmo"]
     cmos1 <- liftIO $ readMVar depl
     let cmos = nub $ reverse $ map ((-<.> ".cmo")) cmos1
-    liftIO $ putStrLn $ show cmos
     need cmos
     unit $ cmd ocamlc "-custom -I lablGL -o " out
-      "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" [cclib]
+      "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" ([cclib] ++ objs)
 
   cm' CMI ocamlOracle ocamlOrdOracle
   cm' CMO ocamlOracle ocamlOrdOracle
