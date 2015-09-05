@@ -28,7 +28,6 @@ ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string"
 ocamlflagstbl = [("main.cmo", ("-I +lablGL", "sed -f pp.sed"))
                 ,("config.cmo", ("-I +lablGL", ""))
-                ,("wsi.cmo", ("-I le", ""))
                 ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
