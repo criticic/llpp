@@ -143,15 +143,6 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
       [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
     needMakefileDependencies dep
 
-  inOutDir "link.o" %> \out -> do
-    let key = dropDirectory1 out
-    flags <- cOracle $ CCmdLineOracle key
-    let src = key -<.> ".c"
-    let dep = out -<.> ".d"
-    unit $ cmd ocamlc "-ccopt"
-      [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
-    needMakefileDependencies dep
-
   inOutDir "llpp" %> \out -> do
     let objs = map (inOutDir . (</>) "lablGL")
                 ["ml_gl.o", "ml_glarray.o", "ml_raw.o"]
