@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+import Data.List
 import System.IO.Unsafe
 import System.Exit
 import Control.Concurrent.MVar
@@ -26,8 +27,8 @@ inOutDir s = outdir </> s
 ocamlc = "ocamlc.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string"
-ocamlflagstbl = [("main.cmo", ("-I +lablGL", "sed -f pp.sed"))
-                ,("config.cmo", ("-I +lablGL", ""))
+ocamlflagstbl = [("main.cmo", ("-I lablGL", "sed -f pp.sed"))
+                ,("config.cmo", ("-I lablGL", ""))
                 ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
@@ -57,15 +58,19 @@ fixincludes ("-I":d:tl)
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey key =
-  case lookup key ocamlflagstbl of
-  Nothing -> (ocamlc, ocamlflags, [])
-  Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
-  Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
+  if take 7 key == "lablGL/" then (ocamlc, "-I lablGL", [])
+  else
+    case lookup key ocamlflagstbl of
+    Nothing -> (ocamlc, ocamlflags, [])
+    Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
+    Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
 
 cKey key =
-  case lookup key cflagstbl of
-  Nothing -> cflags
-  Just f -> f ++ " " ++ cflags
+  if take 7 key == "lablGL/" then ""
+  else
+    case lookup key cflagstbl of
+    Nothing -> cflags
+    Just f -> f ++ " " ++ cflags
 
 fixppfile :: String -> [String] -> [String]
 fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
@@ -117,7 +122,7 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     Stdout out <- cmd "git describe --tags --dirty"
     return (out :: String)
 
-  ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) -> do
+  ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) ->
     return $ ocamlKey s
 
   ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) -> do
@@ -132,6 +137,15 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     Stdout f <- cmd "/bin/sh mkhelp.sh KEYS" version
     writeFileChanged out f
 
+  "//*.o" %> \out -> do
+    let key = dropDirectory1 out
+    flags <- cOracle $ CCmdLineOracle key
+    let src = key -<.> ".c"
+    let dep = out -<.> ".d"
+    unit $ cmd ocamlc "-ccopt"
+      [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
+    needMakefileDependencies dep
+
   inOutDir "link.o" %> \out -> do
     let key = dropDirectory1 out
     flags <- cOracle $ CCmdLineOracle key
@@ -142,11 +156,14 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     needMakefileDependencies dep
 
   inOutDir "llpp" %> \out -> do
+    need $ map (inOutDir . (</>) "lablGL") ["ml_gl.o", "ml_glarray.o", "ml_raw.o"]
     need $ map inOutDir ["link.o", "main.cmo", "wsi.cmo", "help.cmo"]
     cmos1 <- liftIO $ readMVar depl
-    let cmos = [o | o <- reverse cmos1, takeExtension o /= ".cmi"]
-    unit $ cmd ocamlc "-custom -I +lablGL -o " out
-      "unix.cma str.cma lablgl.cma" cmos (inOutDir "link.o") "-cclib" [cclib]
+    let cmos = nub $ reverse $ map ((-<.> ".cmo")) cmos1
+    liftIO $ putStrLn $ show cmos
+    need cmos
+    unit $ cmd ocamlc "-custom -I lablGL -o " out
+      "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" [cclib]
 
   cm' CMI ocamlOracle ocamlOrdOracle
   cm' CMO ocamlOracle ocamlOrdOracle
