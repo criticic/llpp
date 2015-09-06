@@ -57,13 +57,13 @@ fixincludes ("-I":d:tl)
   | otherwise = "-I":inOutDir d:fixincludes tl
 fixincludes (e:tl) = e:fixincludes tl
 
-ocamlKey key | isPrefixOf "lablGL/" key = (ocamlc, "-I lablGL", [])
+ocamlKey key | "lablGL/" `isPrefixOf` key = (ocamlc, "-I lablGL", [])
              | otherwise = case lookup key ocamlflagstbl of
                Nothing -> (ocamlc, ocamlflags, [])
                Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
                Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
 
-cKey key | isPrefixOf "lablGL/" key = "-Wno-pointer-sign"
+cKey key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
          | otherwise = case lookup key cflagstbl of
            Nothing -> cflags
            Just f -> f ++ " " ++ cflags
@@ -146,10 +146,10 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
     need (objs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
     cmos1 <- liftIO $ readMVar depl
-    let cmos = nub $ reverse $ map ((-<.> ".cmo")) cmos1
+    let cmos = nub $ reverse $ map (-<.> ".cmo") cmos1
     need cmos
     unit $ cmd ocamlc "-custom -I lablGL -o " out
-      "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" ([cclib] ++ objs)
+      "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" (cclib : objs)
 
   cm' CMI ocamlOracle ocamlOrdOracle
   cm' CMO ocamlOracle ocamlOrdOracle
