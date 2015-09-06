@@ -1869,9 +1869,6 @@ let gc fdi fdo =
     if n != n'
     then Utils.error "Unix.write %d = %d" n n'
   in
-  let rd s n =
-    try Unix.read fdi s 0 n
-    with exn -> Utils.error "reading gc pipe %s" @@ exntos exn in
   let href = ref (Hashtbl.create 0) in
   let cref = ref defconf in
   let push (h, dc) =
@@ -1888,17 +1885,7 @@ let gc fdi fdo =
     true
   in
   ignore (load1 push);
-  let s =
-    let b = Buffer.create 32768 in
-    let s = Bytes.create 4096 in
-    let rec f () =
-      let n = rd s (Bytes.length s) in
-      if n = 0
-      then Buffer.contents b
-      else (Buffer.add_subbytes b s 0 n; f ())
-    in
-    f ()
-  in
+  let s = fdcontents fdi in
   let rec f ppos =
     match String.index_from s ppos '\000' with
     | exception Not_found -> ()
