@@ -143,7 +143,8 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   inOutDir "llpp" %> \out -> do
     let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
-    need (objs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
+    need (objs ++ map inOutDir ["link.o", "main.cmo",
+                                "lablGL/glMisc.cmo", "help.cmo"])
     cmos1 <- liftIO $ readMVar depl
     let cmos = nub $ reverse $ map (-<.> ".cmo") cmos1
     need cmos
