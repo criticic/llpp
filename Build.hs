@@ -107,6 +107,7 @@ cm' t oracle ordoracle =
         ppppe _ src emsg = error $ fixpp src emsg
 
 depl :: MVar [String]
+{-# NOINLINE depl #-}
 depl = unsafePerformIO $ newMVar []
 
 main = shakeArgs shakeOptions { shakeFiles = outdir
