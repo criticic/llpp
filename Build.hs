@@ -57,14 +57,14 @@ fixincludes ("-I":d:tl)
   | otherwise = "-I":inOutDir d:fixincludes tl
 fixincludes (e:tl) = e:fixincludes tl
 
-ocamlKey key | take 7 key == "lablGL/" = (ocamlc, "-I lablGL", [])
+ocamlKey key | isPrefixOf "lablGL/" key = (ocamlc, "-I lablGL", [])
              | otherwise =
                case lookup key ocamlflagstbl of
                Nothing -> (ocamlc, ocamlflags, [])
                Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
                Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
 
-cKey key | take 7 key == "lablGL/" = "-Wno-pointer-sign"
+cKey key | isPrefixOf "lablGL/" key = "-Wno-pointer-sign"
          | otherwise = case lookup key cflagstbl of
            Nothing -> cflags
            Just f -> f ++ " " ++ cflags
