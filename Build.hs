@@ -73,9 +73,7 @@ fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
 fixppfile _ l = l
 
 fixpp :: String -> String -> String
-fixpp r s =
-  unlines $ unwords (fixppfile r $ words hd) : tl
-  where hd:tl = lines s
+fixpp r s = unlines [unwords $ fixppfile r $ words x | x <- lines s]
 
 cm' t oracle ordoracle =
   target `op` \out -> do
