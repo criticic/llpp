@@ -58,8 +58,7 @@ fixincludes ("-I":d:tl)
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey key | isPrefixOf "lablGL/" key = (ocamlc, "-I lablGL", [])
-             | otherwise =
-               case lookup key ocamlflagstbl of
+             | otherwise = case lookup key ocamlflagstbl of
                Nothing -> (ocamlc, ocamlflags, [])
                Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
                Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
