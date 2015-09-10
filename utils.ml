@@ -37,7 +37,7 @@ let emptystr s = String.length s = 0;;
 let nonemptystr s = String.length s > 0;;
 let bound v minv maxv = max minv (min maxv v);;
 
-let popen cmd fda =
+let spawn cmd fda =
   if platform = Pcygwin
   then failwith "popen not implemented under cygwin yet"
   else spawn cmd fda;
@@ -232,7 +232,7 @@ let getcmdoutput errfun cmd =
      reperror "pipe failed: %s" @@ exntos exn;
      E.s
   | (r, w) ->
-     match popen cmd [r, -1; w, 1] with
+     match spawn cmd [r, -1; w, 1] with
      | (exception exn) ->
         reperror "failed to execute %S: %s" cmd @@ exntos exn;
         E.s

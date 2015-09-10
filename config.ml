@@ -577,7 +577,7 @@ let conf = { defconf with angle = defconf.angle };;
 
 let gotourl url =
   let command = Str.global_replace percentsre url conf.urilauncher in
-  try ignore (popen command [])
+  try ignore @@ spawn command []
   with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
 ;;
 

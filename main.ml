@@ -134,7 +134,7 @@ let launchpath () =
   then dolog "%s" state.path
   else (
     let command = Str.global_replace percentsre state.path conf.pathlauncher in
-    try addpid @@ popen command []
+    try addpid @@ spawn command []
     with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
   );
 ;;
@@ -225,7 +225,7 @@ let pipesel opaque cmd =
           Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
         in
         let pid =
-          try popen cmd [r, 0; w, -1]
+          try spawn cmd [r, 0; w, -1]
           with exn ->
             dolog "cannot execute %S: %s" cmd @@ exntos exn;
             -1
@@ -273,7 +273,7 @@ let selstring s =
         )
       in
       let pid =
-        try popen conf.selcmd [r, 0; w, -1]
+        try spawn conf.selcmd [r, 0; w, -1]
         with exn ->
           showtext '!'
             (Printf.sprintf "failed to execute %s: %s"
@@ -4180,7 +4180,7 @@ let getusertext s =
     );
     let execstr = editor ^ " " ^ tmppath in
     let s =
-      match popen execstr [] with
+      match spawn execstr [] with
       | (exception exn) ->
          showtext '!' @@
            Printf.sprintf "popen(%S) failed: %s" execstr @@ exntos exn;
@@ -4356,7 +4356,7 @@ let gotounder under =
         if conf.riani
         then
           let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
-          try addpid @@ popen command []
+          try addpid @@ spawn command []
           with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
         else
           let anchor = getanchor () in
@@ -4375,7 +4375,7 @@ let gotounder under =
         if conf.riani
         then
           let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
-          try addpid @@ popen command []
+          try addpid @@ spawn command []
           with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
         else
           let anchor = getanchor () in
@@ -5845,7 +5845,7 @@ let viewmouse button down x y mask =
               "%s %s %d %d %d"
               conf.stcmd state.path pageno ux uy
             in
-            addpid @@ popen cmd []
+            addpid @@ spawn cmd []
         | None -> ()
       )
 
@@ -5977,7 +5977,7 @@ let viewmouse button down x y mask =
                                       dolog "%s close failed: %s" what msg)
                                   in
                                   let pid =
-                                    try popen cmd [r, 0; w, -1]
+                                    try spawn cmd [r, 0; w, -1]
                                     with exn ->
                                       dolog "cannot execute %S: %s"
                                             cmd @@ exntos exn;
@@ -6366,7 +6366,7 @@ let () =
       | exception exn -> error "failed to create gc pipes: %s" @@ exntos exn
       | pipes -> pipes
     in
-    match addpid @@ popen !gcconfig [(ci, 0); (co, 1); (si, -1); (so, -1)] with
+    match addpid @@ spawn !gcconfig [(ci, 0); (co, 1); (si, -1); (so, -1)] with
     | exception exn -> error "failed to execute gc script: %s" @@ exntos exn
     | _pid ->
         Ne.clo ci @@ (fun s -> error "failed to close gc input pipe %s" s);
