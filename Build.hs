@@ -86,7 +86,7 @@ cm' t oracle ordoracle =
     let incs = unwords ["-I " ++ d | d <- getincludes flagl
                                    , not $ isabsinc d]
     (Stdout stdout, Stderr emsg, Exit ex) <-
-          cmd ocamldep "-one-line -I" outdir incs ppflags src
+          cmd ocamldep "-one-line" incs ppflags src
     ppppe ex src emsg
     need $ deplist $ parseMakefile stdout
     let fixedflags = fixincludes flagl
