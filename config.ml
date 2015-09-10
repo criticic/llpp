@@ -1881,11 +1881,12 @@ let gc fdi fdo =
     Hashtbl.iter f h;
     href := h;
     cref := dc;
-    Unix.shutdown fdo Unix.SHUTDOWN_SEND;
+    Ne.clo fdo @@ error "failed to close gc output fd: %s";
     true
   in
   ignore (load1 push);
   let s = fdcontents fdi in
+  Ne.clo fdi @@ error "failed to close gc input fd: %s";
   let rec f ppos =
     match String.index_from s ppos '\000' with
     | exception Not_found -> ()

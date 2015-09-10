@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys, subprocess, socket
+import os, sys, subprocess
 
 fields = sys.stdin.read ().split ('\x00')
 
@@ -20,9 +20,4 @@ while len (fields) > 1:
     elif os.path.isdir (opath):
             sys.stdout.write (opath + "\000\000")
 
-sys.stdout.flush ()
-socket.fromfd (sys.stdout.fileno (),
-               socket.AF_UNIX,
-               socket.SOCK_STREAM).shutdown (socket.SHUT_RDWR)
-sys.stderr.write ("gc.py done\n")
-os._exit (0)
+sys.stderr.write (sys.argv[0] + " done\n")
