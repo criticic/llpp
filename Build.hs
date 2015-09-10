@@ -148,7 +148,7 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     cmos1 <- liftIO $ readMVar depl
     let cmos = nub $ reverse $ map (-<.> ".cmo") cmos1
     need cmos
-    unit $ cmd ocamlc "-custom -I lablGL -o " out
+    unit $ cmd ocamlc "-g -custom -I lablGL -o " out
       "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" (cclib : objs)
 
   cm' CMI ocamlOracle ocamlOrdOracle
