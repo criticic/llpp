@@ -16,7 +16,7 @@ external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
 external toutf8 : int -> string = "ml_keysymtoutf8";;
 external mbtoutf8 : string -> string = "ml_mbtoutf8";;
-external popen : string -> (Unix.file_descr * int) list -> int = "ml_popen";;
+external spawn : string -> (Unix.file_descr * int) list -> int = "ml_spawn";;
 external platform : unit -> (platform * string array)  = "ml_platform";;
 
 let now = Unix.gettimeofday;;
@@ -40,7 +40,7 @@ let bound v minv maxv = max minv (min maxv v);;
 let popen cmd fda =
   if platform = Pcygwin
   then failwith "popen not implemented under cygwin yet"
-  else popen cmd fda;
+  else spawn cmd fda;
 ;;
 
 module Opaque :
