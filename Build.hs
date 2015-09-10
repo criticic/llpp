@@ -88,21 +88,24 @@ cm' t oracle ordoracle =
     (Stdout stdout, Stderr emsg, Exit ex) <-
           cmd ocamldep "-one-line -I" outdir incs ppflags src
     ppppe ex src emsg
-    need $ deplist $ parseMakefile stdout
+    need $ cmx2cmo $ deplist $ parseMakefile stdout
     let fixedflags = fixincludes flagl
     (Stderr emsg2, Exit ex2) <-
       cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
     ppppe ex2 src emsg2
     unit $ ordoracle $ OcamlOrdOracle out
     return ()
-  where (target, suffix, op) = case t of
-          CMO -> ("//*.cmo", ".ml", (%>))
-          CMI -> ("//*.cmi", ".mli", (%>))
-        deplist [] = []
-        deplist ((_, reqs) : _) =
-          [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
-        ppppe ExitSuccess _ _ = return ()
-        ppppe _ src emsg = error $ fixpp src emsg
+  where
+    deplist [] = []
+    deplist (_ : (_, reqs) : _) = map fixin reqs
+    deplist ((_, reqs) : _) = map fixin reqs
+    fixin n = if takeDirectory1 n == outdir then n else inOutDir n
+    ppppe ExitSuccess _ _ = return ()
+    ppppe _ src emsg = error $ fixpp src emsg
+    cmx2cmo = map (\x -> if takeExtension x == ".cmx" then x -<.> ".cmo" else x)
+    (target, suffix, op) = case t of
+      CMO -> ("//*.cmo", ".ml", (%>))
+      CMI -> ("//*.cmi", ".mli", (%>))
 
 depl :: MVar [String]
 {-# NOINLINE depl #-}
@@ -143,11 +146,9 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   inOutDir "llpp" %> \out -> do
     let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
-    need (objs ++ map inOutDir ["link.o", "main.cmo",
-                                "lablGL/glMisc.cmo", "help.cmo"])
-    cmos1 <- liftIO $ readMVar depl
-    let cmos = nub $ reverse $ map (-<.> ".cmo") cmos1
-    need cmos
+    need $ objs ++ map inOutDir ["link.o", "main.cmo", "help.ml"]
+    deps <- liftIO $ readMVar depl
+    let cmos = nub $ reverse $ map (-<.> ".cmo") deps
     unit $ cmd ocamlc "-custom -I lablGL -o " out
       "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" (cclib : objs)
 
