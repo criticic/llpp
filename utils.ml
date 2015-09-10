@@ -45,7 +45,7 @@ let popen cmd fda =
 
 module Opaque :
 sig
-  type t =  private string
+  type t = private string
   val of_string : string -> t
   val to_string : t -> string
 end
