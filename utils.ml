@@ -165,9 +165,10 @@ let addchar s c =
 
 let btod b = if b then 1 else 0;;
 
-let splitatspace =
-  let r = Str.regexp " " in
-  fun s -> Str.bounded_split r s 2;
+let splitatspace s = let open String in
+  match index s ' ' with
+  | pos -> sub s 0 pos :: sub s (pos+1) (length s - pos - 1) :: []
+  | exception Not_found -> [s]
 ;;
 
 let boundastep h step =
