@@ -88,7 +88,13 @@ cm' t oracle ordoracle =
     (Stdout stdout, Stderr emsg, Exit ex) <-
           cmd ocamldep "-one-line" incs ppflags src
     ppppe ex src emsg
-    need $ deplist $ parseMakefile stdout
+    let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
+          where
+            deps = deplist $ parseMakefile stdout
+            fit dep = ext == ".cmi" && base /= baseout
+              where (base, ext) = splitExtension dep
+                    baseout = dropExtension out
+    need depo
     let fixedflags = fixincludes flagl
     (Stderr emsg2, Exit ex2) <-
       cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
@@ -121,7 +127,9 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
     return $ ocamlKey s
 
   ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) -> do
-    liftIO $ modifyMVar_ depl $ \l -> return $ s:l
+    if takeExtension s == ".cmi"
+      then return ()
+      else liftIO $ modifyMVar_ depl $ \l -> return $ s:l
     return ()
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
@@ -143,13 +151,11 @@ main = shakeArgs shakeOptions { shakeFiles = outdir
 
   inOutDir "llpp" %> \out -> do
     let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
-    need (objs ++ map inOutDir ["link.o", "main.cmo",
-                                "lablGL/glMisc.cmo", "help.cmo"])
-    cmos1 <- liftIO $ readMVar depl
-    let cmos = nub $ reverse $ map (-<.> ".cmo") cmos1
-    need cmos
+    need (objs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
+    cmos <- liftIO $ readMVar depl
     unit $ cmd ocamlc "-g -custom -I lablGL -o " out
-      "unix.cma str.cma" cmos (inOutDir "link.o") "-cclib" (cclib : objs)
+      "unix.cma str.cma" (reverse cmos)
+      (inOutDir "link.o") "-cclib" (cclib : objs)
 
   cm' CMI ocamlOracle ocamlOrdOracle
   cm' CMO ocamlOracle ocamlOrdOracle
