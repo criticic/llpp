@@ -1041,7 +1041,7 @@ let setup disp sock rootwid screennum w h =
 
 let getauth haddr dnum =
   let haddr =
-    if haddr = "localhost" || String.length haddr = 0
+    if emptystr haddr || haddr = "localhost"
     then
       try Unix.gethostname ()
       with exn ->
@@ -1099,7 +1099,7 @@ let getauth haddr dnum =
     close_in ic;
     name, data;
   in
-  if String.length path = 0
+  if emptystr path
   then E.s, E.s
   else
     match open_in_bin path with
@@ -1160,7 +1160,7 @@ let init t rootwid w h platform =
   let aname, adata = getauth host dispnum in
   let fd =
     let fd, addr =
-      if String.length host = 0 || host = "unix"
+      if emptystr host || host = "unix"
       then
         let addr =
           match platform with
