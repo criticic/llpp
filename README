@@ -6,7 +6,8 @@ resemble less(1)
 
 The rendering library used is MuPDF (http://www.mupdf.com/)
 
-This code is in public domain [1]
+This code, sans local copy of LablGL [1], is in the public domain [2]
 
-[1] https://github.com/ccxvii/snippets/blob/master/README
+[1] Text inside lablGL/COPYRIGHT covers lablGL
+[2] https://github.com/ccxvii/snippets/blob/master/README
     Covers glfont.c
