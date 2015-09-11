@@ -1865,6 +1865,9 @@ let save leavebirdseye =
 
 let gc fdi fdo =
   let wr s n =
+    (* This here has a potential of rising SIGPIPE, silently and
+       seemingly harmlessly (when -gc was supplied an invalid
+       executable for instance) probably needs revisiting *)
     let n' = Unix.write fdo (Bytes.of_string s) 0 n in
     if n != n'
     then Utils.error "Unix.write %d = %d" n n'
