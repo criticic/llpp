@@ -175,14 +175,10 @@ let makereq opcode len reqlen =
   s;
 ;;
 
-let recv fd s pos len =
-  Unix.read fd s pos len;
-;;
-
 let readstr sock n =
   let s = Bytes.create n in
   let rec loop pos n =
-    let m = tempfailureretry (recv sock s pos) n in
+    let m = tempfailureretry (Unix.read sock s pos) n in
     if m = 0
     then state.t#quit;
     if n != m
