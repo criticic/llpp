@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 import Data.List
 import System.Exit
+import Control.Monad
 import Control.Concurrent.MVar
 import Development.Shake
 import Development.Shake.Util
@@ -124,10 +125,8 @@ main = do
     return $ ocamlKey s
 
   ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) -> do
-    if takeExtension s == ".cmi"
-      then return ()
-      else liftIO $ modifyMVar_ depl $ \l -> return $ s:l
-    return ()
+    unless (takeExtension s == ".cmi") $
+      liftIO $ modifyMVar_ depl $ \l -> return $ s:l
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
 
