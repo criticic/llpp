@@ -1,7 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 import Data.List
-import System.IO.Unsafe
 import System.Exit
 import Control.Concurrent.MVar
 import Development.Shake
@@ -110,13 +109,11 @@ cm' t oracle ordoracle =
         ppppe ExitSuccess _ _ = return ()
         ppppe _ src emsg = error $ fixpp src emsg
 
-depl :: MVar [String]
-{-# NOINLINE depl #-}
-depl = unsafePerformIO $ newMVar []
-
-main = shakeArgs shakeOptions { shakeFiles = outdir
-                              , shakeVerbosity = Normal
-                              , shakeChange = ChangeModtimeAndDigest } $ do
+main = do
+  depl <- newMVar ([]::[String])
+  shakeArgs shakeOptions { shakeFiles = outdir
+                         , shakeVerbosity = Normal
+                         , shakeChange = ChangeModtimeAndDigest } $ do
   want ["build/llpp"]
 
   gitDescribeOracle <- addOracle $ \(GitDescribeOracle ()) -> do
