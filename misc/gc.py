@@ -6,7 +6,6 @@ fields = sys.stdin.read ().split ('\x00')
 while len (fields) > 1:
     opath, atime = fields[0:2]
     fields = fields[2:]
-    npath = ""
     if not os.path.exists (opath):
         try:
             npath = subprocess.check_output (
@@ -14,7 +13,7 @@ while len (fields) > 1:
                 shell = False
             )
         except:
-            pass
+            npath = ""
         npath = npath[:-1]
         sys.stdout.write (opath + "\000" + npath + "\000")
     elif os.path.isdir (opath):
