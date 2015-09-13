@@ -111,7 +111,7 @@ cm' t oracle ordoracle =
         ppppe _ src emsg = error $ fixpp src emsg
 
 main = do
-  depl <- newMVar ([]::[String])
+  depl <- newMVar ([] :: [String])
   shakeArgs shakeOptions { shakeFiles = outdir
                          , shakeVerbosity = Normal
                          , shakeChange = ChangeModtimeAndDigest } $ do
