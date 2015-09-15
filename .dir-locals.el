@@ -1,1 +1,1 @@
-((nil . ((compile-command . "sh build.sh"))))
+((nil . ((compile-command . "runghc -Wall -Werror Build.hs"))))
