@@ -149,7 +149,7 @@ main = do
     let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
     need (objs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
     cmos <- liftIO $ readMVar depl
-    unit $ cmd ocamlc "-g -custom -I lablGL -o " out
+    unit $ cmd ocamlc "-g -custom -I lablGL -o" out
       "unix.cma str.cma" (reverse cmos)
       (inOutDir "link.o") "-cclib" (cclib : objs)
 
