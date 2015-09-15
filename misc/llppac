@@ -174,10 +174,10 @@ EOF
             arg="--waterfall $cachedir/fonts/text"
             maketext
         fi
+        unset filt
         conv='pango-view --font="$1" -q $arg -o $casp'
         caspsuf=.pdf
         md5of=/dev/null
-        filt=
         force=1
         missing pango-view "pango-view(http://www.pango.org/)"
     };;
