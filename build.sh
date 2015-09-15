@@ -2,7 +2,7 @@
 set -e
 set -u
 
-ghc --make Build.hs \
+ghc -Wall -Werror --make Build.hs \
     -rtsopts -with-rtsopts=-I0
 
 ./Build "$@"
