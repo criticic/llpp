@@ -38,9 +38,9 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cclib = "-lGL -lX11 -lmupdf -lz -lfreetype -ljpeg \
-        \-ljbig2dec -lopenjpeg -lmujs \
-        \-lpthread -L" ++ mudir ++ "/build/native -lcrypto"
+cclib = "-lGL -lX11 -lmupdf -lz -lfreetype -ljpeg\
+        \ -ljbig2dec -lopenjpeg -lmujs\
+        \ -lpthread -L" ++ mudir ++ "/build/native -lcrypto"
 
 getincludes :: [String] -> [String]
 getincludes [] = []
