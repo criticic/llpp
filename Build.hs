@@ -77,12 +77,16 @@ fixpp r s = unlines [unwords $ fixppfile r $ words x | x <- lines s]
 ppppe ExitSuccess _ _ = return ()
 ppppe _ src emsg = error $ fixpp src emsg
 
-cm' t oracle =
+needsrc key suffix = do
+  let src' = key -<.> suffix
+  let src = if src' == "help.ml" then inOutDir src' else src'
+  need [src]
+  return src
+
+cmY t oracle =
   target `op` \out -> do
     let key = dropDirectory1 out
-    let src' = key -<.> suffix
-    let src = if src' == "help.ml" then inOutDir src' else src'
-    need [src]
+    src <- needsrc key suffix
     (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
     let flagl = words flags
     need [out ++ "_dep"]
@@ -90,18 +94,15 @@ cm' t oracle =
     (Stderr emsg2, Exit ex2) <-
       cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
     ppppe ex2 src emsg2
-    return ()
   where (target, suffix, op) = case t of
           CMO -> ("//*.cmo", ".ml", (%>))
           CMI -> ("//*.cmi", ".mli", (%>))
 
-cm'dep t oracle ordoracle =
+cmYdep t oracle ordoracle =
   target `op` \out -> do
     let out' = take (length out - 4) out
     let key = dropDirectory1 out'
-    let src' = key -<.> suffix
-    let src = if src' == "help.ml" then inOutDir src' else src'
-    need [src]
+    src <- needsrc key suffix
     (_, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
     let flagl = words flags
     let incs = unwords ["-I " ++ d | d <- getincludes flagl
@@ -139,7 +140,7 @@ main = do
   ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) ->
     return $ ocamlKey s
 
-  ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) -> do
+  ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) ->
     liftIO $ modifyMVar_ depl $ \l -> return $ s:l
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
@@ -169,7 +170,7 @@ main = do
       "unix.cma str.cma" (reverse cmos)
       (inOutDir "link.o") "-cclib" (cclib : objs)
 
-  cm' CMI ocamlOracle
-  cm' CMO ocamlOracle
-  cm'dep CMI ocamlOracle ocamlOrdOracle
-  cm'dep CMO ocamlOracle ocamlOrdOracle
+  cmY CMI ocamlOracle
+  cmY CMO ocamlOracle
+  cmYdep CMI ocamlOracle ocamlOrdOracle
+  cmYdep CMO ocamlOracle ocamlOrdOracle
