@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 import Data.List
 import System.Exit
+import Control.Monad
 import Control.Concurrent.MVar
 import Development.Shake
 import Development.Shake.Util
@@ -83,45 +84,33 @@ needsrc key suffix = do
   need [src]
   return src
 
-cmY t oracle =
+cm' t oracle ordoracle =
   target `op` \out -> do
     let key = dropDirectory1 out
     src <- needsrc key suffix
     (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
-    let flagl = words flags
-    need [out ++ "_dep"]
-    let fixedflags = fixincludes flagl
-    (Stderr emsg2, Exit ex2) <-
-      cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
-    ppppe ex2 src emsg2
-  where (target, suffix, op) = case t of
-          CMO -> ("//*.cmo", ".ml", (%>))
-          CMI -> ("//*.cmi", ".mli", (%>))
-
-cmYdep t oracle ordoracle =
-  target `op` \out -> do
-    let out' = take (length out - 4) out
-    let key = dropDirectory1 out'
-    src <- needsrc key suffix
-    (_, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
     let flagl = words flags
     let incs = unwords ["-I " ++ d | d <- getincludes flagl
                                    , not $ isabsinc d]
     (Stdout stdout, Stderr emsg, Exit ex) <-
           cmd ocamldep "-one-line" incs ppflags src
     ppppe ex src emsg
-    let depo = deps ++ [dep -<.> ".cmo_dep" | dep <- deps, fit dep]
+    let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
           where
             deps = deplist $ parseMakefile stdout
             fit dep = ext == ".cmi" && base /= baseout
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
-    writeFileChanged out stdout
     need depo
-    ordoracle $ OcamlOrdOracle out'
+    let fixedflags = fixincludes flagl
+    (Stderr emsg2, Exit ex2) <-
+      cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
+    ppppe ex2 src emsg2
+    unit $ ordoracle $ OcamlOrdOracle out
+    return ()
   where (target, suffix, op) = case t of
-          CMO -> ("//*.cmo_dep", ".ml", (%>))
-          CMI -> ("//*.cmi_dep", ".mli", (%>))
+          CMO -> ("//*.cmo", ".ml", (%>))
+          CMI -> ("//*.cmi", ".mli", (%>))
         deplist [] = []
         deplist ((_, reqs) : _) =
           [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
@@ -140,8 +129,9 @@ main = do
   ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) ->
     return $ ocamlKey s
 
-  ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) ->
-    liftIO $ modifyMVar_ depl $ \l -> return $ s:l
+  ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) -> do
+    unless (takeExtension s == ".cmi") $
+      liftIO $ modifyMVar_ depl $ \l -> return $ s:l
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
 
@@ -163,14 +153,10 @@ main = do
   inOutDir "llpp" %> \out -> do
     let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
     need (objs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
-    cms <- liftIO $ readMVar depl
-    let cmos = nub $ map (-<.> ".cmo") cms
-    need cmos
+    cmos <- liftIO $ readMVar depl
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
       "unix.cma str.cma" (reverse cmos)
       (inOutDir "link.o") "-cclib" (cclib : objs)
 
-  cmY CMI ocamlOracle
-  cmY CMO ocamlOracle
-  cmYdep CMI ocamlOracle ocamlOrdOracle
-  cmYdep CMO ocamlOracle ocamlOrdOracle
+  cm' CMI ocamlOracle ocamlOrdOracle
+  cm' CMO ocamlOracle ocamlOrdOracle
