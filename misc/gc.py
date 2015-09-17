@@ -13,6 +13,7 @@ while len (fields) > 1:
                 shell = False
             )
         except:
+            sys.stderr.write ("removing " + opath + "\n")
             npath = ""
         npath = npath[:-1]
         sys.stdout.write (opath + "\000" + npath + "\000")
