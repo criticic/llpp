@@ -7,7 +7,7 @@ W                       - save changes
 up/down arrow           - scroll up/down
 j/k                     - scroll up/down
 left/right arrow        - pan left/right (when zoomed in)
-control + arrows        - scroll up/down, pan left/right (by half a screen width/height)
+Ctrl-arrows             - scroll up/down, pan left/right (by half a screen width/height)
 space                   - go to the next page
 delete                  - go to the previous page
 pageup/pagedown         - go forward/backward one screen-full
@@ -20,7 +20,7 @@ Alt-left/right arrow    - go backward/forward in history
 0..9                    - enter page number to jump to
 t                       - align top of the screen with the top of the page
 <,>                     - rotate
-Ctrl pageup/pagedown    - align top of the screen with first/last visible page
+Ctrl-pageup/pagedown    - align top of the screen with first/last visible page
 F                       - go to hinted link
 a                       - autoscroll
 if auto scrolling is active:
