@@ -139,7 +139,7 @@ cmio target suffix oracle ordoracle = do
     deplist ((_, reqs) : _) =
       [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
 
-cmx oracle ordoracle = do
+cmx oracle ordoracle =
   "//*.cmx" %> \out -> do
     let key = dropDirectory1 out
     src <- needsrc key ".ml"
