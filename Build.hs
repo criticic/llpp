@@ -18,7 +18,6 @@ newtype CCmdLineOracle = CCmdLineOracle String
                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype GitDescribeOracle = GitDescribeOracle ()
                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
-data CM = CMO | CMI
 
 outdir = "build"
 mudir = "/home/malc/x/rcs/git/mupdf"
@@ -68,7 +67,7 @@ cKey key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
            Nothing -> cflags
            Just f -> f ++ " " ++ cflags
 
-cm' t oracle ordoracle = do
+cmio target suffix oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
     src <- needsrc key suffix
@@ -106,10 +105,7 @@ cm' t oracle ordoracle = do
     let ord = reverse (drop 4 $ reverse out)
     unit $ ordoracle $ OcamlOrdOracle ord
     return ()
-  where (target, suffix) = case t of
-          CMO -> ("//*.cmo", ".ml")
-          CMI -> ("//*.cmi", ".mli")
-        fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
+  where fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
         fixppfile _ l = l
 
         fixpp :: String -> String -> String
@@ -172,5 +168,5 @@ main = do
       "unix.cma str.cma" (reverse cmos)
       (inOutDir "link.o") "-cclib" (cclib : objs)
 
-  cm' CMI ocamlOracle ocamlOrdOracle
-  cm' CMO ocamlOracle ocamlOrdOracle
+  cmio "//*.cmi" ".mli" ocamlOracle ocamlOrdOracle
+  cmio "//*.cmo" ".ml" ocamlOracle ocamlOrdOracle
