@@ -148,7 +148,7 @@ cmx oracle ordoracle = do
     let incs = unwords ["-I " ++ d | d <- getincludes flagl
                                    , not $ isabsinc d]
     (Stdout stdout, Stderr emsg, Exit ex) <-
-          cmd ocamldep "-one-line" incs ppflags src
+          cmd ocamldep "-one-line" incs "-I" outdir ppflags src
     ppppe ex src emsg
     need $ deplist $ parseMakefile stdout
     unit $ ordoracle $ OcamlOrdOracleN out
