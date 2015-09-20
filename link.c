@@ -3079,7 +3079,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                             && y >= b->y0 && y <= b->y1) {
                             fz_text_style *style = span->text->style;
                             const char *n2 =
-                                style->font && style->font->name
+                                style->font
                                 ? style->font->name
                                 : "Span has no font name"
                                 ;
