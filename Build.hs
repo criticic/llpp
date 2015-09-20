@@ -24,7 +24,7 @@ newtype GitDescribeOracle = GitDescribeOracle ()
                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 
 outdir = "build"
-mudir = "/home/malc/x/rcs/git/mupdf"
+mudir = "mupdf"
 inOutDir s = outdir </> s
 
 ocamlc = "ocamlc.opt"

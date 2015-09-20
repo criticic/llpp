@@ -1,1 +1,16 @@
-<needs to be rewritten>
+Prerequisites for building from sources:
+        ocaml (4.02+) [http://ocaml.org/]
+        gcc           [https://gcc.gnu.org/]
+        binutils      [http://www.gnu.org/software/binutils/]
+        make          [http://www.gnu.org/software/make/]
+        git           [https://git-scm.com/]
+        ghc           [https://www.haskell.org/ghc/]
+        shake         [http://shakebuild.com/]
+
+llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
+llpp% cd mupdf
+llpp% make build=native
+llpp% cd ..
+llpp% runghc Build.hs -j0 [build/llpp.native]
+
+Standalone binary should now be in build/llpp[.native]
