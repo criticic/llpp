@@ -121,7 +121,7 @@ cmio target suffix oracle ordoracle = do
     let incs = unwords ["-I " ++ d | d <- getincludes flagl
                                    , not $ isabsinc d]
     (Stdout stdout, Stderr emsg, Exit ex) <-
-          cmd ocamldep "-one-line" incs ppflags src
+          cmd ocamldep "-one-line" incs "-I" outdir ppflags src
     ppppe ex src emsg
     writeFileChanged out stdout
     let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
