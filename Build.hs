@@ -12,7 +12,11 @@ import Development.Shake.FilePath
 
 newtype OcamlOrdOracle = OcamlOrdOracle String
                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+newtype OcamlOrdOracleN = OcamlOrdOracleN String
+                       deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype OcamlCmdLineOracle = OcamlCmdLineOracle String
+                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+newtype OcamlCmdLineOracleN = OcamlCmdLineOracleN String
                            deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype CCmdLineOracle = CCmdLineOracle String
                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
@@ -24,11 +28,15 @@ mudir = "/home/malc/x/rcs/git/mupdf"
 inOutDir s = outdir </> s
 
 ocamlc = "ocamlc.opt"
+ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string"
 ocamlflagstbl = [("main.cmo", ("-I lablGL", "sed -f pp.sed"))
                 ,("config.cmo", ("-I lablGL", ""))
                 ]
+ocamlflagstbln = [("main.cmx", ("-I lablGL", "sed -f pp.sed"))
+                 ,("config.cmx", ("-I lablGL", ""))
+                 ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow"
@@ -62,10 +70,31 @@ ocamlKey key | "lablGL/" `isPrefixOf` key = (ocamlc, "-I lablGL", [])
                Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
                Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
 
+ocamlKeyN key | "lablGL/" `isPrefixOf` key = (ocamlopt, "-I lablGL", [])
+              | otherwise = case lookup key ocamlflagstbln of
+                Nothing -> (ocamlopt, ocamlflags, [])
+                Just (f, []) -> (ocamlopt, ocamlflags ++ " " ++ f, [])
+                Just (f, pp) -> (ocamlopt, ocamlflags ++ " " ++ f, ["-pp", pp])
+
 cKey key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
          | otherwise = case lookup key cflagstbl of
            Nothing -> cflags
            Just f -> f ++ " " ++ cflags
+
+fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
+fixppfile _ l = l
+
+fixpp :: String -> String -> String
+fixpp r s = unlines [unwords $ fixppfile r $ words x | x <- lines s]
+
+ppppe ExitSuccess _ _ = return ()
+ppppe _ src emsg = error $ fixpp src emsg
+
+needsrc key suff = do
+  let src' = key -<.> suff
+  let src = if src' == "help.ml" then inOutDir src' else src'
+  need [src]
+  return src
 
 cmio target suffix oracle ordoracle = do
   target %> \out -> do
@@ -105,27 +134,37 @@ cmio target suffix oracle ordoracle = do
     let ord = reverse (drop 4 $ reverse out)
     unit $ ordoracle $ OcamlOrdOracle ord
     return ()
-  where fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
-        fixppfile _ l = l
+  where
+    deplist [] = []
+    deplist ((_, reqs) : _) =
+      [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
 
-        fixpp :: String -> String -> String
-        fixpp r s = unlines [unwords $ fixppfile r $ words x | x <- lines s]
-
-        ppppe ExitSuccess _ _ = return ()
-        ppppe _ src emsg = error $ fixpp src emsg
-
-        needsrc key suff = do
-          let src' = key -<.> suff
-          let src = if src' == "help.ml" then inOutDir src' else src'
-          need [src]
-          return src
-
-        deplist [] = []
-        deplist ((_, reqs) : _) =
-          [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
+cmx oracle ordoracle = do
+  "//*.cmx" %> \out -> do
+    let key = dropDirectory1 out
+    src <- needsrc key ".ml"
+    (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracleN key
+    let flagl = words flags
+    let incs = unwords ["-I " ++ d | d <- getincludes flagl
+                                   , not $ isabsinc d]
+    (Stdout stdout, Stderr emsg, Exit ex) <-
+          cmd ocamldep "-one-line" incs ppflags src
+    ppppe ex src emsg
+    need $ deplist $ parseMakefile stdout
+    unit $ ordoracle $ OcamlOrdOracleN out
+    let fixedflags = fixincludes flagl
+    (Stderr emsg2, Exit ex2) <-
+      cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
+    ppppe ex2 src emsg2
+    return ()
+  where
+    deplist (_ : (_, reqs) : _) =
+      [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
+    deplist _ = []
 
 main = do
   depl <- newMVar ([] :: [String])
+  depln <- newMVar ([] :: [String])
   shakeArgs shakeOptions { shakeFiles = outdir
                          , shakeVerbosity = Normal
                          , shakeChange = ChangeModtimeAndDigest } $ do
@@ -138,9 +177,16 @@ main = do
   ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) ->
     return $ ocamlKey s
 
+  ocamlOracleN <- addOracle $ \(OcamlCmdLineOracleN s) ->
+    return $ ocamlKeyN s
+
   ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) ->
     unless (takeExtension s == ".cmi") $
       liftIO $ modifyMVar_ depl $ \l -> return $ s:l
+
+  ocamlOrdOracleN <- addOracle $ \(OcamlOrdOracleN s) ->
+    unless (takeExtension s == ".cmi") $
+      liftIO $ modifyMVar_ depln $ \l -> return $ s:l
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
 
@@ -168,5 +214,15 @@ main = do
       "unix.cma str.cma" (reverse cmos)
       (inOutDir "link.o") "-cclib" (cclib : objs)
 
+  inOutDir "llpp.native" %> \out -> do
+    let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
+    need (objs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    cmxs <- liftIO $ readMVar depln
+    need cmxs
+    unit $ cmd ocamlopt "-g -I lablGL -o" out
+      "unix.cmxa str.cmxa" (reverse cmxs)
+      (inOutDir "link.o") "-cclib" (cclib : objs)
+
   cmio "//*.cmi" ".mli" ocamlOracle ocamlOrdOracle
   cmio "//*.cmo" ".ml" ocamlOracle ocamlOrdOracle
+  cmx ocamlOracleN ocamlOrdOracleN
