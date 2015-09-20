@@ -68,27 +68,7 @@ cKey key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
            Nothing -> cflags
            Just f -> f ++ " " ++ cflags
 
-fixppfile :: String -> [String] -> [String]
-fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
-fixppfile _ l = l
-
-fixpp :: String -> String -> String
-fixpp r s = unlines [unwords $ fixppfile r $ words x | x <- lines s]
-
-ppppe ExitSuccess _ _ = return ()
-ppppe _ src emsg = error $ fixpp src emsg
-
-needsrc key suffix = do
-  let src' = key -<.> suffix
-  let src = if src' == "help.ml" then inOutDir src' else src'
-  need [src]
-  return src
-
-deplist [] = []
-deplist ((_, reqs) : _) =
-  [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
-
-cm' t oracle _ordoracle =
+cm' t oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
     src <- needsrc key suffix
@@ -104,12 +84,7 @@ cm' t oracle _ordoracle =
       cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
     ppppe ex2 src emsg2
     return ()
-  where (target, suffix) = case t of
-          CMO -> ("//*.cmo", ".ml")
-          CMI -> ("//*.cmi", ".mli")
-
-cmDep t oracle ordoracle =
-  target %> \out -> do
+  target ++ "_dep" %> \out -> do
     let key' = dropDirectory1 out
     let key = reverse (drop 4 $ reverse key')
     src <- needsrc key suffix
@@ -132,8 +107,26 @@ cmDep t oracle ordoracle =
     unit $ ordoracle $ OcamlOrdOracle ord
     return ()
   where (target, suffix) = case t of
-          CMO -> ("//*.cmo_dep", ".ml")
-          CMI -> ("//*.cmi_dep", ".mli")
+          CMO -> ("//*.cmo", ".ml")
+          CMI -> ("//*.cmi", ".mli")
+        fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
+        fixppfile _ l = l
+
+        fixpp :: String -> String -> String
+        fixpp r s = unlines [unwords $ fixppfile r $ words x | x <- lines s]
+
+        ppppe ExitSuccess _ _ = return ()
+        ppppe _ src emsg = error $ fixpp src emsg
+
+        needsrc key suff = do
+          let src' = key -<.> suff
+          let src = if src' == "help.ml" then inOutDir src' else src'
+          need [src]
+          return src
+
+        deplist [] = []
+        deplist ((_, reqs) : _) =
+          [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
 
 main = do
   depl <- newMVar ([] :: [String])
@@ -181,5 +174,3 @@ main = do
 
   cm' CMI ocamlOracle ocamlOrdOracle
   cm' CMO ocamlOracle ocamlOrdOracle
-  cmDep CMI ocamlOracle ocamlOrdOracle
-  cmDep CMO ocamlOracle ocamlOrdOracle
