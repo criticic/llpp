@@ -130,7 +130,7 @@ cmio target suffix oracle ordoracle = do
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
     need $ map (++ "_dep") depo
-    let ord = reverse (drop 4 $ reverse out)
+    let ord = reverse . drop 4 $ reverse out
     unit $ ordoracle $ OcamlOrdOracle ord
     return ()
   where
