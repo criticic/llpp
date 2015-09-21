@@ -6361,17 +6361,16 @@ let () =
 
   if nonemptystr !gcconfig
   then (
-    let ((ci, so), (si, co)) =
-      match (Unix.pipe (), Unix.pipe ()) with
+    let (c, s) =
+      match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
       | exception exn -> error "failed to create gc pipes: %s" @@ exntos exn
-      | pipes -> pipes
+      | fds -> fds
     in
-    match addpid @@ spawn !gcconfig [(ci, 0); (co, 1); (si, -1); (so, -1)] with
+    match addpid @@ spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
     | exception exn -> error "failed to execute gc script: %s" @@ exntos exn
     | _pid ->
-        Ne.clo ci @@ (fun s -> error "failed to close gc input pipe %s" s);
-        Ne.clo co @@ (fun s -> error "failed to close gc output pipe %s" s);
-        Config.gc si so;
+        Ne.clo c @@ (fun s -> error "failed to close gc fd %s" s);
+        Config.gc s;
         exit 0
    );
 

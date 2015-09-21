@@ -1863,12 +1863,12 @@ let save leavebirdseye =
       dolog "error saving configuration: %s" @@ exntos exn
 ;;
 
-let gc fdi fdo =
+let gc fd =
   let wr s n =
     (* This here has a potential of rising SIGPIPE, silently and
        seemingly harmlessly (when -gc was supplied an invalid
        executable for instance) probably needs revisiting *)
-    let n' = Unix.write fdo (Bytes.of_string s) 0 n in
+    let n' = Unix.write fd (Bytes.of_string s) 0 n in
     if n != n'
     then Utils.error "Unix.write %d = %d" n n'
   in
@@ -1884,12 +1884,11 @@ let gc fdi fdo =
     Hashtbl.iter f h;
     href := h;
     cref := dc;
-    Ne.clo fdo @@ error "failed to close gc output fd: %s";
     true
   in
   ignore (load1 push);
-  let s = fdcontents fdi in
-  Ne.clo fdi @@ error "failed to close gc input fd: %s";
+  Unix.shutdown fd Unix.SHUTDOWN_SEND;
+  let s = fdcontents fd in
   let rec f ppos =
     match String.index_from s ppos '\000' with
     | exception Not_found -> ()
