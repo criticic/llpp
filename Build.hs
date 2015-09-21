@@ -168,7 +168,7 @@ main = do
   shakeArgs shakeOptions { shakeFiles = outdir
                          , shakeVerbosity = Normal
                          , shakeChange = ChangeModtimeAndDigest } $ do
-  want ["build/llpp"]
+  want [inOutDir "llpp"]
 
   gitDescribeOracle <- addOracle $ \(GitDescribeOracle ()) -> do
     Stdout out <- cmd "git describe --tags --dirty"
