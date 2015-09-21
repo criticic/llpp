@@ -6,7 +6,6 @@ import Control.Monad
 import Control.Concurrent.MVar
 import Development.Shake
 import Development.Shake.Util
-import Development.Shake.Config ()
 import Development.Shake.Classes
 import Development.Shake.FilePath
 
