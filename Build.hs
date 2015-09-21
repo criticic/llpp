@@ -203,23 +203,22 @@ main = do
       [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
     needMakefileDependencies dep
 
+  let globjs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
   inOutDir "llpp" %> \out -> do
-    let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
-    need (objs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
+    need (globjs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
     cmos <- liftIO $ readMVar depl
     need cmos
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
       "unix.cma str.cma" (reverse cmos)
-      (inOutDir "link.o") "-cclib" (cclib : objs)
+      (inOutDir "link.o") "-cclib" (cclib : globjs)
 
   inOutDir "llpp.native" %> \out -> do
-    let objs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
-    need (objs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
     cmxs <- liftIO $ readMVar depln
     need cmxs
     unit $ cmd ocamlopt "-g -I lablGL -o" out
       "unix.cmxa str.cmxa" (reverse cmxs)
-      (inOutDir "link.o") "-cclib" (cclib : objs)
+      (inOutDir "link.o") "-cclib" (cclib : globjs)
 
   cmio "//*.cmi" ".mli" ocamlOracle ocamlOrdOracle
   cmio "//*.cmo" ".ml" ocamlOracle ocamlOrdOracle
