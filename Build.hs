@@ -1,6 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-import Data.List
 import Data.List.Extra
 import System.Exit
 import Control.Monad
