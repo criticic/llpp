@@ -95,6 +95,22 @@ needsrc key suff = do
   need [src]
   return src
 
+depscaml flags ppflags src = do
+  let flagl = words flags
+  let incs = unwords ["-I " ++ d | d <- getincludes flagl
+                                 , not $ isabsinc d]
+  (Stdout stdout, Stderr emsg, Exit ex) <-
+        cmd ocamldep "-one-line" incs "-I" outdir ppflags src
+  ppppe ex src emsg
+  return stdout
+
+compilecaml comp flagl ppflags out src = do
+  let fixedflags = fixincludes flagl
+  (Stderr emsg, Exit ex) <-
+    cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
+  ppppe ex src emsg
+  return ()
+
 cmio target suffix oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
@@ -106,26 +122,17 @@ cmio target suffix oracle ordoracle = do
     ddep <- liftIO $ readFile dep
     let deps = deplist $ parseMakefile ddep
     need deps
-    let fixedflags = fixincludes flagl
-    (Stderr emsg2, Exit ex2) <-
-      cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
-    ppppe ex2 src emsg2
-    return ()
+    compilecaml comp flagl ppflags out src
   target ++ "_dep" %> \out -> do
     let key' = dropDirectory1 out
     let key = reverse (drop 4 $ reverse key')
     src <- needsrc key suffix
     (_, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
-    let flagl = words flags
-    let incs = unwords ["-I " ++ d | d <- getincludes flagl
-                                   , not $ isabsinc d]
-    (Stdout stdout, Stderr emsg, Exit ex) <-
-          cmd ocamldep "-one-line" incs "-I" outdir ppflags src
-    ppppe ex src emsg
-    writeFileChanged out stdout
+    mkfiledeps <- depscaml flags ppflags src
+    writeFileChanged out mkfiledeps
     let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
           where
-            deps = deplist $ parseMakefile stdout
+            deps = deplist $ parseMakefile mkfiledeps
             fit dep = ext == ".cmi" && base /= baseout
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
@@ -144,18 +151,10 @@ cmx oracle ordoracle =
     src <- needsrc key ".ml"
     (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracleN key
     let flagl = words flags
-    let incs = unwords ["-I " ++ d | d <- getincludes flagl
-                                   , not $ isabsinc d]
-    (Stdout stdout, Stderr emsg, Exit ex) <-
-          cmd ocamldep "-one-line" incs "-I" outdir ppflags src
-    ppppe ex src emsg
-    need $ deplist $ parseMakefile stdout
+    mkfiledeps <- depscaml flags ppflags src
+    need $ deplist $ parseMakefile mkfiledeps
     unit $ ordoracle $ OcamlOrdOracleN out
-    let fixedflags = fixincludes flagl
-    (Stderr emsg2, Exit ex2) <-
-      cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
-    ppppe ex2 src emsg2
-    return ()
+    compilecaml comp flagl ppflags out src
   where
     deplist (_ : (_, reqs) : _) =
       [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
