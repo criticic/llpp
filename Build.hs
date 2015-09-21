@@ -63,17 +63,12 @@ fixincludes ("-I":d:tl)
   | otherwise = "-I":inOutDir d:fixincludes tl
 fixincludes (e:tl) = e:fixincludes tl
 
-ocamlKey key | "lablGL/" `isPrefixOf` key = (ocamlc, "-I lablGL", [])
-             | otherwise = case lookup key ocamlflagstbl of
-               Nothing -> (ocamlc, ocamlflags, [])
-               Just (f, []) -> (ocamlc, ocamlflags ++ " " ++ f, [])
-               Just (f, pp) -> (ocamlc, ocamlflags ++ " " ++ f, ["-pp", pp])
-
-ocamlKeyN key | "lablGL/" `isPrefixOf` key = (ocamlopt, "-I lablGL", [])
-              | otherwise = case lookup key ocamlflagstbln of
-                Nothing -> (ocamlopt, ocamlflags, [])
-                Just (f, []) -> (ocamlopt, ocamlflags ++ " " ++ f, [])
-                Just (f, pp) -> (ocamlopt, ocamlflags ++ " " ++ f, ["-pp", pp])
+ocamlKey comp tbl key
+  | "lablGL/" `isPrefixOf` key = (comp, "-I lablGL", [])
+  | otherwise = case lookup key tbl of
+    Nothing -> (comp, ocamlflags, [])
+    Just (f, []) -> (comp, ocamlflags ++ " " ++ f, [])
+    Just (f, pp) -> (comp, ocamlflags ++ " " ++ f, ["-pp", pp])
 
 cKey key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
          | otherwise = case lookup key cflagstbl of
@@ -172,10 +167,10 @@ main = do
     return (out :: String)
 
   ocamlOracle <- addOracle $ \(OcamlCmdLineOracle s) ->
-    return $ ocamlKey s
+    return $ ocamlKey ocamlc ocamlflagstbl s
 
   ocamlOracleN <- addOracle $ \(OcamlCmdLineOracleN s) ->
-    return $ ocamlKeyN s
+    return $ ocamlKey ocamlopt ocamlflagstbln s
 
   ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) ->
     unless (takeExtension s == ".cmi") $
