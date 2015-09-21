@@ -12,11 +12,11 @@ import Development.Shake.FilePath
 newtype OcamlOrdOracle = OcamlOrdOracle String
                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype OcamlOrdOracleN = OcamlOrdOracleN String
-                       deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype OcamlCmdLineOracle = OcamlCmdLineOracle String
                            deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype OcamlCmdLineOracleN = OcamlCmdLineOracleN String
-                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+                            deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype CCmdLineOracle = CCmdLineOracle String
                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype GitDescribeOracle = GitDescribeOracle ()
