@@ -96,13 +96,12 @@ needsrc key suff = do
   return src
 
 depscaml flags ppflags src = do
-  let flagl = words flags
-  let incs = unwords ["-I " ++ d | d <- getincludes flagl
-                                 , not $ isabsinc d]
   (Stdout stdout, Stderr emsg, Exit ex) <-
         cmd ocamldep "-one-line" incs "-I" outdir ppflags src
   ppppe ex src emsg
   return stdout
+  where flagl = words flags
+        incs = unwords ["-I " ++ d | d <- getincludes flagl, not $ isabsinc d]
 
 compilecaml comp flagl ppflags out src = do
   let fixedflags = fixincludes flagl
