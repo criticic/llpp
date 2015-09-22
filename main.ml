@@ -6363,7 +6363,7 @@ let () =
   then (
     let (c, s) =
       match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
-      | exception exn -> error "failed to create gc pipes: %s" @@ exntos exn
+      | exception exn -> error "socketpair for gc failed: %s" @@ exntos exn
       | fds -> fds
     in
     match addpid @@ spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
