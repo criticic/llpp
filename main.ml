@@ -3241,11 +3241,14 @@ object (self)
           coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
     | @delete | @kpdelete ->
-        source#remove m_active;
-        G.postRedisplay "outline delete";
-        let active = max 0 (m_active-1) in
-        coe {< m_first = firstof m_first active;
-               m_active = active >}
+        if source#remove m_active
+        then (
+          G.postRedisplay "outline delete";
+          let active = max 0 (m_active-1) in
+          coe {< m_first = firstof m_first active;
+                 m_active = active >}
+        )
+        else coe self
 
     | @up | @kpup when ctrl ->
         navscroll (max 0 (m_first - 1))
@@ -4532,8 +4535,11 @@ let outlinesource sourcetype =
           m_items <- Array.init (Array.length m_items - 1) (fun n ->
             let n = if n >= m then n+1 else n in
             m_items.(n)
-          )
+          );
+          true
         )
+        else false
+      else false
 
     method add_narrow_pattern pattern =
       m_narrow_patterns <- pattern :: m_narrow_patterns
