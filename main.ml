@@ -3296,65 +3296,16 @@ object (self)
     | _ -> super#key key mask
 end
 
-let genhistoutlines =
-  let order ty (p1, c1, _, _, _, _) (p2, c2, _, _, _, _) =
-    match ty with
-    | `lastvisit -> compare c1.lastvisit c2.lastvisit
-    | `path -> compare p2 p1
-    | `file -> compare (Filename.basename p2) (Filename.basename p1)
-    | `title ->
-        let e1 = emptystr c1.title
-        and e2 = emptystr c2.title in
-        if e1 && e2
-        then compare (Filename.basename p2) (Filename.basename p1)
-        else (
-          if e1
-          then -1
-          else (
-            if e2
-            then 1
-            else compare c1.title c2.title
-           )
-         )
-  in
-  let showfullpath = ref false in
-  let showorigin = ref true in
-  let orderty : historder ref = ref `lastvisit in
-  let rec f () =
-    let setorty s t =
-      let s = if !orderty = t then "[@Uradical] " ^ s else "[  ] " ^ s in
-      s, 0, Oreaction (fun () -> orderty := t; f ())
-    in
-    match Config.gethist () with
-    | [] -> E.a
-    | list ->
-      let ol =
-        List.fold_left
-          (fun accu (path, c, b, x, a, o) ->
-            let hist = (path, (c, b, x, a, o)) in
-            let s =
-              let s = if nonemptystr o && !showorigin then o else path in
-              if !showfullpath then s else Filename.basename s
-            in
-            let base = mbtoutf8 s in
-            (base ^ "\000" ^ c.title, 1, Ohistory hist) :: accu
-          )
-          [ setorty "Sort by time of last visit" `lastvisit;
-            setorty "Sort by file name" `file;
-            setorty "Sort by path" `path;
-            setorty "Sort by title" `title;
-            (if !showfullpath then "@Uradical "
-            else "   ") ^ "Show full path", 0, Oreaction (fun () ->
-              showfullpath := not !showfullpath;
-              f ());
-            (if !showorigin then "@Uradical "
-            else "   ") ^ "Show origin", 0, Oreaction (fun () ->
-              showorigin := not !showorigin;
-              f ())
-          ] (List.sort (order !orderty) list)
-      in
-      Array.of_list ol
-  in f
+let genhistoutlines () =
+  match Config.gethist () with
+  | [] -> E.a
+  | list ->
+      List.map
+        (fun (path, c, b, x, a, o) ->
+          let hist = (path, (c, b, x, a, o)) in
+          let base = mbtoutf8 @@ Filename.basename path in
+          (base ^ "\000" ^ c.title, 1, Ohistory hist)
+        ) list |> Array.of_list
 ;;
 
 let gotohist (path, (c, bookmarks, x, anchor, origin)) =
@@ -4396,22 +4347,20 @@ let gotounder under =
 
 let gotooutline (_, _, kind) =
   match kind with
-  | Onone -> None
+  | Onone -> ()
   | Oanchor anchor ->
       let (pageno, y, _) = anchor in
       let y = getanchory
         (if conf.presentation then (pageno, y, 1.0) else anchor)
       in
       addnav ();
-      gotoghyll y;
-      None
-  | Ouri uri -> gotounder (Ulinkuri uri); None
-  | Olaunch cmd -> gotounder (Ulaunch cmd); None
-  | Oremote remote -> gotounder (Uremote remote); None
-  | Ohistory hist -> gotohist hist; None
-  | Oremotedest remotedest -> gotounder (Uremotedest remotedest); None
-  | Oaction f -> f (); None
-  | Oreaction f -> Some (f ())
+      gotoghyll y
+  | Ouri uri -> gotounder (Ulinkuri uri)
+  | Olaunch cmd -> gotounder (Ulaunch cmd)
+  | Oremote remote -> gotounder (Uremote remote)
+  | Ohistory hist -> gotohist hist
+  | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
+  | Oaction f -> f ()
 ;;
 
 let outlinesource sourcetype =
@@ -4451,11 +4400,8 @@ let outlinesource sourcetype =
         then (
           m_items <- items;
           m_minfo <- minfo;
-          match gotooutline m_items.(active) with
-          | None -> None
-          | Some outlines ->
-              self#reset emptyanchor outlines;
-              Some uioh
+          gotooutline m_items.(active);
+          None
          )
         else (
           state.bookmarks <- Array.to_list m_items;
@@ -4503,7 +4449,7 @@ let outlinesource sourcetype =
               let (s, _, t) as o = m_items.(n) in
               let accu, minfo =
                 match t with
-                | Oaction _ | Oreaction _ -> o :: accu, (0, 0) :: minfo
+                | Oaction _ -> o :: accu, (0, 0) :: minfo
                 | Onone | Oanchor _ | Ouri _ | Olaunch _
                 | Oremote _ | Oremotedest _ | Ohistory _ ->
                     match Str.search_forward re s 0 with
@@ -4573,7 +4519,7 @@ let outlinesource sourcetype =
               then loop (n+1) n d
               else loop (n+1) best bestd
           | Onone | Oremote _ | Olaunch _
-          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ | Oreaction _ ->
+          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ ->
               loop (n+1) best bestd
       in
       loop 0 ~-1 max_int
