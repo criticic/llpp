@@ -3299,14 +3299,13 @@ end
 let genhistoutlines () =
   Config.gethist () |>
     List.map
-      (fun (path, c, b, x, a, o) ->
-       let hist = (path, (c, b, x, a, o)) in
+      (fun ((path, c, _, _, _, _) as hist) ->
        let base = mbtoutf8 @@ Filename.basename path in
        (base ^ "\000" ^ c.title, 1, Ohistory hist)
       ) |> Array.of_list
 ;;
 
-let gotohist (path, (c, bookmarks, x, anchor, origin)) =
+let gotohist (path, c, bookmarks, x, anchor, origin) =
   Config.save leavebirdseye;
   state.anchor <- anchor;
   state.bookmarks <- bookmarks;
