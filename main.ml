@@ -4357,7 +4357,6 @@ let gotooutline (_, _, kind) =
   | Oremote remote -> gotounder (Uremote remote)
   | Ohistory hist -> gotohist hist
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
-  | Oaction f -> f ()
 ;;
 
 let outlinesource sourcetype =
@@ -4446,7 +4445,6 @@ let outlinesource sourcetype =
               let (s, _, t) as o = m_items.(n) in
               let accu, minfo =
                 match t with
-                | Oaction _ -> o :: accu, (0, 0) :: minfo
                 | Onone | Oanchor _ | Ouri _ | Olaunch _
                 | Oremote _ | Oremotedest _ | Ohistory _ ->
                     match Str.search_forward re s 0 with
@@ -4516,7 +4514,7 @@ let outlinesource sourcetype =
               then loop (n+1) n d
               else loop (n+1) best bestd
           | Onone | Oremote _ | Olaunch _
-          | Oremotedest _ | Ouri _ | Ohistory _ | Oaction _ ->
+          | Oremotedest _ | Ouri _ | Ohistory _ ->
               loop (n+1) best bestd
       in
       loop 0 ~-1 max_int
