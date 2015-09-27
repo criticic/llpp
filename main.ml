@@ -3294,7 +3294,7 @@ object (self)
         coe {< m_active = active; m_first = first >}
 
     | _ -> super#key key mask
-end
+end;;
 
 let genhistoutlines () =
   Config.gethist () |>
