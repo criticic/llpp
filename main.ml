@@ -5331,7 +5331,7 @@ let linknavkeyboard key mask linknav =
 ;;
 
 let keyboard key mask =
-  if (key = 103 && Wsi.withctrl mask) && not (istextentry state.mode)
+  if (key = @g && Wsi.withctrl mask) && not (istextentry state.mode)
   then wcmd "interrupt"
   else state.uioh <- state.uioh#key key mask
 ;;
