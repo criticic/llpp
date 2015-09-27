@@ -4442,14 +4442,11 @@ let outlinesource sourcetype =
               m_minfo <- Array.of_list minfo;
             )
             else
-              let (s, _, t) as o = m_items.(n) in
+              let (s, _, _) as o = m_items.(n) in
               let accu, minfo =
-                match t with
-                | Onone | Oanchor _ | Ouri _ | Olaunch _
-                | Oremote _ | Oremotedest _ | Ohistory _ ->
-                    match Str.search_forward re s 0 with
-                    | exception Not_found -> accu, minfo
-                    | first -> o :: accu, (first, Str.match_end ()) :: minfo
+                match Str.search_forward re s 0 with
+                | exception Not_found -> accu, minfo
+                | first -> o :: accu, (first, Str.match_end ()) :: minfo
               in
               loop accu minfo (n-1)
           in
