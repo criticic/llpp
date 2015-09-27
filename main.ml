@@ -4457,13 +4457,14 @@ let outlinesource sourcetype =
 
     method! getminfo = m_minfo
 
+    method fetchoutlines =
+      match sourcetype with
+      | `bookmarks -> Array.of_list state.bookmarks
+      | `outlines -> state.outlines
+      | `history -> genhistoutlines ()
+
     method denarrow =
-      m_orig_items <- (
-        match sourcetype with
-        | `bookmarks -> Array.of_list state.bookmarks
-        | `outlines -> state.outlines
-        | `history -> genhistoutlines ()
-      );
+      m_orig_items <- self#fetchoutlines;
       m_minfo <- m_orig_minfo;
       m_items <- m_orig_items
 
@@ -4548,12 +4549,7 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
   let mkselector sourcetype =
     let source = outlinesource sourcetype in
     fun errmsg ->
-      let outlines =
-        match sourcetype with
-        | `bookmarks -> Array.of_list state.bookmarks
-        | `outlines -> state.outlines
-        | `history -> genhistoutlines ()
-      in
+      let outlines = source#fetchoutlines in
       if Array.length outlines = 0
       then (
         showtext ' ' errmsg;
