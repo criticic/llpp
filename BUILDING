@@ -14,7 +14,7 @@ Prerequisites for building from sources:
   mupdf% cd ..
 
 Easy way:
-llpp% sh build.sh
+  llpp% sh build.sh
 
 Standalone binary should now be in build/llpp
 
