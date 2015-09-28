@@ -3297,12 +3297,15 @@ object (self)
 end;;
 
 let genhistoutlines () =
-  Config.gethist () |>
-    List.map
+  Config.gethist ()
+  |> List.sort (fun (_, c1, _, _, _, _) (_, c2, _, _, _, _) ->
+      -compare c1.lastvisit c2.lastvisit)
+  |> List.map
       (fun ((path, c, _, _, _, _) as hist) ->
-       let base = mbtoutf8 @@ Filename.basename path in
-       (base ^ "\000" ^ c.title, 1, Ohistory hist)
-      ) |> Array.of_list
+        let base = mbtoutf8 @@ Filename.basename path in
+        (base ^ "\000" ^ c.title, 1, Ohistory hist)
+      )
+  |> Array.of_list
 ;;
 
 let gotohist (path, c, bookmarks, x, anchor, origin) =
