@@ -4362,7 +4362,7 @@ let gotooutline (_, _, kind) =
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
 ;;
 
-let outlinesource sourcetype =
+let outlinesource sourcetype fetchoutlines =
   (object (self)
     inherit lvsourcebase
     val mutable m_items = E.a
@@ -4457,14 +4457,8 @@ let outlinesource sourcetype =
 
     method! getminfo = m_minfo
 
-    method fetchoutlines =
-      match sourcetype with
-      | `bookmarks -> Array.of_list state.bookmarks
-      | `outlines -> state.outlines
-      | `history -> genhistoutlines ()
-
     method denarrow =
-      m_orig_items <- self#fetchoutlines;
+      m_orig_items <- fetchoutlines ();
       m_minfo <- m_orig_minfo;
       m_items <- m_orig_items
 
@@ -4547,9 +4541,15 @@ let outlinesource sourcetype =
 
 let enteroutlinemode, enterbookmarkmode, enterhistmode =
   let mkselector sourcetype =
-    let source = outlinesource sourcetype in
+    let fetchoutlines () =
+      match sourcetype with
+      | `bookmarks -> Array.of_list state.bookmarks
+      | `outlines -> state.outlines
+      | `history -> genhistoutlines ()
+    in
+    let source = outlinesource sourcetype fetchoutlines in
     fun errmsg ->
-      let outlines = source#fetchoutlines in
+      let outlines = fetchoutlines () in
       if Array.length outlines = 0
       then (
         showtext ' ' errmsg;
