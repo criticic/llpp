@@ -3240,16 +3240,6 @@ object (self)
           settext true pattern;
           coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-    | @delete | @kpdelete ->
-        if source#remove m_active
-        then (
-          G.postRedisplay "outline delete";
-          let active = max 0 (m_active-1) in
-          coe {< m_first = firstof m_first active;
-                 m_active = active >}
-        )
-        else coe self
-
     | @up | @kpup when ctrl ->
         navscroll (max 0 (m_first - 1))
 
@@ -4362,7 +4352,7 @@ let gotooutline (_, _, kind) =
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
 ;;
 
-let outlinesource sourcetype fetchoutlines =
+let outlinesource fetchoutlines =
   (object (self)
     inherit lvsourcebase
     val mutable m_items = E.a
@@ -4370,23 +4360,16 @@ let outlinesource sourcetype fetchoutlines =
     val mutable m_orig_items = E.a
     val mutable m_orig_minfo = E.a
     val mutable m_narrow_patterns = []
-    val mutable m_hadremovals = false
     val mutable m_gen = -1
 
-    method getitemcount =
-      Array.length m_items + (if m_hadremovals then 1 else 0)
+    method getitemcount = Array.length m_items
 
     method getitem n =
-      if n == Array.length m_items && m_hadremovals
-      then
-        ("[Confirm removal]", 0)
-      else
-        let s, n, _ = m_items.(n) in
-        (s, n)
+      let s, n, _ = m_items.(n) in
+      (s, n)
 
     method exit ~uioh ~cancel ~active ~first ~pan =
       ignore (uioh, first);
-      let confrimremoval = m_hadremovals && active = Array.length m_items in
       let items, minfo =
         if m_narrow_patterns = []
         then m_orig_items, m_orig_minfo
@@ -4395,25 +4378,15 @@ let outlinesource sourcetype fetchoutlines =
       m_pan <- pan;
       if not cancel
       then (
-        if not confrimremoval
-        then (
-          m_items <- items;
-          m_minfo <- minfo;
-          gotooutline m_items.(active);
-          None
-         )
-        else (
-          state.bookmarks <- Array.to_list m_items;
-          m_orig_items <- m_items;
-          m_orig_minfo <- m_minfo;
-          None
-         )
+        m_items <- items;
+        m_minfo <- minfo;
+        gotooutline m_items.(active);
        )
       else (
         m_items <- items;
         m_minfo <- minfo;
-        None
-       )
+       );
+      None
 
     method hasaction _ = true
 
@@ -4462,21 +4435,6 @@ let outlinesource sourcetype fetchoutlines =
       m_minfo <- m_orig_minfo;
       m_items <- m_orig_items
 
-    method remove m =
-      if sourcetype = `bookmarks
-      then
-        if m >= 0 && m < Array.length m_items
-        then (
-          m_hadremovals <- true;
-          m_items <- Array.init (Array.length m_items - 1) (fun n ->
-            let n = if n >= m then n+1 else n in
-            m_items.(n)
-          );
-          true
-        )
-        else false
-      else false
-
     method add_narrow_pattern pattern =
       m_narrow_patterns <- pattern :: m_narrow_patterns
 
@@ -4515,7 +4473,6 @@ let outlinesource sourcetype fetchoutlines =
       loop 0 ~-1 max_int
 
     method reset anchor items =
-      m_hadremovals <- false;
       if state.gen != m_gen
       then (
         m_orig_items <- items;
@@ -4547,7 +4504,7 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
       | `outlines -> state.outlines
       | `history -> genhistoutlines ()
     in
-    let source = outlinesource sourcetype fetchoutlines in
+    let source = outlinesource fetchoutlines in
     fun errmsg ->
       let outlines = fetchoutlines () in
       if Array.length outlines = 0
