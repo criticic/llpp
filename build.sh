@@ -1,4 +1,4 @@
-set -e
+set -ex
 ccopt='-Wno-pointer-sign -O2'
 mlopt='-warn-error +a -w +a -g -safe-string -I build'
 comp=ocamlc.opt
