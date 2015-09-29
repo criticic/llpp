@@ -824,7 +824,7 @@ pdf_load_page_objs (pdf_document *doc)
 }
 #endif
 
-static void initpdims (void)
+static void initpdims (int wthack)
 {
     double start, end;
     FILE *trimf = NULL;
@@ -1091,9 +1091,11 @@ static void initpdims (void)
         }
     }
     end = now ();
-    printd ("progress 1 %s %d pages in %f seconds",
-            state.trimmargins ? "Trimmed" : "Processed",
-            state.pagecount, end - start);
+    if (!wthack) {
+        printd ("progress 1 %s %d pages in %f seconds",
+                state.trimmargins ? "Trimmed" : "Processed",
+                state.pagecount, end - start);
+    }
     state.trimanew = 0;
     if (trimf) {
         if (fclose (trimf)) {
@@ -1697,7 +1699,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             if (ok) {
                 pdfinfo ();
-                initpdims ();
+                initpdims (wthack);
             }
             unlock ("open");
 
@@ -1934,7 +1936,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             state.pagedimcount = 0;
             free (state.pagedims);
             state.pagedims = NULL;
-            initpdims ();
+            initpdims (0);
             layout ();
             process_outline ();
             unlock ("settrim");
