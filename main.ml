@@ -134,8 +134,10 @@ let launchpath () =
   then dolog "%s" state.path
   else (
     let command = Str.global_replace percentsre state.path conf.pathlauncher in
-    try addpid @@ spawn command []
-    with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
+    match spawn command [] with
+    | _pid -> ()
+    | (exception exn) ->
+       dolog "failed to execute `%s': %s" command @@ exntos exn
   );
 ;;
 
@@ -219,7 +221,7 @@ let pipesel opaque cmd =
   if hassel opaque
   then
     match Unix.pipe () with
-    | exception exn -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
+    | (exception exn) -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
     | (r, w) ->
         let doclose what fd =
           Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
@@ -264,8 +266,8 @@ let paxunder x y =
 
 let selstring s =
   match Unix.pipe () with
-  | exception exn ->
-      showtext '!' (Printf.sprintf "pipe failed: %s" @@ exntos exn)
+  | (exception exn) ->
+      showtext '!' @@ Printf.sprintf "pipe failed: %s" @@ exntos exn
   | (r, w) ->
       let clo cap fd =
         Ne.clo fd (fun msg ->
@@ -4115,7 +4117,7 @@ let getusertext s =
       match spawn execstr [] with
       | (exception exn) ->
          showtext '!' @@
-           Printf.sprintf "popen(%S) failed: %s" execstr @@ exntos exn;
+           Printf.sprintf "spawn(%S) failed: %s" execstr @@ exntos exn;
          E.s
       | pid ->
          match Unix.waitpid [] pid with
@@ -4278,8 +4280,7 @@ let gotounder under =
         gotopage1 pageno top;
       )
 
-  | Ulinkuri s ->
-      addpid @@ gotouri s
+  | Ulinkuri s -> gotouri s
 
   | Uremote (filename, pageno) ->
       let path = getpath filename in
@@ -4288,8 +4289,10 @@ let gotounder under =
         if conf.riani
         then
           let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
-          try addpid @@ spawn command []
-          with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
+          match spawn command [] with
+          | _pid -> ()
+          | (exception exn) ->
+             dolog "failed to execute `%s': %s" command @@ exntos exn
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
@@ -4307,8 +4310,10 @@ let gotounder under =
         if conf.riani
         then
           let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
-          try addpid @@ spawn command []
-          with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
+          match spawn command [] with
+          | (exception exn) ->
+             dolog "failed to execute `%s': %s" command @@ exntos exn
+          | _pid -> ()
         else
           let anchor = getanchor () in
           let ranchor = state.path, state.password, anchor, state.origin in
@@ -4397,7 +4402,7 @@ let outlinesource fetchoutlines =
 
     method narrow pattern =
       match Str.regexp_case_fold pattern with
-      | exception _ -> ()
+      | (exception _) -> ()
       | re ->
           let rec loop accu minfo n =
             if n = -1
@@ -4409,7 +4414,7 @@ let outlinesource fetchoutlines =
               let (s, _, _) as o = m_items.(n) in
               let accu, minfo =
                 match Str.search_forward re s 0 with
-                | exception Not_found -> accu, minfo
+                | (exception Not_found) -> accu, minfo
                 | first -> o :: accu, (first, Str.match_end ()) :: minfo
               in
               loop accu minfo (n-1)
@@ -4891,7 +4896,7 @@ let viewkeyboard key mask =
       end
 
   | @p when ctrl ->
-      launchpath ()
+     launchpath ()             (* XXX where do error messages go? *)
 
   | @P ->
       setpresentationmode (not conf.presentation);
@@ -5728,13 +5733,18 @@ let viewmouse button down x y mask =
       if not down
       then (
         match unproject x y with
+        | None -> ()
         | Some (_, pageno, ux, uy) ->
             let cmd = Printf.sprintf
               "%s %s %d %d %d"
               conf.stcmd state.path pageno ux uy
             in
-            addpid @@ spawn cmd []
-        | None -> ()
+            match spawn cmd [] with
+            | (exception exn) ->
+               showtext '!' @@
+                 Printf.sprintf "execution of synctex command(%S) failed: %S"
+                                conf.stcmd @@ exntos exn
+            | _pid -> ()
       )
 
   | 1 when Wsi.withctrl mask ->
@@ -5854,11 +5864,11 @@ let viewmouse button down x y mask =
                         | Some opaque ->
                             let dosel cmd () =
                               match Unix.pipe () with
-                              | exception exn ->
-                                  showtext '!'
-                                    (Printf.sprintf
-                                        "cannot create sel pipe: %s"
-                                        @@ exntos exn);
+                              | (exception exn) ->
+                                 showtext '!'
+                                          (Printf.sprintf
+                                             "cannot create sel pipe: %s"
+                                           @@ exntos exn);
                               | (r, w) ->
                                   let clo what fd =
                                     Ne.clo fd (fun msg ->
@@ -6128,7 +6138,7 @@ let remote =
   let buf = Buffer.create 80 in
   fun fd ->
     match tempfailureretry (Unix.read fd scratch 0) 80 with
-    | exception Unix.Unix_error (Unix.EAGAIN, _, _) -> None
+    | (exception Unix.Unix_error (Unix.EAGAIN, _, _)) -> None
     | 0 ->
         Unix.close fd;
         if Buffer.length buf > 0
@@ -6143,7 +6153,7 @@ let remote =
           let nlpos =
             match Bytes.index_from scratch ppos '\n' with
             | pos -> if pos >= n then -1 else pos
-            | exception Not_found -> -1
+            | (exception Not_found) -> -1
           in
           if nlpos >= 0
           then (
@@ -6251,11 +6261,11 @@ let () =
   then (
     let (c, s) =
       match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
-      | exception exn -> error "socketpair for gc failed: %s" @@ exntos exn
+      | (exception exn) -> error "socketpair for gc failed: %s" @@ exntos exn
       | fds -> fds
     in
-    match addpid @@ spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
-    | exception exn -> error "failed to execute gc script: %s" @@ exntos exn
+    match spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
+    | (exception exn) -> error "failed to execute gc script: %s" @@ exntos exn
     | _pid ->
         Ne.clo c @@ (fun s -> error "failed to close gc fd %s" s);
         Config.gc s;
