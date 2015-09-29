@@ -7,6 +7,8 @@ Prerequisites for building from sources:
         binutils      [http://www.gnu.org/software/binutils/]
         make          [http://www.gnu.org/software/make/]
         git           [https://git-scm.com/]
+        openssl       [https://www.openssl.org/source/]
+                       MuPDF depends on libcrypto part of OpenSSL
 
   llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
   llpp% cd mupdf
