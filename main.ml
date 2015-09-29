@@ -3374,7 +3374,6 @@ let enterinfomode =
   let leave mode _ =  state.mode <- mode in
   let src =
     (object
-      val mutable m_first_time = true
       val mutable m_l = []
       val mutable m_a = E.a
       val mutable m_prev_uioh = nouioh
@@ -3387,19 +3386,6 @@ let enterinfomode =
         m_l <- [];
         m_prev_mode <- prev_mode;
         m_prev_uioh <- prev_uioh;
-        if m_first_time
-        then (
-          let rec loop n =
-            if n >= Array.length m_a
-            then ()
-            else
-              match m_a.(n) with
-              | _, _, _, Action _ -> m_active <- n
-              | _, _, _, Noaction -> loop (n+1)
-          in
-          loop 0;
-          m_first_time <- false;
-        )
 
       method int name get set =
         m_l <-
@@ -3605,6 +3591,8 @@ let enterinfomode =
         match m_a.(n) with
         | _, _, _, Action _ -> true
         | _, _, _, Noaction -> false
+
+      initializer m_active <- 1
     end)
   in
   let rec fillsrc prevmode prevuioh =
