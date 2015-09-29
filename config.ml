@@ -20,7 +20,6 @@ let scrollbvv = 1;;
 let scrollbhv = 2;;
 let fastghyllscroll = (5,1,2);;
 let neatghyllscroll = (10,1,9);;
-let addpid = ignore;;
 
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
