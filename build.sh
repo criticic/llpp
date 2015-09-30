@@ -37,4 +37,3 @@ $comp -c -I build/lablGL -o build/lablGL/glFunc.cmo lablGL/glFunc.ml
 $comp -c -I build/lablGL -o build/lablGL/glTex.cmo lablGL/glTex.ml
 $comp -c -I build/lablGL -o build/lablGL/glPix.cmo lablGL/glPix.ml
 $comp -g -custom -I lablGL -o build/llpp unix.cma str.cma build/help.cmo build/lablGL/raw.cmo build/utils.cmo build/parser.cmo build/lablGL/glMisc.cmo build/wsi.cmo build/lablGL/gl.cmo build/lablGL/glMat.cmo build/lablGL/glFunc.cmo build/lablGL/glClear.cmo build/lablGL/glPix.cmo build/lablGL/glTex.cmo build/lablGL/glDraw.cmo build/config.cmo build/lablGL/glArray.cmo build/main.cmo build/link.o -cclib "-lGL -lX11 -lmupdf -lz -lfreetype -ljpeg -ljbig2dec -lopenjpeg -lmujs -lpthread -Lmupdf/build/native -lcrypto build/lablGL/ml_gl.o build/lablGL/ml_glarray.o build/lablGL/ml_raw.o"
-
