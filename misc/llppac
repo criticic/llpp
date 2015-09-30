@@ -89,9 +89,7 @@ esac
 filt='"${dc-cat}" "$1" |'
 
 if test -z "$type"; then
-    test -z "$dc" || ft=$(file -L --mime-type -bz "$1") || die "$ft"
-
-    mime=${mime:-$ft}
+    test -z "$mime" && mime=$(file -L --mime-type -bz "$1" || die "$mime")
     case $mime in
         application/postscript) type=ps;;
         application/pdf) type=pdf;;
