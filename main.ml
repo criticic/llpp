@@ -6397,7 +6397,7 @@ let () =
 
   let cs, ss =
     match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
-    | exception exn ->
+    | (exception exn) ->
         dolog "socketpair failed: %s" @@ exntos exn;
         exit 1
     | (r, w) ->
