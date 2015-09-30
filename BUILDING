@@ -16,9 +16,11 @@ Prerequisites for building from sources:
   mupdf% cd ..
 
 Easy way:
-  llpp% sh build.sh
+  llpp% sh build.sh build
+or
+  somewhere% sh /path/to/llpp/build.sh $(pwd)
 
-Standalone binary should now be in build/llpp
+Standalone binary should now be in build/llpp or somewhere/llpp
 
 Hard way:
      Prerequisites:
