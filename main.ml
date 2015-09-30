@@ -3291,7 +3291,7 @@ end;;
 let genhistoutlines () =
   Config.gethist ()
   |> List.sort (fun (_, c1, _, _, _, _) (_, c2, _, _, _, _) ->
-      -compare c1.lastvisit c2.lastvisit)
+      compare c2.lastvisit c1.lastvisit)
   |> List.map
       (fun ((path, c, _, _, _, _) as hist) ->
         let base = mbtoutf8 @@ Filename.basename path in
