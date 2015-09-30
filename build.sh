@@ -13,13 +13,14 @@ else
     asu=.cmxa
     lfl=
 fi
+version=$(git describe --tags 2>/dev/null) || version=unknown
 
 mkdir -p build/lablGL
 $comp -ccopt "$ccopt -o build/lablGL/ml_raw.o" -c lablGL/ml_raw.c
 $comp -ccopt "$ccopt -o build/lablGL/ml_gl.o" -c lablGL/ml_gl.c
 $comp -ccopt "$ccopt -o build/lablGL/ml_glarray.o" -c lablGL/ml_glarray.c
 $comp -ccopt "-I mupdf/include -I mupdf/thirdparty/freetype/include -Wextra -Wall -Werror -D_GNU_SOURCE -O -g -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow -o build/link.o" -c link.c
-/bin/sh mkhelp.sh KEYS unknown >build/help.ml
+/bin/sh mkhelp.sh KEYS "$version" >build/help.ml
 $comp -c -I build/lablGL -o build/lablGL/gl$osu lablGL/gl.ml
 $comp -c -I build/lablGL -o build/lablGL/raw$osu lablGL/raw.ml
 $comp -c -I build/lablGL -o build/lablGL/glPix$osu lablGL/glPix.ml
