@@ -2735,22 +2735,15 @@ object (self)
           if n >= 0 && n < source#getitemcount
           then (
             let s, _ = source#getitem n in
-            if
-              (try ignore (Str.search_forward re s 0); true
-                with Not_found -> false)
-            then Some n
-            else loop (n + incr)
+            match Str.search_forward re s 0 with
+            | (exception Not_found) -> loop (n + incr)
+            | _ -> Some n
           )
           else None
         in
         loop active
       in
-      try
-        let re = Str.regexp_case_fold pattern in
-        dosearch re
-      with Failure s ->
-        state.text <- s;
-        None
+      Str.regexp_case_fold pattern |> dosearch
     in
     let itemcount = source#getitemcount in
     let find start incr =
