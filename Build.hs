@@ -118,8 +118,8 @@ cmio target suffix oracle ordoracle = do
     need deps
     compilecaml comp flagl ppflags out src
   target ++ "_dep" %> \out -> do
-    let key' = dropDirectory1 out
-    let key = dropEnd 4 key'
+    let ord = dropEnd 4 out
+    let key = dropDirectory1 ord
     src <- needsrc key suffix
     (_, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
     mkfiledeps <- depscaml flags ppflags src
@@ -131,7 +131,6 @@ cmio target suffix oracle ordoracle = do
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
     need $ map (++ "_dep") depo
-    let ord = dropEnd 4 out
     unit $ ordoracle $ OcamlOrdOracle ord
     return ()
   where
