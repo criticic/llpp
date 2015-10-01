@@ -161,9 +161,9 @@ case $type in
 </fontconfig>
 EOF
         unset filt
+        missing pango-view "pango-view(http://www.pango.org/)"
         conv='FONTCONFIG_PATH=$cachedir/fonts/ pango-view -q $arg -o $casp'
         caspsuf=.pdf
-        missing pango-view "pango-view(http://www.pango.org/)"
     };;
     fcfont) {
         if test -e "$2"; then
@@ -173,26 +173,26 @@ EOF
             maketext
         fi
         unset filt
+        missing pango-view "pango-view(http://www.pango.org/)"
         conv='pango-view --font="$1" -q $arg -o $casp'
         caspsuf=.pdf
         md5of=/dev/null
         force=1
-        missing pango-view "pango-view(http://www.pango.org/)"
     };;
     image) {
-        conv='convert - pdf:"$casp"'
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
+        conv='convert - pdf:"$casp"'
     };;
     dvi) {
         test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
-        conv='dvipdf "$1" "$casp"'
         missing dvipdf "dvipdf(http://ghostscript.com/)"
+        conv='dvipdf "$1" "$casp"'
     };;
     text) {
+        missing pandoc "pandoc(http://pandoc.org/)"
         conv='pandoc -t epub - -o "$casp"'
         caspsuf=.epub
-        missing pandoc "pandoc(http://pandoc.org/)"
     };;
     *) die "unhandled filter type: '$type'";;
 esac
