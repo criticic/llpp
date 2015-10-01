@@ -9,6 +9,7 @@ Prerequisites for building from sources:
         git           [https://git-scm.com/]
         openssl       [https://www.openssl.org/source/]
                        MuPDF depends on libcrypto part of OpenSSL
+        opengl        [http://en.wikipedia.org/wiki/OpenGL]
 
   llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
   llpp% cd mupdf
