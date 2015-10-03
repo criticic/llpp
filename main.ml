@@ -3893,8 +3893,11 @@ let enterinfomode =
         )
         (fun v ->
           try conf.ghyllscroll <- ghyllscroll_of_string v
-          with exn ->
-            state.text <- Printf.sprintf "bad ghyll `%s': %s" v @@ exntos exn
+          with
+          | Failure msg ->
+             state.text <- Printf.sprintf "bad ghyll `%s': %s" v msg
+          | exn ->
+             state.text <- Printf.sprintf "bad ghyll `%s': %s" v @@ exntos exn
         );
       src#string "selection command"
         (fun () -> conf.selcmd)

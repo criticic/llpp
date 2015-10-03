@@ -38,8 +38,7 @@ let ghyllscroll_of_string s =
       let (n,a,b) as nab =
         Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b) in
       if n <= a || n <= b || a >= b
-      then error "invalid ghyll N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)"
-        n a b;
+      then error "N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)" n a b;
       Some nab
 ;;
 
