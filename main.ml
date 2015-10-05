@@ -6491,9 +6491,9 @@ let () =
                   then state.maxy
                   else if y >= state.maxy then 0 else y
                 in
-                gotoy y;
                 if state.mode = View
-                then state.text <- E.s;
+                then gotoy_and_clear_text y
+                else gotoy y;
                 deadline +. 0.01
             | _ -> infinity
           else deadline +. 0.01
