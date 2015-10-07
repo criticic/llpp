@@ -132,7 +132,6 @@ cmio target suffix oracle ordoracle = do
                     baseout = dropExtension out
     need $ map (++ "_dep") depo
     unit $ ordoracle $ OcamlOrdOracle ord
-    return ()
   where
     deplist [] = []
     deplist ((_, reqs) : _) =
