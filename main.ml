@@ -114,6 +114,11 @@ let vscrollw () =
   else conf.scrollbw
 ;;
 
+let vscrollhit x =
+  if conf.leftscroll then x < vscrollw ()
+  else x > state.winw - vscrollw ()
+;;
+
 let wadjsb () = -vscrollw ();;
 let xadjsb () = if conf.leftscroll then vscrollw () else 0;;
 
@@ -2979,7 +2984,7 @@ object (self)
   method button button down x y _ =
     let opt =
       match button with
-      | 1 when x > state.winw - conf.scrollbw ->
+      | 1 when vscrollhit x ->
           G.postRedisplay "listview scroll";
           if down
           then
@@ -5782,7 +5787,7 @@ let viewmouse button down x y mask =
             resetmstate ()
       )
 
-  | 1 when x > state.winw - vscrollw () ->
+  | 1 when vscrollhit x ->
       if down
       then
         let _, position, sh = state.uioh#scrollph in
