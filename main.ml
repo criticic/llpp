@@ -224,6 +224,10 @@ let showtext c s =
   G.postRedisplay "showtext";
 ;;
 
+let impmsg fmt =
+  Format.ksprintf (fun s -> showtext '!' s) fmt;
+;;
+
 let pipesel opaque cmd =
   if hassel opaque
   then
@@ -267,26 +271,20 @@ let paxunder x y =
       match getopaque l.pageno with
       | None -> ()
       | Some opaque -> clearmark opaque) state.layout;
-  state.roam <-
-    onppundermouse g x y (fun () -> showtext '!' "Whoopsie daisy");
+  state.roam <- onppundermouse g x y (fun () -> impmsg "Whoopsie daisy");
 ;;
 
 let selstring s =
   match Unix.pipe () with
-  | (exception exn) ->
-      showtext '!' @@ Printf.sprintf "pipe failed: %s" @@ exntos exn
+  | (exception exn) -> impmsg "pipe failed: %s" @@ exntos exn
   | (r, w) ->
       let clo cap fd =
-        Ne.clo fd (fun msg ->
-          showtext '!' (Printf.sprintf "failed to close %s: %s" cap msg)
-        )
+        Ne.clo fd (fun msg -> impmsg "failed to close %s: %s" cap msg)
       in
       let pid =
         try spawn conf.selcmd [r, 0; w, -1]
         with exn ->
-          showtext '!'
-            (Printf.sprintf "failed to execute %s: %s"
-               conf.selcmd @@ exntos exn);
+          impmsg "failed to execute %s: %s" conf.selcmd @@ exntos exn;
           -1
       in
       if pid > 0
@@ -296,15 +294,10 @@ let selstring s =
           let bytes = Bytes.unsafe_of_string s in
           let n = tempfailureretry (Unix.write w bytes 0) l in
           if n != l
-          then
-            showtext '!'
-              (Printf.sprintf
-                  "failed to write %d characters to sel pipe, wrote %d"
-                  l n
-              )
+          then impmsg "failed to write %d characters to sel pipe, wrote %d"
+                      l n
         with exn ->
-          showtext '!'
-            (Printf.sprintf "failed to write to sel pipe: %s" @@ exntos exn)
+          impmsg "failed to write to sel pipe: %s" @@ exntos exn
       )
       else dolog "%s" s;
       clo "selstring pipe/r" r;
@@ -1577,7 +1570,7 @@ let getpassword () =
   then E.s
   else getcmdoutput
          (fun s ->
-          showtext '!' @@ "error getting password: " ^ s;
+          impmsg "error getting password: %s" s;
           dolog "%s" s) passcmd;
 ;;
 
@@ -1926,8 +1919,7 @@ let onhist cb =
 
 let search pattern forward =
   match conf.columns with
-  | Csplit _ ->
-      showtext '!' "searching does not work properly in split columns mode"
+  | Csplit _ -> impmsg "searching does not work properly in split columns mode"
   | Csingle _
   | Cmulti _ ->
       if nonemptystr pattern
@@ -2075,7 +2067,7 @@ let setcolumns mode columns coverA coverB =
   if columns < 0
   then (
     if isbirdseye mode
-    then showtext '!' "split mode doesn't work in bird's eye"
+    then impmsg "split mode doesn't work in bird's eye"
     else (
       conf.columns <- Csplit (-columns, E.a);
       state.x <- 0;
@@ -3824,7 +3816,7 @@ let enterinfomode =
         (fun v ->
           if realloctexts v
           then conf.texcount <- v
-          else showtext '!' " Failed to set texture count please retry later"
+          else impmsg "Failed to set texture count please retry later"
         );
       src#int "slice height"
         (fun () -> conf.sliceheight)
@@ -4119,38 +4111,29 @@ let getusertext s =
     let s =
       match spawn execstr [] with
       | (exception exn) ->
-         showtext '!' @@
-           Printf.sprintf "spawn(%S) failed: %s" execstr @@ exntos exn;
+         impmsg "spawn(%S) failed: %s" execstr @@ exntos exn;
          E.s
       | pid ->
          match Unix.waitpid [] pid with
          | (exception exn) ->
-            showtext '!' @@
-              Printf.sprintf "waitpid(%d) failed: %s" pid @@ exntos exn;
+            impmsg "waitpid(%d) failed: %s" pid @@ exntos exn;
             E.s
          | (_pid, status) ->
             match status with
             | Unix.WEXITED 0 -> filecontents tmppath
             | Unix.WEXITED n ->
-               showtext '!' @@
-                 Printf.sprintf "editor process(%s) exited abnormally: %d"
-                                execstr n;
+               impmsg "editor process(%s) exited abnormally: %d" execstr n;
                E.s
             | Unix.WSIGNALED n ->
-               showtext '!' @@
-                 Printf.sprintf "editor process(%s) was killed by signal %d"
-                                execstr n;
+               impmsg "editor process(%s) was killed by signal %d" execstr n;
                E.s
             | Unix.WSTOPPED n ->
-               showtext '!' @@
-                 Printf.sprintf "editor(%s) process was stopped by signal %d"
-                                execstr n;
+               impmsg "editor(%s) process was stopped by signal %d" execstr n;
                E.s
     in
     match Unix.unlink tmppath with
     | (exception exn) ->
-       showtext '!' @@ Printf.sprintf "failed to ulink %S: %s"
-                                      tmppath @@ exntos exn;
+       impmsg "failed to ulink %S: %s" tmppath @@ exntos exn;
        s
     | () -> s
 ;;
@@ -4304,7 +4287,7 @@ let gotounder under =
           state.ranchors <- ranchor :: state.ranchors;
           opendoc path E.s;
       )
-      else showtext '!' ("cannot find " ^ filename)
+      else impmsg "cannot find %s" filename
 
   | Uremotedest (filename, destname) ->
       let path = getpath filename in
@@ -4325,7 +4308,7 @@ let gotounder under =
           state.ranchors <- ranchor :: state.ranchors;
           opendoc path E.s;
       )
-      else showtext '!' ("Cannot find " ^ filename)
+      else impmsg "Cannot find %s" filename
 
   | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
@@ -4699,7 +4682,7 @@ let viewkeyboard key mask =
         state.mode <- LinkNav (Ltgendir 0);
         gotoy state.y;
       )
-      else showtext '!' "Keyboard link navigation does not work under rotation"
+      else impmsg "Keyboard link navigation does not work under rotation"
 
   | @escape | @q ->
       begin match state.mstate with
@@ -5620,7 +5603,7 @@ let zoomblock x y =
   in
   match conf.columns with
   | Csplit _ ->
-      showtext '!' "block zooming does not work properly in split columns mode"
+     impmsg "block zooming does not work properly in split columns mode"
   | Cmulti _ | Csingle _ -> onppundermouse g x y ()
 ;;
 
@@ -5664,7 +5647,7 @@ let viewmulticlick clicks x y mask =
     else None
   in
   G.postRedisplay "viewmulticlick";
-  onppundermouse g x y (fun () -> showtext '!' "Nothing to select") ();
+  onppundermouse g x y (fun () -> impmsg "Nothing to select") ();
 ;;
 
 let canselect () =
@@ -5744,9 +5727,8 @@ let viewmouse button down x y mask =
             in
             match spawn cmd [] with
             | (exception exn) ->
-               showtext '!' @@
-                 Printf.sprintf "execution of synctex command(%S) failed: %S"
-                                conf.stcmd @@ exntos exn
+               impmsg "execution of synctex command(%S) failed: %S"
+                      conf.stcmd @@ exntos exn
             | _pid -> ()
       )
 
@@ -5868,10 +5850,8 @@ let viewmouse button down x y mask =
                             let dosel cmd () =
                               match Unix.pipe () with
                               | (exception exn) ->
-                                 showtext '!'
-                                          (Printf.sprintf
-                                             "cannot create sel pipe: %s"
-                                           @@ exntos exn);
+                                 impmsg "cannot create sel pipe: %s" @@
+                                   exntos exn;
                               | (r, w) ->
                                   let clo what fd =
                                     Ne.clo fd (fun msg ->
