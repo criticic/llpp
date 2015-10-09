@@ -3403,13 +3403,6 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
         x1 = t;
     }
 
-    if (0) {
-        glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-        glColor3ub (128, 128, 128);
-        recti (x0, y0, x1, y1);
-        glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-    }
-
     fi = page->fmark.i;
     fspan = page->fmark.span;
 
@@ -3427,27 +3420,17 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
 
             for (span = line->first_span; span; span = span->next) {
                 for (i = 0; i < span->len; ++i) {
-                    int selected = 0;
-
                     fz_text_char_bbox (state.ctx, &b, span, i);
 
                     if (x0 >= b.x0 && x0 <= b.x1
                         && y0 >= b.y0 && y0 <= b.y1) {
                         fspan = span;
                         fi = i;
-                        selected = 1;
                     }
                     if (x1 >= b.x0 && x1 <= b.x1
                         && y1 >= b.y0 && y1 <= b.y1) {
                         lspan = span;
                         li = i;
-                        selected = 1;
-                    }
-                    if (0 && selected) {
-                        glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-                        glColor3ub (128, 128, 128);
-                        recti (b.x0, b.y0, b.x1, b.y1);
-                        glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
                     }
                 }
             }
