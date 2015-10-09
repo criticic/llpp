@@ -271,7 +271,7 @@ let paxunder x y =
       match getopaque l.pageno with
       | None -> ()
       | Some opaque -> clearmark opaque) state.layout;
-  state.roam <- onppundermouse g x y (fun () -> impmsg "Whoopsie daisy");
+  state.roam <- onppundermouse g x y (fun () -> impmsg "whoopsie daisy");
 ;;
 
 let selstring s =
@@ -3816,7 +3816,7 @@ let enterinfomode =
         (fun v ->
           if realloctexts v
           then conf.texcount <- v
-          else impmsg "Failed to set texture count please retry later"
+          else impmsg "failed to set texture count please retry later"
         );
       src#int "slice height"
         (fun () -> conf.sliceheight)
@@ -4308,7 +4308,7 @@ let gotounder under =
           state.ranchors <- ranchor :: state.ranchors;
           opendoc path E.s;
       )
-      else impmsg "Cannot find %s" filename
+      else impmsg "cannot find %s" filename
 
   | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
@@ -4505,9 +4505,9 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
     let enter = mkselector sourcetype in
     fun () -> enter errmsg
   in
-  (**)mkenter `outlines "Document has no outline"
-    , mkenter `bookmarks "Document has no bookmarks (yet)"
-    , mkenter `history "History is empty"
+  (**)mkenter `outlines "document has no outline"
+    , mkenter `bookmarks "document has no bookmarks (yet)"
+    , mkenter `history "history is empty"
 ;;
 
 let quickbookmark ?title () =
@@ -4682,7 +4682,7 @@ let viewkeyboard key mask =
         state.mode <- LinkNav (Ltgendir 0);
         gotoy state.y;
       )
-      else impmsg "Keyboard link navigation does not work under rotation"
+      else impmsg "keyboard link navigation does not work under rotation"
 
   | @escape | @q ->
       begin match state.mstate with
@@ -5647,7 +5647,7 @@ let viewmulticlick clicks x y mask =
     else None
   in
   G.postRedisplay "viewmulticlick";
-  onppundermouse g x y (fun () -> impmsg "Nothing to select") ();
+  onppundermouse g x y (fun () -> impmsg "nothing to select") ();
 ;;
 
 let canselect () =
