@@ -115,7 +115,8 @@ let vscrollw () =
 ;;
 
 let vscrollhit x =
-  if conf.leftscroll then x < vscrollw ()
+  if conf.leftscroll
+  then x < vscrollw ()
   else x > state.winw - vscrollw ()
 ;;
 
