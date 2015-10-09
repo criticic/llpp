@@ -197,11 +197,12 @@ let getunder x y =
     if state.bzoom
     then (
       match rectofblock opaque px py with
-      | Some a ->
-          let rect = (a.(0),a.(2),a.(1),a.(2),a.(1),a.(3),a.(0),a.(3)) in
+      | Some [|x0;x1;y0;y1|] ->
+         let ox = xadjsb () |> float in
+         let rect = (x0+.ox, y0, x1+.ox, y0, x1+.ox, y1, x0+.ox, y1) in
           state.rects <- [l.pageno, l.pageno mod 3, rect];
           G.postRedisplay "getunder";
-      | None -> ()
+      | _otherwise -> ()
      );
     let under = whatsunder opaque px py in
     if under = Unone then None else Some under
