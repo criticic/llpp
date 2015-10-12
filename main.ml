@@ -200,8 +200,8 @@ let getunder x y =
       | Some [|x0;x1;y0;y1|] ->
          let ox = xadjsb () |> float in
          let rect = (x0+.ox, y0, x1+.ox, y0, x1+.ox, y1, x0+.ox, y1) in
-          state.rects <- [l.pageno, l.pageno mod 3, rect];
-          G.postRedisplay "getunder";
+         state.rects <- [l.pageno, l.pageno mod 3, rect];
+         G.postRedisplay "getunder";
       | _otherwise -> ()
      );
     let under = whatsunder opaque px py in
