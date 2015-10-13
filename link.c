@@ -34,6 +34,12 @@
 #include <caml/memory.h>
 #include <caml/unixsupport.h>
 
+#if __GNUC__ < 5
+/* At least gcc (Gentoo 4.9.3 p1.0, pie-0.6.2) 4.9.3 emits erroneous
+   clobbered diagnostics */
+#pragma GCC diagnostic ignored "-Wclobbered"
+#endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wshadow"
