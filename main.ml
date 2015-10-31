@@ -6132,6 +6132,9 @@ let ract cmds =
           )
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit
+  | "clearrects" :: [] ->
+     state.rects <- [];
+     G.postRedisplay "clearrects"
   | _ ->
       adderrfmt "remote command"
         "error processing remote command: %S\n" cmds;
