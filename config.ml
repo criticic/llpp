@@ -98,7 +98,7 @@ and width          = int
 and height         = int
 and leftx          = int
 and opaque         = Opaque.t
-and recttype       = int
+and rectcolor      = (float * float * float * float)
 and pixmapsize     = int
 and gen            = int
 and top            = float
@@ -400,8 +400,8 @@ type state =
     ; mutable currently     : currently
     ; mutable mstate        : mstate
     ; mutable searchpattern : string
-    ; mutable rects         : (pageno * recttype * rect) list
-    ; mutable rects1        : (pageno * recttype * rect) list
+    ; mutable rects         : (pageno * rectcolor * rect) list
+    ; mutable rects1        : (pageno * rectcolor * rect) list
     ; mutable text          : string
     ; mutable winstate      : Wsi.winstate list
     ; mutable mode          : mode

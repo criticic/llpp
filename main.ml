@@ -200,7 +200,8 @@ let getunder x y =
       | Some [|x0;x1;y0;y1|] ->
          let ox = xadjsb () |> float in
          let rect = (x0+.ox, y0, x1+.ox, y0, x1+.ox, y1, x0+.ox, y1) in
-         state.rects <- [l.pageno, l.pageno mod 3, rect];
+         let color = (0.0, 0.0, l.pageno mod 3 |> float, 0.5) in
+         state.rects <- [l.pageno, color, rect];
          G.postRedisplay "getunder";
       | _otherwise -> ()
      );
@@ -1666,7 +1667,8 @@ let act cmds =
       let y = (getpagey pageno) + truncate y0 in
       addnav ();
       gotoy y;
-      state.rects1 <- [pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)]
+      let color = (0.0, 0.0, 0.0, float c) in
+      state.rects1 <- [pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)]
 
   | "match" :: args :: [] ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
@@ -1679,8 +1681,9 @@ let act cmds =
       and x1 = x1 +. xoff
       and x2 = x2 +. xoff
       and x3 = x3 +. xoff in
+      let color = (0.0, 0.0, 0.5, float c) in
       state.rects1 <-
-        (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
+        (pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
   | "page" :: args :: [] ->
       let pageopaques, t = scan args "%s %f" (fun p t -> p, t) in
@@ -3285,7 +3288,8 @@ let genhistoutlines () =
   |> List.sort (fun (_, c1, _, _, _, _) (_, c2, _, _, _, _) ->
       compare c2.lastvisit c1.lastvisit)
   |> List.map
-      (fun ((path, c, _, _, _, _) as hist) ->
+      (fun ((path, c, _, _, _, origin) as hist) ->
+        let path = if nonemptystr origin then origin else path in
         let base = mbtoutf8 @@ Filename.basename path in
         (base ^ "\000" ^ c.title, 1, Ohistory hist)
       )
@@ -5127,7 +5131,8 @@ let viewkeyboard key mask =
             let h,j = float x0, float y1 in
             let rect = (a,b,c,d,e,f,h,j) in
             debugrect rect;
-            state.rects <- (l.pageno, l.pageno mod 3, rect) :: state.rects;
+            let color = (0.0, 0.0, 0.5, l.pageno mod 3 |> float) in
+            state.rects <- (l.pageno, color, rect) :: state.rects;
       ) state.layout;
       G.postRedisplay "v";
 
@@ -5464,7 +5469,8 @@ let showrects = function [] -> () | rects ->
         then (
           let dx = float (l.pagedispx - l.pagex) in
           let dy = float (l.pagedispy - l.pagey) in
-          GlDraw.color (0.0, 0.0, 1.0 /. float c) ~alpha:0.5;
+          let r, g, b, alpha = c in
+          GlDraw.color (r, g, b) ~alpha;
           Raw.sets_float state.vraw ~pos:0
             [| x0+.dx; y0+.dy;
                x1+.dx; y1+.dy;
@@ -5491,7 +5497,8 @@ let display () =
             let dx = xadjsb () in
             let x0, y0, x1, y1 = getlinkrect opaque linkno in
             let x0 = x0 + dx and x1 = x1 + dx in
-            (pageno, 5, (
+            let color = (0.0, 0.0, 0.5, 5.0) in
+            (pageno, color, (
               float x0, float y0,
               float x1, float y0,
               float x1, float y1,
@@ -6070,6 +6077,25 @@ let ract cmds =
       adderrfmt "remote exec"
         "error processing '%S': %s\n" cmds @@ exntos exn
   in
+  let rectx s pageno (r, g, b, a) x0 y0 x1 y1 =
+    dolog "%s page %d color (%f %f %f %f) x0,y0,x1,y1 = %f %f %f %f"
+          s pageno r g b a x0 y0 x1 y1;
+    onpagerect pageno
+               (fun w h ->
+                 let _,w1,h1,_ = getpagedim pageno in
+                 let sw = float w1 /. float w
+                 and sh = float h1 /. float h in
+                 let x0s = x0 *. sw
+                 and x1s = x1 *. sw
+                 and y0s = y0 *. sh
+                 and y1s = y1 *. sh in
+                 let rect = (x0s,y0s,x1s,y0s,x1s,y1s,x0s,y1s) in
+                 let color = (r, g, b, a) in
+                 debugrect rect;
+                 state.rects <- (pageno, color, rect) :: state.rects;
+                 G.postRedisplay s;
+               )
+  in
   match cl with
   | "reload" :: [] -> reload ()
   | "goto" :: args :: [] ->
@@ -6093,22 +6119,17 @@ let ract cmds =
       scan args "%S %S"
         (fun filename dest -> gotounder (Uremotedest (filename, dest)))
   | "rect" :: args :: [] ->
-      scan args "%u %u %f %f %f %f"
-        (fun pageno color x0 y0 x1 y1 ->
-          onpagerect pageno (fun w h ->
-            let _,w1,h1,_ = getpagedim pageno in
-            let sw = float w1 /. float w
-            and sh = float h1 /. float h in
-            let x0s = x0 *. sw
-            and x1s = x1 *. sw
-            and y0s = y0 *. sh
-            and y1s = y1 *. sh in
-            let rect = (x0s,y0s,x1s,y0s,x1s,y1s,x0s,y1s) in
-            debugrect rect;
-            state.rects <- (pageno, color, rect) :: state.rects;
-            G.postRedisplay "rect";
+     scan args "%u %u %f %f %f %f"
+          (fun pageno c x0 y0 x1 y1 ->
+            let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
+            rectx "rect" pageno color x0 y0 x1 y1;
           )
-        )
+  | "rect1" :: args :: [] ->
+     scan args "%u %f %f %f %f %f %f %f %f"
+          (fun pageno r g b alpha x0 y0 x1 y1 ->
+            let color = (r, g, b, alpha) in
+            rectx "rect1" pageno color x0 y0 x1 y1;
+          )
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit
   | _ ->
