@@ -6078,23 +6078,24 @@ let ract cmds =
         "error processing '%S': %s\n" cmds @@ exntos exn
   in
   let rectx s pageno (r, g, b, a) x0 y0 x1 y1 =
-    dolog "%s page %d color (%f %f %f %f) x0,y0,x1,y1 = %f %f %f %f"
-          s pageno r g b a x0 y0 x1 y1;
-    onpagerect pageno
-               (fun w h ->
-                 let _,w1,h1,_ = getpagedim pageno in
-                 let sw = float w1 /. float w
-                 and sh = float h1 /. float h in
-                 let x0s = x0 *. sw
-                 and x1s = x1 *. sw
-                 and y0s = y0 *. sh
-                 and y1s = y1 *. sh in
-                 let rect = (x0s,y0s,x1s,y0s,x1s,y1s,x0s,y1s) in
-                 let color = (r, g, b, a) in
-                 debugrect rect;
-                 state.rects <- (pageno, color, rect) :: state.rects;
-                 G.postRedisplay s;
-               )
+    vlog "%s page %d color (%f %f %f %f) x0,y0,x1,y1 = %f %f %f %f"
+         s pageno r g b a x0 y0 x1 y1;
+    onpagerect
+      pageno
+      (fun w h ->
+        let _,w1,h1,_ = getpagedim pageno in
+        let sw = float w1 /. float w
+        and sh = float h1 /. float h in
+        let x0s = x0 *. sw
+        and x1s = x1 *. sw
+        and y0s = y0 *. sh
+        and y1s = y1 *. sh in
+        let rect = (x0s,y0s,x1s,y0s,x1s,y1s,x0s,y1s) in
+        let color = (r, g, b, a) in
+        if conf.verbose then debugrect rect;
+        state.rects <- (pageno, color, rect) :: state.rects;
+        G.postRedisplay s;
+      )
   in
   match cl with
   | "reload" :: [] -> reload ()
