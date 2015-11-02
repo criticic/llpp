@@ -169,7 +169,7 @@ struct pagedim {
     fz_matrix ctm, zoomctm, lctm, tctm;
 };
 
-struct slink  {
+struct slink {
     enum { SLINK, SANNOT } tag;
     fz_irect bbox;
     union {
@@ -178,7 +178,7 @@ struct slink  {
     } u;
 };
 
-struct annot  {
+struct annot {
     fz_irect bbox;
     fz_annot *annot;
 };
@@ -451,7 +451,7 @@ static int openxref (char *filename, char *password)
 {
     int i;
 
-    for (i = 0; i < state.texcount; ++i)  {
+    for (i = 0; i < state.texcount; ++i) {
         state.texowners[i].w = -1;
         state.texowners[i].slice = NULL;
     }
@@ -601,7 +601,7 @@ static void OPTIMIZE_ATTR (3) clearpixmap (fz_pixmap *pixmap)
         p = (void *) a2;
 
         while (a1 != a2) *(char *) a1++ = 0xff;
-        for (i = 0; i < (sizea & ~31); i += 32)  {
+        for (i = 0; i < (sizea & ~31); i += 32) {
             __asm volatile ("dcbz %0, %1"::"b"(a2),"r"(i));
             vec_st (v, i, p);
             vec_st (v, i + 16, p);
@@ -1044,7 +1044,7 @@ static void initpdims (int wthack)
                 }
                 if (trimf) {
                     int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
-                    if (n - 1)  {
+                    if (n - 1) {
                         err (1, "fwrite trim mediabox");
                     }
                 }
@@ -1120,7 +1120,7 @@ static void layout (void)
 
     if (state.pagedimcount == 0) return;
 
-    switch (state.fitmodel)  {
+    switch (state.fitmodel) {
     case FitProportional:
         for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
             double x0, x1;
@@ -1346,7 +1346,7 @@ static int matchspan (regex_t *re, fz_text_span *span,
     if (!p) return -1;
 
     ret = regexec (re, p, 1, &rm, 0);
-    if (ret)  {
+    if (ret) {
         free (p);
         if (ret != REG_NOMATCH) {
             size_t size;
@@ -1358,7 +1358,7 @@ static int matchspan (regex_t *re, fz_text_span *span,
         }
         return 0;
     }
-    else  {
+    else {
         int l = span->len;
 
         for (a = 0, c = 0; c < rm.rm_so && a < l; a++) {
@@ -1396,7 +1396,7 @@ static int matchspan (regex_t *re, fz_text_span *span,
                     pageno + 1, (int) (rm.rm_eo - rm.rm_so), &p[rm.rm_so],
                     now () - start);
         }
-        else  {
+        else {
             printd ("match %d %d %f %f %f %f %f %f %f %f",
                     pageno, 2,
                     p1.x, p1.y,
@@ -1446,7 +1446,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         pdimprev = NULL;
         for (i = 0; i < state.pagedimcount; ++i) {
             pdim = &state.pagedims[i];
-            if (pdim->pageno == pageno)  {
+            if (pdim->pageno == pageno) {
                 goto found;
             }
             if (pdim->pageno > pageno) {
@@ -1602,7 +1602,7 @@ static char *mbtoutf8 (char *s)
         return s;
     }
     else {
-        if (len == (size_t) -1)  {
+        if (len == (size_t) -1) {
             return s;
         }
     }
@@ -1730,7 +1730,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             lock ("cs");
             set_tex_params (colorspace);
-            for (i = 0; i < state.texcount; ++i)  {
+            for (i = 0; i < state.texcount; ++i) {
                 state.texowners[i].w = -1;
                 state.texowners[i].slice = NULL;
             }
@@ -1775,7 +1775,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 size = regerror (ret, &re, errbuf, sizeof (errbuf));
                 printd ("msg regcomp failed `%.*s'", (int) size, errbuf);
             }
-            else  {
+            else {
                 search (&re, pageno, y, forward);
                 regfree (&re);
             }
@@ -1794,7 +1794,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             if (w != state.w) {
                 int i;
                 state.w = w;
-                for (i = 0; i < state.texcount; ++i)  {
+                for (i = 0; i < state.texcount; ++i) {
                     state.texowners[i].slice = NULL;
                 }
             }
@@ -1905,7 +1905,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
         }
-        else if (!strncmp ("trimset", p, 7))  {
+        else if (!strncmp ("trimset", p, 7)) {
             fz_irect fuzz;
             int trimmargins;
 
@@ -1922,7 +1922,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             unlock ("trimset");
         }
-        else if (!strncmp ("settrim", p, 7))  {
+        else if (!strncmp ("settrim", p, 7)) {
             fz_irect fuzz;
             int trimmargins;
 
@@ -2422,7 +2422,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
                 state.texowners[texindex].h = slice->h;
             }
         }
-        else  {
+        else {
             state.texowners[texindex].h = slice->h;
         }
 
@@ -2832,8 +2832,8 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     CAMLreturn (ret_v);
 }
 
-enum  { uuri, ugoto, utext, uunexpected, ulaunch,
-        unamed, uremote, uremotedest, uannot };
+enum { uuri, ugoto, utext, uunexpected, ulaunch,
+       unamed, uremote, uremotedest, uannot };
 
 #define LINKTOVAL                                                       \
 {                                                                       \
@@ -3442,7 +3442,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
             }
         }
     }
-    if (x1 < x0 && fspan == lspan)  {
+    if (x1 < x0 && fspan == lspan) {
         i = fi;
         span = fspan;
 
@@ -3631,13 +3631,13 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                 b = span == page->lmark.span ? page->lmark.i : span->len - 1;
 
                 if (seen) {
-                    if (pipespan (f, span, a, b))  {
+                    if (pipespan (f, span, a, b)) {
                         goto close;
                     }
                     if (span == page->lmark.span) {
                         goto close;
                     }
-                    if (span == line->last_span)  {
+                    if (span == line->last_span) {
                         if (putc ('\n', f) == EOF) {
                             fprintf (stderr,
                                      "failed break line on sel pipe: %s\n",
@@ -3653,7 +3653,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     if (f != stdout) {
         int ret = fclose (f);
         fd = -1;
-        if (ret == -1)  {
+        if (ret == -1) {
             if (errno != ECHILD) {
                 fprintf (stderr, "failed to close sel pipe: %s\n",
                          strerror (errno));
@@ -4215,7 +4215,7 @@ CAMLprim value ml_fz_version (value UNUSED_ATTR unit_v)
 }
 
 #ifdef USE_FONTCONFIG
-static struct  {
+static struct {
     int inited;
     FcConfig *config;
 } fc;
