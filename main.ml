@@ -200,7 +200,7 @@ let getunder x y =
       | Some [|x0;x1;y0;y1|] ->
          let ox = xadjsb () |> float in
          let rect = (x0+.ox, y0, x1+.ox, y0, x1+.ox, y1, x0+.ox, y1) in
-         let color = (0.0, 0.0, l.pageno mod 3 |> float, 0.5) in
+         let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
          state.rects <- [l.pageno, color, rect];
          G.postRedisplay "getunder";
       | _otherwise -> ()
@@ -1667,7 +1667,7 @@ let act cmds =
       let y = (getpagey pageno) + truncate y0 in
       addnav ();
       gotoy y;
-      let color = (0.0, 0.0, 0.0, float c) in
+      let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
       state.rects1 <- [pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)]
 
   | "match" :: args :: [] ->
@@ -1681,7 +1681,7 @@ let act cmds =
       and x1 = x1 +. xoff
       and x2 = x2 +. xoff
       and x3 = x3 +. xoff in
-      let color = (0.0, 0.0, 0.5, float c) in
+      let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
       state.rects1 <-
         (pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
@@ -5131,7 +5131,7 @@ let viewkeyboard key mask =
             let h,j = float x0, float y1 in
             let rect = (a,b,c,d,e,f,h,j) in
             debugrect rect;
-            let color = (0.0, 0.0, 0.5, l.pageno mod 3 |> float) in
+            let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
             state.rects <- (l.pageno, color, rect) :: state.rects;
       ) state.layout;
       G.postRedisplay "v";
