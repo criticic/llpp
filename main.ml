@@ -43,6 +43,8 @@ external hasunsavedchanges : unit -> bool = "ml_hasunsavedchanges";;
 external savedoc : string -> unit = "ml_savedoc";;
 external getannotcontents : opaque -> slinkindex -> string
   = "ml_getannotcontents";;
+external drawprect : opaque -> int -> int -> float array -> unit =
+  "ml_drawprect";;
 
 let selfexec = ref E.s;;
 
@@ -4728,7 +4730,9 @@ let viewkeyboard key mask =
   | @u ->
       state.rects <- [];
       state.text <- E.s;
-      Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap;
+      Hashtbl.iter (fun _ opaque ->
+          clearmark opaque;
+          state.prects <- emptyprects) state.pagemap;
       G.postRedisplay "dehighlight";
 
   | @slash | @question ->
@@ -5418,6 +5422,8 @@ let postdrawpage l linkindexbase =
           | View
           | LinkNav _ -> E.s
         in
+        Hashtbl.find_all state.prects l.pageno |>
+          List.iter (fun vals -> drawprect opaque x y vals);
         postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
       else 0
   | _ -> 0
@@ -6069,6 +6075,10 @@ let adderrfmt src fmt =
   Format.ksprintf (fun s -> adderrmsg src s) fmt;
 ;;
 
+let addrect pageno r g b a x0 y0 x1 y1 =
+  Hashtbl.add state.prects pageno [|r; g; b; a; x0; y0; x1; y1|];
+;;
+
 let ract cmds =
   let cl = splitatspace cmds in
   let scan s fmt f =
@@ -6125,16 +6135,16 @@ let ract cmds =
             let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
             rectx "rect" pageno color x0 y0 x1 y1;
           )
-  | "rect1" :: args :: [] ->
+  | "prect" :: args :: [] ->
      scan args "%u %f %f %f %f %f %f %f %f"
           (fun pageno r g b alpha x0 y0 x1 y1 ->
-            let color = (r, g, b, alpha) in
-            rectx "rect1" pageno color x0 y0 x1 y1;
+            addrect pageno r g b alpha x0 y0 x1 y1;
+            G.postRedisplay "prect"
           )
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit
   | "clearrects" :: [] ->
-     state.rects <- [];
+     state.prects <- emptyprects;
      G.postRedisplay "clearrects"
   | _ ->
       adderrfmt "remote command"
