@@ -402,7 +402,7 @@ type state =
     ; mutable searchpattern : string
     ; mutable rects         : (pageno * rectcolor * rect) list
     ; mutable rects1        : (pageno * rectcolor * rect) list
-    ; mutable prects        : (pageno, float array) Hashtbl.t
+    ; prects                : (pageno, float array) Hashtbl.t
     ; mutable text          : string
     ; mutable winstate      : Wsi.winstate list
     ; mutable mode          : mode
@@ -648,7 +648,6 @@ let cbgetg b circular dir =
 
 let cbget b = cbgetg b false;;
 let cbgetc b = cbgetg b true;;
-let emptyprects = Hashtbl.create 1;;
 
 let state =
   { ss            = Unix.stdin
@@ -672,7 +671,7 @@ let state =
   ; mstate        = Mnone
   ; rects         = []
   ; rects1        = []
-  ; prects        = emptyprects
+  ; prects        = Hashtbl.create 1
   ; text          = E.s
   ; mode          = View
   ; winstate      = []
