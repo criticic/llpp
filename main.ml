@@ -4732,7 +4732,7 @@ let viewkeyboard key mask =
       state.text <- E.s;
       Hashtbl.iter (fun _ opaque ->
           clearmark opaque;
-          state.prects <- emptyprects) state.pagemap;
+          Hashtbl.clear state.prects) state.pagemap;
       G.postRedisplay "dehighlight";
 
   | @slash | @question ->
@@ -6144,7 +6144,7 @@ let ract cmds =
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit
   | "clearrects" :: [] ->
-     state.prects <- emptyprects;
+     Hashtbl.clear state.prects;
      G.postRedisplay "clearrects"
   | _ ->
       adderrfmt "remote command"
