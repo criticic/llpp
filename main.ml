@@ -5503,7 +5503,7 @@ let display () =
             let dx = xadjsb () in
             let x0, y0, x1, y1 = getlinkrect opaque linkno in
             let x0 = x0 + dx and x1 = x1 + dx in
-            let color = (0.0, 0.0, 0.5, 5.0) in
+            let color = (0.0, 0.0, 0.5, 0.5) in
             (pageno, color, (
               float x0, float y0,
               float x1, float y0,
