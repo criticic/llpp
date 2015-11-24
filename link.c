@@ -1984,13 +1984,13 @@ CAMLprim value ml_realloctexts (value texcount_v)
     CAMLparam1 (texcount_v);
     int ok;
 
-    if (trylock ("ml_realloctexts")) {
+    if (trylock (__func__)) {
         ok = 0;
         goto done;
     }
     realloctexts (Int_val (texcount_v));
     ok = 1;
-    unlock ("ml_realloctexts");
+    unlock (__func__);
 
  done:
     CAMLreturn (Val_bool (ok));
@@ -2608,7 +2608,7 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     ensureannots (page);
 
     if (hlmask & 1) highlightlinks (page, xoff, yoff);
-    if (trylock ("ml_postprocess")) {
+    if (trylock (__func__)) {
         noff = 0;
         goto done;
     }
@@ -2619,7 +2619,7 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     if (page->tgen == state.gen) {
         showsel (page, xoff, yoff);
     }
-    unlock ("ml_postprocess");
+    unlock (__func__);
 
  done:
     CAMLreturn (Val_int (noff));
@@ -2739,7 +2739,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
 
     fz_var (end_page);
     ret_v = Val_int (0);
-    lock ("ml_findpage_with_links");
+    lock (__func__);
     for (i = start_page + dir; i != end_page; i += dir) {
         int found;
 
@@ -2771,7 +2771,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
         }
     }
  unlock:
-    unlock ("ml_findpage_with_links");
+    unlock (__func__);
     CAMLreturn (ret_v);
 }
 
@@ -2792,7 +2792,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     /* This is scary we are not taking locks here ensureslinks does
        not modify state and given that we obtained the page it can not
        disappear under us either */
-    lock ("ml_findlink");
+    lock (__func__);
     ensureslinks (page);
 
     if (Is_block (dir_v)) {
@@ -2895,7 +2895,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
         Field (ret_v, 0) = Val_int (found - page->slinks);
     }
 
-    unlock ("ml_findlink");
+    unlock (__func__);
     CAMLreturn (ret_v);
 }
 
@@ -3078,7 +3078,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     struct pagedim *pdim;
 
     ret_v = Val_int (0);
-    if (trylock ("ml_whatsunder")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -3190,7 +3190,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
         }
     }
  unlock:
-    unlock ("ml_whatsunder");
+    unlock (__func__);
 
  done:
     CAMLreturn (ret_v);
@@ -3210,7 +3210,7 @@ CAMLprim value ml_clearmark (value ptr_v)
     char *s = String_val (ptr_v);
     struct page *page;
 
-    if (trylock ("ml_clearmark")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -3220,7 +3220,7 @@ CAMLprim value ml_clearmark (value ptr_v)
     page->fmark.i = 0;
     page->lmark.i = 0;
 
-    unlock ("ml_clearmark");
+    unlock (__func__);
  done:
     CAMLreturn (Val_unit);
 }
@@ -3240,7 +3240,7 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     int x = Int_val (x_v), y = Int_val (y_v);
 
     ret_v = Val_bool (0);
-    if (trylock ("ml_markunder")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -3378,7 +3378,7 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
         page->fmark.i = 0;
         page->lmark.i = 0;
     }
-    unlock ("ml_markunder");
+    unlock (__func__);
 
  done:
     CAMLreturn (ret_v);
@@ -3396,7 +3396,7 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
     int x = Int_val (x_v), y = Int_val (y_v);
 
     ret_v = Val_int (0);
-    if (trylock ("ml_rectofblock")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -3436,7 +3436,7 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
         Store_double_field (res_v, 3, b->y1);
         Field (ret_v, 0) = res_v;
     }
-    unlock ("ml_rectofblock");
+    unlock (__func__);
 
  done:
     CAMLreturn (ret_v);
@@ -3455,7 +3455,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     fz_text_block *block;
     fz_text_span *span, *fspan, *lspan;
 
-    if (trylock ("ml_seltext")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -3526,7 +3526,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     page->lmark.i = li;
     page->lmark.span = lspan;
 
-    unlock ("ml_seltext");
+    unlock (__func__);
 
  done:
     CAMLreturn (Val_unit);
@@ -3639,13 +3639,13 @@ CAMLprim value ml_hassel (value ptr_v)
     char *s = String_val (ptr_v);
 
     ret_v = Val_bool (0);
-    if (trylock ("ml_hassel")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
     page = parse_pointer (__func__, s);
     ret_v = Val_bool (page->fmark.span && page->lmark.span);
-    unlock ("ml_hassel");
+    unlock (__func__);
  done:
     CAMLreturn (ret_v);
 }
@@ -3662,7 +3662,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
 
-    if (trylock ("ml_copysel")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -3728,7 +3728,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
         }
     }
  unlock:
-    unlock ("ml_copysel");
+    unlock (__func__);
 
  done:
     if (fd >= 0) {
@@ -3748,12 +3748,12 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
     fz_rect box;
 
     ret_v = caml_alloc_small (4 * Double_wosize, Double_array_tag);
-    if (trylock ("ml_getpdimrect")) {
+    if (trylock (__func__)) {
         box = fz_empty_rect;
     }
     else {
         box = state.pagedims[pagedimno].mediabox;
-        unlock ("ml_getpdimrect");
+        unlock (__func__);
     }
 
     Store_double_field (ret_v, 0, box.x0);
@@ -3779,7 +3779,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     double cols = Int_val (cols_v);
     double pw = 1.0, ph = 1.0;
 
-    if (trylock ("ml_zoom_for_height")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -3795,7 +3795,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     }
 
     zoom = (((winh / ph) * pw) + dw) / winw;
-    unlock ("ml_zoom_for_height");
+    unlock (__func__);
  done:
     ret_v = caml_copy_double (zoom);
     CAMLreturn (ret_v);
@@ -4148,7 +4148,7 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     pdim = &state.pagedims[page->pdimno];
 
     ret_v = Val_int (0);
-    if (trylock ("ml_unproject")) {
+    if (trylock (__func__)) {
         goto done;
     }
 
@@ -4172,7 +4172,7 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     Field (tup_v, 1) = Val_int (p.y);
     Field (ret_v, 0) = tup_v;
 
-    unlock ("ml_unproject");
+    unlock (__func__);
  done:
     CAMLreturn (ret_v);
 }
