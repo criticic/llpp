@@ -4863,16 +4863,21 @@ let viewkeyboard key mask =
       G.postRedisplay "toggle highlightlinks";
 
   | @F ->
-      state.glinks <- true;
-      let mode = state.mode in
-      state.mode <- Textentry (
-        (":", E.s, None, linknentry, linknact gotounder, false),
-        (fun _ ->
-          state.glinks <- false;
-          state.mode <- mode)
-      );
-      state.text <- E.s;
-      G.postRedisplay "view:linkent(F)"
+      if conf.angle mod 360 = 0
+      then (
+        state.glinks <- true;
+        let mode = state.mode in
+        state.mode <-
+          Textentry (
+              (":", E.s, None, linknentry, linknact gotounder, false),
+              (fun _ ->
+                state.glinks <- false;
+                state.mode <- mode)
+            );
+        state.text <- E.s;
+        G.postRedisplay "view:linkent(F)"
+      )
+      else impmsg "hint mode does not work under rotation"
 
   | @y ->
       state.glinks <- true;
