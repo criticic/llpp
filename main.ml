@@ -31,6 +31,7 @@ external unmappbo : opaque -> unit = "ml_unmappbo";;
 external pbousable : unit -> bool = "ml_pbo_usable";;
 external unproject : opaque -> int -> int -> (int * int) option
   = "ml_unproject";;
+external project : opaque -> float -> float -> (float * float) = "ml_project";;
 external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 external rectofblock : opaque -> int -> int -> float array option
   = "ml_rectofblock";;
@@ -1577,6 +1578,11 @@ let getpassword () =
           dolog "%s" s) passcmd;
 ;;
 
+let pgoto pageno opaque x y =
+  let x, y = project opaque x y in
+  gotopagexy pageno x y;
+;;
+
 let act cmds =
   (* dolog "%S" cmds; *)
   let cl = splitatspace cmds in
@@ -1907,6 +1913,12 @@ let act cmds =
      then error "document is password protected"
      else opendoc state.path password
 
+  | "pgoto" :: args :: [] ->
+     let (pageno, x, y) = scan args "%u %f %f" (fun n x y -> (n, x, y))  in
+     begin match getopaque pageno with
+           | Some opaque -> pgoto pageno opaque x y
+           | None -> impmsg "failure to get page information for %d" pageno
+     end;
   | _ ->
       error "unknown cmd `%S'" cmds
 ;;
@@ -6140,6 +6152,15 @@ let ract cmds =
           (fun pageno r g b alpha x0 y0 x1 y1 ->
             addrect pageno r g b alpha x0 y0 x1 y1;
             G.postRedisplay "prect"
+          )
+  | "pgoto" :: args :: [] ->
+     scan args "%u %f %f"
+          (fun pageno x y ->
+            match getopaque pageno with
+            | Some opaque -> pgoto pageno opaque x y
+            | None ->
+               gotopage pageno 0.0;
+               wcmd "pgoto %u %f %f" pageno x y
           )
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit
