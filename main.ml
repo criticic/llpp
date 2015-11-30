@@ -31,7 +31,8 @@ external unmappbo : opaque -> unit = "ml_unmappbo";;
 external pbousable : unit -> bool = "ml_pbo_usable";;
 external unproject : opaque -> int -> int -> (int * int) option
   = "ml_unproject";;
-external project : opaque -> float -> float -> (float * float) = "ml_project";;
+external project : int -> int -> float -> float -> (float * float)
+  = "ml_project";;
 external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 external rectofblock : opaque -> int -> int -> float array option
   = "ml_rectofblock";;
@@ -1578,8 +1579,9 @@ let getpassword () =
           dolog "%s" s) passcmd;
 ;;
 
-let pgoto pageno opaque x y =
-  let x, y = project opaque x y in
+let pgoto pageno x y =
+  let pdimno = getpdimno pageno in
+  let x, y = project pageno pdimno x y in
   gotopagexy pageno x y;
 ;;
 
@@ -1912,13 +1914,6 @@ let act cmds =
      if emptystr password
      then error "document is password protected"
      else opendoc state.path password
-
-  | "pgoto" :: args :: [] ->
-     let (pageno, x, y) = scan args "%u %f %f" (fun n x y -> (n, x, y))  in
-     begin match getopaque pageno with
-           | Some opaque -> pgoto pageno opaque x y
-           | None -> impmsg "failure to get page information for %d" pageno
-     end;
   | _ ->
       error "unknown cmd `%S'" cmds
 ;;
@@ -6161,11 +6156,18 @@ let ract cmds =
   | "pgoto" :: args :: [] ->
      scan args "%u %f %f"
           (fun pageno x y ->
-            match getopaque pageno with
-            | Some opaque -> pgoto pageno opaque x y
-            | None ->
-               gotopage pageno 0.0;
-               wcmd "pgoto %u %f %f" pageno x y
+            pgoto pageno x y;
+            let rec fixx = function
+              | [] -> ()
+              | l :: rest ->
+                 if l.pageno = pageno
+                 then (
+                   state.x <- state.x - l.pagedispx;
+                   gotoy state.y;
+                 )
+                 else fixx rest
+            in
+            fixx state.layout
           )
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit

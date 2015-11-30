@@ -870,6 +870,20 @@ let getpagedim pageno =
   f (-1, -1, -1, -1) state.pdims
 ;;
 
+let getpdimno pageno =
+  let rec f p l =
+    let np = succ p in
+    match l with
+    | (n, _, _, _) :: rest ->
+        if n >= pageno
+        then (if n = pageno then np else p)
+        else f np rest
+
+    | [] -> p
+  in
+  f ~-1 state.pdims
+;;
+
 let getpagey pageno = fst (getpageyh pageno);;
 
 let getanchor1 l =

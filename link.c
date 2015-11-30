@@ -1969,9 +1969,6 @@ static void * mainloop (void UNUSED_ATTR *unused)
         else if (!strncmp ("interrupt", p, 9)) {
             printd ("vmsg interrupted");
         }
-        else if (!strncmp ("pgoto", p, 5)) {
-            printd ("pgoto %s", p + 6);
-        }
         else {
             errx (1, "unknown command %.*s", len, p);
         }
@@ -4177,22 +4174,24 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_project (value ptr_v, value x_v, value y_v)
+CAMLprim value ml_project (value pageno_v, value pdimno_v,
+                            value x_v, value y_v)
 {
-    CAMLparam3 (ptr_v, x_v, y_v);
+    CAMLparam4 (pageno_v, pdimno_v, x_v, y_v);
     CAMLlocal1 (ret_v);
     struct page *page;
-    char *s = String_val (ptr_v);
+    int pageno = Int_val (pageno_v);
+    int pdimno = Int_val (pdimno_v);
     double x = Double_val (x_v), y = Double_val (y_v);
     struct pagedim *pdim;
     fz_point p;
     fz_matrix ctm;
 
-    page = parse_pointer (__func__, s);
-    pdim = &state.pagedims[page->pdimno];
-
     ret_v = Val_int (0);
     lock (__func__);
+
+    page = loadpage (pageno, pdimno);
+    pdim = &state.pagedims[pdimno];
 
     if (pdf_specifics (state.ctx, state.doc)) {
         trimctm ((pdf_page *) page->fzpage, page->pdimno);
@@ -4211,6 +4210,7 @@ CAMLprim value ml_project (value ptr_v, value x_v, value y_v)
     Field (ret_v, 0) = caml_copy_double (p.x);
     Field (ret_v, 1) = caml_copy_double (p.y);
 
+    freepage (page);
     unlock (__func__);
     CAMLreturn (ret_v);
 }
