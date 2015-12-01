@@ -6167,7 +6167,16 @@ let ract cmds =
                  )
                  else fixx rest
             in
-            fixx state.layout
+            let layout =
+              let sx = state.x in
+              let ww = state.winw in
+              state.winw <- state.winw * 10;
+              let res = layout state.y state.winh in
+              state.x <- sx;
+              state.winw <- ww;
+              res
+            in
+            fixx layout
           )
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit
