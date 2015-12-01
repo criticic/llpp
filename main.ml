@@ -6170,10 +6170,16 @@ let ract cmds =
             let layout =
               let sx = state.x in
               let ww = state.winw in
-              state.winw <- state.winw * 10;
+              let mult =
+                match conf.columns with
+                | Csingle _ | Csplit _ -> 1
+                | Cmulti ((n, _, _), _) -> n
+              in
+              state.winw <- state.winw * mult;
+              state.x <- 0;
               let res = layout state.y state.winh in
-              state.x <- sx;
               state.winw <- ww;
+              state.x <- sx;
               res
             in
             fixx layout
