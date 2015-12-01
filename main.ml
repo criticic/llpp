@@ -31,7 +31,7 @@ external unmappbo : opaque -> unit = "ml_unmappbo";;
 external pbousable : unit -> bool = "ml_pbo_usable";;
 external unproject : opaque -> int -> int -> (int * int) option
   = "ml_unproject";;
-external project : int -> int -> float -> float -> (float * float)
+external project : opaque -> int -> int -> float -> float -> (float * float)
   = "ml_project";;
 external drawtile : tileparams -> opaque -> unit = "ml_drawtile";;
 external rectofblock : opaque -> int -> int -> float array option
@@ -1579,9 +1579,9 @@ let getpassword () =
           dolog "%s" s) passcmd;
 ;;
 
-let pgoto pageno x y =
+let pgoto opaque pageno x y =
   let pdimno = getpdimno pageno in
-  let x, y = project pageno pdimno x y in
+  let x, y = project opaque pageno pdimno x y in
   gotopagexy pageno x y;
 ;;
 
@@ -6156,7 +6156,12 @@ let ract cmds =
   | "pgoto" :: args :: [] ->
      scan args "%u %f %f"
           (fun pageno x y ->
-            pgoto pageno x y;
+            let optopaque =
+              match getopaque pageno with
+              | Some opaque -> opaque
+              | None -> ~< ""
+            in
+            pgoto optopaque pageno x y;
             let rec fixx = function
               | [] -> ()
               | l :: rest ->

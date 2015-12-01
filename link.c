@@ -4174,12 +4174,14 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_project (value pageno_v, value pdimno_v,
-                            value x_v, value y_v)
+CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
+                           value x_v, value y_v)
 {
-    CAMLparam4 (pageno_v, pdimno_v, x_v, y_v);
+    CAMLparam5 (ptr_v, pageno_v, pdimno_v, x_v, y_v);
     CAMLlocal1 (ret_v);
+    int cleanup = 0;
     struct page *page;
+    char *s = String_val (ptr_v);
     int pageno = Int_val (pageno_v);
     int pdimno = Int_val (pdimno_v);
     double x = Double_val (x_v), y = Double_val (y_v);
@@ -4190,7 +4192,13 @@ CAMLprim value ml_project (value pageno_v, value pdimno_v,
     ret_v = Val_int (0);
     lock (__func__);
 
-    page = loadpage (pageno, pdimno);
+    if (caml_string_length (ptr_v) == 0) {
+        cleanup = 1;
+        page = loadpage (pageno, pdimno);
+    }
+    else {
+        page = parse_pointer (__func__, s);
+    }
     pdim = &state.pagedims[pdimno];
 
     if (pdf_specifics (state.ctx, state.doc)) {
@@ -4210,7 +4218,9 @@ CAMLprim value ml_project (value pageno_v, value pdimno_v,
     Field (ret_v, 0) = caml_copy_double (p.x);
     Field (ret_v, 1) = caml_copy_double (p.y);
 
-    freepage (page);
+    if (cleanup) {
+        freepage (page);
+    }
     unlock (__func__);
     CAMLreturn (ret_v);
 }
