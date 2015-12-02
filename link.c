@@ -3059,7 +3059,7 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
     Field (ret_v, 1) = Val_int (slink->bbox.y0);
     Field (ret_v, 2) = Val_int (slink->bbox.x1);
     Field (ret_v, 3) = Val_int (slink->bbox.y1);
-    unlock ("ml_getlinkrect");
+    unlock (__func__);
     CAMLreturn (ret_v);
 }
 
@@ -4038,7 +4038,7 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
             pbo->size = w*h*2;
             break;
         default:
-            errx (1, "ml_getpbo: invalid colorspace %d", cs);
+            errx (1, "%s: invalid colorspace %d", __func__, cs);
         }
 
         state.glGenBuffersARB (1, &pbo->id);
