@@ -4179,7 +4179,6 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
 {
     CAMLparam5 (ptr_v, pageno_v, pdimno_v, x_v, y_v);
     CAMLlocal1 (ret_v);
-    int cleanup = 0;
     struct page *page;
     char *s = String_val (ptr_v);
     int pageno = Int_val (pageno_v);
@@ -4192,8 +4191,7 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     ret_v = Val_int (0);
     lock (__func__);
 
-    if (caml_string_length (ptr_v) == 0) {
-        cleanup = 1;
+    if (!*s) {
         page = loadpage (pageno, pdimno);
     }
     else {
@@ -4218,7 +4216,7 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     Field (ret_v, 0) = caml_copy_double (p.x);
     Field (ret_v, 1) = caml_copy_double (p.y);
 
-    if (cleanup) {
+    if (!*s) {
         freepage (page);
     }
     unlock (__func__);
