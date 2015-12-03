@@ -427,7 +427,7 @@ let nogeomcmds cmds =
   | _ -> false
 ;;
 
-let layoutN ((columns, coverA, coverB), b) y sh =
+let layoutN ((columns, coverA, coverB), b) x y sw sh =
   let sh = sh - (hscrollh ()) in
   let wadj = wadjsb () in
   let rec fold accu n =
@@ -449,15 +449,15 @@ let layoutN ((columns, coverA, coverB), b) y sh =
             let pagedispx, pagex =
               let pdx =
                 if n = coverA - 1 || n = state.pagecount - coverB
-                then state.x + (wadj + state.winw - w) / 2
-                else dx + xoff + state.x
+                then x + (wadj + sw - w) / 2
+                else dx + xoff + x
               in
               if pdx < 0
               then 0, -pdx
               else pdx, 0
             in
             let pagevw =
-              let vw = wadj + state.winw - pagedispx in
+              let vw = wadj + sw - pagedispx in
               let pw = w - pagex in
               min vw pw
             in
@@ -491,7 +491,7 @@ let layoutN ((columns, coverA, coverB), b) y sh =
   else List.rev (fold [] (page_of_y y))
 ;;
 
-let layoutS (columns, b) y sh =
+let layoutS (columns, b) x y sw sh =
   let sh = sh - hscrollh () in
   let wadj = wadjsb () in
   let rec fold accu n =
@@ -505,7 +505,7 @@ let layoutS (columns, b) y sh =
         let accu =
           if vy + pageh > y
           then
-            let x = xoff + state.x in
+            let x = xoff + x in
             let pagey = max 0 (y - vy) in
             let pagedispy = if pagey > 0 then 0 else vy - y in
             let pagedispx, pagex =
@@ -524,12 +524,12 @@ let layoutS (columns, b) y sh =
             in
             let pagecolw = pagew/columns in
             let pagedispx =
-              if pagecolw < state.winw
-              then pagedispx + ((wadj + state.winw - pagecolw) / 2)
+              if pagecolw < sw
+              then pagedispx + ((wadj + sw - pagecolw) / 2)
               else pagedispx
             in
             let pagevw =
-              let vw = wadj + state.winw - pagedispx in
+              let vw = wadj + sw - pagedispx in
               let pw = pagew - pagex in
               min vw pw
             in
@@ -562,13 +562,13 @@ let layoutS (columns, b) y sh =
   List.rev (fold [] 0)
 ;;
 
-let layout y sh =
+let layout x y sw sh =
   if nogeomcmds state.geomcmds
   then
     match conf.columns with
-    | Csingle b -> layoutN ((1, 0, 0), b) y sh
-    | Cmulti c -> layoutN c y sh
-    | Csplit s -> layoutS s y sh
+    | Csingle b -> layoutN ((1, 0, 0), b) x y sw sh
+    | Cmulti c -> layoutN c x y sw sh
+    | Csplit s -> layoutS s x y sw sh
   else []
 ;;
 
@@ -821,10 +821,10 @@ let tilepage n p layout =
   then loop layout;
 ;;
 
-let preloadlayout y =
-  let y = if y < state.winh then 0 else y - state.winh in
-  let h = state.winh*3 in
-  layout y h;
+let preloadlayout x y sw sh =
+  let y = if y < sh then 0 else y - sh in
+  let h = sh*3 in
+  layout x y sw h;
 ;;
 
 let load pages =
@@ -851,7 +851,7 @@ let load pages =
 let preload pages =
   load pages;
   if conf.preload && state.currently = Idle
-  then load (preloadlayout state.y);
+  then load (preloadlayout state.x state.y state.winw state.winh);
 ;;
 
 let layoutready layout =
@@ -883,7 +883,7 @@ let gotoy y =
     | Some time when state.ghyll == noghyll ->
         begin match state.throttle with
         | None ->
-            let layout = layout y state.winh in
+            let layout = layout state.x y state.winw state.winh in
             let ready = layoutready layout in
             if not ready
             then (
@@ -897,7 +897,7 @@ let gotoy y =
             if dt > time
             then (
               state.throttle <- None;
-              let layout = layout y state.winh in
+              let layout = layout state.x y state.winw state.winh in
               load layout;
               G.postRedisplay "maxwait";
               y, layout, true
@@ -906,7 +906,7 @@ let gotoy y =
         end
 
     | _ ->
-        let layout = layout y state.winh in
+        let layout = layout state.x y state.winw state.winh in
         if not !wtmode || layoutready layout
         then G.postRedisplay "gotoy ready";
         y, layout, true
@@ -998,7 +998,9 @@ let gotoy y =
 
 let conttiling pageno opaque =
   tilepage pageno opaque
-    (if conf.preload then preloadlayout state.y else state.layout)
+           (if conf.preload
+            then preloadlayout state.x state.y state.winw state.winh
+            else state.layout)
 ;;
 
 let gotoy_and_clear_text y =
@@ -1450,7 +1452,7 @@ let gctiles () =
     match state.throttle with
     | None ->
         if conf.preload
-        then preloadlayout state.y
+        then preloadlayout state.x state.y state.winw state.winh
         else state.layout
     | Some (layout, _, _) ->
         layout
@@ -1708,7 +1710,7 @@ let act cmds =
           | None ->
               let preloadedpages =
                 if conf.preload
-                then preloadlayout state.y
+                then preloadlayout state.x state.y state.winw state.winh
                 else state.layout
               in
               let evict () =
@@ -5324,7 +5326,9 @@ let birdseyekeyboard key mask
             gotopage1 l.pageno 0;
           )
           else (
-            let layout = layout (state.y-state.winh) (pgh state.layout) in
+            let layout = layout state.x (state.y-state.winh)
+                                state.winw
+                                (pgh state.layout) in
             match layout with
             | [] -> gotoy (clamp (-state.winh))
             | l :: _ ->
@@ -5340,8 +5344,10 @@ let birdseyekeyboard key mask
   | @next ->
       begin match List.rev state.layout with
       | l :: _ ->
-          let layout = layout (state.y + (pgh state.layout)) state.winh in
-          begin match layout with
+         let layout = layout state.x
+                             (state.y + (pgh state.layout))
+                             state.winw state.winh in
+         begin match layout with
           | [] ->
               let incr = l.pageh - l.pagevh in
               if incr = 0
@@ -6175,19 +6181,12 @@ let ract cmds =
                  else fixx rest
             in
             let layout =
-              let sx = state.x in
-              let ww = state.winw in
               let mult =
                 match conf.columns with
                 | Csingle _ | Csplit _ -> 1
                 | Cmulti ((n, _, _), _) -> n
               in
-              state.winw <- state.winw * mult;
-              state.x <- 0;
-              let res = layout state.y state.winh in
-              state.winw <- ww;
-              state.x <- sx;
-              res
+              layout 0 state.y (state.winw * mult) state.winh
             in
             fixx layout
           )
