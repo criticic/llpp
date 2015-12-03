@@ -1675,6 +1675,8 @@ let act cmds =
       and x2 = x2 +. xoff
       and x3 = x3 +. xoff in
       let y = (getpagey pageno) + truncate y0 in
+      if conf.zoom > 1.0
+      then state.x <- truncate (xoff -. x0);
       addnav ();
       gotoy y;
       let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
