@@ -1332,7 +1332,10 @@ let represent () =
         gotoy (max 0 (y - top))
     | Textentry _
     | View
-    | LinkNav _ -> gotoanchor state.anchor
+    | LinkNav _ ->
+       let y = getanchory state.anchor in
+       let y = min y (state.maxy - state.winw - hscrollh ()) in
+       gotoy y;
   )
   else (
     state.reprf ();
