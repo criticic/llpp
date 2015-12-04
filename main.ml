@@ -5001,6 +5001,18 @@ let viewkeyboard key mask =
       | [] -> ()
       end
 
+  | @Z ->
+      begin match state.layout with
+      | l :: _ ->
+          let rect = getpdimrect l.pagedimno in
+          let w = rect.(1) -. rect.(0) in
+          if w > 0.0
+          then w /. float state.winw |> setzoom;
+          G.postRedisplay "Z"
+
+      | [] -> ()
+      end
+
   | @x -> state.roam ()
 
   | @Lt | @Gt ->

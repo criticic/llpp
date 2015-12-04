@@ -72,6 +72,7 @@ return                  - (in link navigation mode) follow link
 =                       - show current position
 e                       - view error log
 z                       - crop
+Z                       - zoom to the actual size
 
 -----Search-----
 /,?                     - enter text to search for (/ - forward, ? - backward)
