@@ -12,6 +12,7 @@ external whatsunder : opaque -> int -> int -> under = "ml_whatsunder";;
 external markunder : opaque -> int -> int -> mark -> bool = "ml_markunder";;
 external clearmark : opaque -> unit = "ml_clearmark";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
+external getmaxw : unit -> float = "ml_getmaxw";;
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
 external postprocess :
@@ -4820,6 +4821,10 @@ let viewkeyboard key mask =
       state.text <- "fit model: " ^ FMTE.to_string fm;
       reqlayout conf.angle fm
 
+  | @4  when ctrl ->            (* ctrl-4 *)
+     let zoom = getmaxw () /. float state.winw in
+     if zoom > 0.0 then setzoom zoom
+
   | @F9 ->
       togglebirdseye ()
 
@@ -5000,18 +5005,6 @@ let viewkeyboard key mask =
             Wsi.reshape (w + vscrollw ()) (h + conf.interpagespace)
           );
           G.postRedisplay "z";
-
-      | [] -> ()
-      end
-
-  | @Z ->
-      begin match state.layout with
-      | l :: _ ->
-          let rect = getpdimrect l.pagedimno in
-          let w = rect.(1) -. rect.(0) in
-          if w > 0.0
-          then w /. float state.winw |> setzoom;
-          G.postRedisplay "Z"
 
       | [] -> ()
       end

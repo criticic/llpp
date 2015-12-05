@@ -3798,6 +3798,29 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     CAMLreturn (ret_v);
 }
 
+CAMLprim value ml_getmaxw (value unit_v)
+{
+    CAMLparam1 (unit_v);
+    CAMLlocal1 (ret_v);
+    int i;
+    double maxw = -1.;
+    struct pagedim *p;
+
+    if (trylock (__func__)) {
+        goto done;
+    }
+
+    for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
+        double w = p->pagebox.x1;
+        maxw = MAX (maxw, w);
+    }
+
+    unlock (__func__);
+ done:
+    ret_v = caml_copy_double (maxw);
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
 {
     CAMLparam4 (pt_v, x_v, y_v, string_v);
