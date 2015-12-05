@@ -6366,7 +6366,7 @@ let () =
       in
       vlog "visibility change %s" name
     method display = display ()
-    method map mapped = vlog "mappped %b" mapped
+    method map mapped = vlog "mapped %b" mapped
     method reshape w h =
       self#cleanup;
       reshape w h
