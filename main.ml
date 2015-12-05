@@ -6356,7 +6356,7 @@ let () =
     method private cleanup =
       state.roam <- noroam;
       Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap
-    method expose = G.postRedisplay"expose"
+    method expose = G.postRedisplay "expose"
     method visible v =
       let name =
         match v with
