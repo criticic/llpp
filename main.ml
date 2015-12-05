@@ -4808,7 +4808,7 @@ let viewkeyboard key mask =
         conf.interpagespace lsl (if conf.presentation then 1 else 0)
       in
       let zoom = zoomforh state.winw h (vscrollw ()) cols in
-      if zoom > 0.0 && (key = 50 || zoom < 1.0)
+      if zoom > 0.0 && (key = @2 || zoom < 1.0)
       then setzoom zoom
 
   | @3 when ctrl ->
