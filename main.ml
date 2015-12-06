@@ -4352,8 +4352,7 @@ let gotooutline (_, _, kind) =
   | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
 ;;
 
-let outlinesource fetchoutlines =
-  (object (self)
+class outlinesoucebase fetchoutlines = object (self)
     inherit lvsourcebase
     val mutable m_items = E.a
     val mutable m_minfo = E.a
@@ -4366,9 +4365,10 @@ let outlinesource fetchoutlines =
 
     method getitem n =
       let s, n, _ = m_items.(n) in
-      (s, n)
+      (s, n+0)
 
-    method exit ~uioh ~cancel ~active ~first ~pan =
+    method exit ~(uioh:uioh) ~cancel ~active ~(first:int) ~pan :
+      uioh option =
       ignore (uioh, first);
       let items, minfo =
         if m_narrow_patterns = []
@@ -4388,7 +4388,7 @@ let outlinesource fetchoutlines =
        );
       None
 
-    method hasaction _ = true
+    method hasaction (_:int) = true
 
     method greetmsg =
       if Array.length m_items != Array.length m_orig_items
@@ -4452,25 +4452,7 @@ let outlinesource fetchoutlines =
             self#narrow pattern;
             pattern ^ "@Uellipsis" ^ accu) E.s list
 
-    method calcactive anchor =
-      let rely = getanchory anchor in
-      let rec loop n best bestd =
-        if n = Array.length m_items
-        then best
-        else
-          let _, _, kind = m_items.(n) in
-          match kind with
-          | Oanchor anchor ->
-              let orely = getanchory anchor in
-              let d = abs (orely - rely) in
-              if d < bestd
-              then loop (n+1) n d
-              else loop (n+1) best bestd
-          | Onone | Oremote _ | Olaunch _
-          | Oremotedest _ | Ouri _ | Ohistory _ ->
-              loop (n+1) best bestd
-      in
-      loop 0 ~-1 max_int
+    method calcactive (_:anchor) = 0
 
     method reset anchor items =
       if state.gen != m_gen
@@ -4493,6 +4475,31 @@ let outlinesource fetchoutlines =
       let active = self#calcactive anchor in
       m_active <- active;
       m_first <- firstof m_first active
+     end
+;;
+
+let outlinesource fetchoutlines =
+  (object
+    inherit outlinesoucebase fetchoutlines
+    method! calcactive anchor =
+      let rely = getanchory anchor in
+      let rec loop n best bestd =
+        if n = Array.length m_items
+        then best
+        else
+          let _, _, kind = m_items.(n) in
+          match kind with
+          | Oanchor anchor ->
+              let orely = getanchory anchor in
+              let d = abs (orely - rely) in
+              if d < bestd
+              then loop (n+1) n d
+              else loop (n+1) best bestd
+          | Onone | Oremote _ | Olaunch _
+          | Oremotedest _ | Ouri _ | Ohistory _ ->
+              loop (n+1) best bestd
+      in
+      loop 0 ~-1 max_int
   end)
 ;;
 
@@ -4504,7 +4511,11 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
       | `outlines -> state.outlines
       | `history -> genhistoutlines ()
     in
-    let source = outlinesource fetchoutlines in
+    let source =
+      if sourcetype = `history
+      then new outlinesoucebase fetchoutlines
+      else outlinesource fetchoutlines
+    in
     fun errmsg ->
       let outlines = fetchoutlines () in
       if Array.length outlines = 0
