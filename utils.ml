@@ -39,7 +39,7 @@ let bound v minv maxv = max minv (min maxv v);;
 
 let spawn cmd fda =
   if platform = Pcygwin
-  then failwith "popen not implemented under cygwin yet"
+  then failwith "spawn not implemented under cygwin yet"
   else spawn cmd fda;
 ;;
 
