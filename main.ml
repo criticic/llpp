@@ -6186,7 +6186,7 @@ let ract cmds =
             let optopaque =
               match getopaque pageno with
               | Some opaque -> opaque
-              | None -> ~< ""
+              | None -> ~< E.s
             in
             pgoto optopaque pageno x y;
             let rec fixx = function
