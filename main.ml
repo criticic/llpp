@@ -1508,7 +1508,7 @@ let onpagerect pageno f =
     f w h
 ;;
 
-let gotopagexy1 pageno x y =
+let gotopagexy1 wtmode pageno x y =
   let _,w1,h1,leftx = getpagedim pageno in
   let top = y /. (float h1) in
   let left = x /. (float w1) in
@@ -1540,7 +1540,7 @@ let gotopagexy1 pageno x y =
   if state.x != sx || state.y != sy
   then (
     let x, y =
-      if !wtmode
+      if wtmode
       then (
         let ww = wadj + state.winw in
         let qx = sx / ww
@@ -1567,12 +1567,12 @@ let gotopagexy1 pageno x y =
   else gotoy_and_clear_text state.y;
 ;;
 
-let gotopagexy pageno x y =
+let gotopagexy wtmode pageno x y =
   match state.mode with
   | Birdseye _ -> gotopage pageno 0.0
   | Textentry _
   | View
-  | LinkNav _ -> gotopagexy1 pageno x y
+  | LinkNav _ -> gotopagexy1 wtmode pageno x y
 ;;
 
 let getpassword () =
@@ -1588,7 +1588,7 @@ let getpassword () =
 let pgoto opaque pageno x y =
   let pdimno = getpdimno pageno in
   let x, y = project opaque pageno pdimno x y in
-  gotopagexy pageno x y;
+  gotopagexy false pageno x y;
 ;;
 
 let act cmds =
@@ -1899,7 +1899,7 @@ let act cmds =
       let (n, l, t) =
         scan args "%u %d %d" (fun n l t -> n, l, t)
       in
-      state.reprf <- (fun () -> gotopagexy n (float l) (float t))
+      state.reprf <- (fun () -> gotopagexy !wtmode n (float l) (float t))
 
   | "info" :: args :: [] ->
       let pos = nindex args '\t' in
@@ -6153,10 +6153,10 @@ let ract cmds =
         (fun pageno x y ->
           let cmd, _ = state.geomcmds in
           if emptystr cmd
-          then gotopagexy pageno x y
+          then gotopagexy !wtmode pageno x y
           else
             let f prevf () =
-              gotopagexy pageno x y;
+              gotopagexy !wtmode pageno x y;
               prevf ()
             in
             state.reprf <- f state.reprf
