@@ -824,8 +824,10 @@ let tilepage n p layout =
 
 let preloadlayout x y sw sh =
   let y = if y < sh then 0 else y - sh in
+  let x = if x < sw then 0 else x - sw in
   let h = sh*3 in
-  layout x y sw h;
+  let w = sw*3 in
+  layout x y w h;
 ;;
 
 let load pages =
