@@ -796,7 +796,7 @@ let setup disp sock rootwid screennum w h =
       vlog "idbase = %#x idmask = %#x" idbase idmask;
       vlog "root=%#x %dx%d" root rootw rooth;
       vlog "wmm = %d, hmm = %d" (r16 data (pos+24)) (r16 data (pos+26));
-      vlog "visualid = %#x " (r32 data (pos+32));
+      vlog "visualid = %#x" (r32 data (pos+32));
       vlog "root depth = %d" rootdepth;
 
       let wid = state.idbase in
