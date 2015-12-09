@@ -3960,7 +3960,7 @@ let enterinfomode =
       src#bool "edit annotations inline"
         (fun () -> conf.annotinline)
         (fun v -> conf.annotinline <- v);
-      src#bool "quirks for Intel graphics card driven by Mesa 3D"
+      src#bool "Quirks for Intel graphics card driven by Mesa 3D"
         (fun () -> conf.intel_mesa_quirks)
         (fun v -> conf.intel_mesa_quirks <- v);
     );
