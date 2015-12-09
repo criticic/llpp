@@ -1,5 +1,3 @@
-type intel_mesa_quirks = bool;;
-
 module E = struct
   let s = "";;
   let b = Bytes.empty;;

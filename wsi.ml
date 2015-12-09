@@ -23,10 +23,8 @@ type visiblestate =
 ;;
 
 type wid = int and screenno = int and vid = int and atom = int;;
-type intel_mesa_quirk = bool;;
 
-external glxinit : string -> wid -> screenno -> intel_mesa_quirk -> vid
-  = "ml_glxinit";;
+external glxinit : string -> wid -> screenno -> vid = "ml_glxinit";;
 external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
 external swapb : unit -> unit = "ml_swapb";;
 external setcursor : cursor -> unit = "ml_setcursor";;
@@ -728,7 +726,7 @@ let syncsendintern sock secstowait s onlyifexists f =
   syncsendwithrep sock secstowait s f;
 ;;
 
-let setup disp sock rootwid screennum w h intel_mesa_quirk =
+let setup disp sock rootwid screennum w h =
   let s = readstr sock 2 in
   let n = Bytes.length s in
   if n != 2
@@ -808,7 +806,7 @@ let setup disp sock rootwid screennum w h intel_mesa_quirk =
       state.wid <- wid;
       state.fid <- fid;
 
-      let vid = glxinit disp wid screennum intel_mesa_quirk in
+      let vid = glxinit disp wid screennum in
       let ndepths = r8 data (pos+39) in
       let rec finddepth n' pos =
         if n' = ndepths
@@ -1107,7 +1105,7 @@ let getauth haddr dnum =
        E.s, E.s
 ;;
 
-let init t rootwid w h platform intel_mesa_quirk =
+let init t rootwid w h platform =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
@@ -1193,7 +1191,7 @@ let init t rootwid w h platform intel_mesa_quirk =
   w16 s 8 (String.length adata);
   sendstr1 s 0 (Bytes.length s) fd;
   state.sock <- fd;
-  setup d fd rootwid screennum w h intel_mesa_quirk;
+  setup d fd rootwid screennum w h;
   state.t <- t;
   fd, state.w, state.h;
 ;;

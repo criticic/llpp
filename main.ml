@@ -3960,9 +3960,6 @@ let enterinfomode =
       src#bool "edit annotations inline"
         (fun () -> conf.annotinline)
         (fun v -> conf.annotinline <- v);
-      src#bool "Quirks for Intel graphics card driven by Mesa 3D"
-        (fun () -> conf.intel_mesa_quirks)
-        (fun v -> conf.intel_mesa_quirks <- v);
     );
 
     sep ();
@@ -6462,7 +6459,7 @@ let () =
     method leave = state.mpos <- (-1, -1)
     method winstate wsl = state.winstate <- wsl
     method quit = raise Quit
-  end) !rootwid conf.cwinw conf.cwinh platform conf.intel_mesa_quirks in
+  end) !rootwid conf.cwinw conf.cwinh platform in
 
   state.wsfd <- wsfd;
 
@@ -6474,7 +6471,12 @@ let () =
   )
   then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
 
-  if conf.intel_mesa_quirks
+  if (
+    let r = GlMisc.get_string `renderer in
+    let p = "Mesa DRI Intel(" in
+    let l = String.length p in
+    String.length r > l && String.sub r 0 l = p
+  )
   then (
     defconf.sliceheight <- 1024;
     defconf.texcount <- 32;

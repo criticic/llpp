@@ -3905,54 +3905,20 @@ static struct {
     Cursor curs[CURS_COUNT];
 } glx;
 
-CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v,
-                           value intel_mesa_quirk_v)
+CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
 {
-    CAMLparam4 (display_v, wid_v, screen_v, intel_mesa_quirk_v);
+    CAMLparam3 (display_v, wid_v, screen_v);
+    int attribs[] = { GLX_RGBA,  GLX_DOUBLEBUFFER, None };
 
     glx.dpy = XOpenDisplay (String_val (display_v));
     if (!glx.dpy) {
         caml_failwith ("XOpenDisplay");
     }
 
-    if (Bool_val (intel_mesa_quirk_v)) {
-        int attribs[] = { GLX_RENDER_TYPE, GLX_RGBA_BIT,
-                          GLX_DOUBLEBUFFER, 1,
-                          None };
-        int fbcount;
-        GLXFBConfig *fbc;
-
-        fbc = glXChooseFBConfig (glx.dpy, Int_val (screen_v),
-                                 attribs, &fbcount);
-        if (fbc) {
-            XVisualInfo *visual;
-
-            for (int i = 0; i < fbcount; ++i) {
-                visual = glXGetVisualFromFBConfig (glx.dpy, fbc[i]);
-                if (!glx.visual) {
-                    glx.visual = visual;
-                }
-                else {
-                    if (visual->depth > glx.visual->depth) {
-                        XFree (glx.visual);
-                        glx.visual = visual;
-                    }
-                }
-            }
-        }
-        else {
-            caml_failwith ("glXChooseFBConfig");
-        }
-        XFree (fbc);
-    }
-    else {
-        int attribs[] = { GLX_RGBA,  GLX_DOUBLEBUFFER, None };
-        glx.visual = glXChooseVisual (glx.dpy, Int_val (screen_v), attribs);
-        if (!glx.visual) {
-            XCloseDisplay (glx.dpy);
-            caml_failwith ("glXChooseVisual");
-        }
-
+    glx.visual = glXChooseVisual (glx.dpy, Int_val (screen_v), attribs);
+    if (!glx.visual) {
+        XCloseDisplay (glx.dpy);
+        caml_failwith ("glXChooseVisual");
     }
 
     for (size_t n = 0; n < CURS_COUNT; ++n) {
