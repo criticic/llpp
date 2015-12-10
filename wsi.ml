@@ -1156,7 +1156,7 @@ let init t rootwid w h platform =
   let aname, adata = getauth host dispnum in
   let fd =
     let fd, addr =
-      if emptystr host || host = "unix"
+      if emptystr host || host.[0] = '/' || host = "unix"
       then
         let addr =
           match platform with
