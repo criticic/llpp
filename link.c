@@ -3889,7 +3889,11 @@ CAMLprim value ml_setaalevel (value level_v)
 #include <X11/cursorfont.h>
 #pragma GCC diagnostic pop
 
+#ifdef USE_EGL
+#include <EGL/egl.h>
+#else
 #include <GL/glx.h>
+#endif
 
 static const int shapes[] = {
     XC_arrow, XC_hand2, XC_exchange, XC_fleur, XC_xterm
@@ -3900,22 +3904,21 @@ static const int shapes[] = {
 static struct {
     Window wid;
     Display *dpy;
+#ifdef USE_EGL
+    EGLContext ctx;
+    EGLConfig conf;
+    EGLSurface win;
+    EGLDisplay *edpy;
+#else
     GLXContext ctx;
+#endif
     XVisualInfo *visual;
     Cursor curs[CURS_COUNT];
 } glx;
 
-CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
-{
-    CAMLparam3 (display_v, wid_v, screen_v);
-    int attribs[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
-
-    glx.dpy = XOpenDisplay (String_val (display_v));
-    if (!glx.dpy) {
-        caml_failwith ("XOpenDisplay");
-    }
-
 #ifdef VISAVIS
+static VisualID initvisual (void)
+{
     /* On this system with: `Haswell-ULT Integrated Graphics
        Controller' and Mesa 11.0.6; perf stat reports [1] that when
        using glX chosen visual and auto scrolling some document in
@@ -3930,7 +3933,6 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
      */
     XVisualInfo info;
     int ret = 1;
-    (void) attribs;
 
     info.depth = 32;
     info.class = TrueColor;
@@ -3940,16 +3942,117 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         XCloseDisplay (glx.dpy);
         caml_failwith ("XGetVisualInfo");
     }
+    return glx.visual->visualid;
+}
+#endif
+
+static void initcurs (void)
+{
+    for (size_t n = 0; n < CURS_COUNT; ++n) {
+        glx.curs[n] = XCreateFontCursor (glx.dpy, shapes[n]);
+    }
+}
+
+#ifdef USE_EGL
+CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
+{
+    CAMLparam3 (display_v, wid_v, screen_v);
+    int major, minor;
+    int num_conf;
+    EGLint visid;
+    EGLint attribs[] = {
+#ifdef VISAVIS
+        EGL_NATIVE_VISUAL_ID, 0,
 #else
+        EGL_DEPTH_SIZE, 24,
+#endif
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_NONE
+    };
+    EGLConfig conf;
+
+    glx.dpy = XOpenDisplay (String_val (display_v));
+    if (!glx.dpy) {
+        caml_failwith ("XOpenDisplay");
+    }
+
+    eglBindAPI (EGL_OPENGL_API);
+
+    glx.edpy = eglGetDisplay (glx.dpy);
+    if (glx.dpy == EGL_NO_DISPLAY) {
+        caml_failwith ("eglGetDisplay");
+    }
+
+    if (!eglInitialize (glx.edpy, &major, &minor)) {
+        caml_failwith ("eglInitialize");
+    }
+
+#ifdef VISAVIS
+    attribs[1] = visid = initvisual ();
+#endif
+
+    if (!eglChooseConfig (glx.edpy, attribs, &conf, 1, &num_conf) ||
+        !num_conf) {
+        caml_failwith ("eglChooseConfig");
+    }
+
+    glx.conf = conf;
+#ifndef VISAVIS
+    if (!eglGetConfigAttrib (glx.edpy, glx.conf,
+                             EGL_NATIVE_VISUAL_ID, &visid)) {
+        caml_failwith ("eglGetConfigAttrib");
+    }
+#endif
+    initcurs ();
+
+    glx.wid = Int_val (wid_v);
+    CAMLreturn (Val_int (visid));
+}
+
+CAMLprim value ml_glxcompleteinit (value unit_v)
+{
+    CAMLparam1 (unit_v);
+
+    glx.ctx = eglCreateContext (glx.edpy, glx.conf, EGL_NO_CONTEXT, NULL);
+    if (!glx.ctx) {
+        caml_failwith ("eglCreateContext");
+    }
+
+    glx.win = eglCreateWindowSurface (glx.edpy, glx.conf,
+                                      glx.wid, NULL);
+    if (glx.win == EGL_NO_SURFACE) {
+        caml_failwith ("eglCreateWindowSurface");
+    }
+
+    XFree (glx.visual);
+    if (!eglMakeCurrent (glx.edpy, glx.win, glx.win, glx.ctx)) {
+        glx.ctx = NULL;
+        caml_failwith ("eglMakeCurrent");
+    }
+    CAMLreturn (Val_unit);
+}
+#else
+CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
+{
+    CAMLparam3 (display_v, wid_v, screen_v);
+
+    glx.dpy = XOpenDisplay (String_val (display_v));
+    if (!glx.dpy) {
+        caml_failwith ("XOpenDisplay");
+    }
+
+#ifdef VISAVIS
+    initvisual ();
+#else
+    int attribs[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
     glx.visual = glXChooseVisual (glx.dpy, Int_val (screen_v), attribs);
     if (!glx.visual) {
         XCloseDisplay (glx.dpy);
         caml_failwith ("glXChooseVisual");
     }
 #endif
-    for (size_t n = 0; n < CURS_COUNT; ++n) {
-        glx.curs[n] = XCreateFontCursor (glx.dpy, shapes[n]);
-    }
+    initcurs ();
 
     glx.wid = Int_val (wid_v);
     CAMLreturn (Val_int (glx.visual->visualid));
@@ -3974,6 +4077,7 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
     }
     CAMLreturn (Val_unit);
 }
+#endif
 
 CAMLprim value ml_setcursor (value cursor_v)
 {
@@ -3991,7 +4095,13 @@ CAMLprim value ml_setcursor (value cursor_v)
 CAMLprim value ml_swapb (value unit_v)
 {
     CAMLparam1 (unit_v);
+#ifdef USE_EGL
+    if (!eglSwapBuffers (glx.edpy, glx.win)) {
+        caml_failwith ("eglSwapBuffers");
+    }
+#else
     glXSwapBuffers (glx.dpy, glx.wid);
+#endif
     CAMLreturn (Val_unit);
 }
 
@@ -4163,7 +4273,11 @@ CAMLprim value ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
+#ifdef USE_EGL
+#define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
+#else
 #define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
+#endif
     state.pbo_usable = GGPA (glBindBufferARB)
         && GGPA (glUnmapBufferARB)
         && GGPA (glMapBufferARB)

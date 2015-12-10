@@ -25,6 +25,7 @@ newtype GitDescribeOracle = GitDescribeOracle ()
 outdir = "build"
 mudir = "mupdf"
 inOutDir s = outdir </> s
+egl = False
 
 ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
@@ -40,6 +41,7 @@ cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow\
          \ -DVISAVIS"
+         ++ (if egl then " -DUSE_EGL" else "")
 cflagstbl =
   [("link.o"
    ,"-I " ++ mudir ++ "/include -I "
@@ -48,6 +50,7 @@ cflagstbl =
 cclib = "-lGL -lX11 -lmupdf -lz -lfreetype -ljpeg\
         \ -ljbig2dec -lopenjpeg -lmujs\
         \ -lpthread -L" ++ mudir ++ "/build/native -lcrypto"
+        ++ (if egl then " -lEGL" else "")
 
 getincludes :: [String] -> [String]
 getincludes [] = []
