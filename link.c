@@ -3915,12 +3915,38 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         caml_failwith ("XOpenDisplay");
     }
 
+#ifdef VISAVIS
+    /* On this system with: `Haswell-ULT Integrated Graphics
+       Controller' and Mesa 11.0.6; perf stat reports [1] that when
+       using glX chosen visual and auto scrolling some document in
+       fullscreen the power/energy-gpu is more than 1 joule bigger
+       than when using hand picked visual that stands alone in glxinfo
+       output: it's dead last in the list and it's the only one with
+       `visual dep' (sic) of 32
+
+       No clue what's going on here...
+
+       [1] perf stat -a -I 1200 -e "power/energy-gpu/"
+     */
+    XVisualInfo info;
+    int ret = 1;
+    (void) attribs;
+
+    info.depth = 32;
+    info.class = TrueColor;
+    glx.visual = XGetVisualInfo (glx.dpy, VisualDepthMask | VisualClassMask,
+                                 &info, &ret);
+    if (!ret || !glx.visual) {
+        XCloseDisplay (glx.dpy);
+        caml_failwith ("XGetVisualInfo");
+    }
+#else
     glx.visual = glXChooseVisual (glx.dpy, Int_val (screen_v), attribs);
     if (!glx.visual) {
         XCloseDisplay (glx.dpy);
         caml_failwith ("glXChooseVisual");
     }
-
+#endif
     for (size_t n = 0; n < CURS_COUNT; ++n) {
         glx.curs[n] = XCreateFontCursor (glx.dpy, shapes[n]);
     }

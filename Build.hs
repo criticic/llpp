@@ -38,7 +38,8 @@ ocamlflagstbln = [("main.cmx", ("-I lablGL", "sed -f pp.sed"))
                  ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
-         \ -Wunused-parameter -Wsign-compare -Wshadow"
+         \ -Wunused-parameter -Wsign-compare -Wshadow\
+         \ -DVISAVIS"
 cflagstbl =
   [("link.o"
    ,"-I " ++ mudir ++ "/include -I "
