@@ -119,6 +119,12 @@ static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
 #define GL_TEXTURE_RECTANGLE_ARB          0x84F5
 #endif
 
+#ifdef USE_NPOT
+#define TEXT_TYPE GL_TEXTURE_2D
+#else
+#define TEXT_TYPE GL_TEXTURE_RECTANGLE_ARB
+#endif
+
 #ifndef GL_BGRA
 #define GL_BGRA                           0x80E1
 #endif
@@ -2427,7 +2433,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
     }
     if (slice->texindex != -1 && slice->texindex < state.texcount
         && state.texowners[slice->texindex].slice == slice) {
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[slice->texindex]);
+        glBindTexture (TEXT_TYPE, state.texids[slice->texindex]);
     }
     else {
         int subimage = 0;
@@ -2449,7 +2455,13 @@ static void uploadslice (struct tile *tile, struct slice *slice)
         state.texowners[texindex].slice = slice;
         slice->texindex = texindex;
 
-        glBindTexture (GL_TEXTURE_RECTANGLE_ARB, state.texids[texindex]);
+        glBindTexture (TEXT_TYPE, state.texids[texindex]);
+#if TEXT_TYPE == GL_TEXTURE_2D
+        glTexParameteri (TEXT_TYPE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri (TEXT_TYPE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri (TEXT_TYPE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri (TEXT_TYPE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#endif
         if (tile->pbo) {
             state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
             texdata = 0;
@@ -2458,7 +2470,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
             texdata = tile->pixmap->samples;
         }
         if (subimage) {
-            glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB,
+            glTexSubImage2D (TEXT_TYPE,
                              0,
                              0,
                              0,
@@ -2470,7 +2482,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
                 );
         }
         else {
-            glTexImage2D (GL_TEXTURE_RECTANGLE_ARB,
+            glTexImage2D (TEXT_TYPE,
                           0,
                           state.texiform,
                           tile->w,
@@ -2490,7 +2502,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
 CAMLprim value ml_begintiles (value unit_v)
 {
     CAMLparam1 (unit_v);
-    glEnable (GL_TEXTURE_RECTANGLE_ARB);
+    glEnable (TEXT_TYPE);
     glTexCoordPointer (2, GL_FLOAT, 0, state.texcoords);
     glVertexPointer (2, GL_FLOAT, 0, state.vertices);
     CAMLreturn (unit_v);
@@ -2499,7 +2511,7 @@ CAMLprim value ml_begintiles (value unit_v)
 CAMLprim value ml_endtiles (value unit_v)
 {
     CAMLparam1 (unit_v);
-    glDisable (GL_TEXTURE_RECTANGLE_ARB);
+    glDisable (TEXT_TYPE);
     CAMLreturn (unit_v);
 }
 
@@ -2539,6 +2551,12 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
         vertices[2] = dispx+dispw;  vertices[3] = dispy;
         vertices[4] = dispx;        vertices[5] = dispy+dh;
         vertices[6] = dispx+dispw;  vertices[7] = dispy+dh;
+
+#if TEXT_TYPE == GL_TEXTURE_2D
+        for (int i = 0; i < 8; ++i) {
+            texcoords[i] /= ((i & 1) == 0 ? tile->w : slice->h);
+        }
+#endif
 
         glDrawArrays (GL_TRIANGLE_STRIP, 0, 4);
         dispy += dh;
