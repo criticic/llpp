@@ -195,8 +195,8 @@ struct page {
     int agen;
     int pageno;
     int pdimno;
-    fz_text_page *text;
-    fz_text_sheet *sheet;
+    fz_stext_page *text;
+    fz_stext_sheet *sheet;
     fz_page *fzpage;
     fz_display_list *dlist;
     int slinkcount;
@@ -205,7 +205,7 @@ struct page {
     struct annot *annots;
     struct mark {
         int i;
-        fz_text_span *span;
+        fz_stext_span *span;
     } fmark, lmark;
 };
 
@@ -537,10 +537,10 @@ static void freepage (struct page *page)
 {
     if (!page) return;
     if (page->text) {
-        fz_drop_text_page (state.ctx, page->text);
+        fz_drop_stext_page (state.ctx, page->text);
     }
     if (page->sheet) {
-        fz_drop_text_sheet (state.ctx, page->sheet);
+        fz_drop_stext_sheet (state.ctx, page->sheet);
     }
     if (page->slinks) {
         free (page->slinks);
@@ -1313,11 +1313,11 @@ static void process_outline (void)
     }
 }
 
-static char *strofspan (fz_text_span *span)
+static char *strofspan (fz_stext_span *span)
 {
     char *p;
     char utf8[10];
-    fz_text_char *ch;
+    fz_stext_char *ch;
     size_t size = 0, cap = 80;
 
     p = malloc (cap + 1);
@@ -1338,7 +1338,7 @@ static char *strofspan (fz_text_span *span)
     return p;
 }
 
-static int matchspan (regex_t *re, fz_text_span *span,
+static int matchspan (regex_t *re, fz_stext_span *span,
                       int stop, int pageno, double start)
 {
     int ret;
@@ -1378,8 +1378,8 @@ static int matchspan (regex_t *re, fz_text_span *span,
             b = MAX (0, b-1);
         }
 
-        fz_text_char_bbox (state.ctx, &sb, span, a);
-        fz_text_char_bbox (state.ctx, &eb, span, b);
+        fz_stext_char_bbox (state.ctx, &sb, span, a);
+        fz_stext_char_bbox (state.ctx, &eb, span, b);
 
         p1.x = sb.x0;
         p1.y = sb.y0;
@@ -1417,8 +1417,8 @@ static int matchspan (regex_t *re, fz_text_span *span,
 
 static int compareblocks (const void *l, const void *r)
 {
-    fz_text_block const *ls = l;
-    fz_text_block const *rs = r;
+    fz_stext_block const *ls = l;
+    fz_stext_block const *rs = r;
     return ls->bbox.y0 - rs->bbox.y0;
 }
 
@@ -1427,8 +1427,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
 {
     int i, j;
     fz_device *tdev;
-    fz_text_page *text;
-    fz_text_sheet *sheet;
+    fz_stext_page *text;
+    fz_stext_sheet *sheet;
     struct pagedim *pdim, *pdimprev;
     int stop = 0, niters = 0;
     double start, end;
@@ -1464,9 +1464,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
         pdim = pdimprev;
     found:
 
-        sheet = fz_new_text_sheet (state.ctx);
-        text = fz_new_text_page (state.ctx);
-        tdev = fz_new_text_device (state.ctx, sheet, text);
+        sheet = fz_new_stext_sheet (state.ctx);
+        text = fz_new_stext_page (state.ctx);
+        tdev = fz_new_stext_device (state.ctx, sheet, text);
 
         page = fz_load_page (state.ctx, state.doc, pageno);
         {
@@ -1480,15 +1480,15 @@ static void search (regex_t *re, int pageno, int y, int forward)
         for (j = 0; j < text->len; ++j) {
             int k;
             fz_page_block *pb;
-            fz_text_block *block;
+            fz_stext_block *block;
 
             pb = &text->blocks[forward ? j : text->len - 1 - j];
             if (pb->type != FZ_PAGE_BLOCK_TEXT) continue;
             block = pb->u.text;
 
             for (k = 0; k < block->len; ++k) {
-                fz_text_line *line;
-                fz_text_span *span;
+                fz_stext_line *line;
+                fz_stext_span *span;
 
                 if (forward) {
                     line = &block->lines[k];
@@ -1517,8 +1517,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
             y = INT_MAX;
         }
     endloop:
-        fz_drop_text_page (state.ctx, text);
-        fz_drop_text_sheet (state.ctx, sheet);
+        fz_drop_stext_page (state.ctx, text);
+        fz_drop_stext_sheet (state.ctx, sheet);
         fz_drop_page (state.ctx, page);
     }
     end = now ();
@@ -2016,9 +2016,9 @@ static void showsel (struct page *page, int ox, int oy)
     int seen = 0;
     fz_irect bbox;
     fz_rect rect;
-    fz_text_line *line;
+    fz_stext_line *line;
     fz_page_block *pageb;
-    fz_text_block *block;
+    fz_stext_block *block;
     struct mark first, last;
     unsigned char selcolor[] = {15,15,15,140};
 
@@ -2042,7 +2042,7 @@ static void showsel (struct page *page, int ox, int oy)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            fz_text_span *span;
+            fz_stext_span *span;
             rect = fz_empty_rect;
 
             for (span = line->first_span; span; span = span->next) {
@@ -2072,8 +2072,8 @@ static void showsel (struct page *page, int ox, int oy)
                     for (i = j; i <= k; ++i) {
                         fz_rect bbox1;
                         fz_union_rect (&rect,
-                                       fz_text_char_bbox (state.ctx, &bbox1,
-                                                          span, i));
+                                       fz_stext_char_bbox (state.ctx, &bbox1,
+                                                           span, i));
                     }
                     fz_round_rect (&bbox, &rect);
                     lprintf ("%d %d %d %d oy=%d ox=%d\n",
@@ -2241,7 +2241,7 @@ static int compareslinks (const void *l, const void *r)
 static void droptext (struct page *page)
 {
     if (page->text) {
-        fz_drop_text_page (state.ctx, page->text);
+        fz_drop_stext_page (state.ctx, page->text);
         page->fmark.i = -1;
         page->lmark.i = -1;
         page->fmark.span = NULL;
@@ -2249,7 +2249,7 @@ static void droptext (struct page *page)
         page->text = NULL;
     }
     if (page->sheet) {
-        fz_drop_text_sheet (state.ctx, page->sheet);
+        fz_drop_stext_sheet (state.ctx, page->sheet);
         page->sheet = NULL;
     }
 }
@@ -2729,9 +2729,9 @@ static void ensuretext (struct page *page)
         fz_matrix ctm;
         fz_device *tdev;
 
-        page->text = fz_new_text_page (state.ctx);
-        page->sheet = fz_new_text_sheet (state.ctx);
-        tdev = fz_new_text_device (state.ctx, page->sheet, page->text);
+        page->text = fz_new_stext_page (state.ctx);
+        page->sheet = fz_new_stext_sheet (state.ctx);
+        tdev = fz_new_stext_device (state.ctx, page->sheet, page->text);
         ctm = pagectm (page);
         fz_begin_page (state.ctx, tdev, &fz_infinite_rect, &ctm);
         fz_run_display_list (state.ctx, page->dlist,
@@ -3131,13 +3131,13 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     else {
         fz_rect *b;
         fz_page_block *pageb;
-        fz_text_block *block;
+        fz_stext_block *block;
 
         ensuretext (page);
         for (pageb = page->text->blocks;
              pageb < page->text->blocks + page->text->len;
              ++pageb) {
-            fz_text_line *line;
+            fz_stext_line *line;
             if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
             block = pageb->u.text;
 
@@ -3148,7 +3148,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
             for (line = block->lines;
                  line < block->lines + block->len;
                  ++line) {
-                fz_text_span *span;
+                fz_stext_span *span;
 
                 b = &line->bbox;
                 if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
@@ -3163,12 +3163,12 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
                     for (charnum = 0; charnum < span->len; ++charnum) {
                         fz_rect bbox;
-                        fz_text_char_bbox (state.ctx, &bbox, span, charnum);
+                        fz_stext_char_bbox (state.ctx, &bbox, span, charnum);
                         b = &bbox;
 
                         if (x >= b->x0 && x <= b->x1
                             && y >= b->y0 && y <= b->y1) {
-                            fz_text_style *style = span->text->style;
+                            fz_stext_style *style = span->text->style;
                             const char *n2 =
                                 style->font
                                 ? style->font->name
@@ -3246,9 +3246,9 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     CAMLlocal1 (ret_v);
     fz_rect *b;
     struct page *page;
-    fz_text_line *line;
+    fz_stext_line *line;
     fz_page_block *pageb;
-    fz_text_block *block;
+    fz_stext_block *block;
     struct pagedim *pdim;
     int mark = Int_val (mark_v);
     char *s = String_val (ptr_v);
@@ -3324,7 +3324,7 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            fz_text_span *span;
+            fz_stext_span *span;
 
             b = &line->bbox;
             if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
@@ -3349,7 +3349,7 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 
                 for (charnum = 0; charnum < span->len; ++charnum) {
                     fz_rect bbox;
-                    fz_text_char_bbox (state.ctx, &bbox, span, charnum);
+                    fz_stext_char_bbox (state.ctx, &bbox, span, charnum);
                     b = &bbox;
 
                     if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
@@ -3465,10 +3465,10 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     struct pagedim *pdim;
     char *s = String_val (ptr_v);
     int i, x0, x1, y0, y1, fi, li;
-    fz_text_line *line;
+    fz_stext_line *line;
     fz_page_block *pageb;
-    fz_text_block *block;
-    fz_text_span *span, *fspan, *lspan;
+    fz_stext_block *block;
+    fz_stext_span *span, *fspan, *lspan;
 
     if (trylock (__func__)) {
         goto done;
@@ -3508,7 +3508,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
 
             for (span = line->first_span; span; span = span->next) {
                 for (i = 0; i < span->len; ++i) {
-                    fz_text_char_bbox (state.ctx, &b, span, i);
+                    fz_stext_char_bbox (state.ctx, &b, span, i);
 
                     if (x0 >= b.x0 && x0 <= b.x1
                         && y0 >= b.y0 && y0 <= b.y1) {
@@ -3547,7 +3547,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     CAMLreturn (Val_unit);
 }
 
-static int UNUSED_ATTR pipespan (FILE *f, fz_text_span *span, int a, int b)
+static int UNUSED_ATTR pipespan (FILE *f, fz_stext_span *span, int a, int b)
 {
     char buf[4];
     int i, len, ret;
@@ -3671,9 +3671,9 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
     FILE *f;
     int seen = 0;
     struct page *page;
-    fz_text_line *line;
+    fz_stext_line *line;
     fz_page_block *pageb;
-    fz_text_block *block;
+    fz_stext_block *block;
     int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
 
@@ -3703,7 +3703,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
         for (line = block->lines;
              line < block->lines + block->len;
              ++line) {
-            fz_text_span *span;
+            fz_stext_span *span;
 
             for (span = line->first_span; span; span = span->next) {
                 int a, b;
