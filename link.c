@@ -3971,6 +3971,13 @@ static void initcurs (void)
     }
 }
 
+CAMLprim void ml_setbgcol (value color_v)
+{
+    CAMLparam1 (color_v);
+    XSetWindowBackground (glx.dpy, glx.wid, Int_val (color_v));
+    CAMLreturn0;
+}
+
 #ifdef USE_EGL
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
 {

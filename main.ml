@@ -3385,6 +3385,16 @@ let setpresentationmode v =
   represent ();
 ;;
 
+let setbgcol (r, g, b) =
+  let col =
+    let r = r *. 255.0 |> truncate
+    and g = g *. 255.0 |> truncate
+    and b = b *. 255.0 |> truncate in
+    r lsl 16 |> (lor) (g lsl 8) |> (lor) b
+  in
+  Wsi.setwinbgcol col;
+;;
+
 let enterinfomode =
   let btos b = if b then "@Uradical" else E.s in
   let showextended = ref false in
@@ -3873,7 +3883,7 @@ let enterinfomode =
         (fun v -> conf.hfsize <- bound v 5 100);
       colorp "background color"
         (fun () -> conf.bgcolor)
-        (fun v -> conf.bgcolor <- v);
+        (fun v -> conf.bgcolor <- v; setbgcol v);
       src#bool "crop hack"
         (fun () -> conf.crophack)
         (fun v -> conf.crophack <- v);
@@ -6461,6 +6471,7 @@ let () =
     method quit = raise Quit
   end) !rootwid conf.cwinw conf.cwinh platform in
 
+  setbgcol conf.bgcolor;
   state.wsfd <- wsfd;
 
   if not (
