@@ -843,7 +843,8 @@ static void initpdims (int wthack)
     fz_rect rootmediabox;
     int pageno, trim, show;
     int trimw = 0, cxcount;
-    pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
+    fz_context *ctx = state.ctx;
+    pdf_document *pdf = pdf_specifics (ctx, state.doc);
 
     fz_var (trimw);
     fz_var (cxcount);
@@ -864,9 +865,9 @@ static void initpdims (int wthack)
 
     if (pdf) {
         pdf_obj *obj;
-        obj = pdf_dict_getp (state.ctx, pdf_trailer (state.ctx, pdf),
+        obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
                              "Root/Pages/MediaBox");
-        pdf_to_rect (state.ctx, obj, &rootmediabox);
+        pdf_to_rect (ctx, obj, &rootmediabox);
     }
 
 #ifdef CACHE_PAGEREFS
@@ -894,16 +895,15 @@ static void initpdims (int wthack)
 #ifdef CACHE_PAGEREFS
             pageref = state.pdflut.objs[pageno];
 #else
-            pageref = pdf_lookup_page_obj (state.ctx, pdf, pageno);
+            pageref = pdf_lookup_page_obj (ctx, pdf, pageno);
 #endif
-            pageobj = pdf_resolve_indirect (state.ctx, pageref);
+            pageobj = pdf_resolve_indirect (ctx, pageref);
 
             if (state.trimmargins) {
-                fz_context *ctx = state.ctx;
                 pdf_obj *obj;
                 pdf_page *page;
 
-                fz_try (state.ctx) {
+                fz_try (ctx) {
                     page = pdf_load_page (ctx, pdf, pageno);
                     obj = pdf_dict_gets (ctx, pageobj, "llpp.TrimBox");
                     trim = state.trimanew || !obj;
@@ -933,15 +933,15 @@ static void initpdims (int wthack)
                         }
 
                         obj = pdf_new_array (ctx, pdf, 4);
-                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
                                                                 mediabox.x0));
-                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
                                                                 mediabox.y0));
-                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
                                                                 mediabox.x1));
-                        pdf_array_push (ctx, obj, pdf_new_real (state.ctx, pdf,
+                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
                                                                 mediabox.y1));
-                        pdf_dict_puts (state.ctx, pageobj, "llpp.TrimBox", obj);
+                        pdf_dict_puts (ctx, pageobj, "llpp.TrimBox", obj);
                     }
                     else {
                         mediabox.x0 = pdf_to_real (ctx,
@@ -964,7 +964,7 @@ static void initpdims (int wthack)
                                 pageno + 1);
                     }
                 }
-                fz_catch (state.ctx) {
+                fz_catch (ctx) {
                     fprintf (stderr, "failed to load page %d\n", pageno+1);
                 }
             }
@@ -972,8 +972,8 @@ static void initpdims (int wthack)
                 int empty = 0;
                 fz_rect cropbox;
 
-                pdf_to_rect (state.ctx,
-                             pdf_dict_gets (state.ctx, pageobj, "MediaBox"),
+                pdf_to_rect (ctx,
+                             pdf_dict_gets (ctx, pageobj, "MediaBox"),
                              &mediabox);
                 if (fz_is_empty_rect (&mediabox)) {
                     mediabox.x0 = 0;
@@ -983,8 +983,8 @@ static void initpdims (int wthack)
                     empty = 1;
                 }
 
-                pdf_to_rect (state.ctx,
-                             pdf_dict_gets (state.ctx, pageobj, "CropBox"),
+                pdf_to_rect (ctx,
+                             pdf_dict_gets (ctx, pageobj, "CropBox"),
                              &cropbox);
                 if (!fz_is_empty_rect (&cropbox)) {
                     if (empty) {
@@ -1006,28 +1006,26 @@ static void initpdims (int wthack)
                         }
                     }
                 }
-                rotate = pdf_to_int (state.ctx,
-                                     pdf_dict_gets (state.ctx,
-                                                    pageobj, "Rotate"));
+                rotate = pdf_to_int (ctx,
+                                     pdf_dict_gets (ctx, pageobj, "Rotate"));
             }
         }
         else {
             if (state.trimmargins && trimw) {
                 fz_page *page;
 
-                fz_try (state.ctx) {
-                    page = fz_load_page (state.ctx, state.doc, pageno);
-                    fz_bound_page (state.ctx, page, &mediabox);
+                fz_try (ctx) {
+                    page = fz_load_page (ctx, state.doc, pageno);
+                    fz_bound_page (ctx, page, &mediabox);
                     rotate = 0;
                     if (state.trimmargins) {
                         fz_rect rect;
                         fz_device *dev;
 
-                        dev = fz_new_bbox_device (state.ctx, &rect);
+                        dev = fz_new_bbox_device (ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
-                        fz_run_page (state.ctx, page, dev,
-                                     &fz_identity, NULL);
-                        fz_drop_device (state.ctx, dev);
+                        fz_run_page (ctx, page, dev, &fz_identity, NULL);
+                        fz_drop_device (ctx, dev);
 
                         rect.x0 += state.trimfuzz.x0;
                         rect.x1 += state.trimfuzz.x1;
@@ -1039,14 +1037,14 @@ static void initpdims (int wthack)
                             mediabox = rect;
                         }
                     }
-                    fz_drop_page (state.ctx, page);
+                    fz_drop_page (ctx, page);
                     if (!state.cxack) {
                         printd ("progress %f loading %d",
                                 (double) (pageno + 1) / state.pagecount,
                                 pageno + 1);
                     }
                 }
-                fz_catch (state.ctx) {
+                fz_catch (ctx) {
                 }
                 if (trimf) {
                     int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
@@ -1064,11 +1062,10 @@ static void initpdims (int wthack)
                 }
                 else {
                     fz_page *page;
-                    fz_try (state.ctx) {
-                        page = fz_load_page (state.ctx,
-                                             state.doc, pageno);
-                        fz_bound_page (state.ctx, page, &mediabox);
-                        fz_drop_page (state.ctx, page);
+                    fz_try (ctx) {
+                        page = fz_load_page (ctx, state.doc, pageno);
+                        fz_bound_page (ctx, page, &mediabox);
+                        fz_drop_page (ctx, page);
 
                         show = !state.trimmargins && pageno % 20 == 0;
                         if (show) {
@@ -1077,7 +1074,7 @@ static void initpdims (int wthack)
                                     pageno);
                         }
                     }
-                    fz_catch (state.ctx) {
+                    fz_catch (ctx) {
                         fprintf (stderr, "failed to load page %d\n", pageno);
                     }
                 }
