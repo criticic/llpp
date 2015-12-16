@@ -4486,7 +4486,7 @@ CAMLprim value ml_savedoc (value path_v)
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
 
     if (pdf) {
-        pdf_write_document (state.ctx, pdf, String_val (path_v), NULL);
+        pdf_save_document (state.ctx, pdf, String_val (path_v), NULL);
     }
     CAMLreturn (Val_unit);
 }
