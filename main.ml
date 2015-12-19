@@ -669,7 +669,7 @@ let drawtiles l color =
             (float (y-2))
             (float (x+2) +. w)
             (float (y + fstate.fontsize + 2));
-          GlDraw.color (1.0, 1.0, 1.0);
+          GlDraw.color color;
           drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
           begintiles ();
         );
