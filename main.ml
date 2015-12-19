@@ -29,7 +29,7 @@ external findpwl : int -> int -> pagewithlinks = "ml_find_page_with_links";;
 external getpbo : width -> height -> colorspace -> opaque = "ml_getpbo";;
 external freepbo : opaque -> unit = "ml_freepbo";;
 external unmappbo : opaque -> unit = "ml_unmappbo";;
-external pbousable : unit -> bool = "ml_pbo_usable";;
+external bousable : unit -> bool = "ml_bo_usable";;
 external unproject : opaque -> int -> int -> (int * int) option
   = "ml_unproject";;
 external project : opaque -> int -> int -> float -> float -> (float * float)
@@ -50,6 +50,7 @@ external drawprect : opaque -> int -> int -> float array -> unit =
   "ml_drawprect";;
 
 let selfexec = ref E.s;;
+let opengl_has_pbo = ref false;;
 
 let drawstring size x y s =
   Gl.enable `blend;
@@ -3956,7 +3957,7 @@ let enterinfomode =
       src#paxmark "pax mark method"
         (fun () -> MTE.to_string conf.paxmark)
         (fun v -> conf.paxmark <- MTE.of_int v);
-      if pbousable ()
+      if bousable () && !opengl_has_pbo
       then
         src#bool "use PBO"
           (fun () -> conf.usepbo)
@@ -6507,11 +6508,13 @@ let () =
 
   setcheckers conf.checkers;
 
+  opengl_has_pbo := GlMisc.check_extension "GL_ARB_pixel_buffer_object";
+
   init cs (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
     !Config.fontpath, !trimcachepath,
-    GlMisc.check_extension "GL_ARB_pixel_buffer_object",
+    !opengl_has_pbo,
     not !nofc
   );
   List.iter GlArray.enable [`texture_coord; `vertex];

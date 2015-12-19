@@ -159,7 +159,7 @@ struct tile {
     int w, h;
     int slicecount;
     int sliceheight;
-    struct pbo *pbo;
+    struct bo *pbo;
     fz_pixmap *pixmap;
     struct slice slices[1];
 };
@@ -254,7 +254,9 @@ struct {
 
     GLuint stid;
 
-    int pbo_usable;
+    int bo_usable;
+    GLuint boid;
+
     void (*glBindBufferARB) (GLenum, GLuint);
     GLboolean (*glUnmapBufferARB) (GLenum);
     void *(*glMapBufferARB) (GLenum, GLenum);
@@ -275,7 +277,7 @@ struct {
 #endif
 } state;
 
-struct pbo {
+struct bo {
     GLuint id;
     void *ptr;
     size_t size;
@@ -724,7 +726,7 @@ static struct tile *alloctile (int h)
 }
 
 static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
-                                struct pbo *pbo)
+                                struct bo *pbo)
 {
     fz_rect rect;
     fz_irect bbox;
@@ -4199,12 +4201,12 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
 {
     CAMLparam2 (w_v, h_v);
     CAMLlocal1 (ret_v);
-    struct pbo *pbo;
+    struct bo *pbo;
     int w = Int_val (w_v);
     int h = Int_val (h_v);
     int cs = Int_val (cs_v);
 
-    if (state.pbo_usable) {
+    if (state.bo_usable) {
         pbo = calloc (sizeof (*pbo), 1);
         if (!pbo) {
             err (1, "calloc pbo");
@@ -4300,7 +4302,7 @@ static void setuppbo (void)
 #else
 #define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
 #endif
-    state.pbo_usable = GGPA (glBindBufferARB)
+    state.bo_usable = GGPA (glBindBufferARB)
         && GGPA (glUnmapBufferARB)
         && GGPA (glMapBufferARB)
         && GGPA (glBufferDataARB)
@@ -4309,10 +4311,10 @@ static void setuppbo (void)
 #undef GGPA
 }
 
-CAMLprim value ml_pbo_usable (value unit_v)
+CAMLprim value ml_bo_usable (value unit_v)
 {
     CAMLparam1 (unit_v);
-    CAMLreturn (Val_bool (state.pbo_usable));
+    CAMLreturn (Val_bool (state.bo_usable));
 }
 
 CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
