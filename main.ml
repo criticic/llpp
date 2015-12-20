@@ -627,11 +627,15 @@ let puttileopaque l col row gen colorspace angle opaque size elapsed =
   Hashtbl.add state.tilemap key (opaque, size, elapsed)
 ;;
 
-let filledrect x0 y0 x1 y1 =
-  GlArray.disable `texture_coord;
+let filledrect1 x0 y0 x1 y1 =
   Raw.sets_float state.vraw ~pos:0 [| x0; y0; x0; y1; x1; y0; x1; y1 |];
   GlArray.vertex `two state.vraw;
   GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
+;;
+
+let filledrect x0 y0 x1 y1 =
+  GlArray.disable `texture_coord;
+  filledrect1 x0 y0 x1 y1;
   GlArray.enable `texture_coord;
 ;;
 
@@ -5544,8 +5548,31 @@ let showrects = function [] -> () | rects ->
 ;;
 
 let display () =
-  GlClear.color (scalecolor2 conf.bgcolor);
-  GlClear.clear [`color];
+  begin match conf.columns, state.layout with
+  | Csingle _, _ :: _ ->
+     GlDraw.color (scalecolor2 conf.bgcolor);
+     List.fold_left (fun y l ->
+         let x0 = 0 in
+         let y0 = y in
+         let x1 = l.pagedispx + xadjsb () in
+         let y1 = (l.pagedispy + l.pagevh) in
+         filledrect (float x0) (float y0) (float x1) (float y1);
+         let x0 = x1 + l.pagevw in
+         let x1 = state.winw in
+         filledrect1 (float x0) (float y0) (float x1) (float y1);
+         if y != l.pagedispy
+         then (
+           let x0 = 0
+           and x1 = state.winw in
+           let y0 = y
+           and y1 = l.pagedispy in
+           filledrect1 (float x0) (float y0) (float x1) (float y1);
+         );
+         l.pagedispy + l.pagevh) 0 state.layout |> ignore
+  | (Cmulti _ | Csplit _), _ | Csingle _, [] ->
+     GlClear.color (scalecolor2 conf.bgcolor);
+     GlClear.clear [`color];
+  end;
   List.iter drawpage state.layout;
   let rects =
     match state.mode with
