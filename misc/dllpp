@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+test -z "$1" && {
+    echo "usage: $0 file_extension"
+    exit 1
+}
+
+getpath() {
+    # http://stackoverflow.com/questions/1271222/replace-white-spaces-with-a-comma-in-a-txt-file-in-linux
+    locate -e -0 -r '\.'$1'$' \
+        | du -bh --files0-from=- \
+        | sort -h -k1 | awk '{$1=$1}1' OFS=":" \
+        | dmenu -nf white -l 40 | cut -d: -f2- || exit 1
+}
+
+exec llppac $(getpath "$1")
