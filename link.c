@@ -2323,7 +2323,7 @@ static void ensureslinks (struct page *page)
     if (page->slinks) return;
 
     links = fz_load_links (state.ctx, page->fzpage);
-    ctm = state.pagedims[page->pdimno].ctm;
+    ctm = pagectm (page);
 
     count = page->annotcount;
     for (link = links; link; link = link->next) {
