@@ -584,7 +584,7 @@ let gotouri uri =
   else (
     let url = geturl uri in
     if emptystr url
-    then dolog "obtained empty url from uri %S\n" uri
+    then dolog "obtained empty url from uri %S" uri
     else gotourl url
   );
 ;;
