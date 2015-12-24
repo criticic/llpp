@@ -627,11 +627,13 @@ let puttileopaque l col row gen colorspace angle opaque size elapsed =
   Hashtbl.add state.tilemap key (opaque, size, elapsed)
 ;;
 
-let filledrect1 x0 y0 x1 y1 =
-  Raw.sets_float state.vraw ~pos:0 [| x0; y0; x0; y1; x1; y0; x1; y1 |];
+let filledrect2 x0 y0 x1 y1 x2 y2 x3 y3 =
+  Raw.sets_float state.vraw ~pos:0 [| x0; y0; x1; y1; x2; y2; x3; y3 |];
   GlArray.vertex `two state.vraw;
   GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
 ;;
+
+let filledrect1 x0 y0 x1 y1 = filledrect2 x0 y0 x0 y1 x1 y0 x1 y1;;
 
 let filledrect x0 y0 x1 y1 =
   GlArray.disable `texture_coord;
@@ -5533,13 +5535,10 @@ let showrects = function [] -> () | rects ->
           let dy = float (l.pagedispy - l.pagey) in
           let r, g, b, alpha = c in
           GlDraw.color (r, g, b) ~alpha;
-          Raw.sets_float state.vraw ~pos:0
-            [| x0+.dx; y0+.dy;
-               x1+.dx; y1+.dy;
-               x3+.dx; y3+.dy;
-               x2+.dx; y2+.dy |];
-          GlArray.vertex `two state.vraw;
-          GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
+          filledrect2 (x0+.dx) (y0+.dy)
+                      (x1+.dx) (y1+.dy)
+                      (x3+.dx) (y3+.dy)
+                      (x2+.dx) (y2+.dy);
         )
       ) state.layout
     ) rects
