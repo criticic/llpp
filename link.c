@@ -3913,7 +3913,7 @@ CAMLprim value ml_setaalevel (value level_v)
 #endif
 
 static const int shapes[] = {
-    XC_arrow, XC_hand2, XC_exchange, XC_fleur, XC_xterm
+    XC_left_ptr, XC_hand2, XC_exchange, XC_fleur, XC_xterm
 };
 
 #define CURS_COUNT (sizeof (shapes) / sizeof (shapes[0]))
