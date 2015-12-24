@@ -4107,11 +4107,9 @@ CAMLprim value ml_setcursor (value cursor_v)
 {
     CAMLparam1 (cursor_v);
     size_t cursn = Int_val (cursor_v);
-    XSetWindowAttributes wa;
 
     if (cursn >= CURS_COUNT) caml_failwith ("cursor index out of range");
-    wa.cursor = glx.curs[cursn];
-    XChangeWindowAttributes (glx.dpy, glx.wid, CWCursor, &wa);
+    XDefineCursor (glx.dpy, glx.wid, glx.curs[cursn]);
     XFlush (glx.dpy);
     CAMLreturn (Val_unit);
 }
