@@ -5551,24 +5551,24 @@ let display () =
   | Csingle _, _ :: _ ->
      GlDraw.color (scalecolor2 conf.bgcolor);
      let y =
-     List.fold_left (fun y l ->
-         let x0 = 0 in
-         let y0 = y in
-         let x1 = l.pagedispx + xadjsb () in
-         let y1 = (l.pagedispy + l.pagevh) in
-         filledrect (float x0) (float y0) (float x1) (float y1);
-         let x0 = x1 + l.pagevw in
-         let x1 = state.winw in
-         filledrect1 (float x0) (float y0) (float x1) (float y1);
-         if y != l.pagedispy
-         then (
-           let x0 = 0
-           and x1 = state.winw in
-           let y0 = y
-           and y1 = l.pagedispy in
+       List.fold_left (fun y l ->
+           let x0 = 0 in
+           let y0 = y in
+           let x1 = l.pagedispx + xadjsb () in
+           let y1 = (l.pagedispy + l.pagevh) in
+           filledrect (float x0) (float y0) (float x1) (float y1);
+           let x0 = x1 + l.pagevw in
+           let x1 = state.winw in
            filledrect1 (float x0) (float y0) (float x1) (float y1);
-         );
-         l.pagedispy + l.pagevh) 0 state.layout
+           if y != l.pagedispy
+           then (
+             let x0 = 0
+             and x1 = state.winw in
+             let y0 = y
+             and y1 = l.pagedispy in
+             filledrect1 (float x0) (float y0) (float x1) (float y1);
+           );
+           l.pagedispy + l.pagevh) 0 state.layout
      in
      let x0 = 0
      and x1 = state.winw in
