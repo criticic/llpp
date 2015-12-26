@@ -31,11 +31,11 @@ ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string"
-ocamlflagstbl = [("main.cmo", ("-I lablGL", "sed -f pp.sed"))
-                ,("config.cmo", ("-I lablGL", ""))
+ocamlflagstbl = [("main.cmo", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
+                ,("config.cmo", ("-I lablGL", "", []))
                 ]
-ocamlflagstbln = [("main.cmx", ("-I lablGL", "sed -f pp.sed"))
-                 ,("config.cmx", ("-I lablGL", ""))
+ocamlflagstbln = [("main.cmx", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
+                 ,("config.cmx", ("-I lablGL", "", []))
                  ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
@@ -68,11 +68,11 @@ fixincludes ("-I":d:tl)
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey comp tbl key
-  | "lablGL/" `isPrefixOf` key = (comp, "-I lablGL", [])
+  | "lablGL/" `isPrefixOf` key = (comp, "-I lablGL", [], [])
   | otherwise = case lookup key tbl of
-    Nothing -> (comp, ocamlflags, [])
-    Just (f, []) -> (comp, ocamlflags ++ " " ++ f, [])
-    Just (f, pp) -> (comp, ocamlflags ++ " " ++ f, ["-pp", pp])
+    Nothing -> (comp, ocamlflags, [], [])
+    Just (f, [], deps) -> (comp, ocamlflags ++ " " ++ f, [], deps)
+    Just (f, pp, deps) -> (comp, ocamlflags ++ " " ++ f, ["-pp", pp], deps)
 
 cKey key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
          | otherwise = case lookup key cflagstbl of
@@ -113,10 +113,10 @@ cmio target suffix oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
     src <- needsrc key suffix
-    (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
+    (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracle key
     let flagl = words flags
     let dep = out ++ "_dep"
-    need [dep]
+    need $ dep : deps'
     ddep <- liftIO $ readFile dep
     let deps = deplist $ parseMakefile ddep
     need deps
@@ -125,7 +125,7 @@ cmio target suffix oracle ordoracle = do
     let ord = dropEnd 4 out
     let key = dropDirectory1 ord
     src <- needsrc key suffix
-    (_, flags, ppflags) <- oracle $ OcamlCmdLineOracle key
+    (_, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracle key
     mkfiledeps <- depscaml flags ppflags src
     writeFileChanged out mkfiledeps
     let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
@@ -134,7 +134,7 @@ cmio target suffix oracle ordoracle = do
             fit dep = ext == ".cmi" && base /= baseout
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
-    need $ map (++ "_dep") depo
+    need ((map (++ "_dep") depo) ++ deps')
     unit $ ordoracle $ OcamlOrdOracle ord
   where
     deplist [] = []
@@ -145,10 +145,10 @@ cmx oracle ordoracle =
   "//*.cmx" %> \out -> do
     let key = dropDirectory1 out
     src <- needsrc key ".ml"
-    (comp, flags, ppflags) <- oracle $ OcamlCmdLineOracleN key
+    (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracleN key
     let flagl = words flags
     mkfiledeps <- depscaml flags ppflags src
-    need $ deplist $ parseMakefile mkfiledeps
+    need ((deplist $ parseMakefile mkfiledeps) ++ deps')
     unit $ ordoracle $ OcamlOrdOracleN out
     compilecaml comp flagl ppflags out src
   where
