@@ -1,1 +1,1 @@
-((nil . ((compile-command . "runghc -Wall -Werror Build.hs -j0"))))
+((nil . ((compile-command . "runghc -Wall -Werror Shakefile.hs -j0"))))
