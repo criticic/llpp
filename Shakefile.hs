@@ -8,6 +8,7 @@ import Development.Shake
 import Development.Shake.Util
 import Development.Shake.Classes
 import Development.Shake.FilePath
+import System.Environment (lookupEnv)
 
 newtype OcamlOrdOracle = OcamlOrdOracle String
                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
@@ -74,10 +75,13 @@ ocamlKey comp tbl key
     Just (f, [], deps) -> (comp, ocamlflags ++ " " ++ f, [], deps)
     Just (f, pp, deps) -> (comp, ocamlflags ++ " " ++ f, ["-pp", pp], deps)
 
-cKey key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
-         | otherwise = case lookup key cflagstbl of
-           Nothing -> cflags
-           Just f -> f ++ " " ++ cflags
+cKey1 key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
+          | otherwise = case lookup key cflagstbl of
+            Nothing -> cflags
+            Just f -> f ++ " " ++ cflags
+
+cKey Nothing key = cKey1 key
+cKey (Just flags) key = flags ++ " " ++ cKey1 key
 
 fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
 fixppfile _ l = l
@@ -159,6 +163,7 @@ cmx oracle ordoracle =
 main = do
   depl <- newMVar ([] :: [String])
   depln <- newMVar ([] :: [String])
+  envcflags <- lookupEnv "CFLAGS"
   shakeArgs shakeOptions { shakeFiles = outdir
                          , shakeVerbosity = Normal
                          , shakeChange = ChangeModtimeAndDigest } $ do
@@ -182,7 +187,7 @@ main = do
     unless (takeExtension s == ".cmi") $
       liftIO $ modifyMVar_ depln $ \l -> return $ s:l
 
-  cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey s
+  cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey envcflags  s
 
   inOutDir "help.ml" %> \out -> do
     version <- gitDescribeOracle $ GitDescribeOracle ()
