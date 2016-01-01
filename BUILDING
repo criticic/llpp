@@ -28,6 +28,8 @@ Hard way:
         ghc           [https://www.haskell.org/ghc/]
         shake         [http://shakebuild.com/]
 
-  llpp% runghc Build.hs -j0 [build/llpp.native]
+  llpp% shake -j0 [build/llpp.native]
+or
+  llpp% runghc Shakefile.hs -j0 [build/llpp.native]
 
 Standalone binary should now be in build/llpp[.native]
