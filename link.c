@@ -2276,7 +2276,7 @@ static void ensureannots (struct page *page)
 
     for (annot = fz_first_annot (state.ctx, page->fzpage);
          annot;
-         annot = fz_next_annot (state.ctx, page->fzpage, annot)) {
+         annot = fz_next_annot (state.ctx, annot)) {
         count++;
     }
 
@@ -2289,10 +2289,10 @@ static void ensureannots (struct page *page)
 
         for (annot = fz_first_annot (state.ctx, page->fzpage), i = 0;
              annot;
-             annot = fz_next_annot (state.ctx, page->fzpage, annot), i++) {
+             annot = fz_next_annot (state.ctx, annot), i++) {
             fz_rect rect;
 
-            fz_bound_annot (state.ctx, page->fzpage, annot, &rect);
+            fz_bound_annot (state.ctx, annot, &rect);
             page->annots[i].annot = annot;
             fz_round_rect (&page->annots[i].bbox, &rect);
         }
@@ -2349,10 +2349,7 @@ static void ensureslinks (struct page *page)
         }
         for (j = 0; j < page->annotcount; ++j, ++i) {
             fz_rect rect;
-            fz_bound_annot (state.ctx,
-                            page->fzpage,
-                            page->annots[j].annot,
-                            &rect);
+            fz_bound_annot (state.ctx, page->annots[j].annot, &rect);
             fz_transform_rect (&rect, &ctm);
             fz_round_rect (&page->slinks[i].bbox, &rect);
 

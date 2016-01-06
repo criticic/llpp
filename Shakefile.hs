@@ -48,8 +48,7 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cclib = "-lGL -lX11 -lmupdf -lz -lfreetype -ljpeg\
-        \ -ljbig2dec -lopenjpeg -lmujs\
+cclib = "-lGL -lX11 -lmupdf -lmupdfthird\
         \ -lpthread -L" ++ mudir ++ "/build/native -lcrypto"
         ++ (if egl then " -lEGL" else "")
 
