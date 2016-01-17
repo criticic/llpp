@@ -31,7 +31,7 @@ egl = False
 ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
-ocamlflags = "-warn-error +a -w +a -g -safe-string"
+ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
 ocamlflagstbl = [("main.cmo", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
                 ,("config.cmo", ("-I lablGL", "", []))
                 ]
