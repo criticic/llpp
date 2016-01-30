@@ -2564,6 +2564,16 @@ let scrollph y maxy =
   position, sh;
 ;;
 
+let adderrmsg src msg =
+  Buffer.add_string state.errmsgs msg;
+  state.newerrmsgs <- true;
+  G.postRedisplay src
+;;
+
+let adderrfmt src fmt =
+  Format.ksprintf (fun s -> adderrmsg src s) fmt;
+;;
+
 let coe s = (s :> uioh);;
 
 class listview ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
@@ -2771,7 +2781,13 @@ object (self)
         in
         loop active
       in
-      Str.regexp_case_fold pattern |> dosearch
+      let qpat = Str.quote pattern in
+      match Str.regexp_case_fold qpat with
+      | s -> dosearch s
+      | exception exn ->
+         adderrfmt "listview key1" "regexp_case_fold for %S failed: `%S'\n"
+                   qpat @@ Printexc.to_string exn;
+         None
     in
     let itemcount = source#getitemcount in
     let find start incr =
@@ -6149,16 +6165,6 @@ let uioh = object
   method eformsgs = true
   method alwaysscrolly = false
 end;;
-
-let adderrmsg src msg =
-  Buffer.add_string state.errmsgs msg;
-  state.newerrmsgs <- true;
-  G.postRedisplay src
-;;
-
-let adderrfmt src fmt =
-  Format.ksprintf (fun s -> adderrmsg src s) fmt;
-;;
 
 let addrect pageno r g b a x0 y0 x1 y1 =
   Hashtbl.add state.prects pageno [|r; g; b; a; x0; y0; x1; y1|];
