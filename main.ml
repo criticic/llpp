@@ -2785,7 +2785,7 @@ object (self)
       match Str.regexp_case_fold qpat with
       | s -> dosearch s
       | exception exn ->
-         adderrfmt "listview key1" "regexp_case_fold for %S failed: `%S'\n"
+         adderrfmt "listview key1" "regexp_case_fold for `%S' failed: %S\n"
                    qpat @@ Printexc.to_string exn;
          None
     in
