@@ -282,6 +282,7 @@ type conf =
     ; mutable title          : string
     ; mutable lastvisit      : float
     ; mutable annotinline    : bool
+    ; mutable coarseprespos  : bool
     }
 and columns =
     | Csingle of singlecolumn
@@ -555,6 +556,7 @@ let defconf =
   ; title          = E.s
   ; lastvisit      = 0.0
   ; annotinline    = true
+  ; coarseprespos  = false
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1088,6 +1090,8 @@ let config_of c attrs =
       | "title" -> { c with title = unentS v }
       | "last-visit" -> { c with lastvisit = float_of_string v }
       | "edit-annotations-inline" -> { c with annotinline = bool_of_string v }
+      | "coarse-presentation-positioning" ->
+         { c with coarseprespos = bool_of_string v }
       | _ -> c
     with exn ->
       dolog "error processing attribute (`%S' = `%S'): %s" k v @@ exntos exn;
@@ -1206,6 +1210,7 @@ let setconf dst src =
   dst.leftscroll     <- src.leftscroll;
   dst.title          <- src.title;
   dst.annotinline    <- src.annotinline;
+  dst.coarseprespos  <- src.coarseprespos;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1624,6 +1629,7 @@ let add_attrs bb always dc c time =
   then os "title" c.title dc.title;
   oL "last-visit" (Int64.of_float time) 0L;
   ob "edit-annotations-inline" c.annotinline dc.annotinline;
+  ob "coarse-presentation-positioning" c.coarseprespos dc.coarseprespos;
 ;;
 
 let keymapsbuf always dc c =

@@ -3993,6 +3993,9 @@ let enterinfomode =
       src#bool "edit annotations inline"
         (fun () -> conf.annotinline)
         (fun v -> conf.annotinline <- v);
+      src#bool "coarse positioning in presentation mode"
+        (fun () -> conf.coarseprespos)
+        (fun v -> conf.coarseprespos <- v);
     );
 
     sep ();
@@ -4319,6 +4322,11 @@ let gotounder under =
       if pageno >= 0
       then (
         addnav ();
+        let top =
+          if conf.presentation && conf.coarseprespos
+          then 0
+          else top
+        in
         gotopage1 pageno top;
       )
 
