@@ -52,8 +52,9 @@ LABLGL_FILES := \
 
 LABLGL_FILES := $(addprefix lablGl/,$(LABLGL_FILES))
 
-LABLGL_C_FILES = $(filter %.o,$(LABLGL_FILES))
-LABLGL_ML_FILES = $(filter %$(OSU),$(LABLGL_FILES))
+LABLGL_C_FILES := $(filter %.o,$(LABLGL_FILES))
+LABLGL_MLI_FILES := $(filter %.cmi,$(LABLGL_FILES))
+LABLGL_ML_FILES := $(filter %$(OSU),$(LABLGL_FILES))
 
 $(addprefix $(BUILDDIR)/,$(LABLGL_C_FILES)): $(BUILDDIR)/%.o: %.c
 	$(COMP) -ccopt '$(CCOPT) -o $@' -c $<
