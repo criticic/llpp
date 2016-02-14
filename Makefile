@@ -65,7 +65,6 @@ $(addprefix $(BUILDDIR)/,$(LABLGL_MLI_FILES)): $(BUILDDIR)/%.cmi: %.mli
 $(addprefix $(BUILDDIR)/,$(LABLGL_ML_FILES)): $(BUILDDIR)/%$(OSU): %.ml
 	$(COMP) $(MLOPTGL) -o $@ -c $<
 
-
 $(BUILDDIR)/lablGl:
 	mkdir -p $@
 
@@ -120,6 +119,9 @@ mupdf:
 	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
 	cd mupdf && \
 	make build=native XCFLAGS=$(LIBGL_CFLAGS) XLIBS=$(LIBGL_LFLAGS)
+
+$(BUILDDIR)/main_osx: main_osx.m
+	$(CC) -fmodules -fobjc-arc -o $@ $<
 
 clean:
 	rm -rf $(BUILDDIR)
