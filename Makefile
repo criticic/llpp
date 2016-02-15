@@ -2,7 +2,7 @@ BUILDDIR ?= build
 CCOPT = $(CFLAGS) -Wno-pointer-sign -O2
 MLOPT := -warn-error +a -w +a -g -safe-string
 VERSION := $(or $(shell git describe --tags 2>/dev/null),unknown)
-MLOPTGL := -I lablGl -I $(BUILDDIR)/lablGl
+MLOPTGL := -I lablGL -I $(BUILDDIR)/lablGL
 NATIVE =
 
 ifeq ($(shell uname),Darwin)
@@ -50,7 +50,7 @@ LABLGL_FILES := \
 	glArray$(OSU) \
 	glClear$(OSU)
 
-LABLGL_FILES := $(addprefix lablGl/,$(LABLGL_FILES))
+LABLGL_FILES := $(addprefix lablGL/,$(LABLGL_FILES))
 
 LABLGL_C_FILES := $(filter %.o,$(LABLGL_FILES))
 LABLGL_MLI_FILES := $(filter %.cmi,$(LABLGL_FILES))
@@ -65,10 +65,10 @@ $(addprefix $(BUILDDIR)/,$(LABLGL_MLI_FILES)): $(BUILDDIR)/%.cmi: %.mli
 $(addprefix $(BUILDDIR)/,$(LABLGL_ML_FILES)): $(BUILDDIR)/%$(OSU): %.ml
 	$(COMP) $(MLOPTGL) -o $@ -c $<
 
-$(BUILDDIR)/lablGl:
+$(BUILDDIR)/lablGL:
 	mkdir -p $@
 
-lablGl: $(BUILDDIR)/lablGl $(addprefix $(BUILDDIR)/,$(LABLGL_FILES))
+lablGL: $(BUILDDIR)/lablGL $(addprefix $(BUILDDIR)/,$(LABLGL_FILES))
 
 $(BUILDDIR)/link.o: link.c mupdf
 	$(COMP) -ccopt '$(LIBGL_CFLAGS) -I mupdf/include -I mupdf/thirdparty/freetype/include -Wextra -Wall -Werror -D_GNU_SOURCE -O -g -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow -o $@' -c $<
@@ -112,8 +112,8 @@ LLPP_FILES := \
 LLPP_FILES := $(addprefix $(BUILDDIR)/,$(LLPP_FILES))
 LABLGL_FILES := $(addprefix $(BUILDDIR)/,$(filter-out %.cmi,$(LABLGL_FILES)))
 
-$(BUILDDIR)/llpp: lablGl mupdf $(LLPP_FILES)
-	$(COMP) -g $(LFL) -I lablGl -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES) -cclib '-lGl -lX11 -lmupdf -lmupdfthird -lpthread -Lmupdf/build/native -lcrypto $(LIBGL_LFLAGS)'
+$(BUILDDIR)/llpp: lablGL mupdf $(LLPP_FILES)
+	$(COMP) -g $(LFL) -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES) -cclib '-lGl -lX11 -lmupdf -lmupdfthird -lpthread -Lmupdf/build/native -lcrypto $(LIBGL_LFLAGS)'
 
 mupdf:
 	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
