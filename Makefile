@@ -113,22 +113,32 @@ LLPP_FILES := \
 
 LLPP_FILES := $(addprefix $(BUILDDIR)/,$(LLPP_FILES))
 LABLGL_FILES := $(addprefix $(BUILDDIR)/,$(filter-out %.cmi,$(LABLGL_FILES)))
+LABLGL_C_FILES := $(filter %.o,$(LABLGL_FILES))
 
 $(BUILDDIR)/llpp$(EXT): lablGL mupdf $(LLPP_FILES)
 	$(COMP) -g $(LFL) -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES) -cclib '-lGL -lX11 -lmupdf -lmupdfthird -lpthread -Lmupdf/build/native -lcrypto $(LIBGL_LFLAGS)'
+
+$(BUILDDIR)/llpp.o: lablGL mupdf $(LLPP_FILES)
+	$(COMP) -g $(LFL) -output-obj -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES)
+
+STDLIB = $(shell ocamlfind printconf stdlib)
+
+ifdef NATIVE
+LIBCAML := asmrun
+else
+LIBCAML := camlrun
+endif
+
+$(BUILDDIR)/main_osx.o: main_osx.m
+	$(CC) -fmodules -fobjc-arc -I$(STDLIB) $(LIBGL_CFLAGS) -o $@ -c $<
+
+$(BUILDDIR)/main_osx: $(BUILDDIR)/main_osx.o $(BUILDDIR)/llpp.o
+	$(CC) -L$(STDLIB) -Lmupdf/build/native $(LIBGL_LFLAGS) -lGL -lX11 -lmupdf -lmupdfthird -lunix -lcamlstr -lasmrun -framework cocoa $(LABLGL_C_FILES) $(BUILDDIR)/link.o $^ -o $@
 
 mupdf:
 	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
 	cd mupdf && \
 	make build=native XCFLAGS='$(LIBGL_CFLAGS)' XLIBS='$(LIBGL_LFLAGS)'
-
-STDLIB = $(shell ocamlfind printconf stdlib)
-
-test_osx.o: test_osx.ml
-	$(COMP) -output-obj -o $@ $<
-
-$(BUILDDIR)/main_osx: main_osx.m test_osx.o
-	$(CC) -fmodules -fobjc-arc -I$(STDLIB) -L$(STDLIB) -lasmrun -o $@ $^
 
 clean:
 	rm -rf $(BUILDDIR)

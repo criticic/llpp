@@ -12,7 +12,9 @@
 
 NSWindow *window = nil;
 char **global_argv = NULL;
-extern void caml_startup(char **);
+extern void* caml_startup(void*);
+
+#include <pthread.h>
 
 @implementation MyDelegate
 - (void) applicationWillFinishLaunching: (NSNotification *)not
@@ -43,7 +45,8 @@ extern void caml_startup(char **);
 - (void)applicationDidFinishLaunching:(NSNotification *)not
 {
     NSLog(@"applicationDidFinishLaunching");
-    caml_startup(global_argv);
+    pthread_t thread;
+    pthread_create(&thread, NULL, caml_startup, global_argv);
 }
 @end
 
