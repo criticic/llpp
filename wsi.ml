@@ -1157,7 +1157,7 @@ let init t rootwid w h platform =
   let aname, adata = getauth host dispnum in
   let fd =
     let fd, addr =
-      if emptystr host || host = "unix"
+      if emptystr host || host = "unix" || platform = Utils.Posx
       then
         let addr =
           match platform with
