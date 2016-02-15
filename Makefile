@@ -120,8 +120,13 @@ mupdf:
 	cd mupdf && \
 	make build=native XCFLAGS=$(LIBGL_CFLAGS) XLIBS=$(LIBGL_LFLAGS)
 
-$(BUILDDIR)/main_osx: main_osx.m
-	$(CC) -fmodules -fobjc-arc -o $@ $<
+STDLIB = $(shell ocamlfind printconf stdlib)
+
+test_osx.o: test_osx.ml
+	$(COMP) -output-obj -o $@ $<
+
+$(BUILDDIR)/main_osx: main_osx.m test_osx.o
+	$(CC) -fmodules -fobjc-arc -I$(STDLIB) -L$(STDLIB) -lasmrun -o $@ $^
 
 clean:
 	rm -rf $(BUILDDIR)
