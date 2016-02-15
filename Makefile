@@ -73,8 +73,8 @@ lablGL: $(BUILDDIR)/lablGL $(addprefix $(BUILDDIR)/,$(LABLGL_FILES))
 $(BUILDDIR)/link.o: link.c mupdf
 	$(COMP) -ccopt '$(LIBGL_CFLAGS) -I mupdf/include -I mupdf/thirdparty/freetype/include -Wextra -Wall -Werror -D_GNU_SOURCE -O -g -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow -o $@' -c $<
 
-$(BUILDDIR)/help.ml: KEYS
-	. mkhelp.sh $< > $@
+$(BUILDDIR)/help.ml: KEYS mkhelp.sh
+	./mkhelp.sh $< $(VERSION) > $@
 
 $(BUILDDIR)/help$(OSU): $(BUILDDIR)/help.ml
 	$(COMP) -o $@ -c $<
@@ -113,12 +113,12 @@ LLPP_FILES := $(addprefix $(BUILDDIR)/,$(LLPP_FILES))
 LABLGL_FILES := $(addprefix $(BUILDDIR)/,$(filter-out %.cmi,$(LABLGL_FILES)))
 
 $(BUILDDIR)/llpp: lablGL mupdf $(LLPP_FILES)
-	$(COMP) -g $(LFL) -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES) -cclib '-lGl -lX11 -lmupdf -lmupdfthird -lpthread -Lmupdf/build/native -lcrypto $(LIBGL_LFLAGS)'
+	$(COMP) -g $(LFL) -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES) -cclib '-lGL -lX11 -lmupdf -lmupdfthird -lpthread -Lmupdf/build/native -lcrypto $(LIBGL_LFLAGS)'
 
 mupdf:
 	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
 	cd mupdf && \
-	make build=native XCFLAGS=$(LIBGL_CFLAGS) XLIBS=$(LIBGL_LFLAGS)
+	make build=native XCFLAGS='$(LIBGL_CFLAGS)' XLIBS='$(LIBGL_LFLAGS)'
 
 STDLIB = $(shell ocamlfind printconf stdlib)
 
