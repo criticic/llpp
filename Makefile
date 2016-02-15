@@ -13,16 +13,18 @@ LIBGL_LFLAGS :=
 LIBGL_CFLAGS :=
 endif
 
-ifndef NATIVE
-COMP := ocamlc.opt
-OSU := .cmo
-ASU := .cma
-LFL := -custom
-else
+ifdef NATIVE
 COMP := ocamlopt.opt
 OSU := .cmx
 ASU := .cmxa
 LFL :=
+EXT := .native
+else
+COMP := ocamlc.opt
+OSU := .cmo
+ASU := .cma
+LFL := -custom
+EXT :=
 endif
 
 $(info VERSION = $(VERSION))
@@ -31,7 +33,7 @@ $(info COMP = $(COMP))
 $(info LIBGL_LFLAGS = $(LIBGL_LFLAGS))
 $(info LIBGL_CFLAGS = $(LIBGL_CFLAGS))
 
-all: $(BUILDDIR)/llpp
+all: $(BUILDDIR)/llpp$(EXT)
 
 LABLGL_FILES := \
 	ml_raw.o \
@@ -112,7 +114,7 @@ LLPP_FILES := \
 LLPP_FILES := $(addprefix $(BUILDDIR)/,$(LLPP_FILES))
 LABLGL_FILES := $(addprefix $(BUILDDIR)/,$(filter-out %.cmi,$(LABLGL_FILES)))
 
-$(BUILDDIR)/llpp: lablGL mupdf $(LLPP_FILES)
+$(BUILDDIR)/llpp$(EXT): lablGL mupdf $(LLPP_FILES)
 	$(COMP) -g $(LFL) -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES) -cclib '-lGL -lX11 -lmupdf -lmupdfthird -lpthread -Lmupdf/build/native -lcrypto $(LIBGL_LFLAGS)'
 
 mupdf:
