@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import os, sys, subprocess
 
-fields = sys.stdin.read ().split ('\x00')
+sin = os.fdopen (sys.stdin.fileno(), 'rb', 0)
+fields = sin.read ().__str__ ().split ('\x00')
 
 while len (fields) > 1:
     opath, atime = fields[0:2]
@@ -9,7 +10,7 @@ while len (fields) > 1:
     if not os.path.exists (opath):
         try:
             npath = subprocess.check_output (
-                "locate -b -l 1 -e '/%s$'" % opath,
+                "locate -b -l 1 -e '/%s$'" % opath.__str__ (),
                 shell = False
             )
         except:
