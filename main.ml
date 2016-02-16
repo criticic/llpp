@@ -6639,10 +6639,11 @@ let () =
             match state.autoscroll with
             | Some step when step != 0 ->
                 let y = state.y + step in
+                let fy = if conf.maxhfit then state.winh else 0 in
                 let y =
                   if y < 0
-                  then state.maxy
-                  else if y >= state.maxy then 0 else y
+                  then state.maxy - fy
+                  else if y >= state.maxy - fy then 0 else y
                 in
                 if state.mode = View
                 then gotoy_and_clear_text y
