@@ -119,7 +119,7 @@ $(BUILDDIR)/llpp$(EXT): lablGL mupdf $(LLPP_FILES)
 	$(COMP) -g $(LFL) -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES) -cclib '-lGL -lX11 -lmupdf -lmupdfthird -lpthread -Lmupdf/build/native -lcrypto $(LIBGL_LFLAGS)'
 
 $(BUILDDIR)/llpp.o: lablGL mupdf $(LLPP_FILES)
-	$(COMP) -verbose -g $(LFL) -output-obj -I lablGL -o $@ unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES)
+	$(COMP) -verbose -g $(LFL) -output-obj -I lablGL -o $@ -ccopt '-o $@' unix$(ASU) str$(ASU) $(LABLGL_FILES) $(LLPP_FILES)
 
 STDLIB = $(shell ocamlfind printconf stdlib)
 
