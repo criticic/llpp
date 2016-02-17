@@ -5,6 +5,7 @@ BEGIN {
     RS = OFS = ORS = "\000"
 }
 
+# courtesy freenode#awk/izabera
 function quote(str) {
     gsub(/'/, "\\'", str);
     return str
