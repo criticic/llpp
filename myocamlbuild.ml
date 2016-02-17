@@ -1,47 +1,22 @@
 open Ocamlbuild_plugin
 
-let command fmt =
-  let buffer_size = 2048 in
-  let buffer = Buffer.create buffer_size in
-  let string = Bytes.create buffer_size in
-  Printf.ksprintf (fun cmd ->
-      try
-        let in_channel = Unix.open_process_in cmd in
-        let chars_read = ref 1 in
-        while !chars_read <> 0 do
-          chars_read := input in_channel string 0 buffer_size;
-          Buffer.add_substring buffer string 0 !chars_read
-        done;
-        ignore (Unix.close_process_in in_channel);
-        Buffer.contents buffer
-      with _ ->
-        Printf.ksprintf failwith "Fatal error: %S failed." cmd
-    ) fmt
-
-let uname =
-  String.trim (command "uname")
-
-let opengl_include =
-  if uname = "Darwin" then
-    S [A "-ccopt"; A "-I /opt/X11/include"]
-  else
-    N
+let () =
+  Options.make_links := false
 
 let build_mupdf _ _ =
+  let open Pathname in
+  let mupdf = mk "mupdf" in
   let l =
     [
-      rm_f (Pathname.mk "mupdf");
-      ln_s (Pathname.pwd / Pathname.mk "mupdf") (Pathname.mk "mupdf");
+      (* Cmd (S [A "make"; A "-C"; P (to_string (pwd / mupdf)); Sh "build=native"]); *)
+      rm_f mupdf;
+      ln_s (pwd / mupdf) mupdf;
     ]
   in
   Seq l
 
 let version =
-  let s = String.trim (command "git describe --tags 2>/dev/null") in
-  if s = "" then
-    "unknown"
-  else
-    s
+  getenv ~default:"" "VERSION"
 
 let mkhelp _ _ =
   Cmd (S [A "sh"; A "./mkhelp.sh"; P "KEYS"; A version; Sh ">"; P "help.ml"])
@@ -53,7 +28,6 @@ let main () =
   rule "build_mupdf" ~prod:"build_mupdf" build_mupdf;
   dep ["mupdf"] ["build_mupdf"];
   pflag ["c"; "compile"] "ccopt" (fun name -> S [A "-ccopt"; A name]);
-  flag ["c"; "compile"; "use_opengl"] opengl_include;
   pdep [] "autodep" (fun param -> [Pathname.mk param]);
   rule "make help.ml" ~insert:`top ~prod:"help.ml" ~deps:["KEYS"; "mkhelp.sh"] mkhelp;
   rule "make main.ml" ~insert:`top ~prod:"main.ml" ~deps:["main.in.ml"; "pp.sed"] mkmain;
