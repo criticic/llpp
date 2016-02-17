@@ -10,3 +10,6 @@ Build.o
 Build.hi
 mupdf
 test/
+_build
+*.native
+*.byte

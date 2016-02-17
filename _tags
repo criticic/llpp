@@ -1,5 +1,10 @@
-<lablGL>: include
-<lablGL/*>: add_c_include(lablGL)
-<mupdf>: not_hygienic
-<link.*>: add_c_include(mupdf/include), add_c_include(mupdf/thirdparty/freetype/include), mupdf
+"mupdf": -traverse, not_hygienic
+"lablGL": include
+<lablGL/*>: ccopt(-I lablGL), lablGL_headers
+<link.*>: mupdf, ccopt(-I mupdf/include), ccopt(-I mupdf/thirdparty/freetype/include), use_opengl
+<link.*>: autodep(glfont.c), autodep(keysym2ucs.c)
 true: debug
+<main.*>: use_unix, use_str, link(link.o)
+<main.*>: link(lablGL/ml_raw.o), link(lablGL/ml_gl.o), link(lablGL/ml_glarray.o)
+<main.*>: cclib(-L /opt/X11/lib), cclib(-lGL), cclib(-lX11)
+<main.*>: mupdf, cclib(-L mupdf/build/native), cclib(-lmupdf), cclib(-lmupdfthird)
