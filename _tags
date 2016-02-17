@@ -1,0 +1,5 @@
+<lablGL>: include
+<lablGL/*>: add_c_include(lablGL)
+<mupdf>: not_hygienic
+<link.*>: add_c_include(mupdf/include), add_c_include(mupdf/thirdparty/freetype/include), mupdf
+true: debug
