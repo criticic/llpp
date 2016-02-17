@@ -1,10 +1,12 @@
 "mupdf": -traverse, not_hygienic
+true: debug
+
 "lablGL": include
-<lablGL/*>: ccopt(-I lablGL), lablGL_headers
+<lablGL/*>: ccopt(-I lablGL), autodep(lablGL/raw_tags.h), autodep(lablGL/ml_raw.h), autodep(lablGL/gl_tags.h), autodep(lablGL/ml_gl.h), autodep(lablGL/gl_tags.c)
 <link.*>: mupdf, ccopt(-I mupdf/include), ccopt(-I mupdf/thirdparty/freetype/include), use_opengl
 <link.*>: autodep(glfont.c), autodep(keysym2ucs.c)
-true: debug
 <main.*>: use_unix, use_str, link(link.o)
-<main.*>: link(lablGL/ml_raw.o), link(lablGL/ml_gl.o), link(lablGL/ml_glarray.o)
+<main.*>: link(lablGL/ml_gl.o), link(lablGL/ml_raw.o), link(lablGL/ml_glarray.o)
 <main.*>: cclib(-L /opt/X11/lib), cclib(-lGL), cclib(-lX11)
 <main.*>: mupdf, cclib(-L mupdf/build/native), cclib(-lmupdf), cclib(-lmupdfthird)
+<main.*>: custom

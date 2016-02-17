@@ -1,17 +1,5 @@
 open Ocamlbuild_plugin
 
-let lablGL_headers =
-  let l =
-    [
-      "raw_tags.h";
-      "ml_raw.h";
-      "gl_tags.h";
-      "ml_gl.h";
-      "gl_tags.c";
-    ]
-  in
-  List.map (fun h -> "lablGL/" ^ h) l
-
 let command fmt =
   let buffer_size = 2048 in
   let buffer = Buffer.create buffer_size in
@@ -26,24 +14,6 @@ let command fmt =
         done;
         ignore (Unix.close_process_in in_channel);
         Buffer.contents buffer
-      with _ ->
-        Printf.ksprintf failwith "Fatal error: %S failed." cmd
-    ) fmt
-
-let read_process_lines fmt =
-  Printf.ksprintf (fun cmd ->
-      try
-        let lines = ref [] in
-        let in_channel = Unix.open_process_in cmd in
-        begin
-          try
-            while true do
-              lines := input_line in_channel :: !lines
-            done;
-          with End_of_file ->
-            ignore (Unix.close_process_in in_channel)
-        end;
-        List.rev !lines
       with _ ->
         Printf.ksprintf failwith "Fatal error: %S failed." cmd
     ) fmt
@@ -73,9 +43,6 @@ let version =
   else
     s
 
-(* let () = *)
-(*   Printf.eprintf "VERSION = %s\n%!" version *)
-
 let mkhelp _ _ =
   Cmd (S [A "sh"; A "./mkhelp.sh"; P "KEYS"; A version; Sh ">"; P "help.ml"])
 
@@ -85,7 +52,6 @@ let mkmain _ _ =
 let main () =
   rule "build_mupdf" ~prod:"build_mupdf" build_mupdf;
   dep ["mupdf"] ["build_mupdf"];
-  dep ["c"; "compile"; "lablGL_headers"] lablGL_headers;
   pflag ["c"; "compile"] "ccopt" (fun name -> S [A "-ccopt"; A name]);
   flag ["c"; "compile"; "use_opengl"] opengl_include;
   pdep [] "autodep" (fun param -> [Pathname.mk param]);
