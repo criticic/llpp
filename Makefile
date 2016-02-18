@@ -10,6 +10,13 @@ STDLIB := $(shell $(OCAMLC) -where)
 
 VERSION := $(or $(shell git describe --tags 2>/dev/null),unknown)
 
+CFLAGS = -I /opt/X11/include
+LDFLAGS = -L /opt/X11/lib
+
+LIBFLAGS := -L mupdf/build/native
+INCFLAGS := -I mupdf/include -I mupdf/thirdparty/freetype/include
+LIBS := -lGL -lX11 -lmupdf -lmupdfthird
+
 main.ml: main.mlp pp.sed
 	$(SED) -f pp.sed $< > $@
 
@@ -19,13 +26,8 @@ help.ml: KEYS mkhelp.sh
 lablGL/%.o: lablGL/%.c
 	$(CC) -I $(STDLIB) -o $@ -c $<
 
-MUPDF_INCLUDES := -I mupdf/include -I mupdf/thirdparty/freetype/include
-MUPDF_LIBS := -L mupdf/build/native -lmupdf -lmupdfthird
-SYS_INCLUDES := -I /opt/X11/include
-SYS_LIBS := -L /opt/X11/lib -lGL -lX11
-
 link.o: link.c
-	$(CC) -I $(STDLIB) $(SYS_INCLUDES) $(MUPDF_INCLUDES) -c $<
+	$(CC) $(CFLAGS) $(INCFLAGS) -I $(STDLIB) -c $<
 
 LLPP_FILES = \
 	lablGL/gl \
@@ -52,25 +54,25 @@ O_FILES = \
 	lablGL/ml_glarray.o
 
 $(LLPP): $(O_FILES) $(addsuffix .cmo,$(LLPP_FILES))
-	$(OCAMLC) -custom -cclib "$(SYS_LIBS) $(MUPDF_LIBS)" -o $@ unix.cma str.cma $^
+	$(OCAMLC) -custom -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@ unix.cma str.cma $^
 
 $(LLPP).o: $(addsuffix .cmo,$(LLPP_FILES))
-	$(OCAMLC) -output-obj -cclib "$(SYS_LIBS) $(MUPDF_LIBS)" -o $@ unix.cma str.cma $^
+	$(OCAMLC) -output-obj -o $@ unix.cma str.cma $^
 
 $(LLPP).native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
-	$(OCAMLOPT) -cclib "$(SYS_LIBS) $(MUPDF_LIBS)" -o $@ unix.cmxa str.cmxa $^
+	$(OCAMLOPT) -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@ unix.cmxa str.cmxa $^
 
 $(LLPP).native.o: $(addsuffix .cmx,$(LLPP_FILES))
-	$(OCAMLOPT) -output-obj -cclib "$(SYS_LIBS) $(MUPDF_LIBS)" -o $@ unix.cmxa str.cmxa $^
+	$(OCAMLOPT) -output-obj -o $@ unix.cmxa str.cmxa $^
 
 main_osx.o: main_osx.m
 	$(CC) -I $(STDLIB) -fmodules -o $@ -c $<
 
 llpp.osx: main_osx.o llpp.o $(O_FILES)
-	$(CC) -L $(STDLIB) $(SYS_LIBS) $(MUPDF_LIBS) -lunix -lcamlstr -lcamlrun -framework cocoa -o $@ $^
+	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -lcamlrun -framework cocoa -o $@ $^
 
 llpp.native.osx: main_osx.o llpp.native.o $(O_FILES)
-	$(CC) -L $(STDLIB) $(SYS_LIBS) $(MUPDF_LIBS) -lunix -lcamlstr -ltermcap -lasmrun -framework cocoa -o $@ $^
+	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -ltermcap -lasmrun -framework cocoa -o $@ $^
 
 .PHONY: depend
 depend: main.ml help.ml
@@ -88,7 +90,7 @@ depend: main.ml help.ml
 .PHONY: mupdf
 mupdf:
 	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
-	$(MAKE) -C mupdf build=native XCFLAGS='-I /opt/X11/include' XLIBS='-L /opt/X11/lib'
+	$(MAKE) -C mupdf build=native XCFLAGS="$(SYS_INCLUDES)' XLIBS='-L /opt/X11/lib'
 
 .PHONY: clean
 clean:
