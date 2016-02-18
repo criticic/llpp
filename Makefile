@@ -15,7 +15,7 @@ LDFLAGS = -L /opt/X11/lib
 
 LIBFLAGS := -L mupdf/build/native
 INCFLAGS := -I mupdf/include -I mupdf/thirdparty/freetype/include
-LIBS := -lGL -lX11 -lmupdf -lmupdfthird
+LIBS := -lGL -lX11 -lmupdf -lmupdfthird -lpthread
 
 main.ml: main.mlp pp.sed
 	$(SED) -f pp.sed $< > $@
@@ -59,13 +59,13 @@ O_FILES = \
 	lablGL/ml_glarray.o
 
 $(LLPP): $(O_FILES) $(addsuffix .cmo,$(LLPP_FILES))
-	$(OCAMLC) -custom -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@ unix.cma str.cma $^
+	$(OCAMLC) -custom unix.cma str.cma $^ -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@
 
 $(LLPP).o: $(addsuffix .cmo,$(LLPP_FILES))
 	$(OCAMLC) -output-obj -o $@ unix.cma str.cma $^
 
 $(LLPP).native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
-	$(OCAMLOPT) -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@ unix.cmxa str.cmxa $^
+	$(OCAMLOPT) unix.cmxa str.cmxa $^ -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@
 
 $(LLPP).native.o: $(addsuffix .cmx,$(LLPP_FILES))
 	$(OCAMLOPT) -output-obj -o $@ unix.cmxa str.cmxa $^
