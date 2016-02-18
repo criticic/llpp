@@ -62,39 +62,25 @@ depend: main.ml help.ml
 %.cmx: %.ml
 	$(OCAMLOPT) -I lablGL -c $<
 
-include .depend
-
-# native:
-# 	VERSION=$(VERSION) $(OCAMLBUILD) main.native && \
-# 	$(LN) -f _build/main.native $(LLPP).native
-
-# byte:
-# 	VERSION=$(VERSION) $(OCAMLBUILD) main.byte && \
-# 	$(LN) -f _build/main.byte $(LLPP).byte
-
-# native.o:
-# 	VERSION=$(VERSION) $(OCAMLBUILD) main.native.o
-
-# byte.o:
-# 	VERSION=$(VERSION) $(OCAMLBUILD) main.byte.o
-
-# main_osx.o: main_osx.m
-# 	$(CC) -I $(STDLIB) -fmodules -o $@ -c $<
-
-# osx.native: native.o main_osx.o
-# 	$(CC) -L $(STDLIB) $^ -o llpp.osx
-
+.PHONY: mupdf
 mupdf:
 	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
 	$(MAKE) -C mupdf build=native XCFLAGS='-I /opt/X11/include' XLIBS='-L /opt/X11/lib'
 
+.PHONY: clean
 clean:
 	rm -f main.ml help.ml
 	rm -f *.cmo *.cmi *.cmx *.o
 	rm -f lablGL/*.cmo lablGL/*.cmi lablGL/*.cmx lablGL/*.o
 	rm -f $(LLPP).native $(LLPP) $(LLPP).native.o
 
-.PHONY: all clean mupdf native byte native.o byte.o native.osx
+include .depend
+
+# main_osx.o: main_osx.m
+# 	$(CC) -I $(STDLIB) -fmodules -o $@ -c $<
+
+# osx.native: native.o main_osx.o
+# 	$(CC) -L $(STDLIB) $^ -o llpp.osx
 
 # ifdef NATIVE
 # LIBCAML := asmrun
