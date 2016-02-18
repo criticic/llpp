@@ -40,14 +40,32 @@ LLPP_FILES = \
 	config \
 	main
 
-$(LLPP): link.o lablGL/ml_raw.o lablGL/ml_gl.o lablGL/ml_glarray.o $(addsuffix .cmo,$(LLPP_FILES))
+O_FILES = \
+	link.o \
+	lablGL/ml_raw.o \
+	lablGL/ml_gl.o \
+	lablGL/ml_glarray.o
+
+$(LLPP): $(O_FILES) $(addsuffix .cmo,$(LLPP_FILES))
 	$(OCAMLC) -custom -cclib '-L /opt/X11/lib -lGL -lX11' -cclib '-L mupdf/build/native -lmupdf -lmupdfthird' -o $@ unix.cma str.cma $^
 
-$(LLPP).native: link.o lablGL/ml_raw.o lablGL/ml_gl.o lablGL/ml_glarray.o $(addsuffix .cmx,$(LLPP_FILES))
+$(LLPP).o: $(addsuffix .cmo,$(LLPP_FILES))
+	$(OCAMLC) -output-obj -cclib '-L /opt/X11/lib -lGL -lX11' -cclib '-L mupdf/build/native -lmupdf -lmupdfthird' -o $@ unix.cma str.cma $^
+
+$(LLPP).native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
 	$(OCAMLOPT) -cclib '-L /opt/X11/lib -lGL -lX11' -cclib '-L mupdf/build/native -lmupdf -lmupdfthird' -o $@ unix.cmxa str.cmxa $^
 
-$(LLPP).native.o: link.o lablGL/ml_raw.o lablGL/ml_gl.o lablGL/ml_glarray.o $(addsuffix .cmx,$(LLPP_FILES))
+$(LLPP).native.o: $(addsuffix .cmx,$(LLPP_FILES))
 	$(OCAMLOPT) -output-obj -cclib '-L /opt/X11/lib -lGL -lX11' -cclib '-L mupdf/build/native -lmupdf -lmupdfthird' -o $@ unix.cmxa str.cmxa $^
+
+main_osx.o: main_osx.m
+	$(CC) -I $(STDLIB) -fmodules -o $@ -c $<
+
+llpp.osx: main_osx.o llpp.o $(O_FILES)
+	$(CC) -L $(STDLIB) -L mupdf/build/native -L /opt/X11/lib -lGL -lX11 -lmupdf -lmupdfthird -lunix -lcamlstr -ltermcap -lcamlrun -framework cocoa -o $@ $^
+
+llpp.native.osx: main_osx.o llpp.native.o $(O_FILES)
+	$(CC) -L $(STDLIB) -L mupdf/build/native -L /opt/X11/lib -lGL -lX11 -lmupdf -lmupdfthird -lunix -lcamlstr -ltermcap -lasmrun -framework cocoa -o $@ $^
 
 .PHONY: depend
 depend: main.ml help.ml
@@ -75,18 +93,3 @@ clean:
 	rm -f $(LLPP).native $(LLPP) $(LLPP).native.o
 
 include .depend
-
-# main_osx.o: main_osx.m
-# 	$(CC) -I $(STDLIB) -fmodules -o $@ -c $<
-
-# osx.native: native.o main_osx.o
-# 	$(CC) -L $(STDLIB) $^ -o llpp.osx
-
-# ifdef NATIVE
-# LIBCAML := asmrun
-# else
-# LIBCAML := camlrun
-# endif
-
-# $(BUILDDIR)/llpp_osx: $(BUILDDIR)/llpp_osx.o $(BUILDDIR)/llpp.o
-# 	$(CC) -L$(STDLIB) -Lmupdf/build/native $(LIBGL_LFLAGS) -lGL -lX11 -lmupdf -lmupdfthird -lunix -lcamlstr -ltermcap -l$(LIBCAML) -framework cocoa $(LABLGL_C_FILES) $(BUILDDIR)/link.o $^ -o $@

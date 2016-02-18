@@ -21,3 +21,7 @@ _build
 /main.ml
 /llpp
 /llpp.native
+/llpp.native.o
+/llpp.o
+/llpp.osx
+/llpp.native.osx
