@@ -26,8 +26,13 @@ help.ml: KEYS mkhelp.sh
 lablGL/%.o: lablGL/%.c
 	$(CC) -I $(STDLIB) -o $@ -c $<
 
+LINK_CFLAGS := \
+	-Wextra -Wall -Werror -D_GNU_SOURCE \
+	-O -g -std=c99 -pedantic-errors -Wunused-parameter \
+	-Wsign-compare -Wshadow
+
 link.o: link.c
-	$(CC) $(CFLAGS) $(INCFLAGS) -I $(STDLIB) -c $<
+	$(CC) -I $(STDLIB) $(CFLAGS) $(INCFLAGS) $(LINK_CFLAGS) -c $<
 
 LLPP_FILES = \
 	lablGL/gl \
@@ -90,7 +95,7 @@ depend: main.ml help.ml
 .PHONY: mupdf
 mupdf:
 	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
-	$(MAKE) -C mupdf build=native XCFLAGS="$(SYS_INCLUDES)' XLIBS='-L /opt/X11/lib'
+	$(MAKE) -C mupdf build=native XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
 
 .PHONY: clean
 clean:
