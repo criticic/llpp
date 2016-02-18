@@ -13,3 +13,11 @@ test/
 _build
 *.native
 *.byte
+*.cmx
+*.cmo
+*.cmi
+*.o
+/help.ml
+/main.ml
+/llpp
+/llpp.native
