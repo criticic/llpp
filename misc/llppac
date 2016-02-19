@@ -121,6 +121,7 @@ case $type in
     word) {
         if executable_p unoconv && test -z "$dc"; then
             unset filt
+            caspsuf=.pdf
             conv='unoconv -o "$casp" "$1"'
         else
             missing antiword "antiword or unoconv"
