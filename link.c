@@ -494,6 +494,10 @@ static int openxref (char *filename, char *password)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
+#ifdef CSS_HACK_TO_READ_EPUBS_COMFORTABLY
+    fz_set_user_css (state.ctx,
+                     "body { margin-left: 20%;" "margin-right: 20%; }");
+#endif
     state.doc = fz_open_document (state.ctx, filename);
     if (fz_needs_password (state.ctx, state.doc)) {
         if (password && !*password) {
