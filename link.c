@@ -386,6 +386,11 @@ static void writedata (int fd, char *p, int size)
 {
     ssize_t n;
 
+    /* One should lookup type punning/strict aliasing etc in standard,DRs,Web to
+       convince herself that this is:
+       a. safe
+       b. practically the only way to achieve the result
+          (union puns notwithstanding) */
     memcpy (p, &size, 4);
     n = write (fd, p, size + 4);
     if (n - size - 4) {
@@ -396,10 +401,11 @@ static void writedata (int fd, char *p, int size)
 
 static int readlen (int fd)
 {
-    int len;
-
-    readdata (fd, (void *) &len, 4);
-    return len;
+    /* Type punned unions here. Why? Less code (Adjusted by more comments).
+       https://en.wikipedia.org/wiki/Type_punning */
+    union { int len; char raw[4]; } buf;
+    readdata (fd, buf.raw, 4);
+    return buf.len;
 }
 
 CAMLprim void ml_wcmd (value fd_v, value bytes_v, value len_v)
