@@ -366,44 +366,58 @@ CAMLprim value ml_hasdata (value fd_v)
     CAMLreturn (Val_bool (avail > 0));
 }
 
-static void readdata (void *p, int size)
+static void readdata (int fd, void *p, int size)
 {
     ssize_t n;
 
  again:
-    n = read (state.csock, p, size);
+    n = read (fd, p, size);
     if (n < 0) {
         if (errno == EINTR) goto again;
-        err (1, "read (req %d, ret %zd)", size, n);
+        err (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        errx (1, "read (req %d, ret %zd)", size, n);
+        errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
 }
 
-static void writedata (char *p, int size)
+static void writedata (int fd, char *p, int size)
 {
     ssize_t n;
 
-    p[0] = (size >> 24) & 0xff;
-    p[1] = (size >> 16) & 0xff;
-    p[2] = (size >>  8) & 0xff;
-    p[3] = (size >>  0) & 0xff;
-
-    n = write (state.csock, p, size + 4);
+    memcpy (p, &size, 4);
+    n = write (fd, p, size + 4);
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
-        err (1, "write (req %d, ret %zd)", size + 4, n);
+        err (1, "write (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
 
-static int readlen (void)
+static int readlen (int fd)
 {
-    unsigned char p[4];
+    int len;
 
-    readdata (p, 4);
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+    readdata (fd, (void *) &len, 4);
+    return len;
+}
+
+CAMLprim void ml_wcmd (value fd_v, value bytes_v, value len_v)
+{
+    CAMLparam3 (fd_v, bytes_v, len_v);
+    writedata (Int_val (fd_v), &Byte (bytes_v, 0), Int_val (len_v));
+    CAMLreturn0;
+}
+
+CAMLprim value ml_rcmd (value fd_v)
+{
+    CAMLparam1 (fd_v);
+    CAMLlocal1 (strdata_v);
+    int fd = Int_val (fd_v);
+    int len = readlen (fd);
+    strdata_v = caml_alloc_string (len);
+    readdata (fd, String_val (strdata_v), len);
+    CAMLreturn (strdata_v);
 }
 
 static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
@@ -422,7 +436,7 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 
         if (len > -1) {
             if (len < size - 4) {
-                writedata (buf, len);
+                writedata (state.csock, buf, len);
                 break;
             }
             else size = len + 5;
@@ -1668,7 +1682,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
     fz_var (p);
     fz_var (oldlen);
     for (;;) {
-        len = readlen ();
+        len = readlen (state.csock);
         if (len == 0) {
             errx (1, "readlen returned 0");
         }
@@ -1680,7 +1694,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             oldlen = len + 1;
         }
-        readdata (p, len);
+        readdata (state.csock, p, len);
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {

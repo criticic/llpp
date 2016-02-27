@@ -48,6 +48,8 @@ external getannotcontents : opaque -> slinkindex -> string
   = "ml_getannotcontents";;
 external drawprect : opaque -> int -> int -> float array -> unit =
   "ml_drawprect";;
+external wcmd : Unix.file_descr -> bytes -> int -> unit = "ml_wcmd";;
+external rcmd : Unix.file_descr -> string = "ml_rcmd";;
 
 let selfexec = ref E.s;;
 let opengl_has_pbo = ref false;;
@@ -390,37 +392,14 @@ let intentry_with_suffix text key =
       TEcont text
 ;;
 
-let readcmd fd =
-  let s = Bytes.create 4 in
-  let n = tempfailureretry (Unix.read fd s 0) 4 in
-  if n != 4 then error "incomplete read(len) = %d" n;
-  let len = (Char.code (Bytes.get s 0) lsl 24)
-      lor (Char.code (Bytes.get s 1) lsl 16)
-      lor (Char.code (Bytes.get s 2) lsl  8)
-      lor (Char.code (Bytes.get s 3))
-  in
-  let s = Bytes.create len in
-  let n = tempfailureretry (Unix.read fd s 0) len in
-  if n != len then error "incomplete read(data) %d vs %d" n len;
-  Bytes.to_string s
-;;
-
 let wcmd fmt =
   let b = Buffer.create 16 in
   Buffer.add_string b "llll";
   Printf.kbprintf
     (fun b ->
-      let s = Buffer.to_bytes b in
-      let n = Bytes.length s in
-      let len = n - 4 in
-      (* dolog "wcmd %S" (String.sub s 4 len); *)
-      Bytes.set s 0 (Char.chr ((len lsr 24) land 0xff));
-      Bytes.set s 1 (Char.chr ((len lsr 16) land 0xff));
-      Bytes.set s 2 (Char.chr ((len lsr  8) land 0xff));
-      Bytes.set s 3 (Char.chr (len land 0xff));
-      let n' = tempfailureretry (Unix.write state.ss s 0) n in
-      if n' != n then error "write failed %d vs %d" n' n;
-    ) b fmt;
+      let b = Buffer.to_bytes b in
+      wcmd state.ss b @@ Bytes.length b
+    ) b fmt
 ;;
 
 let nogeomcmds cmds =
@@ -6658,7 +6637,7 @@ let () =
         let rec checkfds = function
           | [] -> ()
           | fd :: rest when fd = state.ss ->
-              let cmd = readcmd state.ss in
+              let cmd = rcmd state.ss in
               act cmd;
               checkfds rest
 
