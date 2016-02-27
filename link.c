@@ -813,7 +813,7 @@ pdf_collect_pages(pdf_document *doc, pdf_obj *node)
     len = pdf_array_len (ctx, kids);
 
     if (len == 0)
-        fz_throw (ctx, FZ_ERROR_GENERIC, "Malformed pages tree");
+        fz_throw (ctx, FZ_ERROR_GENERIC, "malformed pages tree");
 
     if (pdf_mark_obj (ctx, node))
         fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
