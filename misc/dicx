@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+exec 1>&2 2>/dev/null
+
+test "$1" = "-" && src="cat" || src="xclip -o"
+
+font='source code pro 10'
+rofi="rofi -dmenu -font '$font' -fg white -bg grey20"
+
+pag() {                                                 \
+    sed -e 1d                                           \
+        -e 's; _\([A-Z]\); \1;p'                        \
+        -e '/^$/d' -e '/^-->/d'                         \
+    | eval $rofi -location 2 -l 20 -p 'Done' >/dev/null
+}
+
+phrase="$($src | eval $rofi -markup -location 2 -p '\ ')"
+sdcv -n --utf8-input --utf8-output "$phrase" | pag
