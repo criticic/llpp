@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+url=$(xclip -o)
+path=$(python3 -c "import urllib.parse; print (urllib.parse.unquote ('$url'))")
+name=${path##*wiki/}
+td=$(dirname $(readlink -f "$0"))
+
+prince                                                  \
+    --no-author-style                                   \
+    --javascript                                        \
+    --media screen                                      \
+    -s file://$td/wiki2.css "$url" -o "$name.pdf"
