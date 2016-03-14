@@ -2753,12 +2753,10 @@ static void ensuretext (struct page *page)
         page->sheet = fz_new_stext_sheet (state.ctx);
         tdev = fz_new_stext_device (state.ctx, page->sheet, page->text);
         ctm = pagectm (page);
-        fz_begin_page (state.ctx, tdev, &fz_infinite_rect, &ctm);
         fz_run_display_list (state.ctx, page->dlist,
                              tdev, &ctm, &fz_infinite_rect, NULL);
         qsort (page->text->blocks, page->text->len,
                sizeof (*page->text->blocks), compareblocks);
-        fz_end_page (state.ctx, tdev);
         fz_drop_device (state.ctx, tdev);
     }
 }
