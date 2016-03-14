@@ -169,7 +169,7 @@ and selection command otherwise
 
 [3] text selection requires
     X11     - xsel http://www.vergenet.net/~conrad/software/xsel/
-    ⋯      - xclip https://github.com/astrand/xclip
+    ⋯       - xclip https://github.com/astrand/xclip
     Windows - wsel http://repo.or.cz/w/llpp.git/blob/master:/wsel.c
     OS X    - pbcopy ships with the system
 
