@@ -4717,10 +4717,10 @@ CAMLprim value ml_init (value csock_v, value params_v)
 #endif
     }
     else {
-        unsigned int len;
-        void *base = pdf_lookup_substitute_font (state.ctx, 0, 0, 0, 0, &len);
-
-        state.face = load_builtin_font (base, len);
+        int len;
+        const char *data = pdf_lookup_substitute_font (state.ctx, 0, 0,
+                                                       0, 0, &len);
+        state.face = load_builtin_font (data, len);
     }
     if (!state.face) _exit (1);
 
