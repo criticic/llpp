@@ -11,6 +11,6 @@
     <!-- tab goes to outline (table of contents) -->
     <map in='tab' out='o'/>
     <!-- F12 to enter "wikipedia" mode -->
-    <map in='f12' out='i end ret f u z z ret - 1 0 / - 1 0 / 1 0 / 1 0 ret esc - T ctrl-3 - M P'/>
+    <map in='f12' out='i end ret f u z z ret - 1 0 / - 1 0 / 1 0 / 1 0 ret left ret esc - T ctrl-3 - M P'/>
   </keymap>
 </defaults>
