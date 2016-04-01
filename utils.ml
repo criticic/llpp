@@ -6,6 +6,11 @@ end;;
 
 type platform = | Punknown | Plinux | Posx | Psun | Pbsd | Pcygwin;;
 
+let asciilower = let auld = Char.code 'A' - Char.code 'a' in function
+  | ('A'..'Z') as c -> Char.code c - auld |> Char.chr
+  | c -> c
+;;
+
 let tempfailureretry f a =
   let rec g () =
     try f a with Unix.Unix_error (Unix.EINTR, _, _) -> g ()
@@ -65,11 +70,11 @@ let int_of_string_with_suffix s =
   let s1, shift =
     if l > 1
     then
-      let suffix = Char.lowercase s.[l-1] in
-      match suffix with
-      | 'k' -> String.sub s 0 (l-1), 10
-      | 'm' -> String.sub s 0 (l-1), 20
-      | 'g' -> String.sub s 0 (l-1), 30
+      let p = l-1 in
+      match s.[p] with
+      | 'k' | 'K' -> String.sub s 0 p, 10
+      | 'm' | 'M' -> String.sub s 0 p, 20
+      | 'g' | 'G' -> String.sub s 0 p, 30
       | _ -> s, 0
     else s, 0
   in

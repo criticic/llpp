@@ -378,13 +378,13 @@ let intentry_with_suffix text key =
     then Char.chr key
     else '\000'
   in
-  match Char.lowercase c with
+  match c with
   | '0' .. '9' ->
       let text = addchar text c in
       TEcont text
 
-  | 'k' | 'm' | 'g' ->
-      let text = addchar text c in
+  | 'k' | 'm' | 'g' | 'K' | 'M' | 'G' ->
+      let text = addchar text @@ asciilower c in
       TEcont text
 
   | _ ->

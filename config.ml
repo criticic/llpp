@@ -1000,7 +1000,7 @@ let config_of c attrs =
       | "crop-hack" -> { c with crophack = bool_of_string v }
       | "throttle" ->
           let mw =
-            match String.lowercase v with
+            match String.map asciilower v with
             | "true" -> Some infinity
             | "false" -> None
             | f -> Some (float_of_string f)
