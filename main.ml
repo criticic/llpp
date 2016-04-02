@@ -6377,6 +6377,7 @@ let () =
 
   if not (Config.load !openlast)
   then dolog "failed to load configuration";
+
   begin match !pageno with
   | Some pageno -> state.anchor <- (pageno, 0.0, 0.0)
   | None -> ()
