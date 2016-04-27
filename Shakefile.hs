@@ -68,7 +68,8 @@ fixincludes ("-I":d:tl)
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey comp tbl key
-  | "lablGL/" `isPrefixOf` key = (comp, "-I lablGL", [], [])
+  | "lablGL/" `isPrefixOf` key =
+    (comp, ocamlflags ++ " -w -44 -I lablGL", [], [])
   | otherwise = case lookup key tbl of
     Nothing -> (comp, ocamlflags, [], [])
     Just (f, [], deps) -> (comp, ocamlflags ++ " " ++ f, [], deps)

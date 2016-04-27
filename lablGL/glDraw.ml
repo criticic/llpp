@@ -27,7 +27,7 @@ external polygon_mode : face:face -> [`point|`line|`fill] -> unit
     = "ml_glPolygonMode"
 external polygon_stipple : [`bitmap] Raw.t -> unit = "ml_glPolygonStipple"
 let polygon_stipple (img : GlPix.bitmap) =
-  if GlPix.height img <> 32 or GlPix.width img <> 32
+  if GlPix.height img <> 32 || GlPix.width img <> 32
   then invalid_arg "GlDraw.polygon_stipple";
   polygon_stipple (GlPix.to_raw img)
 
