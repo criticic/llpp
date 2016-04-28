@@ -48,9 +48,12 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cclib = "-lGL -lX11 -lmupdf -lmupdfthird\
-        \ -lpthread -L" ++ mudir ++ "/build/native -lcrypto"
-        ++ (if egl then " -lEGL" else "")
+cclib_native = "-lGL -lX11 -lmupdf -lmupdfthird\
+               \ -lpthread -L" ++ mudir ++ "/build/native -lcrypto"
+               ++ (if egl then " -lEGL" else "")
+cclib_release = "-lGL -lX11 -lmupdf -lmupdfthird\
+                \ -lpthread -L" ++ mudir ++ "/build/release -lcrypto"
+                ++ (if egl then " -lEGL" else "")
 
 getincludes :: [String] -> [String]
 getincludes [] = []
@@ -211,7 +214,7 @@ main = do
     need cmos
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
       "unix.cma str.cma" (reverse cmos)
-      (inOutDir "link.o") "-cclib" (cclib : globjs)
+      (inOutDir "link.o") "-cclib" (cclib_native : globjs)
 
   inOutDir "llpp.native" %> \out -> do
     need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
@@ -219,7 +222,15 @@ main = do
     need cmxs
     unit $ cmd ocamlopt "-g -I lablGL -o" out
       "unix.cmxa str.cmxa" (reverse cmxs)
-      (inOutDir "link.o") "-cclib" (cclib : globjs)
+      (inOutDir "link.o") "-cclib" (cclib_native : globjs)
+
+  inOutDir "llpp.murel.native" %> \out -> do
+    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    cmxs <- liftIO $ readMVar depln
+    need cmxs
+    unit $ cmd ocamlopt "-g -I lablGL -o" out
+      "unix.cmxa str.cmxa" (reverse cmxs)
+      (inOutDir "link.o") "-cclib" (cclib_release : globjs)
 
   cmio "//*.cmi" ".mli" ocamlOracle ocamlOrdOracle
   cmio "//*.cmo" ".ml" ocamlOracle ocamlOrdOracle
