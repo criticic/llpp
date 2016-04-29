@@ -48,12 +48,11 @@ cflagstbl =
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cclib_native = "-lGL -lX11 -lmupdf -lmupdfthird\
-               \ -lpthread -L" ++ mudir ++ "/build/native -lcrypto"
-               ++ (if egl then " -lEGL" else "")
-cclib_release = "-lGL -lX11 -lmupdf -lmupdfthird\
-                \ -lpthread -L" ++ mudir ++ "/build/release -lcrypto"
-                ++ (if egl then " -lEGL" else "")
+cclib ty =
+  "-lGL -lX11 -lmupdf -lmupdfthird -lpthread -L" ++ mudir </> "build" </> ty
+  ++ " -lcrypto" ++ (if egl then " -lEGL" else "")
+cclib_native = cclib "native"
+cclib_release = cclib "release"
 
 getincludes :: [String] -> [String]
 getincludes [] = []
@@ -163,6 +162,16 @@ cmx oracle ordoracle =
       [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
     deplist _ = []
 
+binInOutDir globjs depln target =
+  inOutDir target %> \out ->
+  do
+    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    cmxs <- liftIO $ readMVar depln
+    need cmxs
+    unit $ cmd ocamlopt "-g -I lablGL -o" out
+      "unix.cmxa str.cmxa" (reverse cmxs)
+      (inOutDir "link.o") "-cclib" (cclib_release : globjs)
+
 main = do
   depl <- newMVar ([] :: [String])
   depln <- newMVar ([] :: [String])
@@ -216,21 +225,8 @@ main = do
       "unix.cma str.cma" (reverse cmos)
       (inOutDir "link.o") "-cclib" (cclib_native : globjs)
 
-  inOutDir "llpp.native" %> \out -> do
-    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
-    cmxs <- liftIO $ readMVar depln
-    need cmxs
-    unit $ cmd ocamlopt "-g -I lablGL -o" out
-      "unix.cmxa str.cmxa" (reverse cmxs)
-      (inOutDir "link.o") "-cclib" (cclib_native : globjs)
-
-  inOutDir "llpp.murel.native" %> \out -> do
-    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
-    cmxs <- liftIO $ readMVar depln
-    need cmxs
-    unit $ cmd ocamlopt "-g -I lablGL -o" out
-      "unix.cmxa str.cmxa" (reverse cmxs)
-      (inOutDir "link.o") "-cclib" (cclib_release : globjs)
+  binInOutDir globjs depln "llpp.native"
+  binInOutDir globjs depln "llpp.murel.native"
 
   cmio "//*.cmi" ".mli" ocamlOracle ocamlOrdOracle
   cmio "//*.cmo" ".ml" ocamlOracle ocamlOrdOracle
