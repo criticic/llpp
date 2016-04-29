@@ -32,12 +32,9 @@ ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
-ocamlflagstbl = [("main.cmo", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
-                ,("config.cmo", ("-I lablGL", "", []))
+ocamlflagstbl = [("main", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
+                ,("config", ("-I lablGL", "", []))
                 ]
-ocamlflagstbln = [("main.cmx", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
-                 ,("config.cmx", ("-I lablGL", "", []))
-                 ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow\
@@ -72,7 +69,7 @@ fixincludes (e:tl) = e:fixincludes tl
 ocamlKey comp tbl key
   | "lablGL/" `isPrefixOf` key =
     (comp, ocamlflags ++ " -w -44 -I lablGL", [], [])
-  | otherwise = case lookup key tbl of
+  | otherwise = case lookup (dropExtension key) tbl of
     Nothing -> (comp, ocamlflags, [], [])
     Just (f, [], deps) -> (comp, ocamlflags ++ " " ++ f, [], deps)
     Just (f, pp, deps) -> (comp, ocamlflags ++ " " ++ f, ["-pp", pp], deps)
@@ -189,7 +186,7 @@ main = do
     return $ ocamlKey ocamlc ocamlflagstbl s
 
   ocamlOracleN <- addOracle $ \(OcamlCmdLineOracleN s) ->
-    return $ ocamlKey ocamlopt ocamlflagstbln s
+    return $ ocamlKey ocamlopt ocamlflagstbl s
 
   ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) ->
     unless (takeExtension s == ".cmi") $
