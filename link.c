@@ -2716,17 +2716,14 @@ static fz_link *getlink (struct page *page, int x, int y)
 {
     fz_point p;
     fz_matrix ctm;
-    const fz_matrix *tctm;
     fz_link *link, *links;
 
-    tctm = &fz_identity;
     links = fz_load_links (state.ctx, page->fzpage);
 
     p.x = x;
     p.y = y;
 
-    fz_concat (&ctm, tctm, &state.pagedims[page->pdimno].ctm);
-    fz_invert_matrix (&ctm, &ctm);
+    fz_invert_matrix (&ctm, &state.pagedims[page->pdimno].ctm);
     fz_transform_point (&p, &ctm);
 
     for (link = links; link; link = link->next) {
