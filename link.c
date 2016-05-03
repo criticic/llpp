@@ -2723,7 +2723,8 @@ static fz_link *getlink (struct page *page, int x, int y)
     p.x = x;
     p.y = y;
 
-    fz_invert_matrix (&ctm, &state.pagedims[page->pdimno].ctm);
+    ctm = pagectm (page);
+    fz_invert_matrix (&ctm, &ctm);
     fz_transform_point (&p, &ctm);
 
     for (link = links; link; link = link->next) {
