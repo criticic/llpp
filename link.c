@@ -3384,13 +3384,13 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                         }
                         if (charnum3 == -1) charnum3 = 0;
 
+                        charnum4 = charnum;
                         for (charnum2 = charnum + 1;
                              charnum2 < span->len;
                              ++charnum2) {
                             if (uninteresting (span->text[charnum2].c)) break;
                             charnum4 = charnum2;
                         }
-                        if (charnum4 == -1) goto unlock;
 
                         page->fmark.i = charnum3;
                         page->fmark.span = span;
