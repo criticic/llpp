@@ -873,6 +873,7 @@ static void initpdims (int wthack)
     pdf_document *pdf = pdf_specifics (ctx, state.doc);
 
     fz_var (trimw);
+    fz_var (trimf);
     fz_var (cxcount);
     start = now ();
 
@@ -915,6 +916,7 @@ static void initpdims (int wthack)
         struct pagedim *p;
         fz_rect mediabox;
 
+        fz_var (rotate);
         if (pdf) {
             pdf_obj *pageref, *pageobj;
 
@@ -2778,6 +2780,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
         if (pdf) {
             pdf_page *page = NULL;
 
+            fz_var (page);
             fz_try (state.ctx) {
                 page = pdf_load_page (state.ctx, pdf, i);
                 found = !!page->links || !!page->annots;
