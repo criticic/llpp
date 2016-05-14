@@ -905,7 +905,7 @@ let gotoy y =
     state.y <- y;
     state.layout <- layout;
     begin match state.mode with
-    | LinkNav ln  ->
+    | LinkNav ln ->
         begin match ln with
         | Ltexact (pageno, linkno) ->
             let rec loop = function
@@ -4854,7 +4854,7 @@ let viewkeyboard key mask =
       state.text <- "fit model: " ^ FMTE.to_string fm;
       reqlayout conf.angle fm
 
-  | @4  when ctrl ->            (* ctrl-4 *)
+  | @4 when ctrl ->            (* ctrl-4 *)
      let zoom = getmaxw () /. float state.winw in
      if zoom > 0.0 then setzoom zoom
 
