@@ -196,7 +196,7 @@ main = do
     unless (takeExtension s == ".cmi") $
       liftIO $ modifyMVar_ depln $ \l -> return $ s:l
 
-  cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey envcflags  s
+  cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey envcflags s
 
   inOutDir "help.ml" %> \out -> do
     version <- gitDescribeOracle $ GitDescribeOracle ()
