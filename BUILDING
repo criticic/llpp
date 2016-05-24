@@ -1,6 +1,5 @@
 Prerequisites for building from sources:
         mupdf         [http://mupdf.com/]
-                       git://git.ghostscript.com/mupdf.git
         ocaml (4.02+) [http://ocaml.org/]
         gcc           [https://gcc.gnu.org/]
         binutils      [http://www.gnu.org/software/binutils/]
