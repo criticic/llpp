@@ -785,12 +785,12 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
         if (pbo) {
             tile->pixmap =
                 fz_new_pixmap_with_bbox_and_data (state.ctx, state.colorspace,
-                                                  &bbox, pbo->ptr);
+                                                  &bbox, 1, pbo->ptr);
             tile->pbo = pbo;
         }
         else {
             tile->pixmap =
-                fz_new_pixmap_with_bbox (state.ctx, state.colorspace, &bbox);
+                fz_new_pixmap_with_bbox (state.ctx, state.colorspace, &bbox, 1);
         }
     }
 
