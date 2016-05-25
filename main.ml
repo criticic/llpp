@@ -5186,11 +5186,10 @@ let viewkeyboard key mask =
         | None -> ()
         | Some opaque ->
             let x0, y0, x1, y1 = pagebbox opaque in
-            let a,b = float x0, float y0 in
-            let c,d = float x1, float y0 in
-            let e,f = float x1, float y1 in
-            let h,j = float x0, float y1 in
-            let rect = (a,b,c,d,e,f,h,j) in
+            let rect = (float x0, float y0,
+                        float x1, float y0,
+                        float x1, float y1,
+                        float x0, float y1) in
             debugrect rect;
             let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
             state.rects <- (l.pageno, color, rect) :: state.rects;
