@@ -112,6 +112,10 @@ compilecaml comp flagl ppflags out src = do
   ppppe ex src emsg
   return ()
 
+deplist [] = []
+deplist ((_, reqs) : _) =
+  [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
+
 cmio target suffix oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
@@ -139,10 +143,6 @@ cmio target suffix oracle ordoracle = do
                     baseout = dropExtension out
     need ((map (++ "_dep") depo) ++ deps')
     unit $ ordoracle $ OcamlOrdOracle ord
-  where
-    deplist [] = []
-    deplist ((_, reqs) : _) =
-      [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
 
 cmx oracle ordoracle =
   "//*.cmx" %> \out -> do
@@ -154,10 +154,6 @@ cmx oracle ordoracle =
     need ((deplist $ parseMakefile mkfiledeps) ++ deps')
     unit $ ordoracle $ OcamlOrdOracleN out
     compilecaml comp flagl ppflags out src
-  where
-    deplist (_ : (_, reqs) : _) =
-      [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
-    deplist _ = []
 
 binInOutDir globjs depln target =
   inOutDir target %> \out ->
