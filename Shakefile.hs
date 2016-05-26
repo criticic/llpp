@@ -48,8 +48,8 @@ cflagstbl =
 cclib ty =
   "-lGL -lX11 -lmupdf -lmupdfthird -lpthread -L" ++ mudir </> "build" </> ty
   ++ " -lcrypto" ++ (if egl then " -lEGL" else "")
-cclib_native = cclib "native"
-cclib_release = cclib "release"
+cclibNative = cclib "native"
+cclibRelease = cclib "release"
 
 getincludes :: [String] -> [String]
 getincludes [] = []
@@ -141,7 +141,7 @@ cmio target suffix oracle ordoracle = do
             fit dep = ext == ".cmi" && base /= baseout
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
-    need ((map (++ "_dep") depo) ++ deps')
+    need (map (++ "_dep") depo ++ deps')
     unit $ ordoracle $ OcamlOrdOracle ord
 
 cmx oracle ordoracle =
@@ -151,7 +151,7 @@ cmx oracle ordoracle =
     (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracleN key
     let flagl = words flags
     mkfiledeps <- depscaml flags ppflags src
-    need ((deplist $ parseMakefile mkfiledeps) ++ deps')
+    need (deplist (parseMakefile mkfiledeps) ++ deps')
     unit $ ordoracle $ OcamlOrdOracleN out
     compilecaml comp flagl ppflags out src
 
@@ -163,7 +163,7 @@ binInOutDir globjs depln target =
     need cmxs
     unit $ cmd ocamlopt "-g -I lablGL -o" out
       "unix.cmxa str.cmxa" (reverse cmxs)
-      (inOutDir "link.o") "-cclib" (cclib_release : globjs)
+      (inOutDir "link.o") "-cclib" (cclibRelease : globjs)
 
 main = do
   depl <- newMVar ([] :: [String])
@@ -216,7 +216,7 @@ main = do
     need cmos
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
       "unix.cma str.cma" (reverse cmos)
-      (inOutDir "link.o") "-cclib" (cclib_native : globjs)
+      (inOutDir "link.o") "-cclib" (cclibNative : globjs)
 
   binInOutDir globjs depln "llpp.native"
   binInOutDir globjs depln "llpp.murel.native"
