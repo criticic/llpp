@@ -23,6 +23,8 @@ newtype CCmdLineOracle = CCmdLineOracle String
 newtype GitDescribeOracle = GitDescribeOracle ()
                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 
+data Bt = Native | Bytecode
+
 outdir = "build"
 mudir = "mupdf"
 inOutDir s = outdir </> s
@@ -112,13 +114,11 @@ compilecaml comp flagl ppflags out src = do
   ppppe ex src emsg
   return ()
 
-deplist [] = []
-deplist ((_, reqs) : _) =
+deplistE reqs =
   [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
-
-deplistx (_ : (_, reqs) : _) =
-  [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
-deplistx [] = []
+deplist Native (_ : (_, reqs) : _) = deplistE reqs
+deplist Bytecode ((_, reqs) : _) = deplistE reqs
+deplist _ _ = []
 
 cmio target suffix oracle ordoracle = do
   target %> \out -> do
@@ -129,7 +129,7 @@ cmio target suffix oracle ordoracle = do
     let dep = out ++ "_dep"
     need $ dep : deps'
     ddep <- liftIO $ readFile dep
-    let deps = deplist $ parseMakefile ddep
+    let deps = deplist Bytecode $ parseMakefile ddep
     need deps
     compilecaml comp flagl ppflags out src
   target ++ "_dep" %> \out -> do
@@ -141,7 +141,7 @@ cmio target suffix oracle ordoracle = do
     writeFileChanged out mkfiledeps
     let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
           where
-            deps = deplist $ parseMakefile mkfiledeps
+            deps = deplist Bytecode $ parseMakefile mkfiledeps
             fit dep = ext == ".cmi" && base /= baseout
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
@@ -155,7 +155,7 @@ cmx oracle ordoracle =
     (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracleN key
     let flagl = words flags
     mkfiledeps <- depscaml flags ppflags src
-    need (deplistx (parseMakefile mkfiledeps) ++ deps')
+    need (deplist Native (parseMakefile mkfiledeps) ++ deps')
     unit $ ordoracle $ OcamlOrdOracleN out
     compilecaml comp flagl ppflags out src
 
