@@ -116,6 +116,10 @@ deplist [] = []
 deplist ((_, reqs) : _) =
   [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
 
+deplistx (_ : (_, reqs) : _) =
+  [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
+deplistx [] = []
+
 cmio target suffix oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
@@ -151,7 +155,7 @@ cmx oracle ordoracle =
     (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracleN key
     let flagl = words flags
     mkfiledeps <- depscaml flags ppflags src
-    need (deplist (parseMakefile mkfiledeps) ++ deps')
+    need (deplistx (parseMakefile mkfiledeps) ++ deps')
     unit $ ordoracle $ OcamlOrdOracleN out
     compilecaml comp flagl ppflags out src
 
