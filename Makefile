@@ -17,6 +17,8 @@ LIBFLAGS := -L mupdf/build/native
 INCFLAGS := -I mupdf/include -I mupdf/thirdparty/freetype/include
 LIBS := -lGL -lX11 -lmupdf -lmupdfthird -lpthread
 
+all: $(LLPP).native
+
 main.ml: main.mlp pp.sed
 	$(SED) -f pp.sed $< > $@
 
@@ -48,7 +50,7 @@ LLPP_FILES = \
 	help \
 	utils \
 	parser \
-	wsi \
+	wsi_osx \
 	config \
 	main
 
@@ -73,10 +75,10 @@ $(LLPP).native.o: $(addsuffix .cmx,$(LLPP_FILES))
 main_osx.o: main_osx.m
 	$(CC) -I $(STDLIB) -fmodules -o $@ -c $<
 
-llpp.osx: main_osx.o llpp.o $(O_FILES)
+$(LLPP).osx: main_osx.o llpp.o $(O_FILES)
 	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -lcamlrun -framework cocoa -o $@ $^
 
-llpp.native.osx: main_osx.o llpp.native.o $(O_FILES)
+$(LLPP).native.osx: main_osx.o llpp.native.o $(O_FILES)
 	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -ltermcap -lasmrun -framework cocoa -o $@ $^
 
 .PHONY: depend

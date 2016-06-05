@@ -1,9 +1,7 @@
-(* let post_key key mask = *)
-(*   Marshal.to_channel chan (KEY (key, mask)); *)
+external stub_reshape: int -> int -> unit = "stub_reshape"
+external stub_set_title: string -> unit = "stub_set_title"
 
-(* let readresp fd = *)
-(*   let ic = Hashtbl.find fd . in *)
-(*   Marshal. *)
+let debug = true
 
 type cursor =
     | CURSOR_INHERIT
@@ -38,22 +36,6 @@ class type t = object
   method quit     : unit
 end
 
-type message =
-  | KeyDown of int * int
-
-let input_message ic : message =
-  Marshal.from_channel ic
-
-let output_message (m : message) oc =
-  Marshal.to_channel oc
-
-type state =
-  {
-    mutable ic: in_channel;
-    mutable oc: out_channel;
-    mutable t: t;
-  }
-
 let onot = object
   method display         = ()
   method map _           = ()
@@ -70,32 +52,50 @@ let onot = object
   method quit            = exit 0
 end
 
-let state =
-  {
-    ic = stdin;
-    oc = stdout;
-    t = onot;
-  }
+let t : t ref = ref onot
 
 let setcursor _ = ()
 
-let settitle _ = ()
+let settitle s =
+  stub_set_title s
 
 let swapb () = ()
 
-let post_key_down key mask =
-  output_message (KeyDown (key, mask)) state.oc
+let reshape w h =
+  stub_reshape w h
 
-let readresp _ =
-  match input_message state.ic with
-  | KeyDown (key, mask) -> state.t#key key mask
+let key_down key mask =
+  if debug then Printf.eprintf "key down: %d %x\n%!" key mask;
+  !t#key key mask
 
-let init t _ w h platform =
-  ()
+let key_up key mask =
+  if debug then Printf.eprintf "key up: %d %x\n%!" key mask;
+  !t#key key mask
+
+let mouse_down b x y mask =
+  if debug then Printf.eprintf "mouse down: %d %d %x\n%!" x y mask;
+  !t#mouse b true x y mask
+
+let mouse_up b x y mask =
+  if debug then Printf.eprintf "mouse up: %d %d %x\n%!" x y mask;
+  !t#mouse b false x y mask
+
+let mouse_moved x y =
+  if debug then Printf.eprintf "mouse moved: %d %d\n%!" x y;
+  !t#motion x y
+
+let () =
+  Callback.register "llpp_key_down" key_down;
+  Callback.register "llpp_key_up" key_up;
+  Callback.register "llpp_mouse_down" mouse_down;
+  Callback.register "llpp_mouse_up" mouse_up;
+  Callback.register "llpp_mouse_moved" mouse_moved
+
+let readresp _ = ()
+
+let init t _ w h platform = Unix.stdin, 0, 0
 
 let fullscreen () = ()
-
-let reshape _ _ = ()
 
 let activatewin () = ()
 

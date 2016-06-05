@@ -1,6 +1,8 @@
 open Utils;;
 open Config;;
 
+module Wsi = Wsi_osx
+
 exception Quit;;
 
 external init : Unix.file_descr -> params -> unit = "ml_init";;

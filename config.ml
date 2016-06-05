@@ -1,5 +1,7 @@
 open Utils;;
 
+module Wsi = Wsi_osx
+
 external fz_version : unit -> string = "ml_fz_version";;
 
 type fontstate =
