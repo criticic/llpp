@@ -97,6 +97,17 @@ CAMLprim value stub_fullscreen (value unit)
     caml_callback2 (*caml_named_value ("llpp_mouse_moved"), Val_int (loc.x), Val_int (loc.y));
 }
 
+- (void)mouseEntered:(NSEvent *)theEvent
+{
+  NSPoint loc = [theEvent locationInWindow];
+  caml_callback2 (*caml_named_value ("llpp_entered"), Val_int (loc.x), Val_int (loc.y));
+}
+
+- (void)mouseExited:(NSEvent *)theEvent
+{
+  caml_callback (*caml_named_value ("llpp_left"), Val_unit);
+}
+
 @end
 
 @implementation MyDelegate
@@ -127,6 +138,13 @@ CAMLprim value stub_fullscreen (value unit)
     [window makeKeyAndOrderFront:nil];
     [window setDelegate:self];
 
+    NSTrackingArea *trackingArea =
+      [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]
+                                   options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+                                     owner:window
+                                  userInfo:nil];
+    [[window contentView] addTrackingArea:trackingArea];
+
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(appWillTerminate:)
                                                  name:NSApplicationWillTerminateNotification
@@ -142,18 +160,22 @@ CAMLprim value stub_fullscreen (value unit)
   }
 }
 
-- (void) appWillTerminate:(NSDictionary *)userInfo
+- (void)appWillTerminate:(NSDictionary *)userInfo
 {
   caml_callback (*caml_named_value ("llpp_quit"), Val_unit);
 }
 
-- (void) applicationDidFinishLaunching:(NSNotification *)not
+- (void)windowDidChangeOcclusionState:(NSNotification *)notification
+{
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)not
 {
     NSLog(@"applicationDidFinishLaunching");
     caml_startup (global_argv);
 }
 
-- (BOOL) applicationShouldTerminateAfterLastWindowClosed: (NSApplication *) theApplication
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication
 {
   return YES;
 }
