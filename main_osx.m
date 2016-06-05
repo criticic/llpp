@@ -8,8 +8,11 @@
 @import Cocoa;
 
 @interface MyDelegate : NSObject <NSApplicationDelegate>
+
 - (void) applicationWillFinishLaunching:(NSNotification *)not;
 - (void) applicationDidFinishLaunching:(NSNotification *)not;
+- (BOOL) applicationShouldTerminateAfterLastWindowClosed: (NSApplication *) theApplication;
+
 @end
 
 @interface MyWindow : NSWindow
@@ -88,6 +91,7 @@ CAMLprim value stub_reshape (value w, value h)
 @end
 
 @implementation MyDelegate
+
 - (void) applicationWillFinishLaunching:(NSNotification *)not
 {
     NSLog(@"applicationWillFinishLaunching");
@@ -112,6 +116,16 @@ CAMLprim value stub_reshape (value w, value h)
     window.acceptsMouseMovedEvents = YES;
     [window cascadeTopLeftFromPoint:NSMakePoint (20,20)];
     [window makeKeyAndOrderFront:nil];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(appWillTerminate:)
+                                                 name:NSApplicationWillTerminateNotification
+                                               object:nil];
+}
+
+- (void) appWillTerminate:(NSDictionary *)userInfo
+{
+  caml_callback (*caml_named_value ("llpp_quit"), Val_unit);
 }
 
 - (void) applicationDidFinishLaunching:(NSNotification *)not
@@ -119,6 +133,12 @@ CAMLprim value stub_reshape (value w, value h)
     NSLog(@"applicationDidFinishLaunching");
     caml_startup (global_argv);
 }
+
+- (BOOL) applicationShouldTerminateAfterLastWindowClosed: (NSApplication *) theApplication
+{
+  return YES;
+}
+
 @end
 
 int main(int argc, char **argv)

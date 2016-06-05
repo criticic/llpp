@@ -17,7 +17,7 @@ LIBFLAGS := -L mupdf/build/native
 INCFLAGS := -I mupdf/include -I mupdf/thirdparty/freetype/include
 LIBS := -lGL -lX11 -lmupdf -lmupdfthird -lpthread
 
-all: $(LLPP).native
+all: $(LLPP).native.osx
 
 main.ml: main.mlp pp.sed
 	$(SED) -f pp.sed $< > $@

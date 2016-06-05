@@ -84,12 +84,17 @@ let mouse_moved x y =
   if debug then Printf.eprintf "mouse moved: %d %d\n%!" x y;
   !t#motion x y
 
+let quit () =
+  if debug then Printf.eprintf "quit\n%!";
+  !t#quit
+
 let () =
   Callback.register "llpp_key_down" key_down;
   Callback.register "llpp_key_up" key_up;
   Callback.register "llpp_mouse_down" mouse_down;
   Callback.register "llpp_mouse_up" mouse_up;
-  Callback.register "llpp_mouse_moved" mouse_moved
+  Callback.register "llpp_mouse_moved" mouse_moved;
+  Callback.register "llpp_quit" quit
 
 let readresp _ = ()
 
