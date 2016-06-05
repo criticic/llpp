@@ -366,44 +366,64 @@ CAMLprim value ml_hasdata (value fd_v)
     CAMLreturn (Val_bool (avail > 0));
 }
 
-static void readdata (void *p, int size)
+static void readdata (int fd, void *p, int size)
 {
     ssize_t n;
 
  again:
-    n = read (state.csock, p, size);
+    n = read (fd, p, size);
     if (n < 0) {
         if (errno == EINTR) goto again;
-        err (1, "read (req %d, ret %zd)", size, n);
+        err (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
     if (n - size) {
         if (!n) errx (1, "EOF while reading");
-        errx (1, "read (req %d, ret %zd)", size, n);
+        errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
 }
 
-static void writedata (char *p, int size)
+static void writedata (int fd, char *p, int size)
 {
     ssize_t n;
 
-    p[0] = (size >> 24) & 0xff;
-    p[1] = (size >> 16) & 0xff;
-    p[2] = (size >>  8) & 0xff;
-    p[3] = (size >>  0) & 0xff;
-
-    n = write (state.csock, p, size + 4);
+    /* One should lookup type punning/strict aliasing etc in standard,DRs,Web to
+       convince herself that this is:
+       a. safe
+       b. practically the only way to achieve the result
+          (union puns notwithstanding) */
+    memcpy (p, &size, 4);
+    n = write (fd, p, size + 4);
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
-        err (1, "write (req %d, ret %zd)", size + 4, n);
+        err (1, "write (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
 
-static int readlen (void)
+static int readlen (int fd)
 {
-    unsigned char p[4];
+    /* Type punned unions here. Why? Less code (Adjusted by more comments).
+       https://en.wikipedia.org/wiki/Type_punning */
+    union { int len; char raw[4]; } buf;
+    readdata (fd, buf.raw, 4);
+    return buf.len;
+}
 
-    readdata (p, 4);
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+CAMLprim void ml_wcmd (value fd_v, value bytes_v, value len_v)
+{
+    CAMLparam3 (fd_v, bytes_v, len_v);
+    writedata (Int_val (fd_v), &Byte (bytes_v, 0), Int_val (len_v));
+    CAMLreturn0;
+}
+
+CAMLprim value ml_rcmd (value fd_v)
+{
+    CAMLparam1 (fd_v);
+    CAMLlocal1 (strdata_v);
+    int fd = Int_val (fd_v);
+    int len = readlen (fd);
+    strdata_v = caml_alloc_string (len);
+    readdata (fd, String_val (strdata_v), len);
+    CAMLreturn (strdata_v);
 }
 
 static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
@@ -422,7 +442,7 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 
         if (len > -1) {
             if (len < size - 4) {
-                writedata (buf, len);
+                writedata (state.csock, buf, len);
                 break;
             }
             else size = len + 5;
@@ -474,6 +494,10 @@ static int openxref (char *filename, char *password)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
+#ifdef CSS_HACK_TO_READ_EPUBS_COMFORTABLY
+    fz_set_user_css (state.ctx,
+                     "body { margin-left: 20%; margin-right: 20%; }");
+#endif
     state.doc = fz_open_document (state.ctx, filename);
     if (fz_needs_password (state.ctx, state.doc)) {
         if (password && !*password) {
@@ -761,12 +785,12 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
         if (pbo) {
             tile->pixmap =
                 fz_new_pixmap_with_bbox_and_data (state.ctx, state.colorspace,
-                                                  &bbox, pbo->ptr);
+                                                  &bbox, 1, pbo->ptr);
             tile->pbo = pbo;
         }
         else {
             tile->pixmap =
-                fz_new_pixmap_with_bbox (state.ctx, state.colorspace, &bbox);
+                fz_new_pixmap_with_bbox (state.ctx, state.colorspace, &bbox, 1);
         }
     }
 
@@ -799,7 +823,7 @@ pdf_collect_pages(pdf_document *doc, pdf_obj *node)
     len = pdf_array_len (ctx, kids);
 
     if (len == 0)
-        fz_throw (ctx, FZ_ERROR_GENERIC, "Malformed pages tree");
+        fz_throw (ctx, FZ_ERROR_GENERIC, "malformed pages tree");
 
     if (pdf_mark_obj (ctx, node))
         fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
@@ -849,6 +873,7 @@ static void initpdims (int wthack)
     pdf_document *pdf = pdf_specifics (ctx, state.doc);
 
     fz_var (trimw);
+    fz_var (trimf);
     fz_var (cxcount);
     start = now ();
 
@@ -891,6 +916,7 @@ static void initpdims (int wthack)
         struct pagedim *p;
         fz_rect mediabox;
 
+        fz_var (rotate);
         if (pdf) {
             pdf_obj *pageref, *pageobj;
 
@@ -1668,7 +1694,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
     fz_var (p);
     fz_var (oldlen);
     for (;;) {
-        len = readlen ();
+        len = readlen (state.csock);
         if (len == 0) {
             errx (1, "readlen returned 0");
         }
@@ -1680,7 +1706,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             oldlen = len + 1;
         }
-        readdata (p, len);
+        readdata (state.csock, p, len);
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
@@ -2692,16 +2718,14 @@ static fz_link *getlink (struct page *page, int x, int y)
 {
     fz_point p;
     fz_matrix ctm;
-    const fz_matrix *tctm;
     fz_link *link, *links;
 
-    tctm = &fz_identity;
     links = fz_load_links (state.ctx, page->fzpage);
 
     p.x = x;
     p.y = y;
 
-    fz_concat (&ctm, tctm, &state.pagedims[page->pdimno].ctm);
+    ctm = pagectm (page);
     fz_invert_matrix (&ctm, &ctm);
     fz_transform_point (&p, &ctm);
 
@@ -2729,12 +2753,10 @@ static void ensuretext (struct page *page)
         page->sheet = fz_new_stext_sheet (state.ctx);
         tdev = fz_new_stext_device (state.ctx, page->sheet, page->text);
         ctm = pagectm (page);
-        fz_begin_page (state.ctx, tdev, &fz_infinite_rect, &ctm);
         fz_run_display_list (state.ctx, page->dlist,
                              tdev, &ctm, &fz_infinite_rect, NULL);
         qsort (page->text->blocks, page->text->len,
                sizeof (*page->text->blocks), compareblocks);
-        fz_end_page (state.ctx, tdev);
         fz_drop_device (state.ctx, tdev);
     }
 }
@@ -2758,6 +2780,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
         if (pdf) {
             pdf_page *page = NULL;
 
+            fz_var (page);
             fz_try (state.ctx) {
                 page = pdf_load_page (state.ctx, pdf, i);
                 found = !!page->links || !!page->annots;
@@ -3362,13 +3385,13 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                         }
                         if (charnum3 == -1) charnum3 = 0;
 
+                        charnum4 = charnum;
                         for (charnum2 = charnum + 1;
                              charnum2 < span->len;
                              ++charnum2) {
                             if (uninteresting (span->text[charnum2].c)) break;
                             charnum4 = charnum2;
                         }
-                        if (charnum4 == -1) goto unlock;
 
                         page->fmark.i = charnum3;
                         page->fmark.span = span;
@@ -4695,10 +4718,10 @@ CAMLprim value ml_init (value csock_v, value params_v)
 #endif
     }
     else {
-        unsigned int len;
-        void *base = pdf_lookup_substitute_font (state.ctx, 0, 0, 0, 0, &len);
-
-        state.face = load_builtin_font (base, len);
+        int len;
+        const char *data = pdf_lookup_substitute_font (state.ctx, 0, 0,
+                                                       0, 0, &len);
+        state.face = load_builtin_font (data, len);
     }
     if (!state.face) _exit (1);
 

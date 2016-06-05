@@ -23,7 +23,7 @@ type equation = float * float * float * float
 external clip_plane : plane:int -> equation -> unit
     = "ml_glClipPlane"
 let clip_plane ~plane equation =
-  if plane < 0 or plane > 5 then invalid_arg "Gl.clip_plane";
+  if plane < 0 || plane > 5 then invalid_arg "Gl.clip_plane";
   clip_plane ~plane equation
 
 type hint_target =

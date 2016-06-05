@@ -1,7 +1,5 @@
 Prerequisites for building from sources:
         mupdf         [http://mupdf.com/]
-                       git://git.ghostscript.com/mupdf.git
-                       commit 990c79c8e5288a3315a73d8c55084a594f82ccac
         ocaml (4.02+) [http://ocaml.org/]
         gcc           [https://gcc.gnu.org/]
         binutils      [http://www.gnu.org/software/binutils/]
@@ -13,6 +11,8 @@ Prerequisites for building from sources:
 
   llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
   llpp% cd mupdf
+  mupdf% git checkout 9245cd0d2e353262ba518fb9f2e950bb74ad3c3e
+  mupdf% git submodule update --recursive
   mupdf% make build=native
   mupdf% cd ..
 

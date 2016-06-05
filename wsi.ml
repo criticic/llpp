@@ -506,7 +506,7 @@ let readresp sock =
   | 2 ->                                (* key press *)
       if Array.length state.keymap > 0
       then
-        let code = r8 resp  1 in
+        let code = r8 resp 1 in
         let mask = r16 resp 28 in
         let keysym = getkeysym code mask in
         vlog "keysym = %x %c mask %#x code %d"
@@ -1157,7 +1157,7 @@ let init t rootwid w h platform =
   let aname, adata = getauth host dispnum in
   let fd =
     let fd, addr =
-      if emptystr host || host = "unix" || platform = Utils.Posx
+      if emptystr host || host.[0] = '/' || host = "unix"
       then
         let addr =
           match platform with

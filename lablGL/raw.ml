@@ -21,7 +21,7 @@ external sizeof : [< kind] -> int = "ml_raw_sizeof"
 let length raw = raw.size / sizeof raw.kind
 let sub raw ~pos ~len =
   let size = sizeof raw.kind in
-  if pos < 0 or (pos+len) * size > raw.size then invalid_arg "Raw.sub";
+  if pos < 0 || (pos+len) * size > raw.size then invalid_arg "Raw.sub";
   { raw with offset = raw.offset + pos * size; size = len * size }
 
 external get : [< ikind] t -> pos:int -> int = "ml_raw_get"

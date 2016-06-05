@@ -70,7 +70,7 @@ let of_array m : t =
   mat
 
 let to_array (mat : t) =
-  let m = Array.create 4 [||] in
+  let m = Array.make 4 [||] in
   for i = 0 to 3 do
     Array.unsafe_set m i (Raw.gets_float mat ~pos:(i*4) ~len:4)
   done;

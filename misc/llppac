@@ -116,11 +116,12 @@ case $type in
     djvu) conv='ddjvu -format=pdf - "$casp"';;
     html) {
         missing prince "PrinceXML(http://www.princexml.com/)"
-        conv='prince - -o "$casp"'
+        conv='prince -s /home/malc/xsrc/llpp/misc/rr.css - -o "$casp"'
     };;
     word) {
         if executable_p unoconv && test -z "$dc"; then
             unset filt
+            caspsuf=.pdf
             conv='unoconv -o "$casp" "$1"'
         else
             missing antiword "antiword or unoconv"
@@ -132,6 +133,7 @@ case $type in
         unset filt
         missing unoconv "unoconv(http://dag.wiee.rs/home-made/unoconv/)"
         conv='unoconv -o "$casp" "$1"'
+        caspsuf=.pdf
     };;
     svg) {
         if executable_p inkscape && test -z "$dc"; then

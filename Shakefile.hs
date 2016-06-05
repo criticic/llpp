@@ -23,6 +23,8 @@ newtype CCmdLineOracle = CCmdLineOracle String
 newtype GitDescribeOracle = GitDescribeOracle ()
                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 
+data Bt = Native | Bytecode
+
 outdir = "build"
 mudir = "mupdf"
 inOutDir s = outdir </> s
@@ -32,25 +34,24 @@ ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
-ocamlflagstbl = [("main.cmo", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
-                ,("config.cmo", ("-I lablGL", "", []))
+ocamlflagstbl = [("main", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
+                ,("config", ("-I lablGL", "", []))
                 ]
-ocamlflagstbln = [("main.cmx", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
-                 ,("config.cmx", ("-I lablGL", "", []))
-                 ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow\
-         \ -DVISAVIS"
+         \ -DVISAVIS -DCSS_HACK_TO_READ_EPUBS_COMFORTABLY"
          ++ (if egl then " -DUSE_EGL" else "")
 cflagstbl =
   [("link.o"
    ,"-I " ++ mudir ++ "/include -I "
     ++ mudir ++ "/thirdparty/freetype/include -Wextra")
   ]
-cclib = "-lGL -lX11 -lmupdf -lmupdfthird\
-        \ -lpthread -L" ++ mudir ++ "/build/native -lcrypto"
-        ++ (if egl then " -lEGL" else "")
+cclib ty =
+  "-lGL -lX11 -lmupdf -lmupdfthird -lpthread -L" ++ mudir </> "build" </> ty
+  ++ " -lcrypto" ++ (if egl then " -lEGL" else "")
+cclibNative = cclib "native"
+cclibRelease = cclib "release"
 
 getincludes :: [String] -> [String]
 getincludes [] = []
@@ -68,8 +69,9 @@ fixincludes ("-I":d:tl)
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey comp tbl key
-  | "lablGL/" `isPrefixOf` key = (comp, "-I lablGL", [], [])
-  | otherwise = case lookup key tbl of
+  | "lablGL/" `isPrefixOf` key =
+    (comp, ocamlflags ++ " -w -44 -I lablGL", [], [])
+  | otherwise = case lookup (dropExtension key) tbl of
     Nothing -> (comp, ocamlflags, [], [])
     Just (f, [], deps) -> (comp, ocamlflags ++ " " ++ f, [], deps)
     Just (f, pp, deps) -> (comp, ocamlflags ++ " " ++ f, ["-pp", pp], deps)
@@ -112,6 +114,12 @@ compilecaml comp flagl ppflags out src = do
   ppppe ex src emsg
   return ()
 
+deplistE reqs =
+  [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
+deplist Native (_ : (_, reqs) : _) = deplistE reqs
+deplist Bytecode ((_, reqs) : _) = deplistE reqs
+deplist _ _ = []
+
 cmio target suffix oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
@@ -121,7 +129,7 @@ cmio target suffix oracle ordoracle = do
     let dep = out ++ "_dep"
     need $ dep : deps'
     ddep <- liftIO $ readFile dep
-    let deps = deplist $ parseMakefile ddep
+    let deps = deplist Bytecode $ parseMakefile ddep
     need deps
     compilecaml comp flagl ppflags out src
   target ++ "_dep" %> \out -> do
@@ -133,16 +141,12 @@ cmio target suffix oracle ordoracle = do
     writeFileChanged out mkfiledeps
     let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
           where
-            deps = deplist $ parseMakefile mkfiledeps
+            deps = deplist Bytecode $ parseMakefile mkfiledeps
             fit dep = ext == ".cmi" && base /= baseout
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
-    need ((map (++ "_dep") depo) ++ deps')
+    need (map (++ "_dep") depo ++ deps')
     unit $ ordoracle $ OcamlOrdOracle ord
-  where
-    deplist [] = []
-    deplist ((_, reqs) : _) =
-      [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
 
 cmx oracle ordoracle =
   "//*.cmx" %> \out -> do
@@ -151,13 +155,19 @@ cmx oracle ordoracle =
     (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracleN key
     let flagl = words flags
     mkfiledeps <- depscaml flags ppflags src
-    need ((deplist $ parseMakefile mkfiledeps) ++ deps')
+    need (deplist Native (parseMakefile mkfiledeps) ++ deps')
     unit $ ordoracle $ OcamlOrdOracleN out
     compilecaml comp flagl ppflags out src
-  where
-    deplist (_ : (_, reqs) : _) =
-      [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
-    deplist _ = []
+
+binInOutDir globjs depln target =
+  inOutDir target %> \out ->
+  do
+    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    cmxs <- liftIO $ readMVar depln
+    need cmxs
+    unit $ cmd ocamlopt "-g -I lablGL -o" out
+      "unix.cmxa str.cmxa" (reverse cmxs)
+      (inOutDir "link.o") "-cclib" (cclibRelease : globjs)
 
 main = do
   depl <- newMVar ([] :: [String])
@@ -176,7 +186,7 @@ main = do
     return $ ocamlKey ocamlc ocamlflagstbl s
 
   ocamlOracleN <- addOracle $ \(OcamlCmdLineOracleN s) ->
-    return $ ocamlKey ocamlopt ocamlflagstbln s
+    return $ ocamlKey ocamlopt ocamlflagstbl s
 
   ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) ->
     unless (takeExtension s == ".cmi") $
@@ -186,7 +196,7 @@ main = do
     unless (takeExtension s == ".cmi") $
       liftIO $ modifyMVar_ depln $ \l -> return $ s:l
 
-  cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey envcflags  s
+  cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey envcflags s
 
   inOutDir "help.ml" %> \out -> do
     version <- gitDescribeOracle $ GitDescribeOracle ()
@@ -210,15 +220,10 @@ main = do
     need cmos
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
       "unix.cma str.cma" (reverse cmos)
-      (inOutDir "link.o") "-cclib" (cclib : globjs)
+      (inOutDir "link.o") "-cclib" (cclibNative : globjs)
 
-  inOutDir "llpp.native" %> \out -> do
-    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
-    cmxs <- liftIO $ readMVar depln
-    need cmxs
-    unit $ cmd ocamlopt "-g -I lablGL -o" out
-      "unix.cmxa str.cmxa" (reverse cmxs)
-      (inOutDir "link.o") "-cclib" (cclib : globjs)
+  binInOutDir globjs depln "llpp.native"
+  binInOutDir globjs depln "llpp.murel.native"
 
   cmio "//*.cmi" ".mli" ocamlOracle ocamlOrdOracle
   cmio "//*.cmo" ".ml" ocamlOracle ocamlOrdOracle
