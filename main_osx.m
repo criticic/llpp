@@ -7,7 +7,7 @@
 
 @import Cocoa;
 
-@interface MyDelegate : NSObject <NSApplicationDelegate>
+@interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 
 - (void) applicationWillFinishLaunching:(NSNotification *)not;
 - (void) applicationDidFinishLaunching:(NSNotification *)not;
@@ -39,6 +39,16 @@ CAMLprim value stub_reshape (value w, value h)
     if (window == NULL) return Val_unit;
     [window reshapeWidth:Int_val (w) height:(Int_val (h))];
     return Val_unit;
+}
+
+CAMLprim value stub_fullscreen (value unit)
+{
+  if (window != NULL) {
+    if (([window styleMask] & NSFullScreenWindowMask) != NSFullScreenWindowMask) {
+      [window toggleFullScreen:nil];
+    }
+  }
+  return Val_unit;
 }
 
 @implementation MyWindow : NSWindow
@@ -83,7 +93,6 @@ CAMLprim value stub_reshape (value w, value h)
 
 - (void) mouseMoved: (NSEvent *) event
 {
-  int buttons = 0; // [event pressedMouseButtons];
     NSPoint loc = [event locationInWindow];
     caml_callback2 (*caml_named_value ("llpp_mouse_moved"), Val_int (loc.x), Val_int (loc.y));
 }
@@ -116,11 +125,21 @@ CAMLprim value stub_reshape (value w, value h)
     window.acceptsMouseMovedEvents = YES;
     [window cascadeTopLeftFromPoint:NSMakePoint (20,20)];
     [window makeKeyAndOrderFront:nil];
+    [window setDelegate:self];
 
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(appWillTerminate:)
                                                  name:NSApplicationWillTerminateNotification
                                                object:nil];
+}
+
+- (void)windowDidResize:(NSNotification *)notification
+{
+  NSWindow *w = [notification object];
+  if (window != NULL) {
+    caml_callback2 (*caml_named_value ("llpp_reshaped"),
+                    Val_int (w.frame.size.width), Val_int (w.frame.size.height));
+  }
 }
 
 - (void) appWillTerminate:(NSDictionary *)userInfo

@@ -1,5 +1,6 @@
 external stub_reshape: int -> int -> unit = "stub_reshape"
 external stub_set_title: string -> unit = "stub_set_title"
+external stub_fullscreen: unit -> unit = "stub_fullscreen"
 
 let debug = true
 
@@ -88,19 +89,25 @@ let quit () =
   if debug then Printf.eprintf "quit\n%!";
   !t#quit
 
+let reshaped w h =
+  if debug then Printf.eprintf "reshape %d %d\n%!" w h;
+  !t#reshape w h
+
 let () =
   Callback.register "llpp_key_down" key_down;
   Callback.register "llpp_key_up" key_up;
   Callback.register "llpp_mouse_down" mouse_down;
   Callback.register "llpp_mouse_up" mouse_up;
   Callback.register "llpp_mouse_moved" mouse_moved;
-  Callback.register "llpp_quit" quit
+  Callback.register "llpp_quit" quit;
+  Callback.register "llpp_reshaped" reshaped
 
 let readresp _ = ()
 
 let init t _ w h platform = Unix.stdin, 0, 0
 
-let fullscreen () = ()
+let fullscreen () =
+  stub_fullscreen ()
 
 let activatewin () = ()
 
