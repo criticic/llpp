@@ -29,16 +29,18 @@ char **global_argv = NULL;
 
 CAMLprim value stub_set_title (value title)
 {
-    if (window == NULL) return Val_unit;
+  if (window != NULL) {
     [window setTitle:[NSString stringWithUTF8String:String_val(title)]];
-    return Val_unit;
+  }
+  return Val_unit;
 }
 
 CAMLprim value stub_reshape (value w, value h)
 {
-    if (window == NULL) return Val_unit;
+  if (window != NULL) {
     [window reshapeWidth:Int_val (w) height:(Int_val (h))];
-    return Val_unit;
+  }
+  return Val_unit;
 }
 
 CAMLprim value stub_fullscreen (value unit)
@@ -51,50 +53,76 @@ CAMLprim value stub_fullscreen (value unit)
   return Val_unit;
 }
 
-@implementation MyWindow : NSWindow
+@interface MyOpenGLView : NSOpenGLView
 
-- (void) reshapeWidth: (int) w height: (int)h
+- (void)drawRect:(NSRect)bounds;
+
+@end
+
+@implementation MyOpenGLView
+
+- (void)drawRect:(NSRect)bounds
 {
-    NSRect frame = self.frame;
-    [self setFrame: NSMakeRect (frame.origin.x, frame.origin.y, w, h) display:YES];
+  caml_callback (*caml_named_value ("llpp_display"), Val_unit);
 }
 
-- (void) keyDown: (NSEvent *) event
+@end
+
+@implementation MyWindow
 {
-    int key = [event keyCode];
-    int mask = [event modifierFlags];
-    caml_callback2 (*caml_named_value ("llpp_key_down"), Val_int (key), Val_int (mask));
+  NSOpenGLView *openGLView;
 }
 
-- (void) keyUp: (NSEvent *) event
+- (void) setUp
 {
-    int key = [event keyCode];
-    int mask = [event modifierFlags];
-    caml_callback2 (*caml_named_value ("llpp_key_up"), Val_int (key), Val_int (mask));
+  self.acceptsMouseMovedEvents = YES;
+  openGLView =
+    [[MyOpenGLView alloc] initWithFrame:[self frame] pixelFormat:[NSOpenGLView defaultPixelFormat]];
+  [[self contentView] addSubview:openGLView];
 }
 
-- (void) mouseDown: (NSEvent *) event
+- (void)reshapeWidth:(int)w height:(int)h
+{
+  NSRect frame = self.frame;
+  [self setFrame: NSMakeRect (frame.origin.x, frame.origin.y, w, h) display:YES];
+}
+
+- (void)keyDown:(NSEvent *)event
+{
+  int key = [event keyCode];
+  int mask = [event modifierFlags];
+  caml_callback2 (*caml_named_value ("llpp_key_down"), Val_int (key), Val_int (mask));
+}
+
+- (void)keyUp:(NSEvent *)event
+{
+  int key = [event keyCode];
+  int mask = [event modifierFlags];
+  caml_callback2 (*caml_named_value ("llpp_key_up"), Val_int (key), Val_int (mask));
+}
+
+- (void)mouseDown:(NSEvent *)event
 {
   int buttons = 0; // [event pressedMouseButtons];
-    NSPoint loc = [event locationInWindow];
-    int mask = [event modifierFlags];
-    value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
-    caml_callbackN (*caml_named_value ("llpp_mouse_down"), 4, args);
+  NSPoint loc = [event locationInWindow];
+  int mask = [event modifierFlags];
+  value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
+  caml_callbackN (*caml_named_value ("llpp_mouse_down"), 4, args);
 }
 
-- (void) mouseUp: (NSEvent *) event
+- (void)mouseUp:(NSEvent *)event
 {
   int buttons = 0; // [event pressedMouseButtons];
-    NSPoint loc = [event locationInWindow];
-    int mask = [event modifierFlags];
-    value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
-    caml_callbackN (*caml_named_value ("llpp_mouse_up"), 4, args);
+  NSPoint loc = [event locationInWindow];
+  int mask = [event modifierFlags];
+  value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
+  caml_callbackN (*caml_named_value ("llpp_mouse_up"), 4, args);
 }
 
-- (void) mouseMoved: (NSEvent *) event
+- (void)mouseMoved:(NSEvent *)event
 {
-    NSPoint loc = [event locationInWindow];
-    caml_callback2 (*caml_named_value ("llpp_mouse_moved"), Val_int (loc.x), Val_int (loc.y));
+  NSPoint loc = [event locationInWindow];
+  caml_callback2 (*caml_named_value ("llpp_mouse_moved"), Val_int (loc.x), Val_int (loc.y));
 }
 
 - (void)mouseEntered:(NSEvent *)theEvent
@@ -132,11 +160,10 @@ CAMLprim value stub_fullscreen (value unit)
                                          styleMask:(NSTitledWindowMask | NSResizableWindowMask)
                                            backing:NSBackingStoreBuffered
                                              defer:NO];
-
-    window.acceptsMouseMovedEvents = YES;
     [window cascadeTopLeftFromPoint:NSMakePoint (20,20)];
     [window makeKeyAndOrderFront:nil];
     [window setDelegate:self];
+    [window setUp];
 
     NSTrackingArea *trackingArea =
       [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]

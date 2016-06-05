@@ -101,6 +101,10 @@ let left () =
   if debug then Printf.eprintf "leave\n%!";
   !t#leave
 
+let display () =
+  if debug then Printf.eprintf "display\n%!";
+  !t#display
+
 let () =
   Callback.register "llpp_key_down" key_down;
   Callback.register "llpp_key_up" key_up;
@@ -110,7 +114,8 @@ let () =
   Callback.register "llpp_quit" quit;
   Callback.register "llpp_reshaped" reshaped;
   Callback.register "llpp_entered" entered;
-  Callback.register "llpp_left" left
+  Callback.register "llpp_left" left;
+  Callback.register "llpp_display" display
 
 let readresp _ = ()
 
