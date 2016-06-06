@@ -5,11 +5,11 @@ config.cmx config.o config.cmi : wsi_osx.cmi wsi_osx.cmx utils.cmi utils.cmx \
     lablGL/glTex.cmi lablGL/glTex.cmx config.ml
 help.cmo help.cmi : help.ml
 help.cmx help.o help.cmi : help.ml
-main.cmo main.cmi : wsi.cmi utils.cmi lablGL/raw.cmi lablGL/glTex.cmi \
+main.cmo main.cmi : wsi_osx.cmi utils.cmi lablGL/raw.cmi lablGL/glTex.cmi \
     lablGL/glPix.cmi lablGL/glMisc.cmi lablGL/glMat.cmi lablGL/glFunc.cmi \
     lablGL/glDraw.cmi lablGL/glClear.cmi lablGL/glArray.cmi lablGL/gl.cmi \
     config.cmi main.ml
-main.cmx main.o main.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
+main.cmx main.o main.cmi : wsi_osx.cmi wsi_osx.cmx utils.cmi utils.cmx \
     lablGL/raw.cmi lablGL/raw.cmx lablGL/glTex.cmi lablGL/glTex.cmx \
     lablGL/glPix.cmi lablGL/glPix.cmx lablGL/glMisc.cmi lablGL/glMisc.cmx \
     lablGL/glMat.cmi lablGL/glMat.cmx lablGL/glFunc.cmi lablGL/glFunc.cmx \

@@ -119,7 +119,10 @@ let () =
 
 let readresp _ = ()
 
-let init t _ w h platform = Unix.stdin, 0, 0
+let init t0 _ w h platform =
+  t := t0;
+  !t#expose;
+  Unix.stdin, 100, 100
 
 let fullscreen () =
   stub_fullscreen ()

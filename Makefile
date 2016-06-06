@@ -15,7 +15,7 @@ LDFLAGS = -L /opt/X11/lib
 
 LIBFLAGS := -L mupdf/build/native
 INCFLAGS := -I mupdf/include -I mupdf/thirdparty/freetype/include
-LIBS := -lGL -lX11 -lmupdf -lmupdfthird -lpthread
+LIBS := -lmupdf -lmupdfthird -lpthread # -lGL -lX11
 
 all: $(LLPP).native.osx
 
@@ -29,7 +29,8 @@ lablGL/%.o: lablGL/%.c
 	$(CC) -I $(STDLIB) -o $@ -c $<
 
 LINK_CFLAGS := \
-	-Wextra -Wall -Werror -D_GNU_SOURCE \
+#	-Wextra -Wall -Werror
+	-D_GNU_SOURCE \
 	-O -g -std=c99 -pedantic-errors -Wunused-parameter \
 	-Wsign-compare -Wshadow
 
@@ -63,23 +64,23 @@ O_FILES = \
 $(LLPP): $(O_FILES) $(addsuffix .cmo,$(LLPP_FILES))
 	$(OCAMLC) -custom unix.cma str.cma $^ -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@
 
-$(LLPP).o: $(addsuffix .cmo,$(LLPP_FILES))
-	$(OCAMLC) -output-obj -o $@ unix.cma str.cma $^
+# $(LLPP).o: $(addsuffix .cmo,$(LLPP_FILES))
+# 	$(OCAMLC) -output-obj -o $@ unix.cma str.cma $^
 
 $(LLPP).native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
 	$(OCAMLOPT) unix.cmxa str.cmxa $^ -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@
 
-$(LLPP).native.o: $(addsuffix .cmx,$(LLPP_FILES))
-	$(OCAMLOPT) -output-obj -o $@ unix.cmxa str.cmxa $^
+# $(LLPP).native.o: $(addsuffix .cmx,$(LLPP_FILES))
+# 	$(OCAMLOPT) $@ unix.cmxa str.cmxa -c $^
 
 main_osx.o: main_osx.m
-	$(CC) -I $(STDLIB) -fmodules -o $@ -c $<
+	$(CC) -I $(STDLIB) -o $@ -c $<
 
-$(LLPP).osx: main_osx.o llpp.o $(O_FILES)
-	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -lcamlrun -framework cocoa -o $@ $^
+# $(LLPP).osx: main_osx.o llpp.o $(O_FILES)
+# 	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -lcamlrun -framework cocoa -o $@ $^
 
-$(LLPP).native.osx: main_osx.o llpp.native.o $(O_FILES)
-	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -ltermcap -lasmrun -framework cocoa -o $@ $^
+$(LLPP).native.osx: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
+	$(OCAMLOPT) str.cmxa unix.cmxa -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS) -framework cocoa -framework opengl" -o $@ $^
 
 .PHONY: depend
 depend: main.ml help.ml

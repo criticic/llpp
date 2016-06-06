@@ -6503,25 +6503,25 @@ let () =
   setbgcol conf.bgcolor;
   state.wsfd <- wsfd;
 
-  (* if not ( *)
-  (*   List.exists GlMisc.check_extension *)
-  (*     [ "GL_ARB_texture_rectangle" *)
-  (*     ; "GL_EXT_texture_recangle" *)
-  (*     ; "GL_NV_texture_rectangle" ] *)
-  (* ) *)
-  (* then (dolog "OpenGL does not suppport rectangular textures"; exit 1); *)
+  if not (
+    List.exists GlMisc.check_extension
+      [ "GL_ARB_texture_rectangle"
+      ; "GL_EXT_texture_recangle"
+      ; "GL_NV_texture_rectangle" ]
+  )
+  then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
 
-  (* if ( *)
-  (*   let r = GlMisc.get_string `renderer in *)
-  (*   let p = "Mesa DRI Intel(" in *)
-  (*   let l = String.length p in *)
-  (*   String.length r > l && String.sub r 0 l = p *)
-  (* ) *)
-  (* then ( *)
-  (*   defconf.sliceheight <- 1024; *)
-  (*   defconf.texcount <- 32; *)
-  (*   defconf.usepbo <- true; *)
-  (* ); *)
+  if (
+    let r = GlMisc.get_string `renderer in
+    let p = "Mesa DRI Intel(" in
+    let l = String.length p in
+    String.length r > l && String.sub r 0 l = p
+  )
+  then (
+    defconf.sliceheight <- 1024;
+    defconf.texcount <- 32;
+    defconf.usepbo <- true;
+  );
 
   let cs, ss =
     match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
@@ -6534,9 +6534,9 @@ let () =
         r, w
   in
 
-  (* setcheckers conf.checkers; *)
+  setcheckers conf.checkers;
 
-  (* opengl_has_pbo := GlMisc.check_extension "GL_ARB_pixel_buffer_object"; *)
+  opengl_has_pbo := GlMisc.check_extension "GL_ARB_pixel_buffer_object";
 
   init cs (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
@@ -6673,7 +6673,8 @@ let () =
     end;
   in
   try
-    loop infinity;
+    ()
+    (* loop infinity; *)
   with Quit ->
     Config.save leavebirdseye;
     if hasunsavedchanges ()

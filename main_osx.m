@@ -1,11 +1,11 @@
+#include <Cocoa/Cocoa.h>
+#include <OpenGL/gl.h>
+
 #define CAML_NAME_SPACE
 
-#include <pthread.h>
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 #include <caml/callback.h>
-
-@import Cocoa;
 
 @interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 
@@ -24,32 +24,23 @@
 
 @end
 
-MyWindow *window = nil;
-char **global_argv = NULL;
-
 CAMLprim value stub_set_title (value title)
 {
-  if (window != NULL) {
-    [window setTitle:[NSString stringWithUTF8String:String_val(title)]];
-  }
+  [[NSApp delegate] setTitle:[NSString stringWithUTF8String:String_val(title)]];
   return Val_unit;
 }
 
 CAMLprim value stub_reshape (value w, value h)
 {
-  if (window != NULL) {
-    [window reshapeWidth:Int_val (w) height:(Int_val (h))];
-  }
+  [[NSApp delegate] reshapeWidth:Int_val (w) height:(Int_val (h))];
   return Val_unit;
 }
 
 CAMLprim value stub_fullscreen (value unit)
 {
-  if (window != NULL) {
-    if (([window styleMask] & NSFullScreenWindowMask) != NSFullScreenWindowMask) {
-      [window toggleFullScreen:nil];
-    }
-  }
+  // if (([window styleMask] & NSFullScreenWindowMask) != NSFullScreenWindowMask) {
+  //   [window toggleFullScreen:nil];
+  // }
   return Val_unit;
 }
 
@@ -63,23 +54,16 @@ CAMLprim value stub_fullscreen (value unit)
 
 - (void)drawRect:(NSRect)bounds
 {
-  caml_callback (*caml_named_value ("llpp_display"), Val_unit);
+  NSLog(@"drawRect");
+  value *cb = caml_named_value("llpp_display");
+  if (cb != NULL) {
+    caml_callback (*cb, Val_unit);
+  }
 }
 
 @end
 
 @implementation MyWindow
-{
-  NSOpenGLView *openGLView;
-}
-
-- (void) setUp
-{
-  self.acceptsMouseMovedEvents = YES;
-  openGLView =
-    [[MyOpenGLView alloc] initWithFrame:[self frame] pixelFormat:[NSOpenGLView defaultPixelFormat]];
-  [[self contentView] addSubview:openGLView];
-}
 
 - (void)reshapeWidth:(int)w height:(int)h
 {
@@ -139,57 +123,77 @@ CAMLprim value stub_fullscreen (value unit)
 @end
 
 @implementation MyDelegate
-
-- (void) applicationWillFinishLaunching:(NSNotification *)not
 {
-    NSLog(@"applicationWillFinishLaunching");
-    id menubar = [NSMenu new];
-    id appMenuItem = [NSMenuItem new];
-    [menubar addItem:appMenuItem];
-    [NSApp setMainMenu:menubar];
-    id appMenu = [NSMenu new];
-    id appName = [[NSProcessInfo processInfo] processName];
-    id quitTitle = [@"Quit " stringByAppendingString:appName];
-    id quitMenuItem = [[NSMenuItem alloc] initWithTitle:quitTitle
-                                                 action:@selector(terminate:)
-                                                 keyEquivalent:@"q"];
-    [appMenu addItem:quitMenuItem];
-    [appMenuItem setSubmenu:appMenu];
+  char **argv;
+  NSWindow *window;
+}
 
-    window = [[MyWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 400)
-                                         styleMask:(NSTitledWindowMask | NSResizableWindowMask)
-                                           backing:NSBackingStoreBuffered
-                                             defer:NO];
-    [window cascadeTopLeftFromPoint:NSMakePoint (20,20)];
-    [window makeKeyAndOrderFront:nil];
-    [window setDelegate:self];
-    [window setUp];
+- (instancetype) initWithArgv:(char **)theArgv
+{
+  argv = theArgv;
+  return [super init];
+}
 
-    NSTrackingArea *trackingArea =
-      [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]
-                                   options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
-                                     owner:window
-                                  userInfo:nil];
-    [[window contentView] addTrackingArea:trackingArea];
+- (void)setTitle:(NSString *)title
+{
+  [window setTitle:title];
+}
 
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(appWillTerminate:)
-                                                 name:NSApplicationWillTerminateNotification
-                                               object:nil];
+- (void)reshapeWidth:(int)w height:(int)h
+{
+  NSLog(@"reshapeWidth:height");
+}
+
+- (void)applicationWillFinishLaunching:(NSNotification *)not
+{
+  NSLog(@"applicationWillFinishLaunching");
+  id menubar = [NSMenu new];
+  id appMenuItem = [NSMenuItem new];
+  [menubar addItem:appMenuItem];
+  [NSApp setMainMenu:menubar];
+  id appMenu = [NSMenu new];
+  id appName = [[NSProcessInfo processInfo] processName];
+  id quitTitle = [@"Quit " stringByAppendingString:appName];
+  id quitMenuItem = [[NSMenuItem alloc] initWithTitle:quitTitle
+                                               action:@selector(terminate:)
+                                        keyEquivalent:@"q"];
+  [appMenu addItem:quitMenuItem];
+  [appMenuItem setSubmenu:appMenu];
+
+  window = [[MyWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 400)
+                                       styleMask:(NSClosableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
+                                         backing:NSBackingStoreBuffered
+                                           defer:NO];
+
+  [window setAcceptsMouseMovedEvents:YES];
+  [window makeKeyAndOrderFront:self];
+  NSLog(@"%@", [window deviceDescription]);
+  [window cascadeTopLeftFromPoint:NSMakePoint(20,20)];
+  NSOpenGLView *openGLView =
+    [[MyOpenGLView alloc] initWithFrame:[window frame]
+                            pixelFormat:[NSOpenGLView defaultPixelFormat]];
+  NSLog (@"%@", openGLView);
+  [window setContentView:openGLView];
+  [[openGLView openGLContext] makeCurrentContext];
+  NSLog(@"OpenGL Version: %s", glGetString(GL_VERSION));
+  [window setDelegate:self];
+  NSTrackingArea *trackingArea =
+    [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]
+                                 options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+                                   owner:window
+                                userInfo:nil];
+  [[window contentView] addTrackingArea:trackingArea];
 }
 
 - (void)windowDidResize:(NSNotification *)notification
 {
-  NSWindow *w = [notification object];
-  if (window != NULL) {
-    caml_callback2 (*caml_named_value ("llpp_reshaped"),
-                    Val_int (w.frame.size.width), Val_int (w.frame.size.height));
-  }
+  caml_callback2(*caml_named_value("llpp_reshaped"),
+                 Val_int(window.frame.size.width), Val_int(window.frame.size.height));
 }
 
-- (void)appWillTerminate:(NSDictionary *)userInfo
+- (void)applicationWillTerminate:(NSDictionary *)userInfo
 {
-  caml_callback (*caml_named_value ("llpp_quit"), Val_unit);
+  caml_callback(*caml_named_value("llpp_quit"), Val_unit);
 }
 
 - (void)windowDidChangeOcclusionState:(NSNotification *)notification
@@ -198,8 +202,9 @@ CAMLprim value stub_fullscreen (value unit)
 
 - (void)applicationDidFinishLaunching:(NSNotification *)not
 {
-    NSLog(@"applicationDidFinishLaunching");
-    caml_startup (global_argv);
+  NSLog(@"applicationDidFinishLaunching");
+  caml_main(argv);
+  NSLog(@"After caml_main");
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication
@@ -211,15 +216,14 @@ CAMLprim value stub_fullscreen (value unit)
 
 int main(int argc, char **argv)
 {
-    global_argv = argv;
-    @autoreleasepool {
-        NSLog(@"Main_OSX");
-        [NSApplication sharedApplication];
-        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-        id delegate = [MyDelegate new];
-        [NSApp setDelegate:delegate];
-        [NSApp activateIgnoringOtherApps:YES];
-        [NSApp run];
-    }
-    return EXIT_SUCCESS;
+  @autoreleasepool {
+    NSLog(@"Main_OSX");
+    [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    id delegate = [[MyDelegate alloc] initWithArgv:argv];
+    [NSApp setDelegate:delegate];
+    [NSApp activateIgnoringOtherApps:YES];
+    [NSApp run];
+  }
+  return EXIT_SUCCESS;
 }
