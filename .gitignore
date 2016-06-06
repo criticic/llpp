@@ -16,6 +16,8 @@ _build
 *.cmx
 *.cmo
 *.cmi
+*.cmt
+*.cmti
 *.o
 /help.ml
 /main.ml
