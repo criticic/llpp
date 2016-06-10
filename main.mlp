@@ -1335,8 +1335,6 @@ let represent () =
 ;;
 
 let reshape ?(firsttime=false) w h =
-  if true then begin
-  Wsi.focus ();
   GlDraw.viewport ~x:0 ~y:0 ~w:w ~h:h;
   if not firsttime && nogeomcmds state.geomcmds
   then state.anchor <- getanchor ();
@@ -1374,8 +1372,6 @@ let reshape ?(firsttime=false) w h =
       wcmd "geometry %d %d %d"
         w (stateh h) (FMTE.to_int conf.fitmodel)
     );
-  (* Wsi.swapb () *)
-  end
 ;;
 
 let enttext () =
@@ -2583,7 +2579,6 @@ object (self)
       else None
 
   method display =
-    prerr_endline "listview#display";
     Gl.enable `blend;
     GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
     GlDraw.color (0., 0., 0.) ~alpha:0.85;
@@ -3354,7 +3349,6 @@ let makecheckers () =
 ;;
 
 let setcheckers enabled =
-  Wsi.focus ();
   match state.checkerstexid with
   | None ->
       if enabled then state.checkerstexid <- Some (makecheckers ())
@@ -5438,14 +5432,12 @@ let birdseyekeyboard key mask
 ;;
 
 let drawpage l =
-  prerr_endline "drawpage";
   let color =
     match state.mode with
-    | Textentry _ -> prerr_endline "Textentry"; scalecolor 0.4
+    | Textentry _ -> scalecolor 0.4
     | LinkNav _
-    | View -> prerr_endline "LinkNav _ | View"; scalecolor 1.0
+    | View -> scalecolor 1.0
     | Birdseye (_, _, pageno, hooverpageno, _) ->
-      prerr_endline "Birdeye _";
         if l.pageno = hooverpageno
         then scalecolor 0.9
         else (
@@ -5470,7 +5462,6 @@ let drawpage l =
 ;;
 
 let postdrawpage l linkindexbase =
-  prerr_endline "postdrawpage";
   match getopaque l.pageno with
   | Some opaque ->
       if tileready l l.pagex l.pagey
@@ -5535,8 +5526,7 @@ let showsel () =
       if n0 != -1 && n0 = n1 then seltext o0 (px0, py0, px1, py1);
 ;;
 
-let showrects = function [] -> prerr_endline "showrects []"; () | rects ->
-  prerr_endline "showrects";
+let showrects = function [] -> () | rects ->
   Gl.enable `blend;
   GlDraw.color (0.0, 0.0, 1.0) ~alpha:0.5;
   GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
@@ -5561,11 +5551,8 @@ let showrects = function [] -> prerr_endline "showrects []"; () | rects ->
 ;;
 
 let display () =
-  Wsi.focus ();
-  prerr_endline "display ()";
   begin match conf.columns, state.layout with
     | Csingle _, _ :: _ ->
-      prerr_endline "Csingle _";
      GlDraw.color (scalecolor2 conf.bgcolor);
      let y =
        List.fold_left (fun y l ->
@@ -5593,7 +5580,6 @@ let display () =
      and y1 = state.winh in
      filledrect1 (float x0) (float y0) (float x1) (float y1)
     | (Cmulti _ | Csplit _), _ | Csingle _, [] ->
-      prerr_endline "Cmulti _ | Csplit _ | Csingle _";
      GlClear.color (scalecolor2 conf.bgcolor);
      GlClear.clear [`color];
   end;
@@ -5601,7 +5587,6 @@ let display () =
   let rects =
     match state.mode with
     | LinkNav (Ltexact (pageno, linkno)) ->
-      prerr_endline "LinkNav _";
         begin match getopaque pageno with
         | Some opaque ->
             let dx = xadjsb () in
@@ -5619,7 +5604,7 @@ let display () =
     | LinkNav (Ltgendir _) | LinkNav (Ltnotready _)
     | Birdseye _
     | Textentry _
-    | View -> prerr_endline "Birdeye _ | Textentry _ | View"; state.rects
+    | View -> state.rects
   in
   showrects rects;
   let rec postloop linkindexbase = function
@@ -5630,7 +5615,6 @@ let display () =
   in
   showsel ();
   postloop 0 state.layout;
-  prerr_endline "before uioh#display";
   state.uioh#display;
   begin match state.mstate with
   | Mzoomrect ((x0, y0), (x1, y1)) ->
@@ -5649,17 +5633,6 @@ let display () =
   scrollindicator ();
   Wsi.swapb ();
 ;;
-
-let _display () =
-  GlClear.color ~alpha:0.0 (0.0, 0.0, 0.0);
-  GlClear.clear [`color];
-  GlDraw.color (1.0, 0.85, 0.35);
-  GlDraw.begins `triangles;
-  GlDraw.vertex3 (0.0, 0.6, 0.0);
-  GlDraw.vertex3 (-0.2, -0.3, 0.0);
-  GlDraw.vertex3 (0.2, -0.3, 0.0);
-  GlDraw.ends ();
-  Gl.flush ()
 
 let zoomrect x y x1 y1 =
   let x0 = min x x1
@@ -6701,7 +6674,6 @@ let () =
   in
   try
     Wsi.wait_for_data state.ss (fun () ->
-        prerr_endline "GOT DATA";
         let cmd = rcmd state.ss in
         act cmd
       );

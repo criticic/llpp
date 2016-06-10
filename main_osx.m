@@ -112,7 +112,7 @@ CAMLprim value stub_fullscreen (value unit)
 
 - (void)drawRect:(NSRect)bounds
 {
-  NSLog(@"drawRect: %@", [NSValue valueWithRect:bounds]);
+  // NSLog(@"drawRect: %@", [NSValue valueWithRect:bounds]);
 
   value *cb = caml_named_value("llpp_display");
   if (cb != NULL) {
@@ -328,8 +328,14 @@ CAMLprim value stub_fullscreen (value unit)
 
 - (void)windowDidResize:(NSNotification *)notification
 {
+  [glContext update];
   caml_callback2(*caml_named_value("llpp_reshaped"),
                  Val_int(window.frame.size.width), Val_int(window.frame.size.height));
+}
+
+- (void)windowDidMove:(NSNotification *)notification
+{
+  [glContext update];
 }
 
 - (void)applicationWillTerminate:(NSDictionary *)userInfo
