@@ -1,5 +1,6 @@
 /* lots of code c&p-ed directly from mupdf */
 #define CAML_NAME_SPACE
+#define DEBUG 1
 
 #include <errno.h>
 #include <stdio.h>
@@ -141,7 +142,7 @@ static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
 #define GL_UNSIGNED_INT_8_8_8_8_REV       0x8367
 #endif
 
-#if 0
+#if 1
 #define lprintf printf
 #else
 #define lprintf(...)
@@ -1695,10 +1696,12 @@ static void * mainloop (void UNUSED_ATTR *unused)
     char *p = NULL;
     int len, ret, oldlen = 0;
 
+    fprintf (stderr, "mainloop => start\n");
     fz_var (p);
     fz_var (oldlen);
     for (;;) {
         len = readlen (state.csock);
+        fprintf (stderr, "readlen => %d\n", len);
         if (len == 0) {
             errx (1, "readlen returned 0");
         }
@@ -2008,6 +2011,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             errx (1, "unknown command %.*s", len, p);
         }
     }
+    fprintf (stderr, "mainloop => return\n");
     return 0;
 }
 
@@ -4402,6 +4406,7 @@ static void setuppbo (void)
     state.glBufferDataARB &&
     state.glGenBuffersARB &&
     state.glDeleteBuffersARB;
+  fprintf (stderr, "setuppbo: %d\n", state.bo_usable);
 /* #define GGPA(n) (*(void (**) ()) &state.n = &#n) */
 /*     state.bo_usable = GGPA (glBindBufferARB) */
 /*         && GGPA (glUnmapBufferARB) */
@@ -4522,6 +4527,8 @@ CAMLprim value ml_init (value csock_v, value params_v)
     if (ret) {
         errx (1, "pthread_create: %s", strerror (ret));
     }
+
+    fprintf (stderr, "ml_init: success\n");
 
     CAMLreturn (Val_unit);
 }

@@ -31,6 +31,15 @@
 
 @end
 
+@interface MyView : NSView
+{
+  MyWindow *window;
+}
+
+- (instancetype)initWithFrame:(NSRect)frame andWindow:(MyWindow *)myWindow;
+
+@end
+
 CAMLprim value ml_waitfordata (value fd)
 {
   CAMLparam1(fd);
@@ -88,13 +97,18 @@ CAMLprim value stub_fullscreen (value unit)
   return Val_unit;
 }
 
-@interface MyOpenGLView : NSOpenGLView
+@implementation MyView
 
-- (void)drawRect:(NSRect)bounds;
+- (instancetype)initWithFrame:(NSRect)frame andWindow:(MyWindow *)myWindow
+{
+  self = [super initWithFrame:frame];
 
-@end
+  if (self != NULL) {
+    window = myWindow;
+  }
 
-@implementation MyOpenGLView
+  return self;
+}
 
 - (void)drawRect:(NSRect)bounds
 {
@@ -183,6 +197,7 @@ CAMLprim value stub_fullscreen (value unit)
 {
   char **argv;
   MyWindow *window;
+  NSOpenGLContext *glContext;
 }
 
 - (instancetype)initWithArgv:(char **)theArgv
@@ -198,12 +213,12 @@ CAMLprim value stub_fullscreen (value unit)
 
 - (void)focus
 {
-  [[[window contentView] openGLContext] makeCurrentContext];
+  [glContext makeCurrentContext];
 }
 
 - (void)swapb
 {
-  [[[window contentView] openGLContext] flushBuffer];
+  [glContext flushBuffer];
 }
 
 - (int)getw
@@ -257,14 +272,17 @@ CAMLprim value stub_fullscreen (value unit)
                                          backing:NSBackingStoreBuffered
                                            defer:NO];
 
+  [window center];
   [window setAcceptsMouseMovedEvents:YES];
   [window makeKeyAndOrderFront:self];
-  NSLog(@"%@", [window deviceDescription]);
-  [window cascadeTopLeftFromPoint:NSMakePoint(20,20)];
+  [window setDelegate:self];
+
+  MyView *myView = [[MyView alloc] initWithFrame:[window frame] andWindow:window];
+
+  [window setContentView:myView];
+
   NSOpenGLPixelFormatAttribute attrs[] =
     {
-      NSOpenGLPFANoRecovery,
-      // NSOpenGLPFAWindow,
       NSOpenGLPFAAccelerated,
       NSOpenGLPFADoubleBuffer,
       NSOpenGLPFAColorSize, 24,
@@ -272,6 +290,7 @@ CAMLprim value stub_fullscreen (value unit)
       NSOpenGLPFADepthSize, 24,
       NSOpenGLPFAStencilSize, 8,
       NSOpenGLPFAAccumSize, 0,
+      0
 // NSOpenGLPFADoubleBuffer,
 //       NSOpenGLPFABackingStore,
 //       NSOpenGLPFAColorSize, 24,
@@ -280,20 +299,19 @@ CAMLprim value stub_fullscreen (value unit)
 //       0
     };
   NSOpenGLPixelFormat *pixFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
-  NSOpenGLView *openGLView =
-    [[MyOpenGLView alloc] initWithFrame:[[window contentView] bounds]
-                            pixelFormat:pixFormat]; // [NSOpenGLView defaultPixelFormat]];
-  NSLog (@"%@", openGLView);
-  [window setContentView:openGLView];
-  [[openGLView openGLContext] makeCurrentContext];
-  // NSLog(@"OpenGL Version: %s", glGetString(GL_VERSION));
-  [window setDelegate:self];
+  glContext = [[NSOpenGLContext alloc] initWithFormat:pixFormat shareContext:nil];
+  NSLog (@"%@", glContext);
+  [glContext makeCurrentContext];
+  NSLog(@"OpenGL Version: %s", glGetString(GL_VERSION));
+  [glContext setView:[window contentView]];
+
   NSTrackingArea *trackingArea =
     [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]
                                  options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveInActiveApp)
                                    owner:window
                                 userInfo:nil];
   [[window contentView] addTrackingArea:trackingArea];
+
   [[NSNotificationCenter defaultCenter]
     addObserver:self
        selector:@selector(applicationDidReceiveDataAvailable:)

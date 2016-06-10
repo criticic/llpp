@@ -1586,7 +1586,7 @@ let pgoto opaque pageno x y =
 ;;
 
 let act cmds =
-  (* dolog "%S" cmds; *)
+  dolog "%S" cmds;
   let cl = splitatspace cmds in
   let scan s fmt f =
     try Scanf.sscanf s fmt f

@@ -60,9 +60,7 @@ let setcursor _ = ()
 let settitle s =
   stub_set_title s
 
-(* external swapb: unit -> unit = "ml_swapb" *)
-
-let swapb () = ()
+external swapb: unit -> unit = "ml_swapb"
 
 let reshape w h =
   stub_reshape w h
