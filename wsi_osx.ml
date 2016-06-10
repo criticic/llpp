@@ -60,6 +60,8 @@ let setcursor _ = ()
 let settitle s =
   stub_set_title s
 
+(* external swapb: unit -> unit = "ml_swapb" *)
+
 let swapb () = ()
 
 let reshape w h =
@@ -105,6 +107,13 @@ let display () =
   if debug then Printf.eprintf "display\n%!";
   !t#display
 
+let cbs : (Unix.file_descr, unit -> unit) Hashtbl.t = Hashtbl.create 10
+
+let data_available fd =
+  match Hashtbl.find cbs fd with
+  | exception Not_found -> ()
+  | f -> f ()
+
 let () =
   Callback.register "llpp_key_down" key_down;
   Callback.register "llpp_key_up" key_up;
@@ -115,14 +124,24 @@ let () =
   Callback.register "llpp_reshaped" reshaped;
   Callback.register "llpp_entered" entered;
   Callback.register "llpp_left" left;
-  Callback.register "llpp_display" display
+  Callback.register "llpp_display" display;
+  Callback.register "llpp_data_available" data_available
+
+external waitfd: Unix.file_descr -> unit = "ml_waitfordata"
+
+let wait_for_data fd cb =
+  Hashtbl.replace cbs fd cb;
+  waitfd fd
 
 let readresp _ = ()
+
+external getw: unit -> int = "ml_getw"
+external geth: unit -> int = "ml_geth"
 
 let init t0 _ w h platform =
   t := t0;
   !t#expose;
-  Unix.stdin, 100, 100
+  Unix.stdin, getw (), geth ()
 
 let fullscreen () =
   stub_fullscreen ()
@@ -153,4 +172,6 @@ let keyname _ = ""
 
 let namekey _ = 0
 
-let setwinbgcol _ = ()
+external setwinbgcol: int -> unit = "ml_setbgcol"
+
+external focus: unit -> unit = "ml_focus"

@@ -9,20 +9,64 @@
 
 @interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 
-- (void) applicationWillFinishLaunching:(NSNotification *)not;
-- (void) applicationDidFinishLaunching:(NSNotification *)not;
-- (BOOL) applicationShouldTerminateAfterLastWindowClosed: (NSApplication *) theApplication;
+- (void)focus;
+- (void)swapb;
+- (int)getw;
+- (int)geth;
+- (void)setbgcol:(long)col;
+- (void)applicationWillFinishLaunching:(NSNotification *)not;
+- (void)applicationDidFinishLaunching:(NSNotification *)not;
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication;
+- (void)waitForData:(int)fd;
 
 @end
 
 @interface MyWindow : NSWindow
 
-- (void) keyDown: (NSEvent *) event;
-- (void) reshapeWidth:(int)w height:(int)h;
-- (void) mouseUp: (NSEvent *)event;
-- (void) mouseDown: (NSEvent *)event;
+- (void)keyDown:(NSEvent *) event;
+- (void)reshapeWidth:(int)w height:(int)h;
+- (void)mouseUp:(NSEvent *)event;
+- (void)mouseDown:(NSEvent *)event;
+- (void)reshapeWidth:(int)w height:(int)h;
 
 @end
+
+CAMLprim value ml_waitfordata (value fd)
+{
+  CAMLparam1(fd);
+  [[NSApp delegate] waitForData:Int_val(fd)];
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value ml_focus (value unit)
+{
+  CAMLparam1(unit);
+  [[NSApp delegate] focus];
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value ml_swapb (value unit)
+{
+  [[NSApp delegate] swapb];
+  return Val_unit;
+}
+
+CAMLprim value ml_getw (value unit)
+{
+  return Val_int([[NSApp delegate] getw]);
+}
+
+CAMLprim value ml_geth (value unit)
+{
+  return Val_int([[NSApp delegate] geth]);
+}
+
+CAMLprim value ml_setbgcol (value col)
+{
+  NSLog(@"ml_setbgcol");
+  [[NSApp delegate] setbgcol:Int_val(col)];
+  return Val_unit;
+}
 
 CAMLprim value stub_set_title (value title)
 {
@@ -54,11 +98,24 @@ CAMLprim value stub_fullscreen (value unit)
 
 - (void)drawRect:(NSRect)bounds
 {
-  NSLog(@"drawRect");
+  NSLog(@"drawRect: %@", [NSValue valueWithRect:bounds]);
+
   value *cb = caml_named_value("llpp_display");
   if (cb != NULL) {
     caml_callback (*cb, Val_unit);
   }
+
+  // glClearColor(0, 0, 0, 0);
+  // glClear(GL_COLOR_BUFFER_BIT);
+  // glColor3f(1, .85, .35);
+  // glBegin(GL_TRIANGLES);
+  // {
+  //   glVertex3f(0, 0.6, 0);
+  //   glVertex3f(-0.2, -0.3, 0);
+  //   glVertex3f(.2, -.3, 0);
+  // }
+  // glEnd();
+  // glFlush();
 }
 
 @end
@@ -68,21 +125,21 @@ CAMLprim value stub_fullscreen (value unit)
 - (void)reshapeWidth:(int)w height:(int)h
 {
   NSRect frame = self.frame;
-  [self setFrame: NSMakeRect (frame.origin.x, frame.origin.y, w, h) display:YES];
+  [self setFrame:NSMakeRect(frame.origin.x, frame.origin.y, w, h) display:YES];
 }
 
 - (void)keyDown:(NSEvent *)event
 {
   int key = [event keyCode];
   int mask = [event modifierFlags];
-  caml_callback2 (*caml_named_value ("llpp_key_down"), Val_int (key), Val_int (mask));
+  caml_callback2(*caml_named_value("llpp_key_down"), Val_int(key), Val_int(mask));
 }
 
 - (void)keyUp:(NSEvent *)event
 {
   int key = [event keyCode];
   int mask = [event modifierFlags];
-  caml_callback2 (*caml_named_value ("llpp_key_up"), Val_int (key), Val_int (mask));
+  caml_callback2(*caml_named_value("llpp_key_up"), Val_int(key), Val_int(mask));
 }
 
 - (void)mouseDown:(NSEvent *)event
@@ -91,7 +148,7 @@ CAMLprim value stub_fullscreen (value unit)
   NSPoint loc = [event locationInWindow];
   int mask = [event modifierFlags];
   value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
-  caml_callbackN (*caml_named_value ("llpp_mouse_down"), 4, args);
+  caml_callbackN(*caml_named_value ("llpp_mouse_down"), 4, args);
 }
 
 - (void)mouseUp:(NSEvent *)event
@@ -100,24 +157,24 @@ CAMLprim value stub_fullscreen (value unit)
   NSPoint loc = [event locationInWindow];
   int mask = [event modifierFlags];
   value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
-  caml_callbackN (*caml_named_value ("llpp_mouse_up"), 4, args);
+  caml_callbackN(*caml_named_value("llpp_mouse_up"), 4, args);
 }
 
 - (void)mouseMoved:(NSEvent *)event
 {
   NSPoint loc = [event locationInWindow];
-  caml_callback2 (*caml_named_value ("llpp_mouse_moved"), Val_int (loc.x), Val_int (loc.y));
+  caml_callback2(*caml_named_value("llpp_mouse_moved"), Val_int(loc.x), Val_int(loc.y));
 }
 
 - (void)mouseEntered:(NSEvent *)theEvent
 {
   NSPoint loc = [theEvent locationInWindow];
-  caml_callback2 (*caml_named_value ("llpp_entered"), Val_int (loc.x), Val_int (loc.y));
+  caml_callback2(*caml_named_value("llpp_entered"), Val_int(loc.x), Val_int(loc.y));
 }
 
 - (void)mouseExited:(NSEvent *)theEvent
 {
-  caml_callback (*caml_named_value ("llpp_left"), Val_unit);
+  caml_callback(*caml_named_value("llpp_left"), Val_unit);
 }
 
 @end
@@ -125,10 +182,10 @@ CAMLprim value stub_fullscreen (value unit)
 @implementation MyDelegate
 {
   char **argv;
-  NSWindow *window;
+  MyWindow *window;
 }
 
-- (instancetype) initWithArgv:(char **)theArgv
+- (instancetype)initWithArgv:(char **)theArgv
 {
   argv = theArgv;
   return [super init];
@@ -139,9 +196,44 @@ CAMLprim value stub_fullscreen (value unit)
   [window setTitle:title];
 }
 
+- (void)focus
+{
+  [[[window contentView] openGLContext] makeCurrentContext];
+}
+
+- (void)swapb
+{
+  [[[window contentView] openGLContext] flushBuffer];
+}
+
+- (int)getw
+{
+  return [window frame].size.width;
+}
+
+- (int)geth
+{
+  return [window frame].size.height;
+}
+
+- (void)setbgcol:(long)col
+{
+  int r = ((col >> 16) & 0xff) / 255;
+  int g = ((col >> 8) & 0xff) / 255;
+  int b = ((col >> 0) & 0xff) / 255;
+  NSLog(@"setbgcol: %d %d %d", r, g, b);
+  [window setBackgroundColor:[NSColor colorWithRed:r green:0 blue:0 alpha:1.0]];
+}
+
+- (void)waitForData:(int)fd
+{
+  [[[NSFileHandle alloc] initWithFileDescriptor:fd] waitForDataInBackgroundAndNotify];
+}
+
 - (void)reshapeWidth:(int)w height:(int)h
 {
   NSLog(@"reshapeWidth:height");
+  [window reshapeWidth:w height:h];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)not
@@ -169,20 +261,51 @@ CAMLprim value stub_fullscreen (value unit)
   [window makeKeyAndOrderFront:self];
   NSLog(@"%@", [window deviceDescription]);
   [window cascadeTopLeftFromPoint:NSMakePoint(20,20)];
+  NSOpenGLPixelFormatAttribute attrs[] =
+    {
+      NSOpenGLPFANoRecovery,
+      // NSOpenGLPFAWindow,
+      NSOpenGLPFAAccelerated,
+      NSOpenGLPFADoubleBuffer,
+      NSOpenGLPFAColorSize, 24,
+      NSOpenGLPFAAlphaSize, 8,
+      NSOpenGLPFADepthSize, 24,
+      NSOpenGLPFAStencilSize, 8,
+      NSOpenGLPFAAccumSize, 0,
+// NSOpenGLPFADoubleBuffer,
+//       NSOpenGLPFABackingStore,
+//       NSOpenGLPFAColorSize, 24,
+//       NSOpenGLPFAAlphaSize, 8,
+//       NSOpenGLPFAOpenGLProfile,
+//       0
+    };
+  NSOpenGLPixelFormat *pixFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
   NSOpenGLView *openGLView =
-    [[MyOpenGLView alloc] initWithFrame:[window frame]
-                            pixelFormat:[NSOpenGLView defaultPixelFormat]];
+    [[MyOpenGLView alloc] initWithFrame:[[window contentView] bounds]
+                            pixelFormat:pixFormat]; // [NSOpenGLView defaultPixelFormat]];
   NSLog (@"%@", openGLView);
   [window setContentView:openGLView];
   [[openGLView openGLContext] makeCurrentContext];
-  NSLog(@"OpenGL Version: %s", glGetString(GL_VERSION));
+  // NSLog(@"OpenGL Version: %s", glGetString(GL_VERSION));
   [window setDelegate:self];
   NSTrackingArea *trackingArea =
     [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]
-                                 options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+                                 options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveInActiveApp)
                                    owner:window
                                 userInfo:nil];
   [[window contentView] addTrackingArea:trackingArea];
+  [[NSNotificationCenter defaultCenter]
+    addObserver:self
+       selector:@selector(applicationDidReceiveDataAvailable:)
+           name:NSFileHandleDataAvailableNotification
+         object:nil];
+}
+
+- (void)applicationDidReceiveDataAvailable:(NSNotification *)dict
+{
+  NSFileHandle *fh = [dict object];
+  caml_callback(*caml_named_value("llpp_data_available"), Val_int([fh fileDescriptor]));
+  [fh waitForDataInBackgroundAndNotify];
 }
 
 - (void)windowDidResize:(NSNotification *)notification

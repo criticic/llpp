@@ -10,8 +10,8 @@ STDLIB := $(shell $(OCAMLC) -where)
 
 VERSION := $(or $(shell git describe --tags 2>/dev/null),unknown)
 
-CFLAGS = -I /opt/X11/include
-LDFLAGS = -L /opt/X11/lib
+# CFLAGS = -I /opt/X11/include
+# LDFLAGS = -L /opt/X11/lib
 
 LIBFLAGS := -L mupdf/build/native
 INCFLAGS := -I mupdf/include -I mupdf/thirdparty/freetype/include

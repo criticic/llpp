@@ -27,7 +27,11 @@
 #include <limits.h>
 #include <inttypes.h>
 
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 
 #include <caml/fail.h>
 #include <caml/alloc.h>
@@ -4386,6 +4390,26 @@ static fz_font *fc_load_system_font_func (fz_context *ctx,
 
 static void setuppbo (void)
 {
+  state.glBindBufferARB = &glBindBufferARB;
+  state.glUnmapBufferARB = &glUnmapBufferARB;
+  state.glMapBufferARB = &glMapBufferARB;
+  state.glBufferDataARB = &glBufferDataARB;
+  state.glGenBuffersARB = &glGenBuffersARB;
+  state.glDeleteBuffersARB = &glDeleteBuffersARB;
+  state.bo_usable = state.glBindBufferARB &&
+    state.glUnmapBufferARB &&
+    state.glMapBufferARB &&
+    state.glBufferDataARB &&
+    state.glGenBuffersARB &&
+    state.glDeleteBuffersARB;
+/* #define GGPA(n) (*(void (**) ()) &state.n = &#n) */
+/*     state.bo_usable = GGPA (glBindBufferARB) */
+/*         && GGPA (glUnmapBufferARB) */
+/*         && GGPA (glMapBufferARB) */
+/*         && GGPA (glBufferDataARB) */
+/*         && GGPA (glGenBuffersARB) */
+/*         && GGPA (glDeleteBuffersARB); */
+/* #undef GGPA */
 }
 
 CAMLprim value ml_init (value csock_v, value params_v)
