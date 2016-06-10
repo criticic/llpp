@@ -13,7 +13,7 @@ Prerequisites for building from sources:
   llpp% cd mupdf
   mupdf% git checkout 9245cd0d2e353262ba518fb9f2e950bb74ad3c3e
   mupdf% git submodule update --recursive
-  mupdf% make build=native
+  mupdf% make build=native libs
   mupdf% cd ..
 
 Easy way:
