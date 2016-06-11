@@ -6673,12 +6673,7 @@ let () =
     end;
   in
   try
-    Wsi.wait_for_data state.ss (fun () ->
-        let cmd = rcmd state.ss in
-        act cmd
-      );
-    ()
-    (* loop infinity; *)
+    loop infinity;
   with Quit ->
     Config.save leavebirdseye;
     if hasunsavedchanges ()

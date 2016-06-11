@@ -1,6 +1,4 @@
-external stub_reshape: int -> int -> unit = "stub_reshape"
-external stub_set_title: string -> unit = "stub_set_title"
-external stub_fullscreen: unit -> unit = "stub_fullscreen"
+open Utils;;
 
 let debug = true
 
@@ -53,64 +51,69 @@ let onot = object
   method quit            = exit 0
 end
 
-let t : t ref = ref onot
+type state =
+  {
+    mutable t: t;
+    mutable fd: Unix.file_descr;
+  }
+
+let state =
+  {
+    t = onot;
+    fd = Unix.stdin;
+  }
+
+let readstr sock n = try readstr sock n with End_of_file -> state.t#quit; assert false
 
 let setcursor _ = ()
 
-let settitle s =
-  stub_set_title s
+external settitle: string -> unit = "ml_settitle"
 
 external swapb: unit -> unit = "ml_swapb"
 
 let reshape w h =
-  stub_reshape w h
+  vlog "reshape w %d h %d" w h
+  (* stub_reshape w h *)
 
 let key_down key mask =
   if debug then Printf.eprintf "key down: %d %x\n%!" key mask;
-  !t#key key mask
+  state.t#key key mask
 
 let key_up key mask =
   if debug then Printf.eprintf "key up: %d %x\n%!" key mask;
-  !t#key key mask
+  state.t#key key mask
 
 let mouse_down b x y mask =
   if debug then Printf.eprintf "mouse down: %d %d %x\n%!" x y mask;
-  !t#mouse b true x y mask
+  state.t#mouse b true x y mask
 
 let mouse_up b x y mask =
   if debug then Printf.eprintf "mouse up: %d %d %x\n%!" x y mask;
-  !t#mouse b false x y mask
+  state.t#mouse b false x y mask
 
 let mouse_moved x y =
   if debug then Printf.eprintf "mouse moved: %d %d\n%!" x y;
-  !t#pmotion x y
+  state.t#pmotion x y
 
 let quit () =
   if debug then Printf.eprintf "quit\n%!";
-  !t#quit
+  state.t#quit
 
 let reshaped w h =
   if debug then Printf.eprintf "reshape %d %d\n%!" w h;
-  !t#reshape w h
+  state.t#reshape w h
 
 let entered w h =
   if debug then Printf.eprintf "enter %d %d\n%!" w h;
-  !t#enter w h
+  state.t#enter w h
 
 let left () =
   if debug then Printf.eprintf "leave\n%!";
-  !t#leave
+  state.t#leave
 
 let display () =
   if debug then Printf.eprintf "display\n%!";
-  !t#display
-
-let cbs : (Unix.file_descr, unit -> unit) Hashtbl.t = Hashtbl.create 10
-
-let data_available fd =
-  match Hashtbl.find cbs fd with
-  | exception Not_found -> ()
-  | f -> f ()
+  state.t#display
 
 let () =
   Callback.register "llpp_key_down" key_down;
@@ -122,27 +125,74 @@ let () =
   Callback.register "llpp_reshaped" reshaped;
   Callback.register "llpp_entered" entered;
   Callback.register "llpp_left" left;
-  Callback.register "llpp_display" display;
-  Callback.register "llpp_data_available" data_available
+  Callback.register "llpp_display" display
 
-external waitfd: Unix.file_descr -> unit = "ml_waitfordata"
+(* 0 -> swapb *)
 
-let wait_for_data fd cb =
-  Hashtbl.replace cbs fd cb;
-  waitfd fd
+(* 0 -> map
+   1 -> expose
+   2 -> visible
+   3 -> reshape
+   4 -> mouse
+   5 -> motion
+   6 -> pmotion
+   7 -> key
+   8 -> enter
+   9 -> leave
+  10 -> winstate
+  11 -> quit
+  13 -> response *)
 
-let readresp _ = ()
+let readresp sock =
+  prerr_endline "readresp";
+  let resp = readstr sock 32 in
+  prerr_endline "after readresp";
+  let opcode = r8 resp 0 in
+  match opcode with
+  | 0 ->
+    let mapped = r8 resp 16 <> 0 in
+    vlog "map %B" mapped;
+    state.t#map mapped
+  | 1 ->
+    vlog "expose";
+    state.t#expose
+  | 3 ->
+    let w = r16 resp 16 in
+    let h = r16 resp 18 in
+    vlog "reshape width %d height %d" w h;
+    state.t#reshape w h
+  | 7 ->
+    let key = r32 resp 16 in
+    let mask = r32 resp 20 in
+    vlog "keydown key %d mask %d" key mask;
+    state.t#key key mask
+  | 8 ->
+    let x = r16 resp 16 in
+    let y = r16 resp 18 in
+    vlog "enter x %d y %d" x y;
+    state.t#enter x y
+  | 9 ->
+    vlog "leave";
+    state.t#leave
+  | _ ->
+    vlog "unknown server message %d" opcode
 
-external getw: unit -> int = "ml_getw"
-external geth: unit -> int = "ml_geth"
+external completeinit: int -> int -> unit = "ml_completeinit"
 
-let init t0 _ w h platform =
-  t := t0;
-  !t#expose;
-  Unix.stdin, getw (), geth ()
+external file_descr_of_int: int -> Unix.file_descr = "%identity"
+
+let init t _ w h platform =
+  let fd = int_of_string (Sys.getenv "LLPP_DISPLAY") in
+  Printf.eprintf "LLPP_DISPLAY=%d\n%!" fd;
+  let fd = file_descr_of_int fd in
+  state.t <- t;
+  state.fd <- fd;
+  completeinit w h;
+  fd, w, h
 
 let fullscreen () =
-  stub_fullscreen ()
+  vlog "fullscreen"
+  (* stub_fullscreen () *)
 
 let activatewin () = ()
 
@@ -171,5 +221,3 @@ let keyname _ = ""
 let namekey _ = 0
 
 external setwinbgcol: int -> unit = "ml_setbgcol"
-
-external focus: unit -> unit = "ml_focus"
