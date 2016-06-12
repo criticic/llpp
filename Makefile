@@ -19,6 +19,9 @@ LIBS := -lmupdf -lmupdfthird -lpthread # -lGL -lX11
 
 all: $(LLPP).native.osx
 
+wsi.ml: wsi_cocoa.ml
+	cp wsi_cocoa.ml wsi.ml
+
 main.ml: main.mlp pp.sed
 	$(SED) -f pp.sed $< > $@
 
@@ -51,7 +54,7 @@ LLPP_FILES = \
 	help \
 	utils \
 	parser \
-	wsi_osx \
+	wsi \
 	config \
 	main
 
@@ -102,9 +105,9 @@ mupdf:
 
 .PHONY: clean
 clean:
-	rm -f main.ml help.ml
-	rm -f *.cmo *.cmi *.cmx *.o
-	rm -f lablGL/*.cmo lablGL/*.cmi lablGL/*.cmx lablGL/*.o
+	rm -f main.ml help.ml wsi.ml
+	rm -f *.cm* *.o
+	rm -f lablGL/*.cm* lablGL/*.o
 	rm -f $(LLPP).native $(LLPP) $(LLPP).native.o
 
 include .depend

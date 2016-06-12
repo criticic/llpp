@@ -21,6 +21,7 @@ _build
 *.o
 /help.ml
 /main.ml
+/wsi.ml
 /llpp
 /llpp.native
 /llpp.native.o

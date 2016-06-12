@@ -1,15 +1,15 @@
-config.cmo config.cmi : wsi_osx.cmi utils.cmi lablGL/raw.cmi parser.cmi \
-    help.cmi lablGL/glTex.cmi config.ml
-config.cmx config.o config.cmi : wsi_osx.cmi wsi_osx.cmx utils.cmi utils.cmx \
+config.cmo config.cmi : wsi.cmi utils.cmi lablGL/raw.cmi parser.cmi help.cmi \
+    lablGL/glTex.cmi config.ml
+config.cmx config.o config.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
     lablGL/raw.cmi lablGL/raw.cmx parser.cmi parser.cmx help.cmi help.cmx \
     lablGL/glTex.cmi lablGL/glTex.cmx config.ml
 help.cmo help.cmi : help.ml
 help.cmx help.o help.cmi : help.ml
-main.cmo main.cmi : wsi_osx.cmi utils.cmi lablGL/raw.cmi lablGL/glTex.cmi \
+main.cmo main.cmi : wsi.cmi utils.cmi lablGL/raw.cmi lablGL/glTex.cmi \
     lablGL/glPix.cmi lablGL/glMisc.cmi lablGL/glMat.cmi lablGL/glFunc.cmi \
     lablGL/glDraw.cmi lablGL/glClear.cmi lablGL/glArray.cmi lablGL/gl.cmi \
     config.cmi main.ml
-main.cmx main.o main.cmi : wsi_osx.cmi wsi_osx.cmx utils.cmi utils.cmx \
+main.cmx main.o main.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
     lablGL/raw.cmi lablGL/raw.cmx lablGL/glTex.cmi lablGL/glTex.cmx \
     lablGL/glPix.cmi lablGL/glPix.cmx lablGL/glMisc.cmi lablGL/glMisc.cmx \
     lablGL/glMat.cmi lablGL/glMat.cmx lablGL/glFunc.cmi lablGL/glFunc.cmx \
@@ -24,8 +24,10 @@ utils.cmo utils.cmi : utils.ml
 utils.cmx utils.o utils.cmi : utils.ml
 wsi.cmo : utils.cmi wsi.cmi wsi.ml
 wsi.cmx wsi.o : utils.cmi utils.cmx wsi.cmi wsi.ml
-wsi_osx.cmo wsi_osx.cmi : utils.cmi wsi_osx.ml
-wsi_osx.cmx wsi_osx.o wsi_osx.cmi : utils.cmi utils.cmx wsi_osx.ml
+wsi_cocoa.cmo wsi_cocoa.cmi : utils.cmi wsi_cocoa.ml
+wsi_cocoa.cmx wsi_cocoa.o wsi_cocoa.cmi : utils.cmi utils.cmx wsi_cocoa.ml
+wsi_x11.cmo wsi_x11.cmi : utils.cmi wsi_x11.ml
+wsi_x11.cmx wsi_x11.o wsi_x11.cmi : utils.cmi utils.cmx wsi_x11.ml
 lablGL/gl.cmo lablGL/gl.cmi : lablGL/gl.ml
 lablGL/gl.cmx lablGL/gl.o lablGL/gl.cmi : lablGL/gl.ml
 lablGL/glArray.cmo lablGL/glArray.cmi : lablGL/raw.cmi lablGL/glDraw.cmi \
