@@ -21,10 +21,30 @@ void *caml_main_thread (void *argv)
   return NULL;
 }
 
+CAMLprim value ml_mapwin (value unit)
+{
+  CAMLparam1 (unit);
+  [[NSApp delegate] performSelectorOnMainThread:@selector(mapwin)
+                                     withObject:nil
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
+
 CAMLprim value ml_swapb (value unit)
 {
+  CAMLparam1 (unit);
   [[NSApp delegate] swapb];
-  return Val_unit;
+  CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_getw (value unit)
+{
+  return Val_int([[NSApp delegate] getw]);
+}
+
+CAMLprim value ml_geth (value unit)
+{
+  return Val_int([[NSApp delegate] geth]);
 }
 
 CAMLprim value ml_completeinit (value w, value h)
@@ -46,18 +66,20 @@ CAMLprim value ml_settitle (value title)
 {
   CAMLparam1 (title);
   NSString *str = [NSString stringWithUTF8String:String_val(title)];
-  NSLog (@"ml_settitle: %@", str);
   [[NSApp delegate] performSelectorOnMainThread:@selector(setTitle:)
                                      withObject:str
                                   waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 
-// CAMLprim value stub_reshape (value w, value h)
-// {
-//   // [[NSApp delegate] reshapeWidth:Int_val (w) height:(Int_val (h))];
-//   return Val_unit;
-// }
+CAMLprim value ml_reshape (value w, value h)
+{
+  CAMLparam2 (w, h);
+  [[NSApp delegate] performSelectorOnMainThread:@selector(setContentFrame:)
+                                     withObject:[NSValue valueWithRect:NSMakeRect (0, 0, Int_val (w), Int_val (h))]
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
 
 // CAMLprim value stub_fullscreen (value unit)
 // {
@@ -175,10 +197,8 @@ CAMLprim value ml_settitle (value title)
 @interface MyWindow : NSWindow
 
 - (void)keyDown:(NSEvent *) event;
-- (void)reshapeWidth:(int)w height:(int)h;
 - (void)mouseUp:(NSEvent *)event;
 - (void)mouseDown:(NSEvent *)event;
-- (void)reshapeWidth:(int)w height:(int)h;
 
 @end
 
@@ -226,10 +246,9 @@ CAMLprim value ml_settitle (value title)
   connector = aConnector;
 }
 
-- (void)reshapeWidth:(int)w height:(int)h
+- (BOOL)canBecomeKeyWindow
 {
-  NSRect frame = self.frame;
-  [self setFrame:NSMakeRect(frame.origin.x, frame.origin.y, w, h) display:YES];
+  return YES;
 }
 
 - (void)keyUp:(NSEvent *)event
@@ -310,7 +329,6 @@ CAMLprim value ml_settitle (value title)
 
 - (void)setTitle:(NSString *)title
 {
-  NSLog (@"setTitle: %@ window: %@", title, window);
   [window setTitle:title];
 }
 
@@ -319,14 +337,19 @@ CAMLprim value ml_settitle (value title)
   [glContext makeCurrentContext];
 }
 
+- (void)mapwin
+{
+  [window makeKeyAndOrderFront:self];
+}
+
 - (int)getw
 {
-  return [window frame].size.width;
+  return window.contentView.frame.size.width;
 }
 
 - (int)geth
 {
-  return [window frame].size.height;
+  return window.contentView.frame.size.height;
 }
 
 - (void)setbgcol:(long)col
@@ -336,12 +359,6 @@ CAMLprim value ml_settitle (value title)
   int b = ((col >> 0) & 0xff) / 255;
   NSLog(@"setbgcol: %d %d %d", r, g, b);
   [window setBackgroundColor:[NSColor colorWithRed:r green:0 blue:0 alpha:1.0]];
-}
-
-- (void)reshapeWidth:(int)w height:(int)h
-{
-  NSLog(@"reshapeWidth:height");
-  [window reshapeWidth:w height:h];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)not
@@ -361,20 +378,29 @@ CAMLprim value ml_settitle (value title)
   [appMenuItem setSubmenu:appMenu];
 
   window = [[MyWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 400)
-                                       styleMask:(NSClosableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
+                                       styleMask:(NSBorderlessWindowMask | NSResizableWindowMask)// | NSClosableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
                                          backing:NSBackingStoreBuffered
                                            defer:NO];
 
+  [window setMovableByWindowBackground:YES];
   [window setConnector:connector];
   [window center];
   [window setAcceptsMouseMovedEvents:YES];
-  [window makeKeyAndOrderFront:self];
   [window setDelegate:self];
 
-  MyView *myView = [[MyView alloc] initWithFrame:[window frame] andWindow:window
+  MyView *myView = [[MyView alloc] initWithFrame:[[window contentView] bounds]
+                                       andWindow:window
                                        connector:connector];
 
   [window setContentView:myView];
+
+  // [myView setWantsBestResolutionOpenGLSurface:YES];
+
+  // [myView setFrameOrigin:NSMakePoint (myView.frame.origin.x, myView.frame.origin.y + 22)];
+
+  // NSLog (@"xxx = %ld", [window styleMask] & NSFullSizeContentViewWindowMask);
+
+  // myView.autoresizingMask = NSViewWidthSizable |  NSViewHeightSizable;
 
   NSOpenGLPixelFormatAttribute attrs[] =
     {
@@ -383,8 +409,8 @@ CAMLprim value ml_settitle (value title)
       NSOpenGLPFAColorSize, 24,
       NSOpenGLPFAAlphaSize, 8,
       NSOpenGLPFADepthSize, 24,
-      NSOpenGLPFAStencilSize, 8,
-      NSOpenGLPFAAccumSize, 0,
+      // NSOpenGLPFAStencilSize, 8,
+      // NSOpenGLPFAAccumSize, 0,
       0
 // NSOpenGLPFADoubleBuffer,
 //       NSOpenGLPFABackingStore,
@@ -397,7 +423,7 @@ CAMLprim value ml_settitle (value title)
   glContext = [[NSOpenGLContext alloc] initWithFormat:pixFormat shareContext:nil];
   GLint swapInt = 1;
   [glContext setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
-  [glContext setView:[window contentView]];
+  [glContext setView:myView];
   NSTrackingArea *trackingArea =
     [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]
                                  options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveInActiveApp)
@@ -406,9 +432,13 @@ CAMLprim value ml_settitle (value title)
   [[window contentView] addTrackingArea:trackingArea];
 }
 
-- (void)setWindowFrame:(NSValue *)val
+- (void)setContentFrame:(NSValue *)val
 {
-  [window setFrame:[val rectValue] display:YES];
+  NSRect rect = [window frameRectForContentRect:[val rectValue]];
+  // NSLog (@"rect: %@", [NSValue valueWithRect:rect]);
+  [window setFrame:rect display:YES];
+  // NSLog (@"contentView frame: %@", [NSValue valueWithRect:[window contentView].frame]);
+  // NSLog (@"contentView bounds: %@", [NSValue valueWithRect:[window contentView].bounds]);
 }
 
 - (void)completeInit:(int)w height:(int)h
@@ -416,7 +446,7 @@ CAMLprim value ml_settitle (value title)
   NSLog (@"completeInit");
   [glContext makeCurrentContext];
   NSLog (@"OpenGL Version: %s", glGetString(GL_VERSION));
-  [self performSelectorOnMainThread:@selector(setWindowFrame:)
+  [self performSelectorOnMainThread:@selector(setContentFrame:)
                          withObject:[NSValue valueWithRect:NSMakeRect(0, 0, w, h)]
                       waitUntilDone:YES];
 }

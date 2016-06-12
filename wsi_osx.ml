@@ -71,9 +71,7 @@ external settitle: string -> unit = "ml_settitle"
 
 external swapb: unit -> unit = "ml_swapb"
 
-let reshape w h =
-  vlog "reshape w %d h %d" w h
-  (* stub_reshape w h *)
+external reshape: int -> int -> unit = "ml_reshape"
 
 let key_down key mask =
   if debug then Printf.eprintf "key down: %d %x\n%!" key mask;
@@ -181,6 +179,9 @@ external completeinit: int -> int -> unit = "ml_completeinit"
 
 external file_descr_of_int: int -> Unix.file_descr = "%identity"
 
+external getw: unit -> int = "ml_getw"
+external geth: unit -> int = "ml_geth"
+
 let init t _ w h platform =
   let fd = int_of_string (Sys.getenv "LLPP_DISPLAY") in
   Printf.eprintf "LLPP_DISPLAY=%d\n%!" fd;
@@ -188,7 +189,10 @@ let init t _ w h platform =
   state.t <- t;
   state.fd <- fd;
   completeinit w h;
-  fd, w, h
+  (* let w' = getw () in *)
+  (* let h' = geth () in *)
+  (* Printf.ksprintf prerr_endline "w' %d h' %d" w' h'; *)
+  fd, getw (), geth ()
 
 let fullscreen () =
   vlog "fullscreen"
@@ -196,7 +200,7 @@ let fullscreen () =
 
 let activatewin () = ()
 
-let mapwin () = ()
+external mapwin: unit -> unit = "ml_mapwin"
 
 let metamask = 1 lsl 19
 

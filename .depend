@@ -24,8 +24,8 @@ utils.cmo utils.cmi : utils.ml
 utils.cmx utils.o utils.cmi : utils.ml
 wsi.cmo : utils.cmi wsi.cmi wsi.ml
 wsi.cmx wsi.o : utils.cmi utils.cmx wsi.cmi wsi.ml
-wsi_osx.cmo wsi_osx.cmi : wsi_osx.ml
-wsi_osx.cmx wsi_osx.o wsi_osx.cmi : wsi_osx.ml
+wsi_osx.cmo wsi_osx.cmi : utils.cmi wsi_osx.ml
+wsi_osx.cmx wsi_osx.o wsi_osx.cmi : utils.cmi utils.cmx wsi_osx.ml
 lablGL/gl.cmo lablGL/gl.cmi : lablGL/gl.ml
 lablGL/gl.cmx lablGL/gl.o lablGL/gl.cmi : lablGL/gl.ml
 lablGL/glArray.cmo lablGL/glArray.cmi : lablGL/raw.cmi lablGL/glDraw.cmi \
