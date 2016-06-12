@@ -88,9 +88,7 @@ external reshape: int -> int -> unit = "ml_reshape"
    13 -> response *)
 
 let readresp sock =
-  prerr_endline "readresp";
   let resp = readstr sock 32 in
-  prerr_endline "after readresp";
   let opcode = r8 resp 0 in
   match opcode with
   | 0 ->
@@ -138,9 +136,6 @@ let init t _ w h platform =
   state.t <- t;
   state.fd <- fd;
   completeinit w h;
-  (* let w' = getw () in *)
-  (* let h' = geth () in *)
-  (* Printf.ksprintf prerr_endline "w' %d h' %d" w' h'; *)
   fd, getw (), geth ()
 
 external fullscreen: unit -> unit = "ml_fullscreen"
