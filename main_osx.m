@@ -22,74 +22,6 @@ void *caml_main_thread (void *argv)
   pthread_exit (NULL);
 }
 
-CAMLprim value ml_mapwin (value unit)
-{
-  CAMLparam1 (unit);
-  [[NSApp delegate] performSelectorOnMainThread:@selector(mapwin)
-                                     withObject:nil
-                                  waitUntilDone:YES];
-  CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_swapb (value unit)
-{
-  CAMLparam1 (unit);
-  [[NSApp delegate] swapb];
-  CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_getw (value unit)
-{
-  return Val_int([[NSApp delegate] getw]);
-}
-
-CAMLprim value ml_geth (value unit)
-{
-  return Val_int([[NSApp delegate] geth]);
-}
-
-CAMLprim value ml_completeinit (value w, value h)
-{
-  CAMLparam2 (w, h);
-  NSLog (@"ml_completeinit: w %d h %d", Int_val (w), Int_val (h));
-  [[NSApp delegate] completeInit:Int_val(w) height:Int_val(h)];
-  CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_setbgcol (value col)
-{
-  NSLog(@"ml_setbgcol");
-  // [[NSApp delegate] setbgcol:Int_val(col)];
-  return Val_unit;
-}
-
-CAMLprim value ml_settitle (value title)
-{
-  CAMLparam1 (title);
-  NSString *str = [NSString stringWithUTF8String:String_val(title)];
-  [[NSApp delegate] performSelectorOnMainThread:@selector(setTitle:)
-                                     withObject:str
-                                  waitUntilDone:YES];
-  CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_reshape (value w, value h)
-{
-  CAMLparam2 (w, h);
-  [[NSApp delegate] performSelectorOnMainThread:@selector(setContentFrame:)
-                                     withObject:[NSValue valueWithRect:NSMakeRect (0, 0, Int_val (w), Int_val (h))]
-                                  waitUntilDone:YES];
-  CAMLreturn (Val_unit);
-}
-
-// CAMLprim value stub_fullscreen (value unit)
-// {
-//   // if (([window styleMask] & NSFullScreenWindowMask) != NSFullScreenWindowMask) {
-//   //   [window toggleFullScreen:nil];
-//   // }
-//   return Val_unit;
-// }
-
 @interface Connector : NSObject
 
 - (instancetype)initWithFileDescriptor:(int)fd;
@@ -152,10 +84,10 @@ CAMLprim value ml_reshape (value w, value h)
 
 @interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 
-- (void)focus;
 - (int)getw;
 - (int)geth;
-- (void)setbgcol:(long)col;
+- (void)swapb;
+- (void)setwinbgcol:(NSColor *)col;
 - (void)applicationWillFinishLaunching:(NSNotification *)not;
 - (void)applicationDidFinishLaunching:(NSNotification *)not;
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication;
@@ -177,15 +109,17 @@ CAMLprim value ml_reshape (value w, value h)
   Connector *connector;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame andWindow:(MyWindow *)myWindow
+- (instancetype)initWithFrame:(NSRect)frame
+                    andWindow:(MyWindow *)myWindow
                     connector:(Connector *)aConnector;
 
 @end
 
 @implementation MyView
 
-- (instancetype)initWithFrame:(NSRect)frame andWindow:(MyWindow *)myWindow
-                      connector:(Connector *)aConnector
+- (instancetype)initWithFrame:(NSRect)frame
+                    andWindow:(MyWindow *)myWindow
+                    connector:(Connector *)aConnector
 {
   self = [super initWithFrame:frame];
 
@@ -300,11 +234,6 @@ CAMLprim value ml_reshape (value w, value h)
   [window setTitle:title];
 }
 
-- (void)focus
-{
-  [glContext makeCurrentContext];
-}
-
 - (void)mapwin
 {
   [window makeKeyAndOrderFront:self];
@@ -320,13 +249,9 @@ CAMLprim value ml_reshape (value w, value h)
   return window.contentView.frame.size.height;
 }
 
-- (void)setbgcol:(long)col
+- (void)setwinbgcol:(NSColor *)col
 {
-  int r = ((col >> 16) & 0xff) / 255;
-  int g = ((col >> 8) & 0xff) / 255;
-  int b = ((col >> 0) & 0xff) / 255;
-  NSLog(@"setbgcol: %d %d %d", r, g, b);
-  [window setBackgroundColor:[NSColor colorWithRed:r green:0 blue:0 alpha:1.0]];
+  [window setBackgroundColor:col];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)not
@@ -461,6 +386,80 @@ CAMLprim value ml_reshape (value w, value h)
 }
 
 @end
+
+CAMLprim value ml_mapwin (value unit)
+{
+  CAMLparam1 (unit);
+  [[NSApp delegate] performSelectorOnMainThread:@selector(mapwin)
+                                     withObject:nil
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_swapb (value unit)
+{
+  CAMLparam1 (unit);
+  [[NSApp delegate] swapb];
+  CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_getw (value unit)
+{
+  return Val_int([[NSApp delegate] getw]);
+}
+
+CAMLprim value ml_geth (value unit)
+{
+  return Val_int([[NSApp delegate] geth]);
+}
+
+CAMLprim value ml_completeinit (value w, value h)
+{
+  CAMLparam2 (w, h);
+  NSLog (@"ml_completeinit: w %d h %d", Int_val (w), Int_val (h));
+  [[NSApp delegate] completeInit:Int_val(w) height:Int_val(h)];
+  CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_setwinbgcol (value col)
+{
+  CAMLparam1 (col);
+  int r = ((col >> 16) & 0xff) / 255;
+  int g = ((col >> 8) & 0xff) / 255;
+  int b = ((col >> 0) & 0xff) / 255;
+  NSColor *color = [NSColor colorWithRed:r green:0 blue:0 alpha:1.0];
+  [[NSApp delegate] performSelectorOnMainThread:@selector(setwinbgcol:)
+                                     withObject:color
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_settitle (value title)
+{
+  CAMLparam1 (title);
+  NSString *str = [NSString stringWithUTF8String:String_val(title)];
+  [[NSApp delegate] performSelectorOnMainThread:@selector(setTitle:)
+                                     withObject:str
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_reshape (value w, value h)
+{
+  CAMLparam2 (w, h);
+  [[NSApp delegate] performSelectorOnMainThread:@selector(setContentFrame:)
+                                     withObject:[NSValue valueWithRect:NSMakeRect (0, 0, Int_val (w), Int_val (h))]
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
+
+// CAMLprim value stub_fullscreen (value unit)
+// {
+//   // if (([window styleMask] & NSFullScreenWindowMask) != NSFullScreenWindowMask) {
+//   //   [window toggleFullScreen:nil];
+//   // }
+//   return Val_unit;
+// }
 
 int main(int argc, char **argv)
 {

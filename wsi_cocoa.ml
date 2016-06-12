@@ -175,4 +175,4 @@ let keyname _ = ""
 
 let namekey _ = 0
 
-external setwinbgcol: int -> unit = "ml_setbgcol"
+external setwinbgcol: int -> unit = "ml_setwinbgcol"
