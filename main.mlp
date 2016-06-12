@@ -6415,7 +6415,6 @@ let () =
         | Wsi.FullyObscured -> "fullyobscured"
       in
       vlog "visibility change %s" name
-    method display = display ()
     method map mapped = vlog "mapped %b" mapped
     method reshape w h =
       self#cleanup;

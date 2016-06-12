@@ -19,7 +19,6 @@ type visiblestate =
 ;;
 
 class type t = object
-  method display  : unit
   method map      : bool -> unit
   method expose   : unit
   method visible  : visiblestate -> unit

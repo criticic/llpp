@@ -20,7 +20,6 @@ type visiblestate =
   | FullyObscured
 
 class type t = object
-  method display  : unit
   method map      : bool -> unit
   method expose   : unit
   method visible  : visiblestate -> unit
@@ -36,7 +35,6 @@ class type t = object
 end
 
 let onot = object
-  method display         = ()
   method map _           = ()
   method expose          = ()
   method visible _       = ()

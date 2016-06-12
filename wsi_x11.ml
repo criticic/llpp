@@ -33,7 +33,6 @@ external setwinbgcol : int -> unit = "ml_setbgcol";;
 (* let vlog fmt = Format.ksprintf ignore fmt;; *)
 
 let onot = object
-  method display         = ()
   method map _           = ()
   method expose          = ()
   method visible _       = ()
@@ -49,7 +48,6 @@ let onot = object
 end;;
 
 class type t = object
-  method display  : unit
   method map      : bool -> unit
   method expose   : unit
   method visible  : visiblestate -> unit
