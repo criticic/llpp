@@ -1697,12 +1697,10 @@ static void * mainloop (void UNUSED_ATTR *unused)
     char *p = NULL;
     int len, ret, oldlen = 0;
 
-    fprintf (stderr, "mainloop => start\n");
     fz_var (p);
     fz_var (oldlen);
     for (;;) {
         len = readlen (state.csock);
-        fprintf (stderr, "readlen => %d\n", len);
         if (len == 0) {
             errx (1, "readlen returned 0");
         }
@@ -2012,7 +2010,6 @@ static void * mainloop (void UNUSED_ATTR *unused)
             errx (1, "unknown command %.*s", len, p);
         }
     }
-    fprintf (stderr, "mainloop => return\n");
     return 0;
 }
 
@@ -4756,8 +4753,6 @@ CAMLprim value ml_init (value csock_v, value params_v)
     if (ret) {
         errx (1, "pthread_create: %s", strerror (ret));
     }
-
-    fprintf (stderr, "ml_init: success\n");
 
     CAMLreturn (Val_unit);
 }

@@ -73,58 +73,6 @@ external swapb: unit -> unit = "ml_swapb"
 
 external reshape: int -> int -> unit = "ml_reshape"
 
-let key_down key mask =
-  if debug then Printf.eprintf "key down: %d %x\n%!" key mask;
-  state.t#key key mask
-
-let key_up key mask =
-  if debug then Printf.eprintf "key up: %d %x\n%!" key mask;
-  state.t#key key mask
-
-let mouse_down b x y mask =
-  if debug then Printf.eprintf "mouse down: %d %d %x\n%!" x y mask;
-  state.t#mouse b true x y mask
-
-let mouse_up b x y mask =
-  if debug then Printf.eprintf "mouse up: %d %d %x\n%!" x y mask;
-  state.t#mouse b false x y mask
-
-let mouse_moved x y =
-  if debug then Printf.eprintf "mouse moved: %d %d\n%!" x y;
-  state.t#pmotion x y
-
-let quit () =
-  if debug then Printf.eprintf "quit\n%!";
-  state.t#quit
-
-let reshaped w h =
-  if debug then Printf.eprintf "reshape %d %d\n%!" w h;
-  state.t#reshape w h
-
-let entered w h =
-  if debug then Printf.eprintf "enter %d %d\n%!" w h;
-  state.t#enter w h
-
-let left () =
-  if debug then Printf.eprintf "leave\n%!";
-  state.t#leave
-
-let display () =
-  if debug then Printf.eprintf "display\n%!";
-  state.t#display
-
-let () =
-  Callback.register "llpp_key_down" key_down;
-  Callback.register "llpp_key_up" key_up;
-  Callback.register "llpp_mouse_down" mouse_down;
-  Callback.register "llpp_mouse_up" mouse_up;
-  Callback.register "llpp_mouse_moved" mouse_moved;
-  Callback.register "llpp_quit" quit;
-  Callback.register "llpp_reshaped" reshaped;
-  Callback.register "llpp_entered" entered;
-  Callback.register "llpp_left" left;
-  Callback.register "llpp_display" display
-
 (* 0 -> swapb *)
 
 (* 0 -> map
