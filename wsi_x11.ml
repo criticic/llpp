@@ -1280,5 +1280,3 @@ let namekey name =
     then Char.code name.[0]
     else int_of_string name;
 ;;
-
-external focus: unit -> unit = "%ml_focus"

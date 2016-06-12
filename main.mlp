@@ -5550,7 +5550,7 @@ let showrects = function [] -> () | rects ->
 
 let display () =
   begin match conf.columns, state.layout with
-    | Csingle _, _ :: _ ->
+  | Csingle _, _ :: _ ->
      GlDraw.color (scalecolor2 conf.bgcolor);
      let y =
        List.fold_left (fun y l ->
@@ -5577,7 +5577,7 @@ let display () =
      let y0 = y
      and y1 = state.winh in
      filledrect1 (float x0) (float y0) (float x1) (float y1)
-    | (Cmulti _ | Csplit _), _ | Csingle _, [] ->
+  | (Cmulti _ | Csplit _), _ | Csingle _, [] ->
      GlClear.color (scalecolor2 conf.bgcolor);
      GlClear.clear [`color];
   end;

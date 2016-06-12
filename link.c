@@ -4177,29 +4177,6 @@ CAMLprim value ml_swapb (value unit_v)
 /* } */
 #endif
 
-static void setuppbo (void)
-{
-#ifdef __APPLE__
-  static CFBundleRef framework = NULL;
-  if (framework == NULL)
-    framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
-#define GGPA(n) (&state.n = CFBundleGetFunctionPointerForName(framework, CFSTR (#n)))
-#else
-#ifdef USE_EGL
-#define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
-#else
-#define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
-#endif
-    state.bo_usable = GGPA (glBindBufferARB)
-        && GGPA (glUnmapBufferARB)
-        && GGPA (glMapBufferARB)
-        && GGPA (glBufferDataARB)
-        && GGPA (glGenBuffersARB)
-        && GGPA (glDeleteBuffersARB);
-#endif
-#undef GGPA
-}
-
 enum { piunknown, pilinux, piosx, pisun, pibsd, picygwin };
 
 CAMLprim value ml_platform (value unit_v)
@@ -4346,6 +4323,29 @@ CAMLprim value ml_unmappbo (value s_v)
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
     CAMLreturn (Val_unit);
+}
+
+static void setuppbo (void)
+{
+#ifdef __APPLE__
+  static CFBundleRef framework = NULL;
+  if (framework == NULL)
+    framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
+#define GGPA(n) (&state.n = CFBundleGetFunctionPointerForName(framework, CFSTR (#n)))
+#else
+#ifdef USE_EGL
+#define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
+#else
+#define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
+#endif
+    state.bo_usable = GGPA (glBindBufferARB)
+        && GGPA (glUnmapBufferARB)
+        && GGPA (glMapBufferARB)
+        && GGPA (glBufferDataARB)
+        && GGPA (glGenBuffersARB)
+        && GGPA (glDeleteBuffersARB);
+#endif
+#undef GGPA
 }
 
 CAMLprim value ml_bo_usable (value unit_v)
