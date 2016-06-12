@@ -4155,23 +4155,31 @@ CAMLprim value ml_swapb (value unit_v)
     CAMLreturn (Val_unit);
 }
 
-/* #include "keysym2ucs.c" */
+#include "keysym2ucs.c"
 
-/* CAMLprim value ml_keysymtoutf8 (value keysym_v) */
-/* { */
-/*     CAMLparam1 (keysym_v); */
-/*     CAMLlocal1 (str_v); */
-/*     KeySym keysym = Int_val (keysym_v); */
-/*     Rune rune; */
-/*     int len; */
-/*     char buf[5]; */
+CAMLprim value ml_keysymtoutf8 (value keysym_v)
+{
+    CAMLparam1 (keysym_v);
+    CAMLlocal1 (str_v);
+    KeySym keysym = Int_val (keysym_v);
+    Rune rune;
+    int len;
+    char buf[5];
 
-/*     rune = keysym2ucs (keysym); */
-/*     len = fz_runetochar (buf, rune); */
-/*     buf[len] = 0; */
-/*     str_v = caml_copy_string (""); */
-/*     CAMLreturn (str_v); */
-/* } */
+    rune = keysym2ucs (keysym);
+    len = fz_runetochar (buf, rune);
+    buf[len] = 0;
+    str_v = caml_copy_string (buf);
+    CAMLreturn (str_v);
+}
+#else
+CAMLprim value ml_keysymtoutf8 (value keysym_v)
+{
+  CAMLparam1 (keysym_v);
+  CAMLlocal1 (str_v);
+  str_v = caml_copy_string ("");
+  CAMLreturn (str_v);
+}
 #endif
 
 enum { piunknown, pilinux, piosx, pisun, pibsd, picygwin };
