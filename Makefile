@@ -20,6 +20,7 @@ LIBS := -lmupdf -lmupdfthird -lpthread # -lGL -lX11
 all: $(LLPP).native.osx
 
 wsi.ml: wsi_cocoa.ml
+	rm -f wsi.ml
 	cp wsi_cocoa.ml wsi.ml
 
 main.ml: main.mlp pp.sed

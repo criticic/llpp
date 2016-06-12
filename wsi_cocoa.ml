@@ -120,6 +120,9 @@ let readresp sock =
   | 9 ->
     vlog "leave";
     state.t#leave
+  | 11 ->
+    vlog "quit";
+    state.t#quit
   | _ ->
     vlog "unknown server message %d" opcode
 

@@ -14,11 +14,12 @@
 #define EVENT_EXPOSE 1
 #define EVENT_RESHAPE 3
 #define EVENT_KEYDOWN 7
+#define EVENT_QUIT 11
 
 void *caml_main_thread (void *argv)
 {
   caml_main (argv);
-  return NULL;
+  pthread_exit (NULL);
 }
 
 CAMLprim value ml_mapwin (value unit)
@@ -89,66 +90,26 @@ CAMLprim value ml_reshape (value w, value h)
 //   return Val_unit;
 // }
 
-@protocol ConnectorDelegate <NSObject>
-
-- (void)swapb;
-
-@end
-
 @interface Connector : NSObject
 
 - (instancetype)initWithFileDescriptor:(int)fd;
-- (void)setDelegate:(id <ConnectorDelegate>)anObject;
 - (void)notifyReshapeWidth:(int)w height:(int)h;
 - (void)notifyExpose;
 - (void)notifyKeyDown:(uint32_t)key modifierFlags:(int)mask;
+- (void)notifyQuit;
 
 @end
 
 @implementation Connector
 {
   NSFileHandle *fileHandle;
-  id <ConnectorDelegate> delegate;
 }
 
 - (instancetype)initWithFileDescriptor:(int)fd
 {
   self = [super init];
   fileHandle = [[NSFileHandle alloc] initWithFileDescriptor:fd];
-  [self performSelectorOnMainThread:@selector(subscribe)
-                         withObject:nil
-                      waitUntilDone:YES];
-  [fileHandle performSelectorOnMainThread:@selector(waitForDataInBackgroundAndNotify)
-                               withObject:nil
-                            waitUntilDone:YES];
   return self;
-}
-
-- (void)setDelegate:(id <ConnectorDelegate>)anObject
-{
-  delegate = anObject;
-}
-
-- (void)subscribe
-{
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(didReceiveDataAvailable:)
-                                               name:NSFileHandleDataAvailableNotification
-                                             object:fileHandle];
-}
-
-- (void)didReceiveDataAvailable:(NSNotification *)not
-{
-  NSLog (@"didReceiveDataAvailable");
-  // NSData *data = [fileHandle readDataOfLength:32];
-  // const char *bytes = [data bytes];
-  // switch (bytes[0]) {
-  // case 0: /* swapb */
-  //   NSLog (@"swapb");
-  //   [delegate swapb];
-  //   break;
-  // }
-  [fileHandle waitForDataInBackgroundAndNotify];
 }
 
 - (void)notifyReshapeWidth:(int)w height:(int)h
@@ -179,9 +140,17 @@ CAMLprim value ml_reshape (value w, value h)
   [fileHandle writeData:data];
 }
 
+- (void)notifyQuit
+{
+  char bytes[32];
+  bytes[0] = EVENT_QUIT;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
 @end
 
-@interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate, ConnectorDelegate>
+@interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 
 - (void)focus;
 - (int)getw;
@@ -323,7 +292,6 @@ CAMLprim value ml_reshape (value w, value h)
   self = [super init];
   argv = theArgv;
   connector = [[Connector alloc] initWithFileDescriptor:fd];
-  [connector setDelegate:self];
   return self;
 }
 
@@ -469,7 +437,8 @@ CAMLprim value ml_reshape (value w, value h)
 
 - (void)applicationWillTerminate:(NSDictionary *)userInfo
 {
-  // caml_callback(*caml_named_value("llpp_quit"), Val_unit);
+  [connector notifyQuit];
+  pthread_join (thread, NULL);
 }
 
 - (void)windowDidChangeOcclusionState:(NSNotification *)notification
