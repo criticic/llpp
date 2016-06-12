@@ -14,6 +14,7 @@
 #define EVENT_EXPOSE 1
 #define EVENT_RESHAPE 3
 #define EVENT_KEYDOWN 7
+#define EVENT_LEAVE 9
 #define EVENT_QUIT 11
 
 void *caml_main_thread (void *argv)
@@ -76,6 +77,14 @@ void *caml_main_thread (void *argv)
 {
   char bytes[32];
   bytes[0] = EVENT_QUIT;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
+- (void)notifyLeave
+{
+  char bytes[32];
+  bytes[0] = EVENT_LEAVE;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }
@@ -154,13 +163,6 @@ void *caml_main_thread (void *argv)
   return YES;
 }
 
-- (void)keyUp:(NSEvent *)event
-{
-  int key = [event keyCode];
-  int mask = [event modifierFlags];
-  // caml_callback2(*caml_named_value("llpp_key_down"), Val_int(key), Val_int(mask));
-}
-
 - (void)keyDown:(NSEvent *)event // FIXME
 {
   // int key = [event keyCode];
@@ -207,7 +209,7 @@ void *caml_main_thread (void *argv)
 
 - (void)mouseExited:(NSEvent *)theEvent
 {
-  // caml_callback(*caml_named_value("llpp_left"), Val_unit);
+  [connector notifyLeave];
 }
 
 @end
@@ -289,12 +291,6 @@ void *caml_main_thread (void *argv)
 
   // [myView setWantsBestResolutionOpenGLSurface:YES];
 
-  // [myView setFrameOrigin:NSMakePoint (myView.frame.origin.x, myView.frame.origin.y + 22)];
-
-  // NSLog (@"xxx = %ld", [window styleMask] & NSFullSizeContentViewWindowMask);
-
-  // myView.autoresizingMask = NSViewWidthSizable |  NSViewHeightSizable;
-
   NSOpenGLPixelFormatAttribute attrs[] =
     {
       NSOpenGLPFAAccelerated,
@@ -302,15 +298,7 @@ void *caml_main_thread (void *argv)
       NSOpenGLPFAColorSize, 24,
       NSOpenGLPFAAlphaSize, 8,
       NSOpenGLPFADepthSize, 24,
-      // NSOpenGLPFAStencilSize, 8,
-      // NSOpenGLPFAAccumSize, 0,
       0
-// NSOpenGLPFADoubleBuffer,
-//       NSOpenGLPFABackingStore,
-//       NSOpenGLPFAColorSize, 24,
-//       NSOpenGLPFAAlphaSize, 8,
-//       NSOpenGLPFAOpenGLProfile,
-//       0
     };
   NSOpenGLPixelFormat *pixFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
   glContext = [[NSOpenGLContext alloc] initWithFormat:pixFormat shareContext:nil];
@@ -328,10 +316,7 @@ void *caml_main_thread (void *argv)
 - (void)setContentFrame:(NSValue *)val
 {
   NSRect rect = [window frameRectForContentRect:[val rectValue]];
-  // NSLog (@"rect: %@", [NSValue valueWithRect:rect]);
   [window setFrame:rect display:YES];
-  // NSLog (@"contentView frame: %@", [NSValue valueWithRect:[window contentView].frame]);
-  // NSLog (@"contentView bounds: %@", [NSValue valueWithRect:[window contentView].bounds]);
 }
 
 - (void)completeInit:(int)w height:(int)h
@@ -347,6 +332,11 @@ void *caml_main_thread (void *argv)
 - (void)swapb
 {
   [glContext flushBuffer];
+}
+
+- (void)toggleFullScreen
+{
+  [window toggleFullScreen:self];
 }
 
 - (void)windowDidResize:(NSNotification *)notification
@@ -453,13 +443,14 @@ CAMLprim value ml_reshape (value w, value h)
   CAMLreturn (Val_unit);
 }
 
-// CAMLprim value stub_fullscreen (value unit)
-// {
-//   // if (([window styleMask] & NSFullScreenWindowMask) != NSFullScreenWindowMask) {
-//   //   [window toggleFullScreen:nil];
-//   // }
-//   return Val_unit;
-// }
+CAMLprim value ml_fullscreen (value unit)
+{
+  CAMLparam1 (unit);
+  [[NSApp delegate] performSelectorOnMainThread:@selector(toggleFullScreen)
+                                     withObject:nil
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
 
 int main(int argc, char **argv)
 {

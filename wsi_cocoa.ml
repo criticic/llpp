@@ -3,16 +3,16 @@ open Utils;;
 let debug = true
 
 type cursor =
-    | CURSOR_INHERIT
-    | CURSOR_INFO
-    | CURSOR_CYCLE
-    | CURSOR_FLEUR
-    | CURSOR_TEXT
+  | CURSOR_INHERIT
+  | CURSOR_INFO
+  | CURSOR_CYCLE
+  | CURSOR_FLEUR
+  | CURSOR_TEXT
 
 type winstate =
-    | MaxVert
-    | MaxHorz
-    | Fullscreen
+  | MaxVert
+  | MaxHorz
+  | Fullscreen
 
 type visiblestate =
   | Unobscured
@@ -83,9 +83,9 @@ external reshape: int -> int -> unit = "ml_reshape"
    7 -> key
    8 -> enter
    9 -> leave
-  10 -> winstate
-  11 -> quit
-  13 -> response *)
+   10 -> winstate
+   11 -> quit
+   13 -> response *)
 
 let readresp sock =
   prerr_endline "readresp";
@@ -143,9 +143,7 @@ let init t _ w h platform =
   (* Printf.ksprintf prerr_endline "w' %d h' %d" w' h'; *)
   fd, getw (), geth ()
 
-let fullscreen () =
-  vlog "fullscreen"
-  (* stub_fullscreen () *)
+external fullscreen: unit -> unit = "ml_fullscreen"
 
 let activatewin () = ()
 
