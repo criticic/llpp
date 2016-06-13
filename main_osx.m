@@ -119,10 +119,6 @@ void *caml_main_thread (void *argv)
 
 @interface MyWindow : NSWindow
 
-- (void)keyDown:(NSEvent *) event;
-- (void)mouseUp:(NSEvent *)event;
-- (void)mouseDown:(NSEvent *)event;
-
 @end
 
 @interface MyView : NSView
@@ -163,26 +159,9 @@ void *caml_main_thread (void *argv)
   NSTrackingArea* trackingArea = [[NSTrackingArea alloc]
                                    initWithRect:[self bounds]
                                  options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveInActiveApp | NSTrackingInVisibleRect)
-                                          owner:window
+                                          owner:self
                                        userInfo:nil];
   [self addTrackingArea:trackingArea];
-}
-
-@end
-
-@implementation MyWindow
-{
-  Connector *connector;
-}
-
-- (void)setConnector:(Connector *)aConnector
-{
-  connector = aConnector;
-}
-
-- (BOOL)canBecomeKeyWindow
-{
-  return YES;
 }
 
 - (void)keyDown:(NSEvent *)event // FIXME
@@ -231,6 +210,15 @@ void *caml_main_thread (void *argv)
 - (void)mouseExited:(NSEvent *)theEvent
 {
   [connector notifyLeave];
+}
+
+@end
+
+@implementation MyWindow
+
+- (BOOL)canBecomeKeyWindow
+{
+  return YES;
 }
 
 @end
@@ -301,7 +289,6 @@ void *caml_main_thread (void *argv)
                                            defer:NO];
 
   [window setMovableByWindowBackground:YES];
-  [window setConnector:connector];
   [window center];
   [window setAcceptsMouseMovedEvents:YES];
   [window setDelegate:self];
@@ -311,6 +298,7 @@ void *caml_main_thread (void *argv)
                                        connector:connector];
 
   [window setContentView:myView];
+  [window makeFirstResponder:myView];
 
   // [myView setWantsBestResolutionOpenGLSurface:YES];
 
