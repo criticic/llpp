@@ -71,8 +71,6 @@ external swapb: unit -> unit = "ml_swapb"
 
 external reshape: int -> int -> unit = "ml_reshape"
 
-(* 0 -> swapb *)
-
 (* 0 -> map
    1 -> expose
    2 -> visible
@@ -103,14 +101,19 @@ let readresp sock =
     let h = r16 resp 18 in
     vlog "reshape width %d height %d" w h;
     state.t#reshape w h
+  | 6 ->
+    let x = r16s resp 16 in
+    let y = r16s resp 20 in
+    vlog "pmotion x %d y %d" x y;
+    state.t#pmotion x y
   | 7 ->
     let key = r32 resp 16 in
     let mask = r32 resp 20 in
     vlog "keydown key %d mask %d" key mask;
     state.t#key key mask
   | 8 ->
-    let x = r32 resp 16 in
-    let y = r32 resp 20 in
+    let x = r16s resp 16 in
+    let y = r16s resp 20 in
     vlog "enter x %d y %d" x y;
     state.t#enter x y
   | 9 ->

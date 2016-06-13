@@ -13,6 +13,7 @@
 
 #define EVENT_EXPOSE 1
 #define EVENT_RESHAPE 3
+#define EVENT_PMOTION 6
 #define EVENT_KEYDOWN 7
 #define EVENT_ENTER 8
 #define EVENT_LEAVE 9
@@ -29,10 +30,11 @@ void *caml_main_thread (void *argv)
 - (instancetype)initWithFileDescriptor:(int)fd;
 - (void)notifyReshapeWidth:(int)w height:(int)h;
 - (void)notifyExpose;
-- (void)notifyKeyDown:(uint32_t)key modifierFlags:(int)mask;
+- (void)keyDown:(uint32_t)key modifierFlags:(int)mask;
 - (void)notifyQuit;
-- (void)notifyMouseEnter:(NSPoint)loc;
+- (void)mouseEntered:(NSPoint)loc;
 - (void)notifyLeave;
+- (void)mouseMoved:(NSPoint)aPoint;
 
 @end
 
@@ -66,7 +68,7 @@ void *caml_main_thread (void *argv)
   [fileHandle writeData:data];
 }
 
-- (void)notifyKeyDown:(uint32_t)key modifierFlags:(int)mask
+- (void)keyDown:(uint32_t)key modifierFlags:(int)mask
 {
   char bytes[32];
   bytes[0] = EVENT_KEYDOWN;
@@ -84,12 +86,12 @@ void *caml_main_thread (void *argv)
   [fileHandle writeData:data];
 }
 
-- (void)notifyMouseEnter:(NSPoint)loc
+- (void)mouseEntered:(NSPoint)loc
 {
   char bytes[32];
   bytes[0] = EVENT_ENTER;
-  *(int32_t *) (bytes + 16) = loc.x;
-  *(int32_t *) (bytes + 20) = loc.y;
+  *(int16_t *) (bytes + 16) = loc.x;
+  *(int16_t *) (bytes + 20) = loc.y;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }
@@ -98,6 +100,16 @@ void *caml_main_thread (void *argv)
 {
   char bytes[32];
   bytes[0] = EVENT_LEAVE;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
+- (void)mouseMoved:(NSPoint)aPoint
+{
+  char bytes[32];
+  bytes[0] = EVENT_PMOTION;
+  *(int16_t *) (bytes + 16) = aPoint.x;
+  *(int16_t *) (bytes + 20) = aPoint.y;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }
@@ -173,7 +185,7 @@ void *caml_main_thread (void *argv)
     NSLog (@"keyDown: %@", chars);
     // NSRange r = [chars rangeOfComposedCharacterSequenceAtIndex:0];
     const char *data = [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
-    [connector notifyKeyDown:*(uint32_t *)data modifierFlags:0];
+    [connector keyDown:*(uint32_t *)data modifierFlags:0];
   }
 }
 
@@ -197,14 +209,14 @@ void *caml_main_thread (void *argv)
 
 - (void)mouseMoved:(NSEvent *)event
 {
-  NSPoint loc = [event locationInWindow];
-  // caml_callback2(*caml_named_value("llpp_mouse_moved"), Val_int(loc.x), Val_int(loc.y));
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  [connector mouseMoved:loc];
 }
 
 - (void)mouseEntered:(NSEvent *)theEvent
 {
   NSPoint loc = [theEvent locationInWindow];
-  [connector notifyMouseEnter:loc];
+  [connector mouseEntered:loc];
 }
 
 - (void)mouseExited:(NSEvent *)theEvent
