@@ -22,8 +22,10 @@ BEST = native
 # BEST = byte
 
 ifeq ($(SYSTEM),cocoa)
-	CFLAGS += -D__COCOA__ -I/opt/X11/include
+	CFLAGS += -D__COCOA__
+else ifeq ($(shell uname),Darwin)
 	LDFLAGS += -L/opt/X11/lib
+	CFLAGS += -I/opt/X11/include
 endif
 
 all: $(LLPP)
@@ -81,7 +83,7 @@ $(LLPP)_x11.native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
 main_osx.o: CFLAGS += -I $(STDLIB)
 
 $(LLPP)_cocoa.byte: main_osx.o $(addsuffix .cmo,$(LLPP_FILES)) $(O_FILES)
-	$(OCAMLC) str.cma unix.cma -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
+	$(OCAMLC) -custom str.cma unix.cma -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
 
 $(LLPP)_cocoa.native: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
 	$(OCAMLOPT) str.cmxa unix.cmxa -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
