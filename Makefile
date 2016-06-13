@@ -21,6 +21,11 @@ OCAMLCFLAGS = -I lablGL
 BEST = native
 # BEST = byte
 
+ifeq ($(SYSTEM),cocoa)
+	CFLAGS += -D__COCOA__ -I/opt/X11/include
+	LDFLAGS += -L/opt/X11/lib
+endif
+
 all: $(LLPP)
 
 wsi.ml: wsi_$(SYSTEM).ml
@@ -82,6 +87,7 @@ $(LLPP)_cocoa.native: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
 	$(OCAMLOPT) str.cmxa unix.cmxa -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
 
 $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
+	$(RM) -f $@
 	$(MV) $< $@
 
 .PHONY: mupdf force_mupdf

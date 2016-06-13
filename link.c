@@ -28,9 +28,12 @@
 #include <limits.h>
 #include <inttypes.h>
 
+#ifdef __COCOA__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
-#include <CoreFoundation/CoreFoundation.h>
 #else
 #include <GL/gl.h>
 #endif
@@ -3929,7 +3932,7 @@ CAMLprim value ml_setaalevel (value level_v)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 
-#ifndef __APPLE__
+#ifndef __COCOA__
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
 #pragma GCC diagnostic pop
@@ -4332,11 +4335,11 @@ CAMLprim value ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
-#ifdef __APPLE__
+#ifdef __COCOA__
   static CFBundleRef framework = NULL;
   if (framework == NULL)
     framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
-#define GGPA(n) (&state.n = CFBundleGetFunctionPointerForName(framework, CFSTR (#n)))
+#define GGPA(n) (&state.n = CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
 #else
 #ifdef USE_EGL
 #define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
