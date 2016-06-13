@@ -16,6 +16,7 @@ VERSION = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
 LDFLAGS = -L mupdf/build/native
 LDLIBS = -lmupdf -lmupdfthird -lpthread
 CFLAGS = -I mupdf/include -I mupdf/thirdparty/freetype/include
+OCAMLCFLAGS = -I lablGL
 
 BEST = native
 # BEST = byte
@@ -83,19 +84,6 @@ $(LLPP)_cocoa.native: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
 $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
 	$(MV) $< $@
 
-.PHONY: depend
-depend: main.ml help.ml wsi.ml
-	$(OCAMLDEP) -all -I lablGL $(addsuffix .ml,$(LLPP_FILES)) > .depend
-
-%.cmi: %.mli
-	$(OCAMLC) -I lablGL -c $<
-
-%.cmo: %.ml %.cmi
-	$(OCAMLC) -I lablGL -c $<
-
-%.cmx: %.ml
-	$(OCAMLOPT) -I lablGL -c $<
-
 .PHONY: mupdf force_mupdf
 mupdf:
 	test -d mupdf || $(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
@@ -112,5 +100,18 @@ clean:
 	$(RM) -f *.cm* *.o
 	$(RM) -f lablGL/*.cm* lablGL/*.o
 	$(RM) -f $(LLPP)_cocoa.* $(LLPP)_x11.* $(LLPP)
+
+%.cmi: %.mli
+	$(OCAMLC) $(OCAMLCFLAGS) -c $<
+
+%.cmo: %.ml %.cmi
+	$(OCAMLC) $(OCAMLCFLAGS) -c $<
+
+%.cmx: %.ml
+	$(OCAMLOPT) $(OCAMLCFLAGS) $(OCAMLOPTFLAGS) -c $<
+
+.PHONY: depend
+depend: main.ml help.ml wsi.ml
+	$(OCAMLDEP) -all -I lablGL $(addsuffix .ml,$(LLPP_FILES)) > .depend
 
 include .depend
