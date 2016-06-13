@@ -1,27 +1,30 @@
-LN := ln
-RM := rm
-SED := sed
-OCAMLDEP := ocamldep
-OCAMLBUILD := ocamlbuild -classic-display
-LLPP := llpp
-OCAMLC := ocamlc.opt
-OCAMLOPT := ocamlopt.opt
-STDLIB := $(shell $(OCAMLC) -where)
+MV = mv
+RM = rm
+SED = sed
+GIT = git
+CP = cp
+OCAMLDEP = ocamldep
+LLPP = llpp
+OCAMLC = ocamlc.opt
+OCAMLOPT = ocamlopt.opt
+STDLIB = $(shell $(OCAMLC) -where)
+SYSTEM = x11
+# SYSTEM = cocoa
 
-VERSION := $(or $(shell git describe --tags 2>/dev/null),unknown)
+VERSION = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
 
-# CFLAGS = -I /opt/X11/include
-# LDFLAGS = -L /opt/X11/lib
+LDFLAGS = -L mupdf/build/native
+LDLIBS = -lmupdf -lmupdfthird -lpthread
+CFLAGS = -I mupdf/include -I mupdf/thirdparty/freetype/include
 
-LIBFLAGS := -L mupdf/build/native
-INCFLAGS := -I mupdf/include -I mupdf/thirdparty/freetype/include
-LIBS := -lmupdf -lmupdfthird -lpthread # -lGL -lX11
+BEST = native
+# BEST = byte
 
-all: $(LLPP).native.osx
+all: $(LLPP)
 
-wsi.ml: wsi_cocoa.ml
-	rm -f wsi.ml
-	cp wsi_cocoa.ml wsi.ml
+wsi.ml: wsi_$(SYSTEM).ml
+	$(RM) -f $@
+	$(CP) $< $@
 
 main.ml: main.mlp pp.sed
 	$(SED) -f pp.sed $< > $@
@@ -29,17 +32,15 @@ main.ml: main.mlp pp.sed
 help.ml: KEYS mkhelp.sh
 	sh mkhelp.sh KEYS $(VERSION) > $@
 
-lablGL/%.o: lablGL/%.c
-	$(CC) -I $(STDLIB) -o $@ -c $<
+lablGL/%.o: CFLAGS += -I $(STDLIB)
 
-LINK_CFLAGS := \
-#	-Wextra -Wall -Werror
+CFLAGS_LINK = \
+	-Wextra -Wall -Werror \
 	-D_GNU_SOURCE \
 	-O -g -std=c99 -pedantic-errors -Wunused-parameter \
 	-Wsign-compare -Wshadow
 
-link.o: link.c
-	$(CC) -I $(STDLIB) $(CFLAGS) $(INCFLAGS) $(LINK_CFLAGS) -c $<
+link.o: CFLAGS += $(CFLAGS_LINK) -I $(STDLIB)
 
 LLPP_FILES = \
 	lablGL/gl \
@@ -65,30 +66,26 @@ O_FILES = \
 	lablGL/ml_gl.o \
 	lablGL/ml_glarray.o
 
-$(LLPP): $(O_FILES) $(addsuffix .cmo,$(LLPP_FILES))
-	$(OCAMLC) -custom unix.cma str.cma $^ -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@
+$(LLPP)_x11.byte: $(O_FILES) $(addsuffix .cmo,$(LLPP_FILES))
+	$(OCAMLC) -custom unix.cma str.cma $^ -cclib "$(LDFLAGS) $(LDLIBS) -lX11 -lGL" -o $@
 
-# $(LLPP).o: $(addsuffix .cmo,$(LLPP_FILES))
-# 	$(OCAMLC) -output-obj -o $@ unix.cma str.cma $^
+$(LLPP)_x11.native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
+	$(OCAMLOPT) unix.cmxa str.cmxa $^ -cclib "$(LDFLAGS) $(LDLIBS) -lX11 -lGL" -o $@
 
-$(LLPP).native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
-	$(OCAMLOPT) unix.cmxa str.cmxa $^ -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS)" -o $@
+main_osx.o: CFLAGS += -I $(STDLIB)
 
-# $(LLPP).native.o: $(addsuffix .cmx,$(LLPP_FILES))
-# 	$(OCAMLOPT) $@ unix.cmxa str.cmxa -c $^
+$(LLPP)_cocoa.byte: main_osx.o $(addsuffix .cmo,$(LLPP_FILES)) $(O_FILES)
+	$(OCAMLC) str.cma unix.cma -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
 
-main_osx.o: main_osx.m
-	$(CC) -I $(STDLIB) -o $@ -c $<
+$(LLPP)_cocoa.native: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
+	$(OCAMLOPT) str.cmxa unix.cmxa -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
 
-# $(LLPP).osx: main_osx.o llpp.o $(O_FILES)
-# 	$(CC) -L $(STDLIB) $(LDFLAGS) $(LIBFLAGS) $(LIBS) -lunix -lcamlstr -lcamlrun -framework cocoa -o $@ $^
-
-$(LLPP).native.osx: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
-	$(OCAMLOPT) str.cmxa unix.cmxa -cclib "$(LDFLAGS) $(LIBFLAGS) $(LIBS) -framework cocoa -framework opengl" -o $@ $^
+$(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
+	$(MV) $< $@
 
 .PHONY: depend
-depend: main.ml help.ml
-	$(OCAMLDEP) -all -I lablGL *.ml lablGL/*.ml > .depend
+depend: main.ml help.ml wsi.ml
+	$(OCAMLDEP) -all -I lablGL $(addsuffix .ml,$(LLPP_FILES)) > .depend
 
 %.cmi: %.mli
 	$(OCAMLC) -I lablGL -c $<
@@ -99,16 +96,21 @@ depend: main.ml help.ml
 %.cmx: %.ml
 	$(OCAMLOPT) -I lablGL -c $<
 
-.PHONY: mupdf
+.PHONY: mupdf force_mupdf
 mupdf:
-	test -d mupdf || git clone git://git.ghostscript.com/mupdf --recursive && \
+	test -d mupdf || $(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
 	$(MAKE) -C mupdf build=native XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
+
+force_mupdf:
+	$(RM) -rf mupdf
+	$(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
+	$(MAKE) -C mupdf build=native # XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
 
 .PHONY: clean
 clean:
-	rm -f main.ml help.ml wsi.ml
-	rm -f *.cm* *.o
-	rm -f lablGL/*.cm* lablGL/*.o
-	rm -f $(LLPP).native $(LLPP) $(LLPP).native.o
+	$(RM) -f main.ml help.ml wsi.ml
+	$(RM) -f *.cm* *.o
+	$(RM) -f lablGL/*.cm* lablGL/*.o
+	$(RM) -f $(LLPP)_cocoa.* $(LLPP)_x11.* $(LLPP)
 
 include .depend
