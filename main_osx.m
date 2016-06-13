@@ -14,6 +14,7 @@
 #define EVENT_EXPOSE 1
 #define EVENT_RESHAPE 3
 #define EVENT_KEYDOWN 7
+#define EVENT_ENTER 8
 #define EVENT_LEAVE 9
 #define EVENT_QUIT 11
 
@@ -30,6 +31,8 @@ void *caml_main_thread (void *argv)
 - (void)notifyExpose;
 - (void)notifyKeyDown:(uint32_t)key modifierFlags:(int)mask;
 - (void)notifyQuit;
+- (void)notifyMouseEnter:(NSPoint)loc;
+- (void)notifyLeave;
 
 @end
 
@@ -77,6 +80,16 @@ void *caml_main_thread (void *argv)
 {
   char bytes[32];
   bytes[0] = EVENT_QUIT;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
+- (void)notifyMouseEnter:(NSPoint)loc
+{
+  char bytes[32];
+  bytes[0] = EVENT_ENTER;
+  *(int32_t *) (bytes + 16) = loc.x;
+  *(int32_t *) (bytes + 20) = loc.y;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }
@@ -146,6 +159,15 @@ void *caml_main_thread (void *argv)
   [connector notifyExpose];
 }
 
+- (void)viewWillMoveToWindow:(NSWindow *)newWindow {
+  NSTrackingArea* trackingArea = [[NSTrackingArea alloc]
+                                   initWithRect:[self bounds]
+                                 options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveInActiveApp | NSTrackingInVisibleRect)
+                                          owner:window
+                                       userInfo:nil];
+  [self addTrackingArea:trackingArea];
+}
+
 @end
 
 @implementation MyWindow
@@ -173,7 +195,6 @@ void *caml_main_thread (void *argv)
     // NSRange r = [chars rangeOfComposedCharacterSequenceAtIndex:0];
     const char *data = [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
     [connector notifyKeyDown:*(uint32_t *)data modifierFlags:0];
-    // caml_callback2(*caml_named_value("llpp_key_up"), Val_int(key), Val_int(mask));
   }
 }
 
@@ -204,7 +225,7 @@ void *caml_main_thread (void *argv)
 - (void)mouseEntered:(NSEvent *)theEvent
 {
   NSPoint loc = [theEvent locationInWindow];
-  // caml_callback2(*caml_named_value("llpp_entered"), Val_int(loc.x), Val_int(loc.y));
+  [connector notifyMouseEnter:loc];
 }
 
 - (void)mouseExited:(NSEvent *)theEvent
@@ -226,8 +247,10 @@ void *caml_main_thread (void *argv)
 - (instancetype)initWithArgv:(char **)theArgv fileDescriptor:(int)fd
 {
   self = [super init];
-  argv = theArgv;
-  connector = [[Connector alloc] initWithFileDescriptor:fd];
+  if (self != NULL) {
+    argv = theArgv;
+    connector = [[Connector alloc] initWithFileDescriptor:fd];
+  }
   return self;
 }
 
@@ -305,12 +328,6 @@ void *caml_main_thread (void *argv)
   GLint swapInt = 1;
   [glContext setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
   [glContext setView:myView];
-  NSTrackingArea *trackingArea =
-    [[NSTrackingArea alloc] initWithRect:[[window contentView] bounds]
-                                 options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveInActiveApp)
-                                   owner:window
-                                userInfo:nil];
-  [[window contentView] addTrackingArea:trackingArea];
 }
 
 - (void)setContentFrame:(NSValue *)val

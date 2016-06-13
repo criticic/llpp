@@ -109,8 +109,8 @@ let readresp sock =
     vlog "keydown key %d mask %d" key mask;
     state.t#key key mask
   | 8 ->
-    let x = r16 resp 16 in
-    let y = r16 resp 18 in
+    let x = r32 resp 16 in
+    let y = r32 resp 20 in
     vlog "enter x %d y %d" x y;
     state.t#enter x y
   | 9 ->
