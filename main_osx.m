@@ -13,7 +13,8 @@
 
 #define EVENT_EXPOSE 1
 #define EVENT_RESHAPE 3
-#define EVENT_PMOTION 6
+#define EVENT_MOUSE 4
+#define EVENT_MOTION 5
 #define EVENT_KEYDOWN 7
 #define EVENT_ENTER 8
 #define EVENT_LEAVE 9
@@ -33,9 +34,10 @@ void *caml_main_thread (void *argv)
 - (void)keyDown:(uint32_t)key modifierFlags:(int)mask;
 - (void)notifyQuit;
 - (void)mouseEntered:(NSPoint)loc;
-- (void)notifyLeave;
-- (void)mouseMoved:(NSPoint)aPoint;
-
+- (void)mouseExited;
+- (void)mouseMoved:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags;
+- (void)mouseDown:(NSUInteger)buttons atPoint:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags;
+- (void)mouseUp:(NSUInteger)buttons atPoint:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags;
 @end
 
 @implementation Connector
@@ -96,7 +98,7 @@ void *caml_main_thread (void *argv)
   [fileHandle writeData:data];
 }
 
-- (void)notifyLeave
+- (void)mouseExited
 {
   char bytes[32];
   bytes[0] = EVENT_LEAVE;
@@ -104,12 +106,39 @@ void *caml_main_thread (void *argv)
   [fileHandle writeData:data];
 }
 
-- (void)mouseMoved:(NSPoint)aPoint
+- (void)mouseMoved:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
 {
   char bytes[32];
-  bytes[0] = EVENT_PMOTION;
+  bytes[0] = EVENT_MOTION;
   *(int16_t *) (bytes + 16) = aPoint.x;
   *(int16_t *) (bytes + 20) = aPoint.y;
+  *(uint32_t *) (bytes + 24) = flags;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
+- (void)mouseDown:(NSUInteger)buttons atPoint:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
+{
+  char bytes[32];
+  bytes[0] = EVENT_MOUSE;
+  *(int16_t *) (bytes + 10) = 1;
+  *(int32_t *) (bytes + 12) = buttons;
+  *(int16_t *) (bytes + 16) = aPoint.y;
+  *(int16_t *) (bytes + 20) = aPoint.y;
+  *(uint32_t *) (bytes + 24) = flags;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
+- (void)mouseUp:(NSUInteger)buttons atPoint:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
+{
+  char bytes[32];
+  bytes[0] = EVENT_MOUSE;
+  *(int16_t *) (bytes + 10) = 0;
+  *(int32_t *) (bytes + 12) = buttons;
+  *(int16_t *) (bytes + 16) = aPoint.y;
+  *(int16_t *) (bytes + 20) = aPoint.y;
+  *(uint32_t *) (bytes + 24) = flags;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }
@@ -185,32 +214,39 @@ void *caml_main_thread (void *argv)
     NSLog (@"keyDown: %@", chars);
     // NSRange r = [chars rangeOfComposedCharacterSequenceAtIndex:0];
     const char *data = [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
-    [connector keyDown:*(uint32_t *)data modifierFlags:0];
+    [connector keyDown:*(uint32_t *)data modifierFlags:mask];
+  }
+}
+
+- (void)flagsChanged:(NSEvent *)event
+{
+  int mask = [event modifierFlags];
+  NSLog (@"flagsChanged: 0x%x", mask);
+  if (mask != 0) {
+    [connector keyDown:0 modifierFlags:mask];
   }
 }
 
 - (void)mouseDown:(NSEvent *)event
 {
-  int buttons = 0; // [event pressedMouseButtons];
-  NSPoint loc = [event locationInWindow];
+  int buttons = [event buttonNumber];
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   int mask = [event modifierFlags];
-  value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
-  // caml_callbackN(*caml_named_value ("llpp_mouse_down"), 4, args);
+  [connector mouseDown:buttons atPoint:loc modifierFlags:mask];
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
-  int buttons = 0; // [event pressedMouseButtons];
-  NSPoint loc = [event locationInWindow];
+  int buttons = [event buttonNumber];
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   int mask = [event modifierFlags];
-  value args[] = {Val_int (buttons), Val_int(loc.x), Val_int(loc.y), Val_int(mask)};
-  // caml_callbackN(*caml_named_value("llpp_mouse_up"), 4, args);
+  [connector mouseUp:buttons atPoint:loc modifierFlags:mask];
 }
 
 - (void)mouseMoved:(NSEvent *)event
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  [connector mouseMoved:loc];
+  [connector mouseMoved:loc modifierFlags:[event modifierFlags]];
 }
 
 - (void)mouseEntered:(NSEvent *)theEvent
@@ -221,7 +257,7 @@ void *caml_main_thread (void *argv)
 
 - (void)mouseExited:(NSEvent *)theEvent
 {
-  [connector notifyLeave];
+  [connector mouseExited];
 }
 
 @end

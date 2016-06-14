@@ -3,6 +3,7 @@ RM = rm
 SED = sed
 GIT = git
 CP = cp
+LN = ln
 OCAMLDEP = ocamldep
 LLPP = llpp
 OCAMLC = ocamlc.opt
@@ -90,7 +91,7 @@ $(LLPP)_cocoa.native: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
 
 $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
 	$(RM) -f $@
-	$(MV) $< $@
+	$(LN) $< $@
 
 .PHONY: mupdf force_mupdf
 mupdf:

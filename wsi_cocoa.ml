@@ -77,7 +77,6 @@ external reshape: int -> int -> unit = "ml_reshape"
    3 -> reshape
    4 -> mouse
    5 -> motion
-   6 -> pmotion
    7 -> key
    8 -> enter
    9 -> leave
@@ -101,11 +100,23 @@ let readresp sock =
     let h = r16 resp 18 in
     vlog "reshape width %d height %d" w h;
     state.t#reshape w h
-  | 6 ->
+  | 4 ->
+    let down = r16 resp 10 <> 0 in
+    let b = r32 resp 12 in
     let x = r16s resp 16 in
     let y = r16s resp 20 in
-    vlog "pmotion x %d y %d" x y;
-    state.t#pmotion x y
+    let m = r32 resp 24 in
+    vlog "mouse %s b %d x %d y %d m 0x%x" (if down then "down" else "up") b x y m;
+    state.t#mouse b down x y m
+  | 5 ->
+    let x = r16s resp 16 in
+    let y = r16s resp 20 in
+    let m = r32 resp 24 in
+    vlog "motion x %d y %d m 0x%x" x y m;
+    if m = 0 then
+      state.t#pmotion x y
+    else
+      state.t#motion x y
   | 7 ->
     let key = r32 resp 16 in
     let mask = r32 resp 20 in
