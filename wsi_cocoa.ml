@@ -63,7 +63,7 @@ let state =
 
 let readstr sock n = try readstr sock n with End_of_file -> state.t#quit; assert false
 
-let setcursor _ = ()
+external setcursor: cursor -> unit = "ml_setcursor"
 
 external settitle: string -> unit = "ml_settitle"
 

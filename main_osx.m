@@ -164,30 +164,37 @@ void *caml_main_thread (void *argv)
 
 @interface MyView : NSView
 {
-  MyWindow *window;
   Connector *connector;
+  NSCursor *cursor;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame
-                    andWindow:(MyWindow *)myWindow
-                    connector:(Connector *)aConnector;
+- (instancetype)initWithFrame:(NSRect)frame connector:(Connector *)aConnector;
+- (void)setCursor:(NSCursor *)aCursor;
 
 @end
 
 @implementation MyView
 
-- (instancetype)initWithFrame:(NSRect)frame
-                    andWindow:(MyWindow *)myWindow
-                    connector:(Connector *)aConnector
+- (instancetype)initWithFrame:(NSRect)frame connector:(Connector *)aConnector
 {
   self = [super initWithFrame:frame];
 
   if (self != NULL) {
-    window = myWindow;
     connector = aConnector;
+    cursor = [NSCursor arrowCursor];
   }
 
   return self;
+}
+
+- (void)setCursor:(NSCursor *)aCursor
+{
+  cursor = aCursor;
+}
+
+-(void)resetCursorRects
+{
+  [self addCursorRect:[self bounds] cursor:cursor];
 }
 
 - (void)drawRect:(NSRect)bounds
@@ -342,7 +349,6 @@ void *caml_main_thread (void *argv)
   [window setDelegate:self];
 
   MyView *myView = [[MyView alloc] initWithFrame:[[window contentView] bounds]
-                                       andWindow:window
                                        connector:connector];
 
   [window setContentView:myView];
@@ -390,6 +396,12 @@ void *caml_main_thread (void *argv)
 - (void)toggleFullScreen
 {
   [window toggleFullScreen:self];
+}
+
+- (void)setCursor:(NSCursor *)aCursor
+{
+  [[window contentView] setCursor: aCursor];
+  [window invalidateCursorRectsForView:[window contentView]];
 }
 
 - (void)windowDidResize:(NSNotification *)notification
@@ -501,6 +513,33 @@ CAMLprim value ml_fullscreen (value unit)
   CAMLparam1 (unit);
   [[NSApp delegate] performSelectorOnMainThread:@selector(toggleFullScreen)
                                      withObject:nil
+                                  waitUntilDone:YES];
+  CAMLreturn (Val_unit);
+}
+
+CAMLprim value ml_setcursor (value curs)
+{
+  CAMLparam1 (curs);
+  NSCursor *theCursor;
+  switch (curs) {
+  case 0:
+    theCursor = [NSCursor arrowCursor];
+    break;
+  case 1:
+    theCursor = [NSCursor pointingHandCursor];
+    break;
+  case 3:
+    theCursor = [NSCursor crosshairCursor];
+    break;
+  case 4:
+    theCursor = [NSCursor IBeamCursor];
+    break;
+  default:
+    theCursor = [NSCursor arrowCursor];
+    break;
+  }
+  [[NSApp delegate] performSelectorOnMainThread:@selector(setCursor:)
+                                     withObject:theCursor
                                   waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
