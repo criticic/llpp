@@ -261,6 +261,7 @@ void *caml_main_thread (void *argv)
 - (void)mouseEntered:(NSEvent *)theEvent
 {
   NSPoint loc = [theEvent locationInWindow];
+  loc.y = [self bounds].size.height - loc.y;
   [connector mouseEntered:loc];
 }
 
