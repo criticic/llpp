@@ -26,6 +26,23 @@ void *caml_main_thread (void *argv)
   pthread_exit (NULL);
 }
 
+NSCursor *GetCursor (int idx)
+{
+  static NSCursor *cursors[5];
+  static BOOL initialised = NO;
+
+  if (initialised == NO) {
+    cursors[0] = [NSCursor arrowCursor];
+    cursors[1] = [NSCursor pointingHandCursor];
+    cursors[2] = [NSCursor arrowCursor];
+    cursors[3] = [NSCursor crosshairCursor];
+    cursors[4] = [NSCursor IBeamCursor];
+    initialised = YES;
+  }
+
+  return cursors[idx];
+}
+
 @interface Connector : NSObject
 
 - (instancetype)initWithFileDescriptor:(int)fd;
@@ -342,11 +359,10 @@ void *caml_main_thread (void *argv)
   [appMenuItem setSubmenu:appMenu];
 
   window = [[MyWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 400)
-                                       styleMask:(NSBorderlessWindowMask | NSResizableWindowMask)// | NSClosableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
+                                       styleMask:(NSClosableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
                                          backing:NSBackingStoreBuffered
                                            defer:NO];
 
-  [window setMovableByWindowBackground:YES];
   [window center];
   [window setAcceptsMouseMovedEvents:YES];
   [window setDelegate:self];
@@ -523,26 +539,8 @@ CAMLprim value ml_fullscreen (value unit)
 CAMLprim value ml_setcursor (value curs)
 {
   CAMLparam1 (curs);
-  NSCursor *theCursor;
-  switch (curs) {
-  case 0:
-    theCursor = [NSCursor arrowCursor];
-    break;
-  case 1:
-    theCursor = [NSCursor pointingHandCursor];
-    break;
-  case 3:
-    theCursor = [NSCursor crosshairCursor];
-    break;
-  case 4:
-    theCursor = [NSCursor IBeamCursor];
-    break;
-  default:
-    theCursor = [NSCursor arrowCursor];
-    break;
-  }
   [[NSApp delegate] performSelectorOnMainThread:@selector(setCursor:)
-                                     withObject:theCursor
+                                     withObject:GetCursor (Int_val (curs))
                                   waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
