@@ -20,6 +20,9 @@
 #define EVENT_LEAVE 9
 #define EVENT_QUIT 11
 
+#define BUTTON_LEFT 1
+#define BUTTON_RIGHT 3
+
 void *caml_main_thread (void *argv)
 {
   caml_main (argv);
@@ -253,25 +256,47 @@ NSCursor *GetCursor (int idx)
 
 - (void)mouseDown:(NSEvent *)event
 {
-  int buttons = [event buttonNumber];
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
   int mask = [event modifierFlags];
-  [connector mouseDown:buttons atPoint:loc modifierFlags:mask];
+  [connector mouseDown:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
-  int buttons = [event buttonNumber];
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
   int mask = [event modifierFlags];
-  [connector mouseUp:buttons atPoint:loc modifierFlags:mask];
+  [connector mouseUp:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
-- (void)mouseMoved:(NSEvent *)event
+- (void)rightMouseDown:(NSEvent *)event
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
+  int mask = [event modifierFlags];
+  [connector mouseDown:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
+}
+
+- (void)rightMouseUp:(NSEvent *)event
+{
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
+  int mask = [event modifierFlags];
+  [connector mouseUp:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
+}
+
+- (void)rightMouseDragged:(NSEvent *)event
+{
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
+  [connector mouseMoved:loc modifierFlags:[event modifierFlags]];
+}
+
+- (void)mouseDragged:(NSEvent *)event
+{
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
   [connector mouseMoved:loc modifierFlags:[event modifierFlags]];
 }
 
@@ -539,8 +564,9 @@ CAMLprim value ml_fullscreen (value unit)
 CAMLprim value ml_setcursor (value curs)
 {
   CAMLparam1 (curs);
+  NSCursor *cursor = GetCursor (Int_val (curs));
   [[NSApp delegate] performSelectorOnMainThread:@selector(setCursor:)
-                                     withObject:GetCursor (Int_val (curs))
+                                     withObject:cursor
                                   waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
