@@ -31,7 +31,7 @@ class type t = object
   method enter    : int -> int -> unit
   method leave    : unit
   method winstate : winstate list -> unit
-  method quit     : unit
+  method quit     : 'a. unit -> 'a
 end
 
 let onot = object
@@ -46,7 +46,7 @@ let onot = object
   method enter _ _       = ()
   method leave           = ()
   method winstate _      = ()
-  method quit            = exit 0
+  method quit: 'a. unit -> 'a = fun () -> exit 0
 end
 
 type state =
@@ -61,7 +61,7 @@ let state =
     fd = Unix.stdin;
   }
 
-let readstr sock n = try readstr sock n with End_of_file -> state.t#quit; assert false
+let readstr sock n = try readstr sock n with End_of_file -> state.t#quit ()
 
 external setcursor: cursor -> unit = "ml_setcursor"
 
@@ -132,7 +132,7 @@ let readresp sock =
     state.t#leave
   | 11 ->
     vlog "quit";
-    state.t#quit
+    state.t#quit ()
   | _ ->
     vlog "unknown server message %d" opcode
 

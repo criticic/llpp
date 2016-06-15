@@ -30,7 +30,7 @@ class type t = object
   method enter    : int -> int -> unit
   method leave    : unit
   method winstate : winstate list -> unit
-  method quit     : unit
+  method quit     : 'a. unit -> 'a
 end;;
 
 val setcursor : cursor -> unit;;
