@@ -44,7 +44,7 @@ let onot = object
   method enter _ _       = ()
   method leave           = ()
   method winstate _      = ()
-  method quit: 'a. unit -> 'a = fun () -> exit 0
+  method quit: 'a. 'a = exit 0
 end;;
 
 class type t = object
@@ -59,7 +59,7 @@ class type t = object
   method enter    : int -> int -> unit
   method leave    : unit
   method winstate : winstate list -> unit
-  method quit     : 'a. unit -> 'a
+  method quit     : 'a. 'a
 end;;
 
 type state =
@@ -174,7 +174,7 @@ let makereq opcode len reqlen =
   s;
 ;;
 
-let readstr sock n = try readstr sock n with End_of_file -> state.t#quit ()
+let readstr sock n = try readstr sock n with End_of_file -> state.t#quit
 (*   let s = Bytes.create n in *)
 (*   let rec loop pos n = *)
 (*     let m = tempfailureretry (Unix.read sock s pos) n in *)
@@ -602,7 +602,7 @@ let readresp sock =
       then (
         let atom = r32 resp 12 in
         if atom = state.deleatom
-        then state.t#quit ()
+        then state.t#quit
       );
       vlog "atom %#x" atom
 
