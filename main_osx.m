@@ -123,7 +123,7 @@ void *caml_main_thread (void *argv)
   bytes[0] = EVENT_MOUSE;
   *(int16_t *) (bytes + 10) = 1;
   *(int32_t *) (bytes + 12) = buttons;
-  *(int16_t *) (bytes + 16) = aPoint.y;
+  *(int16_t *) (bytes + 16) = aPoint.x;
   *(int16_t *) (bytes + 20) = aPoint.y;
   *(uint32_t *) (bytes + 24) = flags;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
@@ -136,7 +136,7 @@ void *caml_main_thread (void *argv)
   bytes[0] = EVENT_MOUSE;
   *(int16_t *) (bytes + 10) = 0;
   *(int32_t *) (bytes + 12) = buttons;
-  *(int16_t *) (bytes + 16) = aPoint.y;
+  *(int16_t *) (bytes + 16) = aPoint.x;
   *(int16_t *) (bytes + 20) = aPoint.y;
   *(uint32_t *) (bytes + 24) = flags;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
@@ -238,6 +238,7 @@ void *caml_main_thread (void *argv)
 {
   int buttons = [event buttonNumber];
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
   int mask = [event modifierFlags];
   [connector mouseDown:buttons atPoint:loc modifierFlags:mask];
 }
@@ -246,6 +247,7 @@ void *caml_main_thread (void *argv)
 {
   int buttons = [event buttonNumber];
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
   int mask = [event modifierFlags];
   [connector mouseUp:buttons atPoint:loc modifierFlags:mask];
 }
