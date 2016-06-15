@@ -22,6 +22,8 @@
 
 #define BUTTON_LEFT 1
 #define BUTTON_RIGHT 3
+#define BUTTON_WHEEL_UP 4
+#define BUTTON_WHEEL_DOWN 5
 
 void *caml_main_thread (void *argv)
 {
@@ -38,7 +40,7 @@ NSCursor *GetCursor (int idx)
     cursors[0] = [NSCursor arrowCursor];
     cursors[1] = [NSCursor pointingHandCursor];
     cursors[2] = [NSCursor arrowCursor];
-    cursors[3] = [NSCursor crosshairCursor];
+    cursors[3] = [NSCursor closedHandCursor];
     cursors[4] = [NSCursor IBeamCursor];
     initialised = YES;
   }
@@ -202,6 +204,7 @@ NSCursor *GetCursor (int idx)
   if (self != NULL) {
     connector = aConnector;
     cursor = [NSCursor arrowCursor];
+    self.acceptsTouchEvents = YES;
   }
 
   return self;
@@ -300,16 +303,30 @@ NSCursor *GetCursor (int idx)
   [connector mouseMoved:loc modifierFlags:[event modifierFlags]];
 }
 
-- (void)mouseEntered:(NSEvent *)theEvent
+- (void)mouseEntered:(NSEvent *)event
 {
-  NSPoint loc = [theEvent locationInWindow];
+  NSPoint loc = [event locationInWindow];
   loc.y = [self bounds].size.height - loc.y;
   [connector mouseEntered:loc];
 }
 
-- (void)mouseExited:(NSEvent *)theEvent
+- (void)mouseExited:(NSEvent *)event
 {
   [connector mouseExited];
+}
+
+- (void)scrollWheel:(NSEvent *)event
+{
+  CGFloat d = [event deltaY];
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
+  if (d > 0.0) {
+    [connector mouseDown:BUTTON_WHEEL_UP atPoint:loc modifierFlags:[event modifierFlags]];
+    [connector mouseUp:BUTTON_WHEEL_UP atPoint:loc modifierFlags:[event modifierFlags]];
+  } else if (d < 0.0) {
+    [connector mouseDown:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:[event modifierFlags]];
+    [connector mouseUp:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:[event modifierFlags]];
+  }
 }
 
 @end
@@ -564,6 +581,7 @@ CAMLprim value ml_fullscreen (value unit)
 CAMLprim value ml_setcursor (value curs)
 {
   CAMLparam1 (curs);
+  NSLog (@"ml_setcursor: %d", Int_val (curs));
   NSCursor *cursor = GetCursor (Int_val (curs));
   [[NSApp delegate] performSelectorOnMainThread:@selector(setCursor:)
                                      withObject:cursor
