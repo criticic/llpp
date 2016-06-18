@@ -705,7 +705,7 @@ static void *loadpage (int pageno, int pindex)
         err (1, "calloc page %d", pageno);
     }
 
-    page->dlist = fz_new_display_list (state.ctx);
+    page->dlist = fz_new_display_list (state.ctx, NULL);
     dev = fz_new_list_device (state.ctx, page->dlist);
     fz_try (state.ctx) {
         page->fzpage = fz_load_page (state.ctx, state.doc, pageno);
@@ -798,7 +798,7 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     tile->h = h;
     clearpixmap (tile->pixmap);
 
-    dev = fz_new_draw_device (state.ctx, tile->pixmap);
+    dev = fz_new_draw_device (state.ctx, NULL, tile->pixmap);
     ctm = pagectm (page);
     fz_rect_from_irect (&rect, &bbox);
     fz_run_display_list (state.ctx, page->dlist, dev, &ctm, &rect, NULL);
