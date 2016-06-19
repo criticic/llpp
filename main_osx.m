@@ -238,10 +238,10 @@ NSCursor *GetCursor (int idx)
 - (void)keyDown:(NSEvent *)event // FIXME
 {
   // int key = [event keyCode];
-  int mask = [event modifierFlags];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   NSString *chars = [event charactersIgnoringModifiers];
   if ([chars length] > 0) {
-    NSLog (@"keyDown: %@", chars);
+    NSLog (@"keyDown: %@ modifierFlags:0x%x", chars, mask);
     // NSRange r = [chars rangeOfComposedCharacterSequenceAtIndex:0];
     const char *data = [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
     [connector keyDown:*(uint32_t *)data modifierFlags:mask];
@@ -250,7 +250,7 @@ NSCursor *GetCursor (int idx)
 
 - (void)flagsChanged:(NSEvent *)event
 {
-  int mask = [event modifierFlags];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   NSLog (@"flagsChanged: 0x%x", mask);
   if (mask != 0) {
     [connector keyDown:0 modifierFlags:mask];
@@ -261,7 +261,7 @@ NSCursor *GetCursor (int idx)
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
-  int mask = [event modifierFlags];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseDown:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
@@ -269,7 +269,7 @@ NSCursor *GetCursor (int idx)
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
-  int mask = [event modifierFlags];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseUp:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
@@ -277,7 +277,7 @@ NSCursor *GetCursor (int idx)
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
-  int mask = [event modifierFlags];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseDown:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
 }
 
@@ -285,7 +285,7 @@ NSCursor *GetCursor (int idx)
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
-  int mask = [event modifierFlags];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseUp:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
 }
 
@@ -293,14 +293,16 @@ NSCursor *GetCursor (int idx)
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
-  [connector mouseMoved:loc modifierFlags:[event modifierFlags]];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  [connector mouseMoved:loc modifierFlags:mask];
 }
 
 - (void)mouseDragged:(NSEvent *)event
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
-  [connector mouseMoved:loc modifierFlags:[event modifierFlags]];
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  [connector mouseMoved:loc modifierFlags:mask];
 }
 
 - (void)mouseEntered:(NSEvent *)event
@@ -320,12 +322,13 @@ NSCursor *GetCursor (int idx)
   CGFloat d = [event deltaY];
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   if (d > 0.0) {
-    [connector mouseDown:BUTTON_WHEEL_UP atPoint:loc modifierFlags:[event modifierFlags]];
-    [connector mouseUp:BUTTON_WHEEL_UP atPoint:loc modifierFlags:[event modifierFlags]];
+    [connector mouseDown:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
+    [connector mouseUp:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
   } else if (d < 0.0) {
-    [connector mouseDown:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:[event modifierFlags]];
-    [connector mouseUp:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:[event modifierFlags]];
+    [connector mouseDown:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:mask];
+    [connector mouseUp:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:mask];
   }
 }
 
