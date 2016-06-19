@@ -4177,10 +4177,16 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
 #else
 CAMLprim value ml_keysymtoutf8 (value keysym_v)
 {
-  CAMLparam1 (keysym_v);
-  CAMLlocal1 (str_v);
-  str_v = caml_copy_string ("");
-  CAMLreturn (str_v);
+    CAMLparam1 (keysym_v);
+    CAMLlocal1 (str_v);
+    long ucs_v = Long_val (keysym_v);
+    int len;
+    char buf[5];
+
+    len = fz_runetochar (buf, ucs_v);
+    buf[len] = 0;
+    str_v = caml_copy_string (buf);
+    CAMLreturn (str_v);
 }
 #endif
 

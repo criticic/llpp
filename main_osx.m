@@ -235,16 +235,14 @@ NSCursor *GetCursor (int idx)
   [self addTrackingArea:trackingArea];
 }
 
-- (void)keyDown:(NSEvent *)event // FIXME
+- (void)keyDown:(NSEvent *)event
 {
   // int key = [event keyCode];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   NSString *chars = [event charactersIgnoringModifiers];
-  if ([chars length] > 0) {
-    NSLog (@"keyDown: %@ modifierFlags:0x%x", chars, mask);
-    // NSRange r = [chars rangeOfComposedCharacterSequenceAtIndex:0];
-    const char *data = [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
-    [connector keyDown:*(uint32_t *)data modifierFlags:mask];
+  const uint32_t *c = (uint32_t *) [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
+  while (*c) {
+    [connector keyDown:*c++ modifierFlags:mask];
   }
 }
 
