@@ -4024,7 +4024,7 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     eglBindAPI (EGL_OPENGL_API);
 
     glx.edpy = eglGetDisplay (glx.dpy);
-    if (glx.dpy == EGL_NO_DISPLAY) {
+    if (glx.edpy == EGL_NO_DISPLAY) {
         caml_failwith ("eglGetDisplay");
     }
 
