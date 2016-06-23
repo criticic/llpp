@@ -61,9 +61,6 @@
 extern char **environ;
 #endif
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-
 #if defined __GNUC__
 #define NORETURN_ATTR __attribute__ ((noreturn))
 #define UNUSED_ATTR __attribute__ ((unused))
@@ -739,7 +736,7 @@ static struct tile *alloctile (int h)
         err (1, "cannot allocate tile (%" FMT_s " bytes)", tilesize);
     }
     for (i = 0; i < slicecount; ++i) {
-        int sh = MIN (h, state.sliceheight);
+        int sh = fz_mini (h, state.sliceheight);
         tile->slices[i].h = sh;
         tile->slices[i].texindex = -1;
         h -= sh;
@@ -888,7 +885,7 @@ static void initpdims (int wthack)
     if (state.trimmargins || pdf || !state.cxack)
         cxcount = state.pagecount;
     else
-        cxcount = MIN (state.pagecount, 1);
+        cxcount = fz_mini (state.pagecount, 1);
 
     if (pdf) {
         pdf_obj *obj;
@@ -1161,11 +1158,11 @@ static void layout (void)
             box = p->mediabox;
             fz_transform_rect (&box, &rm);
 
-            x0 = MIN (box.x0, box.x1);
-            x1 = MAX (box.x0, box.x1);
+            x0 = fz_min (box.x0, box.x1);
+            x1 = fz_max (box.x0, box.x1);
 
             w = x1 - x0;
-            maxw = MAX (w, maxw);
+            maxw = fz_max (w, maxw);
             zoom = state.w / maxw;
         }
         break;
@@ -1201,7 +1198,7 @@ static void layout (void)
                 zw = maxw / w;
                 h = box.y1 - box.y0;
                 zh = state.h / h;
-                zoom = MIN (zw, zh);
+                zoom = fz_min (zw, zh);
                 p->left = (maxw - (w * zoom)) / 2.0;
             }
             break;
@@ -1235,10 +1232,10 @@ static void layout (void)
     }
 
     do {
-        int x0 = MIN (p->bounds.x0, p->bounds.x1);
-        int y0 = MIN (p->bounds.y0, p->bounds.y1);
-        int x1 = MAX (p->bounds.x0, p->bounds.x1);
-        int y1 = MAX (p->bounds.y0, p->bounds.y1);
+        int x0 = fz_mini (p->bounds.x0, p->bounds.x1);
+        int y0 = fz_mini (p->bounds.y0, p->bounds.y1);
+        int x1 = fz_maxi (p->bounds.x0, p->bounds.x1);
+        int y1 = fz_maxi (p->bounds.y0, p->bounds.y1);
         int boundw = x1 - x0;
         int boundh = y1 - y0;
 
@@ -1276,11 +1273,11 @@ desttoanchor (fz_link_dest *dest)
     if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
         double x0, x1, y0, y1;
 
-        x0 = MIN (pdim->bounds.x0, pdim->bounds.x1);
-        x1 = MAX (pdim->bounds.x0, pdim->bounds.x1);
+        x0 = fz_min (pdim->bounds.x0, pdim->bounds.x1);
+        x1 = fz_max (pdim->bounds.x0, pdim->bounds.x1);
         a.w = x1 - x0;
-        y0 = MIN (pdim->bounds.y0, pdim->bounds.y1);
-        y1 = MAX (pdim->bounds.y0, pdim->bounds.y1);
+        y0 = fz_min (pdim->bounds.y0, pdim->bounds.y1);
+        y1 = fz_max (pdim->bounds.y0, pdim->bounds.y1);
         a.h = y1 - y0;
         a.n = dest->ld.gotor.page;
     }
@@ -1400,7 +1397,7 @@ static int matchspan (regex_t *re, fz_stext_span *span,
         }
 
         if (fz_runelen (span->text[b].c) > 1) {
-            b = MAX (0, b-1);
+            b = fz_maxi (0, b-1);
         }
 
         fz_stext_char_bbox (state.ctx, &sb, span, a);
@@ -2079,8 +2076,8 @@ static void showsel (struct page *page, int ox, int oy)
 
                 if (span == page->fmark.span && span == page->lmark.span) {
                     seen = 1;
-                    j = MIN (first.i, last.i);
-                    k = MAX (first.i, last.i);
+                    j = fz_mini (first.i, last.i);
+                    k = fz_maxi (first.i, last.i);
                 }
                 else {
                     if (span == first.span) {
@@ -2561,7 +2558,7 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
         int dh;
 
         dh = slice->h - slicey;
-        dh = MIN (disph, dh);
+        dh = fz_mini (disph, dh);
         uploadslice (tile, slice);
 
         texcoords[0] = tilex;       texcoords[1] = slicey;
@@ -3849,7 +3846,7 @@ CAMLprim value ml_getmaxw (value unit_v)
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
         double w = p->pagebox.x1;
-        maxw = MAX (maxw, w);
+        maxw = fz_max (maxw, w);
     }
 
     unlock (__func__);
