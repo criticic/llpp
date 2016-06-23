@@ -3060,7 +3060,7 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
         CAMLreturn (caml_copy_string (
-                        pdf_annot_contents (state.ctx, pdf,
+                        pdf_annot_contents (state.ctx,
                                             (pdf_annot *) slink->u.annot)));
     }
     else {
