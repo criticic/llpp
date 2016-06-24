@@ -6249,6 +6249,15 @@ let ract cmds =
           )
   | "activatewin" :: [] -> Wsi.activatewin ()
   | "quit" :: [] -> raise Quit
+  | "keys" :: nl ->
+     let ns = String.concat " " nl in
+     let kl =
+       try Config.keys_of_string ns
+       with exn ->
+         adderrfmt "error processing keys" "`%S': %s\n" ns @@ exntos exn;
+         []
+     in
+     List.iter (fun (k, m) -> keyboard k m) kl
   | "clearrects" :: [] ->
      Hashtbl.clear state.prects;
      G.postRedisplay "clearrects"
