@@ -40,11 +40,7 @@
 #pragma GCC diagnostic ignored "-Wclobbered"
 #endif
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wshadow"
 #include <mupdf/fitz.h>
-#pragma GCC diagnostic pop
 #include <mupdf/pdf.h>
 
 #include <ft2build.h>
