@@ -6254,7 +6254,7 @@ let ract cmds =
          let l = Config.keys_of_string keys in
          List.iter (fun (k, m) -> keyboard k m) l
        with exn ->
-         adderrfmt "error processing keys" "`%S': %s\n" cmds  @@ exntos exn
+         adderrfmt "error processing keys" "`%S': %s\n" cmds @@ exntos exn
      end
   | "clearrects", "" ->
      Hashtbl.clear state.prects;
