@@ -172,8 +172,8 @@ let btod b = if b then 1 else 0;;
 
 let splitatspace s = let open String in
   match index s ' ' with
-  | pos -> sub s 0 pos :: sub s (pos+1) (length s - pos - 1) :: []
-  | exception Not_found -> [s]
+  | pos -> sub s 0 pos, sub s (pos+1) (length s - pos - 1)
+  | exception Not_found -> s, E.s
 ;;
 
 let boundastep h step =

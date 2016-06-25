@@ -1581,7 +1581,7 @@ let pgoto opaque pageno x y =
 
 let act cmds =
   (* dolog "%S" cmds; *)
-  let cl = splitatspace cmds in
+  let spl = splitatspace cmds in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
@@ -1598,16 +1598,16 @@ let act cmds =
         dolog "invalid outlining state";
         logcurrently state.currently
   in
-  match cl with
-  | "clear" :: [] ->
+  match spl with
+  | "clear", "" ->
       state.uioh#infochanged Pdim;
       state.pdims <- [];
 
-  | "clearrects" :: [] ->
+  | "clearrects", "" ->
       state.rects <- state.rects1;
       G.postRedisplay "clearrects";
 
-  | "continue" :: args :: [] ->
+  | "continue", args ->
       let n = scan args "%u" (fun n -> n) in
       state.pagecount <- n;
       begin match state.currently with
@@ -1635,19 +1635,19 @@ let act cmds =
       if conf.maxwait = None && not !wtmode
       then G.postRedisplay "continue";
 
-  | "msg" :: args :: [] ->
+  | "msg", args ->
       showtext ' ' args
 
-  | "vmsg" :: args :: [] ->
+  | "vmsg", args ->
       if conf.verbose
       then showtext ' ' args
 
-  | "emsg" :: args :: [] ->
+  | "emsg", args ->
       Buffer.add_string state.errmsgs args;
       state.newerrmsgs <- true;
       G.postRedisplay "error message"
 
-  | "progress" :: args :: [] ->
+  | "progress", args ->
       let progress, text =
         scan args "%f %n"
           (fun f pos ->
@@ -1657,7 +1657,7 @@ let act cmds =
       state.progress <- progress;
       G.postRedisplay "progress"
 
-  | "firstmatch" :: args :: [] ->
+  | "firstmatch", args ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
         scan args "%u %d %f %f %f %f %f %f %f %f"
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
@@ -1676,7 +1676,7 @@ let act cmds =
       let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
       state.rects1 <- [pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)]
 
-  | "match" :: args :: [] ->
+  | "match", args ->
       let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
         scan args "%u %d %f %f %f %f %f %f %f %f"
           (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
@@ -1691,7 +1691,7 @@ let act cmds =
       state.rects1 <-
         (pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 
-  | "page" :: args :: [] ->
+  | "page", args ->
       let pageopaques, t = scan args "%s %f" (fun p t -> p, t) in
       let pageopaque = ~< pageopaques in
       begin match state.currently with
@@ -1779,7 +1779,7 @@ let act cmds =
           exit 1
       end
 
-  | "tile" :: args :: [] ->
+  | "tile" , args ->
       let (x, y, opaques, size, t) =
         scan args "%u %u %s %u %f"
           (fun x y p size t -> (x, y, p, size, t))
@@ -1848,7 +1848,7 @@ let act cmds =
           exit 1
       end
 
-  | "pdim" :: args :: [] ->
+  | "pdim", args ->
       let (n, w, h, _) as pdim =
         scan args "%u %u %u %u" (fun n w h x -> n, w, h, x)
       in
@@ -1863,7 +1863,7 @@ let act cmds =
       state.uioh#infochanged Pdim;
       state.pdims <- pdim :: state.pdims
 
-  | "o" :: args :: [] ->
+  | "o", args ->
       let (l, n, t, h, pos) =
         scan args "%u %u %d %u %n"
           (fun l n t h pos -> l, n, t, h, pos)
@@ -1871,25 +1871,25 @@ let act cmds =
       let s = String.sub args pos (String.length args - pos) in
       addoutline (s, l, Oanchor (n, float t /. float h, 0.0))
 
-  | "ou" :: args :: [] ->
+  | "ou", args ->
       let (l, len, pos) = scan args "%u %u %n" (fun l len pos -> l, len, pos) in
       let s = String.sub args pos len in
       let pos2 = pos + len + 1 in
       let uri = String.sub args pos2 (String.length args - pos2) in
       addoutline (s, l, Ouri uri)
 
-  | "on" :: args :: [] ->
+  | "on", args ->
       let (l, pos) = scan args "%u %n" (fun l pos -> l, pos) in
       let s = String.sub args pos (String.length args - pos) in
       addoutline (s, l, Onone)
 
-  | "a" :: args :: [] ->
+  | "a", args ->
       let (n, l, t) =
         scan args "%u %d %d" (fun n l t -> n, l, t)
       in
       state.reprf <- (fun () -> gotopagexy !wtmode n (float l) (float t))
 
-  | "info" :: args :: [] ->
+  | "info", args ->
       let pos = nindex args '\t' in
       if pos >= 0 && String.sub args 0 pos = "Title"
       then (
@@ -1899,12 +1899,12 @@ let act cmds =
       );
       state.docinfo <- (1, args) :: state.docinfo
 
-  | "infoend" :: [] ->
+  | "infoend", "" ->
       state.uioh#infochanged Docinfo;
       state.docinfo <- List.rev state.docinfo
 
-  | "pass" :: l ->
-     if l = "fail" :: []
+  | "pass", args->
+     if args = "fail"
      then Wsi.settitle "Wrong password";
      let password = getpassword () in
      if emptystr password
@@ -6185,8 +6185,8 @@ let ract cmds =
       )
   in
   match cl with
-  | "reload" :: [] -> reload ()
-  | "goto" :: args :: [] ->
+  | "reload", "" -> reload ()
+  | "goto", args ->
       scan args "%u %f %f"
         (fun pageno x y ->
           let cmd, _ = state.geomcmds in
@@ -6199,26 +6199,26 @@ let ract cmds =
             in
             state.reprf <- f state.reprf
         )
-  | "goto1" :: args :: [] -> scan args "%u %f" gotopage
-  | "gotor" :: args :: [] ->
+  | "goto1", args -> scan args "%u %f" gotopage
+  | "gotor", args ->
       scan args "%S %u"
         (fun filename pageno -> gotounder (Uremote (filename, pageno)))
-  | "gotord" :: args :: [] ->
+  | "gotord", args ->
       scan args "%S %S"
         (fun filename dest -> gotounder (Uremotedest (filename, dest)))
-  | "rect" :: args :: [] ->
+  | "rect", args ->
      scan args "%u %u %f %f %f %f"
           (fun pageno c x0 y0 x1 y1 ->
             let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
             rectx "rect" pageno color x0 y0 x1 y1;
           )
-  | "prect" :: args :: [] ->
+  | "prect", args ->
      scan args "%u %f %f %f %f %f %f %f %f"
           (fun pageno r g b alpha x0 y0 x1 y1 ->
             addrect pageno r g b alpha x0 y0 x1 y1;
             G.postRedisplay "prect"
           )
-  | "pgoto" :: args :: [] ->
+  | "pgoto", args ->
      scan args "%u %f %f"
           (fun pageno x y ->
             let optopaque =
@@ -6247,17 +6247,16 @@ let ract cmds =
             in
             fixx layout
           )
-  | "activatewin" :: [] -> Wsi.activatewin ()
-  | "quit" :: [] -> raise Quit
-  | "keys" :: ss ->
+  | "activatewin", "" -> Wsi.activatewin ()
+  | "quit", "" -> raise Quit
+  | "keys", keys ->
      begin try
-         List.iter (fun s ->
-             let l = Config.keys_of_string s in
-             List.iter (fun (k, m) -> keyboard k m) l) ss
+         let l = Config.keys_of_string keys in
+         List.iter (fun (k, m) -> keyboard k m) l
        with exn ->
          adderrfmt "error processing keys" "`%S': %s\n" cmds  @@ exntos exn
      end
-  | "clearrects" :: [] ->
+  | "clearrects", "" ->
      Hashtbl.clear state.prects;
      G.postRedisplay "clearrects"
   | _ ->
