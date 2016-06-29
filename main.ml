@@ -1987,20 +1987,15 @@ let linknact f s =
 ;;
 
 let linknentry text key =
-  let c =
-    if key >= 32 && key < 127
-    then Char.chr key
-    else '\000'
-  in
-  match c with
-  | 'a' .. 'z' ->
-      let text = addchar text c in
-      linknact (fun under -> state.text <- undertext ~nopath:true under) text;
-      TEcont text
-
-  | _ ->
-      state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
-      TEcont text
+  if key >= 32 && key < 127
+  then
+    let text = addchar text (Char.chr key) in
+    linknact (fun under -> state.text <- undertext ~nopath:true under) text;
+    TEcont text
+  else (
+    state.text <- Printf.sprintf "invalid char %d" key;
+    TEcont text
+  )
 ;;
 
 let textentry text key =
