@@ -1999,7 +1999,7 @@ let linknentry text key =
 ;;
 
 let textentry text key =
-  if key land 0xff00 = 0xff00
+  if Wsi.isspecialkey key
   then TEcont text
   else TEcont (text ^ toutf8 key)
 ;;
@@ -2425,10 +2425,7 @@ end;;
 let textentrykeyboard
     key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
   state.text <- E.s;
-  let key =
-    if key >= 0xffb0 && key <= 0xffb9
-    then key - 0xffb0 + 48 else key
-  in
+  let key = Wsi.keypadtodigitkey key in
   let enttext te =
     state.mode <- Textentry (te, onleave);
     enttext ();
@@ -2481,11 +2478,7 @@ let textentrykeyboard
 
   | @delete | @kpdelete -> ()
 
-  | _ when key != 0
-      && key land 0xff00 != 0xff00      (* keyboard *)
-      && key land 0xfe00 != 0xfe00      (* xkb *)
-      && key land 0xfd00 != 0xfd00      (* 3270 *)
-      ->
+  | _ when key != 0 && not (Wsi.isspecialkey key) ->
       begin match onkey text key with
       | TEdone text ->
           ondone text;
@@ -2897,7 +2890,7 @@ object (self)
             set1 active first qsearch
         );
 
-    | key when (key != 0 && key land 0xff00 != 0xff00) ->
+    | key when (key != 0 && not (Wsi.isspecialkey key)) ->
         let pattern = m_qsearch ^ toutf8 key in
         let active, first =
           match search m_active pattern 1 with
@@ -2981,7 +2974,7 @@ object (self)
         G.postRedisplay "listview end";
         set active first;
 
-    | key when (key = 0 || key land 0xff00 = 0xff00) ->
+    | key when (key = 0 || Wsi.isspecialkey key) ->
         coe self
 
     | _ ->
@@ -3235,7 +3228,7 @@ object (self)
         then source#add_narrow_pattern m_qsearch;
         super#key key mask
 
-    | key when m_autonarrow && (key != 0 && key land 0xff00 != 0xff00) ->
+    | key when m_autonarrow && (not (Wsi.isspecialkey key)) ->
         let pattern = m_qsearch ^ toutf8 key in
         G.postRedisplay "outlinelistview autonarrow add";
         source#narrow pattern;
@@ -4715,9 +4708,7 @@ let viewkeyboard key mask =
     G.postRedisplay "view:enttext"
   in
   let ctrl = Wsi.withctrl mask in
-  let key =
-    if key >= 0xffb0 && key < 0xffb9 then key - 0xffb0 + 48 else key
-  in
+  let key = Wsi.keypadtodigitkey key in
   match key with
   | @Q -> exit 0
 
