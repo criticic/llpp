@@ -2280,15 +2280,11 @@ let optentry mode _ key =
 
     | 'R' ->
         let ondone s =
-          match try
-              Some (int_of_string s)
-            with exc ->
-              state.text <-
-                Printf.sprintf "bad integer `%s': %s" s @@ exntos exc;
-              None
-          with
-          | Some angle -> reqlayout angle conf.fitmodel
-          | None -> ()
+          match int_of_string s with
+          | angle -> reqlayout angle conf.fitmodel
+          | exception exn ->
+             state.text <-
+               Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
         TEswitch ("rotation: ", E.s, None, intentry, ondone, true)
 
