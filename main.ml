@@ -2223,8 +2223,8 @@ let optentry mode _ key =
     match c with
     | 's' ->
         let ondone s =
-          try conf.scrollstep <- int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
+          try conf.scrollstep <- int_of_string s with exn ->
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
         TEswitch ("scroll step: ", E.s, None, intentry, ondone, true)
 
@@ -2234,8 +2234,8 @@ let optentry mode _ key =
             conf.autoscrollstep <- boundastep state.winh (int_of_string s);
             if state.autoscroll <> None
             then state.autoscroll <- Some conf.autoscrollstep
-          with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
+          with exn ->
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
         TEswitch ("auto scroll step: ", E.s, None, intentry, ondone, true)
 
@@ -2244,8 +2244,8 @@ let optentry mode _ key =
           try
             let n, a, b = multicolumns_of_string s in
             setcolumns mode n a b;
-          with exc ->
-            state.text <- Printf.sprintf "bad columns `%s': %s" s @@ exntos exc
+          with exn ->
+            state.text <- Printf.sprintf "bad columns `%s': %s" s @@ exntos exn
         in
         TEswitch ("columns: ", E.s, None, textentry, ondone, true)
 
@@ -2254,8 +2254,8 @@ let optentry mode _ key =
           try
             let zoom = float (int_of_string s) /. 100.0 in
             setzoom zoom
-          with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
+          with exn ->
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
         TEswitch ("zoom: ", E.s, None, intentry, ondone, true)
 
@@ -2273,8 +2273,8 @@ let optentry mode _ key =
             | View
             | LinkNav _ -> ();
             end
-          with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
+          with exn ->
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
         TEswitch ("thumbnail width: ", E.s, None, intentry, ondone, true)
 
@@ -2348,8 +2348,8 @@ let optentry mode _ key =
             state.maxy <- calcheight ();
             let y = getpagey pageno in
             gotoy (y + py)
-          with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc
+          with exn ->
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
         TEswitch ("vertical margin: ", E.s, None, intentry, ondone, true)
 
@@ -4782,8 +4782,8 @@ let viewkeyboard key mask =
   | @plus | @kpplus ->
       let ondone s =
         let n =
-          try int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc;
+          try int_of_string s with exn ->
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
             max_int
         in
         if n != max_int
@@ -4850,8 +4850,8 @@ let viewkeyboard key mask =
       when not ctrl ->                  (* 0..9 *)
       let ondone s =
         let n =
-          try int_of_string s with exc ->
-            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exc;
+          try int_of_string s with exn ->
+            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
             -1
         in
         if n >= 0
