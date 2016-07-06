@@ -469,7 +469,7 @@ NSCursor *GetCursor (int idx)
 - (void)windowDidResize:(NSNotification *)notification
 {
   [glContext update];
-  [connector notifyReshapeWidth:window.frame.size.width height:window.frame.size.height];
+  [connector notifyReshapeWidth:window.contentView.frame.size.width height:window.contentView.frame.size.height];
 }
 
 - (void)windowDidMove:(NSNotification *)notification
