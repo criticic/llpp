@@ -35,8 +35,8 @@ wsi.ml: wsi_$(SYSTEM).ml
 	$(RM) -f $@
 	$(CP) $< $@
 
-main.ml: main.mlp pp.sed
-	$(SED) -f pp.sed $< > $@
+main.ml: main.mlp pp.$(SYSTEM).sed
+	$(SED) -f pp.$(SYSTEM).sed $< > $@
 
 help.ml: KEYS mkhelp.sh
 	sh mkhelp.sh KEYS $(VERSION) > $@
