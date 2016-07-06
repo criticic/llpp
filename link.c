@@ -646,8 +646,8 @@ static void trimctm (pdf_page *page, int pindex)
 
     if (!pdim->tctmready) {
         if (state.trimmargins) {
-            fz_rect realbox;
-            fz_matrix rm, sm, tm, im, ctm1;
+            fz_rect realbox, mediabox;
+            fz_matrix rm, sm, tm, im, ctm1, page_ctm;
 
             fz_rotate (&rm, -pdim->rotate);
             fz_scale (&sm, 1, -1);
@@ -656,7 +656,8 @@ static void trimctm (pdf_page *page, int pindex)
             fz_transform_rect (&realbox, &ctm);
             fz_translate (&tm, -realbox.x0, -realbox.y0);
             fz_concat (&ctm1, &ctm, &tm);
-            fz_invert_matrix (&im, &page->ctm);
+            pdf_page_transform (state.ctx, page, &mediabox, &page_ctm);
+            fz_invert_matrix (&im, &page_ctm);
             fz_concat (&ctm, &im, &ctm1);
         }
         else {
@@ -673,7 +674,7 @@ static fz_matrix pagectm1 (fz_page *fzpage, struct pagedim *pdim)
     int pdimno = pdim - state.pagedims;
 
     if (pdf_specifics (state.ctx, state.doc)) {
-        trimctm ((pdf_page *) fzpage, pdimno);
+        trimctm (pdf_page_from_fz_page (state.ctx, fzpage), pdimno);
         fz_concat (&ctm, &pdim->tctm, &pdim->ctm);
     }
     else {
@@ -909,6 +910,7 @@ static void initpdims (int wthack)
         struct pagedim *p;
         fz_rect mediabox;
 
+        fz_var (p);
         fz_var (rotate);
         if (pdf) {
             pdf_obj *pageref, *pageobj;
@@ -930,12 +932,13 @@ static void initpdims (int wthack)
                     trim = state.trimanew || !obj;
                     if (trim) {
                         fz_rect rect;
-                        fz_matrix ctm;
                         fz_device *dev;
+                        fz_matrix ctm, page_ctm;
 
                         dev = fz_new_bbox_device (ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
-                        fz_invert_matrix (&ctm, &page->ctm);
+                        pdf_page_transform (ctx, page, &mediabox, &page_ctm);
+                        fz_invert_matrix (&ctm, &page_ctm);
                         pdf_run_page (ctx, page, dev, &fz_identity, NULL);
                         fz_drop_device (ctx, dev);
 
@@ -944,12 +947,9 @@ static void initpdims (int wthack)
                         rect.y0 += state.trimfuzz.y0;
                         rect.y1 += state.trimfuzz.y1;
                         fz_transform_rect (&rect, &ctm);
-                        fz_intersect_rect (&rect, &page->mediabox);
+                        fz_intersect_rect (&rect, &mediabox);
 
-                        if (fz_is_empty_rect (&rect)) {
-                            mediabox = page->mediabox;
-                        }
-                        else {
+                        if (!fz_is_empty_rect (&rect)) {
                             mediabox = rect;
                         }
 
@@ -975,8 +975,10 @@ static void initpdims (int wthack)
                                                    pdf_array_get (ctx, obj, 3));
                     }
 
-                    rotate = page->rotate;
                     fz_drop_page (ctx, &page->super);
+                    rotate = pdf_to_int (
+                        ctx, pdf_dict_gets (ctx, pageobj, "Rotate")
+                        );
 
                     show = trim ? pageno % 5 == 0 : pageno % 20 == 0;
                     if (show) {
@@ -2679,7 +2681,7 @@ static struct annot *getannot (struct page *page, int x, int y)
     if (!page->annots) return NULL;
 
     if (pdf) {
-        trimctm ((pdf_page *) page->fzpage, page->pdimno);
+        trimctm (pdf_page_from_fz_page (state.ctx, page->fzpage), page->pdimno);
         tctm = &state.pagedims[page->pdimno].tctm;
     }
     else {
@@ -4348,7 +4350,7 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     }
 
     if (pdf_specifics (state.ctx, state.doc)) {
-        trimctm ((pdf_page *) page->fzpage, page->pdimno);
+        trimctm (pdf_page_from_fz_page (state.ctx, page->fzpage), page->pdimno);
         ctm = state.pagedims[page->pdimno].tctm;
     }
     else {
@@ -4398,7 +4400,7 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     pdim = &state.pagedims[pdimno];
 
     if (pdf_specifics (state.ctx, state.doc)) {
-        trimctm ((pdf_page *) page->fzpage, page->pdimno);
+        trimctm (pdf_page_from_fz_page (state.ctx, page->fzpage), page->pdimno);
         ctm = state.pagedims[page->pdimno].tctm;
     }
     else {
@@ -4435,7 +4437,9 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
 
         page = parse_pointer (__func__, s);
         annot = pdf_create_annot (state.ctx, pdf,
-                                  (pdf_page *) page->fzpage, FZ_ANNOT_TEXT);
+                                  pdf_page_from_fz_page (state.ctx,
+                                                         page->fzpage),
+                                  FZ_ANNOT_TEXT);
         p.x = Int_val (x_v);
         p.y = Int_val (y_v);
         pdf_set_annot_contents (state.ctx, pdf, annot, String_val (contents_v));
@@ -4458,7 +4462,7 @@ CAMLprim value ml_delannot (value ptr_v, value n_v)
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
         pdf_delete_annot (state.ctx, pdf,
-                          (pdf_page *) page->fzpage,
+                          pdf_page_from_fz_page (state.ctx, page->fzpage),
                           (pdf_annot *) slink->u.annot);
         state.dirty = 1;
     }
