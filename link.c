@@ -906,11 +906,10 @@ static void initpdims (int wthack)
 #endif
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
-        int rotate = 0;
+        int rotate;
         struct pagedim *p;
         fz_rect mediabox;
 
-        fz_var (p);
         fz_var (rotate);
         if (pdf) {
             pdf_obj *pageref, *pageobj;
@@ -921,6 +920,7 @@ static void initpdims (int wthack)
             pageref = pdf_lookup_page_obj (ctx, pdf, pageno);
 #endif
             pageobj = pdf_resolve_indirect (ctx, pageref);
+            rotate = pdf_to_int (ctx, pdf_dict_gets (ctx, pageobj, "Rotate"));
 
             if (state.trimmargins) {
                 pdf_obj *obj;
@@ -976,10 +976,6 @@ static void initpdims (int wthack)
                     }
 
                     fz_drop_page (ctx, &page->super);
-                    rotate = pdf_to_int (
-                        ctx, pdf_dict_gets (ctx, pageobj, "Rotate")
-                        );
-
                     show = trim ? pageno % 5 == 0 : pageno % 20 == 0;
                     if (show) {
                         printd ("progress %f Trimming %d",
@@ -1029,8 +1025,6 @@ static void initpdims (int wthack)
                         }
                     }
                 }
-                rotate = pdf_to_int (ctx,
-                                     pdf_dict_gets (ctx, pageobj, "Rotate"));
             }
         }
         else {
