@@ -96,12 +96,12 @@ $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
 .PHONY: mupdf force_mupdf
 mupdf:
 	test -d mupdf || $(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
-	$(MAKE) -C mupdf build=native XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
+	$(MAKE) -C mupdf build=native libs XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
 
 force_mupdf:
 	$(RM) -rf mupdf
 	$(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
-	$(MAKE) -C mupdf build=native # XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
+	$(MAKE) -C mupdf build=native libs XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
 
 .PHONY: clean
 clean:

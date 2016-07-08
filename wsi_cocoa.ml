@@ -181,3 +181,14 @@ let keyname _ = ""
 let namekey _ = 0
 
 external setwinbgcol: int -> unit = "ml_setwinbgcol"
+
+let keypadtodigitkey key = (* FIXME *)
+  if key >= 0xffb0 && key <= 0xffb9 (* keypad numbers *)
+  then key - 0xffb0 + 48 else key
+;;
+
+let isspecialkey key = (* FIXME *)
+  key land 0xff00 = 0xff00      (* keyboard *)
+  || key land 0xfe00 = 0xfe00   (* xkb *)
+  || key land 0xfd00 = 0xfd00   (* 3270 *)
+;;

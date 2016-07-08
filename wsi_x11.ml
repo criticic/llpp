@@ -1278,3 +1278,14 @@ let namekey name =
     then Char.code name.[0]
     else int_of_string name;
 ;;
+
+let keypadtodigitkey key =
+  if key >= 0xffb0 && key <= 0xffb9 (* keypad numbers *)
+  then key - 0xffb0 + 48 else key
+;;
+
+let isspecialkey key =
+  key land 0xff00 = 0xff00      (* keyboard *)
+  || key land 0xfe00 = 0xfe00   (* xkb *)
+  || key land 0xfd00 = 0xfd00   (* 3270 *)
+;;
