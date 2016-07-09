@@ -25,9 +25,17 @@
 #define BUTTON_WHEEL_UP 4
 #define BUTTON_WHEEL_DOWN 5
 
+static int terminating = 0;
+
 void *caml_main_thread (void *argv)
 {
   caml_main (argv);
+  if (terminating == 0) {
+    terminating = 1;
+    [NSApp performSelectorOnMainThread:@selector(terminate:)
+                            withObject:nil
+                         waitUntilDone:NO];
+  }
   pthread_exit (NULL);
 }
 
@@ -479,7 +487,10 @@ NSCursor *GetCursor (int idx)
 
 - (void)applicationWillTerminate:(NSDictionary *)userInfo
 {
-  [connector notifyQuit];
+  if (terminating == 0) {
+    terminating = 1;
+    [connector notifyQuit];
+  }
   pthread_join (thread, NULL);
 }
 
