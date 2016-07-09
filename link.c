@@ -138,7 +138,7 @@ static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
 #define GL_UNSIGNED_INT_8_8_8_8_REV       0x8367
 #endif
 
-#if 1
+#if 0
 #define lprintf printf
 #else
 #define lprintf(...)
