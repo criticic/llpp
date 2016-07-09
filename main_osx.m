@@ -380,12 +380,12 @@ NSCursor *GetCursor (int idx)
 
 - (int)getw
 {
-  return window.contentView.frame.size.width;
+  return [[window contentView] frame].size.width;
 }
 
 - (int)geth
 {
-  return window.contentView.frame.size.height;
+  return [[window contentView] frame].size.height;
 }
 
 - (void)setwinbgcol:(NSColor *)col
@@ -477,7 +477,8 @@ NSCursor *GetCursor (int idx)
 - (void)windowDidResize:(NSNotification *)notification
 {
   [glContext update];
-  [connector notifyReshapeWidth:window.contentView.frame.size.width height:window.contentView.frame.size.height];
+  NSRect frame = [[window contentView] frame];
+  [connector notifyReshapeWidth:frame.size.width height:frame.size.height];
 }
 
 - (void)windowDidMove:(NSNotification *)notification
