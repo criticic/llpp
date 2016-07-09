@@ -18,6 +18,7 @@
 #define EVENT_KEYDOWN 7
 #define EVENT_ENTER 8
 #define EVENT_LEAVE 9
+#define EVENT_WINSTATE 10
 #define EVENT_QUIT 11
 
 #define BUTTON_LEFT 1
@@ -106,6 +107,15 @@ NSCursor *GetCursor (int idx)
   bytes[0] = EVENT_KEYDOWN;
   *(uint32_t *) (bytes + 16) = key;
   *(uint32_t *) (bytes + 20) = mask;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
+- (void)notifyWinstate:(BOOL)fullScreen
+{
+  char bytes[32];
+  bytes[0] = EVENT_WINSTATE;
+  *(uint32_t *) (bytes + 16) = fullScreen;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }
@@ -466,6 +476,8 @@ NSCursor *GetCursor (int idx)
 - (void)toggleFullScreen
 {
   [window toggleFullScreen:self];
+  BOOL isFullscreen = [window styleMask] & NSFullScreenWindowMask;
+  [connector notifyWinstate:isFullscreen];
 }
 
 - (void)setCursor:(NSCursor *)aCursor
@@ -585,6 +597,7 @@ CAMLprim value ml_reshape (value w, value h)
 CAMLprim value ml_fullscreen (value unit)
 {
   CAMLparam1 (unit);
+  NSLog (@"fullScreen");
   [[NSApp delegate] performSelectorOnMainThread:@selector(toggleFullScreen)
                                      withObject:nil
                                   waitUntilDone:YES];
