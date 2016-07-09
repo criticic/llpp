@@ -187,8 +187,6 @@ let keypadtodigitkey key = (* FIXME *)
   then key - 0xffb0 + 48 else key
 ;;
 
-let isspecialkey key = (* FIXME *)
-  key land 0xff00 = 0xff00      (* keyboard *)
-  || key land 0xfe00 = 0xfe00   (* xkb *)
-  || key land 0xfd00 = 0xfd00   (* 3270 *)
+let isspecialkey key =
+  (0x0 <= key && 0 <= 0x1F) || (0x80 <= key && key <= 0x9F)
 ;;
