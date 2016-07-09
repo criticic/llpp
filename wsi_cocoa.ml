@@ -193,4 +193,5 @@ let keypadtodigitkey key = (* FIXME *)
 
 let isspecialkey key =
   (0x0 <= key && key <= 0x1F) || key = 0x7f || (0x80 <= key && key <= 0x9F)
+  || (key land 0xf700 = 0xf700)
 ;;
