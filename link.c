@@ -48,8 +48,6 @@
 #pragma GCC diagnostic ignored "-Wclobbered"
 #endif
 
-#pragma GCC diagnostic ignored "-Wunused-value"
-
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
 
