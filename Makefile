@@ -9,10 +9,11 @@ LLPP = llpp
 OCAMLC = ocamlc.opt
 OCAMLOPT = ocamlopt.opt
 STDLIB = $(shell $(OCAMLC) -where)
-SYSTEM = x11
 
 ifeq ($(shell uname),Darwin)
 SYSTEM ?= cocoa
+else
+SYSTEM ?= x11
 endif
 
 VERSION = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
