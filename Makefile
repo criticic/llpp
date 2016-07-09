@@ -10,7 +10,10 @@ OCAMLC = ocamlc.opt
 OCAMLOPT = ocamlopt.opt
 STDLIB = $(shell $(OCAMLC) -where)
 SYSTEM = x11
-# SYSTEM = cocoa
+
+ifeq ($(shell uname),Darwin)
+SYSTEM ?= cocoa
+endif
 
 VERSION = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
 
@@ -105,7 +108,7 @@ force_mupdf:
 
 .PHONY: clean
 clean:
-	$(RM) -f main.ml help.ml wsi.ml
+	$(RM) -f main.ml help.ml wsi.ml .depend
 	$(RM) -f *.cm* *.o
 	$(RM) -f lablGL/*.cm* lablGL/*.o
 	$(RM) -f $(LLPP)_cocoa.* $(LLPP)_x11.* $(LLPP)
@@ -119,8 +122,7 @@ clean:
 %.cmx: %.ml
 	$(OCAMLOPT) $(OCAMLCFLAGS) $(OCAMLOPTFLAGS) -c $<
 
-.PHONY: depend
-depend: main.ml help.ml wsi.ml
-	$(OCAMLDEP) -all -I lablGL $(addsuffix .ml,$(LLPP_FILES)) > .depend
+.depend: $(addsuffix .ml,$(LLPP_FILES))
+	$(OCAMLDEP) -all -I lablGL $^ > $@
 
-include .depend
+-include .depend
