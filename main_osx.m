@@ -27,16 +27,19 @@
 #define BUTTON_WHEEL_DOWN 5
 
 static int terminating = 0;
+static pthread_mutex_t terminate_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *caml_main_thread (void *argv)
 {
   caml_main (argv);
+  pthread_mutex_lock (&terminate_mutex);
   if (terminating == 0) {
     terminating = 1;
     [NSApp performSelectorOnMainThread:@selector(terminate:)
                             withObject:nil
                          waitUntilDone:NO];
   }
+  pthread_mutex_unlock (&terminate_mutex);
   pthread_exit (NULL);
 }
 
@@ -541,10 +544,12 @@ NSCursor *GetCursor (int idx)
 
 - (void)applicationWillTerminate:(NSDictionary *)userInfo
 {
+  pthread_mutex_lock (&terminate_mutex);
   if (terminating == 0) {
     terminating = 1;
     [connector notifyQuit];
   }
+  pthread_mutex_unlock (&terminate_mutex);
   pthread_join (thread, NULL);
 }
 
