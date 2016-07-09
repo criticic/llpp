@@ -2494,7 +2494,7 @@ let textentrykeyboard
       end;
 
   | _ ->
-      vlog "unhandled key %s" (Wsi.keyname key)
+      vlog "unhandled key %s (isspecialkey=%B)" (Wsi.keyname key) (Wsi.isspecialkey key)
 ;;
 
 let firstof first active =

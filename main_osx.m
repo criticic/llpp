@@ -269,7 +269,12 @@ NSCursor *GetCursor (int idx)
   NSString *chars = [event charactersIgnoringModifiers];
   const uint32_t *c = (uint32_t *) [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
   while (*c) {
-    [connector keyDown:*c++ modifierFlags:mask];
+    if (*c == 0x7f && !(mask & NSFunctionKeyMask)) {
+      [connector keyDown:0x8 modifierFlags:mask];
+    } else {
+      [connector keyDown:*c modifierFlags:mask];
+    }
+    c++;
   }
 }
 
