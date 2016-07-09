@@ -57,6 +57,15 @@ NSCursor *GetCursor (int idx)
   return cursors[idx];
 }
 
+@implementation NSWindow (CategoryNSWindow)
+
+- (BOOL)isFullScreen
+{
+  return ([self styleMask] & NSFullScreenWindowMask) == NSFullScreenWindowMask;
+}
+
+@end
+
 @interface Connector : NSObject
 
 - (instancetype)initWithFileDescriptor:(int)fd;
@@ -240,7 +249,7 @@ NSCursor *GetCursor (int idx)
 
 - (void)drawRect:(NSRect)bounds
 {
-  NSLog(@"drawRect: %@", [NSValue valueWithRect:bounds]);
+  // NSLog(@"drawRect: %@", [NSValue valueWithRect:bounds]);
   [connector notifyExpose];
 }
 
@@ -428,6 +437,16 @@ NSCursor *GetCursor (int idx)
   [window setAcceptsMouseMovedEvents:YES];
   [window setDelegate:self];
 
+
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(didEnterFullScreen)
+                                               name:NSWindowDidEnterFullScreenNotification
+                                             object:window];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(didExitFullScreen)
+                                               name:NSWindowDidExitFullScreenNotification
+                                             object:window];
+
   MyView *myView = [[MyView alloc] initWithFrame:[[window contentView] bounds]
                                        connector:connector];
 
@@ -452,8 +471,12 @@ NSCursor *GetCursor (int idx)
   [glContext setView:myView];
 }
 
-- (void)setContentFrame:(NSValue *)val
+- (void)reshape:(NSValue *)val
 {
+  // NSLog (@"reshape: %@ isFullScreen: %d", val, [window isFullScreen]);
+  if ([window isFullScreen]) {
+    [window toggleFullScreen:self];
+  }
   NSRect rect = [window frameRectForContentRect:[val rectValue]];
   [window setFrame:rect display:YES];
 }
@@ -463,7 +486,7 @@ NSCursor *GetCursor (int idx)
   NSLog (@"completeInit");
   [glContext makeCurrentContext];
   NSLog (@"OpenGL Version: %s", glGetString(GL_VERSION));
-  [self performSelectorOnMainThread:@selector(setContentFrame:)
+  [self performSelectorOnMainThread:@selector(reshape:)
                          withObject:[NSValue valueWithRect:NSMakeRect(0, 0, w, h)]
                       waitUntilDone:YES];
 }
@@ -473,11 +496,24 @@ NSCursor *GetCursor (int idx)
   [glContext flushBuffer];
 }
 
-- (void)toggleFullScreen
+- (void)didEnterFullScreen
 {
-  [window toggleFullScreen:self];
-  BOOL isFullscreen = [window styleMask] & NSFullScreenWindowMask;
-  [connector notifyWinstate:isFullscreen];
+  // NSLog (@"didEnterFullScreen: %d", [window isFullScreen]);
+  [connector notifyWinstate:YES];
+}
+
+- (void)didExitFullScreen
+{
+  // NSLog (@"didExitFullScreen: %d", [window isFullScreen]);
+  [connector notifyWinstate:NO];
+}
+
+- (void)fullscreen
+{
+  // NSLog (@"fullscreen: %d", [window isFullScreen]);
+  if ([window isFullScreen] == NO) {
+    [window toggleFullScreen:self];
+  }
 }
 
 - (void)setCursor:(NSCursor *)aCursor
@@ -588,7 +624,7 @@ CAMLprim value ml_settitle (value title)
 CAMLprim value ml_reshape (value w, value h)
 {
   CAMLparam2 (w, h);
-  [[NSApp delegate] performSelectorOnMainThread:@selector(setContentFrame:)
+  [[NSApp delegate] performSelectorOnMainThread:@selector(reshape:)
                                      withObject:[NSValue valueWithRect:NSMakeRect (0, 0, Int_val (w), Int_val (h))]
                                   waitUntilDone:YES];
   CAMLreturn (Val_unit);
@@ -597,8 +633,7 @@ CAMLprim value ml_reshape (value w, value h)
 CAMLprim value ml_fullscreen (value unit)
 {
   CAMLparam1 (unit);
-  NSLog (@"fullScreen");
-  [[NSApp delegate] performSelectorOnMainThread:@selector(toggleFullScreen)
+  [[NSApp delegate] performSelectorOnMainThread:@selector(fullscreen)
                                      withObject:nil
                                   waitUntilDone:YES];
   CAMLreturn (Val_unit);

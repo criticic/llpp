@@ -130,6 +130,10 @@ let readresp sock =
   | 9 ->
     vlog "leave";
     state.t#leave
+  | 10 ->
+    let x = r32 resp 16 <> 0 in
+    vlog "winstate %B" x;
+    state.t#winstate (if x then [Fullscreen] else []);
   | 11 ->
     vlog "quit";
     state.t#quit
@@ -176,9 +180,9 @@ let withmeta mask = mask land metamask != 0
 
 let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0
 
-let keyname _ = ""
+let keyname key = Printf.sprintf "0x%x" key
 
-let namekey _ = 0
+let namekey s = int_of_string s
 
 external setwinbgcol: int -> unit = "ml_setwinbgcol"
 
