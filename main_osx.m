@@ -15,6 +15,7 @@
 #define EVENT_RESHAPE 3
 #define EVENT_MOUSE 4
 #define EVENT_MOTION 5
+#define EVENT_PMOTION 6
 #define EVENT_KEYDOWN 7
 #define EVENT_ENTER 8
 #define EVENT_LEAVE 9
@@ -158,10 +159,21 @@ NSCursor *GetCursor (int idx)
   [fileHandle writeData:data];
 }
 
-- (void)mouseMoved:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
+- (void)mouseDragged:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
 {
   char bytes[32];
   bytes[0] = EVENT_MOTION;
+  *(int16_t *) (bytes + 16) = aPoint.x;
+  *(int16_t *) (bytes + 20) = aPoint.y;
+  *(uint32_t *) (bytes + 24) = flags;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
+- (void)mouseMoved:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
+{
+  char bytes[32];
+  bytes[0] = EVENT_PMOTION;
   *(int16_t *) (bytes + 16) = aPoint.x;
   *(int16_t *) (bytes + 20) = aPoint.y;
   *(uint32_t *) (bytes + 24) = flags;
@@ -327,10 +339,18 @@ NSCursor *GetCursor (int idx)
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
-  [connector mouseMoved:loc modifierFlags:mask];
+  [connector mouseDragged:loc modifierFlags:mask];
 }
 
 - (void)mouseDragged:(NSEvent *)event
+{
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
+  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  [connector mouseDragged:loc modifierFlags:mask];
+}
+
+- (void)mouseMoved:(NSEvent *)event
 {
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
@@ -352,6 +372,7 @@ NSCursor *GetCursor (int idx)
 
 - (void)scrollWheel:(NSEvent *)event
 {
+  NSLog (@"scrollWheel: %@", event);
   CGFloat d = [event deltaY];
   NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
   loc.y = [self bounds].size.height - loc.y;
