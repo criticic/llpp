@@ -81,12 +81,21 @@ NSCursor *GetCursor (int idx)
 
 @end
 
+@implementation NSEvent (CategoryNSEvent)
+
+- (int)deviceIndependentModifierFlags
+{
+  return [self modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+}
+
+@end
+
 @interface Connector : NSObject
 
 - (instancetype)initWithFileDescriptor:(int)fd;
 - (void)notifyReshapeWidth:(int)w height:(int)h;
 - (void)notifyExpose;
-- (void)keyDown:(uint32_t)key modifierFlags:(int)mask;
+- (void)keyDown:(uint32_t)key modifierFlags:(NSEventModifierFlags)mask;
 - (void)notifyQuit;
 - (void)mouseEntered:(NSPoint)loc;
 - (void)mouseExited;
@@ -125,7 +134,7 @@ NSCursor *GetCursor (int idx)
   [fileHandle writeData:data];
 }
 
-- (void)keyDown:(uint32_t)key modifierFlags:(int)mask
+- (void)keyDown:(uint32_t)key modifierFlags:(NSEventModifierFlags)mask
 {
   char bytes[32];
   bytes[0] = EVENT_KEYDOWN;
@@ -291,7 +300,7 @@ NSCursor *GetCursor (int idx)
 - (void)keyDown:(NSEvent *)event
 {
   // int key = [event keyCode];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   NSString *chars = [event charactersIgnoringModifiers];
   const uint32_t *c = (uint32_t *) [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
   while (*c) {
@@ -306,8 +315,8 @@ NSCursor *GetCursor (int idx)
 
 - (void)flagsChanged:(NSEvent *)event
 {
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
-  NSLog (@"flagsChanged: 0x%x", mask);
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
+  NSLog (@"flagsChanged: 0x%lx", mask);
   if (mask != 0) {
     [connector keyDown:0 modifierFlags:mask];
   }
@@ -316,49 +325,49 @@ NSCursor *GetCursor (int idx)
 - (void)mouseDown:(NSEvent *)event
 {
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   [connector mouseDown:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   [connector mouseUp:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
 - (void)rightMouseDown:(NSEvent *)event
 {
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   [connector mouseDown:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
 }
 
 - (void)rightMouseUp:(NSEvent *)event
 {
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   [connector mouseUp:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
 }
 
 - (void)rightMouseDragged:(NSEvent *)event
 {
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   [connector mouseDragged:loc modifierFlags:mask];
 }
 
 - (void)mouseDragged:(NSEvent *)event
 {
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   [connector mouseDragged:loc modifierFlags:mask];
 }
 
 - (void)mouseMoved:(NSEvent *)event
 {
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   [connector mouseMoved:loc modifierFlags:mask];
 }
 
@@ -378,7 +387,7 @@ NSCursor *GetCursor (int idx)
   // NSLog (@"scrollWheel: %@", event);
   CGFloat d = [event deltaY];
   NSPoint loc = [self locationFromEvent:event];
-  int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
   if (d > 0.0) {
     [connector mouseDown:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
     [connector mouseUp:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
