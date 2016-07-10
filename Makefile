@@ -109,7 +109,7 @@ force_mupdf:
 
 .PHONY: clean
 clean:
-	$(RM) -f main.ml help.ml wsi.ml .depend
+	$(RM) -f main.ml help.ml wsi.ml
 	$(RM) -f *.cm* *.o
 	$(RM) -f lablGL/*.cm* lablGL/*.o
 	$(RM) -f $(LLPP)_cocoa.* $(LLPP)_x11.* $(LLPP)
