@@ -138,7 +138,7 @@ let setfontsize n =
 ;;
 
 let vlog fmt =
-  if true || conf.verbose
+  if conf.verbose
   then dolog fmt
   else Printf.kprintf ignore fmt
 ;;
