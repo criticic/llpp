@@ -70,6 +70,17 @@ NSCursor *GetCursor (int idx)
 
 @end
 
+@implementation NSView (CategoryNSView)
+
+- (NSPoint)locationFromEvent:(NSEvent *)event
+{
+  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
+  loc.y = [self bounds].size.height - loc.y;
+  return loc;
+}
+
+@end
+
 @interface Connector : NSObject
 
 - (instancetype)initWithFileDescriptor:(int)fd;
@@ -304,64 +315,56 @@ NSCursor *GetCursor (int idx)
 
 - (void)mouseDown:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseDown:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseUp:BUTTON_LEFT atPoint:loc modifierFlags:mask];
 }
 
 - (void)rightMouseDown:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseDown:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
 }
 
 - (void)rightMouseUp:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseUp:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
 }
 
 - (void)rightMouseDragged:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseDragged:loc modifierFlags:mask];
 }
 
 - (void)mouseDragged:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseDragged:loc modifierFlags:mask];
 }
 
 - (void)mouseMoved:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   [connector mouseMoved:loc modifierFlags:mask];
 }
 
 - (void)mouseEntered:(NSEvent *)event
 {
-  NSPoint loc = [event locationInWindow];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   [connector mouseEntered:loc];
 }
 
@@ -372,10 +375,9 @@ NSCursor *GetCursor (int idx)
 
 - (void)scrollWheel:(NSEvent *)event
 {
-  NSLog (@"scrollWheel: %@", event);
+  // NSLog (@"scrollWheel: %@", event);
   CGFloat d = [event deltaY];
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
+  NSPoint loc = [self locationFromEvent:event];
   int mask = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
   if (d > 0.0) {
     [connector mouseDown:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
