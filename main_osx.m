@@ -324,57 +324,53 @@ NSCursor *GetCursor (int idx)
 
 - (void)mouseDown:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  [connector mouseDown:BUTTON_LEFT atPoint:loc modifierFlags:mask];
+  [connector mouseDown:BUTTON_LEFT
+               atPoint:[self locationFromEvent:event]
+         modifierFlags:[event deviceIndependentModifierFlags]];
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  [connector mouseUp:BUTTON_LEFT atPoint:loc modifierFlags:mask];
+  [connector mouseUp:BUTTON_LEFT
+             atPoint:[self locationFromEvent:event]
+       modifierFlags:[event deviceIndependentModifierFlags]];
 }
 
 - (void)rightMouseDown:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  [connector mouseDown:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
+  [connector mouseDown:BUTTON_RIGHT
+               atPoint:[self locationFromEvent:event]
+         modifierFlags:[event deviceIndependentModifierFlags]];
 }
 
 - (void)rightMouseUp:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  [connector mouseUp:BUTTON_RIGHT atPoint:loc modifierFlags:mask];
+  [connector mouseUp:BUTTON_RIGHT
+             atPoint:[self locationFromEvent:event]
+       modifierFlags:[event deviceIndependentModifierFlags]];
 }
 
 - (void)rightMouseDragged:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  [connector mouseDragged:loc modifierFlags:mask];
+  [connector mouseDragged:[self locationFromEvent:event]
+            modifierFlags:[event deviceIndependentModifierFlags]];
 }
 
 - (void)mouseDragged:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  [connector mouseDragged:loc modifierFlags:mask];
+  [connector mouseDragged:[self locationFromEvent:event]
+            modifierFlags:[event deviceIndependentModifierFlags]];
 }
 
 - (void)mouseMoved:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  [connector mouseMoved:loc modifierFlags:mask];
+  [connector mouseMoved:[self locationFromEvent:event]
+          modifierFlags:[event deviceIndependentModifierFlags]];
 }
 
 - (void)mouseEntered:(NSEvent *)event
 {
-  NSPoint loc = [self locationFromEvent:event];
-  [connector mouseEntered:loc];
+  [connector mouseEntered:[self locationFromEvent:event]];
 }
 
 - (void)mouseExited:(NSEvent *)event
@@ -517,13 +513,12 @@ NSCursor *GetCursor (int idx)
   if ([window isFullScreen]) {
     [window toggleFullScreen:self];
   }
-  NSRect rect = [window frameRectForContentRect:[val rectValue]];
-  [window setFrame:rect display:YES];
+  [window setFrame:[window frameRectForContentRect:[val rectValue]]
+           display:YES];
 }
 
 - (void)completeInit:(int)w height:(int)h
 {
-  NSLog (@"completeInit");
   [glContext makeCurrentContext];
   NSLog (@"OpenGL Version: %s", glGetString(GL_VERSION));
   [self performSelectorOnMainThread:@selector(reshape:)
@@ -666,8 +661,9 @@ CAMLprim value ml_settitle (value title)
 CAMLprim value ml_reshape (value w, value h)
 {
   CAMLparam2 (w, h);
+  NSRect r = NSMakeRect (0, 0, Int_val (w), Int_val (h));
   [[NSApp delegate] performSelectorOnMainThread:@selector(reshape:)
-                                     withObject:[NSValue valueWithRect:NSMakeRect (0, 0, Int_val (w), Int_val (h))]
+                                     withObject:[NSValue valueWithRect:r]
                                   waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
