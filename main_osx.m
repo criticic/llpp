@@ -74,9 +74,16 @@ NSCursor *GetCursor (int idx)
 
 - (NSPoint)locationFromEvent:(NSEvent *)event
 {
-  NSPoint loc = [self convertPoint:[event locationInWindow] fromView:nil];
-  loc.y = [self bounds].size.height - loc.y;
-  return loc;
+  NSPoint point =
+    [self convertPointToBacking:[self convertPoint:[event locationInWindow] fromView:nil]];
+  NSRect bounds = [self convertRectToBacking:[self bounds]];
+  point.y = bounds.size.height - point.y;
+  return point;
+}
+
+- (NSRect)convertFrameToBacking
+{
+  return [self convertRectToBacking:[self frame]];
 }
 
 @end
@@ -435,12 +442,12 @@ NSCursor *GetCursor (int idx)
 
 - (int)getw
 {
-  return [[window contentView] frame].size.width;
+  return [[window contentView] convertFrameToBacking].size.width;
 }
 
 - (int)geth
 {
-  return [[window contentView] frame].size.height;
+  return [[window contentView] convertFrameToBacking].size.height;
 }
 
 - (void)setwinbgcol:(NSColor *)col
@@ -489,7 +496,7 @@ NSCursor *GetCursor (int idx)
   [window setContentView:myView];
   [window makeFirstResponder:myView];
 
-  // [myView setWantsBestResolutionOpenGLSurface:YES];
+  [myView setWantsBestResolutionOpenGLSurface:YES];
 
   NSOpenGLPixelFormatAttribute attrs[] =
     {
@@ -560,7 +567,7 @@ NSCursor *GetCursor (int idx)
 - (void)windowDidResize:(NSNotification *)notification
 {
   [glContext update];
-  NSRect frame = [[window contentView] frame];
+  NSRect frame = [[window contentView] convertFrameToBacking];
   [connector notifyReshapeWidth:frame.size.width height:frame.size.height];
 }
 
