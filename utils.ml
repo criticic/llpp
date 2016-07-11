@@ -331,7 +331,7 @@ let r32 s pos =
   (u lsl 16) lor l
 ;;
 
-let vlog fmt = Format.ksprintf prerr_endline (* ignore *) fmt;;
+let vlog fmt = Format.ksprintf ignore fmt;;
 
 let sendstr1 s pos len sock =
   let s = Bytes.unsafe_to_string s in

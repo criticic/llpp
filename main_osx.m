@@ -696,7 +696,7 @@ CAMLprim value ml_fullscreen (value unit)
 CAMLprim value ml_setcursor (value curs)
 {
   CAMLparam1 (curs);
-  NSLog (@"ml_setcursor: %d", Int_val (curs));
+  // NSLog (@"ml_setcursor: %d", Int_val (curs));
   NSCursor *cursor = GetCursor (Int_val (curs));
   [[NSApp delegate] performSelectorOnMainThread:@selector(setCursor:)
                                      withObject:cursor
