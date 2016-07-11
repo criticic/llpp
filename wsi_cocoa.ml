@@ -151,6 +151,9 @@ external file_descr_of_int: int -> Unix.file_descr = "%identity"
 external getw: unit -> int = "ml_getw"
 external geth: unit -> int = "ml_geth"
 
+let fontsizefactor () =
+  int_of_string (Sys.getenv "BACKING_SCALE_FACTOR")
+
 let init t _ w h platform =
   let fd = int_of_string (Sys.getenv "LLPP_DISPLAY") in
   Printf.eprintf "LLPP_DISPLAY=%d\n%!" fd;

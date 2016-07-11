@@ -57,3 +57,4 @@ val namekey : string -> int;;
 val setwinbgcol : int -> unit;;
 val keypadtodigitkey : int -> int;;
 val isspecialkey : int -> bool;;
+val fontsizefactor : unit -> int;;

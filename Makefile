@@ -123,7 +123,8 @@ clean:
 %.cmx: %.ml
 	$(OCAMLOPT) $(OCAMLCFLAGS) $(OCAMLOPTFLAGS) -c $<
 
-.depend: $(addsuffix .ml,$(LLPP_FILES))
-	$(OCAMLDEP) -all -I lablGL $^ > $@
+.PHONY:depend
+depend: $(addsuffix .ml,$(LLPP_FILES))
+	$(OCAMLDEP) -all -I lablGL $^ > .depend
 
 -include .depend

@@ -10,7 +10,7 @@ type fontstate =
 ;;
 
 let fstate =
-  { fontsize = 14
+  { fontsize = 14 * Wsi.fontsizefactor ()
   ; wwidth = nan
   ; maxrows = -1
   }

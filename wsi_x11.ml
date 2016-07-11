@@ -1289,3 +1289,5 @@ let isspecialkey key =
   || key land 0xfe00 = 0xfe00   (* xkb *)
   || key land 0xfd00 = 0xfd00   (* 3270 *)
 ;;
+
+let backingscalefactor () = 1
