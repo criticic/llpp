@@ -1830,7 +1830,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             char *nameddest;
             int rotate, off, h;
             unsigned int fitmodel;
-            pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
+            pdf_document *pdf;
 
             printd ("clear");
             ret = sscanf (p + 9, " %d %u %d %n",
@@ -1839,6 +1839,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
             lock ("reqlayout");
+            pdf = pdf_specifics (state.ctx, state.doc);
             if (state.rotate != rotate || state.fitmodel != fitmodel) {
                 state.gen += 1;
             }
@@ -2631,13 +2632,13 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         goto done;
     }
 
-    ensureannots (page);
-
-    if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (trylock (__func__)) {
         noff = 0;
         goto done;
     }
+
+    ensureannots (page);
+    if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (hlmask & 2) {
         highlightslinks (page, xoff, yoff, noff, targ, tlen, hfsize);
         noff = page->slinkcount;
@@ -2759,11 +2760,12 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
     int i, dir = Int_val (dir_v);
     int start_page = Int_val (start_page_v);
     int end_page = dir > 0 ? state.pagecount : -1;
-    pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
+    pdf_document *pdf;
 
     fz_var (end_page);
     ret_v = Val_int (0);
     lock (__func__);
+    pdf = pdf_specifics (state.ctx, state.doc);
     for (i = start_page + dir; i != end_page; i += dir) {
         int found;
 
@@ -2814,9 +2816,6 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
 
     page = parse_pointer (__func__, s);
     ret_v = Val_int (0);
-    /* This is scary we are not taking locks here ensureslinks does
-       not modify state and given that we obtained the page it can not
-       disappear under us either */
     lock (__func__);
     ensureslinks (page);
 
@@ -3042,7 +3041,11 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
 CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
 {
     CAMLparam2 (ptr_v, n_v);
-    pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
+    pdf_document *pdf;
+    const char *contents = "";
+
+    lock (__func__);
+    pdf = pdf_specifics (state.ctx, state.doc);
     if (pdf) {
         char *s = String_val (ptr_v);
         struct page *page;
@@ -3050,13 +3053,11 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        CAMLreturn (caml_copy_string (
-                        pdf_annot_contents (state.ctx,
-                                            (pdf_annot *) slink->u.annot)));
+        contents = pdf_annot_contents (state.ctx,
+                                       (pdf_annot *) slink->u.annot);
     }
-    else {
-        CAMLreturn (caml_copy_string (""));
-    }
+    unlock (__func__);
+    CAMLreturn (caml_copy_string (contents));
 }
 
 CAMLprim value ml_getlinkcount (value ptr_v)
@@ -3076,10 +3077,10 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
     struct page *page;
     struct slink *slink;
     char *s = String_val (ptr_v);
-    /* See ml_findlink for caveat */
 
     page = parse_pointer (__func__, s);
     ret_v = caml_alloc_tuple (4);
+    lock (__func__);
     ensureslinks (page);
 
     slink = &page->slinks[Int_val (n_v)];
