@@ -19,6 +19,178 @@ type visiblestate =
   | PartiallyObscured
   | FullyObscured
 
+type key =
+  | F1
+  | F3
+  | F9
+  | Gt
+  | Lb
+  | Lt
+  | Rb
+  | Apos
+  | Backspace
+  | Delete
+  | Down
+  | Enter
+  | Equals
+  | Escape
+  | Home
+  | Insert
+  | Jend
+  | KPdelete
+  | KPdown
+  | KPend
+  | KPenter
+  | KPhome
+  | KPleft
+  | KPminus
+  | KPnext
+  | KPplus
+  | KPprior
+  | KPright
+  | KPup
+  | Left
+  | Minus
+  | Next
+  | Pipe
+  | Plus
+  | Prior
+  | Question
+  | Right
+  | Slash
+  | Space
+  | Tab
+  | Tilde
+  | Up
+  | N0
+  | N1
+  | N2
+  | N3
+  | N4
+  | N9
+  | CB
+  | CF
+  | CG
+  | CH
+  | CN
+  | CP
+  | CQ
+  | CW
+  | CS
+  | Ca
+  | Cb
+  | Cc
+  | Ce
+  | Cf
+  | Cg
+  | Ch
+  | Ci
+  | Cj
+  | Ck
+  | Cl
+  | Cm
+  | Cn
+  | Co
+  | Cp
+  | Cq
+  | Cr
+  | Cs
+  | Ct
+  | Cu
+  | Cv
+  | Cw
+  | Cx
+  | Cy
+  | Cz
+  | Unrecognized
+;;
+
+let classify_key = function
+  | 0xF704 -> F1
+  | 0xF706 -> F3
+  | 0xF70C -> F9
+  | 62 -> Gt
+  | 91 -> Lb
+  | 60 -> Lt
+  | 93 -> Rb
+  | 39 -> Apos
+  | 8 -> Backspace
+  | 0x7f -> Delete
+  | 0xF701 -> Down
+  | 13 -> Enter
+  | 61 -> Equals
+  | 27 -> Escape
+  | 0xF729 -> Home
+  | 0xF727 -> Insert
+  | 0xF72B -> Jend
+  | 46 -> KPdelete
+  | 0xfff01 -> KPdown
+  | 0xfff02 -> KPend
+  | 0xfff03 -> KPenter
+  | 0xfff04 -> KPhome
+  | 0xfff05 -> KPleft
+  | 0xfff06 -> KPminus
+  | 0xfff07 -> KPnext
+  | 0xfff08 -> KPplus
+  | 0xfff09 -> KPprior
+  | 0xfff0a -> KPright
+  | 0xfff0b -> KPup
+  | 0xF702 -> KPleft
+  | 45 -> Minus
+  | 0xF72D -> Next
+  | 124 -> Pipe
+  | 43 -> Plus
+  | 0xF72C -> Prior
+  | 63 -> Question
+  | 0xF703 -> Right
+  | 47 -> Slash
+  | 32 -> Space
+  | 9 -> Tab
+  | 0x7e -> Tilde
+  | 0xF700 -> Up
+  | 48 -> N0
+  | 49 -> N1
+  | 50 -> N2
+  | 51 -> N3
+  | 52 -> N4
+  | 57 -> N9
+  | 66 -> CB
+  | 70 -> CF
+  | 71 -> CG
+  | 72 -> CH
+  | 78 -> CN
+  | 80 -> CP
+  | 81 -> CQ
+  | 87 -> CW
+  | 83 -> CS
+  | 97 -> Ca
+  | 98 -> Cb
+  | 99 -> Cc
+  | 101 -> Ce
+  | 102 -> Cf
+  | 103 -> Cg
+  | 104 -> Ch
+  | 105 -> Ci
+  | 106 -> Cj
+  | 107 -> Ck
+  | 108 -> Cl
+  | 109 -> Cm
+  | 110 -> Cn
+  | 111 -> Co
+  | 112 -> Cp
+  | 113 -> Cq
+  | 114 -> Cr
+  | 115 -> Cs
+  | 116 -> Ct
+  | 117 -> Cu
+  | 118 -> Cv
+  | 119 -> Cw
+  | 120 -> Cx
+  | 121 -> Cy
+  | 122 -> Cz
+  | _ -> Unrecognized
+;;
+
 class type t = object
   method map      : bool -> unit
   method expose   : unit

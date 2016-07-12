@@ -39,8 +39,7 @@ wsi.ml: wsi_$(SYSTEM).ml
 	$(RM) -f $@
 	$(CP) $< $@
 
-main.ml: main.mlp pp.$(SYSTEM).sed
-	$(SED) -f pp.$(SYSTEM).sed $< > $@
+main.cmo main.cmx: OCAMLCFLAGS += -w -40
 
 help.ml: KEYS mkhelp.sh
 	sh mkhelp.sh KEYS $(VERSION) > $@
@@ -109,7 +108,7 @@ force_mupdf:
 
 .PHONY: clean
 clean:
-	$(RM) -f main.ml help.ml wsi.ml
+	$(RM) -f help.ml wsi.ml
 	$(RM) -f *.cm* *.o
 	$(RM) -f lablGL/*.cm* lablGL/*.o
 	$(RM) -f $(LLPP)_cocoa.* $(LLPP)_x11.* $(LLPP)

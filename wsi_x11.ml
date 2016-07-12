@@ -22,6 +22,178 @@ type visiblestate =
   | FullyObscured
 ;;
 
+type key =
+  | F1
+  | F3
+  | F9
+  | Gt
+  | Lb
+  | Lt
+  | Rb
+  | Apos
+  | Backspace
+  | Delete
+  | Down
+  | Enter
+  | Equals
+  | Escape
+  | Home
+  | Insert
+  | Jend
+  | KPdelete
+  | KPdown
+  | KPend
+  | KPenter
+  | KPhome
+  | KPleft
+  | KPminus
+  | KPnext
+  | KPplus
+  | KPprior
+  | KPright
+  | KPup
+  | Left
+  | Minus
+  | Next
+  | Pipe
+  | Plus
+  | Prior
+  | Question
+  | Right
+  | Slash
+  | Space
+  | Tab
+  | Tilde
+  | Up
+  | N0
+  | N1
+  | N2
+  | N3
+  | N4
+  | N9
+  | CB
+  | CF
+  | CG
+  | CH
+  | CN
+  | CP
+  | CQ
+  | CW
+  | CS
+  | Ca
+  | Cb
+  | Cc
+  | Ce
+  | Cf
+  | Cg
+  | Ch
+  | Ci
+  | Cj
+  | Ck
+  | Cl
+  | Cm
+  | Cn
+  | Co
+  | Cp
+  | Cq
+  | Cr
+  | Cs
+  | Ct
+  | Cu
+  | Cv
+  | Cw
+  | Cx
+  | Cy
+  | Cz
+  | Unrecognized
+;;
+
+let classify_key = function
+  | 0xffbe -> F1
+  | 0xffc0 -> F3
+  | 0xffc6 -> F9
+  | 62 -> Gt
+  | 91 -> Lb
+  | 60 -> Lt
+  | 93 -> Rb
+  | 39 -> Apos
+  | 0xff08 -> Backspace
+  | 0xff9f -> Delete
+  | 0xff54 -> Down
+  | 0xff0d -> Enter
+  | 61 -> Equals
+  | 0xff1b -> Escape
+  | 0xff50 -> Home
+  | 0xff63 -> Insert
+  | 0xff57 -> Jend
+  | 0xffff -> KPdelete
+  | 0xff99 -> KPdown
+  | 0xff9c -> KPend
+  | 0xff8d -> KPenter
+  | 0xff95 -> KPhome
+  | 0xff96 -> KPleft
+  | 0xffad -> KPminus
+  | 0xff9b -> KPnext
+  | 0xffab -> KPplus
+  | 0xff9a -> KPprior
+  | 0xff98 -> KPright
+  | 0xff97 -> KPup
+  | 0xff51 -> Left
+  | 45 -> Minus
+  | 0xff56 -> Next
+  | 124 -> Pipe
+  | 43 -> Plus
+  | 0xff55 -> Prior
+  | 63 -> Question
+  | 0xff53 -> Right
+  | 47 -> Slash
+  | 32 -> Space
+  | 0xff09 -> Tab
+  | 0x7e -> Tilde
+  | 0xff52 -> Up
+  | 48 -> N0
+  | 49 -> N1
+  | 50 -> N2
+  | 51 -> N3
+  | 52 -> N4
+  | 57 -> N9
+  | 66 -> CB
+  | 70 -> CF
+  | 71 -> CG
+  | 72 -> CH
+  | 78 -> CN
+  | 80 -> CP
+  | 81 -> CQ
+  | 87 -> CW
+  | 83 -> CS
+  | 97 -> Ca
+  | 98 -> Cb
+  | 99 -> Cc
+  | 101 -> Ce
+  | 102 -> Cf
+  | 103 -> Cg
+  | 104 -> Ch
+  | 105 -> Ci
+  | 106 -> Cj
+  | 107 -> Ck
+  | 108 -> Cl
+  | 109 -> Cm
+  | 110 -> Cn
+  | 111 -> Co
+  | 112 -> Cp
+  | 113 -> Cq
+  | 114 -> Cr
+  | 115 -> Cs
+  | 116 -> Ct
+  | 117 -> Cu
+  | 118 -> Cv
+  | 119 -> Cw
+  | 120 -> Cx
+  | 121 -> Cy
+  | 122 -> Cz
+  | _ -> Unrecognized
+;;
+
 type wid = int and screenno = int and vid = int and atom = int;;
 
 external glxinit : string -> wid -> screenno -> vid = "ml_glxinit";;
