@@ -10,3 +10,4 @@ Build.o
 Build.hi
 mupdf
 test/
+.tramp_history
