@@ -645,24 +645,20 @@ static void trimctm (pdf_page *page, int pindex)
     struct pagedim *pdim = &state.pagedims[pindex];
 
     if (!pdim->tctmready) {
-        if (state.trimmargins) {
-            fz_rect realbox, mediabox;
-            fz_matrix rm, sm, tm, im, ctm1, page_ctm;
+        fz_rect realbox, mediabox;
+        fz_matrix rm, sm, tm, im, ctm1, page_ctm;
 
-            fz_rotate (&rm, -pdim->rotate);
-            fz_scale (&sm, 1, -1);
-            fz_concat (&ctm, &rm, &sm);
-            realbox = pdim->mediabox;
-            fz_transform_rect (&realbox, &ctm);
-            fz_translate (&tm, -realbox.x0, -realbox.y0);
-            fz_concat (&ctm1, &ctm, &tm);
-            pdf_page_transform (state.ctx, page, &mediabox, &page_ctm);
-            fz_invert_matrix (&im, &page_ctm);
-            fz_concat (&ctm, &im, &ctm1);
-        }
-        else {
-            ctm = fz_identity;
-        }
+        fz_rotate (&rm, -pdim->rotate);
+        fz_scale (&sm, 1, -1);
+        fz_concat (&ctm, &rm, &sm);
+        realbox = pdim->mediabox;
+        fz_transform_rect (&realbox, &ctm);
+        fz_translate (&tm, -realbox.x0, -realbox.y0);
+        fz_concat (&ctm1, &ctm, &tm);
+        pdf_page_transform (state.ctx, page, &mediabox, &page_ctm);
+        fz_invert_matrix (&im, &page_ctm);
+        fz_concat (&ctm, &im, &ctm1);
+
         pdim->tctm = ctm;
         pdim->tctmready = 1;
     }
