@@ -2441,6 +2441,7 @@ let textentrykeyboard
         );
         G.postRedisplay "textentry histaction"
   in
+  let open Keys in
   match Wsi.classify_key key with
   | Backspace ->
       if emptystr text && cancelonempty
@@ -2843,6 +2844,7 @@ object (self)
       G.postRedisplay "listview navigate";
       set active first;
     in
+    let open Keys in
     match Wsi.classify_key key with
     | (Cr|Cs) when Wsi.withctrl mask ->
         let incr = match Wsi.classify_key key with Cr -> -1 | _ -> 1 in
@@ -3152,6 +3154,7 @@ object (self)
       coe {< m_first = first; m_active = active >}
     in
     let ctrl = Wsi.withctrl mask in
+    let open Keys in
     match Wsi.classify_key key with
     | Ca when ctrl ->
         let text =
@@ -4019,6 +4022,7 @@ let enterinfomode =
       method! key key mask =
         if not (Wsi.withctrl mask)
         then
+          let open Keys in
           match Wsi.classify_key key with
           | Left | KPleft -> coe (self#updownlevel ~-1)
           | Right | KPright -> coe (self#updownlevel 1)
@@ -4710,6 +4714,7 @@ let viewkeyboard key mask =
   in
   let ctrl = Wsi.withctrl mask in
   let key = Wsi.keypadtodigitkey key in
+  let open Keys in
   match Wsi.classify_key key with
   | CQ -> exit 0
 
@@ -5220,6 +5225,7 @@ let linknavkeyboard key mask linknav =
   let doexact (pageno, n) =
     match getopaque pageno, getpage pageno with
     | Some opaque, Some l ->
+      let open Keys in
       begin match Wsi.classify_key key with
         | Enter | KPenter ->
           let under = getlink opaque n in
@@ -5304,6 +5310,7 @@ let linknavkeyboard key mask linknav =
       end
     | _ -> viewkeyboard key mask
   in
+  let open Keys in
   match Wsi.classify_key key with
   | Insert ->
     state.mode <- View;
@@ -5316,6 +5323,7 @@ let linknavkeyboard key mask linknav =
 ;;
 
 let keyboard key mask =
+  let open Keys in
   match Wsi.classify_key key with
   | Cg when Wsi.withctrl mask && not (istextentry state.mode) ->
     wcmd "interrupt"
@@ -5333,6 +5341,7 @@ let birdseyekeyboard key mask
   in
   let pgh layout = List.fold_left
       (fun m l -> max l.pageh m) state.winh layout in
+  let open Keys in
   match Wsi.classify_key key with
   | Cl when Wsi.withctrl mask ->
       let y, h = getpageyh pageno in

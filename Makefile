@@ -39,8 +39,6 @@ wsi.ml: wsi_$(SYSTEM).ml
 	$(RM) -f $@
 	$(CP) $< $@
 
-main.cmo main.cmx: OCAMLCFLAGS += -w -40
-
 help.ml: KEYS mkhelp.sh
 	sh mkhelp.sh KEYS $(VERSION) > $@
 
