@@ -124,7 +124,7 @@ clean:
 	$(OCAMLOPT) $(OCAMLCFLAGS) $(OCAMLOPTFLAGS) -c $<
 
 .PHONY:depend
-depend: $(addsuffix .ml,$(LLPP_FILES))
+depend: $(wildcard $(addsuffix .mli,$(LLPP_FILES))) $(addsuffix .ml,$(LLPP_FILES))
 	$(OCAMLDEP) -all -I lablGL $^ > .depend
 
 -include .depend

@@ -1,3 +1,6 @@
+lablGL/glMisc.cmi : lablGL/raw.cmi
+lablGL/glTex.cmi : lablGL/glPix.cmi lablGL/gl.cmi
+wsi.cmi : utils.cmi
 lablGL/gl.cmo lablGL/gl.cmi : lablGL/gl.ml
 lablGL/gl.cmx lablGL/gl.o lablGL/gl.cmi : lablGL/gl.ml
 lablGL/raw.cmo lablGL/raw.cmi : lablGL/raw.ml
