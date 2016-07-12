@@ -68,6 +68,7 @@ LLPP_FILES = \
 	help \
 	utils \
 	parser \
+	keys \
 	wsi \
 	config \
 	main

@@ -1,6 +1,6 @@
 lablGL/glMisc.cmi : lablGL/raw.cmi
 lablGL/glTex.cmi : lablGL/glPix.cmi lablGL/gl.cmi
-wsi.cmi : utils.cmi
+wsi.cmi : utils.cmi keys.cmi
 lablGL/gl.cmo lablGL/gl.cmi : lablGL/gl.ml
 lablGL/gl.cmx lablGL/gl.o lablGL/gl.cmi : lablGL/gl.ml
 lablGL/raw.cmo lablGL/raw.cmi : lablGL/raw.ml
@@ -41,8 +41,10 @@ utils.cmo utils.cmi : utils.ml
 utils.cmx utils.o utils.cmi : utils.ml
 parser.cmo parser.cmi : parser.ml
 parser.cmx parser.o parser.cmi : parser.ml
-wsi.cmo : utils.cmi wsi.cmi wsi.ml
-wsi.cmx wsi.o : utils.cmi utils.cmx wsi.cmi wsi.ml
+keys.cmo keys.cmi : keys.ml
+keys.cmx keys.o keys.cmi : keys.ml
+wsi.cmo : utils.cmi keys.cmi wsi.cmi wsi.ml
+wsi.cmx wsi.o : utils.cmi utils.cmx keys.cmi keys.cmx wsi.cmi wsi.ml
 config.cmo config.cmi : wsi.cmi utils.cmi lablGL/raw.cmi parser.cmi help.cmi \
     lablGL/glTex.cmi config.ml
 config.cmx config.o config.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
