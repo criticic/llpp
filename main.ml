@@ -5042,7 +5042,7 @@ let viewkeyboard key mask =
 
   | Lb | Rb ->
       conf.colorscale <-
-        bound (conf.colorscale +. (if key = 93 then 0.1 else -0.1)) 0.0 1.0
+        bound (conf.colorscale +. (if Wsi.classify_key key = Rb then 0.1 else -0.1)) 0.0 1.0
       ;
       G.postRedisplay "brightness";
 
