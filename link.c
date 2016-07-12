@@ -652,25 +652,21 @@ static void trimctm (pdf_page *page, int pindex)
     fz_matrix ctm;
     struct pagedim *pdim = &state.pagedims[pindex];
 
+    if (!page) return;
     if (!pdim->tctmready) {
-        if (state.trimmargins) {
-            fz_rect realbox, mediabox;
-            fz_matrix rm, sm, tm, im, ctm1, page_ctm;
+        fz_rect realbox, mediabox;
+        fz_matrix rm, sm, tm, im, ctm1, page_ctm;
 
-            fz_rotate (&rm, -pdim->rotate);
-            fz_scale (&sm, 1, -1);
-            fz_concat (&ctm, &rm, &sm);
-            realbox = pdim->mediabox;
-            fz_transform_rect (&realbox, &ctm);
-            fz_translate (&tm, -realbox.x0, -realbox.y0);
-            fz_concat (&ctm1, &ctm, &tm);
-            pdf_page_transform (state.ctx, page, &mediabox, &page_ctm);
-            fz_invert_matrix (&im, &page_ctm);
-            fz_concat (&ctm, &im, &ctm1);
-        }
-        else {
-            ctm = fz_identity;
-        }
+        fz_rotate (&rm, -pdim->rotate);
+        fz_scale (&sm, 1, -1);
+        fz_concat (&ctm, &rm, &sm);
+        realbox = pdim->mediabox;
+        fz_transform_rect (&realbox, &ctm);
+        fz_translate (&tm, -realbox.x0, -realbox.y0);
+        fz_concat (&ctm1, &ctm, &tm);
+        pdf_page_transform (state.ctx, page, &mediabox, &page_ctm);
+        fz_invert_matrix (&im, &page_ctm);
+        fz_concat (&ctm, &im, &ctm1);
         pdim->tctm = ctm;
         pdim->tctmready = 1;
     }
@@ -916,7 +912,7 @@ static void initpdims (int wthack)
 #endif
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
-        int rotate;
+        int rotate = 0;
         struct pagedim *p;
         fz_rect mediabox;
 
@@ -950,7 +946,7 @@ static void initpdims (int wthack)
                         pdf_page_transform (ctx, page, &mediabox, &page_ctm);
                         fz_invert_matrix (&ctm, &page_ctm);
                         pdf_run_page (ctx, page, dev, &fz_identity, NULL);
-                        fz_close_device (state.ctx, dev);
+                        fz_close_device (ctx, dev);
                         fz_drop_device (ctx, dev);
 
                         rect.x0 += state.trimfuzz.x0;
@@ -1045,7 +1041,6 @@ static void initpdims (int wthack)
                 fz_try (ctx) {
                     page = fz_load_page (ctx, state.doc, pageno);
                     fz_bound_page (ctx, page, &mediabox);
-                    rotate = 0;
                     if (state.trimmargins) {
                         fz_rect rect;
                         fz_device *dev;
@@ -1053,7 +1048,7 @@ static void initpdims (int wthack)
                         dev = fz_new_bbox_device (ctx, &rect);
                         dev->hints |= FZ_IGNORE_SHADE;
                         fz_run_page (ctx, page, dev, &fz_identity, NULL);
-                        fz_close_device (state.ctx, dev);
+                        fz_close_device (ctx, dev);
                         fz_drop_device (ctx, dev);
 
                         rect.x0 += state.trimfuzz.x0;
@@ -2709,9 +2704,8 @@ static struct annot *getannot (struct page *page, int x, int y)
 
             fz_bound_annot (state.ctx, a->annot, &rect);
             if (p.x >= rect.x0 && p.x <= rect.x1) {
-                if (p.y >= rect.y0 && p.y <= rect.y1) {
+                if (p.y >= rect.y0 && p.y <= rect.y1)
                     return a;
-                }
             }
         }
     }

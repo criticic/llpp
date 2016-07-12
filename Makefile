@@ -9,6 +9,7 @@ LLPP = llpp
 OCAMLC = ocamlc.opt
 OCAMLOPT = ocamlopt.opt
 STDLIB = $(shell $(OCAMLC) -where)
+MUPDF_COMMIT = 6153a0761831bbc490213df7911ec596b6ea59f2
 
 ifeq ($(shell uname),Darwin)
 SYSTEM ?= cocoa
@@ -98,12 +99,16 @@ $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
 .PHONY: mupdf force_mupdf
 mupdf:
 	test -d mupdf || $(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
-	$(MAKE) -C mupdf build=native libs XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
+	cd mupdf && \
+	$(GIT) checkout $(MUPDF_COMMIT) && \
+	$(MAKE) build=native libs XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
 
 force_mupdf:
 	$(RM) -rf mupdf
 	$(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
-	$(MAKE) -C mupdf build=native libs XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
+	cd mupdf && \
+	$(GIT) checkout $(MUPDF_COMMIT) && \
+	$(MAKE) build=native libs XCFLAGS="$(CFLAGS)" XLIBS="$(LDFLAGS)"
 
 .PHONY: clean
 clean:
@@ -121,7 +126,7 @@ clean:
 %.cmx: %.ml
 	$(OCAMLOPT) $(OCAMLCFLAGS) $(OCAMLOPTFLAGS) -c $<
 
-.PHONY:depend
+.PHONY: depend
 depend: $(wildcard $(addsuffix .mli,$(LLPP_FILES))) $(addsuffix .ml,$(LLPP_FILES))
 	$(OCAMLDEP) -all -I lablGL $^ > .depend
 

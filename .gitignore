@@ -10,6 +10,7 @@ Build.o
 Build.hi
 mupdf
 test/
+<<<<<<< HEAD
 *.native
 *.byte
 *.cm*
@@ -18,3 +19,4 @@ test/
 /main.ml
 /wsi.ml
 /llpp
+.tramp_history
