@@ -395,9 +395,14 @@ NSCursor *GetCursor (int idx)
 - (void)scrollWheel:(NSEvent *)event
 {
   // NSLog (@"scrollWheel: %@", event);
-  CGFloat d = [event deltaY];
+  CGFloat d = [event scrollingDeltaY];
   NSPoint loc = [self locationFromEvent:event];
   NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
+
+  if ([event hasPreciseScrollingDeltas]) {
+    d *= 0.1;
+  }
+
   if (d > 0.0) {
     [connector mouseDown:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
     [connector mouseUp:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
