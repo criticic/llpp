@@ -6501,6 +6501,7 @@ let () =
     method leave = state.mpos <- (-1, -1)
     method winstate wsl = state.winstate <- wsl
     method quit: 'a. 'a = raise Quit
+    method scroll dy = gotoy (clamp (2 * dy))
   end) !rootwid conf.cwinw conf.cwinh platform in
 
   setbgcol conf.bgcolor;

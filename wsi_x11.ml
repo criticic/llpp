@@ -132,7 +132,8 @@ let onot = object
   method enter _ _       = ()
   method leave           = ()
   method winstate _      = ()
-  method quit: 'a. 'a = exit 0
+  method quit: 'a. 'a    = exit 0
+  method scroll _        = ()
 end;;
 
 class type t = object
@@ -148,6 +149,7 @@ class type t = object
   method leave    : unit
   method winstate : winstate list -> unit
   method quit     : 'a. 'a
+  method scroll   : int -> unit
 end;;
 
 type state =

@@ -331,6 +331,18 @@ let r32 s pos =
   (u lsl 16) lor l
 ;;
 
+let rfloat s pos =
+  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
+  let x0 = (rb 0) lor ((rb 1) lsl 8) in
+  let x1 = (rb 2) lor ((rb 3) lsl 8) in
+  let x2 = (rb 4) lor ((rb 5) lsl 8) in
+  let x3 = (rb 6) lor ((rb 7) lsl 8) in
+  Int64.(float_of_bits
+          (logor (shift_left (of_int x3) 48)
+             (logor (shift_left (of_int x2) 32)
+                (logor (shift_left (of_int x1) 16) (of_int x0)))))
+;;
+
 let vlog fmt = Format.ksprintf ignore fmt;;
 
 let sendstr1 s pos len sock =

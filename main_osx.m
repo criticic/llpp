@@ -21,6 +21,7 @@
 #define EVENT_LEAVE 9
 #define EVENT_WINSTATE 10
 #define EVENT_QUIT 11
+#define EVENT_SCROLL 12
 
 #define BUTTON_LEFT 1
 #define BUTTON_RIGHT 3
@@ -241,6 +242,16 @@ NSCursor *GetCursor (int idx)
   [fileHandle writeData:data];
 }
 
+- (void)scrollBy:(CGFloat)deltaY
+{
+  char bytes[32];
+  bytes[0] = EVENT_SCROLL;
+  double doubleY = (double) deltaY;
+  *(int64_t *) (bytes + 16) = *(int64_t *) &doubleY;
+  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
+  [fileHandle writeData:data];
+}
+
 @end
 
 @interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
@@ -394,19 +405,19 @@ NSCursor *GetCursor (int idx)
 
 - (void)scrollWheel:(NSEvent *)event
 {
-  // NSLog (@"scrollWheel: %@", event);
-  CGFloat d = [event scrollingDeltaY];
+  CGFloat deltaY = [event scrollingDeltaY];
+  CGFloat deltaX = [event scrollingDeltaX];
   NSPoint loc = [self locationFromEvent:event];
   NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
 
   if ([event hasPreciseScrollingDeltas]) {
-    d *= 0.1;
-  }
-
-  if (d > 0.0) {
+    if (fabs (deltaY) > 0) {
+      [connector scrollBy:-deltaY];
+    }
+  } else if (deltaY > 0.0) {
     [connector mouseDown:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
     [connector mouseUp:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
-  } else if (d < 0.0) {
+  } else if (deltaY < 0.0) {
     [connector mouseDown:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:mask];
     [connector mouseUp:BUTTON_WHEEL_DOWN atPoint:loc modifierFlags:mask];
   }
