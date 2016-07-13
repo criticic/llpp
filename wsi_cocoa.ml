@@ -275,11 +275,63 @@ let withmeta mask = mask land metamask != 0
 
 let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0
 
-let keyname key = Printf.sprintf "0x%x" key
+(* let keyname key = Printf.sprintf "0x%x" key *)
 
-let namekey s = int_of_string s
+(* let namekey s = int_of_string s *)
 
 external setwinbgcol: int -> unit = "ml_setwinbgcol"
+
+let xlatt, xlatf =
+  let t = Hashtbl.create 20
+  and f = Hashtbl.create 20 in
+  let add n nl k =
+    List.iter (fun s -> Hashtbl.add t s k) (n::nl);
+    Hashtbl.add f k n
+  in
+  let addc c =
+    let s = String.make 1 c in
+    add s [] (Char.code c)
+  in
+  let addcr a b =
+    let an = Char.code a and bn = Char.code b in
+    for i = an to bn do addc (Char.chr i) done;
+  in
+  addcr '0' '9';
+  addcr 'a' 'z';
+  addcr 'A' 'Z';
+  String.iter addc "`~!@#$%^&*()-_=+\\|[{]};:,./<>?";
+  for i = 0 to 29 do add ("f" ^ string_of_int (i+1)) [] (0xf704 + i) done;
+  add "space" [] 32;
+  add "ret" ["return"; "enter"] 13;
+  add "tab" [] 9;
+  add "left" [] 0xff51;
+  add "right" [] 0xff53;
+  add "home" [] 0xf729;
+  add "end" [] 0xf72b;
+  add "ins" ["insert"] 0xf729;
+  add "del" ["delete"] 0x7f;
+  add "esc" ["escape"] 27;
+  add "pgup" ["pageup"] 0xf72c;
+  add "pgdown" ["pagedown"] 0xf72d;
+  add "backspace" [] 8;
+  add "up" [] 0xf700;
+  add "down" [] 0xf701;
+  (* add "menu" [] 0xff67; *) (* ? *)
+  t, f;
+;;
+
+let keyname k =
+  try Hashtbl.find xlatf k
+  with Not_found -> Printf.sprintf "%#x" k;
+;;
+
+let namekey name =
+  try Hashtbl.find xlatt name
+  with Not_found ->
+    if String.length name = 1
+    then Char.code name.[0]
+    else int_of_string name;
+;;
 
 let keypadtodigitkey key = (* FIXME *)
   if key >= 0xffb0 && key <= 0xffb9 (* keypad numbers *)
