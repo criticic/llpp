@@ -81,5 +81,5 @@ type key =
   | Cx
   | Cy
   | Cz
-  | Unrecognized
+  | Code of int
 ;;

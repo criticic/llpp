@@ -107,7 +107,7 @@ let classify_key key =
   | 120 -> Cx
   | 121 -> Cy
   | 122 -> Cz
-  | _ -> Unrecognized
+  | n -> Code n
 ;;
 
 type wid = int and screenno = int and vid = int and atom = int;;
