@@ -51,7 +51,7 @@ let classify_key key =
   | 0xfff09 -> KPprior
   | 0xfff0a -> KPright
   | 0xfff0b -> KPup
-  | 0xF702 -> KPleft
+  | 0xF702 -> Left
   | 45 -> Minus
   | 0xF72D -> Next
   | 124 -> Pipe
