@@ -612,7 +612,6 @@ NSCursor *GetCursor (int idx)
   if (ret != 0) {
     NSLog (@"pthread_create: %s", strerror (ret));
   }
-  NSLog(@"After caml_main");
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication
