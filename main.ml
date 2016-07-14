@@ -373,23 +373,25 @@ let showlinktype under =
 ;;
 
 let intentry_with_suffix text key =
-  let c =
+  let text =
     if key >= 32 && key < 127
-    then Char.chr key
-    else '\000'
+    then
+      let c = Char.chr key in
+      match c with
+      | '0' .. '9' ->
+         addchar text c
+
+      | 'k' | 'm' | 'g' | 'K' | 'M' | 'G' ->
+         addchar text @@ asciilower c
+      | _ ->
+         state.text <- Printf.sprintf "invalid key (%d, `%c')" key c;
+         text
+    else (
+      state.text <- Printf.sprintf "invalid key %d" key;
+      text
+    )
   in
-  match c with
-  | '0' .. '9' ->
-      let text = addchar text c in
-      TEcont text
-
-  | 'k' | 'm' | 'g' | 'K' | 'M' | 'G' ->
-      let text = addchar text @@ asciilower c in
-      TEcont text
-
-  | _ ->
-      state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
-      TEcont text
+  TEcont text
 ;;
 
 let wcmd fmt =
@@ -1943,19 +1945,21 @@ let search pattern forward =
 ;;
 
 let intentry text key =
-  let c =
+  let text =
     if key >= 32 && key < 127
-    then Char.chr key
-    else '\000'
+    then
+      let c = Char.chr key in
+      match c with
+      | '0' .. '9' -> addchar text c
+      | _ ->
+         state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
+         text
+    else (
+      state.text <- Printf.sprintf "invalid key (%d)" key;
+      text
+    )
   in
-  match c with
-  | '0' .. '9' ->
-      let text = addchar text c in
-      TEcont text
-
-  | _ ->
-      state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
-      TEcont text
+  TEcont text
 ;;
 
 let linknact f s =
@@ -1993,7 +1997,7 @@ let linknentry text key =
     linknact (fun under -> state.text <- undertext ~nopath:true under) text;
     TEcont text
   else (
-    state.text <- Printf.sprintf "invalid char %d" key;
+    state.text <- Printf.sprintf "invalid key %d" key;
     TEcont text
   )
 ;;
