@@ -5470,7 +5470,10 @@ let postdrawpage l linkindexbase =
         in
         Hashtbl.find_all state.prects l.pageno |>
           List.iter (fun vals -> drawprect opaque x y vals);
-        postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize);
+        let n = postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize) in
+        if n < 0
+        then (state.redisplay <- true; 0)
+        else n
       else 0
   | _ -> 0
 ;;

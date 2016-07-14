@@ -319,22 +319,6 @@ static int trylock (const char *cap)
     return ret == EBUSY;
 }
 
-static int oneseclock (const char *cap)
-{
-    int ret;
-    struct timespec tp;
-
-    if (clock_gettime (CLOCK_REALTIME, &tp)) {
-        err (1, "%s: clock_gettime: %s", cap, strerror (errno));
-    }
-    tp.tv_sec += 1;
-    ret = pthread_mutex_timedlock (&mutex, &tp);
-    if (ret && ret != EBUSY) {
-        errx (1, "%s: pthread_mutex_timedlock: %s", cap, strerror (ret));
-    }
-    return ret == EBUSY;
-}
-
 static void *parse_pointer (const char *cap, const char *s)
 {
     int ret;
@@ -2648,8 +2632,8 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
         goto done;
     }
 
-    if (oneseclock (__func__)) {
-        noff = 0;
+    if (trylock (__func__)) {
+        noff = -1;
         goto done;
     }
 
