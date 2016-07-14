@@ -1494,7 +1494,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     found:
 
         sheet = fz_new_stext_sheet (state.ctx);
-        text = fz_new_stext_page (state.ctx);
+        text = fz_new_stext_page (state.ctx, &pdim->mediabox);
         tdev = fz_new_stext_device (state.ctx, sheet, text);
 
         page = fz_load_page (state.ctx, state.doc, pageno);
@@ -2756,7 +2756,8 @@ static void ensuretext (struct page *page)
         fz_matrix ctm;
         fz_device *tdev;
 
-        page->text = fz_new_stext_page (state.ctx);
+        page->text = fz_new_stext_page (state.ctx,
+                                        &state.pagedims[page->pdimno].mediabox);
         page->sheet = fz_new_stext_sheet (state.ctx);
         tdev = fz_new_stext_device (state.ctx, page->sheet, page->text);
         ctm = pagectm (page);
