@@ -3017,10 +3017,10 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     char *s = String_val (ptr_v);
     struct slink *slink;
 
-    /* See ml_findlink for caveat */
-
     ret_v = Val_int (0);
     page = parse_pointer (__func__, s);
+
+    lock (__func__);
     ensureslinks (page);
     pdim = &state.pagedims[page->pdimno];
     slink = &page->slinks[Int_val (n_v)];
@@ -3035,6 +3035,7 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
         Field (tup_v, 0) = ptr_v;
         Field (tup_v, 1) = n_v;
     }
+    unlock (__func__);
 
     CAMLreturn (ret_v);
 }
