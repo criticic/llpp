@@ -33,7 +33,7 @@ class type t = object
   method leave    : unit
   method winstate : winstate list -> unit
   method quit     : 'a. 'a
-  method scroll   : int -> unit
+  method scroll   : int -> int -> unit
 end;;
 
 val setcursor : cursor -> unit;;

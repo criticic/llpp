@@ -237,12 +237,12 @@ NSCursor *GetCursor (int idx)
   [fileHandle writeData:data];
 }
 
-- (void)scrollBy:(CGFloat)deltaY
+- (void)scrollByDeltaX:(CGFloat)deltaX deltaY:(CGFloat)deltaY
 {
   char bytes[32];
   bytes[0] = EVENT_SCROLL;
-  int doubleY = (int) deltaY;
-  *(int32_t *) (bytes + 16) = *(int32_t *) &doubleY;
+  *(int32_t *) (bytes + 16) = (int32_t) deltaX;
+  *(int32_t *) (bytes + 20) = (int32_t) deltaY;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }
@@ -400,11 +400,12 @@ NSCursor *GetCursor (int idx)
 
 - (void)scrollWheel:(NSEvent *)event
 {
-  CGFloat deltaY = -[event scrollingDeltaY];
   CGFloat deltaX = [event scrollingDeltaX];
+  CGFloat deltaY = -[event scrollingDeltaY];
 
   if ([event hasPreciseScrollingDeltas]) {
-    [connector scrollBy:(backing_scale_factor * deltaY)];
+    [connector scrollByDeltaX:(backing_scale_factor * deltaX)
+                       deltaY:(backing_scale_factor * deltaY)];
   } else {
     NSPoint loc = [self locationFromEvent:event];
     NSEventModifierFlags mask = [event deviceIndependentModifierFlags];

@@ -120,7 +120,7 @@ class type t = object
   method leave    : unit
   method winstate : winstate list -> unit
   method quit     : 'a. 'a
-  method scroll   : int -> unit
+  method scroll   : int -> int -> unit
 end
 
 let onot = object
@@ -136,7 +136,7 @@ let onot = object
   method leave           = ()
   method winstate _      = ()
   method quit: 'a. 'a    = exit 0
-  method scroll _        = ()
+  method scroll _ _      = ()
 end
 
 type state =
@@ -233,9 +233,10 @@ let handleresp resp =
     vlog "quit";
     state.t#quit
   | 12 ->
-    let d = r32s resp 16 in
-    vlog "scroll %d" d;
-    state.t#scroll d
+      let dx = r32s resp 16 in
+      let dy = r32s resp 20 in
+      vlog "scroll dx %d dy %d" dx dy;
+      state.t#scroll dx dy
   | _ ->
     vlog "unknown server message %d" opcode
 
