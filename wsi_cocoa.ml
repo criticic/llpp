@@ -240,18 +240,16 @@ let readresp sock =
 
 external completeinit: int -> int -> unit = "ml_completeinit"
 
-external file_descr_of_int: int -> Unix.file_descr = "%identity"
-
 external getw: unit -> int = "ml_getw"
 external geth: unit -> int = "ml_geth"
 
-let fontsizefactor () =
-  int_of_string (Sys.getenv "BACKING_SCALE_FACTOR")
+external get_server_fd: unit -> Unix.file_descr = "ml_get_server_fd"
+external get_backing_scale_factor: unit -> int = "ml_get_backing_scale_factor"
+
+let fontsizefactor () = get_backing_scale_factor ()
 
 let init t _ w h platform =
-  let fd = int_of_string (Sys.getenv "LLPP_DISPLAY") in
-  Printf.eprintf "LLPP_DISPLAY=%d\n%!" fd;
-  let fd = file_descr_of_int fd in
+  let fd = get_server_fd () in
   state.t <- t;
   state.fd <- fd;
   completeinit w h;

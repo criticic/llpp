@@ -45,12 +45,8 @@ void *caml_main_thread (void *argv)
   pthread_exit (NULL);
 }
 
-void setenvint (const char *str, int n)
-{
-  static char buf[10];
-  snprintf (buf, sizeof (buf), "%d", n);
-  setenv (str, buf, 1);
-}
+static int server_fd = -1;
+static int backing_scale_factor = -1;
 
 NSCursor *GetCursor (int idx)
 {
@@ -536,7 +532,7 @@ NSCursor *GetCursor (int idx)
   [glContext setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
   [glContext setView:myView];
 
-  setenvint ("BACKING_SCALE_FACTOR", (int) [window backingScaleFactor]);
+  backing_scale_factor = (int) [window backingScaleFactor];
 }
 
 - (void)reshape:(NSValue *)val
@@ -719,6 +715,18 @@ CAMLprim value ml_setcursor (value curs)
   CAMLreturn (Val_unit);
 }
 
+CAMLprim value ml_get_server_fd (value unit)
+{
+  CAMLparam1 (unit);
+  CAMLreturn (Val_int (server_fd));
+}
+
+CAMLprim value ml_get_backing_scale_factor (value unit)
+{
+  CAMLparam1 (unit);
+  CAMLreturn (Val_int (backing_scale_factor));
+}
+
 int main(int argc, char **argv)
 {
   @autoreleasepool {
@@ -728,7 +736,7 @@ int main(int argc, char **argv)
       NSLog (@"socketpair: %s", strerror (ret));
     }
     NSLog (@"socketpair sv0 %d sv1 %d", sv[0], sv[1]);
-    setenvint ("LLPP_DISPLAY", sv[0]);
+    server_fd = sv[0];
     [NSApplication sharedApplication];
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     id delegate = [[MyDelegate alloc] initWithArgv:argv fileDescriptor:sv[1]];
