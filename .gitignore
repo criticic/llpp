@@ -10,13 +10,11 @@ Build.o
 Build.hi
 mupdf
 test/
-<<<<<<< HEAD
 *.native
 *.byte
 *.cm*
 *.o
 /help.ml
-/main.ml
 /wsi.ml
 /llpp
 .tramp_history
