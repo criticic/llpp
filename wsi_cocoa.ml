@@ -143,15 +143,17 @@ type state =
   {
     mutable t: t;
     mutable fd: Unix.file_descr;
+    buf: bytes;
+    mutable off: int;
   }
 
 let state =
   {
     t = onot;
     fd = Unix.stdin;
+    buf = Bytes.create 512;
+    off = 0;
   }
-
-let readstr sock n = try readstr sock n with End_of_file -> state.t#quit
 
 external setcursor: cursor -> unit = "ml_setcursor"
 
@@ -173,10 +175,9 @@ external reshape: int -> int -> unit = "ml_reshape"
    9 -> leave
    10 -> winstate
    11 -> quit
-   13 -> response *)
+   12 -> scroll *)
 
-let readresp sock =
-  let resp = readstr sock 32 in
+let handleresp resp =
   let opcode = r8 resp 0 in
   match opcode with
   | 0 ->
@@ -237,6 +238,27 @@ let readresp sock =
     state.t#scroll (int_of_float d)
   | _ ->
     vlog "unknown server message %d" opcode
+
+let readresp sock =
+  let len =
+    match Unix.read sock state.buf state.off (Bytes.length state.buf - state.off) with
+    | exception Unix.Unix_error (Unix.EINTR, _, _) -> state.off
+    | 0 -> state.t#quit
+    | n -> state.off + n
+  in
+  let rec loop off =
+    (* vlog "loop off=%d len=%d\n%!" off len; *)
+    if off + 32 <= len then begin
+      let resp = Bytes.sub state.buf off 32 in
+      handleresp resp;
+      loop (off + 32)
+    end else if off < len then begin
+      Bytes.blit state.buf off state.buf 0 (len - off);
+      state.off <- len - state.off
+    end else
+      state.off <- 0
+  in
+  loop 0
 
 external completeinit: int -> int -> unit = "ml_completeinit"
 
