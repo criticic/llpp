@@ -30,6 +30,8 @@
 
 static int terminating = 0;
 static pthread_mutex_t terminate_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int server_fd = -1;
+static CGFloat backing_scale_factor = -1.0;
 
 void *caml_main_thread (void *argv)
 {
@@ -44,9 +46,6 @@ void *caml_main_thread (void *argv)
   pthread_mutex_unlock (&terminate_mutex);
   pthread_exit (NULL);
 }
-
-static int server_fd = -1;
-static int backing_scale_factor = -1;
 
 NSCursor *GetCursor (int idx)
 {
@@ -532,7 +531,7 @@ NSCursor *GetCursor (int idx)
   [glContext setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
   [glContext setView:myView];
 
-  backing_scale_factor = (int) [window backingScaleFactor];
+  backing_scale_factor = [window backingScaleFactor];
 }
 
 - (void)reshape:(NSValue *)val
@@ -724,7 +723,7 @@ CAMLprim value ml_get_server_fd (value unit)
 CAMLprim value ml_get_backing_scale_factor (value unit)
 {
   CAMLparam1 (unit);
-  CAMLreturn (Val_int (backing_scale_factor));
+  CAMLreturn (Val_int ((int) backing_scale_factor));
 }
 
 int main(int argc, char **argv)
