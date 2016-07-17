@@ -241,8 +241,8 @@ NSCursor *GetCursor (int idx)
 {
   char bytes[32];
   bytes[0] = EVENT_SCROLL;
-  double doubleY = (double) deltaY;
-  *(int64_t *) (bytes + 16) = *(int64_t *) &doubleY;
+  int doubleY = (int) deltaY;
+  *(int32_t *) (bytes + 16) = *(int32_t *) &doubleY;
   NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
   [fileHandle writeData:data];
 }

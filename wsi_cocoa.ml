@@ -233,9 +233,9 @@ let handleresp resp =
     vlog "quit";
     state.t#quit
   | 12 ->
-    let d = rfloat resp 16 in
-    vlog "scroll %f" d;
-    state.t#scroll (int_of_float d)
+    let d = r32s resp 16 in
+    vlog "scroll %d" d;
+    state.t#scroll d
   | _ ->
     vlog "unknown server message %d" opcode
 

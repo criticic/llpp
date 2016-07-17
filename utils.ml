@@ -331,16 +331,14 @@ let r32 s pos =
   (u lsl 16) lor l
 ;;
 
-let rfloat s pos =
+let r32s s pos =
   let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
-  let x0 = (rb 0) lor ((rb 1) lsl 8) in
-  let x1 = (rb 2) lor ((rb 3) lsl 8) in
-  let x2 = (rb 4) lor ((rb 5) lsl 8) in
-  let x3 = (rb 6) lor ((rb 7) lsl 8) in
-  Int64.(float_of_bits
-          (logor (shift_left (of_int x3) 48)
-             (logor (shift_left (of_int x2) 32)
-                (logor (shift_left (of_int x1) 16) (of_int x0)))))
+  let v0 = rb 0 and v1 = rb 1 and v2 = rb 2 and v3 = rb 3 in
+  let v = v0 lor (v1 lsl 8) lor (v2 lsl 16) lor (v3 lsl 24) in
+  if v3 land 0x80 = 0 then
+    v
+  else
+    (v - (1 lsl 32))
 ;;
 
 let vlog fmt = Format.ksprintf ignore fmt;;
