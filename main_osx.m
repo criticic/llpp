@@ -404,7 +404,7 @@ NSCursor *GetCursor (int idx)
   CGFloat deltaX = [event scrollingDeltaX];
 
   if ([event hasPreciseScrollingDeltas]) {
-    [connector scrollBy:deltaY];
+    [connector scrollBy:(backing_scale_factor * deltaY)];
   } else {
     NSPoint loc = [self locationFromEvent:event];
     NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
