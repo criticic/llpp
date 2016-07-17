@@ -9,7 +9,7 @@ LLPP = llpp
 OCAMLC = ocamlc.opt
 OCAMLOPT = ocamlopt.opt
 STDLIB = $(shell $(OCAMLC) -where)
-MUPDF_COMMIT = 6153a0761831bbc490213df7911ec596b6ea59f2
+MUPDF_COMMIT = c1901196a057f9f8e46f9b4b97e7822a0fb3ef23
 
 ifeq ($(shell uname),Darwin)
 SYSTEM ?= cocoa
