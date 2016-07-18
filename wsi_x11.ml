@@ -132,6 +132,7 @@ let onot = object
   method winstate _      = ()
   method quit: 'a. 'a    = exit 0
   method scroll _ _      = ()
+  method zoom _          = ()
 end;;
 
 class type t = object
@@ -148,6 +149,7 @@ class type t = object
   method winstate : winstate list -> unit
   method quit     : 'a. 'a
   method scroll   : int -> int -> unit
+  method zoom     : float -> unit
 end;;
 
 type state =

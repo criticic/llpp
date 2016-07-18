@@ -22,7 +22,8 @@ enum {
   EVENT_LEAVE = 9,
   EVENT_WINSTATE = 10,
   EVENT_QUIT = 11,
-  EVENT_SCROLL = 12
+  EVENT_SCROLL = 12,
+  EVENT_ZOOM = 13
 };
 
 enum {
@@ -250,6 +251,13 @@ NSCursor *GetCursor (int idx)
   [self writeData];
 }
 
+- (void)zoom:(CGFloat)z
+{
+  [self setByte:EVENT_ZOOM offset:0];
+  [self setInt:(int32_t) (z * 1000) offset:16];
+  [self writeData];
+}
+
 @end
 
 @interface MyDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
@@ -420,6 +428,11 @@ NSCursor *GetCursor (int idx)
       [connector mouseUp:BUTTON_WHEEL_UP atPoint:loc modifierFlags:mask];
     }
   }
+}
+
+- (void)magnifyWithEvent:(NSEvent *)event
+{
+  [connector zoom:[event magnification]];
 }
 
 @end

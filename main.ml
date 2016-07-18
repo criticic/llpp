@@ -6509,6 +6509,7 @@ let () =
     method winstate wsl = state.winstate <- wsl
     method quit: 'a. 'a = raise Quit
     method scroll dx dy = state.x <- state.x + dx; gotoy (clamp (2 * dy))
+    method zoom z = setzoom (conf.zoom +. z)
   end) !rootwid conf.cwinw conf.cwinh platform in
 
   setbgcol conf.bgcolor;
