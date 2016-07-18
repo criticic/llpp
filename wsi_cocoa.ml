@@ -189,57 +189,57 @@ let handleresp resp =
   let opcode = r8 resp 0 in
   match opcode with
   | 0 ->
-    let mapped = r8 resp 16 <> 0 in
-    vlog "map %B" mapped;
-    state.t#map mapped
+      let mapped = r8 resp 16 <> 0 in
+      vlog "map %B" mapped;
+      state.t#map mapped
   | 1 ->
-    vlog "expose";
-    state.t#expose
+      vlog "expose";
+      state.t#expose
   | 3 ->
-    let w = r16 resp 16 in
-    let h = r16 resp 18 in
-    vlog "reshape width %d height %d" w h;
-    state.t#reshape w h
+      let w = r16 resp 16 in
+      let h = r16 resp 18 in
+      vlog "reshape width %d height %d" w h;
+      state.t#reshape w h
   | 4 ->
-    let down = r16 resp 10 <> 0 in
-    let b = r32 resp 12 in
-    let x = r16s resp 16 in
-    let y = r16s resp 20 in
-    let m = r32 resp 24 in
-    vlog "mouse %s b %d x %d y %d m 0x%x" (if down then "down" else "up") b x y m;
-    state.t#mouse b down x y m
+      let down = r16 resp 10 <> 0 in
+      let b = r32 resp 12 in
+      let x = r16s resp 16 in
+      let y = r16s resp 20 in
+      let m = r32 resp 24 in
+      vlog "mouse %s b %d x %d y %d m 0x%x" (if down then "down" else "up") b x y m;
+      state.t#mouse b down x y m
   | 5 ->
-    let x = r16s resp 16 in
-    let y = r16s resp 20 in
-    let m = r32 resp 24 in
-    vlog "motion x %d y %d m 0x%x" x y m;
-    state.t#motion x y
+      let x = r16s resp 16 in
+      let y = r16s resp 20 in
+      let m = r32 resp 24 in
+      vlog "motion x %d y %d m 0x%x" x y m;
+      state.t#motion x y
   | 6 ->
-    let x = r16s resp 16 in
-    let y = r16s resp 20 in
-    let m = r32 resp 24 in
-    vlog "pmotion x %d y %d m 0x%x" x y m;
-    state.t#pmotion x y
+      let x = r16s resp 16 in
+      let y = r16s resp 20 in
+      let m = r32 resp 24 in
+      vlog "pmotion x %d y %d m 0x%x" x y m;
+      state.t#pmotion x y
   | 7 ->
-    let key = r32 resp 16 in
-    let mask = r32 resp 20 in
-    vlog "keydown key %d mask %d" key mask;
-    state.t#key key mask
+      let key = r32 resp 16 in
+      let mask = r32 resp 20 in
+      vlog "keydown key %d mask %d" key mask;
+      state.t#key key mask
   | 8 ->
-    let x = r16s resp 16 in
-    let y = r16s resp 20 in
-    vlog "enter x %d y %d" x y;
-    state.t#enter x y
+      let x = r16s resp 16 in
+      let y = r16s resp 20 in
+      vlog "enter x %d y %d" x y;
+      state.t#enter x y
   | 9 ->
-    vlog "leave";
-    state.t#leave
+      vlog "leave";
+      state.t#leave
   | 10 ->
-    let x = r32 resp 16 <> 0 in
-    vlog "winstate %B" x;
-    state.t#winstate (if x then [Fullscreen] else []);
+      let x = r32 resp 16 <> 0 in
+      vlog "winstate %B" x;
+      state.t#winstate (if x then [Fullscreen] else []);
   | 11 ->
-    vlog "quit";
-    state.t#quit
+      vlog "quit";
+      state.t#quit
   | 12 ->
       let dx = r32s resp 16 in
       let dy = r32s resp 20 in
@@ -250,7 +250,7 @@ let handleresp resp =
       vlog "zoom z %f" z;
       state.t#zoom z
   | _ ->
-    vlog "unknown server message %d" opcode
+      vlog "unknown server message %d" opcode
 
 let readresp sock =
   let len =
