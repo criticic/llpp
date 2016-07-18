@@ -156,12 +156,17 @@ let state =
   }
 
 external setcursor: cursor -> unit = "ml_setcursor"
-
 external settitle: string -> unit = "ml_settitle"
-
 external swapb: unit -> unit = "ml_swapb"
-
 external reshape: int -> int -> unit = "ml_reshape"
+external makecurrentcontext: unit -> unit = "ml_makecurrentcontext"
+external getw: unit -> int = "ml_getw"
+external geth: unit -> int = "ml_geth"
+external get_server_fd: unit -> Unix.file_descr = "ml_get_server_fd"
+external get_backing_scale_factor: unit -> int = "ml_get_backing_scale_factor"
+external fullscreen: unit -> unit = "ml_fullscreen"
+external mapwin: unit -> unit = "ml_mapwin"
+external setwinbgcol: int -> unit = "ml_setwinbgcol"
 
 (* 0 -> map
    1 -> expose
@@ -261,28 +266,18 @@ let readresp sock =
   in
   loop 0
 
-external completeinit: int -> int -> unit = "ml_completeinit"
-
-external getw: unit -> int = "ml_getw"
-external geth: unit -> int = "ml_geth"
-
-external get_server_fd: unit -> Unix.file_descr = "ml_get_server_fd"
-external get_backing_scale_factor: unit -> int = "ml_get_backing_scale_factor"
-
-let fontsizefactor () = get_backing_scale_factor ()
+let fontsizefactor () =
+  get_backing_scale_factor ()
 
 let init t _ w h platform =
   let fd = get_server_fd () in
   state.t <- t;
   state.fd <- fd;
-  completeinit w h;
+  makecurrentcontext ();
+  reshape w h;
   fd, getw (), geth ()
 
-external fullscreen: unit -> unit = "ml_fullscreen"
-
 let activatewin () = ()
-
-external mapwin: unit -> unit = "ml_mapwin"
 
 let metamask = 1 lsl 19
 
@@ -301,12 +296,6 @@ let withshift mask = mask land shiftmask != 0
 let withmeta mask = mask land metamask != 0
 
 let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0
-
-(* let keyname key = Printf.sprintf "0x%x" key *)
-
-(* let namekey s = int_of_string s *)
-
-external setwinbgcol: int -> unit = "ml_setwinbgcol"
 
 let xlatt, xlatf =
   let t = Hashtbl.create 20
@@ -366,6 +355,6 @@ let keypadtodigitkey key = (* FIXME *)
 ;;
 
 let isspecialkey key =
-  (0x0 <= key && key <= 0x1F) || key = 0x7f || (0x80 <= key && key <= 0x9F)
-  || (key land 0xf700 = 0xf700)
+  (0x0 <= key && key <= 0x1F) || key = 0x7f || (0x80 <= key && key <= 0x9F) ||
+  (key land 0xf700 = 0xf700)
 ;;

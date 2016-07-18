@@ -261,7 +261,7 @@ NSCursor *GetCursor (int idx)
 - (void)applicationWillFinishLaunching:(NSNotification *)not;
 - (void)applicationDidFinishLaunching:(NSNotification *)not;
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication;
-- (void)completeInit:(int)w height:(int) h;
+- (void)makeCurrentContext;
 
 @end
 
@@ -548,13 +548,10 @@ NSCursor *GetCursor (int idx)
            display:YES];
 }
 
-- (void)completeInit:(int)w height:(int)h
+- (void)makeCurrentContext
 {
   [glContext makeCurrentContext];
   NSLog (@"OpenGL Version: %s", glGetString(GL_VERSION));
-  [self performSelectorOnMainThread:@selector(reshape:)
-                         withObject:[NSValue valueWithRect:NSMakeRect(0, 0, w, h)]
-                      waitUntilDone:YES];
 }
 
 - (void)swapb
@@ -657,11 +654,10 @@ CAMLprim value ml_geth (value unit)
   return Val_int([[NSApp delegate] geth]);
 }
 
-CAMLprim value ml_completeinit (value w, value h)
+CAMLprim value ml_makecurrentcontext (value unit)
 {
-  CAMLparam2 (w, h);
-  NSLog (@"ml_completeinit: w %d h %d", Int_val (w), Int_val (h));
-  [[NSApp delegate] completeInit:Int_val(w) height:Int_val(h)];
+  CAMLparam1 (unit);
+  [[NSApp delegate] makeCurrentContext];
   CAMLreturn (Val_unit);
 }
 
