@@ -27,11 +27,16 @@ OCAMLCFLAGS = -I lablGL
 BEST = native
 # BEST = byte
 
+ifeq ($(shell uname),Darwin)
 ifeq ($(SYSTEM),cocoa)
 	CFLAGS += -D__COCOA__
-else ifeq ($(shell uname),Darwin)
+	LDLIBS += -framework Cocoa -framework OpenGL
+else
 	LDFLAGS += -L/opt/X11/lib
 	CFLAGS += -I/opt/X11/include
+endif
+else
+	LDLIBS += -lX11 -lGL
 endif
 
 all: $(LLPP)
@@ -79,18 +84,18 @@ O_FILES = \
 	lablGL/ml_glarray.o
 
 $(LLPP)_x11.byte: $(O_FILES) $(addsuffix .cmo,$(LLPP_FILES))
-	$(OCAMLC) -custom unix.cma str.cma $^ -cclib "$(LDFLAGS) $(LDLIBS) -lX11 -lGL" -o $@
+	$(OCAMLC) -custom unix.cma str.cma $^ -cclib "$(LDFLAGS) $(LDLIBS)" -o $@
 
 $(LLPP)_x11.native: $(O_FILES) $(addsuffix .cmx,$(LLPP_FILES))
-	$(OCAMLOPT) unix.cmxa str.cmxa $^ -cclib "$(LDFLAGS) $(LDLIBS) -lX11 -lGL" -o $@
+	$(OCAMLOPT) unix.cmxa str.cmxa $^ -cclib "$(LDFLAGS) $(LDLIBS)" -o $@
 
 main_osx.o: CFLAGS += -I $(STDLIB)
 
 $(LLPP)_cocoa.byte: main_osx.o $(addsuffix .cmo,$(LLPP_FILES)) $(O_FILES)
-	$(OCAMLC) -custom str.cma unix.cma -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
+	$(OCAMLC) -custom str.cma unix.cma -cclib "$(LDFLAGS) $(LDLIBS)" -o $@ $^
 
 $(LLPP)_cocoa.native: main_osx.o $(addsuffix .cmx,$(LLPP_FILES)) $(O_FILES)
-	$(OCAMLOPT) str.cmxa unix.cmxa -cclib "$(LDFLAGS) $(LDLIBS) -framework cocoa -framework opengl" -o $@ $^
+	$(OCAMLOPT) str.cmxa unix.cmxa -cclib "$(LDFLAGS) $(LDLIBS)" -o $@ $^
 
 $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
 	$(RM) -f $@
