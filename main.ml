@@ -6510,7 +6510,7 @@ let () =
     method quit: 'a. 'a = raise Quit
     method scroll dx dy =
       if canpan () then state.x <- panbound (state.x + dx);
-      gotoy (clamp (2 * dy))
+      gotoy_and_clear_text (clamp (2 * dy))
     method zoom z = setzoom (conf.zoom +. z)
   end) !rootwid conf.cwinw conf.cwinh platform in
 
