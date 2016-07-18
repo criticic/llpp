@@ -11,22 +11,26 @@
 #include <caml/memory.h>
 #include <caml/callback.h>
 
-#define EVENT_EXPOSE 1
-#define EVENT_RESHAPE 3
-#define EVENT_MOUSE 4
-#define EVENT_MOTION 5
-#define EVENT_PMOTION 6
-#define EVENT_KEYDOWN 7
-#define EVENT_ENTER 8
-#define EVENT_LEAVE 9
-#define EVENT_WINSTATE 10
-#define EVENT_QUIT 11
-#define EVENT_SCROLL 12
+enum {
+  EVENT_EXPOSE = 1,
+  EVENT_RESHAPE = 3,
+  EVENT_MOUSE = 4,
+  EVENT_MOTION = 5,
+  EVENT_PMOTION = 6,
+  EVENT_KEYDOWN = 7,
+  EVENT_ENTER = 8,
+  EVENT_LEAVE = 9,
+  EVENT_WINSTATE = 10,
+  EVENT_QUIT = 11,
+  EVENT_SCROLL = 12
+};
 
-#define BUTTON_LEFT 1
-#define BUTTON_RIGHT 3
-#define BUTTON_WHEEL_UP 4
-#define BUTTON_WHEEL_DOWN 5
+enum {
+  BUTTON_LEFT = 1,
+  BUTTON_RIGHT = 3,
+  BUTTON_WHEEL_UP = 4,
+  BUTTON_WHEEL_DOWN = 5
+};
 
 static int terminating = 0;
 static pthread_mutex_t terminate_mutex = PTHREAD_MUTEX_INITIALIZER;
