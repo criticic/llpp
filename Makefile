@@ -27,16 +27,15 @@ OCAMLCFLAGS = -I lablGL
 BEST = native
 # BEST = byte
 
-ifeq ($(shell uname),Darwin)
 ifeq ($(SYSTEM),cocoa)
 	CFLAGS += -D__COCOA__
 	LDLIBS += -framework Cocoa -framework OpenGL
 else
+	LDLIBS += -lX11 -lGL
+ifeq ($(shell uname),Darwin)
 	LDFLAGS += -L/opt/X11/lib
 	CFLAGS += -I/opt/X11/include
 endif
-else
-	LDLIBS += -lX11 -lGL
 endif
 
 all: $(LLPP)
