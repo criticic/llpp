@@ -118,8 +118,6 @@ external swapb : unit -> unit = "ml_swapb";;
 external setcursor : cursor -> unit = "ml_setcursor";;
 external setwinbgcol : int -> unit = "ml_setbgcol";;
 
-(* let vlog fmt = Format.ksprintf ignore fmt;; *)
-
 let onot = object
   method map _           = ()
   method expose          = ()
