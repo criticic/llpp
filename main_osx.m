@@ -103,6 +103,7 @@ NSCursor *GetCursor (int idx)
 @interface Connector : NSObject
 
 - (instancetype)initWithFileDescriptor:(int)fd;
+
 - (void)notifyReshapeWidth:(int)w height:(int)h;
 - (void)notifyExpose;
 - (void)keyDown:(uint32_t)key modifierFlags:(NSEventModifierFlags)mask;
@@ -116,135 +117,133 @@ NSCursor *GetCursor (int idx)
 
 @implementation Connector
 {
+  NSMutableData *data;
   NSFileHandle *fileHandle;
 }
 
 - (instancetype)initWithFileDescriptor:(int)fd
 {
   self = [super init];
+  data = [NSMutableData dataWithLength:32];
   fileHandle = [[NSFileHandle alloc] initWithFileDescriptor:fd];
   return self;
 }
 
+- (void)setByte:(int8_t)b offset:(int)off
+{
+  [data replaceBytesInRange:NSMakeRange (off, 1) withBytes:&b];
+}
+
+- (void)setShort:(int16_t)s offset:(int)off
+{
+  [data replaceBytesInRange:NSMakeRange (off, 2) withBytes:&s];
+}
+
+- (void)setInt:(int32_t)n offset:(int)off
+{
+  [data replaceBytesInRange:NSMakeRange (off, 4) withBytes:&n];
+}
+
+- (void)writeData
+{
+  [fileHandle writeData:data];
+}
+
 - (void)notifyReshapeWidth:(int)w height:(int)h
 {
-  char bytes[32];
-  bytes[0] = EVENT_RESHAPE;
-  *(uint16_t *) (bytes + 16) = w;
-  *(uint16_t *) (bytes + 18) = h;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_RESHAPE offset:0];
+  [self setShort:w offset:16];
+  [self setShort:h offset:18];
+  [self writeData];
 }
 
 - (void)notifyExpose
 {
-  char bytes[32];
-  bytes[0] = EVENT_EXPOSE;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_EXPOSE offset:0];
+  [self writeData];
 }
 
 - (void)keyDown:(uint32_t)key modifierFlags:(NSEventModifierFlags)mask
 {
-  char bytes[32];
-  bytes[0] = EVENT_KEYDOWN;
-  *(uint32_t *) (bytes + 16) = key;
-  *(uint32_t *) (bytes + 20) = mask;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_KEYDOWN offset:0];
+  [self setInt:key offset:16];
+  [self setInt:mask offset:20];
+  [self writeData];
 }
 
 - (void)notifyWinstate:(BOOL)fullScreen
 {
-  char bytes[32];
-  bytes[0] = EVENT_WINSTATE;
-  *(uint32_t *) (bytes + 16) = fullScreen;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_WINSTATE offset:0];
+  [self setShort:fullScreen offset:16];
+  [self writeData];
 }
 
 - (void)notifyQuit
 {
-  char bytes[32];
-  bytes[0] = EVENT_QUIT;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_QUIT offset:0];
+  [self writeData];
 }
 
 - (void)mouseEntered:(NSPoint)loc
 {
-  char bytes[32];
-  bytes[0] = EVENT_ENTER;
-  *(int16_t *) (bytes + 16) = loc.x;
-  *(int16_t *) (bytes + 20) = loc.y;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_ENTER offset:0];
+  [self setShort:loc.x offset:16];
+  [self setShort:loc.y offset:20];
+  [self writeData];
 }
 
 - (void)mouseExited
 {
-  char bytes[32];
-  bytes[0] = EVENT_LEAVE;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_LEAVE offset:0];
+  [self writeData];
 }
 
 - (void)mouseDragged:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
 {
-  char bytes[32];
-  bytes[0] = EVENT_MOTION;
-  *(int16_t *) (bytes + 16) = aPoint.x;
-  *(int16_t *) (bytes + 20) = aPoint.y;
-  *(uint32_t *) (bytes + 24) = flags;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_MOTION offset:0];
+  [self setShort:aPoint.x offset:16];
+  [self setShort:aPoint.y offset:20];
+  [self setInt:flags offset:24];
+  [self writeData];
 }
 
 - (void)mouseMoved:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
 {
-  char bytes[32];
-  bytes[0] = EVENT_PMOTION;
-  *(int16_t *) (bytes + 16) = aPoint.x;
-  *(int16_t *) (bytes + 20) = aPoint.y;
-  *(uint32_t *) (bytes + 24) = flags;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_PMOTION offset:0];
+  [self setShort:aPoint.x offset:16];
+  [self setShort:aPoint.y offset:20];
+  [self setInt:flags offset:24];
+  [self writeData];
 }
 
 - (void)mouseDown:(NSUInteger)buttons atPoint:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
 {
-  char bytes[32];
-  bytes[0] = EVENT_MOUSE;
-  *(int16_t *) (bytes + 10) = 1;
-  *(int32_t *) (bytes + 12) = buttons;
-  *(int16_t *) (bytes + 16) = aPoint.x;
-  *(int16_t *) (bytes + 20) = aPoint.y;
-  *(uint32_t *) (bytes + 24) = flags;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_MOUSE offset:0];
+  [self setShort:1 offset:10];
+  [self setInt:buttons offset:12];
+  [self setShort:aPoint.x offset:16];
+  [self setShort:aPoint.y offset:20];
+  [self setInt:flags offset:24];
+  [self writeData];
 }
 
 - (void)mouseUp:(NSUInteger)buttons atPoint:(NSPoint)aPoint modifierFlags:(NSEventModifierFlags)flags
 {
-  char bytes[32];
-  bytes[0] = EVENT_MOUSE;
-  *(int16_t *) (bytes + 10) = 0;
-  *(int32_t *) (bytes + 12) = buttons;
-  *(int16_t *) (bytes + 16) = aPoint.x;
-  *(int16_t *) (bytes + 20) = aPoint.y;
-  *(uint32_t *) (bytes + 24) = flags;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_MOUSE offset:0];
+  [self setShort:0 offset:10];
+  [self setInt:buttons offset:12];
+  [self setShort:aPoint.x offset:16];
+  [self setShort:aPoint.y offset:20];
+  [self setInt:flags offset:24];
+  [self writeData];
 }
 
 - (void)scrollByDeltaX:(CGFloat)deltaX deltaY:(CGFloat)deltaY
 {
-  char bytes[32];
-  bytes[0] = EVENT_SCROLL;
-  *(int32_t *) (bytes + 16) = (int32_t) deltaX;
-  *(int32_t *) (bytes + 20) = (int32_t) deltaY;
-  NSData *data = [[NSData alloc] initWithBytesNoCopy:bytes length:32];
-  [fileHandle writeData:data];
+  [self setByte:EVENT_SCROLL offset:0];
+  [self setInt:(int32_t) deltaX offset:16];
+  [self setInt:(int32_t) deltaY offset:20];
+  [self writeData];
 }
 
 @end
