@@ -115,14 +115,14 @@ let string_with_suffix_of_int n =
 
 let color_of_string s =
   Scanf.sscanf s "%d/%d/%d" (fun r g b ->
-    (float r /. 256.0, float g /. 256.0, float b /. 256.0)
+    (float r /. 255.0, float g /. 255.0, float b /. 255.0)
   )
 ;;
 
 let color_to_string (r, g, b) =
-  let r = truncate (r *. 256.0)
-  and g = truncate (g *. 256.0)
-  and b = truncate (b *. 256.0) in
+  let r = truncate (r *. 255.0)
+  and g = truncate (g *. 255.0)
+  and b = truncate (b *. 255.0) in
   Printf.sprintf "%d/%d/%d" r g b
 ;;
 
