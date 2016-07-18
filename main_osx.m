@@ -178,7 +178,7 @@ NSCursor *GetCursor (int idx)
 - (void)notifyWinstate:(BOOL)fullScreen
 {
   [self setByte:EVENT_WINSTATE offset:0];
-  [self setShort:fullScreen offset:16];
+  [self setInt:fullScreen offset:16];
   [self writeData];
 }
 
