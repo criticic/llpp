@@ -283,26 +283,8 @@ let geturl =
     else E.s
 ;;
 
-let readstr sock n =
-  let s = Bytes.create n in
-  let rec loop pos n =
-    let m = tempfailureretry (Unix.read sock s pos) n in
-    if m = 0
-    then raise End_of_file
-    else if n != m
-    then (
-      ignore (tempfailureretry (Unix.select [sock] [] []) 0.01);
-      loop (pos + m) (n - m)
-    )
-  in
-  loop 0 n;
-  s;
-;;
-
 let w8 s pos i = Bytes.set s pos (Char.chr (i land 0xff));;
 let r8 s pos = Char.code (Bytes.get s pos);;
-
-let ordermagic = 'l';;
 
 let w16 s pos i =
   w8 s pos i;
@@ -342,12 +324,3 @@ let r32s s pos =
 ;;
 
 let vlog fmt = Format.ksprintf ignore fmt;;
-
-let sendstr1 s pos len sock =
-  let s = Bytes.unsafe_to_string s in
-  (* vlog "%d <= %S" state.seq s; *)
-  (* state.seq <- state.seq + 1; *)
-  let n = tempfailureretry (Unix.write_substring sock s pos) len in
-  if n != len
-  then error "send %d returned %d" len n;
-;;

@@ -225,37 +225,7 @@ let state =
   }
 ;;
 
-(* let w8 s pos i = Bytes.set s pos (Char.chr (i land 0xff));; *)
-(* let r8 s pos = Char.code (Bytes.get s pos);; *)
-
-(* let ordermagic = 'l';; *)
-
-(* let w16 s pos i = *)
-(*   w8 s pos i; *)
-(*   w8 s (pos+1) (i lsr 8) *)
-(* ;; *)
-
-(* let w32 s pos i = *)
-(*   w16 s pos i; *)
-(*   w16 s (pos+2) (i lsr 16) *)
-(* ;; *)
-
-(* let r16 s pos = *)
-(*   let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in *)
-(*   (rb 0) lor ((rb 1) lsl 8) *)
-(* ;; *)
-
-(* let r16s s pos = *)
-(*   let i = r16 s pos in *)
-(*   i - ((i land 0x8000) lsl 1) *)
-(* ;; *)
-
-(* let r32 s pos = *)
-(*   let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in *)
-(*   let l = (rb 0) lor ((rb 1) lsl 8) *)
-(*   and u = (rb 2) lor ((rb 3) lsl 8) in *)
-(*   (u lsl 16) lor l *)
-(* ;; *)
+let ordermagic = 'l';;
 
 let makereq opcode len reqlen =
   let s = Bytes.create len in
@@ -264,35 +234,30 @@ let makereq opcode len reqlen =
   s;
 ;;
 
-let readstr sock n = try readstr sock n with End_of_file -> state.t#quit
-(*   let s = Bytes.create n in *)
-(*   let rec loop pos n = *)
-(*     let m = tempfailureretry (Unix.read sock s pos) n in *)
-(*     if m = 0 *)
-(*     then state.t#quit; *)
-(*     if n != m *)
-(*     then ( *)
-(*       ignore (tempfailureretry (Unix.select [sock] [] []) 0.01); *)
-(*       loop (pos + m) (n - m) *)
-(*     ) *)
-(*   in *)
-(*   loop 0 n; *)
-(*   s; *)
-(* ;; *)
+let readstr sock n =
+  let s = Bytes.create n in
+  let rec loop pos n =
+    let m = tempfailureretry (Unix.read sock s pos) n in
+    if m = 0
+    then state.t#quit;
+    if n != m
+    then (
+      ignore (tempfailureretry (Unix.select [sock] [] []) 0.01);
+      loop (pos + m) (n - m)
+    )
+  in
+  loop 0 n;
+  s;
+;;
 
 let sendstr1 s pos len sock =
+  let s = Bytes.unsafe_to_string s in
   vlog "%d <= %S" state.seq s;
-  sendstr1 s pos len sock;
-  state.seq <- state.seq + 1
-
-(* let sendstr1 s pos len sock = *)
-(*   let s = Bytes.unsafe_to_string s in *)
-(*   vlog "%d <= %S" state.seq s; *)
-(*   state.seq <- state.seq + 1; *)
-(*   let n = tempfailureretry (Unix.write_substring sock s pos) len in *)
-(*   if n != len *)
-(*   then error "send %d returned %d" len n; *)
-(* ;; *)
+  state.seq <- state.seq + 1;
+  let n = tempfailureretry (Unix.write_substring sock s pos) len in
+  if n != len
+  then error "send %d returned %d" len n;
+;;
 
 let updkmap sock resp =
   let syms = r8 resp 1 in
