@@ -4595,7 +4595,7 @@ let canpan () =
   | Csingle _ | Cmulti _ -> state.x != 0 || conf.zoom > 1.0
 ;;
 
-let panbound x = bound x (state.winw-state.w) (wadjsb ());;
+let panbound x = bound x (-state.w) (wadjsb () + state.winw);;
 
 let existsinrow pageno (columns, coverA, coverB) p =
   let last = ((pageno - coverA) mod columns) + columns in
