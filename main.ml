@@ -6511,7 +6511,7 @@ let () =
     method scroll dx dy =
       if canpan () then state.x <- panbound (state.x + dx);
       gotoy_and_clear_text (clamp (2 * dy))
-    method zoom z = setzoom (conf.zoom +. z)
+    method zoom z = setzoom (conf.zoom *. exp z)
   end) !rootwid conf.cwinw conf.cwinh platform in
 
   setbgcol conf.bgcolor;
