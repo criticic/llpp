@@ -492,7 +492,7 @@ NSCursor *GetCursor (int idx)
 
 - (void)applicationWillFinishLaunching:(NSNotification *)not
 {
-  NSLog(@"applicationWillFinishLaunching");
+  // NSLog(@"applicationWillFinishLaunching");
   id menubar = [NSMenu new];
   id appMenuItem = [NSMenuItem new];
   [menubar addItem:appMenuItem];
@@ -627,7 +627,7 @@ NSCursor *GetCursor (int idx)
 
 - (void)applicationDidFinishLaunching:(NSNotification *)not
 {
-  NSLog(@"applicationDidFinishLaunching");
+  // NSLog(@"applicationDidFinishLaunching");
   int ret = pthread_create (&thread, NULL, caml_main_thread, argv);
   if (ret != 0) {
     NSLog (@"pthread_create: %s", strerror (ret));
