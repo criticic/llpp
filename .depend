@@ -1,63 +1,51 @@
-lablGL/glMisc.cmi : lablGL/raw.cmi
-lablGL/glTex.cmi : lablGL/glPix.cmi lablGL/gl.cmi
-wsi.cmi : utils.cmi keys.cmi
-lablGL/gl.cmo lablGL/gl.cmi : lablGL/gl.ml
-lablGL/gl.cmx lablGL/gl.o lablGL/gl.cmi : lablGL/gl.ml
-lablGL/raw.cmo lablGL/raw.cmi : lablGL/raw.ml
-lablGL/raw.cmx lablGL/raw.o lablGL/raw.cmi : lablGL/raw.ml
-lablGL/glPix.cmo lablGL/glPix.cmi : lablGL/raw.cmi lablGL/gl.cmi \
-    lablGL/glPix.ml
-lablGL/glPix.cmx lablGL/glPix.o lablGL/glPix.cmi : lablGL/raw.cmi \
-    lablGL/raw.cmx lablGL/gl.cmi lablGL/gl.cmx lablGL/glPix.ml
-lablGL/glDraw.cmo lablGL/glDraw.cmi : lablGL/raw.cmi lablGL/glPix.cmi \
-    lablGL/gl.cmi lablGL/glDraw.ml
-lablGL/glDraw.cmx lablGL/glDraw.o lablGL/glDraw.cmi : lablGL/raw.cmi \
-    lablGL/raw.cmx lablGL/glPix.cmi lablGL/glPix.cmx lablGL/gl.cmi \
-    lablGL/gl.cmx lablGL/glDraw.ml
-lablGL/glMat.cmo lablGL/glMat.cmi : lablGL/raw.cmi lablGL/glMat.ml
-lablGL/glMat.cmx lablGL/glMat.o lablGL/glMat.cmi : lablGL/raw.cmi \
-    lablGL/raw.cmx lablGL/glMat.ml
-lablGL/glMisc.cmo : lablGL/raw.cmi lablGL/glMisc.cmi lablGL/glMisc.ml
-lablGL/glMisc.cmx lablGL/glMisc.o : lablGL/raw.cmi lablGL/raw.cmx \
-    lablGL/glMisc.cmi lablGL/glMisc.ml
-lablGL/glFunc.cmo lablGL/glFunc.cmi : lablGL/gl.cmi lablGL/glFunc.ml
-lablGL/glFunc.cmx lablGL/glFunc.o lablGL/glFunc.cmi : lablGL/gl.cmi \
-    lablGL/gl.cmx lablGL/glFunc.ml
-lablGL/glTex.cmo : lablGL/raw.cmi lablGL/glPix.cmi lablGL/glMisc.cmi \
-    lablGL/gl.cmi lablGL/glTex.cmi lablGL/glTex.ml
-lablGL/glTex.cmx lablGL/glTex.o : lablGL/raw.cmi lablGL/raw.cmx \
-    lablGL/glPix.cmi lablGL/glPix.cmx lablGL/glMisc.cmi lablGL/glMisc.cmx \
-    lablGL/gl.cmi lablGL/gl.cmx lablGL/glTex.cmi lablGL/glTex.ml
-lablGL/glArray.cmo lablGL/glArray.cmi : lablGL/raw.cmi lablGL/glDraw.cmi \
-    lablGL/glArray.ml
-lablGL/glArray.cmx lablGL/glArray.o lablGL/glArray.cmi : lablGL/raw.cmi \
-    lablGL/raw.cmx lablGL/glDraw.cmi lablGL/glDraw.cmx lablGL/glArray.ml
-lablGL/glClear.cmo lablGL/glClear.cmi : lablGL/gl.cmi lablGL/glClear.ml
-lablGL/glClear.cmx lablGL/glClear.o lablGL/glClear.cmi : lablGL/gl.cmi \
-    lablGL/gl.cmx lablGL/glClear.ml
-help.cmo help.cmi : help.ml
-help.cmx help.o help.cmi : help.ml
-utils.cmo utils.cmi : utils.ml
-utils.cmx utils.o utils.cmi : utils.ml
-parser.cmo parser.cmi : parser.ml
-parser.cmx parser.o parser.cmi : parser.ml
-keys.cmo keys.cmi : keys.ml
-keys.cmx keys.o keys.cmi : keys.ml
-wsi.cmo : utils.cmi keys.cmi wsi.cmi wsi.ml
-wsi.cmx wsi.o : utils.cmi utils.cmx keys.cmi keys.cmx wsi.cmi wsi.ml
-config.cmo config.cmi : wsi.cmi utils.cmi lablGL/raw.cmi parser.cmi help.cmi \
-    lablGL/glTex.cmi config.ml
-config.cmx config.o config.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
-    lablGL/raw.cmi lablGL/raw.cmx parser.cmi parser.cmx help.cmi help.cmx \
-    lablGL/glTex.cmi lablGL/glTex.cmx config.ml
-main.cmo main.cmi : wsi.cmi utils.cmi lablGL/raw.cmi keys.cmi \
-    lablGL/glTex.cmi lablGL/glPix.cmi lablGL/glMisc.cmi lablGL/glMat.cmi \
-    lablGL/glFunc.cmi lablGL/glDraw.cmi lablGL/glClear.cmi lablGL/glArray.cmi \
-    lablGL/gl.cmi config.cmi main.ml
-main.cmx main.o main.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
-    lablGL/raw.cmi lablGL/raw.cmx keys.cmi keys.cmx lablGL/glTex.cmi \
-    lablGL/glTex.cmx lablGL/glPix.cmi lablGL/glPix.cmx lablGL/glMisc.cmi \
-    lablGL/glMisc.cmx lablGL/glMat.cmi lablGL/glMat.cmx lablGL/glFunc.cmi \
-    lablGL/glFunc.cmx lablGL/glDraw.cmi lablGL/glDraw.cmx lablGL/glClear.cmi \
-    lablGL/glClear.cmx lablGL/glArray.cmi lablGL/glArray.cmx lablGL/gl.cmi \
-    lablGL/gl.cmx config.cmi config.cmx main.ml
+lablGL/glMisc.cmi : lablGL/raw.cmo
+lablGL/glTex.cmi : lablGL/glPix.cmo lablGL/gl.cmo
+lablGL/gl.cmo :
+lablGL/gl.cmx :
+lablGL/glArray.cmo : lablGL/raw.cmo lablGL/glDraw.cmo
+lablGL/glArray.cmx : lablGL/raw.cmx lablGL/glDraw.cmx
+lablGL/glClear.cmo : lablGL/gl.cmo
+lablGL/glClear.cmx : lablGL/gl.cmx
+lablGL/glDraw.cmo : lablGL/raw.cmo lablGL/glPix.cmo lablGL/gl.cmo
+lablGL/glDraw.cmx : lablGL/raw.cmx lablGL/glPix.cmx lablGL/gl.cmx
+lablGL/glFunc.cmo : lablGL/gl.cmo
+lablGL/glFunc.cmx : lablGL/gl.cmx
+lablGL/glMat.cmo : lablGL/raw.cmo
+lablGL/glMat.cmx : lablGL/raw.cmx
+lablGL/glMisc.cmo : lablGL/raw.cmo lablGL/glMisc.cmi
+lablGL/glMisc.cmx : lablGL/raw.cmx lablGL/glMisc.cmi
+lablGL/glPix.cmo : lablGL/raw.cmo lablGL/gl.cmo
+lablGL/glPix.cmx : lablGL/raw.cmx lablGL/gl.cmx
+lablGL/glTex.cmo : lablGL/raw.cmo lablGL/glPix.cmo lablGL/glMisc.cmi \
+    lablGL/gl.cmo lablGL/glTex.cmi
+lablGL/glTex.cmx : lablGL/raw.cmx lablGL/glPix.cmx lablGL/glMisc.cmx \
+    lablGL/gl.cmx lablGL/glTex.cmi
+lablGL/raw.cmo :
+lablGL/raw.cmx :
+wsi.cmi : utils.cmo keys.cmo
+config.cmo : wsi.cmi utils.cmo lablGL/raw.cmo parser.cmo help.cmo \
+    lablGL/glTex.cmi
+config.cmx : wsi.cmx utils.cmx lablGL/raw.cmx parser.cmx help.cmx \
+    lablGL/glTex.cmx
+help.cmo :
+help.cmx :
+keys.cmo :
+keys.cmx :
+main.cmo : wsi.cmi utils.cmo lablGL/raw.cmo keys.cmo lablGL/glTex.cmi \
+    lablGL/glPix.cmo lablGL/glMisc.cmi lablGL/glMat.cmo lablGL/glFunc.cmo \
+    lablGL/glDraw.cmo lablGL/glClear.cmo lablGL/glArray.cmo lablGL/gl.cmo \
+    config.cmo
+main.cmx : wsi.cmx utils.cmx lablGL/raw.cmx keys.cmx lablGL/glTex.cmx \
+    lablGL/glPix.cmx lablGL/glMisc.cmx lablGL/glMat.cmx lablGL/glFunc.cmx \
+    lablGL/glDraw.cmx lablGL/glClear.cmx lablGL/glArray.cmx lablGL/gl.cmx \
+    config.cmx
+parser.cmo :
+parser.cmx :
+utils.cmo :
+utils.cmx :
+wsi.cmo : utils.cmo keys.cmo wsi.cmi
+wsi.cmx : utils.cmx keys.cmx wsi.cmi
+wsi_cocoa.cmo : utils.cmo keys.cmo
+wsi_cocoa.cmx : utils.cmx keys.cmx
+wsi_x11.cmo : utils.cmo keys.cmo
+wsi_x11.cmx : utils.cmx keys.cmx

@@ -121,17 +121,19 @@ clean:
 	$(RM) -f lablGL/*.cm* lablGL/*.o
 	$(RM) -f $(LLPP)_cocoa.* $(LLPP)_x11.* $(LLPP)
 
-%.cmi: %.mli
+.SUFFIXES: .ml .mli .cmo .cmi .cmx
+
+.mli.cmi:
 	$(OCAMLC) $(OCAMLCFLAGS) -c $<
 
-%.cmo: %.ml %.cmi
+.ml.cmo:
 	$(OCAMLC) $(OCAMLCFLAGS) -c $<
 
-%.cmx: %.ml
+.ml.cmx:
 	$(OCAMLOPT) $(OCAMLCFLAGS) $(OCAMLOPTFLAGS) -c $<
 
 .PHONY: depend
-depend: $(wildcard $(addsuffix .mli,$(LLPP_FILES))) $(addsuffix .ml,$(LLPP_FILES))
-	$(OCAMLDEP) -all -I lablGL $^ > .depend
+depend: wsi.ml help.ml
+	$(OCAMLDEP) -I lablGL lablGL/*.mli lablGL/*.ml *.mli *.ml > .depend
 
--include .depend
+include .depend
