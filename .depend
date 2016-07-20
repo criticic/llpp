@@ -50,14 +50,14 @@ config.cmo config.cmi : wsi.cmi utils.cmi lablGL/raw.cmi parser.cmi help.cmi \
 config.cmx config.o config.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
     lablGL/raw.cmi lablGL/raw.cmx parser.cmi parser.cmx help.cmi help.cmx \
     lablGL/glTex.cmi lablGL/glTex.cmx config.ml
-main.cmo main.cmi : wsi.cmi utils.cmi lablGL/raw.cmi lablGL/glTex.cmi \
-    lablGL/glPix.cmi lablGL/glMisc.cmi lablGL/glMat.cmi lablGL/glFunc.cmi \
-    lablGL/glDraw.cmi lablGL/glClear.cmi lablGL/glArray.cmi lablGL/gl.cmi \
-    config.cmi main.ml
+main.cmo main.cmi : wsi.cmi utils.cmi lablGL/raw.cmi keys.cmi \
+    lablGL/glTex.cmi lablGL/glPix.cmi lablGL/glMisc.cmi lablGL/glMat.cmi \
+    lablGL/glFunc.cmi lablGL/glDraw.cmi lablGL/glClear.cmi lablGL/glArray.cmi \
+    lablGL/gl.cmi config.cmi main.ml
 main.cmx main.o main.cmi : wsi.cmi wsi.cmx utils.cmi utils.cmx \
-    lablGL/raw.cmi lablGL/raw.cmx lablGL/glTex.cmi lablGL/glTex.cmx \
-    lablGL/glPix.cmi lablGL/glPix.cmx lablGL/glMisc.cmi lablGL/glMisc.cmx \
-    lablGL/glMat.cmi lablGL/glMat.cmx lablGL/glFunc.cmi lablGL/glFunc.cmx \
-    lablGL/glDraw.cmi lablGL/glDraw.cmx lablGL/glClear.cmi lablGL/glClear.cmx \
-    lablGL/glArray.cmi lablGL/glArray.cmx lablGL/gl.cmi lablGL/gl.cmx \
-    config.cmi config.cmx main.ml
+    lablGL/raw.cmi lablGL/raw.cmx keys.cmi keys.cmx lablGL/glTex.cmi \
+    lablGL/glTex.cmx lablGL/glPix.cmi lablGL/glPix.cmx lablGL/glMisc.cmi \
+    lablGL/glMisc.cmx lablGL/glMat.cmi lablGL/glMat.cmx lablGL/glFunc.cmi \
+    lablGL/glFunc.cmx lablGL/glDraw.cmi lablGL/glDraw.cmx lablGL/glClear.cmi \
+    lablGL/glClear.cmx lablGL/glArray.cmi lablGL/glArray.cmx lablGL/gl.cmi \
+    lablGL/gl.cmx config.cmi config.cmx main.ml
