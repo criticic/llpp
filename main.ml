@@ -3117,6 +3117,8 @@ object (self)
         self
     in
     coe self
+
+  method zoom _ = ()
 end;;
 
 class outlinelistview ~zebra ~source =
@@ -6179,6 +6181,9 @@ let uioh = object
     if canpan () then state.x <- panbound (state.x + dx);
     gotoy_and_clear_text (clamp (2 * dy));
     state.uioh
+
+  method zoom z =
+    setzoom (conf.zoom *. exp z)
 end;;
 
 let addrect pageno r g b a x0 y0 x1 y1 =
@@ -6532,7 +6537,7 @@ let () =
     method winstate wsl = state.winstate <- wsl
     method quit: 'a. 'a = raise Quit
     method scroll dx dy = state.uioh <- state.uioh#scroll dx dy
-    method zoom z = setzoom (conf.zoom *. exp z)
+    method zoom z = state.uioh#zoom z
   end) !rootwid conf.cwinw conf.cwinh platform in
 
   setbgcol conf.bgcolor;
