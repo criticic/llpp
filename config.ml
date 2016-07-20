@@ -172,6 +172,7 @@ class type uioh = object
   method modehash : keyhash
   method eformsgs : bool
   method alwaysscrolly : bool
+  method scroll : int -> int -> uioh
 end;;
 
 module type TextEnumType =
@@ -466,6 +467,7 @@ let nouioh : uioh = object (self)
   method modehash = emptykeyhash
   method eformsgs = false
   method alwaysscrolly = false
+  method scroll _ _ = self
 end;;
 
 let platform_to_string = function

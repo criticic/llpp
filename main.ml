@@ -3099,6 +3099,24 @@ object (self)
   method modehash = modehash
   method eformsgs = false
   method alwaysscrolly = true
+  method scroll _ dy =
+    let self =
+      if dy != 0 then begin
+        let len = source#getitemcount in
+        let first =
+          if dy > 0 && m_first + fstate.maxrows >= len
+          then
+            m_first
+          else
+            let first = m_first + dy / 10 in
+            bound first 0 (len - 1)
+        in
+        G.postRedisplay "listview wheel";
+        {< m_first = first >}
+      end else
+        self
+    in
+    coe self
 end;;
 
 class outlinelistview ~zebra ~source =
@@ -6156,6 +6174,11 @@ let uioh = object
 
   method eformsgs = true
   method alwaysscrolly = false
+
+  method scroll dx dy =
+    if canpan () then state.x <- panbound (state.x + dx);
+    gotoy_and_clear_text (clamp (2 * dy));
+    state.uioh
 end;;
 
 let addrect pageno r g b a x0 y0 x1 y1 =
@@ -6508,9 +6531,7 @@ let () =
     method leave = state.mpos <- (-1, -1)
     method winstate wsl = state.winstate <- wsl
     method quit: 'a. 'a = raise Quit
-    method scroll dx dy =
-      if canpan () then state.x <- panbound (state.x + dx);
-      gotoy_and_clear_text (clamp (2 * dy))
+    method scroll dx dy = state.uioh <- state.uioh#scroll dx dy
     method zoom z = setzoom (conf.zoom *. exp z)
   end) !rootwid conf.cwinw conf.cwinh platform in
 
