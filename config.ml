@@ -173,7 +173,7 @@ class type uioh = object
   method eformsgs : bool
   method alwaysscrolly : bool
   method scroll : int -> int -> uioh
-  method zoom : float -> unit
+  method zoom : float -> int -> int -> unit
 end;;
 
 module type TextEnumType =
@@ -469,7 +469,7 @@ let nouioh : uioh = object (self)
   method eformsgs = false
   method alwaysscrolly = false
   method scroll _ _ = self
-  method zoom _ = ()
+  method zoom _ _ _ = ()
 end;;
 
 let platform_to_string = function

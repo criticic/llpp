@@ -34,7 +34,7 @@ class type t = object
   method winstate : winstate list -> unit
   method quit     : 'a. 'a
   method scroll   : int -> int -> unit
-  method zoom     : float -> unit
+  method zoom     : float -> int -> int -> unit
 end;;
 
 val setcursor : cursor -> unit;;

@@ -251,10 +251,12 @@ NSCursor *GetCursor (int idx)
   [self writeData];
 }
 
-- (void)zoom:(CGFloat)z
+- (void)zoom:(CGFloat)z at:(NSPoint)p
 {
   [self setByte:EVENT_ZOOM offset:0];
   [self setInt:(int32_t) (z * 1000) offset:16];
+  [self setShort:p.x offset:20];
+  [self setShort:p.y offset:22];
   [self writeData];
 }
 
@@ -432,7 +434,7 @@ NSCursor *GetCursor (int idx)
 
 - (void)magnifyWithEvent:(NSEvent *)event
 {
-  [connector zoom:[event magnification]];
+  [connector zoom:[event magnification] at:[self locationFromEvent:event]];
 }
 
 @end

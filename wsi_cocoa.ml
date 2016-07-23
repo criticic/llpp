@@ -121,7 +121,7 @@ class type t = object
   method winstate : winstate list -> unit
   method quit     : 'a. 'a
   method scroll   : int -> int -> unit
-  method zoom     : float -> unit
+  method zoom     : float -> int -> int -> unit
 end
 
 let onot = object
@@ -138,7 +138,7 @@ let onot = object
   method winstate _      = ()
   method quit: 'a. 'a    = exit 0
   method scroll _ _      = ()
-  method zoom _          = ()
+  method zoom _ _ _      = ()
 end
 
 type state =
@@ -247,8 +247,10 @@ let handleresp resp =
       state.t#scroll dx dy
   | 13 ->
       let z = float (r32s resp 16) /. 1000.0 in
-      vlog "zoom z %f" z;
-      state.t#zoom z
+      let x = r16s resp 20 in
+      let y = r16s resp 22 in
+      vlog "zoom z %f x %d y %d" z x y;
+      state.t#zoom z x y
   | _ ->
       vlog "unknown server message %d" opcode
 
