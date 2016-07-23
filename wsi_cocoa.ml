@@ -39,7 +39,6 @@ let classify_key key =
   | 0xF729 -> Home
   | 0xF727 -> Insert
   | 0xF72B -> Jend
-  | 46 -> KPdelete
   | 0xfff01 -> KPdown
   | 0xfff02 -> KPend
   | 0xfff03 -> KPenter
