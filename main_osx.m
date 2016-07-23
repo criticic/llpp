@@ -682,7 +682,7 @@ CAMLprim value ml_setwinbgcol (value col)
   int r = ((col >> 16) & 0xff) / 255;
   int g = ((col >> 8) & 0xff) / 255;
   int b = ((col >> 0) & 0xff) / 255;
-  NSColor *color = [NSColor colorWithRed:r green:0 blue:0 alpha:1.0];
+  NSColor *color = [NSColor colorWithRed:r green:g blue:b alpha:1.0];
   [[NSApp delegate] performSelectorOnMainThread:@selector(setwinbgcol:)
                                      withObject:color
                                   waitUntilDone:YES];
