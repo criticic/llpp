@@ -1905,13 +1905,14 @@ let act cmds =
       state.uioh#infochanged Docinfo;
       state.docinfo <- List.rev state.docinfo
 
-  | "pass", args->
+  | "pass", args ->
      if args = "fail"
      then Wsi.settitle "Wrong password";
      let password = getpassword () in
      if emptystr password
      then error "document is password protected"
      else opendoc state.path password
+
   | _ ->
       error "unknown cmd `%S'" cmds
 ;;
