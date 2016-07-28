@@ -1095,6 +1095,7 @@ let gotopage1 n top =
 ;;
 
 let invalidate s f =
+  state.redisplay <- false;
   state.layout <- [];
   state.pdims <- [];
   state.rects <- [];
