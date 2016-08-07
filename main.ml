@@ -899,7 +899,7 @@ let gotoxy x y =
     | _ ->
         let layout = layout state.x y state.winw state.winh in
         if not !wtmode || layoutready layout
-        then G.postRedisplay "gotoy ready";
+        then G.postRedisplay "gotoxy ready";
         y, layout, true
   in
   if proceed
