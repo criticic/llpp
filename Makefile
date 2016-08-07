@@ -22,7 +22,7 @@ VERSION = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
 LDFLAGS = -L mupdf/build/native
 LDLIBS = -lmupdf -lmupdfthird -lpthread
 CFLAGS = -I mupdf/include -I mupdf/thirdparty/freetype/include
-CFLAGS += -Wno-shift-negative-value -Wno-pointer-sign
+CFLAGS += -Wno-pointer-sign
 OCAMLCFLAGS = -I lablGL
 
 BEST = native
