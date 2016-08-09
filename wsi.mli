@@ -35,6 +35,7 @@ class type t = object
   method quit     : 'a. 'a
   method scroll   : int -> int -> unit
   method zoom     : float -> int -> int -> unit
+  method opendoc  : string -> unit
 end;;
 
 val setcursor : cursor -> unit;;

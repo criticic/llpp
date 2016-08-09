@@ -119,6 +119,7 @@ class type t = object
   method quit     : 'a. 'a
   method scroll   : int -> int -> unit
   method zoom     : float -> int -> int -> unit
+  method opendoc  : string -> unit
 end
 
 let onot = object
@@ -136,6 +137,7 @@ let onot = object
   method quit: 'a. 'a    = exit 0
   method scroll _ _      = ()
   method zoom _ _ _      = ()
+  method opendoc _       = ()
 end
 
 type state =
@@ -258,9 +260,10 @@ let handleresp resp =
   | 20 ->
       begin match r16 resp 2 with
       | 0 ->
-          let str = Buffer.contents state.path in
+          let path = Buffer.contents state.path in
           Buffer.reset state.path;
-          if false then nslog "open %S" str
+          if false then nslog "open %S" path;
+          state.t#opendoc path
       | chunk_len ->
           if false then nslog "open-append %S" (Bytes.sub resp 4 chunk_len);
           Buffer.add_substring state.path resp 4 chunk_len
