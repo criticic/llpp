@@ -102,6 +102,13 @@ $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
 	$(RM) -f $@
 	$(LN) $< $@
 
+.PHONY: $(LLPP).app
+$(LLPP).app: $(LLPP)_cocoa.$(BEST)
+	$(RM) -rf $(LLPP).app
+	mkdir -p $(LLPP).app/Contents/MacOS
+	cp misc/Info.plist $(LLPP).app/Contents/Info.plist
+	cp $(LLPP)_cocoa.$(BEST) $(LLPP).app/Contents/MacOS/$(LLPP)
+
 .PHONY: mupdf force_mupdf
 mupdf:
 	test -d mupdf || $(GIT) clone git://git.ghostscript.com/mupdf --recursive && \
@@ -122,6 +129,7 @@ clean:
 	$(RM) -f *.cm* *.o
 	$(RM) -f lablGL/*.cm* lablGL/*.o
 	$(RM) -f $(LLPP)_cocoa.* $(LLPP)_x11.* $(LLPP)
+	$(RM) -rf $(LLPP).app
 
 .SUFFIXES: .ml .mli .cmo .cmi .cmx
 
