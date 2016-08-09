@@ -6535,7 +6535,11 @@ let () =
     method quit: 'a. 'a = raise Quit
     method scroll dx dy = state.uioh <- state.uioh#scroll dx dy
     method zoom z x y = state.uioh#zoom z x y
-    method opendoc path = opendoc path state.password
+    method opendoc path =
+      state.mode <- View;
+      state.uioh <- uioh;
+      G.postRedisplay "opendoc";
+      opendoc path state.password
   end) !rootwid conf.cwinw conf.cwinh platform in
 
   setbgcol conf.bgcolor;
