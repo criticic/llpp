@@ -41,9 +41,6 @@ static pthread_mutex_t terminate_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int server_fd = -1;
 static CGFloat backing_scale_factor = -1.0;
 
-static NSString *filenameToOpen = nil;
-static pthread_mutex_t opening_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 void *caml_main_thread (void *argv)
 {
   caml_main (argv);
@@ -268,11 +265,21 @@ NSCursor *GetCursor (int idx)
 
 - (void)openFile:(NSString *)filename
 {
-  NSLog (@"openFile: %@", filename);
-  pthread_mutex_lock (&opening_mutex);
-  filenameToOpen = filename;
-  pthread_mutex_unlock (&opening_mutex);
+  const char *utf8 = [filename UTF8String];
+  unsigned len = [filename lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
   [self setByte:EVENT_OPEN offset:0];
+  unsigned off = 0;
+  unsigned data_len = [data length] - 4;
+  NSLog (@"openFile: %@ len %d data_len %d", filename, len, data_len);
+  while (off < len) {
+    unsigned chunk_len = MIN (data_len - 4, len - off);
+    [self setShort:chunk_len offset:2];
+    [data replaceBytesInRange:NSMakeRange (4, chunk_len) withBytes:(utf8 + off)];
+    [self writeData];
+    off += chunk_len;
+    NSLog (@"openFile: chunk_len %d", chunk_len);
+  }
+  [self setShort:0 offset:2];
   [self writeData];
 }
 
@@ -763,23 +770,11 @@ CAMLprim value ml_get_backing_scale_factor (value unit)
   CAMLreturn (Val_int ((int) backing_scale_factor));
 }
 
-CAMLprim value ml_get_filename_to_open (value unit)
+CAMLprim value ml_nslog (value str)
 {
-  CAMLparam1 (unit);
-  CAMLlocal1 (str);
-
-  pthread_mutex_lock (&opening_mutex);
-  if (filenameToOpen == nil) {
-    pthread_mutex_unlock (&opening_mutex);
-    caml_failwith ("No filename to open");
-  }
-
-  unsigned len = [filenameToOpen lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-  str = caml_alloc_string (len);
-  memcpy (String_val (str), [filenameToOpen UTF8String], len);
-  pthread_mutex_unlock (&opening_mutex);
-
-  CAMLreturn (str);
+  CAMLparam1 (str);
+  NSLog (@"%s", String_val (str));
+  CAMLreturn (Val_unit);
 }
 
 int main(int argc, char **argv)

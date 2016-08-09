@@ -1,7 +1,5 @@
 open Utils;;
 
-let debug = true
-
 type cursor =
   | CURSOR_INHERIT
   | CURSOR_INFO
@@ -146,6 +144,7 @@ type state =
     mutable fd: Unix.file_descr;
     buf: bytes;
     mutable off: int;
+    path: Buffer.t;
   }
 
 let state =
@@ -154,6 +153,7 @@ let state =
     fd = Unix.stdin;
     buf = Bytes.create 512;
     off = 0;
+    path = Buffer.create 0;
   }
 
 external setcursor: cursor -> unit = "ml_setcursor"
@@ -168,7 +168,10 @@ external get_backing_scale_factor: unit -> int = "ml_get_backing_scale_factor"
 external fullscreen: unit -> unit = "ml_fullscreen"
 external mapwin: unit -> unit = "ml_mapwin"
 external setwinbgcol: int -> unit = "ml_setwinbgcol"
-external get_filename_to_open: unit -> string = "ml_get_filename_to_open"
+external nslog: string -> unit = "ml_nslog"
+
+let nslog fmt =
+  Printf.ksprintf nslog fmt
 
 (* 0 -> map
    1 -> expose
@@ -253,11 +256,14 @@ let handleresp resp =
       vlog "zoom z %f x %d y %d" z x y;
       state.t#zoom z x y
   | 20 ->
-      begin match get_filename_to_open () with
-      | str ->
-          vlog "open %S" str
-      | exception _ ->
-          vlog "open ???"
+      begin match r16 resp 2 with
+      | 0 ->
+          let str = Buffer.contents state.path in
+          Buffer.reset state.path;
+          if false then nslog "open %S" str
+      | chunk_len ->
+          if false then nslog "open-append %S" (Bytes.sub resp 4 chunk_len);
+          Buffer.add_substring state.path resp 4 chunk_len
       end
   | _ ->
       vlog "unknown server message %d" opcode
