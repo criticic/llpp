@@ -10,6 +10,8 @@
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 #include <caml/callback.h>
+#include <caml/alloc.h>
+#include <caml/fail.h>
 
 enum {
   EVENT_EXPOSE = 1,
@@ -23,7 +25,8 @@ enum {
   EVENT_WINSTATE = 10,
   EVENT_QUIT = 11,
   EVENT_SCROLL = 12,
-  EVENT_ZOOM = 13
+  EVENT_ZOOM = 13,
+  EVENT_OPEN = 20
 };
 
 enum {
@@ -37,6 +40,9 @@ static int terminating = 0;
 static pthread_mutex_t terminate_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int server_fd = -1;
 static CGFloat backing_scale_factor = -1.0;
+
+static NSString *filenameToOpen = nil;
+static pthread_mutex_t opening_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *caml_main_thread (void *argv)
 {
@@ -257,6 +263,16 @@ NSCursor *GetCursor (int idx)
   [self setInt:(int32_t) (z * 1000) offset:16];
   [self setShort:p.x offset:20];
   [self setShort:p.y offset:22];
+  [self writeData];
+}
+
+- (void)openFile:(NSString *)filename
+{
+  NSLog (@"openFile: %@", filename);
+  pthread_mutex_lock (&opening_mutex);
+  filenameToOpen = filename;
+  pthread_mutex_unlock (&opening_mutex);
+  [self setByte:EVENT_OPEN offset:0];
   [self writeData];
 }
 
@@ -641,6 +657,12 @@ NSCursor *GetCursor (int idx)
   return YES;
 }
 
+- (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
+{
+  [connector openFile:filename];
+  return YES;
+}
+
 @end
 
 CAMLprim value ml_mapwin (value unit)
@@ -739,6 +761,25 @@ CAMLprim value ml_get_backing_scale_factor (value unit)
 {
   CAMLparam1 (unit);
   CAMLreturn (Val_int ((int) backing_scale_factor));
+}
+
+CAMLprim value ml_get_filename_to_open (value unit)
+{
+  CAMLparam1 (unit);
+  CAMLlocal1 (str);
+
+  pthread_mutex_lock (&opening_mutex);
+  if (filenameToOpen == nil) {
+    pthread_mutex_unlock (&opening_mutex);
+    caml_failwith ("No filename to open");
+  }
+
+  unsigned len = [filenameToOpen lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+  str = caml_alloc_string (len);
+  memcpy (String_val (str), [filenameToOpen UTF8String], len);
+  pthread_mutex_unlock (&opening_mutex);
+
+  CAMLreturn (str);
 }
 
 int main(int argc, char **argv)

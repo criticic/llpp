@@ -168,6 +168,7 @@ external get_backing_scale_factor: unit -> int = "ml_get_backing_scale_factor"
 external fullscreen: unit -> unit = "ml_fullscreen"
 external mapwin: unit -> unit = "ml_mapwin"
 external setwinbgcol: int -> unit = "ml_setwinbgcol"
+external get_filename_to_open: unit -> string = "ml_get_filename_to_open"
 
 (* 0 -> map
    1 -> expose
@@ -182,7 +183,8 @@ external setwinbgcol: int -> unit = "ml_setwinbgcol"
    10 -> winstate
    11 -> quit
    12 -> scroll
-   13 -> zoom *)
+   13 -> zoom
+   20 -> open *)
 
 let handleresp resp =
   let opcode = r8 resp 0 in
@@ -250,6 +252,13 @@ let handleresp resp =
       let y = r16s resp 22 in
       vlog "zoom z %f x %d y %d" z x y;
       state.t#zoom z x y
+  | 20 ->
+      begin match get_filename_to_open () with
+      | str ->
+          vlog "open %S" str
+      | exception _ ->
+          vlog "open ???"
+      end
   | _ ->
       vlog "unknown server message %d" opcode
 
