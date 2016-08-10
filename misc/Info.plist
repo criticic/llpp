@@ -21,7 +21,7 @@
 			<true/>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.adobe.pdf </string>
+				<string>com.adobe.pdf</string>
 			</array>
 		</dict>
 	</array>

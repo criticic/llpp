@@ -41,17 +41,35 @@ static pthread_mutex_t terminate_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int server_fd = -1;
 static CGFloat backing_scale_factor = -1.0;
 
+void Abort (NSString *format, ...)
+{
+  va_list argList;
+  va_start (argList, format);
+  NSString *str = [[NSString alloc] initWithFormat:format arguments:argList];
+  va_end (argList);
+  NSLog (@"%@", str);
+  NSAlert *alert = [[NSAlert alloc] init];
+  [alert addButtonWithTitle:@"Quit"];
+  [alert setMessageText:@"Internal Error"];
+  [alert setInformativeText:str];
+  [alert setAlertStyle:NSCriticalAlertStyle];
+  [alert runModal];
+  [NSApp terminate:nil];
+}
+
 void *caml_main_thread (void *argv)
 {
-  caml_main (argv);
-  pthread_mutex_lock (&terminate_mutex);
-  if (terminating == 0) {
-    terminating = 1;
-    [NSApp performSelectorOnMainThread:@selector(terminate:)
-                            withObject:nil
-                         waitUntilDone:NO];
+  @autoreleasepool {
+    caml_main (argv);
+    pthread_mutex_lock (&terminate_mutex);
+    if (terminating == 0) {
+      terminating = 1;
+      [NSApp performSelectorOnMainThread:@selector(terminate:)
+                              withObject:nil
+                           waitUntilDone:NO];
+    }
+    pthread_mutex_unlock (&terminate_mutex);
   }
-  pthread_mutex_unlock (&terminate_mutex);
   pthread_exit (NULL);
 }
 
@@ -270,14 +288,12 @@ NSCursor *GetCursor (int idx)
   [self setByte:EVENT_OPEN offset:0];
   unsigned off = 0;
   unsigned data_len = [data length] - 4;
-  NSLog (@"openFile: %@ len %d data_len %d", filename, len, data_len);
   while (off < len) {
     unsigned chunk_len = MIN (data_len - 4, len - off);
     [self setShort:chunk_len offset:2];
     [data replaceBytesInRange:NSMakeRange (4, chunk_len) withBytes:(utf8 + off)];
     [self writeData];
     off += chunk_len;
-    NSLog (@"openFile: chunk_len %d", chunk_len);
   }
   [self setShort:0 offset:2];
   [self writeData];
@@ -517,7 +533,7 @@ NSCursor *GetCursor (int idx)
 
 - (void)applicationWillFinishLaunching:(NSNotification *)not
 {
-  // NSLog(@"applicationWillFinishLaunching");
+  NSLog(@"applicationWillFinishLaunching");
   id menubar = [NSMenu new];
   id appMenuItem = [NSMenuItem new];
   [menubar addItem:appMenuItem];
@@ -652,10 +668,10 @@ NSCursor *GetCursor (int idx)
 
 - (void)applicationDidFinishLaunching:(NSNotification *)not
 {
-  // NSLog(@"applicationDidFinishLaunching");
+  NSLog(@"applicationDidFinishLaunching");
   int ret = pthread_create (&thread, NULL, caml_main_thread, argv);
   if (ret != 0) {
-    NSLog (@"pthread_create: %s", strerror (ret));
+    Abort (@"pthread_create: %s.", strerror (ret));
   }
 }
 
@@ -666,7 +682,8 @@ NSCursor *GetCursor (int idx)
 
 - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
 {
-  [connector openFile:filename];
+  NSLog (@"openFile: %@", filename);
+  // [connector openFile:filename];
   return YES;
 }
 
@@ -777,16 +794,32 @@ CAMLprim value ml_nslog (value str)
   CAMLreturn (Val_unit);
 }
 
+// HACK to eliminate arg injected by OS X -psn_...
+int adjust_argv (int argc, char **argv)
+{
+  if (argc > 1 && strncmp (argv[1], "-psn", 4) == 0) {
+    for (unsigned i = 1; i < argc - 1; i ++) {
+      argv[i] = argv[i+1];
+    }
+    argv[-- argc] = 0;
+  }
+  for (int i = 0; i < argc; i ++) {
+    NSLog (@"arg %d: %s", i, argv[i]);
+  }
+  return argc;
+}
+
 int main(int argc, char **argv)
 {
   @autoreleasepool {
     int sv[2];
     int ret = socketpair (AF_UNIX, SOCK_STREAM, 0, sv);
     if (ret != 0) {
-      NSLog (@"socketpair: %s", strerror (ret));
+      Abort (@"socketpair: %s", strerror (ret));
     }
-    NSLog (@"socketpair sv0 %d sv1 %d", sv[0], sv[1]);
+    // NSLog (@"socketpair sv0 %d sv1 %d", sv[0], sv[1]);
     server_fd = sv[0];
+    argc = adjust_argv (argc, argv);
     [NSApplication sharedApplication];
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     id delegate = [[MyDelegate alloc] initWithArgv:argv fileDescriptor:sv[1]];
