@@ -540,10 +540,28 @@ NSCursor *GetCursor (int idx)
   [NSApp setMainMenu:menubar];
   id appMenu = [NSMenu new];
   id appName = [[NSProcessInfo processInfo] processName];
-  id quitTitle = [@"Quit " stringByAppendingString:appName];
-  id quitMenuItem = [[NSMenuItem alloc] initWithTitle:quitTitle
+  id aboutMenuItem = [[NSMenuItem alloc] initWithTitle:[@"About " stringByAppendingString:appName]
+                                                action:@selector(orderFrontStandardAboutPanel:)
+                                         keyEquivalent:@""];
+  id hideMenuItem = [[NSMenuItem alloc] initWithTitle:[@"Hide " stringByAppendingString:appName]
+                                               action:@selector(hide:)
+                                        keyEquivalent:@"h"];
+  id hideOthersMenuItem = [[NSMenuItem alloc] initWithTitle:@"Hide Others"
+                                                     action:@selector(hideOtherApplications:)
+                                              keyEquivalent:@"h"];
+  [hideOthersMenuItem setKeyEquivalentModifierMask:(NSAlternateKeyMask | NSCommandKeyMask)];
+  id showAllMenuItem = [[NSMenuItem alloc] initWithTitle:@"Show All"
+                                                  action:@selector(unhideAllApplications:)
+                                           keyEquivalent:@""];
+  id quitMenuItem = [[NSMenuItem alloc] initWithTitle:[@"Quit " stringByAppendingString:appName]
                                                action:@selector(terminate:)
                                         keyEquivalent:@"q"];
+  [appMenu addItem:aboutMenuItem];
+  [appMenu addItem:[NSMenuItem separatorItem]];
+  [appMenu addItem:hideMenuItem];
+  [appMenu addItem:hideOthersMenuItem];
+  [appMenu addItem:showAllMenuItem];
+  [appMenu addItem:[NSMenuItem separatorItem]];
   [appMenu addItem:quitMenuItem];
   [appMenuItem setSubmenu:appMenu];
 
