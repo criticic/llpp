@@ -683,7 +683,7 @@ NSCursor *GetCursor (int idx)
 - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
 {
   NSLog (@"openFile: %@", filename);
-  // [connector openFile:filename];
+  [connector openFile:filename];
   return YES;
 }
 
