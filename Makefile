@@ -17,7 +17,8 @@ else
 SYSTEM ?= x11
 endif
 
-VERSION = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
+GIT_DESCR = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
+VERSION = $(shell echo $(GIT_DESCR) | sed -n 's/v\([0-9]*\).*/\1/p')
 
 LDFLAGS = -L mupdf/build/native
 LDLIBS = -lmupdf -lmupdfthird -lpthread
@@ -46,7 +47,7 @@ wsi.ml: wsi_$(SYSTEM).ml
 	$(CP) $< $@
 
 help.ml: KEYS mkhelp.sh
-	sh mkhelp.sh KEYS $(VERSION) > $@
+	sh mkhelp.sh KEYS $(GIT_DESCR) > $@
 
 lablGL/%.o: CFLAGS += -I $(STDLIB)
 
@@ -106,7 +107,8 @@ $(LLPP): $(LLPP)_$(SYSTEM).$(BEST)
 $(LLPP).app: $(LLPP)_cocoa.$(BEST)
 	$(RM) -rf $(LLPP).app
 	mkdir -p $(LLPP).app/Contents/MacOS
-	cp misc/Info.plist $(LLPP).app/Contents/Info.plist
+	cat misc/Info.plist | sed s/@VERSION@/$(VERSION)/ | \
+	sed s/@BUNDLE_VERSION@/$(GIT_DESCR)/ > $(LLPP).app/Contents/Info.plist
 	cp $(LLPP)_cocoa.$(BEST) $(LLPP).app/Contents/MacOS/$(LLPP)
 
 .PHONY: mupdf force_mupdf
