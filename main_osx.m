@@ -538,9 +538,11 @@ NSCursor *GetCursor (int idx)
   id appMenuItem = [NSMenuItem new];
   id fileMenuItem = [NSMenuItem new];
   id windowMenuItem = [NSMenuItem new];
+  id helpMenuItem = [NSMenuItem new];
   [menubar addItem:appMenuItem];
   [menubar addItem:fileMenuItem];
   [menubar addItem:windowMenuItem];
+  [menubar addItem:helpMenuItem];
   [NSApp setMainMenu:menubar];
   id appMenu = [NSMenu new];
   id appName = [[NSProcessInfo processInfo] processName];
@@ -588,9 +590,17 @@ NSCursor *GetCursor (int idx)
   id zoomMenuItem = [[NSMenuItem alloc] initWithTitle:@"Zoom"
                                                action:@selector(performZoom:)
                                         keyEquivalent:@""];
+
   [windowMenu addItem:miniaturizeMenuItem];
   [windowMenu addItem:zoomMenuItem];
   [windowMenuItem setSubmenu:windowMenu];
+
+  id helpMenu = [[NSMenu alloc] initWithTitle:@"Help"];
+  id reportIssueMenuItem = [[NSMenuItem alloc] initWithTitle:@"Report an issue..."
+                                                      action:@selector(reportIssue:)
+                                               keyEquivalent:@""];
+  [helpMenu addItem:reportIssueMenuItem];
+  [helpMenuItem setSubmenu:helpMenu];
 
   window = [[MyWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 400)
                                        styleMask:(NSClosableWindowMask | NSMiniaturizableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
@@ -744,6 +754,12 @@ NSCursor *GetCursor (int idx)
          }
       }
     }];
+}
+
+- (void)reportIssue:(id)sender
+{
+  [[NSWorkspace sharedWorkspace]
+    openURL:[NSURL URLWithString:@"https://github.com/moosotc/llpp/issues"]];
 }
 
 @end

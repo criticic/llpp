@@ -46,6 +46,7 @@ wsi.ml: wsi_$(SYSTEM).ml
 	$(RM) -f $@
 	$(CP) $< $@
 
+.PHONY: help.ml
 help.ml: KEYS mkhelp.sh
 	sh mkhelp.sh KEYS $(GIT_DESCR) > $@
 
