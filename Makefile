@@ -17,8 +17,8 @@ else
 SYSTEM ?= x11
 endif
 
-GIT_DESCR = $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
-VERSION = $(shell echo $(GIT_DESCR) | sed -n 's/v\([0-9]*\).*/\1/p')
+GIT_DESCR := $(or $(shell $(GIT) describe --tags 2>/dev/null),unknown)
+VERSION := $(shell echo $(GIT_DESCR) | sed -n 's/v\([0-9]*\).*/\1/p')
 
 LDFLAGS = -L mupdf/build/native
 LDLIBS = -lmupdf -lmupdfthird -lpthread
