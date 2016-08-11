@@ -536,7 +536,11 @@ NSCursor *GetCursor (int idx)
   NSLog(@"applicationWillFinishLaunching");
   id menubar = [NSMenu new];
   id appMenuItem = [NSMenuItem new];
+  id fileMenuItem = [NSMenuItem new];
+  id windowMenuItem = [NSMenuItem new];
   [menubar addItem:appMenuItem];
+  [menubar addItem:fileMenuItem];
+  [menubar addItem:windowMenuItem];
   [NSApp setMainMenu:menubar];
   id appMenu = [NSMenu new];
   id appName = [[NSProcessInfo processInfo] processName];
@@ -565,8 +569,31 @@ NSCursor *GetCursor (int idx)
   [appMenu addItem:quitMenuItem];
   [appMenuItem setSubmenu:appMenu];
 
+  id fileMenu = [[NSMenu alloc] initWithTitle:@"File"];
+  id openMenuItem = [[NSMenuItem alloc] initWithTitle:@"Open..."
+                                               action:@selector(openDocument:)
+                                        keyEquivalent:@"o"];
+  id closeMenuItem = [[NSMenuItem alloc] initWithTitle:@"Close"
+                                                action:@selector(performClose:)
+                                         keyEquivalent:@"w"];
+  [fileMenu addItem:openMenuItem];
+  [fileMenu addItem:[NSMenuItem separatorItem]];
+  [fileMenu addItem:closeMenuItem];
+  [fileMenuItem setSubmenu:fileMenu];
+
+  id windowMenu = [[NSMenu alloc] initWithTitle:@"Window"];
+  id miniaturizeMenuItem = [[NSMenuItem alloc] initWithTitle:@"Minimize"
+                                                   action:@selector(performMiniaturize:)
+                                            keyEquivalent:@"m"];
+  id zoomMenuItem = [[NSMenuItem alloc] initWithTitle:@"Zoom"
+                                               action:@selector(performZoom:)
+                                        keyEquivalent:@""];
+  [windowMenu addItem:miniaturizeMenuItem];
+  [windowMenu addItem:zoomMenuItem];
+  [windowMenuItem setSubmenu:windowMenu];
+
   window = [[MyWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 400)
-                                       styleMask:(NSClosableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
+                                       styleMask:(NSClosableWindowMask | NSMiniaturizableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
                                          backing:NSBackingStoreBuffered
                                            defer:NO];
 
@@ -703,6 +730,20 @@ NSCursor *GetCursor (int idx)
   NSLog (@"openFile: %@", filename);
   [connector openFile:filename];
   return YES;
+}
+
+- (void)openDocument:(id)sender
+{
+  NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+  [openPanel beginSheetModalForWindow:window
+                    completionHandler:^(NSInteger result){
+      if (result == NSFileHandlingPanelOKButton) {
+         NSString *filename = [[[openPanel URLs] objectAtIndex:0] path];
+         if (filename != nil) {
+           [self application:NSApp openFile:filename];
+         }
+      }
+    }];
 }
 
 @end
