@@ -874,7 +874,7 @@ let gotoxy x y =
     | Some time when state.ghyll == noghyll ->
         begin match state.throttle with
         | None ->
-            let layout = layout state.x y state.winw state.winh in
+            let layout = layout x y state.winw state.winh in
             let ready = layoutready layout in
             if not ready
             then (
@@ -888,7 +888,7 @@ let gotoxy x y =
             if dt > time
             then (
               state.throttle <- None;
-              let layout = layout state.x y state.winw state.winh in
+              let layout = layout x y state.winw state.winh in
               load layout;
               G.postRedisplay "maxwait";
               y, layout, true
@@ -897,7 +897,7 @@ let gotoxy x y =
         end
 
     | _ ->
-        let layout = layout state.x y state.winw state.winh in
+        let layout = layout x y state.winw state.winh in
         if not !wtmode || layoutready layout
         then G.postRedisplay "gotoxy ready";
         y, layout, true
