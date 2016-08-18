@@ -2131,11 +2131,11 @@ static void stipplerect (fz_matrix *m,
 
         w = p2->x - p1->x;
         h = p2->y - p1->y;
-        t = sqrtf (w*w + h*h) * .25f;
+        t = hypotf (w, h) * .25f;
 
         w = p3->x - p2->x;
         h = p3->y - p2->y;
-        s = sqrtf (w*w + h*h) * .25f;
+        s = hypotf (w, h) * .25f;
 
         texcoords[0] = 0; vertices[0] = p1->x; vertices[1] = p1->y;
         texcoords[1] = t; vertices[2] = p2->x; vertices[3] = p2->y;
