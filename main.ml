@@ -5627,8 +5627,6 @@ let zoomrect x y x1 y1 =
   let x0 = min x x1
   and x1 = max x x1
   and y0 = min y y1 in
-  gotoxy state.x (state.y + y0);
-  state.anchor <- getanchor ();
   let zoom = (float state.w) /. float (x1 - x0) in
   let margin =
     let simple () =
@@ -5645,7 +5643,8 @@ let zoomrect x y x1 y1 =
             onppundermouse (fun _ l _ _ -> Some l.pagedispx) x0 y0 x0
         | Cmulti _ | Csingle _ -> simple ()
   in
-  state.x <- (state.x + margin) - x0;
+  gotoxy ((state.x + margin) - x0) (state.y + y0);
+  state.anchor <- getanchor ();
   setzoom zoom;
   resetmstate ();
 ;;
