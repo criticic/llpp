@@ -2074,7 +2074,7 @@ let setzoom zoom =
       )
 ;;
 
-let setzoom ?(x=state.winw/2) ?(y=state.winh/2) zoom =
+let pivotzoom ?(x=state.winw/2) ?(y=state.winh/2) zoom =
   let w = float state.w /. zoom in
   let hw = w /. 2.0 in
   let x0 = float x -. hw in
@@ -4795,7 +4795,7 @@ let viewkeyboard key mask =
 
   | @plus | @kpplus | @equals when ctrl ->
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
-      setzoom (conf.zoom +. incr)
+      pivotzoom (conf.zoom +. incr)
 
   | @plus | @kpplus ->
       let ondone s =
@@ -4814,7 +4814,7 @@ let viewkeyboard key mask =
 
   | @minus | @kpminus when ctrl ->
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
-      setzoom (max 0.01 (conf.zoom -. decr))
+      pivotzoom (max 0.01 (conf.zoom -. decr))
 
   | @minus | @kpminus ->
       let ondone msg = state.text <- msg in
@@ -5773,7 +5773,7 @@ let viewmouse button down x y mask =
                       if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
                 in
                 let zoom = conf.zoom -. incr in
-                setzoom ~x ~y zoom;
+                pivotzoom ~x ~y zoom;
                 state.mstate <- Mzoom (n, 0);
               else
                 state.mstate <- Mzoom (n, i+1);
