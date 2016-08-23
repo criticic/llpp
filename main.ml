@@ -2074,6 +2074,15 @@ let setzoom zoom =
       )
 ;;
 
+let setzoom ?(x=state.winw/2) ?(y=state.winh/2) zoom =
+  let w = float state.w /. zoom in
+  let hw = w /. 2.0 in
+  let x0 = float x -. hw in
+  let y0 = float y -. hw in
+  gotoxy (state.x - truncate x0) (state.y + truncate y0);
+  setzoom zoom;
+;;
+
 let setcolumns mode columns coverA coverB =
   state.prevcolumns <- Some (conf.columns, conf.zoom);
   if columns < 0
@@ -5764,7 +5773,7 @@ let viewmouse button down x y mask =
                       if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
                 in
                 let zoom = conf.zoom -. incr in
-                setzoom zoom;
+                setzoom ~x ~y zoom;
                 state.mstate <- Mzoom (n, 0);
               else
                 state.mstate <- Mzoom (n, i+1);
