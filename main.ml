@@ -1327,7 +1327,7 @@ let represent () =
     | View
     | LinkNav _ ->
        let y = getanchory state.anchor in
-       let y = min y (state.maxy - state.winw - hscrollh ()) in
+       let y = min y (state.maxy - state.winh - hscrollh ()) in
        gotoxy state.x y;
   )
   else (
@@ -2077,8 +2077,10 @@ let setzoom zoom =
 let pivotzoom ?(x=state.winw/2) ?(y=state.winh/2) zoom =
   let w = float state.w /. zoom in
   let hw = w /. 2.0 in
+  let ratio = float state.winh /. float state.winw in
+  let hh = hw *. ratio in
   let x0 = float x -. hw in
-  let y0 = float y -. hw in
+  let y0 = float y -. hh in
   gotoxy (state.x - truncate x0) (state.y + truncate y0);
   setzoom zoom;
 ;;
