@@ -2077,16 +2077,18 @@ let setzoom zoom =
 let pivotzoom ?(vw=state.winw - vscrollw ())
               ?(vh=min state.maxy (state.winh - hscrollh ()))
               ?(x=vw/2) ?(y=vh/2) zoom =
-  if nogeomcmds state.geomcmds
-  then
-    let w = float state.w /. zoom in
-    let hw = w /. 2.0 in
-    let ratio = float vh /. float vw in
-    let hh = hw *. ratio in
-    let x0 = float x -. hw in
-    let y0 = float y -. hh in
-    gotoxy (state.x - truncate x0) (state.y + truncate y0);
-    setzoom zoom;
+  let w = float state.w /. zoom in
+  let hw = w /. 2.0 in
+  let ratio = float vh /. float vw in
+  let hh = hw *. ratio in
+  let x0 = float x -. hw in
+  let y0 = float y -. hh in
+  gotoxy (state.x - truncate x0) (state.y + truncate y0);
+  setzoom zoom;
+;;
+
+let pivotzoom ?vw ?vh ?x ?y zoom =
+  if nogeomcmds state.geomcmds then pivotzoom ?vw ?vh ?x ?y zoom
 ;;
 
 let setcolumns mode columns coverA coverB =
