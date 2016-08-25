@@ -1138,7 +1138,7 @@ let flushtiles () =
 ;;
 
 let stateh h =
-  let h = truncate (float h*.conf.zoom) in
+  let h = truncate (float (h-hscrollh ())*.conf.zoom) in
   let d = conf.interpagespace lsl (if conf.presentation then 1 else 0) in
   h - d
 ;;
@@ -1327,7 +1327,7 @@ let represent () =
     | View
     | LinkNav _ ->
        let y = getanchory state.anchor in
-       let y = min y (state.maxy - state.winh - hscrollh ()) in
+       let y = min y (state.maxy - (state.winh - hscrollh ())) in
        gotoxy state.x y;
   )
   else (
@@ -1342,7 +1342,7 @@ let reshape ?(firsttime=false) w h =
   then state.anchor <- getanchor ();
 
   state.winw <- w;
-  let w = wadjsb () + (truncate (float w *. conf.zoom)) in
+  let w = truncate (float (w - vscrollw ()) *. conf.zoom) in
   let w = max w 2 in
   state.winh <- h;
   setfontsize fstate.fontsize;
@@ -2074,12 +2074,14 @@ let setzoom zoom =
       )
 ;;
 
-let pivotzoom ?(x=state.winw/2) ?(y=state.winh/2) zoom =
+let pivotzoom ?(vw=state.winw - vscrollw ())
+              ?(vh=min state.maxy (state.winh - hscrollh ()))
+              ?(x=vw/2) ?(y=vh/2) zoom =
   if nogeomcmds state.geomcmds
   then
     let w = float state.w /. zoom in
     let hw = w /. 2.0 in
-    let ratio = float state.winh /. float state.winw in
+    let ratio = float vh /. float vw in
     let hh = hw *. ratio in
     let x0 = float x -. hw in
     let y0 = float y -. hh in
