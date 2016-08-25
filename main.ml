@@ -2623,7 +2623,8 @@ object (self)
             Gl.disable `texture_2d;
             let alpha = if source#hasaction row then 0.9 else 0.3 in
             GlDraw.color (1., 1., 1.) ~alpha;
-            linerect (x0 +. 1.) (float (y + 1)) (x1) (float (y + fs + 3));
+            linerect (float xadj +. x0 +. 1.)
+                     (float (y + 1)) (x1) (float (y + fs + 3));
             Gl.enable `texture_2d;
           );
           let c =
