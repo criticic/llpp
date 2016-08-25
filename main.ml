@@ -6200,8 +6200,8 @@ let uioh = object
     gotoxy_and_clear_text x (clamp (2 * dy));
     state.uioh
 
-  method zoom z _ _ =
-    setzoom (conf.zoom *. exp z);
+  method zoom z x y =
+    pivotzoom ~x ~y (conf.zoom *. exp z);
 end;;
 
 let addrect pageno r g b a x0 y0 x1 y1 =
