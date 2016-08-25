@@ -2075,7 +2075,7 @@ let setzoom zoom =
 ;;
 
 let pivotzoom ?(vw=state.winw - vscrollw ())
-              ?(vh=min state.maxy (state.winh - hscrollh ()))
+              ?(vh=min (state.maxy-state.y) (state.winh - hscrollh ()))
               ?(x=vw/2) ?(y=vh/2) zoom =
   let w = float state.w /. zoom in
   let hw = w /. 2.0 in
