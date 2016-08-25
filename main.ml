@@ -2574,12 +2574,12 @@ object (self)
     let tabw = 17.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
-    let x0 = 0.0
-    and x1 =
-      if conf.leftscroll
-      then float (state.winw - 1)
-      else float (state.winw - conf.scrollbw - 1)
-    in
+    if conf.leftscroll
+    then (
+      GlMat.push ();
+      GlMat.translate ~x:(float conf.scrollbw) ();
+    );
+    let x0 = 0.0 and x1 = float (state.winw - conf.scrollbw - 1) in
     let rec loop row =
       if (row - m_first) > fstate.maxrows
       then ()
@@ -2705,6 +2705,8 @@ object (self)
     Gl.disable `texture_2d;
     if Array.length minfo > 0 then loop m_first;
     Gl.disable `blend;
+    if conf.leftscroll
+    then GlMat.pop ();
 
   method updownlevel incr =
     let len = source#getitemcount in
