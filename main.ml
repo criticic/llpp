@@ -2596,10 +2596,11 @@ object (self)
     let tabw = 17.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
-    let x0, x1 =
+    let x0 = 0.0
+    and x1 =
       if conf.leftscroll
-      then float (xadjsb ()), float (state.winw - 1)
-      else 0.0, float (state.winw - conf.scrollbw - 1)
+      then float (state.winw - 1)
+      else float (state.winw - conf.scrollbw - 1)
     in
     let xadj = xadjsb () in
     let rec loop row =
