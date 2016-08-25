@@ -5648,7 +5648,7 @@ let zoomrect x y x1 y1 =
       let adjw = wadjsb () + state.winw in
       if state.w < adjw
       then (adjw - state.w) / 2
-      else 0
+      else xadjsb ()
     in
     match conf.fitmodel with
     | FitWidth | FitProportional -> simple ()
