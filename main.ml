@@ -1143,7 +1143,7 @@ let flushtiles () =
 ;;
 
 let stateh h =
-  let h = truncate (float h*.conf.zoom) in
+  let h = truncate (float (h-hscrollh ())*.conf.zoom) in
   let d = conf.interpagespace lsl (if conf.presentation then 1 else 0) in
   h - d
 ;;
@@ -1332,7 +1332,7 @@ let represent () =
     | View
     | LinkNav _ ->
        let y = getanchory state.anchor in
-       let y = min y (state.maxy - state.winw - hscrollh ()) in
+       let y = min y (state.maxy - (state.winh - hscrollh ())) in
        gotoxy state.x y;
   )
   else (
@@ -1347,7 +1347,7 @@ let reshape ?(firsttime=false) w h =
   then state.anchor <- getanchor ();
 
   state.winw <- w;
-  let w = wadjsb () + (truncate (float w *. conf.zoom)) in
+  let w = truncate (float (w - vscrollw ()) *. conf.zoom) in
   let w = max w 2 in
   state.winh <- h;
   setfontsize fstate.fontsize;
@@ -2079,6 +2079,23 @@ let setzoom zoom =
       )
 ;;
 
+let pivotzoom ?(vw=state.winw - vscrollw ())
+              ?(vh=min (state.maxy-state.y) (state.winh - hscrollh ()))
+              ?(x=vw/2) ?(y=vh/2) zoom =
+  let w = float state.w /. zoom in
+  let hw = w /. 2.0 in
+  let ratio = float vh /. float vw in
+  let hh = hw *. ratio in
+  let x0 = float x -. hw in
+  let y0 = float y -. hh in
+  gotoxy (state.x - truncate x0) (state.y + truncate y0);
+  setzoom zoom;
+;;
+
+let pivotzoom ?vw ?vh ?x ?y zoom =
+  if nogeomcmds state.geomcmds then pivotzoom ?vw ?vh ?x ?y zoom
+;;
+
 let setcolumns mode columns coverA coverB =
   state.prevcolumns <- Some (conf.columns, conf.zoom);
   if columns < 0
@@ -2267,7 +2284,7 @@ let optentry mode _ key =
         let ondone s =
           try
             let zoom = float (int_of_string s) /. 100.0 in
-            setzoom zoom
+            pivotzoom zoom
           with exn ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
@@ -2589,10 +2606,11 @@ object (self)
     let tabw = 17.0*.ww in
     let itemcount = source#getitemcount in
     let minfo = source#getminfo in
-    let x0, x1 =
+    let x0 = 0.0
+    and x1 =
       if conf.leftscroll
-      then float (xadjsb ()), float (state.winw - 1)
-      else 0.0, float (state.winw - conf.scrollbw - 1)
+      then float (state.winw - 1)
+      else float (state.winw - conf.scrollbw - 1)
     in
     let xadj = xadjsb () in
     let rec loop row =
@@ -2615,7 +2633,8 @@ object (self)
             Gl.disable `texture_2d;
             let alpha = if source#hasaction row then 0.9 else 0.3 in
             GlDraw.color (1., 1., 1.) ~alpha;
-            linerect (x0 +. 1.) (float (y + 1)) (x1) (float (y + fs + 3));
+            linerect (float xadj +. x0 +. 1.)
+                     (float (y + 1)) (x1) (float (y + fs + 3));
             Gl.enable `texture_2d;
           );
           let c =
@@ -3741,7 +3760,7 @@ let enterinfomode =
 
     src#int "zoom"
       (fun () -> truncate (conf.zoom *. 100.))
-      (fun v -> setzoom ((float v) /. 100.));
+      (fun v -> pivotzoom ((float v) /. 100.));
 
     src#int "rotation"
       (fun () -> conf.angle)
@@ -4816,7 +4835,7 @@ let viewkeyboard key mask =
 
   | Plus | KPplus | Equals when ctrl ->
       let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
-      setzoom (conf.zoom +. incr)
+      pivotzoom (conf.zoom +. incr)
 
   | Plus | KPplus ->
       let ondone s =
@@ -4835,7 +4854,7 @@ let viewkeyboard key mask =
 
   | Minus | KPminus when ctrl ->
       let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
-      setzoom (max 0.01 (conf.zoom -. decr))
+      pivotzoom (max 0.01 (conf.zoom -. decr))
 
   | Minus | KPminus ->
       let ondone msg = state.text <- msg in
@@ -5670,7 +5689,7 @@ let zoomrect x y x1 y1 =
       let adjw = wadjsb () + state.winw in
       if state.w < adjw
       then (adjw - state.w) / 2
-      else 0
+      else xadjsb ()
     in
     match conf.fitmodel with
     | FitWidth | FitProportional -> simple ()
@@ -5801,7 +5820,7 @@ let viewmouse button down x y mask =
                       if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
                 in
                 let zoom = conf.zoom -. incr in
-                setzoom zoom;
+                pivotzoom ~x ~y zoom;
                 state.mstate <- Mzoom (n, 0);
               else
                 state.mstate <- Mzoom (n, i+1);
