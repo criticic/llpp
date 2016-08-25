@@ -118,6 +118,7 @@ let hscrollh () =
 
 let vscrollw () =
   if not state.uioh#alwaysscrolly && (conf.scrollb land scrollbvv = 0)
+     || (state.maxy < state.winh)
   then 0
   else conf.scrollbw
 ;;
