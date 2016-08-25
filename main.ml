@@ -2279,7 +2279,7 @@ let optentry mode _ key =
         let ondone s =
           try
             let zoom = float (int_of_string s) /. 100.0 in
-            setzoom zoom
+            pivotzoom zoom
           with exn ->
             state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
         in
@@ -3732,7 +3732,7 @@ let enterinfomode =
 
     src#int "zoom"
       (fun () -> truncate (conf.zoom *. 100.))
-      (fun v -> setzoom ((float v) /. 100.));
+      (fun v -> pivotzoom ((float v) /. 100.));
 
     src#int "rotation"
       (fun () -> conf.angle)
