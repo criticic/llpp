@@ -6095,7 +6095,7 @@ let uioh = object
     vscrollw (), p, h
 
   method scrollpw =
-    let fwinw = float state.winw in
+    let fwinw = float (state.winw - vscrollw ()) in
     let sw =
       let sw = fwinw /. float state.w in
       let sw = fwinw *. sw in
