@@ -5737,7 +5737,12 @@ let viewmouse button down x y mask =
       if Wsi.withctrl mask
       then (
         match state.mstate with
-        | Mzoom (oldn, i) ->
+        | Mzoom (oldn, i, (ftx, fty)) ->
+           let recenter =
+             if false
+             then abs (ftx - x) > 5 || abs (fty - y) > 5
+             else false
+           in
             if oldn = n
             then (
               if i = 2
@@ -5750,18 +5755,20 @@ let viewmouse button down x y mask =
                       if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
                 in
                 let zoom = conf.zoom -. incr in
-                pivotzoom ~x ~y zoom;
-                state.mstate <- Mzoom (n, 0);
+                if recenter
+                then pivotzoom ~x ~y zoom
+                else pivotzoom zoom;
+                state.mstate <- Mzoom (n, 0, (x, y));
               else
-                state.mstate <- Mzoom (n, i+1);
+                state.mstate <- Mzoom (n, i+1, (ftx, fty));
             )
-            else state.mstate <- Mzoom (n, 0)
+            else state.mstate <- Mzoom (n, 0, (ftx, fty))
 
         | Msel _
         | Mpan _
         | Mscrolly | Mscrollx
         | Mzoomrect _
-        | Mnone -> state.mstate <- Mzoom (n, 0)
+        | Mnone -> state.mstate <- Mzoom (n, 0, (0, 0))
       )
       else (
         match state.autoscroll with

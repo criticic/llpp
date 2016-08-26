@@ -335,7 +335,7 @@ and mstate =
     | Msel of (mpos * mpos)
     | Mpan of mpos
     | Mscrolly | Mscrollx
-    | Mzoom of (buttonno * step)
+    | Mzoom of (buttonno * step * mpos)
     | Mzoomrect of (mpos * mpos)
     | Mnone
 and buttonno = int
