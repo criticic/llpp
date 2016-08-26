@@ -5693,7 +5693,9 @@ let scrollx x =
 
 let scrolly y =
   let s = float y /. float state.winh in
-  let desty = truncate (float (state.maxy - state.winh) *. s) in
+  let desty = truncate (float (state.maxy -
+                                 (if conf.maxhfit then state.winh else 0))
+                                 *. s) in
   gotoxy_and_clear_text state.x desty;
   state.mstate <- Mscrolly;
 ;;
