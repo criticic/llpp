@@ -387,8 +387,8 @@ type state =
     ; mutable errmsgs       : Buffer.t
     ; mutable newerrmsgs    : bool
     ; mutable w             : int
-    ; mutable x             : int
-    ; mutable y             : int
+    ; mutable x             : x
+    ; mutable y             : y
     ; mutable anchor        : anchor
     ; mutable ranchors      : (string * string * anchor * string) list
     ; mutable maxy          : int
