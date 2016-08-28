@@ -70,7 +70,8 @@ if test ! -e "$1" && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
 
     md5of="$cachedir/$(basename "$1")"
     dl "$1" "$md5of" || test -e "$md5of"
-    set -- "$md5of" ${2+"@"}
+    shift
+    set -- "$md5of" "$@"
 else
     md5of="$1"
 fi
