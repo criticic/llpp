@@ -110,17 +110,17 @@ let cxack = ref false;;
 let pgscale h = truncate (float h *. conf.pgscale);;
 
 let hscrollh () =
-  if not state.uioh#alwaysscrolly && (conf.scrollb land scrollbhv = 0)
-         || (state.x = 0 && state.w <= state.winw)
-  then 0
-  else conf.scrollbw
+  if state.uioh#alwaysscrolly || ((conf.scrollb land scrollbhv != 0)
+                                  && (state.w > state.winw))
+  then conf.scrollbw
+  else 0
 ;;
 
 let vscrollw () =
-  if not state.uioh#alwaysscrolly && (conf.scrollb land scrollbvv = 0)
-     || (state.maxy < state.winh)
-  then 0
-  else conf.scrollbw
+  if state.uioh#alwaysscrolly || ((conf.scrollb land scrollbvv != 0)
+                                  && (state.maxy > state.winh))
+  then conf.scrollbw
+  else 0
 ;;
 
 let vscrollhit x =
