@@ -5482,6 +5482,7 @@ let scrollindicator () =
   in
 
   Gl.enable `blend;
+  GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
   GlDraw.color (0.64, 0.64, 0.64) ~alpha:0.7;
   filledrect (float x0) 0. (float x1) (float state.winh);
   filledrect
