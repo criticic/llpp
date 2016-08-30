@@ -2048,14 +2048,14 @@ let setzoom zoom =
       )
 ;;
 
-let pivotzoom ?(vw=state.winw)
+let pivotzoom ?(vw=min state.w state.winw)
               ?(vh=min (state.maxy-state.y) state.winh)
               ?(x=vw/2) ?(y=vh/2) zoom =
   let w = float state.w /. zoom in
   let hw = w /. 2.0 in
   let ratio = float vh /. float vw in
   let hh = hw *. ratio in
-  let x0 = float x -. hw in
+  let x0 = if zoom < 1.0 then 0.0 else float x -. hw in
   let y0 = float y -. hh in
   gotoxy (state.x - truncate x0) (state.y + truncate y0);
   setzoom zoom;
