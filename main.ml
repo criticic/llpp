@@ -5620,7 +5620,11 @@ let zoomrect x y x1 y1 =
   and y0 = min y y1 in
   let zoom = (float state.w) /. float (x1 - x0) in
   let margin =
-    let simple () = if state.w < state.winw then state.w / 2 else 0 in
+    let simple () =
+      if state.w < state.winw
+      then (state.winw - state.w) / 2
+      else 0
+    in
     match conf.fitmodel with
     | FitWidth | FitProportional -> simple ()
     | FitPage ->
