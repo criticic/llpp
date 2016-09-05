@@ -79,7 +79,6 @@ z                       - crop
 n                       - repeat last search (forward)
 p, N                    - repeat last search (backward)
 Ctrl-g                  - interrupt search
-u                       - dehighlight
 
 -----Settings / Modes-----
 [,]                     - decrease/increase page brightness
