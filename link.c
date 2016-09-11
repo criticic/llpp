@@ -1479,7 +1479,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
 
         sheet = fz_new_stext_sheet (state.ctx);
         text = fz_new_stext_page (state.ctx, &pdim->mediabox);
-        tdev = fz_new_stext_device (state.ctx, sheet, text);
+        tdev = fz_new_stext_device (state.ctx, sheet, text, 0);
 
         page = fz_load_page (state.ctx, state.doc, pageno);
         {
@@ -2743,7 +2743,7 @@ static void ensuretext (struct page *page)
         page->text = fz_new_stext_page (state.ctx,
                                         &state.pagedims[page->pdimno].mediabox);
         page->sheet = fz_new_stext_sheet (state.ctx);
-        tdev = fz_new_stext_device (state.ctx, page->sheet, page->text);
+        tdev = fz_new_stext_device (state.ctx, page->sheet, page->text, 0);
         ctm = pagectm (page);
         fz_run_display_list (state.ctx, page->dlist,
                              tdev, &ctm, &fz_infinite_rect, NULL);
