@@ -4439,7 +4439,7 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
         annot = pdf_create_annot (state.ctx, pdf,
                                   pdf_page_from_fz_page (state.ctx,
                                                          page->fzpage),
-                                  FZ_ANNOT_TEXT);
+                                  PDF_ANNOT_TEXT);
         p.x = Int_val (x_v);
         p.y = Int_val (y_v);
         pdf_set_annot_contents (state.ctx, pdf, annot, String_val (contents_v));
