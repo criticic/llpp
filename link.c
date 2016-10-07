@@ -3184,10 +3184,10 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                             fz_stext_style *style = span->text->style;
                             const char *n2 =
                                 style->font
-                                ? style->font->name
+                                ? fz_font_name (style->font)
                                 : "Span has no font name"
                                 ;
-                            FT_FaceRec *face = style->font->ft_face;
+                            FT_FaceRec *face = fz_font_ft_face (style->font);
                             if (face && face->family_name) {
                                 char *s;
                                 char *n1 = face->family_name;
