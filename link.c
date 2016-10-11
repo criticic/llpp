@@ -528,7 +528,7 @@ static void pdfinfo (void)
 
             for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
                 pdf_obj *obj = pdf_dict_gets (state.ctx, infoobj, items[i]);
-                s = pdf_to_utf8 (state.ctx, pdf, obj);
+                s = pdf_to_utf8 (state.ctx, obj);
                 if (*s) printd ("info %s\t%s", items[i], s);
                 fz_free (state.ctx, s);
             }
@@ -3184,10 +3184,11 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                             fz_stext_style *style = span->text->style;
                             const char *n2 =
                                 style->font
-                                ? fz_font_name (style->font)
+                                ? fz_font_name (state.ctx, style->font)
                                 : "Span has no font name"
                                 ;
-                            FT_FaceRec *face = fz_font_ft_face (style->font);
+                            FT_FaceRec *face = fz_font_ft_face (state.ctx,
+                                                                style->font);
                             if (face && face->family_name) {
                                 char *s;
                                 char *n1 = face->family_name;
@@ -4436,14 +4437,14 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
         char *s = String_val (ptr_v);
 
         page = parse_pointer (__func__, s);
-        annot = pdf_create_annot (state.ctx, pdf,
+        annot = pdf_create_annot (state.ctx,
                                   pdf_page_from_fz_page (state.ctx,
                                                          page->fzpage),
                                   PDF_ANNOT_TEXT);
         p.x = Int_val (x_v);
         p.y = Int_val (y_v);
-        pdf_set_annot_contents (state.ctx, pdf, annot, String_val (contents_v));
-        pdf_set_text_annot_position (state.ctx, pdf, annot, p);
+        pdf_set_annot_contents (state.ctx, annot, String_val (contents_v));
+        pdf_set_text_annot_position (state.ctx, annot, p);
         state.dirty = 1;
     }
     CAMLreturn (Val_unit);
@@ -4461,7 +4462,7 @@ CAMLprim value ml_delannot (value ptr_v, value n_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        pdf_delete_annot (state.ctx, pdf,
+        pdf_delete_annot (state.ctx,
                           pdf_page_from_fz_page (state.ctx, page->fzpage),
                           (pdf_annot *) slink->u.annot);
         state.dirty = 1;
@@ -4481,7 +4482,7 @@ CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        pdf_set_annot_contents (state.ctx, pdf, (pdf_annot *) slink->u.annot,
+        pdf_set_annot_contents (state.ctx, (pdf_annot *) slink->u.annot,
                                 String_val (str_v));
         state.dirty = 1;
     }
