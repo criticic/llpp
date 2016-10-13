@@ -4869,7 +4869,7 @@ let viewkeyboard key mask =
 
   | @b ->
       conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
-      reshape state.winw state.winh;
+      G.postRedisplay "toggle scrollbar";
 
   | @B ->
       state.bzoom <- not state.bzoom;
