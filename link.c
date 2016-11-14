@@ -1254,9 +1254,9 @@ uritoanchor (const char *uri)
         }
 
         fz_transform_point (&p, &pdim->ctm);
-        a.x = p.x;
-        a.y = p.y;
-        a.h = fz_absi (pdim->bounds.y1 - pdim->bounds.y0);
+        a.x = fz_maxi (p.x, 0);
+        a.y = fz_maxi (p.y, 0);
+        a.h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
     }
     return a;
 }
