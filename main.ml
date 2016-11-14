@@ -4553,9 +4553,9 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
     let enter = mkselector sourcetype in
     fun () -> enter errmsg
   in
-  ( mkenter `outlines "document has no outline"
-  , mkenter `bookmarks "document has no bookmarks (yet)"
-  , mkenter `history "history is empty")
+      mkenter `outlines "document has no outline"
+    , mkenter `bookmarks "document has no bookmarks (yet)"
+    , mkenter `history "history is empty"
 ;;
 
 let quickbookmark ?title () =
