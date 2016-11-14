@@ -11,7 +11,7 @@ Prerequisites for building from sources:
 
   llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
   llpp% cd mupdf
-  mupdf% git checkout c991e3cab4da6df789ef663423952062d45dcd6b
+  mupdf% git checkout 2216f9402a9ddf232e15fdd508b9123011af8bd3
   mupdf% git submodule update --recursive
   mupdf% make build=native libs
   mupdf% cd ..

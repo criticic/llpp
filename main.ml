@@ -4293,7 +4293,17 @@ let gotounder under =
         gotopage1 pageno top;
       )
 
-  | Ulinkuri s -> gotouri s
+  | Ulinkuri s ->
+     begin try
+         Scanf.sscanf s "#%d" (fun n ->
+                        if n > 0
+                        then (
+                          addnav ();
+                          gotopage1 (n-1) 0
+                        )
+                      )
+       with _ -> gotouri s
+     end
 
   | Uremote (filename, pageno) ->
       let path = getpath filename in
@@ -4543,9 +4553,9 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
     let enter = mkselector sourcetype in
     fun () -> enter errmsg
   in
-  (**)mkenter `outlines "document has no outline"
-    , mkenter `bookmarks "document has no bookmarks (yet)"
-    , mkenter `history "history is empty"
+  ( mkenter `outlines "document has no outline"
+  , mkenter `bookmarks "document has no bookmarks (yet)"
+  , mkenter `history "history is empty")
 ;;
 
 let quickbookmark ?title () =
