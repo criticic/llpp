@@ -4307,8 +4307,9 @@ let gotounder under =
                         if n > 0
                         then (
                           addnav ();
+                          let _, h = getpageyh n in
                           let p = transformpagepoint (n-1) x y in
-                          gotopage1 (n-1) @@ truncate p.(1)
+                          gotopage1 (n-1) @@ h - truncate p.(1)
                         )
                         else gotouri s
                       )
