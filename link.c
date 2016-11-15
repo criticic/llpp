@@ -1243,7 +1243,7 @@ uritoanchor (const char *uri)
 
     a.n = -1;
     a.n = fz_resolve_link (state.ctx, state.doc, uri, &p.x, &p.y);
-    if (a.n > 0) {
+    if (a.n >= 0) {
         int i;
         struct pagedim *pdim = state.pagedims;
 
@@ -1622,6 +1622,28 @@ static char *mbtoutf8 (char *s)
     free (tmp);
     return r;
 }
+
+CAMLprim value ml_transform_page_point (value pageno_v, value x_v, value y_v)
+{
+    CAMLparam3 (pageno_v, x_v, y_v);
+    CAMLlocal1 (ret_v);
+    int i;
+    struct pagedim *pdim = state.pagedims;
+    fz_point p = { .x = Int_val (x_v), .y = Int_val (y_v) };
+
+    for (i = 0; i < state.pagedimcount; ++i) {
+        if (state.pagedims[i].pageno > Int_val (pageno_v))
+            break;
+        pdim = &state.pagedims[i];
+    }
+    fz_transform_point (&p, &pdim->ctm);
+
+    ret_v = caml_alloc_small (2 * Double_wosize, Double_array_tag);
+    Store_double_field (ret_v, 0, p.x);
+    Store_double_field (ret_v, 1, p.y);
+    CAMLreturn (ret_v);
+}
+
 
 CAMLprim value ml_mbtoutf8 (value s_v)
 {

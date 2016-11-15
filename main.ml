@@ -50,7 +50,8 @@ external drawprect : opaque -> int -> int -> float array -> unit =
   "ml_drawprect";;
 external wcmd : Unix.file_descr -> bytes -> int -> unit = "ml_wcmd";;
 external rcmd : Unix.file_descr -> string = "ml_rcmd";;
-
+external transformpagepoint : int -> int -> int -> float array
+  = "ml_transform_page_point";;
 let selfexec = ref E.s;;
 let opengl_has_pbo = ref false;;
 
@@ -4294,16 +4295,25 @@ let gotounder under =
       )
 
   | Ulinkuri s ->
-     begin try
-         Scanf.sscanf s "#%d" (fun n ->
+     let re = Str.regexp {|\(([a-z]\)+://|} in
+     if Str.string_match re s 0
+     then
+       match Str.matched_group 1 s with
+       | "file" -> dolog "remote!"
+       |  _ -> gotouri s
+     else (
+       try
+         Scanf.sscanf s "#%d,%d,%d" (fun n x y ->
                         if n > 0
                         then (
                           addnav ();
-                          gotopage1 (n-1) 0
+                          let p = transformpagepoint (n-1) x y in
+                          gotopage1 (n-1) @@ truncate p.(1)
                         )
+                        else gotouri s
                       )
        with _ -> gotouri s
-     end
+     )
 
   | Uremote (filename, pageno) ->
       let path = getpath filename in
