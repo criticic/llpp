@@ -4309,7 +4309,12 @@ let gotounder under =
                           addnav ();
                           let _, h = getpageyh n in
                           let p = transformpagepoint (n-1) x y in
-                          gotopage1 (n-1) @@ h - truncate p.(1)
+                          let y =
+                            if conf.coarseprespos
+                            then 0
+                            else h - truncate p.(1)
+                          in
+                          gotopage1 (n-1) y
                         )
                         else gotouri s
                       )
