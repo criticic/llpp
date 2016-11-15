@@ -120,13 +120,7 @@ and tileparams     = (x * y * width * height * tilex * tiley)
 and under =
     | Unone
     | Ulinkuri of string
-    | Ulinkgoto of (int * int)
     | Utext of facename
-    | Uunexpected of string
-    | Ulaunch of launchcommand
-    | Unamed of destname
-    | Uremote of (filename * pageno)
-    | Uremotedest of (filename * destname)
     | Uannotation of (opaque * slinkindex)
 and slinkindex = int
 and facename = string

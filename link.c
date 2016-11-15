@@ -2920,8 +2920,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     CAMLreturn (ret_v);
 }
 
-enum { uuri, ugoto, utext, uunexpected, ulaunch,
-       unamed, uremote, uremotedest, uannot };
+enum { uuri, utext, uannot };
 
 CAMLprim value ml_getlink (value ptr_v, value n_v)
 {

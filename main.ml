@@ -311,21 +311,10 @@ let selstring s =
       clo "selstring pipe/w" w;
 ;;
 
-let undertext ?(nopath=false) = function
+let undertext = function
   | Unone -> "none"
   | Ulinkuri s -> s
-  | Ulinkgoto (pageno, _) ->
-      if nopath
-      then "page " ^ string_of_int (pageno+1)
-      else Printf.sprintf "%s: page %d" state.path (pageno+1)
   | Utext s -> "font: " ^ s
-  | Uunexpected s -> "unexpected: " ^ s
-  | Ulaunch s -> "launch: " ^ s
-  | Unamed s -> "named: " ^ s
-  | Uremote (filename, pageno) ->
-      Printf.sprintf "%s: page %d" filename (pageno+1)
-  | Uremotedest (filename, destname) ->
-      Printf.sprintf "%s: destination %S" filename destname
   | Uannotation (opaque, slinkindex) ->
      "annotation: " ^ getannotcontents opaque slinkindex
 ;;
@@ -336,30 +325,9 @@ let updateunder x y =
   | Ulinkuri uri ->
       if conf.underinfo then showtext 'u' ("ri: " ^ uri);
       Wsi.setcursor Wsi.CURSOR_INFO
-  | Ulinkgoto (pageno, _) ->
-      if conf.underinfo
-      then showtext 'p' ("age: " ^ string_of_int (pageno+1));
-      Wsi.setcursor Wsi.CURSOR_INFO
   | Utext s ->
       if conf.underinfo then showtext 'f' ("ont: " ^ s);
       Wsi.setcursor Wsi.CURSOR_TEXT
-  | Uunexpected s ->
-      if conf.underinfo then showtext 'u' ("nexpected: " ^ s);
-      Wsi.setcursor Wsi.CURSOR_INHERIT
-  | Ulaunch s ->
-      if conf.underinfo then showtext 'l' ("aunch: " ^ s);
-      Wsi.setcursor Wsi.CURSOR_INHERIT
-  | Unamed s ->
-      if conf.underinfo then showtext 'n' ("amed: " ^ s);
-      Wsi.setcursor Wsi.CURSOR_INHERIT
-  | Uremote (filename, pageno) ->
-      if conf.underinfo then showtext 'r'
-        (Printf.sprintf "emote: %s (%d)" filename (pageno+1));
-      Wsi.setcursor Wsi.CURSOR_INFO
-  | Uremotedest (filename, destname) ->
-      if conf.underinfo then showtext 'r'
-        (Printf.sprintf "emote destination: %s (%S)" filename destname);
-      Wsi.setcursor Wsi.CURSOR_INFO
   | Uannotation _ ->
       if conf.underinfo then showtext 'a' "nnotation";
       Wsi.setcursor Wsi.CURSOR_INFO
@@ -1974,7 +1942,7 @@ let linknentry text key =
   if key >= 32 && key < 127
   then
     let text = addchar text (Char.chr key) in
-    linknact (fun under -> state.text <- undertext ~nopath:true under) text;
+    linknact (fun under -> state.text <- undertext under) text;
     TEcont text
   else (
     state.text <- Printf.sprintf "invalid key %d" key;
@@ -4261,39 +4229,7 @@ let enterannotmode opaque slinkindex =
 ;;
 
 let gotounder under =
-  let getpath filename =
-    let path =
-      if nonemptystr filename
-      then
-        if Filename.is_relative filename
-        then
-          let dir = Filename.dirname state.path in
-          let dir =
-            if Filename.is_implicit dir
-            then Filename.concat (Sys.getcwd ()) dir
-            else dir
-          in
-          Filename.concat dir filename
-        else filename
-      else E.s
-    in
-    if Sys.file_exists path
-    then path
-    else E.s
-  in
   match under with
-  | Ulinkgoto (pageno, top) ->
-      if pageno >= 0
-      then (
-        addnav ();
-        let top =
-          if conf.presentation && conf.coarseprespos
-          then 0
-          else top
-        in
-        gotopage1 pageno top;
-      )
-
   | Ulinkuri s ->
      let re = Str.regexp {|\(([a-z]\)+://|} in
      if Str.string_match re s 0
@@ -4321,49 +4257,7 @@ let gotounder under =
        with _ -> gotouri s
      )
 
-  | Uremote (filename, pageno) ->
-      let path = getpath filename in
-      if nonemptystr path
-      then (
-        if conf.riani
-        then
-          let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
-          match spawn command [] with
-          | _pid -> ()
-          | (exception exn) ->
-             dolog "failed to execute `%s': %s" command @@ exntos exn
-        else
-          let anchor = getanchor () in
-          let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- E.s;
-          state.anchor <- (pageno, 0.0, 0.0);
-          state.ranchors <- ranchor :: state.ranchors;
-          opendoc path E.s;
-      )
-      else impmsg "cannot find %s" filename
-
-  | Uremotedest (filename, destname) ->
-      let path = getpath filename in
-      if nonemptystr path
-      then (
-        if conf.riani
-        then
-          let command = !selfexec ^ " " ^ path ^ " -dest " ^ destname in
-          match spawn command [] with
-          | (exception exn) ->
-             dolog "failed to execute `%s': %s" command @@ exntos exn
-          | _pid -> ()
-        else
-          let anchor = getanchor () in
-          let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- E.s;
-          state.nameddest <- destname;
-          state.ranchors <- ranchor :: state.ranchors;
-          opendoc path E.s;
-      )
-      else impmsg "cannot find %s" filename
-
-  | Uunexpected _ | Ulaunch _ | Unamed _ | Utext _ | Unone -> ()
+  | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
 ;;
 
@@ -4378,10 +4272,10 @@ let gotooutline (_, _, kind) =
       addnav ();
       gotoghyll y
   | Ouri uri -> gotounder (Ulinkuri uri)
-  | Olaunch cmd -> gotounder (Ulaunch cmd)
-  | Oremote remote -> gotounder (Uremote remote)
+  | Olaunch _cmd -> failwith "gotounder (Ulaunch cmd)"
+  | Oremote _remote -> failwith "gotounder (Uremote remote)"
   | Ohistory hist -> gotohist hist
-  | Oremotedest remotedest -> gotounder (Uremotedest remotedest)
+  | Oremotedest _remotedest -> failwith "gotounder (Uremotedest remotedest)"
 ;;
 
 class outlinesoucebase fetchoutlines = object (self)
@@ -5911,10 +5805,7 @@ let viewmouse button down x y mask =
   | 1 ->
       let dest = if down then getunder x y else Unone in
       begin match dest with
-      | Ulinkgoto _
-      | Ulinkuri _
-      | Uremote _ | Uremotedest _
-      | Uunexpected _ | Ulaunch _ | Unamed _ ->
+      | Ulinkuri _ ->
           gotounder dest
 
       | Unone when down ->
@@ -6215,10 +6106,12 @@ let ract cmds =
   | "goto1", args -> scan args "%u %f" gotopage
   | "gotor", args ->
       scan args "%S %u"
-        (fun filename pageno -> gotounder (Uremote (filename, pageno)))
+           (fun _filename _pageno ->
+             failwith "gotounder (Uremote (filename, pageno))")
   | "gotord", args ->
       scan args "%S %S"
-        (fun filename dest -> gotounder (Uremotedest (filename, dest)))
+           (fun _filename _dest ->
+             failwith "gotounder (Uremotedest (filename, dest))")
   | "rect", args ->
      scan args "%u %u %f %f %f %f"
           (fun pageno c x0 y0 x1 y1 ->
