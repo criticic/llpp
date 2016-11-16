@@ -170,8 +170,8 @@ let addchar s c =
 
 let btod b = if b then 1 else 0;;
 
-let splitatspace s = let open String in
-  match index s ' ' with
+let splitatchar s c = let open String in
+  match index s c with
   | pos -> sub s 0 pos, sub s (pos+1) (length s - pos - 1)
   | exception Not_found -> s, E.s
 ;;
@@ -281,4 +281,15 @@ let geturl =
     if Str.string_match re s 0
     then Str.matched_group 1 s
     else E.s
+;;
+
+let stringbeginswithat s pos prefix =
+  let prefixlen = String.length prefix in
+  if String.length s - pos >= prefixlen
+  then
+    let rec cmp i =
+      i = prefixlen || (s.[pos+i] = prefix.[i]) && cmp (i+1)
+    in
+    cmp 0
+  else false
 ;;

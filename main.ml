@@ -1537,7 +1537,7 @@ let pgoto opaque pageno x y =
 
 let act cmds =
   (* dolog "%S" cmds; *)
-  let spl = splitatspace cmds in
+  let spl = splitatchar cmds ' ' in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
@@ -4229,7 +4229,71 @@ let enterannotmode opaque slinkindex =
 ;;
 
 let gotoremote spec =
-  impmsg "remote handling is not done yet - %s" spec
+  let filename, dest = splitatchar spec '#' in
+  let getpath filename =
+    let path =
+      if nonemptystr filename
+      then
+        if Filename.is_relative filename
+        then
+          let dir = Filename.dirname state.path in
+          let dir =
+            if Filename.is_implicit dir
+            then Filename.concat (Sys.getcwd ()) dir
+            else dir
+          in
+          Filename.concat dir filename
+        else filename
+      else E.s
+    in
+    if Sys.file_exists path
+    then path
+    else E.s
+  in
+  if stringbeginswithat spec 0 "page="
+  then
+    let pageno =
+      try Scanf.sscanf spec "page=%d" (fun n -> n)
+      with _ -> -1
+    in
+    if pageno = -1
+    then impmsg "malformed uri %s [%s, %s]" spec filename dest
+    else (
+      let path = getpath filename in
+      if nonemptystr path
+      then (
+        if conf.riani
+        then
+          let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
+          match spawn command [] with
+          | _pid -> ()
+          | (exception exn) ->
+             dolog "failed to execute `%s': %s" command @@ exntos exn
+        else
+          let anchor = getanchor () in
+          let ranchor = state.path, state.password, anchor, state.origin in
+          state.origin <- E.s;
+          state.anchor <- (pageno, 0.0, 0.0);
+          state.ranchors <- ranchor :: state.ranchors;
+          opendoc path E.s;
+      )
+    )
+  else
+    let path = getpath filename in
+    if conf.riani
+    then
+      let command = !selfexec ^ " " ^ path ^ " -dest " ^ dest in
+      match spawn command [] with
+      | (exception exn) ->
+         dolog "failed to execute `%s': %s" command @@ exntos exn
+      | _pid -> ()
+    else
+      let anchor = getanchor () in
+      let ranchor = state.path, state.password, anchor, state.origin in
+      state.origin <- E.s;
+      state.nameddest <- dest;
+      state.ranchors <- ranchor :: state.ranchors;
+      opendoc path E.s;
 ;;
 
 let gotounder under =
@@ -6073,7 +6137,7 @@ let addrect pageno r g b a x0 y0 x1 y1 =
 ;;
 
 let ract cmds =
-  let cl = splitatspace cmds in
+  let cl = splitatchar cmds ' ' in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
