@@ -158,7 +158,7 @@ let parse v s =
     in
     pos
   in
-  let begins_with pos prefix = Utils.stringbeginswithat s pos prefix in
+  let begins_with pos prefix = Utils.strhasat s pos prefix in
   let find_non_white pos =
     let rec forward i =
       if i >= slen

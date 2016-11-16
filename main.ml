@@ -4251,41 +4251,33 @@ let gotoremote spec =
     else E.s
   in
   let path = getpath filename in
-  if stringbeginswithat spec 0 "page="
-  then
-    match Scanf.sscanf spec "page=%d" (fun n -> n) with
-    | pageno ->
-       if conf.riani
-       then
-         let cmd = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
-         match spawn cmd [] with
-         | _pid -> ()
-         | (exception exn) ->
-            dolog "failed to execute `%s': %s" cmd @@ exntos exn
-       else
-         let anchor = getanchor () in
-         let ranchor = state.path, state.password, anchor, state.origin in
-         state.origin <- E.s;
-         state.anchor <- (pageno, 0.0, 0.0);
-         state.ranchors <- ranchor :: state.ranchors;
-         opendoc path E.s;
-    | exception exn ->
-       adderrfmt "error parsing remote destination" "page: %s" @@ exntos exn
-  else
+  let dospawn lcmd =
     if conf.riani
     then
-      let cmd = !selfexec ^ " " ^ path ^ " -dest " ^ dest in
-      match spawn cmd [] with
+      let cmd = Lazy.force_val lcmd in
+      match spawn cmd with
+      | _pid -> ()
       | (exception exn) ->
          dolog "failed to execute `%s': %s" cmd @@ exntos exn
-      | _pid -> ()
     else
       let anchor = getanchor () in
       let ranchor = state.path, state.password, anchor, state.origin in
       state.origin <- E.s;
-      state.nameddest <- dest;
       state.ranchors <- ranchor :: state.ranchors;
       opendoc path E.s;
+  in
+
+  if strhasat spec 0 "page="
+  then
+    match Scanf.sscanf spec "page=%d" (fun n -> n) with
+    | pageno ->
+       state.anchor <- (pageno, 0.0, 0.0);
+       dospawn @@ lazy (Printf.sprintf "%s -page %d %S" !selfexec pageno path);
+    | exception exn ->
+       adderrfmt "error parsing remote destination" "page: %s" @@ exntos exn
+  else
+    state.nameddest <- dest;
+    dospawn @@ lazy (!selfexec ^ " " ^ path ^ " -dest " ^ dest)
 ;;
 
 let gotounder under =

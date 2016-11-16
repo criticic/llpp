@@ -283,13 +283,11 @@ let geturl =
     else E.s
 ;;
 
-let stringbeginswithat s pos prefix =
-  let prefixlen = String.length prefix in
-  if String.length s - pos >= prefixlen
+let strhasat s pos subs =
+  let subslen = String.length subs in
+  if String.length s - pos >= subslen
   then
-    let rec cmp i =
-      i = prefixlen || (s.[pos+i] = prefix.[i]) && cmp (i+1)
-    in
-    cmp 0
+    let rec cmp i = i = subslen || (s.[pos+i] = subs.[i]) && cmp (i+1)
+    in cmp 0
   else false
 ;;
