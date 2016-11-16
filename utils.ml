@@ -283,7 +283,7 @@ let geturl =
     else E.s
 ;;
 
-let strhasat s pos subs =
+let substratis s pos subs =
   let subslen = String.length subs in
   if String.length s - pos >= subslen
   then

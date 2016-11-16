@@ -1952,6 +1952,25 @@ static void * mainloop (void UNUSED_ATTR *unused)
     return 0;
 }
 
+CAMLprim value ml_uritolocation (value uri_v)
+{
+    CAMLparam1 (uri_v);
+    CAMLlocal1 (ret_v);
+    int pageno;
+    fz_point xy;
+    struct pagedim *pdim;
+
+    pageno = fz_resolve_link (state.ctx, state.doc, String_val (uri_v),
+                              &xy.x, &xy.y);
+    pdim = pdimofpageno (pageno);
+    fz_transform_point (&xy, &pdim->ctm);
+    ret_v = caml_alloc_tuple (3);
+    Field (ret_v, 0) = Val_int (pageno);
+    Field (ret_v, 1) = caml_copy_double (xy.x);
+    Field (ret_v, 2) = caml_copy_double (xy.y);
+    CAMLreturn (ret_v);
+}
+
 CAMLprim value ml_realloctexts (value texcount_v)
 {
     CAMLparam1 (texcount_v);

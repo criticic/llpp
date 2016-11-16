@@ -52,6 +52,9 @@ external wcmd : Unix.file_descr -> bytes -> int -> unit = "ml_wcmd";;
 external rcmd : Unix.file_descr -> string = "ml_rcmd";;
 external transformpagepoint : int -> int -> int -> float array
   = "ml_transform_page_point";;
+external uritolocation : string -> (pageno * float * float)
+  = "ml_uritolocation";;
+
 let selfexec = ref E.s;;
 let opengl_has_pbo = ref false;;
 
@@ -4267,7 +4270,7 @@ let gotoremote spec =
       opendoc path E.s;
   in
 
-  if strhasat spec 0 "page="
+  if substratis spec 0 "page="
   then
     match Scanf.sscanf spec "page=%d" (fun n -> n) with
     | pageno ->
@@ -4314,7 +4317,9 @@ let gotounder under =
              )
              else gotouri s
            )
-       with _ -> gotouri s
+       with _ ->
+         let pageno, x, y = uritolocation s in
+         gotopagexy !wtmode pageno x y
      )
 
   | Utext _ | Unone -> ()
