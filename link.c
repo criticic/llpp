@@ -1839,35 +1839,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             nameddest = p + 9 + off;
             if (pdf && nameddest && *nameddest) {
-#if FIXME
-                struct anchor a;
-                fz_link_dest dest;
-                pdf_obj *needle, *obj;
-
-                needle = pdf_new_string (state.ctx, pdf, nameddest,
-                                         strlen (nameddest));
-                obj = pdf_lookup_dest (state.ctx, pdf, needle);
-                if (obj) {
-                    dest = pdf_parse_link_dest (state.ctx, pdf,
-                                                FZ_LINK_GOTO, obj);
-
-                    a = desttoanchor (&dest);
-                    if (a.n >= 0) {
-                        printd ("a %d %d %d", a.n, a.x, a.y);
-                    }
-                    else {
-                        printd ("emsg failed to parse destination `%s'\n",
-                                nameddest);
-                    }
-                }
-                else {
-                    printd ("emsg destination `%s' not found\n",
-                            nameddest);
-                }
-                pdf_drop_obj (state.ctx, needle);
-#else
-                printd ("emsg nameddest `%s'\n", nameddest);
-#endif
+                int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest);
+                /* FIXME x, y */
+                printd ("a %d %d %d", pageno, 0, 0);
             }
 
             state.gen++;

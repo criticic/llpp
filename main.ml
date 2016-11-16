@@ -4250,42 +4250,34 @@ let gotoremote spec =
     then path
     else E.s
   in
+  let path = getpath filename in
   if stringbeginswithat spec 0 "page="
   then
-    let pageno =
-      try Scanf.sscanf spec "page=%d" (fun n -> n)
-      with _ -> -1
-    in
-    if pageno = -1
-    then impmsg "malformed uri %s [%s, %s]" spec filename dest
-    else (
-      let path = getpath filename in
-      if nonemptystr path
-      then (
-        if conf.riani
-        then
-          let command = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
-          match spawn command [] with
-          | _pid -> ()
-          | (exception exn) ->
-             dolog "failed to execute `%s': %s" command @@ exntos exn
-        else
-          let anchor = getanchor () in
-          let ranchor = state.path, state.password, anchor, state.origin in
-          state.origin <- E.s;
-          state.anchor <- (pageno, 0.0, 0.0);
-          state.ranchors <- ranchor :: state.ranchors;
-          opendoc path E.s;
-      )
-    )
+    match Scanf.sscanf spec "page=%d" (fun n -> n) with
+    | pageno ->
+       if conf.riani
+       then
+         let cmd = Printf.sprintf "%s -page %d %S" !selfexec pageno path in
+         match spawn cmd [] with
+         | _pid -> ()
+         | (exception exn) ->
+            dolog "failed to execute `%s': %s" cmd @@ exntos exn
+       else
+         let anchor = getanchor () in
+         let ranchor = state.path, state.password, anchor, state.origin in
+         state.origin <- E.s;
+         state.anchor <- (pageno, 0.0, 0.0);
+         state.ranchors <- ranchor :: state.ranchors;
+         opendoc path E.s;
+    | exception exn ->
+       adderrfmt "error parsing remote destination" "page: %s" @@ exntos exn
   else
-    let path = getpath filename in
     if conf.riani
     then
-      let command = !selfexec ^ " " ^ path ^ " -dest " ^ dest in
-      match spawn command [] with
+      let cmd = !selfexec ^ " " ^ path ^ " -dest " ^ dest in
+      match spawn cmd [] with
       | (exception exn) ->
-         dolog "failed to execute `%s': %s" command @@ exntos exn
+         dolog "failed to execute `%s': %s" cmd @@ exntos exn
       | _pid -> ()
     else
       let anchor = getanchor () in
