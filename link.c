@@ -1234,6 +1234,19 @@ static void layout (void)
     } while (p-- != state.pagedims);
 }
 
+struct pagedim *pdimofpageno (int pageno)
+{
+    int i;
+    struct pagedim *pdim = state.pagedims;
+
+    for (i = 0; i < state.pagedimcount; ++i) {
+        if (state.pagedims[i].pageno > pageno)
+            break;
+        pdim = &state.pagedims[i];
+    }
+    return pdim;
+}
+
 static
 struct anchor { int n; int x; int y; int w; int h; }
 uritoanchor (const char *uri)
@@ -1244,15 +1257,7 @@ uritoanchor (const char *uri)
     a.n = -1;
     a.n = fz_resolve_link (state.ctx, state.doc, uri, &p.x, &p.y);
     if (a.n >= 0) {
-        int i;
-        struct pagedim *pdim = state.pagedims;
-
-        for (i = 0; i < state.pagedimcount; ++i) {
-            if (state.pagedims[i].pageno > a.n)
-                break;
-            pdim = &state.pagedims[i];
-        }
-
+        struct pagedim *pdim = pdimofpageno (a.n);
         fz_transform_point (&p, &pdim->ctm);
         a.x = p.x;
         a.y = p.y;
@@ -1404,11 +1409,11 @@ static int compareblocks (const void *l, const void *r)
 /* wishful thinking function */
 static void search (regex_t *re, int pageno, int y, int forward)
 {
-    int i, j;
+    int j;
     fz_device *tdev;
     fz_stext_page *text;
     fz_stext_sheet *sheet;
-    struct pagedim *pdim, *pdimprev;
+    struct pagedim *pdim;
     int stop = 0, niters = 0;
     double start, end;
     fz_page *page;
@@ -1428,21 +1433,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                         pageno);
             }
         }
-        pdimprev = NULL;
-        for (i = 0; i < state.pagedimcount; ++i) {
-            pdim = &state.pagedims[i];
-            if (pdim->pageno == pageno) {
-                goto found;
-            }
-            if (pdim->pageno > pageno) {
-                pdim = pdimprev;
-                goto found;
-            }
-            pdimprev = pdim;
-        }
-        pdim = pdimprev;
-    found:
-
+        pdim = pdimofpageno (pageno);
         sheet = fz_new_stext_sheet (state.ctx);
         text = fz_new_stext_page (state.ctx, &pdim->mediabox);
         tdev = fz_new_stext_device (state.ctx, sheet, text, 0);
@@ -1627,15 +1618,9 @@ CAMLprim value ml_transform_page_point (value pageno_v, value x_v, value y_v)
 {
     CAMLparam3 (pageno_v, x_v, y_v);
     CAMLlocal1 (ret_v);
-    int i;
-    struct pagedim *pdim = state.pagedims;
+    struct pagedim *pdim = pdimofpageno (Int_val (pageno_v));
     fz_point p = { .x = Int_val (x_v), .y = Int_val (y_v) };
 
-    for (i = 0; i < state.pagedimcount; ++i) {
-        if (state.pagedims[i].pageno > Int_val (pageno_v))
-            break;
-        pdim = &state.pagedims[i];
-    }
     fz_transform_point (&p, &pdim->ctm);
 
     ret_v = caml_alloc_small (2 * Double_wosize, Double_array_tag);
@@ -1839,10 +1824,13 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             nameddest = p + 9 + off;
             if (pdf && nameddest && *nameddest) {
-                int x, y;
+                fz_point xy;
+                struct pagedim *pdim;
                 int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest,
-                                                &x, &y);
-                printd ("a %d %d %d", pageno, x, y);
+                                                &xy.x, &xy.y);
+                pdim = pdimofpageno (pageno);
+                fz_transform_point (&xy, &pdim->ctm);
+                printd ("a %d %d %d", pageno, (int) xy.x, (int) xy.y);
             }
 
             state.gen++;
