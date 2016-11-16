@@ -54,6 +54,7 @@ external transformpagepoint : int -> int -> int -> float array
   = "ml_transform_page_point";;
 external uritolocation : string -> (pageno * float * float)
   = "ml_uritolocation";;
+external isexternallink : string -> bool = "ml_isexternallink";;
 
 let selfexec = ref E.s;;
 let opengl_has_pbo = ref false;;
@@ -4318,8 +4319,11 @@ let gotounder under =
              else gotouri s
            )
        with _ ->
-         let pageno, x, y = uritolocation s in
-         gotopagexy !wtmode pageno x y
+            if isexternallink s
+            then gotouri s
+            else
+              let pageno, x, y = uritolocation s in
+              gotopagexy !wtmode pageno x y
      )
 
   | Utext _ | Unone -> ()

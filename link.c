@@ -1952,6 +1952,13 @@ static void * mainloop (void UNUSED_ATTR *unused)
     return 0;
 }
 
+CAMLprim value ml_isexternallink (value uri_v)
+{
+    CAMLparam1 (uri_v);
+    int ext = fz_is_external_link (state.ctx, String_val (uri_v));
+    CAMLreturn (Val_bool (ext));
+}
+
 CAMLprim value ml_uritolocation (value uri_v)
 {
     CAMLparam1 (uri_v);
@@ -2184,16 +2191,10 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         p4.x = link->rect.x0;
         p4.y = link->rect.y1;
 
-#if FIXME
-        switch (link->dest.kind) {
-        case FZ_LINK_GOTO: glColor3ub (255, 0, 0); break;
-        case FZ_LINK_URI: glColor3ub (0, 0, 255); break;
-        case FZ_LINK_LAUNCH: glColor3ub (0, 255, 0); break;
-        default: glColor3ub (0, 0, 0); break;
-        }
-#else
-        glColor3ub (255, 0, 0);
-#endif
+        /* TODO: different colours for different schemes */
+        if (fz_is_external_link (state.ctx, link->uri)) glColor3ub (0, 0, 255);
+        else glColor3ub (255, 0, 0);
+
         stipplerect (&ctm, &p1, &p2, &p3, &p4, texcoords, vertices);
     }
 
