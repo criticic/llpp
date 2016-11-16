@@ -4228,32 +4228,44 @@ let enterannotmode opaque slinkindex =
   G.postRedisplay "enterannotmode";
 ;;
 
+let gotoremote spec =
+  impmsg "remote handling is not done yet - %s" spec
+;;
+
 let gotounder under =
   match under with
   | Ulinkuri s ->
-     let re = Str.regexp {|\(([a-z]\)+://|} in
+     let re = Str.regexp {|\([a-z]+\)://\(.*\)|} in
      if Str.string_match re s 0
      then
        match Str.matched_group 1 s with
-       | "file" -> dolog "remote!"
-       |  _ -> gotouri s
+       | "file" -> gotoremote (Str.matched_group 2 s)
+       | _ -> gotouri s
      else (
        try
-         Scanf.sscanf s "#%d,%d,%d" (fun n x y ->
-                        if n > 0
-                        then (
-                          addnav ();
-                          let _, h = getpageyh n in
-                          let p = transformpagepoint (n-1) x y in
-                          let y =
-                            if conf.coarseprespos
-                            then 0
-                            else h - truncate p.(1)
-                          in
-                          gotopage1 (n-1) y
-                        )
-                        else gotouri s
-                      )
+         Scanf.sscanf
+           s "#%d%n" (fun n pos ->
+             if n > 0
+             then (
+               addnav ();
+               let y =
+                 if conf.presentation && conf.coarseprespos
+                 then 0
+                 else
+                   try
+                     Scanf.sscanf (String.sub s pos (String.length s - pos))
+                                  ",%d,%d"
+                                  (fun x y ->
+                                    let p = transformpagepoint (n-1) x y in
+                                    let _, h = getpageyh (n-1) in
+                                    h - truncate p.(1)
+                                  )
+                   with _ -> 0
+               in
+               gotopage1 (n-1) y
+             )
+             else gotouri s
+           )
        with _ -> gotouri s
      )
 
