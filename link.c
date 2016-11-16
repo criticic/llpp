@@ -1839,9 +1839,10 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             nameddest = p + 9 + off;
             if (pdf && nameddest && *nameddest) {
-                int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest);
-                /* FIXME x, y */
-                printd ("a %d %d %d", pageno, 0, 0);
+                int x, y;
+                int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest,
+                                                &x, &y);
+                printd ("a %d %d %d", pageno, x, y);
             }
 
             state.gen++;
