@@ -4279,9 +4279,10 @@ let gotoremote spec =
        dospawn @@ lazy (Printf.sprintf "%s -page %d %S" !selfexec pageno path);
     | exception exn ->
        adderrfmt "error parsing remote destination" "page: %s" @@ exntos exn
-  else
+  else (
     state.nameddest <- dest;
     dospawn @@ lazy (!selfexec ^ " " ^ path ^ " -dest " ^ dest)
+  )
 ;;
 
 let gotounder under =
@@ -4319,11 +4320,12 @@ let gotounder under =
              else gotouri s
            )
        with _ ->
-            if isexternallink s
-            then gotouri s
-            else
-              let pageno, x, y = uritolocation s in
-              gotopagexy !wtmode pageno x y
+         if isexternallink s
+         then gotouri s
+         else
+           let pageno, x, y = uritolocation s in
+           addnav ();
+           gotopagexy !wtmode pageno x y
      )
 
   | Utext _ | Unone -> ()
