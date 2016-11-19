@@ -4285,48 +4285,25 @@ let gotoremote spec =
   )
 ;;
 
-let gotounder under =
-  match under with
+let gotounder =
+  let remre = lazy (Str.regexp {|\([a-z]+\)://\(.*\)|}) in
+  function
   | Ulinkuri s ->
-     let re = Str.regexp {|\([a-z]+\)://\(.*\)|} in
-     if Str.string_match re s 0
-     then
-       match Str.matched_group 1 s with
-       | "file" -> gotoremote (Str.matched_group 2 s)
-       | _ -> gotouri s
-     else (
-       try
-         Scanf.sscanf
-           s "#%d%n" (fun n pos ->
-             if n > 0
-             then (
-               addnav ();
-               let y =
-                 if conf.presentation && conf.coarseprespos
-                 then 0
-                 else
-                   try
-                     Scanf.sscanf (String.sub s pos (String.length s - pos))
-                                  ",%d,%d"
-                                  (fun x y ->
-                                    let p = transformpagepoint (n-1) x y in
-                                    let _, h = getpageyh (n-1) in
-                                    h - truncate p.(1)
-                                  )
-                   with _ -> 0
-               in
-               gotopage1 (n-1) y
-             )
-             else gotouri s
-           )
-       with _ ->
-         if isexternallink s
-         then gotouri s
-         else
-           let pageno, x, y = uritolocation s in
-           addnav ();
-           gotopagexy !wtmode pageno x y
+     if isexternallink s
+     then (
+       if Str.string_match (Lazy.force_val remre) s 0
+       then
+         match Str.matched_group 1 s with
+         | "file" -> gotoremote (Str.matched_group 2 s)
+         | _ -> gotouri s
+       else (
+         gotouri s
+       )
      )
+     else
+       let pageno, x, y = uritolocation s in
+       addnav ();
+       gotopagexy !wtmode pageno x y
 
   | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
