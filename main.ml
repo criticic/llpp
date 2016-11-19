@@ -4285,20 +4285,13 @@ let gotoremote spec =
   )
 ;;
 
-let gotounder =
-  let remre = lazy (Str.regexp {|\([a-z]+\)://\(.*\)|}) in
-  function
+let gotounder = function
   | Ulinkuri s ->
      if isexternallink s
      then (
-       if Str.string_match (Lazy.force_val remre) s 0
-       then
-         match Str.matched_group 1 s with
-         | "file" -> gotoremote (Str.matched_group 2 s)
-         | _ -> gotouri s
-       else (
-         gotouri s
-       )
+       if substratis s 0 "file://"
+       then gotoremote @@ String.sub s 7 (String.length s - 7)
+       else gotouri s
      )
      else
        let pageno, x, y = uritolocation s in
