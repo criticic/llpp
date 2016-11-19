@@ -4270,7 +4270,6 @@ let gotoremote spec =
       state.ranchors <- ranchor :: state.ranchors;
       opendoc path E.s;
   in
-
   if substratis spec 0 "page="
   then
     match Scanf.sscanf spec "page=%d" (fun n -> n) with
@@ -4286,18 +4285,14 @@ let gotoremote spec =
 ;;
 
 let gotounder = function
+  | Ulinkuri s when isexternallink s ->
+     if substratis s 0 "file://"
+     then gotoremote @@ String.sub s 7 (String.length s - 7)
+     else gotouri s
   | Ulinkuri s ->
-     if isexternallink s
-     then (
-       if substratis s 0 "file://"
-       then gotoremote @@ String.sub s 7 (String.length s - 7)
-       else gotouri s
-     )
-     else
-       let pageno, x, y = uritolocation s in
-       addnav ();
-       gotopagexy !wtmode pageno x y
-
+     let pageno, x, y = uritolocation s in
+     addnav ();
+     gotopagexy !wtmode pageno x y
   | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
 ;;
