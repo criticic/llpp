@@ -50,8 +50,6 @@ external drawprect : opaque -> int -> int -> float array -> unit =
   "ml_drawprect";;
 external wcmd : Unix.file_descr -> bytes -> int -> unit = "ml_wcmd";;
 external rcmd : Unix.file_descr -> string = "ml_rcmd";;
-external transformpagepoint : int -> int -> int -> float array
-  = "ml_transform_page_point";;
 external uritolocation : string -> (pageno * float * float)
   = "ml_uritolocation";;
 external isexternallink : string -> bool = "ml_isexternallink";;

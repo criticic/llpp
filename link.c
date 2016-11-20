@@ -1614,22 +1614,6 @@ static char *mbtoutf8 (char *s)
     return r;
 }
 
-CAMLprim value ml_transform_page_point (value pageno_v, value x_v, value y_v)
-{
-    CAMLparam3 (pageno_v, x_v, y_v);
-    CAMLlocal1 (ret_v);
-    struct pagedim *pdim = pdimofpageno (Int_val (pageno_v));
-    fz_point p = { .x = Int_val (x_v), .y = Int_val (y_v) };
-
-    fz_transform_point (&p, &pdim->ctm);
-
-    ret_v = caml_alloc_small (2 * Double_wosize, Double_array_tag);
-    Store_double_field (ret_v, 0, p.x);
-    Store_double_field (ret_v, 1, p.y);
-    CAMLreturn (ret_v);
-}
-
-
 CAMLprim value ml_mbtoutf8 (value s_v)
 {
     CAMLparam1 (s_v);
