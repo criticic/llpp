@@ -1863,7 +1863,7 @@ let act cmds =
                  try
                    Buffer.add_substring b args (pos+p+1) l;
                    Buffer.add_char b c;
-                 with exn -> Buffer.add_string b @@ Printexc.to_string exn
+                 with exn -> Buffer.add_string b @@ exntos exn
                in
                sub 2 4 '/';
                sub 6 2 '/';
