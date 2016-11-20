@@ -278,6 +278,7 @@ type conf =
     ; mutable lastvisit      : float
     ; mutable annotinline    : bool
     ; mutable coarseprespos  : bool
+    ; mutable css            : css
     }
 and columns =
     | Csingle of singlecolumn
@@ -552,6 +553,7 @@ let defconf =
   ; lastvisit      = 0.0
   ; annotinline    = true
   ; coarseprespos  = false
+  ; css            = E.s
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1206,6 +1208,7 @@ let setconf dst src =
   dst.title          <- src.title;
   dst.annotinline    <- src.annotinline;
   dst.coarseprespos  <- src.coarseprespos;
+  dst.css            <- src.css;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1340,6 +1343,9 @@ let get s =
           in
           { v with f = pkeymap ret KeyMap.empty }
 
+    | Vopen ("css", [], false) ->
+       { v with f = pcss path origin pan anchor c bookmarks }
+
     | Vopen (_, _, _) ->
         parse_error "unexpected subelement in doc" s spos
 
@@ -1348,6 +1354,19 @@ let get s =
         { v with f = llppconfig }
 
     | Vclose _ -> parse_error "unexpected close in doc" s spos
+
+  and pcss path origin pan anchor c bookmarks v t spos epos =
+    match t with
+    | Vdata | Vcdata ->
+       let b = Buffer.create 10 in
+       Buffer.add_substring b s spos (epos - spos);
+       { v with f = pcss path origin pan anchor
+                         { c with css = Buffer.contents b }
+                         bookmarks }
+    | Vend -> parse_error "unexpected end of input in css" s spos
+    | Vopen _ -> parse_error "unexpected subelement in css" s spos
+    | Vclose "css" -> { v with f = doc path origin pan anchor c bookmarks }
+    | Vclose _ -> parse_error "unexpected close in css" s spos
 
   and pkeymap ret keymap v t spos _ =
     match t with
@@ -1700,13 +1719,13 @@ let save1 bb leavebirdseye x h dc =
   if nonemptystr !fontpath
   then
     Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
-      uifontsize
-      !fontpath
+                   uifontsize
+                   !fontpath
   else (
     if uifontsize <> 14
     then
       Printf.bprintf bb "<ui-font size='%d'/>\n" uifontsize
-   );
+  );
 
   Buffer.add_string bb "<defaults";
   add_attrs bb true dc dc nan;
@@ -1716,7 +1735,7 @@ let save1 bb leavebirdseye x h dc =
     Buffer.add_string bb ">\n";
     Buffer.add_buffer bb kb;
     Buffer.add_string bb "\n</defaults>\n";
-   )
+  )
   else Buffer.add_string bb "/>\n";
 
   let adddoc path pan anchor c bookmarks time origin =
@@ -1724,12 +1743,12 @@ let save1 bb leavebirdseye x h dc =
     then ()
     else (
       Printf.bprintf bb "<doc path='%s'"
-        (Parser.enent path 0 (String.length path));
+                     (Parser.enent path 0 (String.length path));
 
       if nonemptystr origin
       then
         Printf.bprintf bb "\n    origin='%s'"
-          (Parser.enent origin 0 (String.length origin));
+                       (Parser.enent origin 0 (String.length origin));
 
       if anchor <> emptyanchor
       then (
@@ -1738,108 +1757,113 @@ let save1 bb leavebirdseye x h dc =
         if rely > 1e-6
         then
           Printf.bprintf bb " rely='%f'" rely
-            ;
-        if abs_float visy > 1e-6
-        then
-          Printf.bprintf bb " visy='%f'" visy
-            ;
-       );
+        ;
+          if abs_float visy > 1e-6
+          then
+            Printf.bprintf bb " visy='%f'" visy
+        ;
+      );
 
       if pan != 0
       then Printf.bprintf bb " pan='%d'" pan;
 
       add_attrs bb false dc c time;
+      if nonemptystr c.css
+      then Printf.bprintf bb ">\n<css><![CDATA[%s]]></css>" c.css;
       let kb = keymapsbuf false dc c in
 
       begin match bookmarks with
       | [] ->
-          if Buffer.length kb > 0
-          then (
-            Buffer.add_string bb ">\n";
-            Buffer.add_buffer bb kb;
-            Buffer.add_string bb "\n</doc>\n";
-           )
-          else Buffer.add_string bb "/>\n"
+         if Buffer.length kb > 0
+         then (
+           Buffer.add_string bb ">\n";
+           Buffer.add_buffer bb kb;
+           Buffer.add_string bb "\n</doc>\n";
+         )
+         else
+           if nonemptystr c.css
+           then Buffer.add_string bb "\n</doc>\n"
+           else Buffer.add_string bb "/>\n"
       | _ ->
-          Buffer.add_string bb ">\n<bookmarks>\n";
-          List.iter (fun (title, _, kind) ->
-            begin match kind with
-            | Oanchor (page, rely, visy) ->
+         Buffer.add_string bb ">\n<bookmarks>\n";
+         List.iter (fun (title, _, kind) ->
+             begin match kind with
+             | Oanchor (page, rely, visy) ->
                 Printf.bprintf bb
-                  "<item title='%s' page='%d'"
-                  (Parser.enent title 0 (String.length title))
-                  page
-                  ;
-                if rely > 1e-6
-                then
-                  Printf.bprintf bb " rely='%f'" rely
-                    ;
-                if abs_float visy > 1e-6
-                then
-                  Printf.bprintf bb " visy='%f'" visy
-                    ;
-            | Ohistory _ | Onone | Ouri _ | Oremote _
-            | Oremotedest _ | Olaunch _ ->
+                               "<item title='%s' page='%d'"
+                               (Parser.enent title 0 (String.length title))
+                               page
+               ;
+                 if rely > 1e-6
+                 then
+                   Printf.bprintf bb " rely='%f'" rely
+               ;
+                 if abs_float visy > 1e-6
+                 then
+                   Printf.bprintf bb " visy='%f'" visy
+               ;
+             | Ohistory _ | Onone | Ouri _ | Oremote _
+               | Oremotedest _ | Olaunch _ ->
                 failwith "unexpected link in bookmarks"
-            end;
-            Buffer.add_string bb "/>\n";
-                    ) bookmarks;
-          Buffer.add_string bb "</bookmarks>";
-          if Buffer.length kb > 0
-          then (
-            Buffer.add_string bb "\n";
-            Buffer.add_buffer bb kb;
-           );
-          Buffer.add_string bb "\n</doc>\n";
+             end;
+             Buffer.add_string bb "/>\n";
+           ) bookmarks;
+         Buffer.add_string bb "</bookmarks>";
+         if Buffer.length kb > 0
+         then (
+           Buffer.add_string bb "\n";
+           Buffer.add_buffer bb kb;
+         );
+         Buffer.add_string bb "\n</doc>\n";
       end;
-     )
+    )
   in
 
   let pan, conf =
     match state.mode with
     | Birdseye (c, pan, _, _, _) ->
-        let beyecolumns =
-          match conf.columns with
-          | Cmulti ((c, _, _), _) -> Some c
-          | Csingle _ -> None
-          | Csplit _ -> None
-        and columns =
-          match c.columns with
-          | Cmulti (c, _) -> Cmulti (c, E.a)
-          | Csingle _ -> Csingle E.a
-          | Csplit _ -> failwith "quit from bird's eye while split"
-        in
-        pan, { c with beyecolumns = beyecolumns; columns = columns }
+       let beyecolumns =
+         match conf.columns with
+         | Cmulti ((c, _, _), _) -> Some c
+         | Csingle _ -> None
+         | Csplit _ -> None
+       and columns =
+         match c.columns with
+         | Cmulti (c, _) -> Cmulti (c, E.a)
+         | Csingle _ -> Csingle E.a
+         | Csplit _ -> failwith "quit from bird's eye while split"
+       in
+       pan, { c with beyecolumns = beyecolumns; columns = columns }
     | Textentry _
-    | View
-    | LinkNav _ -> x, conf
+      | View
+      | LinkNav _ -> x, conf
   in
   let docpath = if nonemptystr state.path then abspath state.path else E.s in
   if nonemptystr docpath
   then (
     adddoc docpath pan (getanchor ())
-      (
-       let autoscrollstep =
-         match state.autoscroll with
-         | Some step -> step
-         | None -> conf.autoscrollstep
-       in
-       begin match state.mode with
-       | Birdseye beye -> leavebirdseye beye true
-       | Textentry _
-       | View
-       | LinkNav _ -> ()
-       end;
-       { conf with autoscrollstep = autoscrollstep }
-      )
-      (if conf.savebmarks then state.bookmarks else [])
-      (now ())
-      state.origin
+           (
+             let autoscrollstep =
+               match state.autoscroll with
+               | Some step -> step
+               | None -> conf.autoscrollstep
+             in
+             begin match state.mode with
+             | Birdseye beye -> leavebirdseye beye true
+             | Textentry _
+               | View
+               | LinkNav _ -> ()
+             end;
+             { conf with autoscrollstep = autoscrollstep }
+           )
+           (if conf.savebmarks then state.bookmarks else [])
+           (now ())
+           state.origin
   );
   Hashtbl.iter (fun path (c, bookmarks, x, anchor, origin) ->
-    if docpath <> abspath path
-    then adddoc path x anchor c bookmarks c.lastvisit origin
-               ) h;
+      if docpath <> abspath path
+      then adddoc path x anchor c bookmarks c.lastvisit origin
+    ) h;
   Buffer.add_string bb "</llppconfig>\n";
   true;
 ;;

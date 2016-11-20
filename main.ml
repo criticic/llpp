@@ -6287,7 +6287,7 @@ let () =
   let openlast = ref false in
   let nofc = ref false in
   let doreap = ref false in
-  let csspath = ref E.s in
+  let csspath = ref None in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -6340,7 +6340,7 @@ let () =
            ;
            exit 0), " Print version and exit");
 
-         ("-css", Arg.Set_string csspath,
+         ("-css", Arg.String (fun s -> csspath := Some s),
           "<css-path> Style sheet to use for EPUB/HTML");
 
          ("-embed", Arg.Set_int rootwid,
@@ -6517,12 +6517,15 @@ let () =
 
   opengl_has_pbo := GlMisc.check_extension "GL_ARB_pixel_buffer_object";
 
+  begin match !csspath with
+  | None -> ()
+  | Some "" -> conf.css <- E.s
+  | Some path -> conf.css <- filecontents path
+  end;
   init cs (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-    !Config.fontpath, !trimcachepath,
-    (if emptystr !csspath then E.s else filecontents !csspath),
-    !opengl_has_pbo, not !nofc
+    !Config.fontpath, !trimcachepath, conf.css, !opengl_has_pbo, not !nofc
   );
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;

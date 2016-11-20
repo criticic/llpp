@@ -14,4 +14,5 @@
    Problem upstream
 * DONE pdf/asn.1 date parser
   CLOSED: [2016-11-20 Sun 07:54]
-* TODO Remember css in llpp.conf (?)
+* DONE Remember css in llpp.conf (?)
+  CLOSED: [2016-11-21 Mon 02:14]
