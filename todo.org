@@ -1,0 +1,16 @@
+* TODO progressive zoom
+* TODO wayland
+* TODO incorporate Nicolas' changes
+* TODO backspace selected linknav preservation
+* TODO move read/writedata to C
+   unbreak abstr. boundry wrt 4 as the size of len and extra space in buf
+* TODO xclip zombie
+   doesn't play nicely with mc
+* TODO user specified css for epubs/html (-css <path> or something)
+* TODO quoting in gc.awk [' ( )]
+* DONE Investigate selection oddities (select under selects vast rects)
+   CLOSED: [2016-11-05 Sat 15:22]
+   Age of discovery page 57
+   Problem upstream
+* DONE pdf/asn.1 date parser
+  CLOSED: [2016-11-20 Sun 07:54]
