@@ -16,3 +16,8 @@
   CLOSED: [2016-11-20 Sun 07:54]
 * DONE Remember css in llpp.conf (?)
   CLOSED: [2016-11-21 Mon 02:14]
+* TODO Fixme
+  ? text selection and searches are broken in case of non zero rotation
+    deletion broken?? [intentionally removed actually]
+  ? linknav + presentation (link might not fit the visible area)
+
