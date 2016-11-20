@@ -1228,14 +1228,13 @@ let get s =
         if closed
         then v
         else { v with f = llppconfig }
-    | Vopen _ ->
-        error "unexpected subelement at top level" s spos
-    | Vclose _ -> error "unexpected close at top level" s spos
+    | Vopen _ -> parse_error "unexpected subelement at top level" s spos
+    | Vclose _ -> parse_error "unexpected close at top level" s spos
 
   and llppconfig v t spos _ =
     match t with
     | Vdata | Vcdata -> v
-    | Vend -> error "unexpected end of input in llppconfig" s spos
+    | Vend -> parse_error "unexpected end of input in llppconfig" s spos
     | Vopen ("defaults", attrs, closed) ->
         let c = config_of dc attrs in
         setconf dc c;
@@ -1272,15 +1271,15 @@ let get s =
         else { v with f = doc path origin pan anchor c [] }
 
     | Vopen _ ->
-        error "unexpected subelement in llppconfig" s spos
+        parse_error "unexpected subelement in llppconfig" s spos
 
     | Vclose "llppconfig" ->  { v with f = toplevel }
-    | Vclose _ -> error "unexpected close in llppconfig" s spos
+    | Vclose _ -> parse_error "unexpected close in llppconfig" s spos
 
   and defaults v t spos _ =
     match t with
     | Vdata | Vcdata -> v
-    | Vend -> error "unexpected end of input in defaults" s spos
+    | Vend -> parse_error "unexpected end of input in defaults" s spos
     | Vopen ("keymap", attrs, closed) ->
         let modename =
           try List.assoc "mode" attrs
@@ -1296,12 +1295,12 @@ let get s =
           { v with f = pkeymap ret KeyMap.empty }
 
     | Vopen (_, _, _) ->
-        error "unexpected subelement in defaults" s spos
+        parse_error "unexpected subelement in defaults" s spos
 
     | Vclose "defaults" ->
         { v with f = llppconfig }
 
-    | Vclose _ -> error "unexpected close in defaults" s spos
+    | Vclose _ -> parse_error "unexpected close in defaults" s spos
 
   and uifont b v t spos epos =
     match t with
@@ -1309,18 +1308,18 @@ let get s =
         Buffer.add_substring b s spos (epos - spos);
         v
     | Vopen (_, _, _) ->
-        error "unexpected subelement in ui-font" s spos
+        parse_error "unexpected subelement in ui-font" s spos
     | Vclose "ui-font" ->
         if emptystr !fontpath
         then fontpath := Buffer.contents b;
         { v with f = llppconfig }
-    | Vclose _ -> error "unexpected close in ui-font" s spos
-    | Vend -> error "unexpected end of input in ui-font" s spos
+    | Vclose _ -> parse_error "unexpected close in ui-font" s spos
+    | Vend -> parse_error "unexpected end of input in ui-font" s spos
 
   and doc path origin pan anchor c bookmarks v t spos _ =
     match t with
     | Vdata | Vcdata -> v
-    | Vend -> error "unexpected end of input in doc" s spos
+    | Vend -> parse_error "unexpected end of input in doc" s spos
     | Vopen ("bookmarks", _, closed) ->
         if closed
         then v
@@ -1342,18 +1341,18 @@ let get s =
           { v with f = pkeymap ret KeyMap.empty }
 
     | Vopen (_, _, _) ->
-        error "unexpected subelement in doc" s spos
+        parse_error "unexpected subelement in doc" s spos
 
     | Vclose "doc" ->
         Hashtbl.add h path (c, List.rev bookmarks, pan, anchor, origin);
         { v with f = llppconfig }
 
-    | Vclose _ -> error "unexpected close in doc" s spos
+    | Vclose _ -> parse_error "unexpected close in doc" s spos
 
   and pkeymap ret keymap v t spos _ =
     match t with
     | Vdata | Vcdata -> v
-    | Vend -> error "unexpected end of input in keymap" s spos
+    | Vend -> parse_error "unexpected end of input in keymap" s spos
     | Vopen ("map", attrs, closed) ->
         let r, l = map_of attrs in
         let kss = fromstring keys_of_string spos "in" r [] in
@@ -1371,17 +1370,17 @@ let get s =
           { v with f = skip "map" f }
 
     | Vopen _ ->
-        error "unexpected subelement in keymap" s spos
+        parse_error "unexpected subelement in keymap" s spos
 
     | Vclose "keymap" ->
         { v with f = ret keymap }
 
-    | Vclose _ -> error "unexpected close in keymap" s spos
+    | Vclose _ -> parse_error "unexpected close in keymap" s spos
 
   and pbookmarks path origin pan anchor c bookmarks v t spos _ =
     match t with
     | Vdata | Vcdata -> v
-    | Vend -> error "unexpected end of input in bookmarks" s spos
+    | Vend -> parse_error "unexpected end of input in bookmarks" s spos
     | Vopen ("item", attrs, closed) ->
         let titleent, spage, srely, svisy = bookmark_of attrs in
         let page = fromstring int_of_string spos "page" spage 0
@@ -1397,18 +1396,18 @@ let get s =
           { v with f = skip "item" f }
 
     | Vopen _ ->
-        error "unexpected subelement in bookmarks" s spos
+        parse_error "unexpected subelement in bookmarks" s spos
 
     | Vclose "bookmarks" ->
         { v with f = doc path origin pan anchor c bookmarks }
 
-    | Vclose _ -> Parser.parse_error "unexpected close in bookmarks" s spos
+    | Vclose _ -> parse_error "unexpected close in bookmarks" s spos
 
   and skip tag f v t spos _ =
     match t with
     | Vdata | Vcdata -> v
     | Vend ->
-        Parser.parse_error ("unexpected end of input in skipped " ^ tag) s spos
+        parse_error ("unexpected end of input in skipped " ^ tag) s spos
     | Vopen (tag', _, closed) ->
         if closed
         then v
@@ -1418,7 +1417,7 @@ let get s =
     | Vclose ctag ->
         if tag = ctag
         then f ()
-        else Parser.parse_error ("unexpected close in skipped " ^ tag) s spos
+        else parse_error ("unexpected close in skipped " ^ tag) s spos
   in
 
   parse { f = toplevel; accu = () } s;
