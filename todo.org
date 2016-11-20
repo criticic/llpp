@@ -1,6 +1,6 @@
 * TODO progressive zoom
 * TODO wayland
-* TODO incorporate Nicolas' changes
+* TODO incorporate Nicolás's changes
 * TODO backspace selected linknav preservation
 * TODO move read/writedata to C
    unbreak abstr. boundry wrt 4 as the size of len and extra space in buf
