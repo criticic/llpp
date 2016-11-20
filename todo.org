@@ -6,7 +6,7 @@
    unbreak abstr. boundry wrt 4 as the size of len and extra space in buf
 * TODO xclip zombie
    doesn't play nicely with mc
-* TODO user specified css for epubs/html (-css <path> or something)
+* DONE user specified css for epubs/html (-css <path> or something)
 * TODO quoting in gc.awk [' ( )]
 * DONE Investigate selection oddities (select under selects vast rects)
    CLOSED: [2016-11-05 Sat 15:22]
@@ -14,3 +14,4 @@
    Problem upstream
 * DONE pdf/asn.1 date parser
   CLOSED: [2016-11-20 Sun 07:54]
+* TODO Remember css in llpp.conf (?)

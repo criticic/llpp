@@ -90,10 +90,10 @@ and memsize        = int
 and texcount       = int
 and sliceheight    = int
 and angle          = int
-and params         = (angle * fitmodel * trimparams
-                         * texcount * sliceheight * memsize
-                         * colorspace * fontpath * trimcachepath
-                         * haspbo * usefontconfig)
+and initparams     = (angle * fitmodel * trimparams
+                      * texcount * sliceheight * memsize
+                      * colorspace * fontpath * trimcachepath
+                      * css * haspbo * usefontconfig)
 and width          = int
 and height         = int
 and leftx          = int
@@ -105,6 +105,7 @@ and top            = float
 and dtop           = float
 and fontpath       = string
 and trimcachepath  = string
+and css            = string
 and aalevel        = int
 and trimparams     = (trimmargins * irect)
 and colorspace     = | Rgb | Bgr | Gray

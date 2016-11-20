@@ -3,7 +3,7 @@ open Config;;
 
 exception Quit;;
 
-external init : Unix.file_descr -> params -> unit = "ml_init";;
+external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;
 external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
@@ -6287,6 +6287,7 @@ let () =
   let openlast = ref false in
   let nofc = ref false in
   let doreap = ref false in
+  let csspath = ref E.s in
   selfexec := Sys.executable_name;
   Arg.parse
     (Arg.align
@@ -6338,6 +6339,9 @@ let () =
              Config.defconfpath
            ;
            exit 0), " Print version and exit");
+
+         ("-css", Arg.Set_string csspath,
+          "<css-path> Style sheet to use for EPUB/HTML");
 
          ("-embed", Arg.Set_int rootwid,
           "<window-id> Embed into window")
@@ -6517,8 +6521,8 @@ let () =
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
     !Config.fontpath, !trimcachepath,
-    !opengl_has_pbo,
-    not !nofc
+    (if emptystr !csspath then E.s else filecontents !csspath),
+    !opengl_has_pbo, not !nofc
   );
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;

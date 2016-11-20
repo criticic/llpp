@@ -243,6 +243,7 @@ struct {
     FT_Face face;
 
     char *trimcachepath;
+    char *css;
     int cxack;
     int dirty;
 
@@ -488,10 +489,10 @@ static int openxref (char *filename, char *password)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
-#ifdef CSS_HACK_TO_READ_EPUBS_COMFORTABLY
-    fz_set_user_css (state.ctx,
-                     "body { margin-left: 20%; margin-right: 20%; }");
-#endif
+    if (state.css) {
+        fz_set_user_css (state.ctx, state.css);
+    }
+
     state.doc = fz_open_document (state.ctx, filename);
     if (fz_needs_password (state.ctx, state.doc)) {
         if (password && !*password) {
@@ -4538,13 +4539,22 @@ CAMLprim value ml_init (value csock_v, value params_v)
                      strerror (errno));
         }
     }
-    haspboext           = Bool_val (Field (params_v, 9));
+
+    if (caml_string_length (Field (params_v, 9)) > 0) {
+        state.css = strdup (String_val (Field (params_v, 9)));
+
+        if (!state.css) {
+            fprintf (stderr, "failed to strdup css: %s\n", strerror (errno));
+        }
+    }
+
+    haspboext           = Bool_val (Field (params_v, 10));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);
 
 #ifdef USE_FONTCONFIG
-    if (Bool_val (Field (params_v, 10))) {
+    if (Bool_val (Field (params_v, 11))) {
         fz_install_load_system_font_funcs (
             state.ctx, fc_load_system_font_func, NULL
             );
