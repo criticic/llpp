@@ -1841,14 +1841,47 @@ let act cmds =
       state.reprf <- (fun () -> gotopagexy !wtmode n (float l) (float t))
 
   | "info", args ->
-      let pos = nindex args '\t' in
-      if pos >= 0 && String.sub args 0 pos = "Title"
-      then (
-        let s = String.sub args (pos+1) @@ String.length args - pos - 1 in
-        conf.title <- s;
-        Wsi.settitle s;
-      );
-      state.docinfo <- (1, args) :: state.docinfo
+     let pos = nindex args '\t' in
+     let s =
+       if pos >= 0
+       then
+         if substratis args 0 "Title"
+         then
+           let s = String.sub args (pos+1) @@ String.length args - pos - 1 in
+           conf.title <- s;
+           Wsi.settitle s;
+           args
+         else
+           if substratis args 0 "CreationDate"
+           then (
+             if String.length args >= pos + 7
+                && args.[pos+1] = 'D' && args.[pos+2] = ':'
+             then
+               let b = Buffer.create 18 in
+               Buffer.add_string b "CreationDate\t";
+               let sub p l c =
+                 try
+                   Buffer.add_substring b args (pos+p+1) l;
+                   Buffer.add_char b c;
+                 with exn -> Buffer.add_string b @@ Printexc.to_string exn
+               in
+               sub 2 4 '/';
+               sub 6 2 '/';
+               sub 8 2 ' ';
+               sub 10 2 ':';
+               sub 12 2 ':';
+               sub 14 2 ' ';
+               Buffer.add_char b '[';
+               Buffer.add_substring b args (pos+1)
+                                    (String.length args - pos - 1);
+               Buffer.add_char b ']';
+               Buffer.contents b
+             else args
+           )
+           else args
+       else args
+     in
+     state.docinfo <- (1, s) :: state.docinfo
 
   | "infoend", "" ->
       state.uioh#infochanged Docinfo;
