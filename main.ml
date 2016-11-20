@@ -1558,8 +1558,8 @@ let act cmds =
   in
   match spl with
   | "clear", "" ->
-      state.uioh#infochanged Pdim;
       state.pdims <- [];
+      state.uioh#infochanged Pdim;
 
   | "clearrects", "" ->
       state.rects <- state.rects1;
@@ -1811,8 +1811,8 @@ let act cmds =
             | Csplit _ ->  (n, w, h, 0)
             | Csingle _ | Cmulti _ -> pdim
       in
-      state.uioh#infochanged Pdim;
-      state.pdims <- pdim :: state.pdims
+      state.pdims <- pdim :: state.pdims;
+      state.uioh#infochanged Pdim
 
   | "o", args ->
       let (l, n, t, h, pos) =
@@ -1884,8 +1884,8 @@ let act cmds =
      state.docinfo <- (1, s) :: state.docinfo
 
   | "infoend", "" ->
-      state.uioh#infochanged Docinfo;
-      state.docinfo <- List.rev state.docinfo
+      state.docinfo <- List.rev state.docinfo;
+      state.uioh#infochanged Docinfo
 
   | "pass", args ->
      if args = "fail"
