@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+range="$1..${2-HEAD}"
+(echo Summary
+ git shortlog --no-merges -s $range
+ printf "\nDiffstat\n"
+ git diff --stat $range) | xclip -i
+xclip -o
