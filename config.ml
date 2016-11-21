@@ -90,10 +90,9 @@ and memsize        = int
 and texcount       = int
 and sliceheight    = int
 and angle          = int
-and initparams     = (angle * fitmodel * trimparams
-                      * texcount * sliceheight * memsize
-                      * colorspace * fontpath * trimcachepath
-                      * css * haspbo * usefontconfig)
+and initparams     =
+  (angle * fitmodel * trimparams * texcount * sliceheight * memsize
+   * colorspace * fontpath * trimcachepath * haspbo * usefontconfig)
 and width          = int
 and height         = int
 and leftx          = int

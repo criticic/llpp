@@ -243,7 +243,6 @@ struct {
     FT_Face face;
 
     char *trimcachepath;
-    char *css;
     int cxack;
     int dirty;
 
@@ -489,10 +488,6 @@ static int openxref (char *filename, char *password)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
-    if (state.css) {
-        fz_set_user_css (state.ctx, state.css);
-    }
-
     state.doc = fz_open_document (state.ctx, filename);
     if (fz_needs_password (state.ctx, state.doc)) {
         if (password && !*password) {
@@ -1672,6 +1667,10 @@ static void * mainloop (void UNUSED_ATTR *unused)
             filename = p + 5 + off;
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
+
+            if (password[strlen (password) + 1]) {
+                fz_set_user_css (state.ctx, password + strlen (password) + 1);
+            }
 
             lock ("open");
             fz_try (state.ctx) {
@@ -4540,15 +4539,7 @@ CAMLprim value ml_init (value csock_v, value params_v)
         }
     }
 
-    if (caml_string_length (Field (params_v, 9)) > 0) {
-        state.css = strdup (String_val (Field (params_v, 9)));
-
-        if (!state.css) {
-            fprintf (stderr, "failed to strdup css: %s\n", strerror (errno));
-        }
-    }
-
-    haspboext           = Bool_val (Field (params_v, 10));
+    haspboext           = Bool_val (Field (params_v, 9));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);

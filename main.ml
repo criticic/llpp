@@ -1116,7 +1116,8 @@ let opendoc path password =
     else state.origin
   in
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
-  wcmd "open %d %d %s\000%s\000" (btod !wtmode) (btod !cxack) path password;
+  wcmd "open %d %d %s\000%s\000%s\000"
+       (btod !wtmode) (btod !cxack) path password conf.css;
   invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %d %s\000"
@@ -6525,7 +6526,7 @@ let () =
   init cs (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
     conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-    !Config.fontpath, !trimcachepath, conf.css, !opengl_has_pbo, not !nofc
+    !Config.fontpath, !trimcachepath, !opengl_has_pbo, not !nofc
   );
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;
