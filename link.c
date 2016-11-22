@@ -12,6 +12,7 @@
 
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/uio.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -378,18 +379,17 @@ static void readdata (int fd, void *p, int size)
 
 static void writedata (int fd, char *p, int size)
 {
+    uint32_t size4 = size;
+    struct iovec iov[2] = {[0] = { .iov_base = &size4,
+                                   .iov_len = 4},
+                           [1] = { .iov_base = p,
+                                   .iov_len = size }};
     ssize_t n;
 
-    /* One should lookup type punning/strict aliasing etc in standard,DRs,Web to
-       convince herself that this is:
-       a. safe
-       b. practically the only way to achieve the result
-          (union puns notwithstanding) */
-    memcpy (p, &size, 4);
-    n = write (fd, p, size + 4);
+    n = writev (fd, iov, 2);
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
-        err (1, "write (fd %d, req %d, ret %zd)", fd, size + 4, n);
+        err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
 
@@ -397,7 +397,7 @@ static int readlen (int fd)
 {
     /* Type punned unions here. Why? Less code (Adjusted by more comments).
        https://en.wikipedia.org/wiki/Type_punning */
-    union { int len; char raw[4]; } buf;
+    union { uint32_t len; char raw[4]; } buf;
     readdata (fd, buf.raw, 4);
     return buf.len;
 }
@@ -431,7 +431,7 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
         if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size);
 
         va_start (ap, fmt);
-        len = vsnprintf (buf + 4, size - 4, fmt, ap);
+        len = vsnprintf (buf, size, fmt, ap);
         va_end (ap);
 
         if (len > -1) {

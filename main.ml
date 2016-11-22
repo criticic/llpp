@@ -364,7 +364,6 @@ let intentry_with_suffix text key =
 
 let wcmd fmt =
   let b = Buffer.create 16 in
-  Buffer.add_string b "llll";
   Printf.kbprintf
     (fun b ->
       let b = Buffer.to_bytes b in

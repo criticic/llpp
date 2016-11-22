@@ -3,12 +3,15 @@
 * TODO incorporate Nicolás's changes
 * DONE backspace selected linknav preservation
   CLOSED: [2016-11-22 Tue 17:06]
-* TODO move read/writedata to C
+* DONE move read/writedata to C
+  CLOSED: [2016-11-22 Tue 17:43]
    unbreak abstr. boundry wrt 4 as the size of len and extra space in buf
-* TODO xclip zombie
+* DONE xclip zombie
+  CLOSED: [2016-11-22 Tue 17:44]
    doesn't play nicely with mc
 * DONE user specified css for epubs/html (-css <path> or something)
-* TODO quoting in gc.awk [' ( )]
+* DONE quoting in gc.awk [' ( )]
+  CLOSED: [2016-11-22 Tue 17:44]
 * DONE Investigate selection oddities (select under selects vast rects)
    CLOSED: [2016-11-05 Sat 15:22]
    Age of discovery page 57
