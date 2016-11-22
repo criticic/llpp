@@ -6523,7 +6523,15 @@ let () =
   begin match !csspath with
   | None -> ()
   | Some "" -> conf.css <- E.s
-  | Some path -> conf.css <- filecontents path
+  | Some path ->
+     let css = filecontents path in
+     let l = String.length css in
+     conf.css <-
+       if substratis css (l-2) "\r\n"
+       then String.sub css 0 (l-2)
+       else (if css.[l-1] = '\n'
+             then String.sub css 0 (l-1)
+             else css);
   end;
   init cs (
     conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),

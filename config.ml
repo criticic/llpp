@@ -1768,7 +1768,7 @@ let save1 bb leavebirdseye x h dc =
 
       add_attrs bb false dc c time;
       if nonemptystr c.css
-      then Printf.bprintf bb ">\n<css><![CDATA[%s]]></css>" c.css;
+      then Printf.bprintf bb ">\n    <css><![CDATA[%s]]></css>" c.css;
       let kb = keymapsbuf false dc c in
 
       begin match bookmarks with
