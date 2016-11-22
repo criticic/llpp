@@ -1421,8 +1421,7 @@ let gctiles () =
         let (k, p, s) as lruitem = Queue.pop state.tilelru in
         let n, gen, colorspace, angle, pagew, pageh, col, row = k in
         let (_, pw, ph, _) = getpagedim n in
-        if
-          gen = state.gen
+        if   gen = state.gen
           && colorspace = conf.colorspace
           && angle = conf.angle
           && pagew = pw
@@ -1765,10 +1764,10 @@ let act cmds =
           in
 
           state.currently <- Idle;
-          if   gen = state.gen
-               && conf.colorspace = cs
-               && conf.angle = angle
-               && tilevisible layout l.pageno x y
+          if    gen = state.gen
+             && conf.colorspace = cs
+             && conf.angle = angle
+             && tilevisible layout l.pageno x y
           then conttiling l.pageno pageopaque;
 
           begin match state.throttle with
