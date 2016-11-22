@@ -871,6 +871,7 @@ let gotoxy x y =
        | Ltexact (pageno, linkno) ->
           let rec loop = function
             | [] ->
+               state.lnava <- Some (pageno, linkno);
                state.mode <- LinkNav (Ltgendir 0)
             | l :: _ when l.pageno = pageno ->
                begin match getopaque pageno with
@@ -4764,7 +4765,11 @@ let viewkeyboard key mask =
      end;
 
   | @backspace ->
-     gotoghyll (getnav ~-1)
+     gotoghyll (getnav ~-1);
+     begin match state.lnava with
+     | None -> ()
+     | Some pl -> state.mode <- LinkNav (Ltexact pl)
+     end
 
   | @o ->
      enteroutlinemode ()

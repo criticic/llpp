@@ -127,6 +127,7 @@ type keymap        =
  and launchcommand = string
  and filename = string
  and pageno = int
+ and linkno = int
  and destname = string
  and mark =
    | Mark_page
@@ -434,6 +435,7 @@ type state =
   ; mutable bzoom         : bool
   ; mutable traw          : [`float] Raw.t
   ; mutable vraw          : [`float] Raw.t
+  ; mutable lnava         : (pageno * linkno) option
   }
  and hists =
    { pat : string circbuf
@@ -711,6 +713,7 @@ let state =
   ; bzoom         = false
   ; traw          = Raw.create_static `float ~len:8
   ; vraw          = Raw.create_static `float ~len:8
+  ; lnava         = None
   }
 ;;
 
