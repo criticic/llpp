@@ -2490,7 +2490,7 @@ CAMLprim value ml_endtiles (value unit_v)
     CAMLreturn (unit_v);
 }
 
-CAMLprim value ml_drawtile (value args_v, value ptr_v)
+CAMLprim void ml_drawtile (value args_v, value ptr_v)
 {
     CAMLparam2 (args_v, ptr_v);
     int dispx = Int_val (Field (args_v, 0));
@@ -2540,7 +2540,7 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
         ARSERT (!(slice - tile->slices >= tile->slicecount && disph > 0));
         slicey = 0;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
@@ -2615,8 +2615,8 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     CAMLreturn (Val_int (noff));
 }
 
-CAMLprim value ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
-                              value rects_v)
+CAMLprim void ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
+                            value rects_v)
 {
     CAMLparam4 (ptr_v, xoff_v, yoff_v, rects_v);
     int xoff = Int_val (xoff_v);
@@ -2625,7 +2625,7 @@ CAMLprim value ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
     struct page *page = parse_pointer (__func__, s);
 
     drawprect (page, xoff, yoff, rects_v);
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static struct annot *getannot (struct page *page, int x, int y)
@@ -3117,7 +3117,7 @@ static int uninteresting (int c)
         || ispunct (c);
 }
 
-CAMLprim value ml_clearmark (value ptr_v)
+CAMLprim void ml_clearmark (value ptr_v)
 {
     CAMLparam1 (ptr_v);
     char *s = String_val (ptr_v);
@@ -3135,7 +3135,7 @@ CAMLprim value ml_clearmark (value ptr_v)
 
     unlock (__func__);
  done:
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
@@ -3355,7 +3355,7 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_seltext (value ptr_v, value rect_v)
+CAMLprim void ml_seltext (value ptr_v, value rect_v)
 {
     CAMLparam2 (ptr_v, rect_v);
     fz_rect b;
@@ -3442,7 +3442,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     unlock (__func__);
 
  done:
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static int UNUSED_ATTR pipespan (FILE *f, fz_stext_span *span, int a, int b)
@@ -3563,7 +3563,7 @@ CAMLprim value ml_hassel (value ptr_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_copysel (value fd_v, value ptr_v)
+CAMLprim void ml_copysel (value fd_v, value ptr_v)
 {
     CAMLparam2 (fd_v, ptr_v);
     FILE *f;
@@ -3650,7 +3650,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                      strerror (errno));
         }
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_getpdimrect (value pagedimno_v)
@@ -3792,12 +3792,12 @@ CAMLprim value ml_getpagebox (value opaque_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_setaalevel (value level_v)
+CAMLprim void ml_setaalevel (value level_v)
 {
     CAMLparam1 (level_v);
 
     state.aalevel = Int_val (level_v);
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 #pragma GCC diagnostic push
@@ -3954,7 +3954,7 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("eglMakeCurrent");
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn (unit_v);
 }
 #else
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
@@ -3999,11 +3999,11 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("glXMakeCurrent");
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn (unit_v);
 }
 #endif
 
-CAMLprim value ml_setcursor (value cursor_v)
+CAMLprim void ml_setcursor (value cursor_v)
 {
     CAMLparam1 (cursor_v);
     size_t cursn = Int_val (cursor_v);
@@ -4011,7 +4011,7 @@ CAMLprim value ml_setcursor (value cursor_v)
     if (cursn >= CURS_COUNT) caml_failwith ("cursor index out of range");
     XDefineCursor (glx.dpy, glx.wid, glx.curs[cursn]);
     XFlush (glx.dpy);
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_swapb (value unit_v)
@@ -4024,7 +4024,7 @@ CAMLprim value ml_swapb (value unit_v)
 #else
     glXSwapBuffers (glx.dpy, glx.wid);
 #endif
-    CAMLreturn (Val_unit);
+    CAMLreturn (unit_v);
 }
 
 #include "keysym2ucs.c"
@@ -4084,7 +4084,7 @@ CAMLprim value ml_platform (value unit_v)
     CAMLreturn (tup_v);
 }
 
-CAMLprim value ml_cloexec (value fd_v)
+CAMLprim void ml_cloexec (value fd_v)
 {
     CAMLparam1 (fd_v);
     int fd = Int_val (fd_v);
@@ -4092,7 +4092,7 @@ CAMLprim value ml_cloexec (value fd_v)
     if (fcntl (fd, F_SETFD, FD_CLOEXEC, 1)) {
         uerror ("fcntl", Nothing);
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
@@ -4161,7 +4161,7 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_freepbo (value s_v)
+CAMLprim void ml_freepbo (value s_v)
 {
     CAMLparam1 (s_v);
     char *s = String_val (s_v);
@@ -4173,10 +4173,10 @@ CAMLprim value ml_freepbo (value s_v)
         tile->pbo->ptr = NULL;
         tile->pbo->size = -1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
-CAMLprim value ml_unmappbo (value s_v)
+CAMLprim void ml_unmappbo (value s_v)
 {
     CAMLparam1 (s_v);
     char *s = String_val (s_v);
@@ -4190,7 +4190,7 @@ CAMLprim value ml_unmappbo (value s_v)
         tile->pbo->ptr = NULL;
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static void setuppbo (void)
@@ -4308,8 +4308,8 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
-                            value contents_v)
+CAMLprim void ml_addannot (value ptr_v, value x_v, value y_v,
+                           value contents_v)
 {
     CAMLparam4 (ptr_v, x_v, y_v, contents_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4331,10 +4331,10 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
         pdf_set_text_annot_position (state.ctx, annot, p);
         state.dirty = 1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
-CAMLprim value ml_delannot (value ptr_v, value n_v)
+CAMLprim void ml_delannot (value ptr_v, value n_v)
 {
     CAMLparam2 (ptr_v, n_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4351,10 +4351,10 @@ CAMLprim value ml_delannot (value ptr_v, value n_v)
                           (pdf_annot *) slink->u.annot);
         state.dirty = 1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
-CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
+CAMLprim void ml_modannot (value ptr_v, value n_v, value str_v)
 {
     CAMLparam3 (ptr_v, n_v, str_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4370,7 +4370,7 @@ CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
                                 String_val (str_v));
         state.dirty = 1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_hasunsavedchanges (value unit_v)
@@ -4379,7 +4379,7 @@ CAMLprim value ml_hasunsavedchanges (value unit_v)
     CAMLreturn (Val_bool (state.dirty));
 }
 
-CAMLprim value ml_savedoc (value path_v)
+CAMLprim void ml_savedoc (value path_v)
 {
     CAMLparam1 (path_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4387,7 +4387,7 @@ CAMLprim value ml_savedoc (value path_v)
     if (pdf) {
         pdf_save_document (state.ctx, pdf, String_val (path_v), NULL);
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static void makestippletex (void)
@@ -4509,7 +4509,7 @@ static fz_font *fc_load_system_font_func (fz_context *ctx,
 }
 #endif
 
-CAMLprim value ml_init (value csock_v, value params_v)
+CAMLprim void ml_init (value csock_v, value params_v)
 {
     CAMLparam2 (csock_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
@@ -4621,5 +4621,5 @@ CAMLprim value ml_init (value csock_v, value params_v)
         errx (1, "pthread_create: %s", strerror (ret));
     }
 
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
