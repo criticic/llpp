@@ -4768,11 +4768,7 @@ let viewkeyboard key mask =
      end;
 
   | @backspace ->
-     gotoghyll (getnav ~-1);
-     begin match state.lnava with
-     | None -> ()
-     | Some pl -> state.mode <- LinkNav (Ltexact pl)
-     end
+     gotoghyll (getnav ~-1)
 
   | @o ->
      enteroutlinemode ()
