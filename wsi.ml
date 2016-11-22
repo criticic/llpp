@@ -1064,7 +1064,7 @@ let setup disp sock rootwid screennum w h =
                      );
 
   | c ->
-     error "unknown conection setup response %d" (Char.code c)
+     error "unknown connection setup response %d" (Char.code c)
 ;;
 
 let getauth haddr dnum =
