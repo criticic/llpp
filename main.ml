@@ -4731,7 +4731,11 @@ let viewkeyboard key mask =
   | @insert ->
      if conf.angle mod 360 = 0 && not (isbirdseye state.mode)
      then (
-       state.mode <- LinkNav (Ltgendir 0);
+       state.mode <- (
+         match state.lnava with
+         | None -> LinkNav (Ltgendir 0)
+         | Some pn -> LinkNav (Ltexact pn)
+       );
        gotoxy state.x state.y;
      )
      else impmsg "keyboard link navigation does not work under rotation"
@@ -5316,6 +5320,10 @@ let linknavkeyboard key mask linknav =
   in
   if key = @insert
   then (
+    begin match linknav with
+    | Ltexact pa -> state.lnava <- Some pa
+    | Ltgendir _ | Ltnotready _ -> ()
+    end;
     state.mode <- View;
     G.postRedisplay "leave linknav"
   )
