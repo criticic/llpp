@@ -25,3 +25,5 @@
     deletion broken?? [intentionally removed actually]
   ? linknav + presentation (link might not fit the visible area)
 
+* TODO outline for cbz
+  file names? exif?
