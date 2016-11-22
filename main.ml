@@ -6702,10 +6702,10 @@ let () =
        loop newdeadline
     end;
   in
-  try
-    loop infinity;
-  with Quit ->
-       Config.save leavebirdseye;
-       if hasunsavedchanges ()
-       then save ();
+  match loop infinity with
+  | exception Quit ->
+     Config.save leavebirdseye;
+     if hasunsavedchanges ()
+     then save ()
+  | _ -> error "umpossible - infinity reached"
 ;;
