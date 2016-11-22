@@ -44,7 +44,7 @@ $comp -c $mloptgl -o $builddir/lablGL/glArray$osu $srcdir/lablGL/glArray.ml
 $comp -c $mloptgl -o $builddir/lablGL/glClear$osu $srcdir/lablGL/glClear.ml
 $comp -c -o $builddir/help$osu $builddir/help.ml
 $comp -c $mlopt -o $builddir/utils$osu $srcdir/utils.ml
-$comp -c $mlopt -o $builddir/parser$osu $srcdir/parser.ml
+$comp -c $mlopt -I $builddir -o $builddir/parser$osu $srcdir/parser.ml
 $comp -c $mlopt -I $builddir -o $builddir/wsi.cmi $srcdir/wsi.mli
 $comp -c $mloptgl -I $builddir -o $builddir/config$osu $srcdir/config.ml
 sed -f $srcdir/pp.sed $srcdir/main.ml >$builddir/main.ml
