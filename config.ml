@@ -3,10 +3,10 @@ open Utils;;
 external fz_version : unit -> string = "ml_fz_version";;
 
 type fontstate =
-    { mutable fontsize : int
-    ; mutable wwidth : float
-    ; mutable maxrows : int
-    }
+  { mutable fontsize : int
+  ; mutable wwidth : float
+  ; mutable maxrows : int
+  }
 ;;
 
 let fstate =
@@ -35,11 +35,11 @@ let ghyllscroll_of_string s =
   | "neat" -> Some (10,1,9)
   | "" | "none" -> None
   | _ ->
-      let (n,a,b) as nab =
-        Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b) in
-      if n <= a || n <= b || a >= b
-      then error "N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)" n a b;
-      Some nab
+     let (n,a,b) as nab =
+       Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b) in
+     if n <= a || n <= b || a >= b
+     then error "N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)" n a b;
+     Some nab
 ;;
 
 let ghyllscroll_to_string ((n, a, b) as nab) =
@@ -59,387 +59,388 @@ let multicolumns_of_string s =
     (int_of_string s, 0, 0)
   with _ ->
     Scanf.sscanf s "%u,%u,%u" (fun n a b ->
-      if a > 1 || b > 1
-      then failwith "subtly broken";
-      (n, a, b)
-    );
+                   if a > 1 || b > 1
+                   then failwith "subtly broken";
+                   (n, a, b)
+                 );
 ;;
 
 type keymap        =
-    | KMinsrt of key
-    | KMinsrl of key list
-    | KMmulti of key list * key list
-and key            = int * int
-and keyhash        = (key, keymap) Hashtbl.t
-and keystate       =
-    | KSnone
-    | KSinto of (key list * key list)
-and interpagespace = int
-and multicolumns   = multicol * pagegeom
-and singlecolumn   = pagegeom
-and splitcolumns   = columncount * pagegeom
-and pagegeom       = (pdimno * x * y * (pageno * width * height * leftx)) array
-and multicol       = columncount * covercount * covercount
-and pdimno         = int
-and columncount    = int
-and covercount     = int
-and fitmodel       = | FitWidth | FitProportional | FitPage
-and trimmargins    = bool
-and irect          = (int * int * int * int)
-and memsize        = int
-and texcount       = int
-and sliceheight    = int
-and angle          = int
-and initparams     =
-  (angle * fitmodel * trimparams * texcount * sliceheight * memsize
-   * colorspace * fontpath * trimcachepath * haspbo * usefontconfig)
-and width          = int
-and height         = int
-and leftx          = int
-and opaque         = Opaque.t
-and rectcolor      = (float * float * float * float)
-and pixmapsize     = int
-and gen            = int
-and top            = float
-and dtop           = float
-and fontpath       = string
-and trimcachepath  = string
-and css            = string
-and aalevel        = int
-and trimparams     = (trimmargins * irect)
-and colorspace     = | Rgb | Bgr | Gray
-and haspbo         = bool
-and usefontconfig  = bool
-and uri            = string
-and caption        = string
-and x              = int
-and y              = int
-and tilex          = int
-and tiley          = int
-and tileparams     = (x * y * width * height * tilex * tiley)
-and under =
-    | Unone
-    | Ulinkuri of string
-    | Utext of facename
-    | Uannotation of (opaque * slinkindex)
-and slinkindex = int
-and facename = string
-and launchcommand = string
-and filename = string
-and pageno = int
-and destname = string
-and mark =
-    | Mark_page
-    | Mark_block
-    | Mark_line
-    | Mark_word
-and link =
-    | Lnotfound
-    | Lfound of int
-and linkdir =
-    | LDfirst
-    | LDlast
-    | LDfirstvisible of (int * int * int)
-    | LDleft of int
-    | LDright of int
-    | LDdown of int
-    | LDup of int
-and pagewithlinks =
-    | Pwlnotfound
-    | Pwl of int
-and scrollb = int
-and anchor = pageno * top * dtop
-and rect = float * float * float * float * float * float * float * float
-and infochange = | Memused | Docinfo | Pdim
+  | KMinsrt of key
+  | KMinsrl of key list
+  | KMmulti of key list * key list
+ and key            = int * int
+ and keyhash        = (key, keymap) Hashtbl.t
+ and keystate       =
+   | KSnone
+   | KSinto of (key list * key list)
+ and interpagespace = int
+ and multicolumns   = multicol * pagegeom
+ and singlecolumn   = pagegeom
+ and splitcolumns   = columncount * pagegeom
+ and pagegeom       = (pdimno * x * y * (pageno * width * height * leftx)) array
+ and multicol       = columncount * covercount * covercount
+ and pdimno         = int
+ and columncount    = int
+ and covercount     = int
+ and fitmodel       = | FitWidth | FitProportional | FitPage
+ and trimmargins    = bool
+ and irect          = (int * int * int * int)
+ and memsize        = int
+ and texcount       = int
+ and sliceheight    = int
+ and angle          = int
+ and initparams     =
+   (angle * fitmodel * trimparams * texcount * sliceheight * memsize
+    * colorspace * fontpath * trimcachepath * haspbo * usefontconfig)
+ and width          = int
+ and height         = int
+ and leftx          = int
+ and opaque         = Opaque.t
+ and rectcolor      = (float * float * float * float)
+ and pixmapsize     = int
+ and gen            = int
+ and top            = float
+ and dtop           = float
+ and fontpath       = string
+ and trimcachepath  = string
+ and css            = string
+ and aalevel        = int
+ and trimparams     = (trimmargins * irect)
+ and colorspace     = | Rgb | Bgr | Gray
+ and haspbo         = bool
+ and usefontconfig  = bool
+ and uri            = string
+ and caption        = string
+ and x              = int
+ and y              = int
+ and tilex          = int
+ and tiley          = int
+ and tileparams     = (x * y * width * height * tilex * tiley)
+ and under =
+   | Unone
+   | Ulinkuri of string
+   | Utext of facename
+   | Uannotation of (opaque * slinkindex)
+ and slinkindex = int
+ and facename = string
+ and launchcommand = string
+ and filename = string
+ and pageno = int
+ and destname = string
+ and mark =
+   | Mark_page
+   | Mark_block
+   | Mark_line
+   | Mark_word
+ and link =
+   | Lnotfound
+   | Lfound of int
+ and linkdir =
+   | LDfirst
+   | LDlast
+   | LDfirstvisible of (int * int * int)
+   | LDleft of int
+   | LDright of int
+   | LDdown of int
+   | LDup of int
+ and pagewithlinks =
+   | Pwlnotfound
+   | Pwl of int
+ and scrollb = int
+ and anchor = pageno * top * dtop
+ and rect = float * float * float * float * float * float * float * float
+ and infochange = | Memused | Docinfo | Pdim
 ;;
 
-class type uioh = object
-  method display : unit
-  method key : int -> int -> uioh
-  method button : int -> bool -> int -> int -> int -> uioh
-  method multiclick : int -> int -> int -> int -> uioh
-  method motion : int -> int -> uioh
-  method pmotion : int -> int -> uioh
-  method infochanged : infochange -> unit
-  method scrollpw : (int * float * float)
-  method scrollph : (int * float * float)
-  method modehash : keyhash
-  method eformsgs : bool
-  method alwaysscrolly : bool
-end;;
+class type uioh =
+  object
+    method display : unit
+    method key : int -> int -> uioh
+    method button : int -> bool -> int -> int -> int -> uioh
+    method multiclick : int -> int -> int -> int -> uioh
+    method motion : int -> int -> uioh
+    method pmotion : int -> int -> uioh
+    method infochanged : infochange -> unit
+    method scrollpw : (int * float * float)
+    method scrollph : (int * float * float)
+    method modehash : keyhash
+    method eformsgs : bool
+    method alwaysscrolly : bool
+  end;;
 
 module type TextEnumType =
-sig
-  type t
-  val name : string
-  val names : string array
-end;;
+  sig
+    type t
+    val name : string
+    val names : string array
+  end;;
 
 module TextEnumMake (Ten : TextEnumType) =
-struct
-  let names = Ten.names;;
-  let to_int (t : Ten.t)  = Obj.magic t;;
-  let to_string t = names.(to_int t);;
-  let of_int n : Ten.t = Obj.magic n;;
-  let of_string s =
-    let rec find i =
-      if i = Array.length names
-      then failwith ("invalid " ^ Ten.name ^ ": " ^ s)
-      else (
-        if Ten.names.(i) = s
-        then of_int i
-        else find (i+1)
-      )
-    in find 0;;
-end;;
+  struct
+    let names = Ten.names;;
+    let to_int (t : Ten.t)  = Obj.magic t;;
+    let to_string t = names.(to_int t);;
+    let of_int n : Ten.t = Obj.magic n;;
+    let of_string s =
+      let rec find i =
+        if i = Array.length names
+        then failwith ("invalid " ^ Ten.name ^ ": " ^ s)
+        else (
+          if Ten.names.(i) = s
+          then of_int i
+          else find (i+1)
+        )
+      in find 0;;
+  end;;
 
 module CSTE = TextEnumMake (struct
-  type t = colorspace;;
-  let name = "colorspace";;
-  let names = [|"rgb"; "bgr"; "gray"|];;
-end);;
+                             type t = colorspace;;
+                             let name = "colorspace";;
+                             let names = [|"rgb"; "bgr"; "gray"|];;
+                           end);;
 
 module MTE = TextEnumMake (struct
-  type t = mark;;
-  let name = "mark";;
-  let names = [|"page"; "block"; "line"; "word"|];;
-end);;
+                            type t = mark;;
+                            let name = "mark";;
+                            let names = [|"page"; "block"; "line"; "word"|];;
+                          end);;
 
 module FMTE = TextEnumMake (struct
-  type t = fitmodel;;
-  let name = "fitmodel";;
-  let names = [|"width"; "proportional"; "page"|];;
-end);;
+                             type t = fitmodel;;
+                             let name = "fitmodel";;
+                             let names = [|"width"; "proportional"; "page"|];;
+                           end);;
 
 type conf =
-    { mutable scrollbw       : int
-    ; mutable scrollh        : int
-    ; mutable scrollb        : scrollb
-    ; mutable icase          : bool
-    ; mutable preload        : bool
-    ; mutable pagebias       : int
-    ; mutable verbose        : bool
-    ; mutable debug          : bool
-    ; mutable scrollstep     : int
-    ; mutable hscrollstep    : int
-    ; mutable maxhfit        : bool
-    ; mutable crophack       : bool
-    ; mutable autoscrollstep : int
-    ; mutable maxwait        : float option
-    ; mutable hlinks         : bool
-    ; mutable underinfo      : bool
-    ; mutable interpagespace : interpagespace
-    ; mutable zoom           : float
-    ; mutable presentation   : bool
-    ; mutable angle          : angle
-    ; mutable cwinw          : int
-    ; mutable cwinh          : int
-    ; mutable savebmarks     : bool
-    ; mutable fitmodel       : fitmodel
-    ; mutable trimmargins    : trimmargins
-    ; mutable trimfuzz       : irect
-    ; mutable memlimit       : memsize
-    ; mutable texcount       : texcount
-    ; mutable sliceheight    : sliceheight
-    ; mutable thumbw         : width
-    ; mutable jumpback       : bool
-    ; mutable bgcolor        : (float * float * float)
-    ; mutable bedefault      : bool
-    ; mutable tilew          : int
-    ; mutable tileh          : int
-    ; mutable mustoresize    : memsize
-    ; mutable checkers       : bool
-    ; mutable aalevel        : int
-    ; mutable urilauncher    : string
-    ; mutable pathlauncher   : string
-    ; mutable colorspace     : colorspace
-    ; mutable invert         : bool
-    ; mutable colorscale     : float
-    ; mutable ghyllscroll    : (int * int * int) option
-    ; mutable columns        : columns
-    ; mutable beyecolumns    : columncount option
-    ; mutable selcmd         : string
-    ; mutable paxcmd         : string
-    ; mutable passcmd        : string
-    ; mutable savecmd        : string
-    ; mutable updatecurs     : bool
-    ; mutable keyhashes      : (string * keyhash) list
-    ; mutable hfsize         : int
-    ; mutable pgscale        : float
-    ; mutable usepbo         : bool
-    ; mutable wheelbypage    : bool
-    ; mutable stcmd          : string
-    ; mutable riani          : bool
-    ; mutable pax            : (float * int * int) ref option
-    ; mutable paxmark        : mark
-    ; mutable leftscroll     : bool
-    ; mutable title          : string
-    ; mutable lastvisit      : float
-    ; mutable annotinline    : bool
-    ; mutable coarseprespos  : bool
-    ; mutable css            : css
-    }
-and columns =
-    | Csingle of singlecolumn
-    | Cmulti of multicolumns
-    | Csplit of splitcolumns
-and outlinekind =
-    | Onone
-    | Oanchor of anchor
-    | Ouri of uri
-    | Olaunch of launchcommand
-    | Oremote of (filename * pageno)
-    | Oremotedest of (filename * destname)
-    | Ohistory of (filename * conf * outline list * x * anchor * filename)
-and outline = (caption * outlinelevel * outlinekind)
-and outlinelevel = int
+  { mutable scrollbw       : int
+  ; mutable scrollh        : int
+  ; mutable scrollb        : scrollb
+  ; mutable icase          : bool
+  ; mutable preload        : bool
+  ; mutable pagebias       : int
+  ; mutable verbose        : bool
+  ; mutable debug          : bool
+  ; mutable scrollstep     : int
+  ; mutable hscrollstep    : int
+  ; mutable maxhfit        : bool
+  ; mutable crophack       : bool
+  ; mutable autoscrollstep : int
+  ; mutable maxwait        : float option
+  ; mutable hlinks         : bool
+  ; mutable underinfo      : bool
+  ; mutable interpagespace : interpagespace
+  ; mutable zoom           : float
+  ; mutable presentation   : bool
+  ; mutable angle          : angle
+  ; mutable cwinw          : int
+  ; mutable cwinh          : int
+  ; mutable savebmarks     : bool
+  ; mutable fitmodel       : fitmodel
+  ; mutable trimmargins    : trimmargins
+  ; mutable trimfuzz       : irect
+  ; mutable memlimit       : memsize
+  ; mutable texcount       : texcount
+  ; mutable sliceheight    : sliceheight
+  ; mutable thumbw         : width
+  ; mutable jumpback       : bool
+  ; mutable bgcolor        : (float * float * float)
+  ; mutable bedefault      : bool
+  ; mutable tilew          : int
+  ; mutable tileh          : int
+  ; mutable mustoresize    : memsize
+  ; mutable checkers       : bool
+  ; mutable aalevel        : int
+  ; mutable urilauncher    : string
+  ; mutable pathlauncher   : string
+  ; mutable colorspace     : colorspace
+  ; mutable invert         : bool
+  ; mutable colorscale     : float
+  ; mutable ghyllscroll    : (int * int * int) option
+  ; mutable columns        : columns
+  ; mutable beyecolumns    : columncount option
+  ; mutable selcmd         : string
+  ; mutable paxcmd         : string
+  ; mutable passcmd        : string
+  ; mutable savecmd        : string
+  ; mutable updatecurs     : bool
+  ; mutable keyhashes      : (string * keyhash) list
+  ; mutable hfsize         : int
+  ; mutable pgscale        : float
+  ; mutable usepbo         : bool
+  ; mutable wheelbypage    : bool
+  ; mutable stcmd          : string
+  ; mutable riani          : bool
+  ; mutable pax            : (float * int * int) ref option
+  ; mutable paxmark        : mark
+  ; mutable leftscroll     : bool
+  ; mutable title          : string
+  ; mutable lastvisit      : float
+  ; mutable annotinline    : bool
+  ; mutable coarseprespos  : bool
+  ; mutable css            : css
+  }
+ and columns =
+   | Csingle of singlecolumn
+   | Cmulti of multicolumns
+   | Csplit of splitcolumns
+ and outlinekind =
+   | Onone
+   | Oanchor of anchor
+   | Ouri of uri
+   | Olaunch of launchcommand
+   | Oremote of (filename * pageno)
+   | Oremotedest of (filename * destname)
+   | Ohistory of (filename * conf * outline list * x * anchor * filename)
+ and outline = (caption * outlinelevel * outlinekind)
+ and outlinelevel = int
 ;;
 
 type page =
-    { pageno    : int
-    ; pagedimno : int
-    ; pagew     : int
-    ; pageh     : int
-    ; pagex     : int
-    ; pagey     : int
-    ; pagevw    : int
-    ; pagevh    : int
-    ; pagedispx : int
-    ; pagedispy : int
-    ; pagecol   : int
-    }
+  { pageno    : int
+  ; pagedimno : int
+  ; pagew     : int
+  ; pageh     : int
+  ; pagex     : int
+  ; pagey     : int
+  ; pagevw    : int
+  ; pagevh    : int
+  ; pagedispx : int
+  ; pagedispy : int
+  ; pagecol   : int
+  }
 ;;
 
 type tile = opaque * pixmapsize * elapsed
-and elapsed = float;;
+ and elapsed = float;;
 type pagemapkey = pageno * gen;;
 type tilemapkey = pageno * gen * colorspace * angle * width * height * col * row
-and row = int
-and col = int
-and currently =
-  | Idle
-  | Loading of (page * gen)
-  | Tiling of (
-      page * opaque * colorspace * angle * gen * col * row * width * height
-     )
-  | Outlining of outline list
+ and row = int
+ and col = int
+ and currently =
+   | Idle
+   | Loading of (page * gen)
+   | Tiling of (
+     page * opaque * colorspace * angle * gen * col * row * width * height
+   )
+   | Outlining of outline list
 ;;
 
 type mpos = int * int
-and mstate =
-    | Msel of (mpos * mpos)
-    | Mpan of mpos
-    | Mscrolly | Mscrollx
-    | Mzoom of (buttonno * step * mpos)
-    | Mzoomrect of (mpos * mpos)
-    | Mnone
-and buttonno = int
-and step = int
+ and mstate =
+   | Msel of (mpos * mpos)
+   | Mpan of mpos
+   | Mscrolly | Mscrollx
+   | Mzoom of (buttonno * step * mpos)
+   | Mzoomrect of (mpos * mpos)
+   | Mnone
+ and buttonno = int
+ and step = int
 ;;
 
 type mode =
-    | Birdseye of (conf * leftx * pageno * pageno * anchor)
-    | Textentry of (textentry * onleave)
-    | View
-    | LinkNav of linktarget
-and onleave = leavetextentrystatus -> unit
-and leavetextentrystatus = | Cancel | Confirm
-and helpitem = string * int * action
-and action =
-    | Noaction
-    | Action of (uioh -> uioh)
-and linktarget =
-    | Ltexact of (pageno * direction)
-    | Ltgendir of direction
-    | Ltnotready of (pageno * direction)
-and direction = int             (* -1, 0, 1 *)
-and textentry = string * string * onhist option * onkey * ondone * cancelonempty
-and onkey = string -> int -> te
-and ondone = string -> unit
-and histcancel = unit -> unit
-and onhist = ((histcmd -> string) * histcancel)
-and histcmd = HCnext | HCprev | HCfirst | HClast
-and cancelonempty = bool
-and te =
-    | TEstop
-    | TEdone of string
-    | TEcont of string
-    | TEswitch of textentry
+  | Birdseye of (conf * leftx * pageno * pageno * anchor)
+  | Textentry of (textentry * onleave)
+  | View
+  | LinkNav of linktarget
+ and onleave = leavetextentrystatus -> unit
+ and leavetextentrystatus = | Cancel | Confirm
+ and helpitem = string * int * action
+ and action =
+   | Noaction
+   | Action of (uioh -> uioh)
+ and linktarget =
+   | Ltexact of (pageno * direction)
+   | Ltgendir of direction
+   | Ltnotready of (pageno * direction)
+ and direction = int             (* -1, 0, 1 *)
+ and textentry = string * string * onhist option * onkey * ondone * cancelonempty
+ and onkey = string -> int -> te
+ and ondone = string -> unit
+ and histcancel = unit -> unit
+ and onhist = ((histcmd -> string) * histcancel)
+ and histcmd = HCnext | HCprev | HCfirst | HClast
+ and cancelonempty = bool
+ and te =
+   | TEstop
+   | TEdone of string
+   | TEcont of string
+   | TEswitch of textentry
 ;;
 
 type 'a circbuf =
-    { store : 'a array
-    ; mutable rc : int
-    ; mutable wc : int
-    ; mutable len : int
-    }
+  { store : 'a array
+  ; mutable rc : int
+  ; mutable wc : int
+  ; mutable len : int
+  }
 ;;
 
 type state =
-    { mutable ss            : Unix.file_descr
-    ; mutable wsfd          : Unix.file_descr
-    ; mutable stderr        : Unix.file_descr
-    ; mutable errmsgs       : Buffer.t
-    ; mutable newerrmsgs    : bool
-    ; mutable w             : int
-    ; mutable x             : x
-    ; mutable y             : y
-    ; mutable anchor        : anchor
-    ; mutable ranchors      : (string * string * anchor * string) list
-    ; mutable maxy          : int
-    ; mutable layout        : page list
-    ; pagemap               : (pagemapkey, opaque) Hashtbl.t
-    ; tilemap               : (tilemapkey, tile) Hashtbl.t
-    ; tilelru               : (tilemapkey * opaque * pixmapsize) Queue.t
-    ; mutable pdims         : (pageno * width * height * leftx) list
-    ; mutable pagecount     : int
-    ; mutable currently     : currently
-    ; mutable mstate        : mstate
-    ; mutable searchpattern : string
-    ; mutable rects         : (pageno * rectcolor * rect) list
-    ; mutable rects1        : (pageno * rectcolor * rect) list
-    ; prects                : (pageno, float array) Hashtbl.t
-    ; mutable text          : string
-    ; mutable winstate      : Wsi.winstate list
-    ; mutable mode          : mode
-    ; mutable uioh          : uioh
-    ; mutable outlines      : outline array
-    ; mutable bookmarks     : outline list
-    ; mutable path          : string
-    ; mutable password      : string
-    ; mutable nameddest     : string
-    ; mutable geomcmds      : (string * ((string * (unit -> unit)) list))
-    ; mutable memused       : memsize
-    ; mutable gen           : gen
-    ; mutable throttle      : (page list * int * float) option
-    ; mutable autoscroll    : int option
-    ; mutable ghyll         : (int option -> unit)
-    ; mutable help          : helpitem array
-    ; mutable docinfo       : (int * string) list
-    ; mutable checkerstexid : GlTex.texture_id option
-    ; hists                 : hists
-    ; mutable prevzoom      : (float * int)
-    ; mutable progress      : float
-    ; mutable redisplay     : bool
-    ; mutable mpos          : mpos
-    ; mutable keystate      : keystate
-    ; mutable glinks        : bool
-    ; mutable prevcolumns   : (columns * float) option
-    ; mutable winw          : int
-    ; mutable winh          : int
-    ; mutable reprf         : (unit -> unit)
-    ; mutable origin        : string
-    ; mutable roam          : (unit -> unit)
-    ; mutable bzoom         : bool
-    ; mutable traw          : [`float] Raw.t
-    ; mutable vraw          : [`float] Raw.t
-    }
-and hists =
-    { pat : string circbuf
-    ; pag : string circbuf
-    ; nav : anchor circbuf
-    ; sel : string circbuf
-    }
+  { mutable ss            : Unix.file_descr
+  ; mutable wsfd          : Unix.file_descr
+  ; mutable stderr        : Unix.file_descr
+  ; mutable errmsgs       : Buffer.t
+  ; mutable newerrmsgs    : bool
+  ; mutable w             : int
+  ; mutable x             : x
+  ; mutable y             : y
+  ; mutable anchor        : anchor
+  ; mutable ranchors      : (string * string * anchor * string) list
+  ; mutable maxy          : int
+  ; mutable layout        : page list
+  ; pagemap               : (pagemapkey, opaque) Hashtbl.t
+  ; tilemap               : (tilemapkey, tile) Hashtbl.t
+  ; tilelru               : (tilemapkey * opaque * pixmapsize) Queue.t
+  ; mutable pdims         : (pageno * width * height * leftx) list
+  ; mutable pagecount     : int
+  ; mutable currently     : currently
+  ; mutable mstate        : mstate
+  ; mutable searchpattern : string
+  ; mutable rects         : (pageno * rectcolor * rect) list
+  ; mutable rects1        : (pageno * rectcolor * rect) list
+  ; prects                : (pageno, float array) Hashtbl.t
+  ; mutable text          : string
+  ; mutable winstate      : Wsi.winstate list
+  ; mutable mode          : mode
+  ; mutable uioh          : uioh
+  ; mutable outlines      : outline array
+  ; mutable bookmarks     : outline list
+  ; mutable path          : string
+  ; mutable password      : string
+  ; mutable nameddest     : string
+  ; mutable geomcmds      : (string * ((string * (unit -> unit)) list))
+  ; mutable memused       : memsize
+  ; mutable gen           : gen
+  ; mutable throttle      : (page list * int * float) option
+  ; mutable autoscroll    : int option
+  ; mutable ghyll         : (int option -> unit)
+  ; mutable help          : helpitem array
+  ; mutable docinfo       : (int * string) list
+  ; mutable checkerstexid : GlTex.texture_id option
+  ; hists                 : hists
+  ; mutable prevzoom      : (float * int)
+  ; mutable progress      : float
+  ; mutable redisplay     : bool
+  ; mutable mpos          : mpos
+  ; mutable keystate      : keystate
+  ; mutable glinks        : bool
+  ; mutable prevcolumns   : (columns * float) option
+  ; mutable winw          : int
+  ; mutable winh          : int
+  ; mutable reprf         : (unit -> unit)
+  ; mutable origin        : string
+  ; mutable roam          : (unit -> unit)
+  ; mutable bzoom         : bool
+  ; mutable traw          : [`float] Raw.t
+  ; mutable vraw          : [`float] Raw.t
+  }
+ and hists =
+   { pat : string circbuf
+   ; pag : string circbuf
+   ; nav : anchor circbuf
+   ; sel : string circbuf
+   }
 ;;
 
 let emptyanchor = (0, 0.0, 0.0);;
@@ -449,19 +450,19 @@ let noreprf () = ();;
 let noroam () = ();;
 
 let nouioh : uioh = object (self)
-  method display = ()
-  method key _ _ = self
-  method multiclick _ _ _ _ = self
-  method button _ _ _ _ _ = self
-  method motion _ _ = self
-  method pmotion _ _ = self
-  method infochanged _ = ()
-  method scrollpw = (0, nan, nan)
-  method scrollph = (0, nan, nan)
-  method modehash = emptykeyhash
-  method eformsgs = false
-  method alwaysscrolly = false
-end;;
+                      method display = ()
+                      method key _ _ = self
+                      method multiclick _ _ _ _ = self
+                      method button _ _ _ _ _ = self
+                      method motion _ _ = self
+                      method pmotion _ _ = self
+                      method infochanged _ = ()
+                      method scrollpw = (0, nan, nan)
+                      method scrollph = (0, nan, nan)
+                      method modehash = emptykeyhash
+                      method eformsgs = false
+                      method alwaysscrolly = false
+                    end;;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
@@ -474,7 +475,7 @@ let platform_to_string = function
 
 let version () =
   Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
-    Help.version (fz_version ()) Sys.ocaml_version Sys.word_size
+                 Help.version (fz_version ()) Sys.ocaml_version Sys.word_size
 ;;
 
 let defconf =
@@ -518,17 +519,17 @@ let defconf =
   ; aalevel        = 8
   ; urilauncher    =
       (match platform with
-      | Plinux | Psun | Pbsd -> "xdg-open \"%s\""
-      | Posx -> "open \"%s\""
-      | Pcygwin -> "cygstart \"%s\""
-      | Punknown -> "echo %s")
+       | Plinux | Psun | Pbsd -> "xdg-open \"%s\""
+       | Posx -> "open \"%s\""
+       | Pcygwin -> "cygstart \"%s\""
+       | Punknown -> "echo %s")
   ; pathlauncher   = "lp \"%s\""
   ; selcmd         =
       (match platform with
-      | Plinux | Pbsd | Psun -> "xsel -i"
-      | Posx -> "pbcopy"
-      | Pcygwin -> "wsel"
-      | Punknown -> "cat")
+       | Plinux | Pbsd | Psun -> "xsel -i"
+       | Posx -> "pbcopy"
+       | Pcygwin -> "wsel"
+       | Punknown -> "cat")
   ; paxcmd         = "cat"
   ; passcmd        = E.s
   ; savecmd        = E.s
@@ -594,12 +595,12 @@ let makehelp () =
     :: E.s :: Help.keys
   in
   Array.of_list (
-    List.map (fun s ->
-      let url = geturl s in
-      if nonemptystr url
-      then (s, 0, Action (fun uioh -> gotourl url; uioh))
-      else (s, 0, Noaction)
-    ) strings);
+      List.map (fun s ->
+          let url = geturl s in
+          if nonemptystr url
+          then (s, 0, Action (fun uioh -> gotourl url; uioh))
+          else (s, 0, Noaction)
+        ) strings);
 ;;
 
 let cbnew n v =
@@ -733,10 +734,10 @@ let rowyh (c, coverA, coverB) b n =
     let s = n - d in
     let e = min state.pagecount (s + c) in
     let rec find m miny maxh = if m = e then miny, maxh else
-        let _, _, y, (_, _, h, _) = b.(m) in
-        let miny = min miny y in
-        let maxh = max maxh h in
-        find (m+1) miny maxh
+                                 let _, _, y, (_, _, h, _) = b.(m) in
+                                 let miny = min miny y in
+                                 let maxh = max maxh h in
+                                 find (m+1) miny maxh
     in find s max_int 0
 ;;
 
@@ -796,58 +797,58 @@ let page_of_y y =
 let calcheight () =
   match conf.columns with
   | Cmulti ((_, _, _) as cl, b) ->
-      if Array.length b > 0
-      then
-        let y, h = rowyh cl b (Array.length b - 1) in
-        y + h + (if conf.presentation then calcips h else 0)
-      else 0
+     if Array.length b > 0
+     then
+       let y, h = rowyh cl b (Array.length b - 1) in
+       y + h + (if conf.presentation then calcips h else 0)
+     else 0
   | Csingle b ->
-      if Array.length b > 0
-      then
-        let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
-        y + h + (if conf.presentation then calcips h else 0)
-      else 0
+     if Array.length b > 0
+     then
+       let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
+       y + h + (if conf.presentation then calcips h else 0)
+     else 0
   | Csplit (_, b) ->
-      if Array.length b > 0
-      then
-        let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
-        y + h
-      else 0
+     if Array.length b > 0
+     then
+       let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
+       y + h
+     else 0
 ;;
 
 let getpageywh pageno =
   let pageno = bound pageno 0 (state.pagecount-1) in
   match conf.columns with
   | Csingle b ->
-      if Array.length b = 0
-      then 0, 0, 0
-      else
-        let (_, _, y, (_, w, h, _)) = b.(pageno) in
-        let y =
-          if conf.presentation
-          then y - calcips h
-          else y
-        in
-        y, w, h
+     if Array.length b = 0
+     then 0, 0, 0
+     else
+       let (_, _, y, (_, w, h, _)) = b.(pageno) in
+       let y =
+         if conf.presentation
+         then y - calcips h
+         else y
+       in
+       y, w, h
   | Cmulti (cl, b) ->
-      if Array.length b = 0
-      then 0, 0, 0
-      else
-        let y, h = rowyh cl b pageno in
-        let (_, _, _, (_, w, _, _)) = b.(pageno) in
-        let y =
-          if conf.presentation
-          then y - calcips h
-          else y
-        in
-        y, w, h
+     if Array.length b = 0
+     then 0, 0, 0
+     else
+       let y, h = rowyh cl b pageno in
+       let (_, _, _, (_, w, _, _)) = b.(pageno) in
+       let y =
+         if conf.presentation
+         then y - calcips h
+         else y
+       in
+       y, w, h
   | Csplit (c, b) ->
-      if Array.length b = 0
-      then 0, 0, 0
-      else
-        let n = pageno*c in
-        let (_, _, y, (_, w, h, _)) = b.(n) in
-        y, w / c, h
+     if Array.length b = 0
+     then 0, 0, 0
+     else
+       let n = pageno*c in
+       let (_, _, y, (_, w, h, _)) = b.(n) in
+       y, w / c, h
 ;;
 
 let getpageyh pageno =
@@ -859,9 +860,9 @@ let getpagedim pageno =
   let rec f ppdim l =
     match l with
     | (n, _, _, _) as pdim :: rest ->
-        if n >= pageno
-        then (if n = pageno then pdim else ppdim)
-        else f pdim rest
+       if n >= pageno
+       then (if n = pageno then pdim else ppdim)
+       else f pdim rest
 
     | [] -> ppdim
   in
@@ -873,9 +874,9 @@ let getpdimno pageno =
     let np = succ p in
     match l with
     | (n, _, _, _) :: rest ->
-        if n >= pageno
-        then (if n = pageno then np else p)
-        else f np rest
+       if n >= pageno
+       then (if n = pageno then np else p)
+       else f np rest
 
     | [] -> p
   in
@@ -906,21 +907,21 @@ let getanchor () =
   match state.layout with
   | l :: _ -> getanchor1 l
   | []     ->
-      let n = page_of_y state.y in
-      if n = -1
-      then state.anchor
-      else
-        let y, h = getpageyh n in
-        let dy = y - state.y in
-        let dtop =
-          if conf.presentation
-          then
-            let ips = calcips h in
-            float (dy + ips) /. float ips
-          else
-            float dy /. float conf.interpagespace
-        in
-        (n, 0.0, dtop)
+     let n = page_of_y state.y in
+     if n = -1
+     then state.anchor
+     else
+       let y, h = getpageyh n in
+       let dy = y - state.y in
+       let dtop =
+         if conf.presentation
+         then
+           let ips = calcips h in
+           float (dy + ips) /. float ips
+         else
+           float dy /. float conf.interpagespace
+       in
+       (n, 0.0, dtop)
 ;;
 
 let fontpath = ref E.s;;
@@ -962,15 +963,15 @@ let keys_of_string s =
         then (Wsi.namekey s, m)
         else (k, m lor m1)
       in function
-        | Str.Delim s when n land 1 = 0 -> g s
-        | Str.Text s -> g s
-        | Str.Delim _ -> (k, m)
+      | Str.Delim s when n land 1 = 0 -> g s
+      | Str.Text s -> g s
+      | Str.Delim _ -> (k, m)
     in
     let rec loop n k m = function
       | [] -> (k, m)
       | x :: xs ->
-          let k, m = f n k m x in
-          loop (n+1) k m xs
+         let k, m = f n k m x in
+         loop (n+1) k m xs
     in
     loop 0 0 0 elems
   in
@@ -989,42 +990,42 @@ let config_of c attrs =
       | "page-bias" -> { c with pagebias = int_of_string v }
       | "scroll-step" -> { c with scrollstep = max 1 (int_of_string v) }
       | "horizontal-scroll-step" ->
-          { c with hscrollstep = max (int_of_string v) 1 }
+         { c with hscrollstep = max (int_of_string v) 1 }
       | "auto-scroll-step" ->
-          { c with autoscrollstep = max 0 (int_of_string v) }
+         { c with autoscrollstep = max 0 (int_of_string v) }
       | "max-height-fit" -> { c with maxhfit = bool_of_string v }
       | "crop-hack" -> { c with crophack = bool_of_string v }
       | "throttle" ->
-          let mw =
-            match String.map asciilower v with
-            | "true" -> Some infinity
-            | "false" -> None
-            | f -> Some (float_of_string f)
-          in
-          { c with maxwait = mw }
+         let mw =
+           match String.map asciilower v with
+           | "true" -> Some infinity
+           | "false" -> None
+           | f -> Some (float_of_string f)
+         in
+         { c with maxwait = mw }
       | "highlight-links" -> { c with hlinks = bool_of_string v }
       | "under-cursor-info" -> { c with underinfo = bool_of_string v }
       | "vertical-margin" ->
-          { c with interpagespace = max 0 (int_of_string v) }
+         { c with interpagespace = max 0 (int_of_string v) }
       | "zoom" ->
-          let zoom = float_of_string v /. 100. in
-          let zoom = max zoom 0.0 in
-          { c with zoom = zoom }
+         let zoom = float_of_string v /. 100. in
+         let zoom = max zoom 0.0 in
+         { c with zoom = zoom }
       | "presentation" -> { c with presentation = bool_of_string v }
       | "rotation-angle" -> { c with angle = int_of_string v }
       | "width" -> { c with cwinw = max 20 (int_of_string v) }
       | "height" -> { c with cwinh = max 20 (int_of_string v) }
       | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
       | "proportional-display" ->
-          let fm =
-            if bool_of_string v
-            then FitProportional
-            else FitWidth
-          in
-          { c with fitmodel = fm }
+         let fm =
+           if bool_of_string v
+           then FitProportional
+           else FitWidth
+         in
+         { c with fitmodel = fm }
       | "fit-model" -> { c with fitmodel = FMTE.of_string v }
       | "pixmap-cache-size" ->
-          { c with memlimit = max 2 (int_of_string_with_suffix v) }
+         { c with memlimit = max 2 (int_of_string_with_suffix v) }
       | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
       | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
       | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
@@ -1033,7 +1034,7 @@ let config_of c attrs =
       | "tile-width" -> { c with tilew = max 2 (int_of_string v) }
       | "tile-height" -> { c with tileh = max 2 (int_of_string v) }
       | "mupdf-store-size" ->
-          { c with mustoresize = max 1024 (int_of_string_with_suffix v) }
+         { c with mustoresize = max 1024 (int_of_string_with_suffix v) }
       | "checkers" -> { c with checkers = bool_of_string v }
       | "aalevel" -> { c with aalevel = max 0 (int_of_string v) }
       | "trim-margins" -> { c with trimmargins = bool_of_string v }
@@ -1045,12 +1046,12 @@ let config_of c attrs =
       | "brightness" -> { c with colorscale = float_of_string v }
       | "ghyllscroll" -> { c with ghyllscroll = ghyllscroll_of_string v }
       | "columns" ->
-          let (n, _, _) as nab = multicolumns_of_string v in
-          if n < 0
-          then { c with columns = Csplit (-n, E.a) }
-          else { c with columns = Cmulti (nab, E.a) }
+         let (n, _, _) as nab = multicolumns_of_string v in
+         if n < 0
+         then { c with columns = Csplit (-n, E.a) }
+         else { c with columns = Cmulti (nab, E.a) }
       | "birds-eye-columns" ->
-          { c with beyecolumns = Some (max (int_of_string v) 2) }
+         { c with beyecolumns = Some (max (int_of_string v) 2) }
       | "selection-command" -> { c with selcmd = unentS v }
       | "synctex-command" -> { c with stcmd = unentS v }
       | "pax-command" -> { c with paxcmd = unentS v }
@@ -1062,25 +1063,25 @@ let config_of c attrs =
       | "use-pbo" -> { c with usepbo = bool_of_string v }
       | "wheel-scrolls-pages" -> { c with wheelbypage = bool_of_string v }
       | "horizontal-scrollbar-visible" ->
-          let b =
-            if bool_of_string v
-            then c.scrollb lor scrollbhv
-            else c.scrollb land (lnot scrollbhv)
-          in
-          { c with scrollb = b }
+         let b =
+           if bool_of_string v
+           then c.scrollb lor scrollbhv
+           else c.scrollb land (lnot scrollbhv)
+         in
+         { c with scrollb = b }
       | "vertical-scrollbar-visible" ->
-          let b =
-            if bool_of_string v
-            then c.scrollb lor scrollbvv
-            else c.scrollb land (lnot scrollbvv)
-          in
-          { c with scrollb = b }
+         let b =
+           if bool_of_string v
+           then c.scrollb lor scrollbvv
+           else c.scrollb land (lnot scrollbvv)
+         in
+         { c with scrollb = b }
       | "remote-in-a-new-instance" -> { c with riani = bool_of_string v }
       | "point-and-x" ->
-          { c with pax =
-              if bool_of_string v
-              then Some (ref (0.0, 0, 0))
-              else None }
+         { c with pax =
+                    if bool_of_string v
+                    then Some (ref (0.0, 0, 0))
+                    else None }
       | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
       | "title" -> { c with title = unentS v }
@@ -1096,8 +1097,8 @@ let config_of c attrs =
   let rec fold c = function
     | [] -> c
     | (k, v) :: rest ->
-        let c = apply c k v in
-        fold c rest
+       let c = apply c k v in
+       fold c rest
   in
   fold { c with keyhashes = copykeyhashes c } attrs;
 ;;
@@ -1227,9 +1228,9 @@ let get s =
     match t with
     | Vdata | Vcdata | Vend -> v
     | Vopen ("llppconfig", _, closed) ->
-        if closed
-        then v
-        else { v with f = llppconfig }
+       if closed
+       then v
+       else { v with f = llppconfig }
     | Vopen _ -> parse_error "unexpected subelement at top level" s spos
     | Vclose _ -> parse_error "unexpected close at top level" s spos
 
@@ -1238,42 +1239,42 @@ let get s =
     | Vdata | Vcdata -> v
     | Vend -> parse_error "unexpected end of input in llppconfig" s spos
     | Vopen ("defaults", attrs, closed) ->
-        let c = config_of dc attrs in
-        setconf dc c;
-        if closed
-        then v
-        else { v with f = defaults }
+       let c = config_of dc attrs in
+       setconf dc c;
+       if closed
+       then v
+       else { v with f = defaults }
 
     | Vopen ("ui-font", attrs, closed) ->
-        let rec getsize size = function
-          | [] -> size
-          | ("size", v) :: rest ->
-              let size =
-                fromstring int_of_string spos "size" v fstate.fontsize in
-              getsize size rest
-          | l -> getsize size l
-        in
-        fstate.fontsize <- getsize fstate.fontsize attrs;
-        if closed
-        then v
-        else { v with f = uifont (Buffer.create 10) }
+       let rec getsize size = function
+         | [] -> size
+         | ("size", v) :: rest ->
+            let size =
+              fromstring int_of_string spos "size" v fstate.fontsize in
+            getsize size rest
+         | l -> getsize size l
+       in
+       fstate.fontsize <- getsize fstate.fontsize attrs;
+       if closed
+       then v
+       else { v with f = uifont (Buffer.create 10) }
 
     | Vopen ("doc", attrs, closed) ->
-        let pathent, spage, srely, span, svisy, origin = doc_of attrs in
-        let path = unentS pathent
-        and origin = unentS origin
-        and pageno = fromstring int_of_string spos "page" spage 0
-        and rely = fromstring float_of_string spos "rely" srely 0.0
-        and pan = fromstring int_of_string spos "pan" span 0
-        and visy = fromstring float_of_string spos "visy" svisy 0.0 in
-        let c = config_of dc attrs in
-        let anchor = (pageno, rely, visy) in
-        if closed
-        then (Hashtbl.add h path (c, [], pan, anchor, origin); v)
-        else { v with f = doc path origin pan anchor c [] }
+       let pathent, spage, srely, span, svisy, origin = doc_of attrs in
+       let path = unentS pathent
+       and origin = unentS origin
+       and pageno = fromstring int_of_string spos "page" spage 0
+       and rely = fromstring float_of_string spos "rely" srely 0.0
+       and pan = fromstring int_of_string spos "pan" span 0
+       and visy = fromstring float_of_string spos "visy" svisy 0.0 in
+       let c = config_of dc attrs in
+       let anchor = (pageno, rely, visy) in
+       if closed
+       then (Hashtbl.add h path (c, [], pan, anchor, origin); v)
+       else { v with f = doc path origin pan anchor c [] }
 
     | Vopen _ ->
-        parse_error "unexpected subelement in llppconfig" s spos
+       parse_error "unexpected subelement in llppconfig" s spos
 
     | Vclose "llppconfig" ->  { v with f = toplevel }
     | Vclose _ -> parse_error "unexpected close in llppconfig" s spos
@@ -1283,38 +1284,38 @@ let get s =
     | Vdata | Vcdata -> v
     | Vend -> parse_error "unexpected end of input in defaults" s spos
     | Vopen ("keymap", attrs, closed) ->
-        let modename =
-          try List.assoc "mode" attrs
-          with Not_found -> "global" in
-        if closed
-        then v
-        else
-          let ret keymap =
-            let h = findkeyhash dc modename in
-            KeyMap.iter (Hashtbl.replace h) keymap;
-            defaults
-          in
-          { v with f = pkeymap ret KeyMap.empty }
+       let modename =
+         try List.assoc "mode" attrs
+         with Not_found -> "global" in
+       if closed
+       then v
+       else
+         let ret keymap =
+           let h = findkeyhash dc modename in
+           KeyMap.iter (Hashtbl.replace h) keymap;
+           defaults
+         in
+         { v with f = pkeymap ret KeyMap.empty }
 
     | Vopen (_, _, _) ->
-        parse_error "unexpected subelement in defaults" s spos
+       parse_error "unexpected subelement in defaults" s spos
 
     | Vclose "defaults" ->
-        { v with f = llppconfig }
+       { v with f = llppconfig }
 
     | Vclose _ -> parse_error "unexpected close in defaults" s spos
 
   and uifont b v t spos epos =
     match t with
     | Vdata | Vcdata ->
-        Buffer.add_substring b s spos (epos - spos);
-        v
+       Buffer.add_substring b s spos (epos - spos);
+       v
     | Vopen (_, _, _) ->
-        parse_error "unexpected subelement in ui-font" s spos
+       parse_error "unexpected subelement in ui-font" s spos
     | Vclose "ui-font" ->
-        if emptystr !fontpath
-        then fontpath := Buffer.contents b;
-        { v with f = llppconfig }
+       if emptystr !fontpath
+       then fontpath := Buffer.contents b;
+       { v with f = llppconfig }
     | Vclose _ -> parse_error "unexpected close in ui-font" s spos
     | Vend -> parse_error "unexpected end of input in ui-font" s spos
 
@@ -1323,34 +1324,34 @@ let get s =
     | Vdata | Vcdata -> v
     | Vend -> parse_error "unexpected end of input in doc" s spos
     | Vopen ("bookmarks", _, closed) ->
-        if closed
-        then v
-        else { v with f = pbookmarks path origin pan anchor c bookmarks }
+       if closed
+       then v
+       else { v with f = pbookmarks path origin pan anchor c bookmarks }
 
     | Vopen ("keymap", attrs, closed) ->
-        let modename =
-          try List.assoc "mode" attrs
-          with Not_found -> "global"
-        in
-        if closed
-        then v
-        else
-          let ret keymap =
-            let h = findkeyhash c modename in
-            KeyMap.iter (Hashtbl.replace h) keymap;
-            doc path origin pan anchor c bookmarks
-          in
-          { v with f = pkeymap ret KeyMap.empty }
+       let modename =
+         try List.assoc "mode" attrs
+         with Not_found -> "global"
+       in
+       if closed
+       then v
+       else
+         let ret keymap =
+           let h = findkeyhash c modename in
+           KeyMap.iter (Hashtbl.replace h) keymap;
+           doc path origin pan anchor c bookmarks
+         in
+         { v with f = pkeymap ret KeyMap.empty }
 
     | Vopen ("css", [], false) ->
        { v with f = pcss path origin pan anchor c bookmarks }
 
     | Vopen (_, _, _) ->
-        parse_error "unexpected subelement in doc" s spos
+       parse_error "unexpected subelement in doc" s spos
 
     | Vclose "doc" ->
-        Hashtbl.add h path (c, List.rev bookmarks, pan, anchor, origin);
-        { v with f = llppconfig }
+       Hashtbl.add h path (c, List.rev bookmarks, pan, anchor, origin);
+       { v with f = llppconfig }
 
     | Vclose _ -> parse_error "unexpected close in doc" s spos
 
@@ -1372,26 +1373,26 @@ let get s =
     | Vdata | Vcdata -> v
     | Vend -> parse_error "unexpected end of input in keymap" s spos
     | Vopen ("map", attrs, closed) ->
-        let r, l = map_of attrs in
-        let kss = fromstring keys_of_string spos "in" r [] in
-        let lss = fromstring keys_of_string spos "out" l [] in
-        let keymap =
-          match kss with
-          | [] -> keymap
-          | ks :: [] -> KeyMap.add ks (KMinsrl lss) keymap
-          | ks :: rest -> KeyMap.add ks (KMmulti (rest, lss)) keymap
-        in
-        if closed
-        then { v with f = pkeymap ret keymap }
-        else
-          let f () = v in
-          { v with f = skip "map" f }
+       let r, l = map_of attrs in
+       let kss = fromstring keys_of_string spos "in" r [] in
+       let lss = fromstring keys_of_string spos "out" l [] in
+       let keymap =
+         match kss with
+         | [] -> keymap
+         | ks :: [] -> KeyMap.add ks (KMinsrl lss) keymap
+         | ks :: rest -> KeyMap.add ks (KMmulti (rest, lss)) keymap
+       in
+       if closed
+       then { v with f = pkeymap ret keymap }
+       else
+         let f () = v in
+         { v with f = skip "map" f }
 
     | Vopen _ ->
-        parse_error "unexpected subelement in keymap" s spos
+       parse_error "unexpected subelement in keymap" s spos
 
     | Vclose "keymap" ->
-        { v with f = ret keymap }
+       { v with f = ret keymap }
 
     | Vclose _ -> parse_error "unexpected close in keymap" s spos
 
@@ -1400,24 +1401,24 @@ let get s =
     | Vdata | Vcdata -> v
     | Vend -> parse_error "unexpected end of input in bookmarks" s spos
     | Vopen ("item", attrs, closed) ->
-        let titleent, spage, srely, svisy = bookmark_of attrs in
-        let page = fromstring int_of_string spos "page" spage 0
-        and rely = fromstring float_of_string spos "rely" srely 0.0
-        and visy = fromstring float_of_string spos "visy" svisy 0.0 in
-        let bookmarks =
-          (unentS titleent, 0, Oanchor (page, rely, visy)) :: bookmarks
-        in
-        if closed
-        then { v with f = pbookmarks path origin pan anchor c bookmarks }
-        else
-          let f () = v in
-          { v with f = skip "item" f }
+       let titleent, spage, srely, svisy = bookmark_of attrs in
+       let page = fromstring int_of_string spos "page" spage 0
+       and rely = fromstring float_of_string spos "rely" srely 0.0
+       and visy = fromstring float_of_string spos "visy" svisy 0.0 in
+       let bookmarks =
+         (unentS titleent, 0, Oanchor (page, rely, visy)) :: bookmarks
+       in
+       if closed
+       then { v with f = pbookmarks path origin pan anchor c bookmarks }
+       else
+         let f () = v in
+         { v with f = skip "item" f }
 
     | Vopen _ ->
-        parse_error "unexpected subelement in bookmarks" s spos
+       parse_error "unexpected subelement in bookmarks" s spos
 
     | Vclose "bookmarks" ->
-        { v with f = doc path origin pan anchor c bookmarks }
+       { v with f = doc path origin pan anchor c bookmarks }
 
     | Vclose _ -> parse_error "unexpected close in bookmarks" s spos
 
@@ -1425,17 +1426,17 @@ let get s =
     match t with
     | Vdata | Vcdata -> v
     | Vend ->
-        parse_error ("unexpected end of input in skipped " ^ tag) s spos
+       parse_error ("unexpected end of input in skipped " ^ tag) s spos
     | Vopen (tag', _, closed) ->
-        if closed
-        then v
-        else
-          let f' () = { v with f = skip tag f } in
-          { v with f = skip tag' f' }
+       if closed
+       then v
+       else
+         let f' () = { v with f = skip tag f } in
+         { v with f = skip tag' f' }
     | Vclose ctag ->
-        if tag = ctag
-        then f ()
-        else parse_error ("unexpected close in skipped " ^ tag) s spos
+       if tag = ctag
+       then f ()
+       else parse_error ("unexpected close in skipped " ^ tag) s spos
   in
 
   parse { f = toplevel; accu = () } s;
@@ -1446,8 +1447,8 @@ let do_load f contents =
   try f contents
   with
   | Parser.Parse_error (msg, s, pos) ->
-      let subs = Parser.subs s pos in
-      Utils.error "parse error: %s: at %d [..%S..]" msg pos subs
+     let subs = Parser.subs s pos in
+     Utils.error "parse error: %s: at %d [..%S..]" msg pos subs
 
   | exn -> Utils.error "parse error: %s" @@ exntos exn
 ;;
@@ -1472,10 +1473,10 @@ let load2 f default =
   match filecontents !confpath with
   | contents -> f @@ do_load get contents
   | exception Unix.Unix_error (Unix.ENOENT, "open", _) ->
-      f (Hashtbl.create 0, defconf)
+     f (Hashtbl.create 0, defconf)
   | exception exn ->
-      dolog "error loading configuration from `%S': %s" !confpath @@ exntos exn;
-      default
+     dolog "error loading configuration from `%S': %s" !confpath @@ exntos exn;
+     default
 ;;
 
 let load1 f = load2 f false;;
@@ -1494,7 +1495,7 @@ let load openlast =
           (state.path, -.infinity)
       in
       state.path <- path;
-     );
+    );
     let pc, pb, px, pa, po =
       try
         let absname = abspath state.path in
@@ -1517,8 +1518,8 @@ let load openlast =
 let gethist () =
   let f (h, _) =
     Hashtbl.fold (fun path (pc, pb, px, pa, po) accu ->
-      (path, pc, pb, px, pa, po) :: accu)
-      h [];
+        (path, pc, pb, px, pa, po) :: accu)
+                 h [];
   in
   load2 f []
 ;;
@@ -1550,9 +1551,9 @@ let add_attrs bb always dc c time =
       match a with
       | Some (_N, _A, _B) -> o' "%s='%u,%u,%u'" s _N _A _B
       | None ->
-          match b with
-          | None -> ()
-          | _ -> o' "%s='none'" s
+         match b with
+         | None -> ()
+         | _ -> o' "%s='none'" s
   and oW s a b =
     if always || a <> b
     then
@@ -1560,9 +1561,9 @@ let add_attrs bb always dc c time =
         match a with
         | None -> "false"
         | Some f ->
-            if f = infinity
-            then "true"
-            else string_of_float f
+           if f = infinity
+           then "true"
+           else string_of_float f
       in
       o' "%s='%s'" s v
   and oco s a b =
@@ -1649,62 +1650,62 @@ let keymapsbuf always dc c =
   let rec loop = function
     | [] -> ()
     | (modename, h) :: rest ->
-        let dh = findkeyhash dc modename in
-        if always || h <> dh
-        then (
-          if Hashtbl.length h > 0
-          then (
-            if Buffer.length bb > 0
-            then Buffer.add_char bb '\n';
-            Printf.bprintf bb "<keymap mode='%s'>\n" modename;
-            Hashtbl.iter (fun i o ->
-              let isdifferent = always ||
-                try
-                  let dO = Hashtbl.find dh i in
-                  dO <> o
-                with Not_found -> true
-              in
-              if isdifferent
-              then
-                let addkm (k, m) =
-                  if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
-                  if Wsi.withalt m   then Buffer.add_string bb "alt-";
-                  if Wsi.withshift m then Buffer.add_string bb "shift-";
-                  if Wsi.withmeta m  then Buffer.add_string bb "meta-";
-                  Buffer.add_string bb (Wsi.keyname k);
-                in
-                let addkms l =
-                  let rec loop = function
-                    | [] -> ()
-                    | km :: [] -> addkm km
-                    | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
-                  in
-                  loop l
-                in
-                Buffer.add_string bb "<map in='";
-                addkm i;
-                match o with
-                | KMinsrt km ->
+       let dh = findkeyhash dc modename in
+       if always || h <> dh
+       then (
+         if Hashtbl.length h > 0
+         then (
+           if Buffer.length bb > 0
+           then Buffer.add_char bb '\n';
+           Printf.bprintf bb "<keymap mode='%s'>\n" modename;
+           Hashtbl.iter (fun i o ->
+               let isdifferent = always ||
+                                   try
+                                     let dO = Hashtbl.find dh i in
+                                     dO <> o
+                                   with Not_found -> true
+               in
+               if isdifferent
+               then
+                 let addkm (k, m) =
+                   if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
+                   if Wsi.withalt m   then Buffer.add_string bb "alt-";
+                   if Wsi.withshift m then Buffer.add_string bb "shift-";
+                   if Wsi.withmeta m  then Buffer.add_string bb "meta-";
+                   Buffer.add_string bb (Wsi.keyname k);
+                 in
+                 let addkms l =
+                   let rec loop = function
+                     | [] -> ()
+                     | km :: [] -> addkm km
+                     | km :: rest -> addkm km; Buffer.add_char bb ' '; loop rest
+                   in
+                   loop l
+                 in
+                 Buffer.add_string bb "<map in='";
+                 addkm i;
+                 match o with
+                 | KMinsrt km ->
                     Buffer.add_string bb "' out='";
                     addkm km;
                     Buffer.add_string bb "'/>\n"
 
-                | KMinsrl kms ->
+                 | KMinsrl kms ->
                     Buffer.add_string bb "' out='";
                     addkms kms;
                     Buffer.add_string bb "'/>\n"
 
-                | KMmulti (ins, kms) ->
+                 | KMmulti (ins, kms) ->
                     Buffer.add_char bb ' ';
                     addkms ins;
                     Buffer.add_string bb "' out='";
                     addkms kms;
                     Buffer.add_string bb "'/>\n"
-            ) h;
-            Buffer.add_string bb "</keymap>";
-          );
-        );
-        loop rest
+             ) h;
+           Buffer.add_string bb "</keymap>";
+         );
+       );
+       loop rest
   in
   loop c.keyhashes;
   bb;
@@ -1925,20 +1926,20 @@ let gc fd =
     match String.index_from s ppos '\000' with
     | exception Not_found -> ()
     | zpos1 ->
-        match String.index_from s (zpos1+1) '\000' with
-        | exception Not_found -> error "invalid gc input in (%S) at %d" s zpos1
-        | zpos2 ->
-            let okey = StringLabels.sub s ~pos:ppos ~len:(zpos1-ppos) in
-            let nkey = StringLabels.sub s ~pos:(zpos1+1) ~len:(zpos2-zpos1-1) in
-            if emptystr nkey
-            then (Hashtbl.remove !href okey; f (zpos2+1))
-            else
-              match Hashtbl.find !href okey with
-              | exception Not_found -> Utils.error "gc: cannot find %S" okey
-              | v ->
-                  Hashtbl.remove !href okey;
-                  Hashtbl.replace !href nkey v;
-                  f (zpos2+1)
+       match String.index_from s (zpos1+1) '\000' with
+       | exception Not_found -> error "invalid gc input in (%S) at %d" s zpos1
+       | zpos2 ->
+          let okey = StringLabels.sub s ~pos:ppos ~len:(zpos1-ppos) in
+          let nkey = StringLabels.sub s ~pos:(zpos1+1) ~len:(zpos2-zpos1-1) in
+          if emptystr nkey
+          then (Hashtbl.remove !href okey; f (zpos2+1))
+          else
+            match Hashtbl.find !href okey with
+            | exception Not_found -> Utils.error "gc: cannot find %S" okey
+            | v ->
+               Hashtbl.remove !href okey;
+               Hashtbl.replace !href nkey v;
+               f (zpos2+1)
   in
   f 0;
   let bb = Buffer.create 32768 in
@@ -1953,24 +1954,24 @@ let gc fd =
       Unix.rename tmp !confpath;
     with exn ->
       dolog "error saving configuration: %s" @@ exntos exn
-   );
+  );
 ;;
 
 let logcurrently = function
   | Idle -> dolog "Idle"
   | Loading (l, gen) ->
-      dolog "Loading %d gen=%d curgen=%d" l.pageno gen state.gen
+     dolog "Loading %d gen=%d curgen=%d" l.pageno gen state.gen
   | Tiling (l, pageopaque, colorspace, angle, gen, col, row, tilew, tileh) ->
-      dolog
-        "Tiling %d[%d,%d] page=%s cs=%s angle=%d"
-        l.pageno col row (~> pageopaque)
-        (CSTE.to_string colorspace) angle
-      ;
+     dolog
+       "Tiling %d[%d,%d] page=%s cs=%s angle=%d"
+       l.pageno col row (~> pageopaque)
+       (CSTE.to_string colorspace) angle
+    ;
       dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
-        angle gen conf.angle state.gen
-        tilew tileh
-        conf.tilew conf.tileh
-      ;
+            angle gen conf.angle state.gen
+            tilew tileh
+            conf.tilew conf.tileh
+    ;
   | Outlining _ ->
-      dolog "outlining"
+     dolog "outlining"
 ;;

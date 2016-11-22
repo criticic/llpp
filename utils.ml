@@ -6,9 +6,10 @@ end;;
 
 type platform = | Punknown | Plinux | Posx | Psun | Pbsd | Pcygwin;;
 
-let asciilower = let auld = Char.code 'A' - Char.code 'a' in function
-  | ('A'..'Z') as c -> Char.code c - auld |> Char.chr
-  | c -> c
+let asciilower = let auld = Char.code 'A' - Char.code 'a' in
+                 function
+                 | ('A'..'Z') as c -> Char.code c - auld |> Char.chr
+                 | c -> c
 ;;
 
 let tempfailureretry f a =
@@ -29,8 +30,9 @@ let platform, uname = platform ();;
 let dolog fmt = Format.ksprintf prerr_endline fmt;;
 
 let exntos = function
-  | Unix.Unix_error (e, s, a) -> Printf.sprintf "%s(%s) : %s (%d)"
-      s a (Unix.error_message e) (Obj.magic e)
+  | Unix.Unix_error (e, s, a) ->
+     Printf.sprintf "%s(%s) : %s (%d)"
+                    s a (Unix.error_message e) (Obj.magic e)
   | exn -> Printexc.to_string exn
 ;;
 
@@ -55,11 +57,11 @@ sig
   val to_string : t -> string
 end
   =
-struct
-  type t = string
-  let of_string s = s
-  let to_string t = t
-end
+  struct
+    type t = string
+    let of_string s = s
+    let to_string t = t
+  end
 ;;
 
 let (~<) = Opaque.of_string;;
@@ -106,17 +108,17 @@ let string_with_suffix_of_int n =
     let rec find = function
       | [] -> prettyint n
       | (shift, suffix) :: rest ->
-          if (n land ((1 lsl shift) - 1)) = 0
-          then prettyint (n lsr shift) ^ suffix
-          else find rest
+         if (n land ((1 lsl shift) - 1)) = 0
+         then prettyint (n lsr shift) ^ suffix
+         else find rest
     in
     find units
 ;;
 
 let color_of_string s =
   Scanf.sscanf s "%d/%d/%d" (fun r g b ->
-    (float r /. 256.0, float g /. 256.0, float b /. 256.0)
-  )
+                 (float r /. 256.0, float g /. 256.0, float b /. 256.0)
+               )
 ;;
 
 let color_to_string (r, g, b) =
@@ -171,9 +173,9 @@ let addchar s c =
 let btod b = if b then 1 else 0;;
 
 let splitatchar s c = let open String in
-  match index s c with
-  | pos -> sub s 0 pos, sub s (pos+1) (length s - pos - 1)
-  | exception Not_found -> s, E.s
+                      match index s c with
+                      | pos -> sub s 0 pos, sub s (pos+1) (length s - pos - 1)
+                      | exception Not_found -> s, E.s
 ;;
 
 let boundastep h step =
@@ -224,10 +226,10 @@ let filecontents path =
   let fd = Unix.openfile path [Unix.O_RDONLY] 0o0 in
   match fdcontents fd with
   | (exception exn) ->
-      error "failed to read contents of %s: %s" path @@ exntos exn
+     error "failed to read contents of %s: %s" path @@ exntos exn
   | s ->
-      Ne.clo fd @@ error "failed to close descriptor for %s: %s" path;
-      s
+     Ne.clo fd @@ error "failed to close descriptor for %s: %s" path;
+     s
 ;;
 
 let getcmdoutput errfun cmd =
@@ -278,9 +280,9 @@ let getcmdoutput errfun cmd =
 let geturl =
   let re = Str.regexp {|.*\(\(https?\|ftp\|mailto\|file\)://[^ ]+\).*|} in
   fun s ->
-    if Str.string_match re s 0
-    then Str.matched_group 1 s
-    else E.s
+  if Str.string_match re s 0
+  then Str.matched_group 1 s
+  else E.s
 ;;
 
 let substratis s pos subs =

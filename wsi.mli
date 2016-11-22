@@ -1,15 +1,15 @@
 type cursor =
-    | CURSOR_INHERIT
-    | CURSOR_INFO
-    | CURSOR_CYCLE
-    | CURSOR_FLEUR
-    | CURSOR_TEXT
+  | CURSOR_INHERIT
+  | CURSOR_INFO
+  | CURSOR_CYCLE
+  | CURSOR_FLEUR
+  | CURSOR_TEXT
 ;;
 
 type winstate =
-    | MaxVert
-    | MaxHorz
-    | Fullscreen
+  | MaxVert
+  | MaxHorz
+  | Fullscreen
 ;;
 
 type visiblestate =
@@ -18,28 +18,29 @@ type visiblestate =
   | FullyObscured
 ;;
 
-class type t = object
-  method display  : unit
-  method map      : bool -> unit
-  method expose   : unit
-  method visible  : visiblestate -> unit
-  method reshape  : int -> int -> unit
-  method mouse    : int -> bool -> int -> int -> int -> unit
-  method motion   : int -> int -> unit
-  method pmotion  : int -> int -> unit
-  method key      : int -> int -> unit
-  method enter    : int -> int -> unit
-  method leave    : unit
-  method winstate : winstate list -> unit
-  method quit     : unit
-end;;
+class type t =
+  object
+    method display  : unit
+    method map      : bool -> unit
+    method expose   : unit
+    method visible  : visiblestate -> unit
+    method reshape  : int -> int -> unit
+    method mouse    : int -> bool -> int -> int -> int -> unit
+    method motion   : int -> int -> unit
+    method pmotion  : int -> int -> unit
+    method key      : int -> int -> unit
+    method enter    : int -> int -> unit
+    method leave    : unit
+    method winstate : winstate list -> unit
+    method quit     : unit
+  end;;
 
 val setcursor : cursor -> unit;;
 val settitle : string -> unit;;
 val swapb : unit -> unit;;
 val readresp : Unix.file_descr -> unit;;
 val init : t -> int -> int -> int
-  -> Utils.platform -> Unix.file_descr * int * int;;
+           -> Utils.platform -> Unix.file_descr * int * int;;
 val fullscreen : unit -> unit;;
 val reshape : int -> int -> unit;;
 val activatewin : unit -> unit;;
