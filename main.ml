@@ -6416,118 +6416,118 @@ let () =
        exit 0
   );
 
-  let wsfd, winw, winh =
-    Wsi.init
-      (object (self)
-         val mutable m_clicks = 0
-         val mutable m_click_x = 0
-         val mutable m_click_y = 0
-         val mutable m_lastclicktime = infinity
+  let mu =
+    object (self)
+       val mutable m_clicks = 0
+       val mutable m_click_x = 0
+       val mutable m_click_y = 0
+       val mutable m_lastclicktime = infinity
 
-         method private cleanup =
-           state.roam <- noroam;
-           Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap
-         method expose = G.postRedisplay "expose"
-         method visible v =
-           let name =
-             match v with
-             | Wsi.Unobscured -> "unobscured"
-             | Wsi.PartiallyObscured -> "partiallyobscured"
-             | Wsi.FullyObscured -> "fullyobscured"
-           in
-           vlog "visibility change %s" name
-         method display = display ()
-         method map mapped = vlog "mapped %b" mapped
-         method reshape w h =
-           self#cleanup;
-           reshape w h
-         method mouse b d x y m =
-           if d && canselect ()
+       method private cleanup =
+         state.roam <- noroam;
+         Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap
+       method expose = G.postRedisplay "expose"
+       method visible v =
+         let name =
+           match v with
+           | Wsi.Unobscured -> "unobscured"
+           | Wsi.PartiallyObscured -> "partiallyobscured"
+           | Wsi.FullyObscured -> "fullyobscured"
+         in
+         vlog "visibility change %s" name
+       method display = display ()
+       method map mapped = vlog "mapped %b" mapped
+       method reshape w h =
+         self#cleanup;
+         reshape w h
+       method mouse b d x y m =
+         if d && canselect ()
+         then (
+           (*
+          http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
+           m_click_x <- x;
+           m_click_y <- y;
+           if b = 1
            then (
-             (* http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
-             m_click_x <- x;
-             m_click_y <- y;
-             if b = 1
+             let t = now () in
+             if abs x - m_click_x > 10
+                || abs y - m_click_y > 10
+                || abs_float (t -. m_lastclicktime) > 0.3
+             then m_clicks <- 0;
+             m_clicks <- m_clicks + 1;
+             m_lastclicktime <- t;
+             if m_clicks = 1
              then (
-               let t = now () in
-               if abs x - m_click_x > 10
-                  || abs y - m_click_y > 10
-                  || abs_float (t -. m_lastclicktime) > 0.3
-               then m_clicks <- 0;
-               m_clicks <- m_clicks + 1;
-               m_lastclicktime <- t;
-               if m_clicks = 1
-               then (
-                 self#cleanup;
-                 G.postRedisplay "cleanup";
-                 state.uioh <- state.uioh#button b d x y m;
-               )
-               else state.uioh <- state.uioh#multiclick m_clicks x y m
-             )
-             else (
                self#cleanup;
-               m_clicks <- 0;
-               m_lastclicktime <- infinity;
-               state.uioh <- state.uioh#button b d x y m
-             );
+               G.postRedisplay "cleanup";
+               state.uioh <- state.uioh#button b d x y m;
+             )
+             else state.uioh <- state.uioh#multiclick m_clicks x y m
            )
            else (
+             self#cleanup;
+             m_clicks <- 0;
+             m_lastclicktime <- infinity;
              state.uioh <- state.uioh#button b d x y m
-           )
-         method motion x y =
-           state.mpos <- (x, y);
-           state.uioh <- state.uioh#motion x y
-         method pmotion x y =
-           state.mpos <- (x, y);
-           state.uioh <- state.uioh#pmotion x y
-         method key k m =
-           let mascm = m land (
-               Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
-             ) in
-           let keyboard k m =
-             let x = state.x and y = state.y in
-             keyboard k m;
-             if x != state.x || y != state.y then self#cleanup
-           in
-           match state.keystate with
-           | KSnone ->
-              let km = k, mascm in
-              begin
-                match
-                  let modehash = state.uioh#modehash in
-                  try Hashtbl.find modehash km
-                  with Not_found ->
-                    try Hashtbl.find (findkeyhash conf "global") km
-                    with Not_found -> KMinsrt (k, m)
-                with
-                | KMinsrt (k, m) -> keyboard k m
-                | KMinsrl l -> List.iter (fun (k, m) -> keyboard k m) l
-                | KMmulti (l, r) -> state.keystate <- KSinto (l, r)
-              end
-           | KSinto ((k', m') :: [], insrt) when k'=k && m' land mascm = m' ->
-              List.iter (fun (k, m) -> keyboard k m) insrt;
-              state.keystate <- KSnone
-           | KSinto ((k', m') :: keys, insrt) when k'=k && m' land mascm = m' ->
-              state.keystate <- KSinto (keys, insrt)
-           | KSinto _ -> state.keystate <- KSnone
+           );
+         )
+         else (
+           state.uioh <- state.uioh#button b d x y m
+         )
+       method motion x y =
+         state.mpos <- (x, y);
+         state.uioh <- state.uioh#motion x y
+       method pmotion x y =
+         state.mpos <- (x, y);
+         state.uioh <- state.uioh#pmotion x y
+       method key k m =
+         let mascm = m land (
+             Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
+           ) in
+         let keyboard k m =
+           let x = state.x and y = state.y in
+           keyboard k m;
+           if x != state.x || y != state.y then self#cleanup
+         in
+         match state.keystate with
+         | KSnone ->
+            let km = k, mascm in
+            begin
+              match
+                let modehash = state.uioh#modehash in
+                try Hashtbl.find modehash km
+                with Not_found ->
+                  try Hashtbl.find (findkeyhash conf "global") km
+                  with Not_found -> KMinsrt (k, m)
+              with
+              | KMinsrt (k, m) -> keyboard k m
+              | KMinsrl l -> List.iter (fun (k, m) -> keyboard k m) l
+              | KMmulti (l, r) -> state.keystate <- KSinto (l, r)
+            end
+         | KSinto ((k', m') :: [], insrt) when k'=k && m' land mascm = m' ->
+            List.iter (fun (k, m) -> keyboard k m) insrt;
+            state.keystate <- KSnone
+         | KSinto ((k', m') :: keys, insrt) when k'=k && m' land mascm = m' ->
+            state.keystate <- KSinto (keys, insrt)
+         | KSinto _ -> state.keystate <- KSnone
 
-         method enter x y =
-           state.mpos <- (x, y);
-           state.uioh <- state.uioh#pmotion x y
-         method leave = state.mpos <- (-1, -1)
-         method winstate wsl = state.winstate <- wsl
-         method quit = raise Quit
-       end) !rootwid conf.cwinw conf.cwinh platform in
+       method enter x y =
+         state.mpos <- (x, y);
+         state.uioh <- state.uioh#pmotion x y
+       method leave = state.mpos <- (-1, -1)
+       method winstate wsl = state.winstate <- wsl
+       method quit = raise Quit
+     end
+  in
+  let wsfd, winw, winh = Wsi.init mu !rootwid conf.cwinw conf.cwinh platform in
 
   setbgcol conf.bgcolor;
   state.wsfd <- wsfd;
 
-  if not (
-         List.exists GlMisc.check_extension
-                     [ "GL_ARB_texture_rectangle"
-                     ; "GL_EXT_texture_recangle"
-                     ; "GL_NV_texture_rectangle" ]
-       )
+  if not @@ List.exists GlMisc.check_extension
+                        [ "GL_ARB_texture_rectangle"
+                        ; "GL_EXT_texture_recangle"
+                        ; "GL_NV_texture_rectangle" ]
   then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
 
   if (
