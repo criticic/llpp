@@ -3972,7 +3972,9 @@ let enterinfomode =
     src#caption2 "Pages"
       (fun () ->  string_of_int state.pagecount) 1;
     src#caption2 "Dimensions"
-      (fun () -> string_of_int (List.length state.pdims)) 1;
+                 (fun () -> string_of_int (List.length state.pdims)) 1;
+    if nonemptystr conf.css
+    then src#caption2 "CSS" (fun () -> conf.css) 1;
     if conf.trimmargins
     then (
       sep ();
