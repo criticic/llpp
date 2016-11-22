@@ -2191,8 +2191,7 @@ let togglebirdseye () =
   match state.mode with
   | Birdseye vals -> leavebirdseye vals true
   | View -> enterbirdseye ()
-  | Textentry _
-    | LinkNav _ -> ()
+  | Textentry _ | LinkNav _ -> ()
 ;;
 
 let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
