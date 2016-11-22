@@ -6386,10 +6386,10 @@ let () =
        ]
     )
     (fun s -> state.path <- s)
-    ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:")
-  ;
-    if !wtmode
-    then selfexec := !selfexec ^ " -wtmode";
+    ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:");
+
+  if !wtmode
+  then selfexec := !selfexec ^ " -wtmode";
 
   let histmode = emptystr state.path && not !openlast in
 
