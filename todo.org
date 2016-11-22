@@ -1,7 +1,8 @@
 * TODO progressive zoom
 * TODO wayland
 * TODO incorporate Nicolás's changes
-* TODO backspace selected linknav preservation
+* DONE backspace selected linknav preservation
+  CLOSED: [2016-11-22 Tue 17:06]
 * TODO move read/writedata to C
    unbreak abstr. boundry wrt 4 as the size of len and extra space in buf
 * TODO xclip zombie
