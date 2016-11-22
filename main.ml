@@ -6439,8 +6439,7 @@ let () =
        method mouse b d x y m =
          if d && canselect ()
          then (
-           (*
-          http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
+(* http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
            m_click_x <- x;
            m_click_y <- y;
            if b = 1
