@@ -6530,12 +6530,7 @@ let () =
                         ; "GL_NV_texture_rectangle" ]
   then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
 
-  if (
-    let r = GlMisc.get_string `renderer in
-    let p = "Mesa DRI Intel(" in
-    let l = String.length p in
-    String.length r > l && String.sub r 0 l = p
-  )
+  if substratis (GlMisc.get_string `renderer) 0 "Mesa DRI Intel("
   then (
     defconf.sliceheight <- 1024;
     defconf.texcount <- 32;
