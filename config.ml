@@ -1745,22 +1745,19 @@ let save1 bb leavebirdseye x h dc =
                      (Parser.enent path 0 (String.length path));
 
       if nonemptystr origin
-      then
-        Printf.bprintf bb "\n    origin='%s'"
-                       (Parser.enent origin 0 (String.length origin));
+      then Printf.bprintf bb "\n    origin='%s'"
+                          (Parser.enent origin 0 (String.length origin));
 
       if anchor <> emptyanchor
       then (
         let n, rely, visy = anchor in
         Printf.bprintf bb "\n    page='%d'" n;
+
         if rely > 1e-6
-        then
-          Printf.bprintf bb " rely='%f'" rely
-        ;
-          if abs_float visy > 1e-6
-          then
-            Printf.bprintf bb " visy='%f'" visy
-        ;
+        then Printf.bprintf bb " rely='%f'" rely;
+
+        if abs_float visy > 1e-6
+        then Printf.bprintf bb " visy='%f'" visy;
       );
 
       if pan != 0
