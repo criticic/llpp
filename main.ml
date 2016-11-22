@@ -95,16 +95,12 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
 
 let isbirdseye = function
   | Birdseye _ -> true
-  | Textentry _
-    | View
-    | LinkNav _ -> false
+  | Textentry _ | View | LinkNav _ -> false
 ;;
 
 let istextentry = function
   | Textentry _ -> true
-  | Birdseye _
-    | View
-    | LinkNav _ -> false
+  | Birdseye _ | View | LinkNav _ -> false
 ;;
 
 let wtmode = ref false;;
