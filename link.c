@@ -422,14 +422,12 @@ CAMLprim value ml_rcmd (value fd_v)
 
 static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 {
-    int size = 200, len;
+    int size = 64, len;
     va_list ap;
-    char *buf;
+    char fbuf[size];
+    char *buf = fbuf;
 
-    buf = malloc (size);
     for (;;) {
-        if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size);
-
         va_start (ap, fmt);
         len = vsnprintf (buf, size, fmt, ap);
         va_end (ap);
@@ -444,9 +442,10 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
         else {
             err (1, "vsnprintf for `%s' failed", fmt);
         }
-        buf = realloc (buf, size);
+        buf = realloc (buf == fbuf ? NULL : buf, size);
+        if (!buf) err (1, "realloc for temp buf (%d bytes) failed", size);
     }
-    free (buf);
+    if (buf != fbuf) free (buf);
 }
 
 static void closedoc (void)
