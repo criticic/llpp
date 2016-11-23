@@ -218,6 +218,7 @@ main = do
   let globjs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
 
   let mulib ty name = do
+        -- perhaps alwaysrerun is in order here?
         mudir </> "build" </> ty </> name %> \_ -> do
           unit $ cmd (Cwd "mupdf") ("make build=" ++ ty) "libs"
 
