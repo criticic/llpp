@@ -216,6 +216,16 @@ main = do
     needMakefileDependencies dep
 
   let globjs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
+
+  let mulib ty name = do
+        mudir </> "build" </> ty </> name %> \_ -> do
+          unit $ cmd (Cwd "mupdf") ("make build=" ++ ty) "libs"
+
+  mulib "release" "libmupdf.a"
+  mulib "release" "libmupdfthird.a"
+  mulib "native" "libmupdf.a"
+  mulib "native" "libmupdfthird.a"
+
   inOutDir "llpp" %> \out -> do
     let mulibs = [mudir </> "build" </> "native" </> "libmupdf.a"
                  ,mudir </> "build" </> "native" </> "libmupdfthird.a"]
