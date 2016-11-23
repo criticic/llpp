@@ -379,7 +379,7 @@ static void writedata (int fd, char *p, int size)
     ssize_t n;
     uint32_t size4 = size;
     struct iovec iov[2] = {[0] = { .iov_base = &size4,
-                                   .iov_len = 4},
+                                   .iov_len = 4 },
                            [1] = { .iov_base = p,
                                    .iov_len = size }};
 
