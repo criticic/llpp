@@ -451,9 +451,7 @@ static void closedoc (void)
 {
 #ifdef CACHE_PAGEREFS
     if (state.pdflut.objs) {
-        int i;
-
-        for (i = 0; i < state.pdflut.count; ++i) {
+        for (int i = 0; i < state.pdflut.count; ++i) {
             pdf_drop_obj (state.ctx, state.pdflut.objs[i]);
         }
         free (state.pdflut.objs);
@@ -469,9 +467,7 @@ static void closedoc (void)
 
 static int openxref (char *filename, char *password)
 {
-    int i;
-
-    for (i = 0; i < state.texcount; ++i) {
+    for (int i = 0; i < state.texcount; ++i) {
         state.texowners[i].w = -1;
         state.texowners[i].slice = NULL;
     }
@@ -516,12 +512,11 @@ static void pdfinfo (void)
         infoobj = pdf_dict_gets (state.ctx, pdf_trailer (state.ctx,
                                                          pdf), "Info");
         if (infoobj) {
-            unsigned int i;
             char *s;
             char *items[] = { "Title", "Author", "Creator",
                               "Producer", "CreationDate" };
 
-            for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
+            for (size_t i = 0; i < sizeof (items) / sizeof (*items); ++i) {
                 pdf_obj *obj = pdf_dict_gets (state.ctx, infoobj, items[i]);
                 s = pdf_to_utf8 (state.ctx, obj);
                 if (*s) printd ("info %s\t%s", items[i], s);
@@ -534,9 +529,7 @@ static void pdfinfo (void)
 
 static void unlinktile (struct tile *tile)
 {
-    int i;
-
-    for (i = 0; i < tile->slicecount; ++i) {
+    for (int i = 0; i < tile->slicecount; ++i) {
         struct slice *s = &tile->slices[i];
 
         if (s->texindex != -1) {
@@ -713,7 +706,6 @@ static void *loadpage (int pageno, int pindex)
 
 static struct tile *alloctile (int h)
 {
-    int i;
     int slicecount;
     size_t tilesize;
     struct tile *tile;
@@ -724,7 +716,7 @@ static struct tile *alloctile (int h)
     if (!tile) {
         err (1, "cannot allocate tile (%" FMT_s " bytes)", tilesize);
     }
-    for (i = 0; i < slicecount; ++i) {
+    for (int i = 0; i < slicecount; ++i) {
         int sh = fz_mini (h, state.sliceheight);
         tile->slices[i].h = sh;
         tile->slices[i].texindex = -1;
@@ -802,7 +794,7 @@ pdf_collect_pages(pdf_document *doc, pdf_obj *node)
 {
     fz_context *ctx = state.ctx; /* doc->ctx; */
     pdf_obj *kids;
-    int i, len;
+    int len;
 
     if (state.pdflut.idx == state.pagecount) return;
 
@@ -814,7 +806,7 @@ pdf_collect_pages(pdf_document *doc, pdf_obj *node)
 
     if (pdf_mark_obj (ctx, node))
         fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         pdf_obj *kid = pdf_array_get (ctx, kids, i);
         char *type = pdf_to_name (ctx, pdf_dict_gets (ctx, kid, "Type"));
         if (*type
@@ -1230,10 +1222,9 @@ static void layout (void)
 
 struct pagedim *pdimofpageno (int pageno)
 {
-    int i;
     struct pagedim *pdim = state.pagedims;
 
-    for (i = 0; i < state.pagedimcount; ++i) {
+    for (int i = 0; i < state.pagedimcount; ++i) {
         if (state.pagedims[i].pageno > pageno)
             break;
         pdim = &state.pagedims[i];
@@ -1549,11 +1540,9 @@ static void realloctexts (int texcount)
         err (1, "realloc texowners %" FMT_s, size);
     }
     if (texcount > state.texcount) {
-        int i;
-
         glGenTextures (texcount - state.texcount,
                        state.texids + state.texcount);
-        for (i = state.texcount; i < texcount; ++i) {
+        for (int i = state.texcount; i < texcount; ++i) {
             state.texowners[i].w = -1;
             state.texowners[i].slice = NULL;
         }
@@ -1769,9 +1758,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
             lock ("geometry");
             state.h = h;
             if (w != state.w) {
-                int i;
                 state.w = w;
-                for (i = 0; i < state.texcount; ++i) {
+                for (int i = 0; i < state.texcount; ++i) {
                     state.texowners[i].slice = NULL;
                 }
             }
@@ -1916,10 +1904,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 errx (1, "malformed sliceh `%.*s' ret=%d", len, p, ret);
             }
             if (h != state.sliceheight) {
-                int i;
-
                 state.sliceheight = h;
-                for (i = 0; i < state.texcount; ++i) {
+                for (int i = 0; i < state.texcount; ++i) {
                     state.texowners[i].w = -1;
                     state.texowners[i].h = -1;
                     state.texowners[i].slice = NULL;
@@ -2138,7 +2124,6 @@ static void solidrect (fz_matrix *m,
 
 static void highlightlinks (struct page *page, int xoff, int yoff)
 {
-    int i;
     fz_matrix ctm, tm, pm;
     fz_link *link, *links;
     GLfloat *texcoords = state.texcoords;
@@ -2182,7 +2167,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         stipplerect (&ctm, &p1, &p2, &p3, &p4, texcoords, vertices);
     }
 
-    for (i = 0; i < page->annotcount; ++i) {
+    for (int i = 0; i < page->annotcount; ++i) {
         fz_point p1, p2, p3, p4;
         struct annot *annot = &page->annots[i];
 
@@ -2357,14 +2342,13 @@ static void fmt_linkn (char *s, unsigned int u)
 static void highlightslinks (struct page *page, int xoff, int yoff,
                              int noff, char *targ, int tlen, int hfsize)
 {
-    int i;
     char buf[40];
     struct slink *slink;
     double x0, y0, x1, y1, w;
 
     ensureslinks (page);
     glColor3ub (0xc3, 0xb0, 0x91);
-    for (i = 0; i < page->slinkcount; ++i) {
+    for (int i = 0; i < page->slinkcount; ++i) {
         fmt_linkn (buf, i + noff);
         if (!tlen || !strncmp (targ, buf, tlen)) {
             slink = &page->slinks[i];
@@ -2382,7 +2366,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable (GL_TEXTURE_2D);
     glColor3ub (0, 0, 0);
-    for (i = 0; i < page->slinkcount; ++i) {
+    for (int i = 0; i < page->slinkcount; ++i) {
         fmt_linkn (buf, i + noff);
         if (!tlen || !strncmp (targ, buf, tlen)) {
             slink = &page->slinks[i];
@@ -2630,7 +2614,6 @@ CAMLprim void ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
 
 static struct annot *getannot (struct page *page, int x, int y)
 {
-    int i;
     fz_point p;
     fz_matrix ctm;
     const fz_matrix *tctm;
@@ -2654,7 +2637,7 @@ static struct annot *getannot (struct page *page, int x, int y)
     fz_transform_point (&p, &ctm);
 
     if (pdf) {
-        for (i = 0; i < page->annotcount; ++i) {
+        for (int i = 0; i < page->annotcount; ++i) {
             struct annot *a = &page->annots[i];
             fz_rect rect;
 
