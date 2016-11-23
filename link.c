@@ -1650,15 +1650,16 @@ static void * mainloop (void UNUSED_ATTR *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
-            int wthack, off, ok = 0;
+            int wthack, off, usedoccss, ok = 0;
             char *password;
             char *filename;
             char *utf8filename;
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p + 5, " %d %d %n", &wthack, &state.cxack, &off);
-            if (ret != 2) {
+            ret = sscanf (p + 5, " %d %d %d %n",
+                          &wthack, &state.cxack, &usedoccss, &off);
+            if (ret != 3) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
 
@@ -1671,6 +1672,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
 
             lock ("open");
+            /* fz_set_use_document_css (state.ctx, usedoccss); */
             fz_try (state.ctx) {
                 ok = openxref (filename, password);
             }

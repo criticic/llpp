@@ -1112,8 +1112,9 @@ let opendoc path password =
     else state.origin
   in
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
-  wcmd "open %d %d %s\000%s\000%s\000"
-       (btod !wtmode) (btod !cxack) path password conf.css;
+  wcmd "open %d %d %d %s\000%s\000%s\000"
+       (btod !wtmode) (btod !cxack) (btod conf.usedoccss)
+       path password conf.css;
   invalidate "reqlayout"
              (fun () ->
                wcmd "reqlayout %d %d %d %s\000"
@@ -3982,6 +3983,9 @@ let enterinfomode =
       src#bool "coarse positioning in presentation mode"
                (fun () -> conf.coarseprespos)
                (fun v -> conf.coarseprespos <- v);
+      src#bool "use document css"
+               (fun () -> conf.usedoccss)
+               (fun v -> conf.usedoccss <- v)
     );
 
     sep ();

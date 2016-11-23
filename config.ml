@@ -110,6 +110,7 @@ type keymap        =
  and colorspace     = | Rgb | Bgr | Gray
  and haspbo         = bool
  and usefontconfig  = bool
+ and usedoccss      = bool
  and uri            = string
  and caption        = string
  and x              = int
@@ -280,6 +281,7 @@ type conf =
   ; mutable annotinline    : bool
   ; mutable coarseprespos  : bool
   ; mutable css            : css
+  ; mutable usedoccss      : usedoccss
   }
  and columns =
    | Csingle of singlecolumn
@@ -556,6 +558,7 @@ let defconf =
   ; annotinline    = true
   ; coarseprespos  = false
   ; css            = E.s
+  ; usedoccss      = true
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
