@@ -162,7 +162,9 @@ cmx oracle ordoracle =
 binInOutDir globjs depln target =
   inOutDir target %> \out ->
   do
-    need (globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    let mulibs = [mudir </> "build" </> "native" </> "libmupdf.a"
+                 ,mudir </> "build" </> "native" </> "libmupdfthird.a"]
+    need (mulibs ++ globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
     cmxs <- liftIO $ readMVar depln
     need cmxs
     unit $ cmd ocamlopt "-g -I lablGL -o" out
@@ -215,7 +217,9 @@ main = do
 
   let globjs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
   inOutDir "llpp" %> \out -> do
-    need (globjs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
+    let mulibs = [mudir </> "build" </> "native" </> "libmupdf.a"
+                 ,mudir </> "build" </> "native" </> "libmupdfthird.a"]
+    need (mulibs ++ globjs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
     cmos <- liftIO $ readMVar depl
     need cmos
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
