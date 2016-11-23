@@ -3991,7 +3991,11 @@ let enterinfomode =
                (fun v -> conf.coarseprespos <- v);
       src#bool "use document css"
                (fun () -> conf.usedoccss)
-               (fun v -> conf.usedoccss <- v)
+               (fun v ->
+                 conf.usedoccss <- v;
+                 state.anchor <- getanchor ();
+                 opendoc state.path state.password;
+               )
     );
 
     sep ();

@@ -1672,7 +1672,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
 
             lock ("open");
-            /* fz_set_use_document_css (state.ctx, usedoccss); */
+            fz_set_use_document_css (state.ctx, usedoccss);
             fz_try (state.ctx) {
                 ok = openxref (filename, password);
             }

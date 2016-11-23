@@ -1094,6 +1094,7 @@ let config_of c attrs =
       | "edit-annotations-inline" -> { c with annotinline = bool_of_string v }
       | "coarse-presentation-positioning" ->
          { c with coarseprespos = bool_of_string v }
+      | "use-document-css" -> { c with usedoccss = bool_of_string v }
       | _ -> c
     with exn ->
       dolog "error processing attribute (`%S' = `%S'): %s" k v @@ exntos exn;
@@ -1214,6 +1215,7 @@ let setconf dst src =
   dst.annotinline    <- src.annotinline;
   dst.coarseprespos  <- src.coarseprespos;
   dst.css            <- src.css;
+  dst.usedoccss      <- src.usedoccss;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1648,6 +1650,7 @@ let add_attrs bb always dc c time =
   oL "last-visit" (Int64.of_float time) 0L;
   ob "edit-annotations-inline" c.annotinline dc.annotinline;
   ob "coarse-presentation-positioning" c.coarseprespos dc.coarseprespos;
+  ob "use-document-css" c.usedoccss dc.usedoccss;
 ;;
 
 let keymapsbuf always dc c =
