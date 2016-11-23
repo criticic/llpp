@@ -1122,7 +1122,7 @@ let opendoc path password =
                     (stateh state.winh) state.nameddest
              );
   state.help <-
-    let sl = helpkeymapsbuf conf in
+    let sl = keystostrlist conf in
     let rec loop accu =
       function | [] -> accu
                | s :: rest -> loop ((s, 0, Noaction) :: accu) rest

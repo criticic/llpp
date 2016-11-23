@@ -1716,7 +1716,7 @@ let keymapsbuf always dc c =
   bb;
 ;;
 
-let helpkeymapsbuf c =
+let keystostrlist c =
   let rec loop accu = function
     | [] -> accu
     | (modename, h) :: rest ->
