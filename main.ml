@@ -1123,11 +1123,10 @@ let opendoc path password =
              );
   let sl = helpkeymapsbuf conf in
   state.help <-
-    Array.of_list @@
-      let rec loop accu = function | [] -> accu
-                                   | s :: rest ->
-                                      loop ((s, 0, Noaction) :: accu) rest
-      in makehelp () @ (("", 0, Noaction) :: loop [] sl)
+    let rec loop accu =
+      function | [] -> accu
+               | s :: rest -> loop ((s, 0, Noaction) :: accu) rest
+    in makehelp () @ (("", 0, Noaction) :: loop [] sl) |> Array.of_list
 ;;
 
 let reload () =
