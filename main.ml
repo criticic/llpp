@@ -6374,9 +6374,8 @@ let () =
                    Printf.printf
                      "%s\nconfiguration path: %s\n"
                      (version ())
-                     Config.defconfpath
-                         ;
-                           exit 0), " Print version and exit");
+                     Config.defconfpath;
+                   exit 0), " Print version and exit");
 
         ("-css", Arg.String (fun s -> csspath := Some s),
          "<css-path> Style sheet to use for EPUB/HTML");
