@@ -599,13 +599,12 @@ let makehelp () =
     :: "(searching in this text works just by typing (i.e. no initial '/'))"
     :: E.s :: Help.keys
   in
-  Array.of_list (
-      List.map (fun s ->
-          let url = geturl s in
-          if nonemptystr url
-          then (s, 0, Action (fun uioh -> gotourl url; uioh))
-          else (s, 0, Noaction)
-        ) strings);
+  List.map (fun s ->
+      let url = geturl s in
+      if nonemptystr url
+      then (s, 0, Action (fun uioh -> gotourl url; uioh))
+      else (s, 0, Noaction)
+    ) strings;
 ;;
 
 let cbnew n v =
@@ -697,7 +696,7 @@ let state =
   ; throttle      = None
   ; autoscroll    = None
   ; ghyll         = noghyll
-  ; help          = makehelp ()
+  ; help          = E.a
   ; docinfo       = []
   ; checkerstexid = None
   ; prevzoom      = (1.0, 0)
@@ -1715,6 +1714,58 @@ let keymapsbuf always dc c =
   in
   loop c.keyhashes;
   bb;
+;;
+
+let helpkeymapsbuf c =
+  let rec loop accu = function
+    | [] -> accu
+    | (modename, h) :: rest ->
+       let accu =
+         if Hashtbl.length h > 0
+         then (
+           let accu = Printf.sprintf "\xc2\xb7Keys for %s" modename :: accu in
+           Hashtbl.fold (fun i o a ->
+               let bb = Buffer.create 10 in
+               let addkm (k, m) =
+                 if Wsi.withctrl m  then Buffer.add_string bb "ctrl-";
+                 if Wsi.withalt m   then Buffer.add_string bb "alt-";
+                 if Wsi.withshift m then Buffer.add_string bb "shift-";
+                 if Wsi.withmeta m  then Buffer.add_string bb "meta-";
+                 Buffer.add_string bb (Wsi.keyname k);
+               in
+               let addkms l =
+                 let rec loop = function
+                   | [] -> ()
+                   | km :: [] -> addkm km
+                   | km :: rest ->
+                      addkm km; Buffer.add_char bb ' ';
+                      loop rest
+                 in
+                 loop l
+               in
+               addkm i;
+               Buffer.add_char bb '\t';
+               begin match o with
+               | KMinsrt km ->
+                  addkm km
+
+               | KMinsrl kms ->
+                  addkms kms
+
+               | KMmulti (ins, kms) ->
+                  Buffer.add_char bb ' ';
+                  addkms ins;
+                  Buffer.add_string bb "\t";
+                  addkms kms
+               end;
+               Buffer.contents bb :: a
+             ) h accu
+         )
+         else accu
+       in
+       loop accu rest
+  in
+  loop [] c.keyhashes
 ;;
 
 let save1 bb leavebirdseye x h dc =

@@ -1120,7 +1120,14 @@ let opendoc path password =
                wcmd "reqlayout %d %d %d %s\000"
                     conf.angle (FMTE.to_int conf.fitmodel)
                     (stateh state.winh) state.nameddest
-             )
+             );
+  let sl = helpkeymapsbuf conf in
+  state.help <-
+    Array.of_list @@
+      let rec loop accu = function | [] -> accu
+                                   | s :: rest ->
+                                      loop ((s, 0, Noaction) :: accu) rest
+      in makehelp () @ (("", 0, Noaction) :: loop [] sl)
 ;;
 
 let reload () =
