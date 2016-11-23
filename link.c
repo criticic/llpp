@@ -365,13 +365,10 @@ static void readdata (int fd, void *p, int size)
 {
     ssize_t n;
 
- again:
+again:
     n = read (fd, p, size);
-    if (n < 0) {
-        if (errno == EINTR) goto again;
-        err (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
-    }
     if (n - size) {
+        if (n < 0 && errno == EINTR) goto again;
         if (!n) errx (1, "EOF while reading");
         errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
@@ -379,14 +376,16 @@ static void readdata (int fd, void *p, int size)
 
 static void writedata (int fd, char *p, int size)
 {
+    ssize_t n;
     uint32_t size4 = size;
     struct iovec iov[2] = {[0] = { .iov_base = &size4,
                                    .iov_len = 4},
                            [1] = { .iov_base = p,
                                    .iov_len = size }};
-    ssize_t n;
 
+again:
     n = writev (fd, iov, 2);
+    if (n < 0 && errno == EINTR) goto again;
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
         err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
