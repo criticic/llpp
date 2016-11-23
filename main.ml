@@ -1121,8 +1121,8 @@ let opendoc path password =
                     conf.angle (FMTE.to_int conf.fitmodel)
                     (stateh state.winh) state.nameddest
              );
-  let sl = helpkeymapsbuf conf in
   state.help <-
+    let sl = helpkeymapsbuf conf in
     let rec loop accu =
       function | [] -> accu
                | s :: rest -> loop ((s, 0, Noaction) :: accu) rest
