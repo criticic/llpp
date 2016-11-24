@@ -3816,35 +3816,6 @@ static struct {
     Cursor curs[CURS_COUNT];
 } glx;
 
-#ifdef VISAVIS
-static VisualID initvisual (void)
-{
-    /* On this system with: `Haswell-ULT Integrated Graphics
-       Controller' and Mesa 11.0.6; perf stat reports [1] that when
-       using glX chosen visual and auto scrolling some document in
-       fullscreen the power/energy-gpu is more than 1 joule bigger
-       than when using hand picked visual that stands alone in glxinfo
-       output: it's dead last in the list and it's the only one with
-       `visual dep' (sic) of 32
-
-       No clue what's going on here...
-
-       [1] perf stat -a -I 1200 -e "power/energy-gpu/"
-     */
-    XVisualInfo info;
-    int ret = 1;
-
-    info.depth = 32;
-    info.class = TrueColor;
-    glx.visual = XGetVisualInfo (glx.dpy, VisualDepthMask | VisualClassMask,
-                                 &info, &ret);
-    if (!ret || !glx.visual) {
-        XCloseDisplay (glx.dpy);
-        caml_failwith ("XGetVisualInfo");
-    }
-    return glx.visual->visualid;
-}
-#endif
 
 static void initcurs (void)
 {
@@ -3868,11 +3839,7 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     int num_conf;
     EGLint visid;
     EGLint attribs[] = {
-#ifdef VISAVIS
-        EGL_NATIVE_VISUAL_ID, 0,
-#else
         EGL_DEPTH_SIZE, 24,
-#endif
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
         EGL_NONE
@@ -3895,22 +3862,12 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         caml_failwith ("eglInitialize");
     }
 
-#ifdef VISAVIS
-    attribs[1] = visid = initvisual ();
-#endif
-
     if (!eglChooseConfig (glx.edpy, attribs, &conf, 1, &num_conf) ||
         !num_conf) {
         caml_failwith ("eglChooseConfig");
     }
 
     glx.conf = conf;
-#ifndef VISAVIS
-    if (!eglGetConfigAttrib (glx.edpy, glx.conf,
-                             EGL_NATIVE_VISUAL_ID, &visid)) {
-        caml_failwith ("eglGetConfigAttrib");
-    }
-#endif
     initcurs ();
 
     glx.wid = Int_val (wid_v);
@@ -3949,16 +3906,13 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         caml_failwith ("XOpenDisplay");
     }
 
-#ifdef VISAVIS
-    initvisual ();
-#else
     int attribs[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
     glx.visual = glXChooseVisual (glx.dpy, Int_val (screen_v), attribs);
     if (!glx.visual) {
         XCloseDisplay (glx.dpy);
         caml_failwith ("glXChooseVisual");
     }
-#endif
+
     initcurs ();
 
     glx.wid = Int_val (wid_v);

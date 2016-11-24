@@ -39,8 +39,7 @@ ocamlflagstbl = [("main", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
                 ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
-         \ -Wunused-parameter -Wsign-compare -Wshadow\
-         \ -DVISAVIS"
+         \ -Wunused-parameter -Wsign-compare -Wshadow"
          ++ (if egl then " -DUSE_EGL" else "")
 cflagstbl =
   [("link.o"
