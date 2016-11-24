@@ -6370,13 +6370,10 @@ let () =
         ("-cxack", Arg.Set cxack, " Cut corners");
 
         ("-remote", Arg.String (fun s -> rcmdpath := s),
-         "<path> Set path to the remote commands source");
-
-        ("-origin", Arg.String (fun s -> state.origin <- s),
-         "<original-path> Set original path");
+         "<path> Set path to the source of remote commands");
 
         ("-gc", Arg.Set_string gcconfig,
-         "<script-path> Collect garbage with the help of a script");
+         "<path> Collect garbage with the help of a script");
 
         ("-nofc", Arg.Set nofc, " Do not use fontconfig");
 
@@ -6388,10 +6385,12 @@ let () =
                    exit 0), " Print version and exit");
 
         ("-css", Arg.String (fun s -> csspath := Some s),
-         "<css-path> Style sheet to use for EPUB/HTML");
+         "<path> Set path to the style sheet to use with EPUB/HTML");
 
-        ("-embed", Arg.Set_int rootwid,
-         "<window-id> Embed into window")
+        ("-embed", Arg.Set_int rootwid, "<window-id> Embed into window");
+
+        ("-origin", Arg.String (fun s -> state.origin <- s),
+         "<origin> <undocumented>");
        ]
     )
     (fun s -> state.path <- s)
