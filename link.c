@@ -3867,8 +3867,7 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         caml_failwith ("eglChooseConfig");
     }
 
-    if (!eglGetConfigAttrib (glx.edpy, glx.conf,
-                             EGL_NATIVE_VISUAL_ID, &visid)) {
+    if (!eglGetConfigAttrib (glx.edpy, conf, EGL_NATIVE_VISUAL_ID, &visid)) {
         caml_failwith ("eglGetConfigAttrib");
     }
 
