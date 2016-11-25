@@ -4759,7 +4759,11 @@ let viewkeyboard key mask =
        | Mzoom _
        | Mnone ->
         begin match state.mode with
-        | LinkNav _ ->
+        | LinkNav ln ->
+           begin match ln with
+           | Ltexact pl -> state.lnava <- Some pl
+           | Ltgendir _ | Ltnotready _ -> state.lnava <- None
+           end;
            state.mode <- View;
            G.postRedisplay "esc leave linknav"
         | Birdseye _
