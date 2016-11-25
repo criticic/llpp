@@ -3989,7 +3989,7 @@ let enterinfomode =
       src#bool "coarse positioning in presentation mode"
                (fun () -> conf.coarseprespos)
                (fun v -> conf.coarseprespos <- v);
-      src#bool "use document css"
+      src#bool "use document CSS"
                (fun () -> conf.usedoccss)
                (fun v ->
                  conf.usedoccss <- v;
