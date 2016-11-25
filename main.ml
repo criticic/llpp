@@ -75,22 +75,28 @@ let drawstring2 size x y fmt =
 ;;
 
 let _debugl l =
-  dolog "l %d dim=%d {" l.pageno l.pagedimno;
-  dolog "  WxH     %dx%d" l.pagew l.pageh;
-  dolog "  vWxH    %dx%d" l.pagevw l.pagevh;
-  dolog "  pagex,y %d,%d" l.pagex l.pagey;
-  dolog "  dispx,y %d,%d" l.pagedispx l.pagedispy;
-  dolog "  column  %d" l.pagecol;
-  dolog "}";
+  dolog {|l %d dim=%d {
+  WxH     %dx%d
+  vWxH    %dx%d
+  pagex,y %d,%d
+  dispx,y %d,%d
+  column  %d
+}|}
+  l.pageno l.pagedimno
+  l.pagew l.pageh
+  l.pagevw l.pagevh
+  l.pagex l.pagey
+  l.pagedispx l.pagedispy
+  l.pagecol
 ;;
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
-  dolog "rect {";
-  dolog "  x0,y0=(% f, % f)" x0 y0;
-  dolog "  x1,y1=(% f, % f)" x1 y1;
-  dolog "  x2,y2=(% f, % f)" x2 y2;
-  dolog "  x3,y3=(% f, % f)" x3 y3;
-  dolog "}";
+  dolog {|rect {
+  x0,y0=(% f, % f)
+  x1,y1=(% f, % f)
+  x2,y2=(% f, % f)
+  x3,y3=(% f, % f)
+}|} x0 y0 x1 y1 x2 y2 x3 y3;
 ;;
 
 let isbirdseye = function
