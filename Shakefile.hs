@@ -27,6 +27,8 @@ data Bt = Native | Bytecode
 
 outdir = "build"
 mudir = "mupdf"
+mulibs ty = [mudir </> "build" </> ty </> "libmupdf.a"
+            ,mudir </> "build" </> ty </> "libmupdfthird.a"]
 inOutDir s = outdir </> s
 egl = False
 
@@ -158,12 +160,11 @@ cmx oracle ordoracle =
     unit $ ordoracle $ OcamlOrdOracleN out
     compilecaml comp flagl ppflags out src
 
-binInOutDir globjs depln target =
+binInOutDir ty globjs depln target =
   inOutDir target %> \out ->
   do
-    let mulibs = [mudir </> "build" </> "native" </> "libmupdf.a"
-                 ,mudir </> "build" </> "native" </> "libmupdfthird.a"]
-    need (mulibs ++ globjs ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    need (mulibs ty ++ globjs
+           ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
     cmxs <- liftIO $ readMVar depln
     need cmxs
     unit $ cmd ocamlopt "-g -I lablGL -o" out
@@ -227,17 +228,16 @@ main = do
   mulib "native" "libmupdfthird.a"
 
   inOutDir "llpp" %> \out -> do
-    let mulibs = [mudir </> "build" </> "native" </> "libmupdf.a"
-                 ,mudir </> "build" </> "native" </> "libmupdfthird.a"]
-    need (mulibs ++ globjs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
+    need (mulibs "native"
+          ++ globjs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
     cmos <- liftIO $ readMVar depl
     need cmos
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
       "unix.cma str.cma" (reverse cmos)
       (inOutDir "link.o") "-cclib" (cclibNative : globjs)
 
-  binInOutDir globjs depln "llpp.native"
-  binInOutDir globjs depln "llpp.murel.native"
+  binInOutDir "native" globjs depln "llpp.native"
+  binInOutDir "release" globjs depln "llpp.murel.native"
 
   cmio "//*.cmi" ".mli" ocamlOracle ocamlOrdOracle
   cmio "//*.cmo" ".ml" ocamlOracle ocamlOrdOracle
