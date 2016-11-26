@@ -2633,12 +2633,10 @@ object (self)
           let drawtabularstring s =
             let drawstr x s =
               let x' = truncate (x0 +. x) in
-              let pos = nindex s '\000' in
-              if pos = -1
+              let s1, s2 = splitatchar s '\000' in
+              if emptystr s2
               then drawstring1 fs x' (y+nfs) s
               else
-                let s1 = String.sub s 0 pos
-                and s2 = String.sub s (pos+1) (String.length s - pos - 1) in
                 let rec e s =
                   if emptystr s
                   then s
@@ -2661,12 +2659,9 @@ object (self)
             if trusted
             then
               let x = if helpmode && row > 0 then x +. ww else x in
-              let tabpos = nindex s '\t' in
-              if tabpos > 0
+              let s1, s2 = splitatchar s '\t' in
+              if nonemptystr s2
               then
-                let len = String.length s - tabpos - 1 in
-                let s1 = String.sub s 0 tabpos
-                and s2 = String.sub s (tabpos + 1) len in
                 let nx = drawstr x s1 in
                 let sw = nx -. x in
                 let x = x +. (max tabw sw) in
