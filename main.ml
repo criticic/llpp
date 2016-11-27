@@ -2691,9 +2691,8 @@ object (self)
     GlDraw.color (1.0, 1.0, 1.0) ~alpha:0.5;
     let xadj = 5.0 in
     let rec loop row =
-      if (row - m_first) > fstate.maxrows
-      then ()
-      else (
+      if (row - m_first) <= fstate.maxrows
+      then
         if row >= 0 && row < itemcount
         then (
           let (s, level) = source#getitem row in
@@ -2718,7 +2717,6 @@ object (self)
           filledrect x0 y0 x1 y1;
           loop (row+1)
         )
-      )
     in
     Gl.disable `texture_2d;
     if Array.length minfo > 0 then loop m_first;
