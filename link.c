@@ -502,29 +502,23 @@ static int openxref (char *filename, char *password)
 
 static void pdfinfo (void)
 {
-    pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
-    if (pdf) {
-        pdf_obj *infoobj;
+    struct { char *tag; char *name; } metatbl[] = {
+        { FZ_META_INFO_TITLE, "Title" },
+        { FZ_META_INFO_AUTHOR, "Author" },
+        { FZ_META_FORMAT, "Format" },
+        { FZ_META_ENCRYPTION, "Encryption" },
+        { "Info:Creator", "Creator" },
+        { "Info:Producer", "Producer" },
+    };
 
-        printd ("info PDF version\t%d.%d",
-                pdf->version / 10, pdf->version % 10);
-
-        infoobj = pdf_dict_gets (state.ctx, pdf_trailer (state.ctx,
-                                                         pdf), "Info");
-        if (infoobj) {
-            char *s;
-            char *items[] = { "Title", "Author", "Creator",
-                              "Producer", "CreationDate" };
-
-            for (size_t i = 0; i < sizeof (items) / sizeof (*items); ++i) {
-                pdf_obj *obj = pdf_dict_gets (state.ctx, infoobj, items[i]);
-                s = pdf_to_utf8 (state.ctx, obj);
-                if (*s) printd ("info %s\t%s", items[i], s);
-                fz_free (state.ctx, s);
-            }
-        }
-        printd ("infoend");
+    for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
+        char buf[256];
+        if (fz_lookup_metadata (state.ctx, state.doc,
+                                metatbl[i].tag, buf, sizeof buf) > 0)
+            printd ("info %s\t%s", metatbl[i].name, buf);
     }
+
+    printd ("infoend");
 }
 
 static void unlinktile (struct tile *tile)
