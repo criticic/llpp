@@ -1852,27 +1852,27 @@ let act cmds =
      state.reprf <- (fun () -> gotopagexy !wtmode n (float l) (float t))
 
   | "info", args ->
-     let pos = nindex args '\t' in
+     let c, v = splitatchar args '\t' in
      let s =
-       if pos >= 0
+       if nonemptystr v
        then
-         if substratis args 0 "Title"
-         then
-           let s = String.sub args (pos+1) @@ String.length args - pos - 1 in
-           conf.title <- s;
-           Wsi.settitle s;
+         if c = "Title"
+         then (
+           conf.title <- v;
+           Wsi.settitle v;
            args
+         )
          else
-           if substratis args 0 "CreationDate"
+           if let len = String.length c in
+              len > 6 && ((String.sub c (len-4) 4) = "date")
            then (
-             if String.length args >= pos + 7
-                && args.[pos+1] = 'D' && args.[pos+2] = ':'
+             if String.length v >= 7 && v.[0] = 'D' && v.[1] = ':'
              then
-               let b = Buffer.create 18 in
-               Buffer.add_string b "CreationDate\t";
+               let b = Buffer.create 10 in
+               Printf.bprintf b "%s\t" c;
                let sub p l c =
                  try
-                   Buffer.add_substring b args (pos+p+1) l;
+                   Buffer.add_substring b v p l;
                    Buffer.add_char b c;
                  with exn -> Buffer.add_string b @@ exntos exn
                in
@@ -1883,8 +1883,7 @@ let act cmds =
                sub 12 2 ':';
                sub 14 2 ' ';
                Buffer.add_char b '[';
-               Buffer.add_substring b args (pos+1)
-                                    (String.length args - pos - 1);
+               Buffer.add_string b v;
                Buffer.add_char b ']';
                Buffer.contents b
              else args

@@ -507,8 +507,9 @@ static void pdfinfo (void)
         { FZ_META_INFO_AUTHOR, "Author" },
         { FZ_META_FORMAT, "Format" },
         { FZ_META_ENCRYPTION, "Encryption" },
-        { "Info:Creator", "Creator" },
-        { "Info:Producer", "Producer" },
+        { "info:Creator", "Creator" },
+        { "info:Producer", "Producer" },
+        { "info:CreationDate", "Creation date" },
     };
 
     for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
