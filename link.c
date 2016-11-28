@@ -515,8 +515,10 @@ static void pdfinfo (void)
     char *buf = malloc (len);
 
     for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
-        int need = fz_lookup_metadata (state.ctx, state.doc,
-                                       metatbl[i].tag, buf, len);
+        int need;
+    again:
+        need = fz_lookup_metadata (state.ctx, state.doc,
+                                   metatbl[i].tag, buf, len);
         if (need > 0) {
             if (need <= len) {
                 printd ("info %s\t%s", metatbl[i].name, buf);
@@ -525,6 +527,7 @@ static void pdfinfo (void)
                 buf = realloc (buf, need);
                 if (!buf) err (1, "realloc %d", need);
                 len = need;
+                goto again;
             }
         }
     }
