@@ -511,13 +511,24 @@ static void pdfinfo (void)
         { "info:Producer", "Producer" },
         { "info:CreationDate", "Creation date" },
     };
+    int len = 256;
+    char *buf = malloc (len);
 
     for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
-        char buf[256];
-        if (fz_lookup_metadata (state.ctx, state.doc,
-                                metatbl[i].tag, buf, sizeof buf) > 0)
-            printd ("info %s\t%s", metatbl[i].name, buf);
+        int need = fz_lookup_metadata (state.ctx, state.doc,
+                                       metatbl[i].tag, buf, len);
+        if (need > 0) {
+            if (need <= len) {
+                printd ("info %s\t%s", metatbl[i].name, buf);
+            }
+            else {
+                buf = realloc (buf, need);
+                if (!buf) err (1, "realloc %d", need);
+                len = need;
+            }
+        }
     }
+    free (buf);
 
     printd ("infoend");
 }
