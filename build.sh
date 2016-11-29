@@ -47,7 +47,6 @@ $comp -c $mlopt -o $builddir/utils$osu $srcdir/utils.ml
 $comp -c $mlopt -I $builddir -o $builddir/parser$osu $srcdir/parser.ml
 $comp -c $mlopt -I $builddir -o $builddir/wsi.cmi $srcdir/wsi.mli
 $comp -c $mloptgl -I $builddir -o $builddir/config$osu $srcdir/config.ml
-sed -f $srcdir/pp.sed $srcdir/main.ml >$builddir/main.ml
-$comp -c $mloptgl -I $builddir -o $builddir/main$osu $builddir/main.ml
+$comp -c $mloptgl -I $builddir -o $builddir/main$osu $srcdir/main.ml
 $comp -c $mlopt -I $builddir -o $builddir/wsi$osu $srcdir/wsi.ml
 $comp -g $lfl -I lablGL -o $builddir/llpp unix$asu str$asu $builddir/help$osu $builddir/lablGL/raw$osu $builddir/utils$osu $builddir/parser$osu $builddir/lablGL/glMisc$osu $builddir/wsi$osu $builddir/lablGL/gl$osu $builddir/lablGL/glMat$osu $builddir/lablGL/glFunc$osu $builddir/lablGL/glClear$osu $builddir/lablGL/glPix$osu $builddir/lablGL/glTex$osu $builddir/lablGL/glDraw$osu $builddir/config$osu $builddir/lablGL/glArray$osu $builddir/main$osu $builddir/link.o -cclib "-lGL -lX11 -lmupdf -lmupdfthird -lpthread -L$srcdir/mupdf/build/native -lcrypto $builddir/lablGL/ml_gl.o $builddir/lablGL/ml_glarray.o $builddir/lablGL/ml_raw.o"

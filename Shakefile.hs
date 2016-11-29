@@ -36,7 +36,7 @@ ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
-ocamlflagstbl = [("main", ("-I lablGL", "sed -f pp.sed", ["pp.sed"]))
+ocamlflagstbl = [("main", ("-I lablGL", "", []))
                 ,("config", ("-I lablGL", "", []))
                 ]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
