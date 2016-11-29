@@ -2892,7 +2892,7 @@ object (self)
            set1 active first qsearch
        );
 
-    | _ when (key != 0 && not (Wsi.isspecialkey key)) ->
+    | _ when not (Wsi.isspecialkey key) ->
        let pattern = m_qsearch ^ toutf8 key in
        let active, first =
          match search m_active pattern 1 with
@@ -2985,8 +2985,7 @@ object (self)
   method key key mask =
     match state.mode with
     | Textentry te ->
-       (* for whatever reason mode switch emits zero first - skip it *)
-       if key != 0 then textentrykeyboard key mask te;
+       textentrykeyboard key mask te;
        coe self
     | Birdseye _ | View | LinkNav _ -> self#key1 key mask
 
@@ -6039,9 +6038,7 @@ let uioh = object
 
     method key key mask =
       begin match state.mode with
-      | Textentry textentry ->
-         (* for whatever reason mode switch emits zero first - skip it *)
-         if key != 0 then textentrykeyboard key mask textentry
+      | Textentry textentry -> textentrykeyboard key mask textentry
       | Birdseye birdseye -> birdseyekeyboard key mask birdseye
       | View -> viewkeyboard key mask
       | LinkNav linknav -> linknavkeyboard key mask linknav

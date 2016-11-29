@@ -523,7 +523,8 @@ let readresp sock =
        let keysym = getkeysym code mask in
        vlog "keysym = %x %c mask %#x code %d"
             keysym (Char.unsafe_chr keysym) mask code;
-       state.t#key keysym mask;
+       if keysym != 0
+       then state.t#key keysym mask
 
   | 3 ->                                (* key release *)
      if Array.length state.keymap > 0
