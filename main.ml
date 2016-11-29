@@ -4799,7 +4799,7 @@ let viewkeyboard key mask =
      in
      let s = String.make 1 (Char.chr key) in
      enttext (s, E.s, Some (onhist state.hists.pat),
-              textentry, ondone (pv = `slash), true)
+              textentry, ondone (pv = `Ascii '/'), true)
 
   | `Ascii '+' | `KPplus | `Ascii '=' when ctrl ->
      let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
@@ -4836,7 +4836,8 @@ let viewkeyboard key mask =
      then gotoxy 0 state.y
      else setzoom 1.0
 
-  | `Ascii ('1'|'2' as c) when ctrl && conf.fitmodel != FitPage -> (* ctrl-1/2 *)
+  | `Ascii ('1'|'2' as c)
+       when ctrl && conf.fitmodel != FitPage -> (* ctrl-1/2 *)
      let cols =
        match conf.columns with
        | Csingle _ | Cmulti _ -> 1
