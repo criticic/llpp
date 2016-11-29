@@ -1318,88 +1318,38 @@ let isspecialkey key =
   || key land 0xfd00 = 0xfd00   (* 3270 *)
 ;;
 
-let kc2pv = function
-  | 0xffbe -> `F1
-  | 0xffc0 -> `F3
-  | 0xffc6 -> `F9
-  | 62     -> `Gt
-  | 91     -> `Lb
-  | 60     -> `Lt
-  | 93     -> `Rb
-  | 39     -> `apos
-  | 0xff08 -> `backspace
-  | 0xff9f -> `delete
-  | 0xff54 -> `down
-  | 0xff0d -> `enter
-  | 61     -> `equals
-  | 0xff1b -> `escape
-  | 0xff50 -> `home
-  | 0xff63 -> `insert
-  | 0xff57 -> `jend
-  | 0xffff -> `kpdelete
-  | 0xff99 -> `kpdown
-  | 0xff9c -> `kpend
-  | 0xff8d -> `kpenter
-  | 0xff95 -> `kphome
-  | 0xff96 -> `kpleft
-  | 0xffad -> `kpminus
-  | 0xff9b -> `kpnext
-  | 0xffab -> `kpplus
-  | 0xff9a -> `kpprior
-  | 0xff98 -> `kpright
-  | 0xff97 -> `kpup
-  | 0xff51 -> `left
-  | 45     -> `minus
-  | 0xff56 -> `next
-  | 124    -> `pipe
-  | 43     -> `plus
-  | 0xff55 -> `prior
-  | 63     -> `question
-  | 0xff53 -> `right
-  | 47     -> `slash
-  | 32     -> `space
-  | 0xff09 -> `tab
-  | 0x7e   -> `tilde
-  | 0xff52 -> `up
-  | 48     -> `_0
-  | 49     -> `_1
-  | 50     -> `_2
-  | 51     -> `_3
-  | 52     -> `_4
-  | 57     -> `_9
-  | 66     -> `B
-  | 70     -> `F
-  | 71     -> `G
-  | 72     -> `H
-  | 78     -> `N
-  | 80     -> `P
-  | 81     -> `Q
-  | 87     -> `W
-  | 83     -> `S
-  | 97     -> `a
-  | 98     -> `b
-  | 99     -> `c
-  | 101    -> `e
-  | 102    -> `f
-  | 103    -> `g
-  | 104    -> `h
-  | 105    -> `i
-  | 106    -> `j
-  | 107    -> `k
-  | 108    -> `l
-  | 109    -> `m
-  | 110    -> `n
-  | 111    -> `o
-  | 112    -> `p
-  | 113    -> `q
-  | 114    -> `r
-  | 115    -> `s
-  | 116    -> `t
-  | 117    -> `u
-  | 118    -> `v
-  | 119    -> `w
-  | 120    -> `x
-  | 121    -> `y
-  | 122    -> `z
-  | code   -> `Code code
+let kc2pv code =
+  if code > 31 && code < 128
+  then `Ascii (Char.chr code)
+  else
+    if code >= 0xffbe && code <= 0xffc6
+    then `Fn (code - 0xffbe + 1)
+    else
+      match code with
+      | 0xff08 -> `Backspace
+      | 0xff9f -> `Delete
+      | 0xff54 -> `Down
+      | 0xff0d -> `Enter
+      | 0xff1b -> `Escape
+      | 0xff50 -> `Home
+      | 0xff63 -> `Insert
+      | 0xff57 -> `End
+      | 0xffff -> `KPdelete
+      | 0xff99 -> `KPdown
+      | 0xff9c -> `KPend
+      | 0xff8d -> `KPenter
+      | 0xff95 -> `KPhome
+      | 0xff96 -> `KPleft
+      | 0xffad -> `KPminus
+      | 0xff9b -> `KPnext
+      | 0xffab -> `KPplus
+      | 0xff9a -> `KPprior
+      | 0xff98 -> `KPright
+      | 0xff97 -> `KPup
+      | 0xff51 -> `Left
+      | 0xff56 -> `Next
+      | 0xff55 -> `Prior
+      | 0xff53 -> `Right
+      | 0xff52 -> `Up
+      | code   -> `Code code
 ;;

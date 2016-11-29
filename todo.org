@@ -27,3 +27,4 @@
 
 * TODO outline for cbz
   file names? exif?
+* TODO somehow merge kv2pv and xlatt/xlatf
