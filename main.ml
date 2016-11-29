@@ -4837,7 +4837,7 @@ let viewkeyboard key mask =
      else setzoom 1.0
 
   | `Ascii ('1'|'2' as c)
-       when ctrl && conf.fitmodel != FitPage -> (* ctrl-1/2 *)
+       when ctrl && conf.fitmodel != FitPage ->
      let cols =
        match conf.columns with
        | Csingle _ | Cmulti _ -> 1
@@ -4860,7 +4860,7 @@ let viewkeyboard key mask =
      state.text <- "fit model: " ^ FMTE.to_string fm;
      reqlayout conf.angle fm
 
-  | `Ascii '4' when ctrl ->     (* ctrl-4 *)
+  | `Ascii '4' when ctrl ->
      let zoom = getmaxw () /. float state.winw in
      if zoom > 0.0 then setzoom zoom
 
@@ -4982,7 +4982,7 @@ let viewkeyboard key mask =
   | `Ascii ' ' ->
      nextpage ()
 
-  | `Delete | `KPdelete ->      (* delete *)
+  | `Delete | `KPdelete ->
      prevpage ()
 
   | `Ascii '=' ->
