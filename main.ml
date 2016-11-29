@@ -1357,8 +1357,9 @@ let enttext () =
       | Birdseye _ -> 0
     in
     let rect x w =
-      filledrect x (float (state.winh - (fstate.fontsize + 4) - hscrollh))
-                 (x+.w) (float (state.winh - hscrollh))
+      filledrect
+        x      (float (state.winh - (fstate.fontsize + 4) - hscrollh))
+        (x+.w) (float (state.winh - hscrollh))
     in
 
     let w = float (state.winw - 1 - vscrollw ()) in
@@ -1386,10 +1387,8 @@ let enttext () =
     | Textentry ((prefix, text, _, _, _, _), _) ->
        let s =
          if len > 0
-         then
-           Printf.sprintf "%s%s_ [%s]" prefix text state.text
-         else
-           Printf.sprintf "%s%s_"  prefix text
+         then Printf.sprintf "%s%s_ [%s]" prefix text state.text
+         else Printf.sprintf "%s%s_"  prefix text
        in
        s
 
@@ -1422,9 +1421,8 @@ let gctiles () =
                       layout
                  ) in
   let rec loop qpos =
-    if state.memused <= conf.memlimit
-    then ()
-    else (
+    if state.memused > conf.memlimit
+    then (
       if qpos < len
       then
         let (k, p, s) as lruitem = Queue.pop state.tilelru in
@@ -2011,9 +2009,7 @@ let reqlayout angle fitmodel =
      then (
        match state.mode with
        | LinkNav _ -> state.mode <- View
-       | Birdseye _
-         | Textentry _
-         | View -> ()
+       | Birdseye _ | Textentry _ | View -> ()
      );
      conf.fitmodel <- fitmodel;
      invalidate
@@ -2285,9 +2281,7 @@ let optentry mode _ key =
            | Birdseye beye ->
               leavebirdseye beye false;
               enterbirdseye ();
-           | Textentry _
-             | View
-             | LinkNav _ -> ();
+           | Textentry _ | View | LinkNav _ -> ();
            end
          with exn ->
            state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
@@ -2413,13 +2407,12 @@ class type lvsource =
     method getitemcount : int
     method getitem : int -> (string * int)
     method hasaction : int -> bool
-    method exit :
-             uioh:uioh ->
-             cancel:bool ->
-             active:int ->
-             first:int ->
-             pan:int ->
-             uioh option
+    method exit : uioh:uioh ->
+                  cancel:bool ->
+                  active:int ->
+                  first:int ->
+                  pan:int ->
+                  uioh option
     method getactive : int
     method getfirst : int
     method getpan : int
@@ -2493,7 +2486,7 @@ let textentrykeyboard
 
   | Delete | KPdelete -> ()
 
-  | Ascii _->
+  | Code _ | Ascii _->
      begin match onkey text key with
      | TEdone text ->
         ondone text;
@@ -2510,9 +2503,10 @@ let textentrykeyboard
      | TEswitch te ->
         state.mode <- Textentry (te, onleave);
         G.postRedisplay "textentrykeyboard switch";
-     end;
-  |Insert|KPleft|KPminus|KPnext|KPplus|KPprior|KPright|Left|Right|Next|Prior
-   |Code _|Fn _ -> vlog "unhandled key %s" (Wsi.keyname key)
+     end
+  | (Insert|KPleft|KPminus|KPnext
+     |KPplus|KPprior|KPright|Left|Right|Next|Prior|Fn _) ->
+     vlog "unhandled key %s" (Wsi.keyname key)
 ;;
 
 let firstof first active =
@@ -2717,389 +2711,390 @@ object (self)
     if Array.length minfo > 0 then loop m_first;
     Gl.disable `blend;
     if conf.leftscroll
-    then GlMat.pop ();
+    then GlMat.pop ()
 
-method updownlevel incr =
-  let len = source#getitemcount in
-  let curlevel =
-    if m_active >= 0 && m_active < len
-    then snd (source#getitem m_active)
-    else -1
-  in
-  let rec flow i =
-    if i = len then i-1 else if i = -1 then 0 else
-      let _, l = source#getitem i in
-      if l != curlevel then i else flow (i+incr)
-  in
-  let active = flow m_active in
-  let first = calcfirst m_first active in
-  G.postRedisplay "outline updownlevel";
-  {< m_active = active; m_first = first >}
+  method updownlevel incr =
+    let len = source#getitemcount in
+    let curlevel =
+      if m_active >= 0 && m_active < len
+      then snd (source#getitem m_active)
+      else -1
+    in
+    let rec flow i =
+      if i = len then i-1 else if i = -1 then 0 else
+        let _, l = source#getitem i in
+        if l != curlevel then i else flow (i+incr)
+    in
+    let active = flow m_active in
+    let first = calcfirst m_first active in
+    G.postRedisplay "outline updownlevel";
+    {< m_active = active; m_first = first >}
 
-method private key1 key mask =
-  let set1 active first qsearch =
-    coe {< m_active = active; m_first = first; m_qsearch = qsearch >}
-  in
-  let search active pattern incr =
-    let active = if active = -1 then m_first else active in
-    let dosearch re =
-      let rec loop n =
-        if n >= 0 && n < source#getitemcount
-        then (
-          let s, _ = source#getitem n in
-          match Str.search_forward re s 0 with
-          | (exception Not_found) -> loop (n + incr)
-          | _ -> Some n
-        )
-        else None
-      in
-      loop active
+  method private key1 key mask =
+    let set1 active first qsearch =
+      coe {< m_active = active; m_first = first; m_qsearch = qsearch >}
     in
-    let qpat = Str.quote pattern in
-    match Str.regexp_case_fold qpat with
-    | s -> dosearch s
-    | exception exn ->
-       adderrfmt "listview key1" "regexp_case_fold for `%S' failed: %S\n"
-                 qpat @@ Printexc.to_string exn;
-       None
-  in
-  let itemcount = source#getitemcount in
-  let find start incr =
-    let rec find i =
-      if i = -1 || i = itemcount
-      then -1
-      else (
-        if source#hasaction i
-        then i
-        else find (i + incr)
-      )
-    in
-    find start
-  in
-  let set active first =
-    let first = bound first 0 (itemcount - fstate.maxrows) in
-    state.text <- E.s;
-    coe {< m_active = active; m_first = first; m_qsearch = E.s >}
-  in
-  let navigate incr =
-    let isvisible first n = n >= first && n - first <= fstate.maxrows in
-    let active, first =
-      let incr1 = if incr > 0 then 1 else -1 in
-      if isvisible m_first m_active
-      then
-        let next =
-          let next = m_active + incr in
-          let next =
-            if next < 0 || next >= itemcount
-            then -1
-            else find next incr1
-          in
-          if abs (m_active - next) > fstate.maxrows
-          then -1
-          else next
+    let search active pattern incr =
+      let active = if active = -1 then m_first else active in
+      let dosearch re =
+        let rec loop n =
+          if n >= 0 && n < source#getitemcount
+          then (
+            let s, _ = source#getitem n in
+            match Str.search_forward re s 0 with
+            | (exception Not_found) -> loop (n + incr)
+            | _ -> Some n
+          )
+          else None
         in
-        if next = -1
+        loop active
+      in
+      let qpat = Str.quote pattern in
+      match Str.regexp_case_fold qpat with
+      | s -> dosearch s
+      | exception exn ->
+         adderrfmt "listview key1" "regexp_case_fold for `%S' failed: %S\n"
+                   qpat @@ Printexc.to_string exn;
+         None
+    in
+    let itemcount = source#getitemcount in
+    let find start incr =
+      let rec find i =
+        if i = -1 || i = itemcount
+        then -1
+        else (
+          if source#hasaction i
+          then i
+          else find (i + incr)
+        )
+      in
+      find start
+    in
+    let set active first =
+      let first = bound first 0 (itemcount - fstate.maxrows) in
+      state.text <- E.s;
+      coe {< m_active = active; m_first = first; m_qsearch = E.s >}
+    in
+    let navigate incr =
+      let isvisible first n = n >= first && n - first <= fstate.maxrows in
+      let active, first =
+        let incr1 = if incr > 0 then 1 else -1 in
+        if isvisible m_first m_active
         then
-          let first = m_first + incr in
-          let first = bound first 0 (itemcount - fstate.maxrows) in
           let next =
             let next = m_active + incr in
-            let next = bound next 0 (itemcount - 1) in
-            find next ~-incr1
-          in
-          let active =
-            if next = -1
-            then m_active
-            else (
-              if isvisible first next
-              then next
-              else m_active
-            )
-          in
-          active, first
-        else
-          let first = min next m_first in
-          let first =
-            if abs (next - first) > fstate.maxrows
-            then first + incr
-            else first
-          in
-          next, first
-      else
-        let first = m_first + incr in
-        let first = bound first 0 (itemcount - 1) in
-        let active =
-          let next = m_active + incr in
-          let next = bound next 0 (itemcount - 1) in
-          let next = find next incr1 in
-          let active =
-            if next = -1 || abs (m_active - first) > fstate.maxrows
-            then (
-              let active = if m_active = -1 then next else m_active in
-              active
-            )
+            let next =
+              if next < 0 || next >= itemcount
+              then -1
+              else find next incr1
+            in
+            if abs (m_active - next) > fstate.maxrows
+            then -1
             else next
           in
-          if isvisible first active
-          then active
-          else -1
-        in
-        active, first
+          if next = -1
+          then
+            let first = m_first + incr in
+            let first = bound first 0 (itemcount - fstate.maxrows) in
+            let next =
+              let next = m_active + incr in
+              let next = bound next 0 (itemcount - 1) in
+              find next ~-incr1
+            in
+            let active =
+              if next = -1
+              then m_active
+              else (
+                if isvisible first next
+                then next
+                else m_active
+              )
+            in
+            active, first
+          else
+            let first = min next m_first in
+            let first =
+              if abs (next - first) > fstate.maxrows
+              then first + incr
+              else first
+            in
+            next, first
+        else
+          let first = m_first + incr in
+          let first = bound first 0 (itemcount - 1) in
+          let active =
+            let next = m_active + incr in
+            let next = bound next 0 (itemcount - 1) in
+            let next = find next incr1 in
+            let active =
+              if next = -1 || abs (m_active - first) > fstate.maxrows
+              then (
+                let active = if m_active = -1 then next else m_active in
+                active
+              )
+              else next
+            in
+            if isvisible first active
+            then active
+            else -1
+          in
+          active, first
+      in
+      G.postRedisplay "listview navigate";
+      set active first;
     in
-    G.postRedisplay "listview navigate";
-    set active first;
-  in
-  let open Keys in
-  match Wsi.kc2pv key with
-  | Ascii (('r'|'s') as c) when Wsi.withctrl mask ->
-     let incr = if c = 'r' then -1 else 1 in
-     let active, first =
-       match search (m_active + incr) m_qsearch incr with
-       | None ->
-          state.text <- m_qsearch ^ " [not found]";
-          m_active, m_first
-       | Some active ->
-          state.text <- m_qsearch;
-          active, firstof m_first active
-     in
-     G.postRedisplay "listview ctrl-r/s";
-     set1 active first m_qsearch;
+    let open Keys in
+    match Wsi.kc2pv key with
+    | Ascii (('r'|'s') as c) when Wsi.withctrl mask ->
+       let incr = if c = 'r' then -1 else 1 in
+       let active, first =
+         match search (m_active + incr) m_qsearch incr with
+         | None ->
+            state.text <- m_qsearch ^ " [not found]";
+            m_active, m_first
+         | Some active ->
+            state.text <- m_qsearch;
+            active, firstof m_first active
+       in
+       G.postRedisplay "listview ctrl-r/s";
+       set1 active first m_qsearch;
 
-  | Insert when Wsi.withctrl mask ->
-     if m_active >= 0 && m_active < source#getitemcount
-     then (
-       let s, _ = source#getitem m_active in
-       selstring s;
-     );
-     coe self
-
-  | Backspace ->
-     if emptystr m_qsearch
-     then coe self
-     else (
-       let qsearch = withoutlastutf8 m_qsearch in
-       if emptystr qsearch
-       then (
-         state.text <- E.s;
-         G.postRedisplay "listview empty qsearch";
-         set1 m_active m_first E.s;
-       )
-       else
-         let active, first =
-           match search m_active qsearch ~-1 with
-           | None ->
-              state.text <- qsearch ^ " [not found]";
-              m_active, m_first
-           | Some active ->
-              state.text <- qsearch;
-              active, firstof m_first active
-         in
-         G.postRedisplay "listview backspace qsearch";
-         set1 active first qsearch
-     );
-
-  | _ when (key != 0 && not (Wsi.isspecialkey key)) ->
-     let pattern = m_qsearch ^ toutf8 key in
-     let active, first =
-       match search m_active pattern 1 with
-       | None ->
-          state.text <- pattern ^ " [not found]";
-          m_active, m_first
-       | Some active ->
-          state.text <- pattern;
-          active, firstof m_first active
-     in
-     G.postRedisplay "listview qsearch add";
-     set1 active first pattern;
-
-  | Escape ->
-     state.text <- E.s;
-     if emptystr m_qsearch
-     then (
-       G.postRedisplay "list view escape";
-       let mx, my = state.mpos in
-       updateunder mx my;
-       begin
-         match
-           source#exit ~uioh:(coe self)
-                       ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan
-         with
-         | None -> m_prev_uioh
-         | Some uioh -> uioh
-       end
-     )
-     else (
-       G.postRedisplay "list view kill qsearch";
-       coe {< m_qsearch = E.s >}
-     )
-
-  | Enter | KPenter ->
-     state.text <- E.s;
-     let self = {< m_qsearch = E.s >} in
-     let opt =
-       G.postRedisplay "listview enter";
+    | Insert when Wsi.withctrl mask ->
        if m_active >= 0 && m_active < source#getitemcount
        then (
-         source#exit ~uioh:(coe self) ~cancel:false
-                     ~active:m_active ~first:m_first ~pan:m_pan;
-       )
-       else (
-         source#exit ~uioh:(coe self) ~cancel:true
-                     ~active:m_active ~first:m_first ~pan:m_pan;
+         let s, _ = source#getitem m_active in
+         selstring s;
        );
-     in
-     begin match opt with
-     | None -> m_prev_uioh
-     | Some uioh -> uioh
-     end
+       coe self
 
-  | Delete | KPdelete ->
-     coe self
-
-  | Up | KPup -> navigate ~-1
-  | Down | KPdown -> navigate 1
-  | Prior | KPprior -> navigate ~-(fstate.maxrows)
-  | Next | KPnext -> navigate fstate.maxrows
-
-  | Right | KPright ->
-     state.text <- E.s;
-     G.postRedisplay "listview right";
-     coe {< m_pan = m_pan - 1 >}
-
-  | Left | KPleft ->
-     state.text <- E.s;
-     G.postRedisplay "listview left";
-     coe {< m_pan = m_pan + 1 >}
-
-  | Home | KPhome ->
-     let active = find 0 1 in
-     G.postRedisplay "listview home";
-     set active 0;
-
-  | End | KPend ->
-     let first = max 0 (itemcount - fstate.maxrows) in
-     let active = find (itemcount - 1) ~-1 in
-     G.postRedisplay "listview end";
-     set active first;
-
-  | _ when (key = 0 || Wsi.isspecialkey key) ->
-     coe self
-
-  | (Insert|KPminus|KPplus|Ascii _|Code _|Fn _) ->
-     dolog "listview unknown key %#x" key; coe self
-
-method key key mask =
-  match state.mode with
-  | Textentry te -> textentrykeyboard key mask te; coe self
-  | Birdseye _
-    | View
-    | LinkNav _ -> self#key1 key mask
-
-method button button down x y _ =
-  let opt =
-    match button with
-    | 1 when vscrollhit x ->
-       G.postRedisplay "listview scroll";
-       if down
-       then
-         let _, position, sh = self#scrollph in
-         if y > truncate position && y < truncate (position +. sh)
+    | Backspace ->
+       if emptystr m_qsearch
+       then coe self
+       else (
+         let qsearch = withoutlastutf8 m_qsearch in
+         if emptystr qsearch
          then (
-           state.mstate <- Mscrolly;
-           Some (coe self)
+           state.text <- E.s;
+           G.postRedisplay "listview empty qsearch";
+           set1 m_active m_first E.s;
          )
          else
-           let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
-           let first = truncate (s *. float source#getitemcount) in
-           let first = min source#getitemcount first in
-           Some (coe {< m_first = first; m_active = first >})
-       else (
-         state.mstate <- Mnone;
-         Some (coe self);
+           let active, first =
+             match search m_active qsearch ~-1 with
+             | None ->
+                state.text <- qsearch ^ " [not found]";
+                m_active, m_first
+             | Some active ->
+                state.text <- qsearch;
+                active, firstof m_first active
+           in
+           G.postRedisplay "listview backspace qsearch";
+           set1 active first qsearch
        );
-    | 1 when down ->
-       begin match self#elemunder y with
-       | Some n ->
-          G.postRedisplay "listview click";
-          source#exit ~uioh:(coe {< m_active = n >})
-                      ~cancel:false ~active:n ~first:m_first ~pan:m_pan
-       | _ ->
-          Some (coe self)
-       end
-    | n when (n == 4 || n == 5) && not down ->
-       let len = source#getitemcount in
-       let first =
-         if n = 5 && m_first + fstate.maxrows >= len
-         then
-           m_first
-         else
-           let first = m_first + (if n == 4 then -1 else 1) in
-           bound first 0 (len - 1)
+
+    | _ when (key != 0 && not (Wsi.isspecialkey key)) ->
+       let pattern = m_qsearch ^ toutf8 key in
+       let active, first =
+         match search m_active pattern 1 with
+         | None ->
+            state.text <- pattern ^ " [not found]";
+            m_active, m_first
+         | Some active ->
+            state.text <- pattern;
+            active, firstof m_first active
        in
-       G.postRedisplay "listview wheel";
-       Some (coe {< m_first = first >})
-    | n when (n = 6 || n = 7) && not down ->
-       let inc = if n = 7 then -1 else 1 in
-       G.postRedisplay "listview hwheel";
-       Some (coe {< m_pan = m_pan + inc >})
-    | _ ->
-       Some (coe self)
-  in
-  match opt with
-  | None -> m_prev_uioh
-  | Some uioh -> uioh
+       G.postRedisplay "listview qsearch add";
+       set1 active first pattern;
 
-method multiclick _ x y = self#button 1 true x y
+    | Escape ->
+       state.text <- E.s;
+       if emptystr m_qsearch
+       then (
+         G.postRedisplay "list view escape";
+         let mx, my = state.mpos in
+         updateunder mx my;
+         begin
+           match
+             source#exit ~uioh:(coe self)
+                         ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan
+           with
+           | None -> m_prev_uioh
+           | Some uioh -> uioh
+         end
+       )
+       else (
+         G.postRedisplay "list view kill qsearch";
+         coe {< m_qsearch = E.s >}
+       )
 
-method motion _ y =
-  match state.mstate with
-  | Mscrolly ->
-     let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
-     let first = truncate (s *. float source#getitemcount) in
-     let first = min source#getitemcount first in
-     G.postRedisplay "listview motion";
-     coe {< m_first = first; m_active = first >}
-  | Msel _
-    | Mpan _
-    | Mscrollx
-    | Mzoom _
-    | Mzoomrect _
-    | Mnone -> coe self
+    | Enter | KPenter ->
+       state.text <- E.s;
+       let self = {< m_qsearch = E.s >} in
+       let opt =
+         G.postRedisplay "listview enter";
+         if m_active >= 0 && m_active < source#getitemcount
+         then (
+           source#exit ~uioh:(coe self) ~cancel:false
+                       ~active:m_active ~first:m_first ~pan:m_pan;
+         )
+         else (
+           source#exit ~uioh:(coe self) ~cancel:true
+                       ~active:m_active ~first:m_first ~pan:m_pan;
+         );
+       in
+       begin match opt with
+       | None -> m_prev_uioh
+       | Some uioh -> uioh
+       end
 
-method pmotion x y =
-  if x < state.winw - conf.scrollbw
-  then
-    let n =
-      match self#elemunder y with
-      | None -> Wsi.setcursor Wsi.CURSOR_INHERIT; m_active
-      | Some n -> Wsi.setcursor Wsi.CURSOR_INFO; n
+    | Delete | KPdelete ->
+       coe self
+
+    | Up | KPup -> navigate ~-1
+    | Down | KPdown -> navigate 1
+    | Prior | KPprior -> navigate ~-(fstate.maxrows)
+    | Next | KPnext -> navigate fstate.maxrows
+
+    | Right | KPright ->
+       state.text <- E.s;
+       G.postRedisplay "listview right";
+       coe {< m_pan = m_pan - 1 >}
+
+    | Left | KPleft ->
+       state.text <- E.s;
+       G.postRedisplay "listview left";
+       coe {< m_pan = m_pan + 1 >}
+
+    | Home | KPhome ->
+       let active = find 0 1 in
+       G.postRedisplay "listview home";
+       set active 0;
+
+    | End | KPend ->
+       let first = max 0 (itemcount - fstate.maxrows) in
+       let active = find (itemcount - 1) ~-1 in
+       G.postRedisplay "listview end";
+       set active first;
+
+    | _ when (key = 0 || Wsi.isspecialkey key) ->
+       coe self
+
+    | (Insert|KPminus|KPplus|Ascii _|Code _|Fn _) ->
+       dolog "listview unknown key %#x" key; coe self
+
+  method key key mask =
+    match state.mode with
+    | Textentry te ->
+       (* for whatever reason mode switch emits zero first - skip it *)
+       if key != 0 then textentrykeyboard key mask te;
+       coe self
+    | Birdseye _ | View | LinkNav _ -> self#key1 key mask
+
+  method button button down x y _ =
+    let opt =
+      match button with
+      | 1 when vscrollhit x ->
+         G.postRedisplay "listview scroll";
+         if down
+         then
+           let _, position, sh = self#scrollph in
+           if y > truncate position && y < truncate (position +. sh)
+           then (
+             state.mstate <- Mscrolly;
+             Some (coe self)
+           )
+           else
+             let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
+             let first = truncate (s *. float source#getitemcount) in
+             let first = min source#getitemcount first in
+             Some (coe {< m_first = first; m_active = first >})
+         else (
+           state.mstate <- Mnone;
+           Some (coe self);
+         );
+      | 1 when down ->
+         begin match self#elemunder y with
+         | Some n ->
+            G.postRedisplay "listview click";
+            source#exit ~uioh:(coe {< m_active = n >})
+                        ~cancel:false ~active:n ~first:m_first ~pan:m_pan
+         | _ ->
+            Some (coe self)
+         end
+      | n when (n == 4 || n == 5) && not down ->
+         let len = source#getitemcount in
+         let first =
+           if n = 5 && m_first + fstate.maxrows >= len
+           then
+             m_first
+           else
+             let first = m_first + (if n == 4 then -1 else 1) in
+             bound first 0 (len - 1)
+         in
+         G.postRedisplay "listview wheel";
+         Some (coe {< m_first = first >})
+      | n when (n = 6 || n = 7) && not down ->
+         let inc = if n = 7 then -1 else 1 in
+         G.postRedisplay "listview hwheel";
+         Some (coe {< m_pan = m_pan + inc >})
+      | _ ->
+         Some (coe self)
     in
-    let o =
-      if n != m_active
-      then (G.postRedisplay "listview pmotion"; {< m_active = n >})
-      else self
-    in
-    coe o
-  else (
-    Wsi.setcursor Wsi.CURSOR_INHERIT;
-    coe self
-  )
+    match opt with
+    | None -> m_prev_uioh
+    | Some uioh -> uioh
 
-method infochanged _ = ()
+  method multiclick _ x y = self#button 1 true x y
 
-method scrollpw = (0, 0.0, 0.0)
-method scrollph =
-  let nfs = fstate.fontsize + 1 in
-  let y = m_first * nfs in
-  let itemcount = source#getitemcount in
-  let maxi = max 0 (itemcount - fstate.maxrows) in
-  let maxy = maxi * nfs in
-  let p, h = scrollph y maxy in
-  conf.scrollbw, p, h
+  method motion _ y =
+    match state.mstate with
+    | Mscrolly ->
+       let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
+       let first = truncate (s *. float source#getitemcount) in
+       let first = min source#getitemcount first in
+       G.postRedisplay "listview motion";
+       coe {< m_first = first; m_active = first >}
+    | Msel _
+      | Mpan _
+      | Mscrollx
+      | Mzoom _
+      | Mzoomrect _
+      | Mnone -> coe self
 
-method modehash = modehash
-method eformsgs = false
-method alwaysscrolly = true
+  method pmotion x y =
+    if x < state.winw - conf.scrollbw
+    then
+      let n =
+        match self#elemunder y with
+        | None -> Wsi.setcursor Wsi.CURSOR_INHERIT; m_active
+        | Some n -> Wsi.setcursor Wsi.CURSOR_INFO; n
+      in
+      let o =
+        if n != m_active
+        then (G.postRedisplay "listview pmotion"; {< m_active = n >})
+        else self
+      in
+      coe o
+    else (
+      Wsi.setcursor Wsi.CURSOR_INHERIT;
+      coe self
+    )
+
+  method infochanged _ = ()
+
+  method scrollpw = (0, 0.0, 0.0)
+  method scrollph =
+    let nfs = fstate.fontsize + 1 in
+    let y = m_first * nfs in
+    let itemcount = source#getitemcount in
+    let maxi = max 0 (itemcount - fstate.maxrows) in
+    let maxy = maxi * nfs in
+    let p, h = scrollph y maxy in
+    conf.scrollbw, p, h
+
+  method modehash = modehash
+  method eformsgs = false
+  method alwaysscrolly = true
 end;;
 
 class outlinelistview ~zebra ~source =
@@ -4397,8 +4392,7 @@ class outlinesoucebase fetchoutlines = object (self)
     let s, n, _ = m_items.(n) in
     (s, n+0)
 
-  method exit ~(uioh:uioh) ~cancel ~active ~(first:int) ~pan :
-           uioh option =
+  method exit ~(uioh:uioh) ~cancel ~active ~(first:int) ~pan : uioh option =
     ignore (uioh, first);
     let items, minfo =
       if m_narrow_patterns = []
@@ -6045,7 +6039,9 @@ let uioh = object
 
     method key key mask =
       begin match state.mode with
-      | Textentry textentry -> textentrykeyboard key mask textentry
+      | Textentry textentry ->
+         (* for whatever reason mode switch emits zero first - skip it *)
+         if key != 0 then textentrykeyboard key mask textentry
       | Birdseye birdseye -> birdseyekeyboard key mask birdseye
       | View -> viewkeyboard key mask
       | LinkNav linknav -> linknavkeyboard key mask linknav
