@@ -1527,9 +1527,7 @@ let gotopagexy1 wtmode pageno x y =
 let gotopagexy wtmode pageno x y =
   match state.mode with
   | Birdseye _ -> gotopage pageno 0.0
-  | Textentry _
-    | View
-    | LinkNav _ -> gotopagexy1 wtmode pageno x y
+  | Textentry _ | View | LinkNav _ -> gotopagexy1 wtmode pageno x y
 ;;
 
 let getpassword () =
