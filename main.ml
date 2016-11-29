@@ -2454,8 +2454,9 @@ let textentrykeyboard
            );
        G.postRedisplay "textentry histaction"
   in
+  let open Keys in
   match Wsi.kc2pv key with
-  | `Backspace ->
+  | Backspace ->
      if emptystr text && cancelonempty
      then (
        onleave Cancel;
@@ -2465,17 +2466,17 @@ let textentrykeyboard
        let s = withoutlastutf8 text in
        enttext (c, s, opthist, onkey, ondone, cancelonempty)
 
-  | `Enter | `KPenter ->
+  | Enter | KPenter ->
      ondone text;
      onleave Confirm;
      G.postRedisplay "textentrykeyboard after confirm"
 
-  | `Up | `KPup -> histaction HCprev
-  | `Down | `KPdown -> histaction HCnext
-  | `Home | `KPhome -> histaction HCfirst
-  | `End | `KPend -> histaction HClast
+  | Up | KPup -> histaction HCprev
+  | Down | KPdown -> histaction HCnext
+  | Home | KPhome -> histaction HCfirst
+  | End | KPend -> histaction HClast
 
-  | `Escape ->
+  | Escape ->
      if emptystr text
      then (
        begin match opthist with
@@ -2490,9 +2491,9 @@ let textentrykeyboard
        enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
      )
 
-  | `Delete | `KPdelete -> ()
+  | Delete | KPdelete -> ()
 
-  | `Ascii _->
+  | Ascii _->
      begin match onkey text key with
      | TEdone text ->
         ondone text;
@@ -2510,9 +2511,8 @@ let textentrykeyboard
         state.mode <- Textentry (te, onleave);
         G.postRedisplay "textentrykeyboard switch";
      end;
-
-  | _ ->
-     vlog "unhandled key %s" (Wsi.keyname key)
+  |Insert|KPleft|KPminus|KPnext|KPplus|KPprior|KPright|Left|Right|Next|Prior
+   |Code _|Fn _ -> vlog "unhandled key %s" (Wsi.keyname key)
 ;;
 
 let firstof first active =
@@ -2849,8 +2849,9 @@ method private key1 key mask =
     G.postRedisplay "listview navigate";
     set active first;
   in
+  let open Keys in
   match Wsi.kc2pv key with
-  | `Ascii (('r'|'s') as c) when Wsi.withctrl mask ->
+  | Ascii (('r'|'s') as c) when Wsi.withctrl mask ->
      let incr = if c = 'r' then -1 else 1 in
      let active, first =
        match search (m_active + incr) m_qsearch incr with
@@ -2864,7 +2865,7 @@ method private key1 key mask =
      G.postRedisplay "listview ctrl-r/s";
      set1 active first m_qsearch;
 
-  | `Insert when Wsi.withctrl mask ->
+  | Insert when Wsi.withctrl mask ->
      if m_active >= 0 && m_active < source#getitemcount
      then (
        let s, _ = source#getitem m_active in
@@ -2872,7 +2873,7 @@ method private key1 key mask =
      );
      coe self
 
-  | `Backspace ->
+  | Backspace ->
      if emptystr m_qsearch
      then coe self
      else (
@@ -2911,7 +2912,7 @@ method private key1 key mask =
      G.postRedisplay "listview qsearch add";
      set1 active first pattern;
 
-  | `Escape ->
+  | Escape ->
      state.text <- E.s;
      if emptystr m_qsearch
      then (
@@ -2932,7 +2933,7 @@ method private key1 key mask =
        coe {< m_qsearch = E.s >}
      )
 
-  | `Enter | `KPenter ->
+  | Enter | KPenter ->
      state.text <- E.s;
      let self = {< m_qsearch = E.s >} in
      let opt =
@@ -2952,30 +2953,30 @@ method private key1 key mask =
      | Some uioh -> uioh
      end
 
-  | `Delete | `KPdelete ->
+  | Delete | KPdelete ->
      coe self
 
-  | `Up | `KPup -> navigate ~-1
-  | `Down | `KPdown -> navigate 1
-  | `Prior | `KPprior -> navigate ~-(fstate.maxrows)
-  | `Next | `KPnext -> navigate fstate.maxrows
+  | Up | KPup -> navigate ~-1
+  | Down | KPdown -> navigate 1
+  | Prior | KPprior -> navigate ~-(fstate.maxrows)
+  | Next | KPnext -> navigate fstate.maxrows
 
-  | `Right | `KPright ->
+  | Right | KPright ->
      state.text <- E.s;
      G.postRedisplay "listview right";
      coe {< m_pan = m_pan - 1 >}
 
-  | `Left | `KPleft ->
+  | Left | KPleft ->
      state.text <- E.s;
      G.postRedisplay "listview left";
      coe {< m_pan = m_pan + 1 >}
 
-  | `Home | `KPhome ->
+  | Home | KPhome ->
      let active = find 0 1 in
      G.postRedisplay "listview home";
      set active 0;
 
-  | `End | `KPend ->
+  | End | KPend ->
      let first = max 0 (itemcount - fstate.maxrows) in
      let active = find (itemcount - 1) ~-1 in
      G.postRedisplay "listview end";
@@ -2984,7 +2985,7 @@ method private key1 key mask =
   | _ when (key = 0 || Wsi.isspecialkey key) ->
      coe self
 
-  | _ ->
+  | (Insert|KPminus|KPplus|Ascii _|Code _|Fn _) ->
      dolog "listview unknown key %#x" key; coe self
 
 method key key mask =
@@ -3158,8 +3159,9 @@ class outlinelistview ~zebra ~source =
         coe {< m_first = first; m_active = active >}
       in
       let ctrl = Wsi.withctrl mask in
+      let open Keys in
       match Wsi.kc2pv key with
-      | `Ascii 'a' when ctrl ->
+      | Ascii 'a' when ctrl ->
          let text =
            if m_autonarrow
            then (source#denarrow; E.s)
@@ -3174,25 +3176,25 @@ class outlinelistview ~zebra ~source =
          G.postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
 
-      | `Ascii '/' when emptystr m_qsearch && not m_autonarrow ->
+      | Ascii '/' when emptystr m_qsearch && not m_autonarrow ->
          settext true E.s;
          G.postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = true >}
 
-      | `Ascii 'n' when ctrl ->
+      | Ascii 'n' when ctrl ->
          source#narrow m_qsearch;
          if not m_autonarrow
          then source#add_narrow_pattern m_qsearch;
          G.postRedisplay "outline ctrl-n";
          coe {< m_first = 0; m_active = 0 >}
 
-      | `Ascii 'S' when ctrl ->
+      | Ascii 'S' when ctrl ->
          let active = source#calcactive (getanchor ()) in
          let first = firstof m_first active in
          G.postRedisplay "outline ctrl-s";
          coe {< m_first = first; m_active = active >}
 
-      | `Ascii 'u' when ctrl ->
+      | Ascii 'u' when ctrl ->
          G.postRedisplay "outline ctrl-u";
          if m_autonarrow && nonemptystr m_qsearch
          then (
@@ -3210,12 +3212,12 @@ class outlinelistview ~zebra ~source =
            coe {< m_first = 0; m_active = 0; m_qsearch = E.s >}
          )
 
-      | `Ascii 'l' when ctrl ->
+      | Ascii 'l' when ctrl ->
          let first = max 0 (m_active - (fstate.maxrows / 2)) in
          G.postRedisplay "outline ctrl-l";
          coe {< m_first = first >}
 
-      | `Ascii '\t' when m_autonarrow ->
+      | Ascii '\t' when m_autonarrow ->
          if nonemptystr m_qsearch
          then (
            G.postRedisplay "outline list view tab";
@@ -3225,12 +3227,12 @@ class outlinelistview ~zebra ~source =
          )
          else coe self
 
-      | `Escape when m_autonarrow ->
+      | Escape when m_autonarrow ->
          if nonemptystr m_qsearch
          then source#add_narrow_pattern m_qsearch;
          super#key key mask
 
-      | `Enter | `KPenter when m_autonarrow ->
+      | Enter | KPenter when m_autonarrow ->
          if nonemptystr m_qsearch
          then source#add_narrow_pattern m_qsearch;
          super#key key mask
@@ -3242,7 +3244,7 @@ class outlinelistview ~zebra ~source =
          settext true pattern;
          coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-      | key when m_autonarrow && key = `Backspace ->
+      | key when m_autonarrow && key = Backspace ->
          if emptystr m_qsearch
          then coe self
          else
@@ -3253,18 +3255,18 @@ class outlinelistview ~zebra ~source =
            settext true pattern;
            coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-      | `Up | `KPup when ctrl ->
+      | Up | KPup when ctrl ->
          navscroll (max 0 (m_first - 1))
 
-      | `Down | `KPdown when ctrl ->
+      | Down | KPdown when ctrl ->
          navscroll (min (source#getitemcount - 1) (m_first + 1))
 
-      | `Up | `KPup -> navigate ~-1
-      | `Down | `KPdown -> navigate 1
-      | `Prior | `KPprior -> navigate ~-(fstate.maxrows)
-      | `Next | `KPnext -> navigate fstate.maxrows
+      | Up | KPup -> navigate ~-1
+      | Down | KPdown -> navigate 1
+      | Prior | KPprior -> navigate ~-(fstate.maxrows)
+      | Next | KPnext -> navigate fstate.maxrows
 
-      | `Right | `KPright ->
+      | Right | KPright ->
          let o =
            if ctrl
            then (
@@ -3275,7 +3277,7 @@ class outlinelistview ~zebra ~source =
          in
          coe o
 
-      | `Left | `KPleft ->
+      | Left | KPleft ->
          let o =
            if ctrl
            then (
@@ -3286,17 +3288,18 @@ class outlinelistview ~zebra ~source =
          in
          coe o
 
-      | `Home | `KPhome ->
+      | Home | KPhome ->
          G.postRedisplay "outline home";
          coe {< m_first = 0; m_active = 0 >}
 
-      | `End | `KPend ->
+      | End | KPend ->
          let active = source#getitemcount - 1 in
          let first = max 0 (active - fstate.maxrows) in
          G.postRedisplay "outline end";
          coe {< m_active = active; m_first = first >}
 
-      | _ -> super#key key mask
+      | (Delete|Escape|Insert|Enter|KPdelete|KPenter|KPminus
+         |KPplus|Ascii _|Code _|Backspace|Fn _) -> super#key key mask
   end;;
 
 let genhistoutlines () =
@@ -4048,10 +4051,13 @@ let enterinfomode =
            method! key key mask =
              if not (Wsi.withctrl mask)
              then
-               match Wsi.kc2pv key with
-               | `Left | `KPleft -> coe (self#updownlevel ~-1)
-               | `Right | `KPright -> coe (self#updownlevel 1)
-               | _ -> super#key key mask
+               let open Keys in
+               begin [@warning "-4"]
+                       match Wsi.kc2pv key with
+                       | Left | KPleft -> coe (self#updownlevel ~-1)
+                       | Right | KPright -> coe (self#updownlevel 1)
+                       | _ -> super#key key mask
+               end
              else super#key key mask
          end);
   G.postRedisplay "info";
@@ -4723,14 +4729,15 @@ let viewkeyboard key mask =
   in
   let ctrl = Wsi.withctrl mask in
   let key = Wsi.keypadtodigitkey key in
+  let open Keys in
   match Wsi.kc2pv key with
-  | `Ascii 'Q' -> exit 0
+  | Ascii 'Q' -> exit 0
 
-  | `Ascii 'W' ->
+  | Ascii 'W' ->
      if hasunsavedchanges ()
      then save ()
 
-  | `Insert ->
+  | Insert ->
      if conf.angle mod 360 = 0 && not (isbirdseye state.mode)
      then (
        state.mode <- (
@@ -4742,7 +4749,7 @@ let viewkeyboard key mask =
      )
      else impmsg "keyboard link navigation does not work under rotation"
 
-  | `Escape | `Ascii 'q' ->
+  | Escape | Ascii 'q' ->
      begin match state.mstate with
      | Mzoomrect _ ->
         resetmstate ();
@@ -4774,16 +4781,16 @@ let viewkeyboard key mask =
         end;
      end;
 
-  | `Backspace ->
+  | Backspace ->
      gotoghyll (getnav ~-1)
 
-  | `Ascii 'o' ->
+  | Ascii 'o' ->
      enteroutlinemode ()
 
-  | `Ascii 'H' ->
+  | Ascii 'H' ->
      enterhistmode ()
 
-  | `Ascii 'u' ->
+  | Ascii 'u' ->
      state.rects <- [];
      state.text <- E.s;
      Hashtbl.iter (fun _ opaque ->
@@ -4791,7 +4798,7 @@ let viewkeyboard key mask =
          Hashtbl.clear state.prects) state.pagemap;
      G.postRedisplay "dehighlight";
 
-  | (`Ascii '/' | `Ascii '?') as pv ->
+  | (Ascii '/' | Ascii '?') as pv ->
      let ondone isforw s =
        cbput state.hists.pat s;
        state.searchpattern <- s;
@@ -4799,13 +4806,13 @@ let viewkeyboard key mask =
      in
      let s = String.make 1 (Char.chr key) in
      enttext (s, E.s, Some (onhist state.hists.pat),
-              textentry, ondone (pv = `Ascii '/'), true)
+              textentry, ondone (pv = Ascii '/'), true)
 
-  | `Ascii '+' | `KPplus | `Ascii '=' when ctrl ->
+  | Ascii '+' | KPplus | Ascii '=' when ctrl ->
      let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
      pivotzoom (conf.zoom +. incr)
 
-  | `Ascii '+' | `KPplus ->
+  | Ascii '+' | KPplus ->
      let ondone s =
        let n =
          try int_of_string s with exn ->
@@ -4820,23 +4827,23 @@ let viewkeyboard key mask =
      in
      enttext ("page bias: ", E.s, None, intentry, ondone, true)
 
-  | `Ascii '-' | `KPminus when ctrl ->
+  | Ascii '-' | KPminus when ctrl ->
      let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
      pivotzoom (max 0.01 (conf.zoom -. decr))
 
-  | `Ascii '-' | `KPminus ->
+  | Ascii '-' | KPminus ->
      let ondone msg = state.text <- msg in
      enttext (
          "option [acfhilpstvxACFPRSZTISM]: ", E.s, None,
          optentry state.mode, ondone, true
        )
 
-  | `Ascii '0' when ctrl ->
+  | Ascii '0' when ctrl ->
      if conf.zoom = 1.0
      then gotoxy 0 state.y
      else setzoom 1.0
 
-  | `Ascii ('1'|'2' as c)
+  | Ascii ('1'|'2' as c)
        when ctrl && conf.fitmodel != FitPage ->
      let cols =
        match conf.columns with
@@ -4850,7 +4857,7 @@ let viewkeyboard key mask =
      if zoom > 0.0 && (c = '2' || zoom < 1.0)
      then setzoom zoom
 
-  | `Ascii '3' when ctrl ->
+  | Ascii '3' when ctrl ->
      let fm =
        match conf.fitmodel with
        | FitWidth -> FitProportional
@@ -4860,17 +4867,17 @@ let viewkeyboard key mask =
      state.text <- "fit model: " ^ FMTE.to_string fm;
      reqlayout conf.angle fm
 
-  | `Ascii '4' when ctrl ->
+  | Ascii '4' when ctrl ->
      let zoom = getmaxw () /. float state.winw in
      if zoom > 0.0 then setzoom zoom
 
-  | `Fn 9 ->
+  | Fn 9 ->
      togglebirdseye ()
 
-  | `Ascii '9' when ctrl ->
+  | Ascii '9' when ctrl ->
      togglebirdseye ()
 
-  | `Ascii ('0'..'9')
+  | Ascii ('0'..'9')
        when not ctrl ->
      let ondone s =
        let n =
@@ -4894,21 +4901,21 @@ let viewkeyboard key mask =
      enttext (":", text, Some (onhist state.hists.pag),
               pageentry, ondone, true)
 
-  | `Ascii 'b' ->
+  | Ascii 'b' ->
      conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
      G.postRedisplay "toggle scrollbar";
 
-  | `Ascii 'B' ->
+  | Ascii 'B' ->
      state.bzoom <- not state.bzoom;
      state.rects <- [];
      showtext ' ' ("block zoom " ^ if state.bzoom then "on" else "off")
 
-  | `Ascii 'l' ->
+  | Ascii 'l' ->
      conf.hlinks <- not conf.hlinks;
      state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
      G.postRedisplay "toggle highlightlinks";
 
-  | `Ascii 'F' ->
+  | Ascii 'F' ->
      if conf.angle mod 360 = 0
      then (
        state.glinks <- true;
@@ -4925,7 +4932,7 @@ let viewkeyboard key mask =
      )
      else impmsg "hint mode does not work under rotation"
 
-  | `Ascii 'y' ->
+  | Ascii 'y' ->
      state.glinks <- true;
      let mode = state.mode in
      state.mode <-
@@ -4942,7 +4949,7 @@ let viewkeyboard key mask =
      state.text <- E.s;
      G.postRedisplay "view:linkent"
 
-  | `Ascii 'a' ->
+  | Ascii 'a' ->
      begin match state.autoscroll with
      | Some step ->
         conf.autoscrollstep <- step;
@@ -4953,42 +4960,42 @@ let viewkeyboard key mask =
         else state.autoscroll <- Some conf.autoscrollstep
      end
 
-  | `Ascii 'p' when ctrl ->
+  | Ascii 'p' when ctrl ->
      launchpath ()             (* XXX where do error messages go? *)
 
-  | `Ascii 'P' ->
+  | Ascii 'P' ->
      setpresentationmode (not conf.presentation);
      showtext ' ' ("presentation mode " ^
                      if conf.presentation then "on" else "off");
 
-  | `Ascii 'f' ->
+  | Ascii 'f' ->
      if List.mem Wsi.Fullscreen state.winstate
      then Wsi.reshape conf.cwinw conf.cwinh
      else Wsi.fullscreen ()
 
-  | `Ascii ('p'|'N') ->
+  | Ascii ('p'|'N') ->
      search state.searchpattern false
 
-  | `Ascii 'n' | `Fn 3 ->
+  | Ascii 'n' | Fn 3 ->
      search state.searchpattern true
 
-  | `Ascii 't' ->
+  | Ascii 't' ->
      begin match state.layout with
      | [] -> ()
      | l :: _ ->
         gotoghyll (getpagey l.pageno)
      end
 
-  | `Ascii ' ' ->
+  | Ascii ' ' ->
      nextpage ()
 
-  | `Delete | `KPdelete ->
+  | Delete | KPdelete ->
      prevpage ()
 
-  | `Ascii '=' ->
+  | Ascii '=' ->
      showtext ' ' (describe_location ());
 
-  | `Ascii 'w' ->
+  | Ascii 'w' ->
      begin match state.layout with
      | [] -> ()
      | l :: _ ->
@@ -4996,19 +5003,19 @@ let viewkeyboard key mask =
         G.postRedisplay "w"
      end
 
-  | `Ascii '\'' ->
+  | Ascii '\'' ->
      enterbookmarkmode ()
 
-  | `Ascii 'h' | `Fn 1 ->
+  | Ascii 'h' | Fn 1 ->
      enterhelpmode ()
 
-  | `Ascii 'i' ->
+  | Ascii 'i' ->
      enterinfomode ()
 
-  | `Ascii 'e' when Buffer.length state.errmsgs > 0 ->
+  | Ascii 'e' when Buffer.length state.errmsgs > 0 ->
      entermsgsmode ()
 
-  | `Ascii 'm' ->
+  | Ascii 'm' ->
      let ondone s =
        match state.layout with
        | l :: _ ->
@@ -5020,11 +5027,11 @@ let viewkeyboard key mask =
      in
      enttext ("bookmark: ", E.s, None, textentry, ondone, true)
 
-  | `Ascii '~' ->
+  | Ascii '~' ->
      quickbookmark ();
      showtext ' ' "Quick bookmark added";
 
-  | `Ascii 'z' ->
+  | Ascii 'z' ->
      begin match state.layout with
      | l :: _ ->
         let rect = getpdimrect l.pagedimno in
@@ -5049,18 +5056,18 @@ let viewkeyboard key mask =
      | [] -> ()
      end
 
-  | `Ascii 'x' -> state.roam ()
+  | Ascii 'x' -> state.roam ()
 
-  | `Ascii ('<'|'>' as c) ->
+  | Ascii ('<'|'>' as c) ->
      reqlayout
        (conf.angle + (if c = '>' then 30 else -30)) conf.fitmodel
 
-  | `Ascii ('['|']' as c) ->
+  | Ascii ('['|']' as c) ->
      conf.colorscale <-
        bound (conf.colorscale +. (if c = '>' then 0.1 else -0.1)) 0.0 1.0;
      G.postRedisplay "brightness";
 
-  | `Ascii 'c' when state.mode = View ->
+  | Ascii 'c' when state.mode = View ->
      if Wsi.withalt mask
      then (
        if conf.zoom > 1.0
@@ -5084,12 +5091,12 @@ let viewkeyboard key mask =
        setcolumns View c a b;
        setzoom z
 
-  | `Down | `Up when ctrl && Wsi.withshift mask ->
+  | Down | Up when ctrl && Wsi.withshift mask ->
      let zoom, x = state.prevzoom in
      setzoom zoom;
      state.x <- x;
 
-  | `Ascii 'k' | `Up | `KPup ->
+  | Ascii 'k' | Up | KPup ->
      begin match state.autoscroll with
      | None ->
         begin match state.mode with
@@ -5109,7 +5116,7 @@ let viewkeyboard key mask =
         setautoscrollspeed n false
      end
 
-  | `Ascii 'j' | `Down | `KPdown ->
+  | Ascii 'j' | Down | KPdown ->
      begin match state.autoscroll with
      | None ->
         begin match state.mode with
@@ -5129,7 +5136,7 @@ let viewkeyboard key mask =
         setautoscrollspeed n true
      end
 
-  | `Left | `Right | `KPleft | `KPright when not (Wsi.withalt mask) ->
+  | Left | Right | KPleft | KPright when not (Wsi.withalt mask) ->
      if canpan ()
      then
        let dx =
@@ -5139,7 +5146,7 @@ let viewkeyboard key mask =
        in
        let dx =
          let pv = Wsi.kc2pv key in
-         if pv = `Left || pv = `KPleft then dx else -dx
+         if pv = Keys.Left || pv = Keys.KPleft then dx else -dx
        in
        gotoxy_and_clear_text (panbound (state.x + dx)) state.y
      else (
@@ -5147,7 +5154,7 @@ let viewkeyboard key mask =
        G.postRedisplay "left/right"
      )
 
-  | `Prior | `KPprior ->
+  | Prior | KPprior ->
      let y =
        if ctrl
        then
@@ -5159,7 +5166,7 @@ let viewkeyboard key mask =
      in
      gotoghyll y
 
-  | `Next | `KPnext ->
+  | Next | KPnext ->
      let y =
        if ctrl
        then
@@ -5171,22 +5178,22 @@ let viewkeyboard key mask =
      in
      gotoghyll y
 
-  | `Ascii 'g' | `Home | `KPhome ->
+  | Ascii 'g' | Home | KPhome ->
      addnav ();
      gotoghyll 0
-  | `Ascii 'G' | `End | `KPend ->
+  | Ascii 'G' | End | KPend ->
      addnav ();
      gotoghyll (clamp state.maxy)
 
-  | `Right | `KPright when Wsi.withalt mask ->
+  | Right | KPright when Wsi.withalt mask ->
      gotoghyll (getnav 1)
-  | `Left | `KPleft when Wsi.withalt mask ->
+  | Left | KPleft when Wsi.withalt mask ->
      gotoghyll (getnav ~-1)
 
-  | `Ascii 'r' ->
+  | Ascii 'r' ->
      reload ()
 
-  | `Ascii 'v' when conf.debug ->
+  | Ascii 'v' when conf.debug ->
      state.rects <- [];
      List.iter (fun l ->
          match getopaque l.pageno with
@@ -5203,7 +5210,7 @@ let viewkeyboard key mask =
        ) state.layout;
      G.postRedisplay "v";
 
-  | `Ascii '|' ->
+  | Ascii '|' ->
      let mode = state.mode in
      let cmd = ref E.s in
      let onleave = function
@@ -5225,7 +5232,7 @@ let viewkeyboard key mask =
      G.postRedisplay "|";
      state.mode <- Textentry (te, onleave);
 
-  | _ ->
+  | (Ascii _|Fn _|Enter|KPenter|KPleft|KPright|Left|Right|Code _) ->
      vlog "huh? %s" (Wsi.keyname key)
 ;;
 
@@ -5241,7 +5248,7 @@ let linknavkeyboard key mask linknav =
   let doexact (pageno, n) =
     match getopaque pageno, getpage pageno with
     | Some opaque, Some l ->
-       if pv = `Enter || pv = `KPenter
+       if pv = Keys.Enter || pv = Keys.KPenter
        then
          let under = getlink opaque n in
          G.postRedisplay "link gotounder";
@@ -5249,26 +5256,29 @@ let linknavkeyboard key mask linknav =
          state.mode <- View;
        else
          let opt, dir =
+           let open Keys in
            match pv with
-           | `Home ->
+           | Home ->
               Some (findlink opaque LDfirst), -1
 
-           | `End ->
+           | End ->
               Some (findlink opaque LDlast), 1
 
-           | `Left ->
+           | Left ->
               Some (findlink opaque (LDleft n)), -1
 
-           | `Right ->
+           | Right ->
               Some (findlink opaque (LDright n)), 1
 
-           | `Up ->
+           | Up ->
               Some (findlink opaque (LDup n)), -1
 
-           | `Down ->
+           | Down ->
               Some (findlink opaque (LDdown n)), 1
 
-           | _ -> None, 0
+           | (Delete|Escape|Insert|Enter|KPdelete|KPdown|KPend|KPenter
+              |KPhome|KPleft|KPminus|KPnext|KPplus|KPprior|KPright|KPup
+              |Next|Prior|Ascii _|Code _|Fn _|Backspace) -> None, 0
          in
          let pwl l dir =
            begin match findpwl l.pageno dir with
@@ -5324,7 +5334,7 @@ let linknavkeyboard key mask linknav =
          end;
     | _ -> viewkeyboard key mask
   in
-  if pv = `Insert
+  if pv = Keys.Insert
   then (
     begin match linknav with
     | Ltexact pa -> state.lnava <- Some pa
@@ -5355,19 +5365,20 @@ let birdseyekeyboard key mask
   in
   let pgh layout = List.fold_left
                      (fun m l -> max l.pageh m) state.winh layout in
+  let open Keys in
   match Wsi.kc2pv key with
-  | `Ascii 'l' when Wsi.withctrl mask ->
+  | Ascii 'l' when Wsi.withctrl mask ->
      let y, h = getpageyh pageno in
      let top = (state.winh - h) / 2 in
      gotoxy state.x (max 0 (y - top))
-  | `Enter | `KPenter -> leavebirdseye beye false
-  | `Escape -> leavebirdseye beye true
-  | `Up -> upbirdseye incr beye
-  | `Down -> downbirdseye incr beye
-  | `Left -> upbirdseye 1 beye
-  | `Right -> downbirdseye 1 beye
+  | Enter | KPenter -> leavebirdseye beye false
+  | Escape -> leavebirdseye beye true
+  | Up -> upbirdseye incr beye
+  | Down -> downbirdseye incr beye
+  | Left -> upbirdseye 1 beye
+  | Right -> downbirdseye 1 beye
 
-  | `Prior ->
+  | Prior ->
      begin match state.layout with
      | l :: _ ->
         if l.pagey != 0
@@ -5393,7 +5404,7 @@ let birdseyekeyboard key mask
      | [] -> gotoxy state.x (clamp (-state.winh))
      end;
 
-  | `Next ->
+  | Next ->
      begin match List.rev state.layout with
      | l :: _ ->
         let layout = layout state.x
@@ -5421,11 +5432,11 @@ let birdseyekeyboard key mask
      | [] -> gotoxy state.x (clamp state.winh)
      end;
 
-  | `Home ->
+  | Home ->
      state.mode <- Birdseye (oconf, leftx, 0, hooverpageno, anchor);
      gotopage1 0 0
 
-  | `End ->
+  | End ->
      let pageno = state.pagecount - 1 in
      state.mode <- Birdseye (oconf, leftx, pageno, hooverpageno, anchor);
      if not (pagevisible state.layout pageno)
@@ -5440,7 +5451,9 @@ let birdseyekeyboard key mask
          (max 0 (getpagey pageno - (state.winh - h - conf.interpagespace)))
      else G.postRedisplay "birdseye end";
 
-  | _ -> viewkeyboard key mask
+  | (Delete|Insert|KPdelete|KPdown|KPend|KPhome|KPleft
+     |KPminus|KPnext|KPplus|KPprior|KPright|KPup|Ascii _
+     |Code _|Fn _|Backspace) -> viewkeyboard key mask
 ;;
 
 let drawpage l =
