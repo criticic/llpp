@@ -1,7 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 import Data.List.Extra
-import System.Exit
 import Control.Monad
 import Control.Concurrent.MVar
 import Development.Shake
@@ -36,9 +35,8 @@ ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
-ocamlflagstbl = [("main", ("-I lablGL", "", []))
-                ,("config", ("-I lablGL", "", []))
-                ]
+ocamlflagstbl = [("main", "-I lablGL")
+                ,("config", "-I lablGL")]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow"
@@ -70,12 +68,10 @@ fixincludes ("-I":d:tl)
 fixincludes (e:tl) = e:fixincludes tl
 
 ocamlKey comp tbl key
-  | "lablGL/" `isPrefixOf` key =
-    (comp, ocamlflags ++ " -w -44 -I lablGL", [], [])
+  | "lablGL/" `isPrefixOf` key = (comp, ocamlflags ++ " -w -44 -I lablGL")
   | otherwise = case lookup (dropExtension key) tbl of
-    Nothing -> (comp, ocamlflags, [], [])
-    Just (f, [], deps) -> (comp, ocamlflags ++ " " ++ f, [], deps)
-    Just (f, pp, deps) -> (comp, ocamlflags ++ " " ++ f, ["-pp", pp], deps)
+    Nothing -> (comp, ocamlflags)
+    Just f -> (comp, ocamlflags ++ " " ++ f)
 
 cKey1 key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
           | otherwise = case lookup key cflagstbl of
@@ -85,34 +81,21 @@ cKey1 key | "lablGL/" `isPrefixOf` key = "-Wno-pointer-sign -O2"
 cKey Nothing key = cKey1 key
 cKey (Just flags) key = flags ++ " " ++ cKey1 key
 
-fixppfile s ("File":_:tl) = ("File \"" ++ s ++ "\","):tl
-fixppfile _ l = l
-
-fixpp :: String -> String -> String
-fixpp r s = unlines [unwords $ fixppfile r $ words x | x <- lines s]
-
-ppppe ExitSuccess _ _ = return ()
-ppppe _ src emsg = error $ fixpp src emsg
-
 needsrc key suff = do
   let src' = key -<.> suff
   let src = if src' == "help.ml" then inOutDir src' else src'
   need [src]
   return src
 
-depscaml flags ppflags src = do
-  (Stdout stdout, Stderr emsg, Exit ex) <-
-        cmd ocamldep "-one-line" incs "-I" outdir ppflags src
-  ppppe ex src emsg
+depscaml flags src = do
+  (Stdout stdout) <- cmd ocamldep "-one-line" incs "-I" outdir src
   return stdout
   where flagl = words flags
         incs = unwords ["-I " ++ d | d <- getincludes flagl, not $ isabsinc d]
 
-compilecaml comp flagl ppflags out src = do
+compilecaml comp flagl out src = do
   let fixedflags = fixincludes flagl
-  (Stderr emsg, Exit ex) <-
-    cmd comp "-c -I" outdir fixedflags "-o" out ppflags src
-  ppppe ex src emsg
+  () <- cmd comp "-c -I" outdir fixedflags "-o" out src
   return ()
 
 deplistE reqs =
@@ -125,20 +108,20 @@ cmio target suffix oracle ordoracle = do
   target %> \out -> do
     let key = dropDirectory1 out
     src <- needsrc key suffix
-    (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracle key
+    (comp, flags) <- oracle $ OcamlCmdLineOracle key
     let flagl = words flags
     let dep = out ++ "_dep"
-    need $ dep : deps'
+    need $ [dep]
     ddep <- liftIO $ readFile dep
     let deps = deplist Bytecode $ parseMakefile ddep
     need deps
-    compilecaml comp flagl ppflags out src
+    compilecaml comp flagl out src
   target ++ "_dep" %> \out -> do
     let ord = dropEnd 4 out
     let key = dropDirectory1 ord
     src <- needsrc key suffix
-    (_, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracle key
-    mkfiledeps <- depscaml flags ppflags src
+    (_, flags) <- oracle $ OcamlCmdLineOracle key
+    mkfiledeps <- depscaml flags src
     writeFileChanged out mkfiledeps
     let depo = deps ++ [dep -<.> ".cmo" | dep <- deps, fit dep]
           where
@@ -146,19 +129,19 @@ cmio target suffix oracle ordoracle = do
             fit dep = ext == ".cmi" && base /= baseout
               where (base, ext) = splitExtension dep
                     baseout = dropExtension out
-    need (map (++ "_dep") depo ++ deps')
+    need (map (++ "_dep") depo)
     unit $ ordoracle $ OcamlOrdOracle ord
 
 cmx oracle ordoracle =
   "//*.cmx" %> \out -> do
     let key = dropDirectory1 out
     src <- needsrc key ".ml"
-    (comp, flags, ppflags, deps') <- oracle $ OcamlCmdLineOracleN key
+    (comp, flags) <- oracle $ OcamlCmdLineOracleN key
     let flagl = words flags
-    mkfiledeps <- depscaml flags ppflags src
-    need (deplist Native (parseMakefile mkfiledeps) ++ deps')
+    mkfiledeps <- depscaml flags src
+    need (deplist Native (parseMakefile mkfiledeps))
     unit $ ordoracle $ OcamlOrdOracleN out
-    compilecaml comp flagl ppflags out src
+    compilecaml comp flagl out src
 
 binInOutDir ty globjs depln target =
   inOutDir target %> \out ->
