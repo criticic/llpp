@@ -1,4 +1,4 @@
-type pv =
+type t =
   | Ascii of char | Code of int | Fn of int
   | Backspace | Delete | Escape | Insert | Enter
   | KPdelete | KPdown | KPend | KPenter | KPhome
