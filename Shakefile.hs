@@ -146,8 +146,8 @@ cmx oracle ordoracle =
 binInOutDir ty globjs depln target =
   inOutDir target %> \out ->
   do
-    need (mulibs ty ++ globjs
-           ++ map inOutDir ["link.o", "main.cmx", "help.cmx"])
+    need [inOutDir "help.cmx"]
+    need $ mulibs ty ++ globjs ++ map inOutDir ["link.o", "main.cmx"]
     cmxs <- liftIO $ readMVar depln
     need cmxs
     unit $ cmd ocamlopt "-g -I lablGL -o" out
