@@ -1319,12 +1319,8 @@ let isspecialkey key =
   || key land 0xfd00 = 0xfd00   (* 3270 *)
 ;;
 
-let kc2pv code =
-  let open Keys in
-  if code > 31 && code < 128
-  then Ascii (Char.chr code)
-  else
-    match code with
+let kc2pv = Keys.(
+    function
     | 0xff08 -> Backspace
     | 0xff9f -> Delete
     | 0xff54 -> Down
@@ -1350,6 +1346,7 @@ let kc2pv code =
     | 0xff55 -> Prior
     | 0xff53 -> Right
     | 0xff52 -> Up
-    | code   ->  if code >= 0xffbe && code <= 0xffc6
-                 then Fn (code - 0xffbe + 1) else Code code
+    | code when code > 31 && code < 128 -> Ascii (Char.unsafe_chr code)
+    | code when code > 0xffbd && code < 0xffc7 -> Fn (code - 0xffbe + 1)
+    | code -> Code code)
 ;;
