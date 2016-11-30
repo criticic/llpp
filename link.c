@@ -511,9 +511,8 @@ static void pdfinfo (void)
         { "info:Producer", "Producer" },
         { "info:CreationDate", "Creation date" },
     };
-    int len = 256;
-    char *buf = malloc (len);
-    if (!buf) err (1, "pdfinfo malloc %d", len);
+    int len = 0;
+    char *buf = NULL;
 
     for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
         int need;
