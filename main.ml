@@ -305,10 +305,8 @@ let selstring s =
           let bytes = Bytes.unsafe_of_string s in
           let n = tempfailureretry (Unix.write w bytes 0) l in
           if n != l
-          then impmsg "failed to write %d characters to sel pipe, wrote %d"
-                      l n
-        with exn ->
-          impmsg "failed to write to sel pipe: %s" @@ exntos exn
+          then impmsg "failed to write %d characters to sel pipe, wrote %d" l n
+        with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
      end;
      clo "selstring pipe/r" r;
 ;;
@@ -2340,8 +2338,7 @@ let optentry mode _ key =
            let y = getpagey pageno in
            gotoxy state.x (y + py)
          with exn ->
-           state.text <-
-             Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
        in
        TEswitch ("vertical margin: ", E.s, None, intentry, ondone, true)
 
@@ -6150,9 +6147,8 @@ let ract cmds =
   let cl = splitatchar cmds ' ' in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
-    with exn ->
-      adderrfmt "remote exec"
-                "error processing '%S': %s\n" cmds @@ exntos exn
+    with exn -> adderrfmt "remote exec" "error processing '%S': %s\n"
+                          cmds @@ exntos exn
   in
   let rectx s pageno (r, g, b, a) x0 y0 x1 y1 =
     vlog "%s page %d color (%f %f %f %f) x0,y0,x1,y1 = %f %f %f %f"
@@ -6242,8 +6238,8 @@ let ract cmds =
      begin try
          let l = Config.keys_of_string keys in
          List.iter (fun (k, m) -> keyboard k m) l
-       with exn ->
-         adderrfmt "error processing keys" "`%S': %s\n" cmds @@ exntos exn
+       with exn -> adderrfmt "error processing keys" "`%S': %s\n"
+                             cmds @@ exntos exn
      end
   | "clearrects", "" ->
      Hashtbl.clear state.prects;
