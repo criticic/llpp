@@ -211,8 +211,8 @@ main = do
   mulib "native" "libmupdfthird.a"
 
   inOutDir "llpp" %> \out -> do
-    need (mulibs "native"
-          ++ globjs ++ map inOutDir ["link.o", "main.cmo", "help.cmo"])
+    need [inOutDir "help.cmo"]
+    need $ mulibs "native" ++ globjs ++ map inOutDir ["link.o", "main.cmo"]
     cmos <- liftIO $ readMVar depl
     need cmos
     unit $ cmd ocamlc "-g -custom -I lablGL -o" out
