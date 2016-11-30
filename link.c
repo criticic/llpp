@@ -513,6 +513,7 @@ static void pdfinfo (void)
     };
     int len = 256;
     char *buf = malloc (len);
+    if (!buf) err (1, "pdfinfo malloc %d", len);
 
     for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
         int need;
@@ -525,7 +526,7 @@ static void pdfinfo (void)
             }
             else {
                 buf = realloc (buf, need);
-                if (!buf) err (1, "realloc %d", need);
+                if (!buf) err (1, "pdfinfo realloc %d", need);
                 len = need;
                 goto again;
             }
