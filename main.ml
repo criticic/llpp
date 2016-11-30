@@ -160,7 +160,7 @@ let launchpath () =
     let command = Str.global_replace percentsre state.path conf.pathlauncher in
     match spawn command [] with
     | _pid -> ()
-    | (exception exn) ->
+    | exception exn ->
        dolog "failed to execute `%s': %s" command @@ exntos exn
   );
 ;;
@@ -250,7 +250,7 @@ let pipesel opaque cmd =
   if hassel opaque
   then
     match Unix.pipe () with
-    | (exception exn) -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
+    | exception exn -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
     | (r, w) ->
        let doclose what fd =
          Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
@@ -294,7 +294,7 @@ let paxunder x y =
 
 let selstring s =
   match Unix.pipe () with
-  | (exception exn) -> impmsg "pipe failed: %s" @@ exntos exn
+  | exception exn -> impmsg "pipe failed: %s" @@ exntos exn
   | (r, w) ->
      let clo cap fd =
        Ne.clo fd (fun msg -> impmsg "failed to close %s: %s" cap msg)
@@ -717,9 +717,7 @@ let tilevisible layout n x y =
        tilevisible1 l x y || (
         match conf.columns with
         | Csplit (c, _) when c > m -> findpageinlayout (m+1) rest
-        | Csplit _
-          | Csingle _
-          | Cmulti _ -> false
+        | Csplit _ | Csingle _ | Cmulti _ -> false
       )
     | _ :: rest -> findpageinlayout 0 rest
     | [] -> false
@@ -1555,11 +1553,9 @@ let act cmds =
   in
   let addoutline outline =
     match state.currently with
-    | Outlining outlines ->
-       state.currently <- Outlining (outline :: outlines)
+    | Outlining outlines -> state.currently <- Outlining (outline :: outlines)
     | Idle -> state.currently <- Outlining [outline]
-    | Loading _
-      | Tiling _ ->
+    | Loading _ | Tiling _ ->
        dolog "invalid outlining state";
        logcurrently state.currently
   in
@@ -1579,9 +1575,7 @@ let act cmds =
      | Outlining l ->
         state.currently <- Idle;
         state.outlines <- Array.of_list (List.rev l)
-     | Idle
-       | Loading _
-       | Tiling _ -> ()
+     | Idle | Loading _ | Tiling _ -> ()
      end;
 
      let cur, cmds = state.geomcmds in
@@ -1711,10 +1705,10 @@ let act cmds =
                        state.mode <- LinkNav (Ltexact (l.pageno, n))
                   )
                | LinkNav (Ltgendir _)
-                 | LinkNav (Ltexact _)
-                 | View
-                 | Birdseye _
-                 | Textentry _ -> ()
+               | LinkNav (Ltexact _)
+               | View
+               | Birdseye _
+               | Textentry _ -> ()
              );
 
              if visible && layoutready state.layout
@@ -1729,9 +1723,7 @@ let act cmds =
            load state.layout
         end;
 
-     | Idle
-       | Tiling _
-       | Outlining _ ->
+     | Idle | Tiling _ | Outlining _ ->
         dolog "Inconsistent loading state";
         logcurrently state.currently;
         exit 1
@@ -1798,9 +1790,7 @@ let act cmds =
           end;
         );
 
-     | Idle
-       | Loading _
-       | Outlining _ ->
+     | Idle | Loading _ | Outlining _ ->
         dolog "Inconsistent tiling state";
         logcurrently state.currently;
         exit 1
@@ -2504,8 +2494,8 @@ let textentrykeyboard
         state.mode <- Textentry (te, onleave);
         G.postRedisplay "textentrykeyboard switch";
      end
-  | (Insert|KPleft|KPminus|KPnext
-     |KPplus|KPprior|KPright|Left|Right|Next|Prior|Fn _) ->
+  | Insert|KPleft|KPminus|KPnext|KPplus|KPprior|KPright|Left|Right|Next|Prior
+  | Fn _ ->
      vlog "unhandled key %s" (Wsi.keyname key)
 ;;
 
@@ -2742,7 +2732,7 @@ object (self)
           then (
             let s, _ = source#getitem n in
             match Str.search_forward re s 0 with
-            | (exception Not_found) -> loop (n + incr)
+            | exception Not_found -> loop (n + incr)
             | _ -> Some n
           )
           else None
@@ -3292,8 +3282,8 @@ class outlinelistview ~zebra ~source =
          G.postRedisplay "outline end";
          coe {< m_active = active; m_first = first >}
 
-      | (Delete|Escape|Insert|Enter|KPdelete|KPenter|KPminus
-         |KPplus|Ascii _|Code _|Backspace|Fn _) -> super#key key mask
+      | Delete|Escape|Insert|Enter|KPdelete|KPenter|KPminus
+      | KPplus|Ascii _|Code _|Backspace|Fn _ -> super#key key mask
   end;;
 
 let genhistoutlines () =
@@ -4167,12 +4157,12 @@ let getusertext s =
     let execstr = editor ^ " " ^ tmppath in
     let s =
       match spawn execstr [] with
-      | (exception exn) ->
+      | exception exn ->
          impmsg "spawn(%S) failed: %s" execstr @@ exntos exn;
          E.s
       | pid ->
          match Unix.waitpid [] pid with
-         | (exception exn) ->
+         | exception exn ->
             impmsg "waitpid(%d) failed: %s" pid @@ exntos exn;
             E.s
          | (_pid, status) ->
@@ -4189,7 +4179,7 @@ let getusertext s =
                E.s
     in
     match Unix.unlink tmppath with
-    | (exception exn) ->
+    | exception exn ->
        impmsg "failed to ulink %S: %s" tmppath @@ exntos exn;
        s
     | () -> s
@@ -4323,8 +4313,7 @@ let gotoremote spec =
       let cmd = Lazy.force_val lcmd in
       match spawn cmd with
       | _pid -> ()
-      | (exception exn) ->
-         dolog "failed to execute `%s': %s" cmd @@ exntos exn
+      | exception exn -> dolog "failed to execute `%s': %s" cmd @@ exntos exn
     else
       let anchor = getanchor () in
       let ranchor = state.path, state.password, anchor, state.origin in
@@ -4432,7 +4421,7 @@ class outlinesoucebase fetchoutlines = object (self)
 
   method narrow pattern =
     match Str.regexp_case_fold pattern with
-    | (exception _) -> ()
+    | exception _ -> ()
     | re ->
        let rec loop accu minfo n =
          if n = -1
@@ -4444,7 +4433,7 @@ class outlinesoucebase fetchoutlines = object (self)
            let (s, _, _) as o = m_items.(n) in
            let accu, minfo =
              match Str.search_forward re s 0 with
-             | (exception Not_found) -> accu, minfo
+             | exception Not_found -> accu, minfo
              | first -> o :: accu, (first, Str.match_end ()) :: minfo
            in
            loop accu minfo (n-1)
@@ -4519,7 +4508,7 @@ let outlinesource fetchoutlines =
               then loop (n+1) n d
               else loop (n+1) best bestd
            | Onone | Oremote _ | Olaunch _
-             | Oremotedest _ | Ouri _ | Ohistory _ ->
+           | Oremotedest _ | Ouri _ | Ohistory _ ->
               loop (n+1) best bestd
        in
        loop 0 ~-1 max_int
@@ -4760,9 +4749,7 @@ let viewkeyboard key mask =
            end;
            state.mode <- View;
            G.postRedisplay "esc leave linknav"
-        | Birdseye _
-          | Textentry _
-          | View ->
+        | Birdseye _ | Textentry _ | View ->
            match state.ranchors with
            | [] -> raise Quit
            | (path, password, anchor, origin) :: rest ->
@@ -5094,9 +5081,7 @@ let viewkeyboard key mask =
      | None ->
         begin match state.mode with
         | Birdseye beye -> upbirdseye 1 beye
-        | Textentry _
-          | View
-          | LinkNav _ ->
+        | Textentry _ | View | LinkNav _ ->
            if ctrl
            then gotoxy_and_clear_text state.x (clamp ~-(state.winh/2))
            else (
@@ -5114,9 +5099,7 @@ let viewkeyboard key mask =
      | None ->
         begin match state.mode with
         | Birdseye beye -> downbirdseye 1 beye
-        | Textentry _
-          | View
-          | LinkNav _ ->
+        | Textentry _ | View | LinkNav _ ->
            if ctrl
            then gotoxy_and_clear_text state.x (clamp (state.winh/2))
            else (
@@ -5269,9 +5252,9 @@ let linknavkeyboard key mask linknav =
            | Down ->
               Some (findlink opaque (LDdown n)), 1
 
-           | (Delete|Escape|Insert|Enter|KPdelete|KPdown|KPend|KPenter
-              |KPhome|KPleft|KPminus|KPnext|KPplus|KPprior|KPright|KPup
-              |Next|Prior|Ascii _|Code _|Fn _|Backspace) -> None, 0
+           | Delete|Escape|Insert|Enter|KPdelete|KPdown|KPend|KPenter
+           | KPhome|KPleft|KPminus|KPnext|KPplus|KPprior|KPright|KPup
+           | Next|Prior|Ascii _|Code _|Fn _|Backspace -> None, 0
          in
          let pwl l dir =
            begin match findpwl l.pageno dir with
@@ -5444,17 +5427,16 @@ let birdseyekeyboard key mask
          (max 0 (getpagey pageno - (state.winh - h - conf.interpagespace)))
      else G.postRedisplay "birdseye end";
 
-  | (Delete|Insert|KPdelete|KPdown|KPend|KPhome|KPleft
-     |KPminus|KPnext|KPplus|KPprior|KPright|KPup|Ascii _
-     |Code _|Fn _|Backspace) -> viewkeyboard key mask
+  | Delete|Insert|KPdelete|KPdown|KPend|KPhome|KPleft
+  | KPminus|KPnext|KPplus|KPprior|KPright|KPup|Ascii _
+  | Code _|Fn _|Backspace -> viewkeyboard key mask
 ;;
 
 let drawpage l =
   let color =
     match state.mode with
     | Textentry _ -> scalecolor 0.4
-    | LinkNav _
-      | View -> scalecolor 1.0
+    | LinkNav _ | View -> scalecolor 1.0
     | Birdseye (_, _, pageno, hooverpageno, _) ->
        if l.pageno = hooverpageno
        then scalecolor 0.9
@@ -5648,10 +5630,10 @@ let display () =
      filledrect (float x0) (float y0) (float x1) (float y1);
      Gl.disable `blend;
   | Msel _
-    | Mpan _
-    | Mscrolly | Mscrollx
-    | Mzoom _
-    | Mnone -> ()
+  | Mpan _
+  | Mscrolly | Mscrollx
+  | Mzoom _
+  | Mnone -> ()
   end;
   enttext ();
   scrollindicator ();
@@ -5815,10 +5797,10 @@ let viewmouse button down x y mask =
           else state.mstate <- Mzoom (n, 0, (ftx, fty))
 
        | Msel _
-         | Mpan _
-         | Mscrolly | Mscrollx
-         | Mzoomrect _
-         | Mnone -> state.mstate <- Mzoom (n, 0, (0, 0))
+       | Mpan _
+       | Mscrolly | Mscrollx
+       | Mzoomrect _
+       | Mnone -> state.mstate <- Mzoom (n, 0, (0, 0))
      )
      else (
        match state.autoscroll with
@@ -5858,7 +5840,7 @@ let viewmouse button down x y mask =
                       conf.stcmd state.path pageno ux uy
           in
           match spawn cmd [] with
-          | (exception exn) ->
+          | exception exn ->
              impmsg "execution of synctex command(%S) failed: %S"
                     conf.stcmd @@ exntos exn
           | _pid -> ()
@@ -5896,11 +5878,10 @@ let viewmouse button down x y mask =
             G.postRedisplay "kill accidental zoom rect";
           )
        | Msel _
-         | Mpan _
-         | Mscrolly | Mscrollx
-         | Mzoom _
-         | Mnone ->
-          resetmstate ()
+       | Mpan _
+       | Mscrolly | Mscrollx
+       | Mzoom _
+       | Mnone -> resetmstate ()
      )
 
   | 1 when vscrollhit x ->
@@ -5978,7 +5959,7 @@ let viewmouse button down x y mask =
                     | Some opaque ->
                        let dosel cmd () =
                          match Unix.pipe () with
-                         | (exception exn) ->
+                         | exception exn ->
                             impmsg "cannot create sel pipe: %s" @@
                               exntos exn;
                          | (r, w) ->
@@ -6047,8 +6028,7 @@ let uioh = object
 
     method button button bstate x y mask =
       begin match state.mode with
-      | LinkNav _
-        | View -> viewmouse button bstate x y mask
+      | LinkNav _ | View -> viewmouse button bstate x y mask
       | Birdseye beye -> birdseyemouse button bstate x y mask beye
       | Textentry _ -> ()
       end;
@@ -6056,10 +6036,8 @@ let uioh = object
 
     method multiclick clicks x y mask =
       begin match state.mode with
-      | LinkNav _
-        | View -> viewmulticlick clicks x y mask
-      | Birdseye _
-        | Textentry _ -> ()
+      | LinkNav _ | View -> viewmulticlick clicks x y mask
+      | Birdseye _ | Textentry _ -> ()
       end;
       state.uioh
 
@@ -6119,8 +6097,7 @@ let uioh = object
 
       | Textentry _ -> ()
 
-      | LinkNav _
-        | View ->
+      | LinkNav _ | View ->
          match state.mstate with
          | Mpan _ | Msel _ | Mzoom _ | Mscrolly | Mscrollx | Mzoomrect _ -> ()
          | Mnone ->
@@ -6295,7 +6272,7 @@ let remote =
   let buf = Buffer.create 80 in
   fun fd ->
   match tempfailureretry (Unix.read fd scratch 0) 80 with
-  | (exception Unix.Unix_error (Unix.EAGAIN, _, _)) -> None
+  | exception Unix.Unix_error (Unix.EAGAIN, _, _) -> None
   | 0 ->
      Unix.close fd;
      if Buffer.length buf > 0
@@ -6310,7 +6287,7 @@ let remote =
        let nlpos =
          match Bytes.index_from scratch ppos '\n' with
          | pos -> if pos >= n then -1 else pos
-         | (exception Not_found) -> -1
+         | exception Not_found -> -1
        in
        if nlpos >= 0
        then (
@@ -6421,11 +6398,11 @@ let () =
   then (
     let (c, s) =
       match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
-      | (exception exn) -> error "socketpair for gc failed: %s" @@ exntos exn
+      | exception exn -> error "socketpair for gc failed: %s" @@ exntos exn
       | fds -> fds
     in
     match spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
-    | (exception exn) -> error "failed to execute gc script: %s" @@ exntos exn
+    | exception exn -> error "failed to execute gc script: %s" @@ exntos exn
     | _pid ->
        Ne.clo c @@ (fun s -> error "failed to close gc fd %s" s);
        Config.gc s;
@@ -6556,7 +6533,7 @@ let () =
 
   let cs, ss =
     match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
-    | (exception exn) ->
+    | exception exn ->
        dolog "socketpair failed: %s" @@ exntos exn;
        exit 1
     | (r, w) ->
@@ -6607,8 +6584,8 @@ let () =
 
   let rec reap () =
     match Unix.waitpid [Unix.WNOHANG] ~-1 with
-    | (exception (Unix.Unix_error (Unix.ECHILD, _, _))) -> ()
-    | (exception exn) -> dolog "Unix.waitpid: %s" @@ exntos exn
+    | exception (Unix.Unix_error (Unix.ECHILD, _, _)) -> ()
+    | exception exn -> dolog "Unix.waitpid: %s" @@ exntos exn
     | 0, _ -> ()
     | _pid, _status -> reap ()
   in
