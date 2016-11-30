@@ -255,18 +255,14 @@ let pipesel opaque cmd =
        let doclose what fd =
          Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
        in
-       let pid =
-         try spawn cmd [r, 0; w, -1]
-         with exn ->
-           dolog "cannot execute %S: %s" cmd @@ exntos exn;
-           -1
-       in
-       if pid > 0
-       then (
-         copysel w opaque;
-         G.postRedisplay "pipesel";
-       )
-       else doclose "pipesel pipe/w" w;
+       begin match spawn cmd [r, 0; w, -1] with
+       | exception exn ->
+          doclose "pipesel pipe/w" w;
+          dolog "cannot execute %S: %s" cmd @@ exntos exn
+       | _pid ->
+          copysel w opaque;
+          G.postRedisplay "pipesel";
+       end;
        doclose "pipesel pipe/r" r;
 ;;
 
@@ -299,27 +295,22 @@ let selstring s =
      let clo cap fd =
        Ne.clo fd (fun msg -> impmsg "failed to close %s: %s" cap msg)
      in
-     let pid =
-       try spawn conf.selcmd [r, 0; w, -1]
-       with exn ->
-         impmsg "failed to execute %s: %s" conf.selcmd @@ exntos exn;
-         -1
-     in
-     if pid > 0
-     then (
-       try
-         let l = String.length s in
-         let bytes = Bytes.unsafe_of_string s in
-         let n = tempfailureretry (Unix.write w bytes 0) l in
-         if n != l
-         then impmsg "failed to write %d characters to sel pipe, wrote %d"
-                     l n
-       with exn ->
-         impmsg "failed to write to sel pipe: %s" @@ exntos exn
-     )
-     else dolog "%s" s;
+     begin match spawn conf.selcmd [r, 0; w, -1] with
+     | exception exn ->
+        clo "selstring pipe/w" w;
+        impmsg "failed to execute %s: %s" conf.selcmd @@ exntos exn
+     | _pid ->
+        try
+          let l = String.length s in
+          let bytes = Bytes.unsafe_of_string s in
+          let n = tempfailureretry (Unix.write w bytes 0) l in
+          if n != l
+          then impmsg "failed to write %d characters to sel pipe, wrote %d"
+                      l n
+        with exn ->
+          impmsg "failed to write to sel pipe: %s" @@ exntos exn
+     end;
      clo "selstring pipe/r" r;
-     clo "selstring pipe/w" w;
 ;;
 
 let undertext = function
@@ -5967,19 +5958,14 @@ let viewmouse button down x y mask =
                               Ne.clo fd (fun msg ->
                                        dolog "%s close failed: %s" what msg)
                             in
-                            let pid =
-                              try spawn cmd [r, 0; w, -1]
-                              with exn ->
-                                dolog "cannot execute %S: %s"
-                                      cmd @@ exntos exn;
-                                -1
-                            in
-                            if pid > 0
-                            then (
-                              copysel w opaque;
-                              G.postRedisplay "copysel";
-                            )
-                            else clo "Msel pipe/w" w;
+                            begin match spawn cmd [r, 0; w, -1] with
+                            | exception exn ->
+                               clo "Msel pipe/w" w;
+                               dolog "cannot execute %S: %s" cmd @@ exntos exn
+                            | _pid ->
+                               copysel w opaque;
+                               G.postRedisplay "copysel";
+                            end;
                             clo "Msel pipe/r" r;
                        in
                        dosel conf.selcmd ();
