@@ -1320,35 +1320,34 @@ let isspecialkey key =
 ;;
 
 let kc2kt =
-  Keys.(
-    function
-    | 0xff08 -> Backspace
-    | 0xff9f -> Delete
-    | 0xff54 -> Down
-    | 0xff0d -> Enter
-    | 0xff1b -> Escape
-    | 0xff50 -> Home
-    | 0xff63 -> Insert
-    | 0xff57 -> End
-    | 0xffff -> KPdelete
-    | 0xff99 -> KPdown
-    | 0xff9c -> KPend
-    | 0xff8d -> KPenter
-    | 0xff95 -> KPhome
-    | 0xff96 -> KPleft
-    | 0xffad -> KPminus
-    | 0xff9b -> KPnext
-    | 0xffab -> KPplus
-    | 0xff9a -> KPprior
-    | 0xff98 -> KPright
-    | 0xff97 -> KPup
-    | 0xff51 -> Left
-    | 0xff56 -> Next
-    | 0xff55 -> Prior
-    | 0xff53 -> Right
-    | 0xff52 -> Up
-    | code when code > 31 && code < 128 -> Ascii (Char.unsafe_chr code)
-    | code when code > 0xffbd && code < 0xffc7 -> Fn (code - 0xffbe + 1)
-    | code -> Code code
-  )
+  let open Keys in
+  function
+  | 0xff08 -> Backspace
+  | 0xff9f -> Delete
+  | 0xff54 -> Down
+  | 0xff0d -> Enter
+  | 0xff1b -> Escape
+  | 0xff50 -> Home
+  | 0xff63 -> Insert
+  | 0xff57 -> End
+  | 0xffff -> KPdelete
+  | 0xff99 -> KPdown
+  | 0xff9c -> KPend
+  | 0xff8d -> KPenter
+  | 0xff95 -> KPhome
+  | 0xff96 -> KPleft
+  | 0xffad -> KPminus
+  | 0xff9b -> KPnext
+  | 0xffab -> KPplus
+  | 0xff9a -> KPprior
+  | 0xff98 -> KPright
+  | 0xff97 -> KPup
+  | 0xff51 -> Left
+  | 0xff56 -> Next
+  | 0xff55 -> Prior
+  | 0xff53 -> Right
+  | 0xff52 -> Up
+  | code when code > 31 && code < 128 -> Ascii (Char.unsafe_chr code)
+  | code when code > 0xffbd && code < 0xffc7 -> Fn (code - 0xffbe + 1)
+  | code -> Code code
 ;;
