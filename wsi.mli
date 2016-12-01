@@ -59,4 +59,4 @@ val namekey : string -> int;;
 val setwinbgcol : int -> unit;;
 val keypadtodigitkey : int -> int;;
 val isspecialkey : int -> bool;;
-val kc2pv : int -> Keys.t;;
+val kc2kt : int -> Keys.t;;

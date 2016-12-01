@@ -2426,7 +2426,7 @@ let textentrykeyboard
        G.postRedisplay "textentry histaction"
   in
   let open Keys in
-  match Wsi.kc2pv key with
+  match Wsi.kc2kt key with
   | Backspace ->
      if emptystr text && cancelonempty
      then (
@@ -2822,7 +2822,7 @@ object (self)
       set active first;
     in
     let open Keys in
-    match Wsi.kc2pv key with
+    match Wsi.kc2kt key with
     | Ascii (('r'|'s') as c) when Wsi.withctrl mask ->
        let incr = if c = 'r' then -1 else 1 in
        let active, first =
@@ -3132,7 +3132,7 @@ class outlinelistview ~zebra ~source =
       in
       let ctrl = Wsi.withctrl mask in
       let open Keys in
-      match Wsi.kc2pv key with
+      match Wsi.kc2kt key with
       | Ascii 'a' when ctrl ->
          let text =
            if m_autonarrow
@@ -4025,7 +4025,7 @@ let enterinfomode =
              then
                let open Keys in
                begin [@warning "-4"]
-                       match Wsi.kc2pv key with
+                       match Wsi.kc2kt key with
                        | Left | KPleft -> coe (self#updownlevel ~-1)
                        | Right | KPright -> coe (self#updownlevel 1)
                        | _ -> super#key key mask
@@ -4700,7 +4700,7 @@ let viewkeyboard key mask =
   let ctrl = Wsi.withctrl mask in
   let key = Wsi.keypadtodigitkey key in
   let open Keys in
-  match Wsi.kc2pv key with
+  match Wsi.kc2kt key with
   | Ascii 'Q' -> exit 0
 
   | Ascii 'W' ->
@@ -5109,7 +5109,7 @@ let viewkeyboard key mask =
          else conf.hscrollstep
        in
        let dx =
-         let pv = Wsi.kc2pv key in
+         let pv = Wsi.kc2kt key in
          if pv = Keys.Left || pv = Keys.KPleft then dx else -dx
        in
        gotoxy_and_clear_text (panbound (state.x + dx)) state.y
@@ -5201,7 +5201,7 @@ let viewkeyboard key mask =
 ;;
 
 let linknavkeyboard key mask linknav =
-  let pv = Wsi.kc2pv key in
+  let pv = Wsi.kc2kt key in
   let getpage pageno =
     let rec loop = function
       | [] -> None
@@ -5330,7 +5330,7 @@ let birdseyekeyboard key mask
   let pgh layout = List.fold_left
                      (fun m l -> max l.pageh m) state.winh layout in
   let open Keys in
-  match Wsi.kc2pv key with
+  match Wsi.kc2kt key with
   | Ascii 'l' when Wsi.withctrl mask ->
      let y, h = getpageyh pageno in
      let top = (state.winh - h) / 2 in

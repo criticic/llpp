@@ -1319,7 +1319,8 @@ let isspecialkey key =
   || key land 0xfd00 = 0xfd00   (* 3270 *)
 ;;
 
-let kc2pv = Keys.(
+let kc2kt =
+  Keys.(
     function
     | 0xff08 -> Backspace
     | 0xff9f -> Delete
@@ -1348,5 +1349,6 @@ let kc2pv = Keys.(
     | 0xff52 -> Up
     | code when code > 31 && code < 128 -> Ascii (Char.unsafe_chr code)
     | code when code > 0xffbd && code < 0xffc7 -> Fn (code - 0xffbe + 1)
-    | code -> Code code)
+    | code -> Code code
+  )
 ;;
