@@ -225,7 +225,7 @@ let fdcontents fd =
 let filecontents path =
   let fd = Unix.openfile path [Unix.O_RDONLY] 0o0 in
   match fdcontents fd with
-  | (exception exn) ->
+  | exception exn ->
      error "failed to read contents of %s: %s" path @@ exntos exn
   | s ->
      Ne.clo fd @@ error "failed to close descriptor for %s: %s" path;
@@ -236,25 +236,25 @@ let getcmdoutput errfun cmd =
   let reperror fmt = Printf.kprintf errfun fmt in
   let clofail s e = error "failed to close %s: %s" s e in
   match Unix.pipe () with
-  | (exception exn) ->
+  | exception exn ->
      reperror "pipe failed: %s" @@ exntos exn;
      E.s
   | (r, w) ->
      match spawn cmd [r, -1; w, 1] with
-     | (exception exn) ->
+     | exception exn ->
         reperror "failed to execute %S: %s" cmd @@ exntos exn;
         E.s
      | pid ->
         Ne.clo w @@ clofail "write end of the pipe";
         let s =
           match Unix.waitpid [] pid with
-          | (exception exn) ->
+          | exception exn ->
              reperror "waitpid on %S %d failed: %s" cmd pid @@ exntos exn;
              E.s
           | _pid, Unix.WEXITED 0 ->
              begin
                match fdcontents r with
-               | (exception exn) ->
+               | exception exn ->
                   reperror "failed to read output of %S: %s" cmd @@ exntos exn;
                   E.s
                | s ->

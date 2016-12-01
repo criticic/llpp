@@ -1133,7 +1133,7 @@ let getauth haddr dnum =
   else
     match open_in_bin path with
     | ic -> readauth ic
-    | (exception exn) ->
+    | exception exn ->
        dolog "failed to open X authority file `%S' : %s" path @@ exntos exn;
        E.s, E.s
 ;;
