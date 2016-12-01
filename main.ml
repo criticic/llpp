@@ -338,24 +338,15 @@ let showlinktype under =
   then showtext ' ' @@ undertext under
 ;;
 
-let intentry_with_suffix text key =
+let [@warning "-4"] intentry_with_suffix text key =
   let text =
-    if key >= 32 && key < 127
-    then
-      let c = Char.chr key in
-      match c with
-      | '0' .. '9' ->
-         addchar text c
-
-      | 'k' | 'm' | 'g' | 'K' | 'M' | 'G' ->
-         addchar text @@ asciilower c
-      | _ ->
-         state.text <- Printf.sprintf "invalid key (%d, `%c')" key c;
-         text
-    else (
-      state.text <- Printf.sprintf "invalid key %d" key;
-      text
-    )
+    match key with
+    | Keys.Ascii ('0'..'9' as c) -> addchar text c
+    | Keys.Ascii ('k' | 'm' | 'g' | 'K' | 'M' | 'G' as c) ->
+       addchar text @@ asciilower c
+    | _ ->
+       state.text <- Printf.sprintf "invalid key";
+       text
   in
   TEcont text
 ;;
@@ -1911,20 +1902,13 @@ let search pattern forward =
             (btod conf.icase) pn py (btod forward) pattern;
 ;;
 
-let intentry text key =
+let [@warning "-4"] intentry text key =
   let text =
-    if key >= 32 && key < 127
-    then
-      let c = Char.chr key in
-      match c with
-      | '0' .. '9' -> addchar text c
-      | _ ->
-         state.text <- Printf.sprintf "invalid char (%d, `%c')" key c;
-         text
-    else (
-      state.text <- Printf.sprintf "invalid key (%d)" key;
-      text
-    )
+    match key with
+    | Keys.Ascii ('0'..'9' as c) -> addchar text c
+    | _ ->
+       state.text <- "invalid key";
+       text
   in
   TEcont text
 ;;
@@ -1960,22 +1944,20 @@ let linknact f s =
   )
 ;;
 
-let linknentry text key =
-  if key >= 32 && key < 127
-  then
-    let text = addchar text (Char.chr key) in
-    linknact (fun under -> state.text <- undertext under) text;
-    TEcont text
-  else (
-    state.text <- Printf.sprintf "invalid key %d" key;
-    TEcont text
-  )
+let [@warning "-4"] linknentry text = function
+  | Keys.Ascii c ->
+     let text = addchar text c in
+     linknact (fun under -> state.text <- undertext under) text;
+     TEcont text
+  | _ ->
+     state.text <- Printf.sprintf "invalid key";
+     TEcont text
 ;;
 
-let textentry text key =
-  if Wsi.isspecialkey key
-  then TEcont text
-  else TEcont (text ^ toutf8 key)
+let [@warning "-4"] textentry text = function
+  | Keys.Ascii c -> TEcont (addchar text c)
+  | Keys.Code c -> TEcont (text ^ toutf8 c)
+  | _ -> TEcont text
 ;;
 
 let reqlayout angle fitmodel =
@@ -2206,177 +2188,175 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   state.text <- E.s;
 ;;
 
-let optentry mode _ key =
+let [@warning "-4"] optentry mode _ key =
   let btos b = if b then "on" else "off" in
-  if key >= 32 && key < 127
-  then
-    let c = Char.chr key in
-    match c with
-    | 's' ->
-       let ondone s =
-         try conf.scrollstep <- int_of_string s with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-       in
-       TEswitch ("scroll step: ", E.s, None, intentry, ondone, true)
+  match key with
+  | Keys.Ascii 's' ->
+     let ondone s =
+       try conf.scrollstep <- int_of_string s with exn ->
+         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+     in
+     TEswitch ("scroll step: ", E.s, None, intentry, ondone, true)
 
-    | 'A' ->
-       let ondone s =
-         try
-           conf.autoscrollstep <- boundastep state.winh (int_of_string s);
-           if state.autoscroll <> None
-           then state.autoscroll <- Some conf.autoscrollstep
-         with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-       in
-       TEswitch ("auto scroll step: ", E.s, None, intentry, ondone, true)
+  | Keys.Ascii 'A' ->
+     let ondone s =
+       try
+         conf.autoscrollstep <- boundastep state.winh (int_of_string s);
+         if state.autoscroll <> None
+         then state.autoscroll <- Some conf.autoscrollstep
+       with exn ->
+         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+     in
+     TEswitch ("auto scroll step: ", E.s, None, intentry, ondone, true)
 
-    | 'C' ->
-       let ondone s =
-         try
-           let n, a, b = multicolumns_of_string s in
-           setcolumns mode n a b;
-         with exn ->
-           state.text <- Printf.sprintf "bad columns `%s': %s" s @@ exntos exn
-       in
-       TEswitch ("columns: ", E.s, None, textentry, ondone, true)
+  | Keys.Ascii 'C' ->
+     let ondone s =
+       try
+         let n, a, b = multicolumns_of_string s in
+         setcolumns mode n a b;
+       with exn ->
+         state.text <- Printf.sprintf "bad columns `%s': %s" s @@ exntos exn
+     in
+     TEswitch ("columns: ", E.s, None, textentry, ondone, true)
 
-    | 'Z' ->
-       let ondone s =
-         try
-           let zoom = float (int_of_string s) /. 100.0 in
-           pivotzoom zoom
-         with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-       in
-       TEswitch ("zoom: ", E.s, None, intentry, ondone, true)
+  | Keys.Ascii 'Z' ->
+     let ondone s =
+       try
+         let zoom = float (int_of_string s) /. 100.0 in
+         pivotzoom zoom
+       with exn ->
+         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+     in
+     TEswitch ("zoom: ", E.s, None, intentry, ondone, true)
 
-    | 't' ->
-       let ondone s =
-         try
-           conf.thumbw <- bound (int_of_string s) 2 4096;
-           state.text <-
-             Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
-           begin match mode with
-           | Birdseye beye ->
-              leavebirdseye beye false;
-              enterbirdseye ();
-           | Textentry _ | View | LinkNav _ -> ();
-           end
-         with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-       in
-       TEswitch ("thumbnail width: ", E.s, None, intentry, ondone, true)
+  | Keys.Ascii 't' ->
+     let ondone s =
+       try
+         conf.thumbw <- bound (int_of_string s) 2 4096;
+         state.text <-
+           Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
+         begin match mode with
+         | Birdseye beye ->
+            leavebirdseye beye false;
+            enterbirdseye ();
+         | Textentry _ | View | LinkNav _ -> ();
+         end
+       with exn ->
+         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+     in
+     TEswitch ("thumbnail width: ", E.s, None, intentry, ondone, true)
 
-    | 'R' ->
-       let ondone s =
-         match int_of_string s with
-         | angle -> reqlayout angle conf.fitmodel
-         | exception exn ->
-            state.text <-
-              Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-       in
-       TEswitch ("rotation: ", E.s, None, intentry, ondone, true)
+  | Keys.Ascii 'R' ->
+     let ondone s =
+       match int_of_string s with
+       | angle -> reqlayout angle conf.fitmodel
+       | exception exn ->
+          state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+     in
+     TEswitch ("rotation: ", E.s, None, intentry, ondone, true)
 
-    | 'i' ->
-       conf.icase <- not conf.icase;
-       TEdone ("case insensitive search " ^ (btos conf.icase))
+  | Keys.Ascii 'i' ->
+     conf.icase <- not conf.icase;
+     TEdone ("case insensitive search " ^ (btos conf.icase))
 
-    | 'p' ->
-       conf.preload <- not conf.preload;
-       gotoxy state.x state.y;
-       TEdone ("preload " ^ (btos conf.preload))
+  | Keys.Ascii 'p' ->
+     conf.preload <- not conf.preload;
+     gotoxy state.x state.y;
+     TEdone ("preload " ^ (btos conf.preload))
 
-    | 'v' ->
-       conf.verbose <- not conf.verbose;
-       TEdone ("verbose " ^ (btos conf.verbose))
+  | Keys.Ascii 'v' ->
+     conf.verbose <- not conf.verbose;
+     TEdone ("verbose " ^ (btos conf.verbose))
 
-    | 'd' ->
-       conf.debug <- not conf.debug;
-       TEdone ("debug " ^ (btos conf.debug))
+  | Keys.Ascii 'd' ->
+     conf.debug <- not conf.debug;
+     TEdone ("debug " ^ (btos conf.debug))
 
-    | 'h' ->
-       conf.maxhfit <- not conf.maxhfit;
-       state.maxy <- calcheight ();
-       TEdone ("maxhfit " ^ (btos conf.maxhfit))
+  | Keys.Ascii 'h' ->
+     conf.maxhfit <- not conf.maxhfit;
+     state.maxy <- calcheight ();
+     TEdone ("maxhfit " ^ (btos conf.maxhfit))
 
-    | 'c' ->
-       conf.crophack <- not conf.crophack;
-       TEdone ("crophack " ^ btos conf.crophack)
+  | Keys.Ascii 'c' ->
+     conf.crophack <- not conf.crophack;
+     TEdone ("crophack " ^ btos conf.crophack)
 
-    | 'a' ->
-       let s =
-         match conf.maxwait with
-         | None ->
-            conf.maxwait <- Some infinity;
-            "always wait for page to complete"
-         | Some _ ->
-            conf.maxwait <- None;
-            "show placeholder if page is not ready"
-       in
-       TEdone s
+  | Keys.Ascii 'a' ->
+     let s =
+       match conf.maxwait with
+       | None ->
+          conf.maxwait <- Some infinity;
+          "always wait for page to complete"
+       | Some _ ->
+          conf.maxwait <- None;
+          "show placeholder if page is not ready"
+     in
+     TEdone s
 
-    | 'f' ->
-       conf.underinfo <- not conf.underinfo;
-       TEdone ("underinfo " ^ btos conf.underinfo)
+  | Keys.Ascii 'f' ->
+     conf.underinfo <- not conf.underinfo;
+     TEdone ("underinfo " ^ btos conf.underinfo)
 
-    | 'P' ->
-       conf.savebmarks <- not conf.savebmarks;
-       TEdone ("persistent bookmarks " ^ btos conf.savebmarks)
+  | Keys.Ascii 'P' ->
+     conf.savebmarks <- not conf.savebmarks;
+     TEdone ("persistent bookmarks " ^ btos conf.savebmarks)
 
-    | 'S' ->
-       let ondone s =
-         try
-           let pageno, py =
-             match state.layout with
-             | [] -> 0, 0
-             | l :: _ ->
-                l.pageno, l.pagey
-           in
-           conf.interpagespace <- int_of_string s;
-           docolumns conf.columns;
-           state.maxy <- calcheight ();
-           let y = getpagey pageno in
-           gotoxy state.x (y + py)
-         with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-       in
-       TEswitch ("vertical margin: ", E.s, None, intentry, ondone, true)
+  | Keys.Ascii 'S' ->
+     let ondone s =
+       try
+         let pageno, py =
+           match state.layout with
+           | [] -> 0, 0
+           | l :: _ ->
+              l.pageno, l.pagey
+         in
+         conf.interpagespace <- int_of_string s;
+         docolumns conf.columns;
+         state.maxy <- calcheight ();
+         let y = getpagey pageno in
+         gotoxy state.x (y + py)
+       with exn ->
+         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+     in
+     TEswitch ("vertical margin: ", E.s, None, intentry, ondone, true)
 
-    | 'l' ->
-       let fm =
-         match conf.fitmodel with
-         | FitProportional -> FitWidth
-         | FitWidth | FitPage -> FitProportional
-       in
-       reqlayout conf.angle fm;
-       TEdone ("proportional display " ^ btos (fm == FitProportional))
+  | Keys.Ascii 'l' ->
+     let fm =
+       match conf.fitmodel with
+       | FitProportional -> FitWidth
+       | FitWidth | FitPage -> FitProportional
+     in
+     reqlayout conf.angle fm;
+     TEdone ("proportional display " ^ btos (fm == FitProportional))
 
-    | 'T' ->
-       settrim (not conf.trimmargins) conf.trimfuzz;
-       TEdone ("trim margins " ^ btos conf.trimmargins)
+  | Keys.Ascii 'T' ->
+     settrim (not conf.trimmargins) conf.trimfuzz;
+     TEdone ("trim margins " ^ btos conf.trimmargins)
 
-    | 'I' ->
-          conf.invert <- not conf.invert;
-          TEdone ("invert colors " ^ btos conf.invert)
+  | Keys.Ascii 'I' ->
+     conf.invert <- not conf.invert;
+     TEdone ("invert colors " ^ btos conf.invert)
 
-    | 'x' ->
-       let ondone s =
-         cbput state.hists.sel s;
-         conf.selcmd <- s;
-       in
-       TEswitch ("selection command: ", E.s, Some (onhist state.hists.sel),
-                 textentry, ondone, true)
+  | Keys.Ascii 'x' ->
+     let ondone s =
+       cbput state.hists.sel s;
+       conf.selcmd <- s;
+     in
+     TEswitch ("selection command: ", E.s, Some (onhist state.hists.sel),
+               textentry, ondone, true)
 
-    | 'M' ->
-       if conf.pax == None
-       then conf.pax <- Some (ref (0.0, 0, 0))
-       else conf.pax <- None;
-       TEdone ("PAX " ^ btos (conf.pax != None))
+  | Keys.Ascii 'M' ->
+     if conf.pax == None
+     then conf.pax <- Some (ref (0.0, 0, 0))
+     else conf.pax <- None;
+     TEdone ("PAX " ^ btos (conf.pax != None))
 
-    | _ ->
-       state.text <- Printf.sprintf "bad option %d `%c'" key c;
-       TEstop
-  else
+  | (Keys.Ascii c) ->
+     state.text <- Printf.sprintf "bad option %d `%c'"
+                                  (Char.code c) c;
+     TEstop
+
+  | _ ->
     TEcont state.text
 ;;
 
@@ -2407,7 +2387,7 @@ class virtual lvsourcebase = object
           method getminfo : (int * int) array = E.a
         end;;
 
-let textentrykeyboard
+let [@warning "-4"] textentrykeyboard
       key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
   state.text <- E.s;
   let enttext te =
@@ -2425,8 +2405,8 @@ let textentrykeyboard
            );
        G.postRedisplay "textentry histaction"
   in
-  let open Keys in
-  match Wsi.kc2kt key with
+  let open Keys in let kt = Wsi.kc2kt key in
+  match kt with
   | Backspace ->
      if emptystr text && cancelonempty
      then (
@@ -2465,7 +2445,7 @@ let textentrykeyboard
   | Delete | KPdelete -> ()
 
   | Code _ | Ascii _ ->
-     begin match onkey text key with
+     begin match onkey text kt with
      | TEdone text ->
         ondone text;
         onleave Confirm;
@@ -2482,9 +2462,7 @@ let textentrykeyboard
         state.mode <- Textentry (te, onleave);
         G.postRedisplay "textentrykeyboard switch";
      end
-  | Insert|KPleft|KPminus|KPnext|KPplus|KPprior|KPright|Left|Right|Next|Prior
-  | Fn _ ->
-     vlog "unhandled key %s" (Wsi.keyname key)
+  | _ -> vlog "unhandled key"
 ;;
 
 let firstof first active =
@@ -2822,7 +2800,8 @@ object (self)
       set active first;
     in
     let open Keys in
-    match Wsi.kc2kt key with
+    let kt = Wsi.kc2kt key in
+    match [@warning "-4"] kt with
     | Ascii (('r'|'s') as c) when Wsi.withctrl mask ->
        let incr = if c = 'r' then -1 else 1 in
        let active, first =
@@ -2870,8 +2849,14 @@ object (self)
            set1 active first qsearch
        );
 
-    | _ when not (Wsi.isspecialkey key) ->
-       let pattern = m_qsearch ^ toutf8 key in
+    | Ascii _ | Code _ ->
+       let utf8 =
+         match [@warning "-4"] kt with
+         | Ascii c -> String.make 1 c
+         | Code code -> toutf8 code
+         | _ -> assert false
+       in
+       let pattern = m_qsearch ^ utf8 in
        let active, first =
          match search m_active pattern 1 with
          | None ->
@@ -2891,14 +2876,10 @@ object (self)
          G.postRedisplay "list view escape";
          let mx, my = state.mpos in
          updateunder mx my;
-         begin
-           match
-             source#exit ~uioh:(coe self)
-                         ~cancel:true ~active:m_active ~first:m_first ~pan:m_pan
-           with
-           | None -> m_prev_uioh
-           | Some uioh -> uioh
-         end
+         match source#exit ~uioh:(coe self) ~cancel:true ~active:m_active
+                           ~first:m_first ~pan:m_pan with
+         | None -> m_prev_uioh
+         | Some uioh -> uioh
        )
        else (
          G.postRedisplay "list view kill qsearch";
@@ -2910,15 +2891,9 @@ object (self)
        let self = {< m_qsearch = E.s >} in
        let opt =
          G.postRedisplay "listview enter";
-         if m_active >= 0 && m_active < source#getitemcount
-         then (
-           source#exit ~uioh:(coe self) ~cancel:false
-                       ~active:m_active ~first:m_first ~pan:m_pan;
-         )
-         else (
-           source#exit ~uioh:(coe self) ~cancel:true
-                       ~active:m_active ~first:m_first ~pan:m_pan;
-         );
+         let cancel = not (m_active >= 0 && m_active < source#getitemcount) in
+         source#exit ~uioh:(coe self) ~cancel
+                     ~active:m_active ~first:m_first ~pan:m_pan;
        in
        begin match opt with
        | None -> m_prev_uioh
@@ -2954,11 +2929,7 @@ object (self)
        G.postRedisplay "listview end";
        set active first;
 
-    | _ when (key = 0 || Wsi.isspecialkey key) ->
-       coe self
-
-    | (Insert|KPminus|KPplus|Ascii _|Code _|Fn _) ->
-       dolog "listview unknown key %#x" key; coe self
+    | _ -> coe self
 
   method key key mask =
     match state.mode with
@@ -3209,7 +3180,7 @@ class outlinelistview ~zebra ~source =
          then source#add_narrow_pattern m_qsearch;
          super#key key mask
 
-      | _ when m_autonarrow && (not (Wsi.isspecialkey key)) ->
+      | _ when m_autonarrow ->
          let pattern = m_qsearch ^ toutf8 key in
          G.postRedisplay "outlinelistview autonarrow add";
          source#narrow pattern;
@@ -4024,12 +3995,10 @@ let enterinfomode =
              if not (Wsi.withctrl mask)
              then
                let open Keys in
-               begin [@warning "-4"]
-                       match Wsi.kc2kt key with
-                       | Left | KPleft -> coe (self#updownlevel ~-1)
-                       | Right | KPright -> coe (self#updownlevel 1)
-                       | _ -> super#key key mask
-               end
+               match [@warning "-4"] Wsi.kc2kt key with
+               | Left | KPleft -> coe (self#updownlevel ~-1)
+               | Right | KPright -> coe (self#updownlevel 1)
+               | _ -> super#key key mask
              else super#key key mask
          end);
   G.postRedisplay "info";
@@ -4698,7 +4667,6 @@ let viewkeyboard key mask =
     G.postRedisplay "view:enttext"
   in
   let ctrl = Wsi.withctrl mask in
-  let key = Wsi.keypadtodigitkey key in
   let open Keys in
   match Wsi.kc2kt key with
   | Ascii 'Q' -> exit 0
@@ -4860,10 +4828,9 @@ let viewkeyboard key mask =
          gotopage1 (n + conf.pagebias - 1) 0;
        )
      in
-     let pageentry text key =
-       match Char.unsafe_chr key with
-       | 'g' -> TEdone text
-       | _ -> intentry text key
+     let [@warning "-4"] pageentry text = function
+       | Keys.Ascii 'g' -> TEdone text
+       | key -> intentry text key
      in
      let text = String.make 1 (Char.chr key) in
      enttext (":", text, Some (onhist state.hists.pag),

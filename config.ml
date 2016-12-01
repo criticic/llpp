@@ -357,8 +357,9 @@ type mode =
    | Ltgendir of direction
    | Ltnotready of (pageno * direction)
  and direction = int             (* -1, 0, 1 *)
- and textentry = string * string * onhist option * onkey * ondone * cancelonempty
- and onkey = string -> int -> te
+ and textentry = string * string * onhist option
+                 * onkey * ondone * cancelonempty
+ and onkey = string -> Keys.t -> te
  and ondone = string -> unit
  and histcancel = unit -> unit
  and onhist = ((histcmd -> string) * histcancel)
@@ -1848,7 +1849,7 @@ let save1 bb leavebirdseye x h dc =
                    Printf.bprintf bb " visy='%f'" visy
                ;
              | Ohistory _ | Onone | Ouri _ | Oremote _
-               | Oremotedest _ | Olaunch _ ->
+             | Oremotedest _ | Olaunch _ ->
                 failwith "unexpected link in bookmarks"
              end;
              Buffer.add_string bb "/>\n";
@@ -1880,8 +1881,8 @@ let save1 bb leavebirdseye x h dc =
        in
        pan, { c with beyecolumns = beyecolumns; columns = columns }
     | Textentry _
-      | View
-      | LinkNav _ -> x, conf
+    | View
+    | LinkNav _ -> x, conf
   in
   let docpath = if nonemptystr state.path then abspath state.path else E.s in
   if nonemptystr docpath
@@ -1896,8 +1897,8 @@ let save1 bb leavebirdseye x h dc =
              begin match state.mode with
              | Birdseye beye -> leavebirdseye beye true
              | Textentry _
-               | View
-               | LinkNav _ -> ()
+             | View
+             | LinkNav _ -> ()
              end;
              { conf with autoscrollstep = autoscrollstep }
            )
@@ -2013,13 +2014,11 @@ let logcurrently = function
      dolog
        "Tiling %d[%d,%d] page=%s cs=%s angle=%d"
        l.pageno col row (~> pageopaque)
-       (CSTE.to_string colorspace) angle
-    ;
-      dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
-            angle gen conf.angle state.gen
-            tilew tileh
-            conf.tilew conf.tileh
-    ;
+       (CSTE.to_string colorspace) angle;
+     dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
+           angle gen conf.angle state.gen
+           tilew tileh
+           conf.tilew conf.tileh;
   | Outlining _ ->
      dolog "outlining"
 ;;

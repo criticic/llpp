@@ -57,6 +57,4 @@ val ctrlmask : int;;
 val keyname : int -> string;;
 val namekey : string -> int;;
 val setwinbgcol : int -> unit;;
-val keypadtodigitkey : int -> int;;
-val isspecialkey : int -> bool;;
 val kc2kt : int -> Keys.t;;

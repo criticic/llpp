@@ -1308,17 +1308,6 @@ let namekey name =
     else int_of_string name;
 ;;
 
-let keypadtodigitkey key =
-  if key >= 0xffb0 && key <= 0xffb9 (* keypad numbers *)
-  then key - 0xffb0 + 48 else key
-;;
-
-let isspecialkey key =
-  key land 0xff00 = 0xff00      (* keyboard *)
-  || key land 0xfe00 = 0xfe00   (* xkb *)
-  || key land 0xfd00 = 0xfd00   (* 3270 *)
-;;
-
 let kc2kt =
   let open Keys in
   function
@@ -1348,6 +1337,8 @@ let kc2kt =
   | 0xff53 -> Right
   | 0xff52 -> Up
   | code when code > 31 && code < 128 -> Ascii (Char.unsafe_chr code)
-  | code when code > 0xffbd && code < 0xffc7 -> Fn (code - 0xffbe + 1)
+  | code when code >= 0xffb0 && code <= 0xffb9 ->
+     Ascii (Char.unsafe_chr (code - 0xffb0 + 0x30))
+  | code when code >= 0xffbe && code <= 0xffc8 -> Fn (code - 0xffbe + 1)
   | code -> Code code
 ;;
