@@ -3249,13 +3249,11 @@ let genhistoutlines () =
   Config.gethist ()
   |> List.sort (fun (_, c1, _, _, _, _) (_, c2, _, _, _, _) ->
          compare c2.lastvisit c1.lastvisit)
-  |> List.map
-       (fun ((path, c, _, _, _, origin) as hist) ->
+  |> List.map (fun ((path, c, _, _, _, origin) as hist) ->
          let path = if nonemptystr origin then origin else path in
          let base = mbtoutf8 @@ Filename.basename path in
          (base ^ "\000" ^ c.title, 1, Ohistory hist)
        )
-  |> Array.of_list
 ;;
 
 let gotohist (path, c, bookmarks, x, anchor, origin) =
@@ -4477,37 +4475,36 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
       match sourcetype with
       | `bookmarks -> Array.of_list state.bookmarks
       | `outlines -> state.outlines
-      | `history -> genhistoutlines ()
+      | `history -> genhistoutlines () |> Array.of_list
     in
     let source =
       if sourcetype = `history
       then new outlinesoucebase fetchoutlines
       else outlinesource fetchoutlines
     in
-    fun errmsg ->
-    let outlines = fetchoutlines () in
-    if Array.length outlines = 0
-    then (
-      showtext ' ' errmsg;
-    )
-    else (
-      resetmstate ();
-      Wsi.setcursor Wsi.CURSOR_INHERIT;
-      let anchor = getanchor () in
-      source#reset anchor outlines;
-      state.text <- source#greetmsg;
-      state.uioh <-
-        coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
-      G.postRedisplay "enter selector";
+    (fun errmsg ->
+      let outlines = fetchoutlines () in
+      if Array.length outlines = 0
+      then showtext ' ' errmsg
+      else (
+        resetmstate ();
+        Wsi.setcursor Wsi.CURSOR_INHERIT;
+        let anchor = getanchor () in
+        source#reset anchor outlines;
+        state.text <- source#greetmsg;
+        state.uioh <-
+          coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
+        G.postRedisplay "enter selector";
+      )
     )
   in
   let mkenter sourcetype errmsg =
     let enter = mkselector sourcetype in
     fun () -> enter errmsg
   in
-  mkenter `outlines "document has no outline"
+  ( mkenter `outlines "document has no outline"
   , mkenter `bookmarks "document has no bookmarks (yet)"
-  , mkenter `history "history is empty"
+  , mkenter `history "history is empty" )
 ;;
 
 let quickbookmark ?title () =
@@ -4517,15 +4514,12 @@ let quickbookmark ?title () =
      let title =
        match title with
        | None ->
-          let tm = Unix.localtime (now ()) in
+          let open Unix in
+          let tm = localtime (now ()) in
           Printf.sprintf
             "Quick (page %d) (bookmarked at %02d/%02d/%d %02d:%02d)"
             (l.pageno+1)
-            tm.Unix.tm_mday
-            (tm.Unix.tm_mon+1)
-            (tm.Unix.tm_year + 1900)
-            tm.Unix.tm_hour
-            tm.Unix.tm_min
+            tm.tm_mday (tm.tm_mon+1) (tm.tm_year+1900) tm.tm_hour tm.tm_min
        | Some title -> title
      in
      state.bookmarks <- (title, 0, Oanchor (getanchor1 l)) :: state.bookmarks
