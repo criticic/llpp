@@ -2464,7 +2464,7 @@ let textentrykeyboard
 
   | Delete | KPdelete -> ()
 
-  | Code _ | Ascii _->
+  | Code _ | Ascii _ ->
      begin match onkey text key with
      | TEdone text ->
         ondone text;
