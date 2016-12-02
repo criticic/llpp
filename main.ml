@@ -507,12 +507,9 @@ let layout x y sw sh =
   else []
 ;;
 
-let clamp incr =
-  let y = state.y + incr in
-  let y = max 0 y in
-  let y = min y (state.maxy - (if conf.maxhfit then state.winh else 0)) in
-  y;
-;;
+let maxy () = state.maxy - if conf.maxhfit then state.winh else 0;;
+
+let clamp incr = bound (state.y + incr) 0 @@ maxy ();;
 
 let itertiles l f =
   let tilex = l.pagex mod conf.tilew in
@@ -3301,11 +3298,11 @@ let setcheckers enabled =
 let describe_location () =
   let fn = page_of_y state.y in
   let ln = page_of_y (state.y + state.winh - 1) in
-  let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
+  let maxy = maxy () in
   let percent =
     if maxy <= 0
     then 100.
-    else (100. *. (float state.y /. float maxy))
+    else 100. *. (float state.y /. float maxy)
   in
   if fn = ln
   then
@@ -5669,9 +5666,7 @@ let scrollx x =
 
 let scrolly y =
   let s = float y /. float state.winh in
-  let desty = truncate (float (state.maxy -
-                                 (if conf.maxhfit then state.winh else 0))
-                        *. s) in
+  let desty = truncate (s *. float (maxy ())) in
   gotoxy_and_clear_text state.x desty;
   state.mstate <- Mscrolly;
 ;;
@@ -6060,7 +6055,7 @@ let uioh = object
     method infochanged _ = ()
 
     method scrollph =
-      let maxy = state.maxy - (if conf.maxhfit then state.winh else 0) in
+      let maxy = maxy () in
       let p, h =
         if maxy = 0
         then 0.0, float state.winh
@@ -6579,7 +6574,7 @@ let () =
            match state.autoscroll with
            | Some step when step != 0 ->
               let y = state.y + step in
-              let fy = if conf.maxhfit then state.winh else 0 in
+              let fy = maxy () in
               let y =
                 if y < 0
                 then state.maxy - fy
