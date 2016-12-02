@@ -4514,12 +4514,13 @@ let quickbookmark ?title () =
      let title =
        match title with
        | None ->
-          let open Unix in
-          let tm = localtime (now ()) in
-          Printf.sprintf
-            "Quick (page %d) (bookmarked on %02d/%02d/%d at %02d:%02d)"
-            (l.pageno+1)
-            tm.tm_mday (tm.tm_mon+1) (tm.tm_year+1900) tm.tm_hour tm.tm_min
+          Unix.(
+           let tm = localtime (now ()) in
+           Printf.sprintf
+             "Quick (page %d) (bookmarked on %02d/%02d/%d at %02d:%02d)"
+             (l.pageno+1)
+             tm.tm_mday (tm.tm_mon+1) (tm.tm_year+1900) tm.tm_hour tm.tm_min
+          )
        | Some title -> title
      in
      state.bookmarks <- (title, 0, Oanchor (getanchor1 l)) :: state.bookmarks
