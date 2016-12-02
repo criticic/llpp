@@ -119,6 +119,11 @@ case $type in
         missing prince "PrinceXML(http://www.princexml.com/)"
         conv='prince -s /home/malc/xsrc/llpp/misc/rr.css - -o "$casp"'
     };;
+    html2epub) {
+        missing pandoc "pandoc(http://pandoc.org)"
+        caspsuf=".epub"
+        conv='pandoc - -w epub -o "$casp"'
+    };;
     word) {
         if executable_p unoconv && test -z "$dc"; then
             unset filt
