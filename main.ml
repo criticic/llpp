@@ -6253,7 +6253,6 @@ let () =
   let pageno = ref None in
   let rootwid = ref 0 in
   let openlast = ref false in
-  let nofc = ref false in
   let doreap = ref false in
   let csspath = ref None in
   selfexec := Sys.executable_name;
@@ -6294,8 +6293,6 @@ let () =
 
         ("-gc", Arg.Set_string gcconfig,
          "<path> Collect garbage with the help of a script");
-
-        ("-nofc", Arg.Set nofc, " Do not use fontconfig");
 
         ("-v", Arg.Unit (fun () ->
                    Printf.printf
@@ -6497,7 +6494,7 @@ let () =
   init cs (
          conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
          conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-         !Config.fontpath, !trimcachepath, !opengl_has_pbo, not !nofc
+         !Config.fontpath, !trimcachepath, !opengl_has_pbo
        );
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;

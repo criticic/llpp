@@ -92,7 +92,7 @@ type keymap        =
  and angle          = int
  and initparams     =
    (angle * fitmodel * trimparams * texcount * sliceheight * memsize
-    * colorspace * fontpath * trimcachepath * haspbo * usefontconfig)
+    * colorspace * fontpath * trimcachepath * haspbo)
  and width          = int
  and height         = int
  and leftx          = int
