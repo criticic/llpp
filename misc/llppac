@@ -123,7 +123,7 @@ case $type in
     html2epub) {
         missing pandoc "pandoc(http://pandoc.org)"
         caspsuf=".epub"
-        conv='pandoc - -w epub -o "$casp"'
+        conv='pandoc -r html - -w epub -o "$casp"'
     };;
     word) {
         if executable_p unoconv && test -z "$dc"; then
