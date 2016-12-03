@@ -6,16 +6,17 @@ if test x"$1" = x; then
 else
     builddir="$1"
 fi
+test x"$2" = "x" || cty="$2" && cty=""
 
 ccopt="$CFLAGS -Wno-pointer-sign -O2"
 mlopt='-warn-error +a -w +a -g -safe-string'
 if test -z "$native"; then
-    comp=ocamlc.opt
+    comp=ocamlc$cty
     osu=.cmo
     asu=.cma
     lfl=-custom
 else
-    comp=ocamlopt.opt
+    comp=ocamlopt$cty
     osu=.cmx
     asu=.cmxa
     lfl=
