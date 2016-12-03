@@ -4770,8 +4770,7 @@ let viewkeyboard key mask =
      then gotoxy 0 state.y
      else setzoom 1.0
 
-  | Ascii ('1'|'2' as c)
-       when ctrl && conf.fitmodel != FitPage ->
+  | Ascii ('1'|'2' as c) when ctrl && conf.fitmodel != FitPage ->
      let cols =
        match conf.columns with
        | Csingle _ | Cmulti _ -> 1
