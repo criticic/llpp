@@ -586,12 +586,11 @@ let gotourl url =
 let gotouri uri =
   if emptystr conf.urilauncher
   then dolog "%s" uri
-  else (
+  else
     let url = geturl uri in
     if emptystr url
     then dolog "obtained empty url from uri %S" uri
     else gotourl url
-  );
 ;;
 
 let makehelp () =
