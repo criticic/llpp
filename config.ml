@@ -587,10 +587,9 @@ let gotouri uri =
   if emptystr conf.urilauncher
   then dolog "%s" uri
   else
-    let url = geturl uri in
-    if emptystr url
-    then dolog "obtained empty url from uri %S" uri
-    else gotourl url
+    match geturl uri with
+    | "" -> dolog "obtained empty url from uri %S" uri
+    | url -> gotourl url
 ;;
 
 let makehelp () =
@@ -600,10 +599,9 @@ let makehelp () =
     :: E.s :: Help.keys
   in
   List.map (fun s ->
-      let url = geturl s in
-      if nonemptystr url
-      then (s, 0, Action (fun uioh -> gotourl url; uioh))
-      else (s, 0, Noaction)
+      match geturl s with
+      | "" -> (s, 0, Noaction)
+      | url -> (s, 0, Action (fun uioh -> gotourl url; uioh))
     ) strings;
 ;;
 
