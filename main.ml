@@ -1034,8 +1034,8 @@ let gotopage1 n top =
   gotoghyll y
 ;;
 
-let invalidate s f =
-  state.redisplay <- false;
+let invalidate ?(redisplay=false) s f =
+  state.redisplay <- redisplay;
   state.layout <- [];
   state.pdims <- [];
   state.rects <- [];
@@ -1304,7 +1304,7 @@ let reshape ?(firsttime=false) w h =
     then 0.0
     else float state.x /. float state.w
   in
-  invalidate "geometry"
+  invalidate ~redisplay:true "geometry"
              (fun () ->
                state.w <- w;
                if not firsttime
