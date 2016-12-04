@@ -6570,7 +6570,7 @@ let () =
            match state.autoscroll with
            | Some step when step != 0 ->
               let y = state.y + step in
-              let fy = maxy () in
+              let fy = if conf.maxhfit then state.winh else 0 in
               let y =
                 if y < 0
                 then state.maxy - fy
