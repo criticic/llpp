@@ -4886,7 +4886,7 @@ let viewkeyboard key mask =
      end
 
   | Ascii 'p' when ctrl ->
-     launchpath ()             (* XXX where do error messages go? *)
+     launchpath ()              (* XXX where do error messages go? *)
 
   | Ascii 'P' ->
      setpresentationmode (not conf.presentation);
