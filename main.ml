@@ -3177,14 +3177,14 @@ class outlinelistview ~zebra ~source =
          then source#add_narrow_pattern m_qsearch;
          super#key key mask
 
-      | _ when m_autonarrow ->
+      | (Ascii _ | Code _) when m_autonarrow ->
          let pattern = m_qsearch ^ toutf8 key in
          G.postRedisplay "outlinelistview autonarrow add";
          source#narrow pattern;
          settext true pattern;
          coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-      | key when m_autonarrow && key = Backspace ->
+      | Backspace when m_autonarrow ->
          if emptystr m_qsearch
          then coe self
          else
