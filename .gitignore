@@ -4,7 +4,6 @@
 /misc/completions/zsh/llpp
 /misc/completions/zsh/llppac
 /.gdb_history
-/todo
-mupdf
+/.tramp_history
 test/
-.tramp_history
+mupdf
