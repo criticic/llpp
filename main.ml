@@ -220,7 +220,7 @@ let getunder x y =
          let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
          state.rects <- [l.pageno, color, rect];
          G.postRedisplay "getunder";
-      | _otherwise -> ()
+      | _ -> ()
     );
     let under = whatsunder opaque px py in
     if under = Unone then None else Some under
