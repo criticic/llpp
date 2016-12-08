@@ -5,7 +5,7 @@ exec 1>&2 2>/dev/null
 
 test "$1" = "-" && src="cat" || src="xclip -o"
 
-font='source code pro 10'
+font='source code pro 16'
 rofi="rofi -dmenu -font '$font' -fg white -bg grey20"
 
 pag() {                                                 \
