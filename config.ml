@@ -10,7 +10,7 @@ type fontstate =
 ;;
 
 let fstate =
-  { fontsize = 14
+  { fontsize = 20
   ; wwidth = nan
   ; maxrows = -1
   }
@@ -504,8 +504,8 @@ let defconf =
   ; zoom           = 1.0
   ; presentation   = false
   ; angle          = 0
-  ; cwinw          = 900
-  ; cwinh          = 900
+  ; cwinw          = 1200
+  ; cwinh          = 1000
   ; savebmarks     = true
   ; fitmodel       = FitProportional
   ; trimmargins    = false
