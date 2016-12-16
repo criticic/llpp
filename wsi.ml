@@ -626,12 +626,9 @@ let readresp sock =
      and h = r16 resp 22 in
      vlog "configure cur [%d %d %d %d] conf [%d %d %d %d]"
           state.x state.y state.w state.h
-          x y w h
-     ;
-       if w != state.w || h != state.h
-       then (
-         state.t#reshape w h;
-       );
+          x y w h;
+     if w != state.w || h != state.h
+     then state.t#reshape w h;
      state.w <- w;
      state.h <- h;
      state.x <- x;
