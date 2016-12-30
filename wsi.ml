@@ -1337,5 +1337,6 @@ let kc2kt =
   | code when code >= 0xffb0 && code <= 0xffb9 ->
      Ascii (Char.unsafe_chr (code - 0xffb0 + 0x30))
   | code when code >= 0xffbe && code <= 0xffc8 -> Fn (code - 0xffbe + 1)
+  | code when code land 0xff00 = 0xff00 -> Ctrl code
   | code -> Code code
 ;;

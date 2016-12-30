@@ -3238,7 +3238,7 @@ class outlinelistview ~zebra ~source =
          G.postRedisplay "outline end";
          coe {< m_active = active; m_first = first >}
 
-      | Delete|Escape|Insert|Enter|Ascii _|Code _|Backspace|Fn _ ->
+      | Delete|Escape|Insert|Enter|Ascii _|Code _|Ctrl _|Backspace|Fn _ ->
          super#key key mask
   end;;
 
@@ -5150,7 +5150,7 @@ let viewkeyboard key mask =
      G.postRedisplay "|";
      state.mode <- Textentry (te, onleave);
 
-  | (Ascii _|Fn _|Enter|Left|Right|Code _) ->
+  | (Ascii _|Fn _|Enter|Left|Right|Code _|Ctrl _) ->
      vlog "huh? %s" (Wsi.keyname key)
 ;;
 
@@ -5195,7 +5195,7 @@ let linknavkeyboard key mask linknav =
               Some (findlink opaque (LDdown n)), 1
 
            | Delete|Escape|Insert|Enter|Next|Prior|Ascii _
-           | Code _|Fn _|Backspace -> None, 0
+           | Code _|Fn _|Ctrl _|Backspace -> None, 0
          in
          let pwl l dir =
            begin match findpwl l.pageno dir with
@@ -5368,7 +5368,7 @@ let birdseyekeyboard key mask
          (max 0 (getpagey pageno - (state.winh - h - conf.interpagespace)))
      else G.postRedisplay "birdseye end";
 
-  | Delete|Insert|Ascii _|Code _|Fn _|Backspace -> viewkeyboard key mask
+  | Delete|Insert|Ascii _|Code _|Ctrl _|Fn _|Backspace -> viewkeyboard key mask
 ;;
 
 let drawpage l =
@@ -6374,6 +6374,7 @@ let () =
         state.mpos <- (x, y);
         state.uioh <- state.uioh#pmotion x y
       method key k m =
+        vlog "k=%#x m=%#x" k m;
         let mascm = m land (
             Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
           ) in

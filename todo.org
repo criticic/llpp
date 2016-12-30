@@ -28,3 +28,5 @@
 * TODO outline for cbz
   file names? exif?
 * TODO somehow merge kv2pv and xlatt/xlatf
+* DONE ctrl in (at least) help mode yields a key and not found message
+  CLOSED: [2016-12-30 Fri 10:53]
