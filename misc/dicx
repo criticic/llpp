@@ -5,15 +5,14 @@ exec 1>&2 2>/dev/null
 
 test "$1" = "-" && src="cat" || src="xclip -o"
 
-font='source code pro 16'
-rofi="rofi -dmenu -font '$font' -fg white -bg grey20"
+rofi="rofi -dmenu -yoffset 30 -location 2"
 
 pag() {                                                 \
     sed -e 1d                                           \
         -e 's; _\([A-Z]\); \1;p'                        \
         -e '/^$/d' -e '/^-->/d'                         \
-    | eval $rofi -location 2 -l 20 -p 'Done' >/dev/null
+    | eval $rofi -l 20 -p 'Done' >/dev/null
 }
 
-phrase="$($src | eval $rofi -markup -location 2 -p '\ ')"
+phrase="$($src | eval $rofi -markup -p 'Lookup: ')"
 sdcv -n --utf8-input --utf8-output "$phrase" | pag
