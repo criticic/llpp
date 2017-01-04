@@ -6,6 +6,11 @@ if test x"$1" = x; then
 else
     builddir="$1"
 fi
+test $(ocamlc --version | awk -F. '{print $1 $2}') -lt 404 && {
+    echo "OCaml version 4.04.0 or higher required"
+    exit 1
+} || true
+
 test x"$2" = "x" || cty="$2" && cty=""
 
 ccopt="$CFLAGS -Wno-pointer-sign -O2"
