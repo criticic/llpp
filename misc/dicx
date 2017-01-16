@@ -12,7 +12,7 @@ pag() {                                                 \
     sed -e 1d                                           \
         -e 's; _\([A-Z]\); \1;p'                        \
         -e '/^$/d' -e '/^-->/d'                         \
-    | eval $rofi -l 20 -p 'Done' >/dev/null
+    | eval $rofi -l 20 -p 'Done'
 }
 
 phrase="$($src | eval $rofi -markup -p 'Lookup: ')"
