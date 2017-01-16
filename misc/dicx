@@ -5,7 +5,8 @@ exec 1>&2 2>/dev/null
 
 test "$1" = "-" && src="cat" || src="xclip -o"
 
-rofi="rofi -dmenu -yoffset 30 -location 2"
+eval $(xdotool search --class i3bar getwindowgeometry --shell)
+rofi="rofi -dmenu -yoffset $((HEIGHT+2)) -location 2"
 
 pag() {                                                 \
     sed -e 1d                                           \
