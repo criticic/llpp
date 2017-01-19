@@ -34,6 +34,8 @@ culpa qui officia deserunt mollit anim id est laborum.
 Posting Soccer Goals On Vine Is Illegal, Say England's Premier League
 abcdefghizklmnopqrstwxyz
 ABCDEFGHIZKLMNOPQRSTWXYZ
+абвгдеёжзийклмнопрстуфхцчшщэюя
+АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
 \`1234567890-=\\
 ~!@#\$%^&*()_+|
 [];',./
@@ -49,6 +51,7 @@ while getopts m:t:f opt; do
         m) mime=$OPTARG;;
         t) type=$OPTARG;;
         f) force=1;;
+        c) css="-s $OPTARG";;
         ?) die "usage: $0 [-m mime/type] [-t filter] [-f] [path|url]";;
     esac
 done
@@ -117,7 +120,12 @@ case $type in
     djvu) conv='ddjvu -format=pdf - "$casp"';;
     html) {
         missing prince "PrinceXML(http://www.princexml.com/)"
-        conv='prince -s /home/malc/xsrc/llpp/misc/rr.css - -o "$casp"'
+        conv='prince $css - -o "$casp"'
+    };;
+    html2epub) {
+        missing pandoc "pandoc(http://pandoc.org)"
+        caspsuf=".epub"
+        conv='pandoc -r html - -w epub -o "$casp"'
     };;
     word) {
         if executable_p unoconv && test -z "$dc"; then

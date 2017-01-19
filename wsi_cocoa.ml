@@ -17,94 +17,27 @@ type visiblestate =
   | PartiallyObscured
   | FullyObscured
 
-let classify_key key =
-  let open Keys in
-  match key with
-  | 0xF704 -> F1
-  | 0xF706 -> F3
-  | 0xF70C -> F9
-  | 62 -> Gt
-  | 91 -> Lb
-  | 60 -> Lt
-  | 93 -> Rb
-  | 39 -> Apos
-  | 8 -> Backspace
-  | 0x7f -> Delete
-  | 0xF701 -> Down
-  | 13 -> Enter
-  | 61 -> Equals
-  | 27 -> Escape
-  | 0xF729 -> Home
-  | 0xF727 -> Insert
-  | 0xF72B -> Jend
-  | 0xfff01 -> KPdown
-  | 0xfff02 -> KPend
-  | 0xfff03 -> KPenter
-  | 0xfff04 -> KPhome
-  | 0xfff05 -> KPleft
-  | 0xfff06 -> KPminus
-  | 0xfff07 -> KPnext
-  | 0xfff08 -> KPplus
-  | 0xfff09 -> KPprior
-  | 0xfff0a -> KPright
-  | 0xfff0b -> KPup
-  | 0xF702 -> Left
-  | 45 -> Minus
-  | 0xF72D -> Next
-  | 124 -> Pipe
-  | 43 -> Plus
-  | 0xF72C -> Prior
-  | 63 -> Question
-  | 0xF703 -> Right
-  | 47 -> Slash
-  | 32 -> Space
-  | 9 -> Tab
-  | 0x7e -> Tilde
-  | 0xF700 -> Up
-  | 48 -> N0
-  | 49 -> N1
-  | 50 -> N2
-  | 51 -> N3
-  | 52 -> N4
-  | 57 -> N9
-  | 66 -> CB
-  | 70 -> CF
-  | 71 -> CG
-  | 72 -> CH
-  | 78 -> CN
-  | 80 -> CP
-  | 81 -> CQ
-  | 87 -> CW
-  | 83 -> CS
-  | 97 -> Ca
-  | 98 -> Cb
-  | 99 -> Cc
-  | 101 -> Ce
-  | 102 -> Cf
-  | 103 -> Cg
-  | 104 -> Ch
-  | 105 -> Ci
-  | 106 -> Cj
-  | 107 -> Ck
-  | 108 -> Cl
-  | 109 -> Cm
-  | 110 -> Cn
-  | 111 -> Co
-  | 112 -> Cp
-  | 113 -> Cq
-  | 114 -> Cr
-  | 115 -> Cs
-  | 116 -> Ct
-  | 117 -> Cu
-  | 118 -> Cv
-  | 119 -> Cw
-  | 120 -> Cx
-  | 121 -> Cy
-  | 122 -> Cz
-  | n -> Code n
-;;
+let onot = object
+  method display         = ()
+  method map _           = ()
+  method expose          = ()
+  method visible _       = ()
+  method reshape _ _     = ()
+  method mouse _ _ _ _ _ = ()
+  method motion _ _      = ()
+  method pmotion _ _     = ()
+  method key _ _         = ()
+  method enter _ _       = ()
+  method leave           = ()
+  method winstate _      = ()
+  method quit : 'a. 'a   = exit 0
+  method scroll _ _      = ()
+  method zoom _ _ _      = ()
+  method opendoc _       = ()
+end
 
 class type t = object
+  method display  : unit
   method map      : bool -> unit
   method expose   : unit
   method visible  : visiblestate -> unit
@@ -120,24 +53,6 @@ class type t = object
   method scroll   : int -> int -> unit
   method zoom     : float -> int -> int -> unit
   method opendoc  : string -> unit
-end
-
-let onot = object
-  method map _           = ()
-  method expose          = ()
-  method visible _       = ()
-  method reshape _ _     = ()
-  method mouse _ _ _ _ _ = ()
-  method motion _ _      = ()
-  method pmotion _ _     = ()
-  method key _ _         = ()
-  method enter _ _       = ()
-  method leave           = ()
-  method winstate _      = ()
-  method quit: 'a. 'a    = exit 0
-  method scroll _ _      = ()
-  method zoom _ _ _      = ()
-  method opendoc _       = ()
 end
 
 type state =
@@ -384,3 +299,128 @@ let isspecialkey key =
   (0x0 <= key && key <= 0x1F) || key = 0x7f || (0x80 <= key && key <= 0x9F) ||
   (key land 0xf700 = 0xf700)
 ;;
+
+let kc2kt =
+  let open Keys in
+  function
+  | 0xff08 -> Backspace
+  | 0xff0d -> Enter
+  | 0xff1b -> Escape
+  | 0xff50 -> Home
+  | 0xff51 -> Left
+  | 0xff52 -> Up
+  | 0xff53 -> Right
+  | 0xff54 -> Down
+  | 0xff55 -> Prior
+  | 0xff56 -> Next
+  | 0xff57 -> End
+  | 0xff63 -> Insert
+  | 0xff8d -> Enter
+  | 0xff95 -> Home
+  | 0xff96 -> Left
+  | 0xff97 -> Up
+  | 0xff98 -> Right
+  | 0xff99 -> Down
+  | 0xff9a -> Prior
+  | 0xff9b -> Next
+  | 0xff9c -> End
+  | 0x7f -> Delete
+  | 0xffab -> Ascii '+'
+  | 0xffad -> Ascii '-'
+  | 0xffff -> Delete
+  | code when code > 31 && code < 128 -> Ascii (Char.unsafe_chr code)
+  | code when code >= 0xffb0 && code <= 0xffb9 ->
+     Ascii (Char.unsafe_chr (code - 0xffb0 + 0x30))
+  | code when code >= 0xffbe && code <= 0xffc8 -> Fn (code - 0xffbe + 1)
+  | code when code land 0xff00 = 0xff00 -> Ctrl code
+  | code -> Code code
+;;
+
+(*
+let classify_key key =
+  let open Keys in
+  match key with
+  | 0xF704 -> F1
+  | 0xF706 -> F3
+  | 0xF70C -> F9
+  | 62 -> Gt
+  | 91 -> Lb
+  | 60 -> Lt
+  | 93 -> Rb
+  | 39 -> Apos
+  | 8 -> Backspace
+  | 0x7f -> Delete
+  | 0xF701 -> Down
+  | 13 -> Enter
+  | 61 -> Equals
+  | 27 -> Escape
+  | 0xF729 -> Home
+  | 0xF727 -> Insert
+  | 0xF72B -> Jend
+  | 0xfff01 -> KPdown
+  | 0xfff02 -> KPend
+  | 0xfff03 -> KPenter
+  | 0xfff04 -> KPhome
+  | 0xfff05 -> KPleft
+  | 0xfff06 -> KPminus
+  | 0xfff07 -> KPnext
+  | 0xfff08 -> KPplus
+  | 0xfff09 -> KPprior
+  | 0xfff0a -> KPright
+  | 0xfff0b -> KPup
+  | 0xF702 -> Left
+  | 45 -> Minus
+  | 0xF72D -> Next
+  | 124 -> Pipe
+  | 43 -> Plus
+  | 0xF72C -> Prior
+  | 63 -> Question
+  | 0xF703 -> Right
+  | 47 -> Slash
+  | 32 -> Space
+  | 9 -> Tab
+  | 0x7e -> Tilde
+  | 0xF700 -> Up
+  | 48 -> N0
+  | 49 -> N1
+  | 50 -> N2
+  | 51 -> N3
+  | 52 -> N4
+  | 57 -> N9
+  | 66 -> CB
+  | 70 -> CF
+  | 71 -> CG
+  | 72 -> CH
+  | 78 -> CN
+  | 80 -> CP
+  | 81 -> CQ
+  | 87 -> CW
+  | 83 -> CS
+  | 97 -> Ca
+  | 98 -> Cb
+  | 99 -> Cc
+  | 101 -> Ce
+  | 102 -> Cf
+  | 103 -> Cg
+  | 104 -> Ch
+  | 105 -> Ci
+  | 106 -> Cj
+  | 107 -> Ck
+  | 108 -> Cl
+  | 109 -> Cm
+  | 110 -> Cn
+  | 111 -> Co
+  | 112 -> Cp
+  | 113 -> Cq
+  | 114 -> Cr
+  | 115 -> Cs
+  | 116 -> Ct
+  | 117 -> Cu
+  | 118 -> Cv
+  | 119 -> Cw
+  | 120 -> Cx
+  | 121 -> Cy
+  | 122 -> Cz
+  | n -> Code n
+;;
+*)

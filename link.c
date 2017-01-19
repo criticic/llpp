@@ -1,5 +1,6 @@
 /* lots of code c&p-ed directly from mupdf */
 #define CAML_NAME_SPACE
+#define FIXME 0
 
 #include <errno.h>
 #include <stdio.h>
@@ -11,6 +12,7 @@
 
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/uio.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -53,10 +55,6 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-
-#ifdef USE_FONTCONFIG
-#include <fontconfig/fontconfig.h>
-#endif
 
 #define PIGGYBACK
 #define CACHE_PAGEREFS
@@ -173,7 +171,7 @@ struct pagedim {
     fz_irect bounds;
     fz_rect pagebox;
     fz_rect mediabox;
-    fz_matrix ctm, zoomctm, lctm, tctm;
+    fz_matrix ctm, zoomctm, tctm;
 };
 
 struct slink {
@@ -371,13 +369,10 @@ static void readdata (int fd, void *p, int size)
 {
     ssize_t n;
 
- again:
+again:
     n = read (fd, p, size);
-    if (n < 0) {
-        if (errno == EINTR) goto again;
-        err (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
-    }
     if (n - size) {
+        if (n < 0 && errno == EINTR) goto again;
         if (!n) errx (1, "EOF while reading");
         errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
@@ -386,17 +381,18 @@ static void readdata (int fd, void *p, int size)
 static void writedata (int fd, char *p, int size)
 {
     ssize_t n;
+    uint32_t size4 = size;
+    struct iovec iov[2] = {
+        { .iov_base = &size4, .iov_len = 4 },
+        { .iov_base = p, .iov_len = size }
+    };
 
-    /* One should lookup type punning/strict aliasing etc in standard,DRs,Web to
-       convince herself that this is:
-       a. safe
-       b. practically the only way to achieve the result
-          (union puns notwithstanding) */
-    memcpy (p, &size, 4);
-    n = write (fd, p, size + 4);
+again:
+    n = writev (fd, iov, 2);
+    if (n < 0 && errno == EINTR) goto again;
     if (n - size - 4) {
         if (!n) errx (1, "EOF while writing data");
-        err (1, "write (fd %d, req %d, ret %zd)", fd, size + 4, n);
+        err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
 
@@ -404,7 +400,7 @@ static int readlen (int fd)
 {
     /* Type punned unions here. Why? Less code (Adjusted by more comments).
        https://en.wikipedia.org/wiki/Type_punning */
-    union { int len; char raw[4]; } buf;
+    union { uint32_t len; char raw[4]; } buf;
     readdata (fd, buf.raw, 4);
     return buf.len;
 }
@@ -429,16 +425,14 @@ CAMLprim value ml_rcmd (value fd_v)
 
 static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 {
-    int size = 200, len;
+    int size = 64, len;
     va_list ap;
-    char *buf;
+    char fbuf[size];
+    char *buf = fbuf;
 
-    buf = malloc (size);
     for (;;) {
-        if (!buf) err (1, "malloc for temp buf (%d bytes) failed", size);
-
         va_start (ap, fmt);
-        len = vsnprintf (buf + 4, size - 4, fmt, ap);
+        len = vsnprintf (buf, size, fmt, ap);
         va_end (ap);
 
         if (len > -1) {
@@ -451,18 +445,17 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
         else {
             err (1, "vsnprintf for `%s' failed", fmt);
         }
-        buf = realloc (buf, size);
+        buf = realloc (buf == fbuf ? NULL : buf, size);
+        if (!buf) err (1, "realloc for temp buf (%d bytes) failed", size);
     }
-    free (buf);
+    if (buf != fbuf) free (buf);
 }
 
 static void closedoc (void)
 {
 #ifdef CACHE_PAGEREFS
     if (state.pdflut.objs) {
-        int i;
-
-        for (i = 0; i < state.pdflut.count; ++i) {
+        for (int i = 0; i < state.pdflut.count; ++i) {
             pdf_drop_obj (state.ctx, state.pdflut.objs[i]);
         }
         free (state.pdflut.objs);
@@ -478,9 +471,7 @@ static void closedoc (void)
 
 static int openxref (char *filename, char *password)
 {
-    int i;
-
-    for (i = 0; i < state.texcount; ++i) {
+    for (int i = 0; i < state.texcount; ++i) {
         state.texowners[i].w = -1;
         state.texowners[i].slice = NULL;
     }
@@ -495,10 +486,6 @@ static int openxref (char *filename, char *password)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
-#ifdef CSS_HACK_TO_READ_EPUBS_COMFORTABLY
-    fz_set_user_css (state.ctx,
-                     "body { margin-left: 20%; margin-right: 20%; }");
-#endif
     state.doc = fz_open_document (state.ctx, filename);
     if (fz_needs_password (state.ctx, state.doc)) {
         if (password && !*password) {
@@ -519,37 +506,43 @@ static int openxref (char *filename, char *password)
 
 static void pdfinfo (void)
 {
-    pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
-    if (pdf) {
-        pdf_obj *infoobj;
+    struct { char *tag; char *name; } metatbl[] = {
+        { FZ_META_INFO_TITLE, "Title" },
+        { FZ_META_INFO_AUTHOR, "Author" },
+        { FZ_META_FORMAT, "Format" },
+        { FZ_META_ENCRYPTION, "Encryption" },
+        { "info:Creator", "Creator" },
+        { "info:Producer", "Producer" },
+        { "info:CreationDate", "Creation date" },
+    };
+    int len = 0;
+    char *buf = NULL;
 
-        printd ("info PDF version\t%d.%d",
-                pdf->version / 10, pdf->version % 10);
-
-        infoobj = pdf_dict_gets (state.ctx, pdf_trailer (state.ctx,
-                                                         pdf), "Info");
-        if (infoobj) {
-            unsigned int i;
-            char *s;
-            char *items[] = { "Title", "Author", "Creator",
-                              "Producer", "CreationDate" };
-
-            for (i = 0; i < sizeof (items) / sizeof (*items); ++i) {
-                pdf_obj *obj = pdf_dict_gets (state.ctx, infoobj, items[i]);
-                s = pdf_to_utf8 (state.ctx, pdf, obj);
-                if (*s) printd ("info %s\t%s", items[i], s);
-                fz_free (state.ctx, s);
+    for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
+        int need;
+    again:
+        need = fz_lookup_metadata (state.ctx, state.doc,
+                                   metatbl[i].tag, buf, len);
+        if (need > 0) {
+            if (need <= len) {
+                printd ("info %s\t%s", metatbl[i].name, buf);
+            }
+            else {
+                buf = realloc (buf, need + 1);
+                if (!buf) err (1, "pdfinfo realloc %d", need + 1);
+                len = need + 1;
+                goto again;
             }
         }
-        printd ("infoend");
     }
+    free (buf);
+
+    printd ("infoend");
 }
 
 static void unlinktile (struct tile *tile)
 {
-    int i;
-
-    for (i = 0; i < tile->slicecount; ++i) {
+    for (int i = 0; i < tile->slicecount; ++i) {
         struct slice *s = &tile->slices[i];
 
         if (s->texindex != -1) {
@@ -726,7 +719,6 @@ static void *loadpage (int pageno, int pindex)
 
 static struct tile *alloctile (int h)
 {
-    int i;
     int slicecount;
     size_t tilesize;
     struct tile *tile;
@@ -737,7 +729,7 @@ static struct tile *alloctile (int h)
     if (!tile) {
         err (1, "cannot allocate tile (%" FMT_s " bytes)", tilesize);
     }
-    for (i = 0; i < slicecount; ++i) {
+    for (int i = 0; i < slicecount; ++i) {
         int sh = fz_mini (h, state.sliceheight);
         tile->slices[i].h = sh;
         tile->slices[i].texindex = -1;
@@ -815,7 +807,7 @@ pdf_collect_pages(pdf_document *doc, pdf_obj *node)
 {
     fz_context *ctx = state.ctx; /* doc->ctx; */
     pdf_obj *kids;
-    int i, len;
+    int len;
 
     if (state.pdflut.idx == state.pagecount) return;
 
@@ -827,7 +819,7 @@ pdf_collect_pages(pdf_document *doc, pdf_obj *node)
 
     if (pdf_mark_obj (ctx, node))
         fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         pdf_obj *kid = pdf_array_get (ctx, kids, i);
         char *type = pdf_to_name (ctx, pdf_dict_gets (ctx, kid, "Type"));
         if (*type
@@ -1225,7 +1217,6 @@ static void layout (void)
         fz_translate (&tm, 0, -p->mediabox.y1);
         fz_scale (&sm, zoom, -zoom);
         fz_concat (&ctm, &tm, &sm);
-        fz_concat (&p->lctm, &ctm, &rm);
 
         p->tctmready = 0;
     }
@@ -1242,43 +1233,33 @@ static void layout (void)
     } while (p-- != state.pagedims);
 }
 
-static
-struct anchor { int n; int x; int y; int w; int h; }
-desttoanchor (fz_link_dest *dest)
+struct pagedim *pdimofpageno (int pageno)
 {
-    int i;
-    struct anchor a;
     struct pagedim *pdim = state.pagedims;
 
-    a.n = -1;
-    a.x = 0;
-    a.y = 0;
-    for (i = 0; i < state.pagedimcount; ++i) {
-        if (state.pagedims[i].pageno > dest->ld.gotor.page)
+    for (int i = 0; i < state.pagedimcount; ++i) {
+        if (state.pagedims[i].pageno > pageno)
             break;
         pdim = &state.pagedims[i];
     }
-    if (dest->ld.gotor.flags & fz_link_flag_t_valid) {
-        fz_point p;
-        if (dest->ld.gotor.flags & fz_link_flag_l_valid)
-            p.x = dest->ld.gotor.lt.x;
-        else
-            p.x = 0.0;
-        p.y = dest->ld.gotor.lt.y;
-        fz_transform_point (&p, &pdim->lctm);
+    return pdim;
+}
+
+static
+struct anchor { int n; int x; int y; int w; int h; }
+uritoanchor (const char *uri)
+{
+    fz_point p;
+    struct anchor a;
+
+    a.n = -1;
+    a.n = fz_resolve_link (state.ctx, state.doc, uri, &p.x, &p.y);
+    if (a.n >= 0) {
+        struct pagedim *pdim = pdimofpageno (a.n);
+        fz_transform_point (&p, &pdim->ctm);
         a.x = p.x;
         a.y = p.y;
-    }
-    if (dest->ld.gotor.page >= 0 && dest->ld.gotor.page < 1<<30) {
-        double x0, x1, y0, y1;
-
-        x0 = fz_min (pdim->bounds.x0, pdim->bounds.x1);
-        x1 = fz_max (pdim->bounds.x0, pdim->bounds.x1);
-        a.w = x1 - x0;
-        y0 = fz_min (pdim->bounds.y0, pdim->bounds.y1);
-        y1 = fz_max (pdim->bounds.y0, pdim->bounds.y1);
-        a.h = y1 - y0;
-        a.n = dest->ld.gotor.page;
+        a.h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
     }
     return a;
 }
@@ -1286,32 +1267,12 @@ desttoanchor (fz_link_dest *dest)
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        switch (outline->dest.kind) {
-        case FZ_LINK_GOTO:
-            {
-                struct anchor a = desttoanchor (&outline->dest);
-
-                if (a.n >= 0) {
-                    printd ("o %d %d %d %d %s",
-                            level, a.n, a.y, a.h, outline->title);
-                }
-            }
-            break;
-
-        case FZ_LINK_URI:
-            printd ("ou %d %" FMT_s " %s %s", level,
-                    strlen (outline->title), outline->title,
-                    outline->dest.ld.uri.uri);
-            break;
-
-        case FZ_LINK_NONE:
+        struct anchor a = uritoanchor (outline->uri);
+        if (a.n >= 0) {
+            printd ("o %d %d %d %d %s", level, a.n, a.y, a.h, outline->title);
+        }
+        else {
             printd ("on %d %s", level, outline->title);
-            break;
-
-        default:
-            printd ("emsg Unhandled outline kind %d for %s\n",
-                    outline->dest.kind, outline->title);
-            break;
         }
         if (outline->down) {
             recurse_outline (outline->down, level + 1);
@@ -1446,11 +1407,11 @@ static int compareblocks (const void *l, const void *r)
 /* wishful thinking function */
 static void search (regex_t *re, int pageno, int y, int forward)
 {
-    int i, j;
+    int j;
     fz_device *tdev;
     fz_stext_page *text;
     fz_stext_sheet *sheet;
-    struct pagedim *pdim, *pdimprev;
+    struct pagedim *pdim;
     int stop = 0, niters = 0;
     double start, end;
     fz_page *page;
@@ -1470,24 +1431,10 @@ static void search (regex_t *re, int pageno, int y, int forward)
                         pageno);
             }
         }
-        pdimprev = NULL;
-        for (i = 0; i < state.pagedimcount; ++i) {
-            pdim = &state.pagedims[i];
-            if (pdim->pageno == pageno) {
-                goto found;
-            }
-            if (pdim->pageno > pageno) {
-                pdim = pdimprev;
-                goto found;
-            }
-            pdimprev = pdim;
-        }
-        pdim = pdimprev;
-    found:
-
+        pdim = pdimofpageno (pageno);
         sheet = fz_new_stext_sheet (state.ctx);
         text = fz_new_stext_page (state.ctx, &pdim->mediabox);
-        tdev = fz_new_stext_device (state.ctx, sheet, text);
+        tdev = fz_new_stext_device (state.ctx, sheet, text, 0);
 
         page = fz_load_page (state.ctx, state.doc, pageno);
         {
@@ -1606,11 +1553,9 @@ static void realloctexts (int texcount)
         err (1, "realloc texowners %" FMT_s, size);
     }
     if (texcount > state.texcount) {
-        int i;
-
         glGenTextures (texcount - state.texcount,
                        state.texids + state.texcount);
-        for (i = state.texcount; i < texcount; ++i) {
+        for (int i = state.texcount; i < texcount; ++i) {
             state.texowners[i].w = -1;
             state.texowners[i].slice = NULL;
         }
@@ -1707,15 +1652,16 @@ static void * mainloop (void UNUSED_ATTR *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
-            int wthack, off, ok = 0;
+            int wthack, off, usedoccss, ok = 0;
             char *password;
             char *filename;
             char *utf8filename;
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p + 5, " %d %d %n", &wthack, &state.cxack, &off);
-            if (ret != 2) {
+            ret = sscanf (p + 5, " %d %d %d %n",
+                          &wthack, &state.cxack, &usedoccss, &off);
+            if (ret != 3) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
 
@@ -1723,7 +1669,12 @@ static void * mainloop (void UNUSED_ATTR *unused)
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
 
+            if (password[strlen (password) + 1]) {
+                fz_set_user_css (state.ctx, password + strlen (password) + 1);
+            }
+
             lock ("open");
+            fz_set_use_document_css (state.ctx, usedoccss);
             fz_try (state.ctx) {
                 ok = openxref (filename, password);
             }
@@ -1820,9 +1771,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
             lock ("geometry");
             state.h = h;
             if (w != state.w) {
-                int i;
                 state.w = w;
-                for (i = 0; i < state.texcount; ++i) {
+                for (int i = 0; i < state.texcount; ++i) {
                     state.texowners[i].slice = NULL;
                 }
             }
@@ -1859,31 +1809,13 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             nameddest = p + 9 + off;
             if (pdf && nameddest && *nameddest) {
-                struct anchor a;
-                fz_link_dest dest;
-                pdf_obj *needle, *obj;
-
-                needle = pdf_new_string (state.ctx, pdf, nameddest,
-                                         strlen (nameddest));
-                obj = pdf_lookup_dest (state.ctx, pdf, needle);
-                if (obj) {
-                    dest = pdf_parse_link_dest (state.ctx, pdf,
-                                                FZ_LINK_GOTO, obj);
-
-                    a = desttoanchor (&dest);
-                    if (a.n >= 0) {
-                        printd ("a %d %d %d", a.n, a.x, a.y);
-                    }
-                    else {
-                        printd ("emsg failed to parse destination `%s'\n",
-                                nameddest);
-                    }
-                }
-                else {
-                    printd ("emsg destination `%s' not found\n",
-                            nameddest);
-                }
-                pdf_drop_obj (state.ctx, needle);
+                fz_point xy;
+                struct pagedim *pdim;
+                int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest,
+                                                &xy.x, &xy.y);
+                pdim = pdimofpageno (pageno);
+                fz_transform_point (&xy, &pdim->ctm);
+                printd ("a %d %d %d", pageno, (int) xy.x, (int) xy.y);
             }
 
             state.gen++;
@@ -1985,10 +1917,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 errx (1, "malformed sliceh `%.*s' ret=%d", len, p, ret);
             }
             if (h != state.sliceheight) {
-                int i;
-
                 state.sliceheight = h;
-                for (i = 0; i < state.texcount; ++i) {
+                for (int i = 0; i < state.texcount; ++i) {
                     state.texowners[i].w = -1;
                     state.texowners[i].h = -1;
                     state.texowners[i].slice = NULL;
@@ -2003,6 +1933,32 @@ static void * mainloop (void UNUSED_ATTR *unused)
         }
     }
     return 0;
+}
+
+CAMLprim value ml_isexternallink (value uri_v)
+{
+    CAMLparam1 (uri_v);
+    int ext = fz_is_external_link (state.ctx, String_val (uri_v));
+    CAMLreturn (Val_bool (ext));
+}
+
+CAMLprim value ml_uritolocation (value uri_v)
+{
+    CAMLparam1 (uri_v);
+    CAMLlocal1 (ret_v);
+    int pageno;
+    fz_point xy;
+    struct pagedim *pdim;
+
+    pageno = fz_resolve_link (state.ctx, state.doc, String_val (uri_v),
+                              &xy.x, &xy.y);
+    pdim = pdimofpageno (pageno);
+    fz_transform_point (&xy, &pdim->ctm);
+    ret_v = caml_alloc_tuple (3);
+    Field (ret_v, 0) = Val_int (pageno);
+    Field (ret_v, 1) = caml_copy_double (xy.x);
+    Field (ret_v, 2) = caml_copy_double (xy.y);
+    CAMLreturn (ret_v);
 }
 
 CAMLprim value ml_realloctexts (value texcount_v)
@@ -2181,7 +2137,6 @@ static void solidrect (fz_matrix *m,
 
 static void highlightlinks (struct page *page, int xoff, int yoff)
 {
-    int i;
     fz_matrix ctm, tm, pm;
     fz_link *link, *links;
     GLfloat *texcoords = state.texcoords;
@@ -2218,16 +2173,14 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         p4.x = link->rect.x0;
         p4.y = link->rect.y1;
 
-        switch (link->dest.kind) {
-        case FZ_LINK_GOTO: glColor3ub (255, 0, 0); break;
-        case FZ_LINK_URI: glColor3ub (0, 0, 255); break;
-        case FZ_LINK_LAUNCH: glColor3ub (0, 255, 0); break;
-        default: glColor3ub (0, 0, 0); break;
-        }
+        /* TODO: different colours for different schemes */
+        if (fz_is_external_link (state.ctx, link->uri)) glColor3ub (0, 0, 255);
+        else glColor3ub (255, 0, 0);
+
         stipplerect (&ctm, &p1, &p2, &p3, &p4, texcoords, vertices);
     }
 
-    for (i = 0; i < page->annotcount; ++i) {
+    for (int i = 0; i < page->annotcount; ++i) {
         fz_point p1, p2, p3, p4;
         struct annot *annot = &page->annots[i];
 
@@ -2402,14 +2355,13 @@ static void fmt_linkn (char *s, unsigned int u)
 static void highlightslinks (struct page *page, int xoff, int yoff,
                              int noff, char *targ, int tlen, int hfsize)
 {
-    int i;
     char buf[40];
     struct slink *slink;
     double x0, y0, x1, y1, w;
 
     ensureslinks (page);
     glColor3ub (0xc3, 0xb0, 0x91);
-    for (i = 0; i < page->slinkcount; ++i) {
+    for (int i = 0; i < page->slinkcount; ++i) {
         fmt_linkn (buf, i + noff);
         if (!tlen || !strncmp (targ, buf, tlen)) {
             slink = &page->slinks[i];
@@ -2427,7 +2379,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable (GL_TEXTURE_2D);
     glColor3ub (0, 0, 0);
-    for (i = 0; i < page->slinkcount; ++i) {
+    for (int i = 0; i < page->slinkcount; ++i) {
         fmt_linkn (buf, i + noff);
         if (!tlen || !strncmp (targ, buf, tlen)) {
             slink = &page->slinks[i];
@@ -2535,7 +2487,7 @@ CAMLprim value ml_endtiles (value unit_v)
     CAMLreturn (unit_v);
 }
 
-CAMLprim value ml_drawtile (value args_v, value ptr_v)
+CAMLprim void ml_drawtile (value args_v, value ptr_v)
 {
     CAMLparam2 (args_v, ptr_v);
     int dispx = Int_val (Field (args_v, 0));
@@ -2585,7 +2537,7 @@ CAMLprim value ml_drawtile (value args_v, value ptr_v)
         ARSERT (!(slice - tile->slices >= tile->slicecount && disph > 0));
         slicey = 0;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
@@ -2660,8 +2612,8 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     CAMLreturn (Val_int (noff));
 }
 
-CAMLprim value ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
-                              value rects_v)
+CAMLprim void ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
+                            value rects_v)
 {
     CAMLparam4 (ptr_v, xoff_v, yoff_v, rects_v);
     int xoff = Int_val (xoff_v);
@@ -2670,12 +2622,11 @@ CAMLprim value ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
     struct page *page = parse_pointer (__func__, s);
 
     drawprect (page, xoff, yoff, rects_v);
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static struct annot *getannot (struct page *page, int x, int y)
 {
-    int i;
     fz_point p;
     fz_matrix ctm;
     const fz_matrix *tctm;
@@ -2699,7 +2650,7 @@ static struct annot *getannot (struct page *page, int x, int y)
     fz_transform_point (&p, &ctm);
 
     if (pdf) {
-        for (i = 0; i < page->annotcount; ++i) {
+        for (int i = 0; i < page->annotcount; ++i) {
             struct annot *a = &page->annots[i];
             fz_rect rect;
 
@@ -2751,7 +2702,7 @@ static void ensuretext (struct page *page)
         page->text = fz_new_stext_page (state.ctx,
                                         &state.pagedims[page->pdimno].mediabox);
         page->sheet = fz_new_stext_sheet (state.ctx);
-        tdev = fz_new_stext_device (state.ctx, page->sheet, page->text);
+        tdev = fz_new_stext_device (state.ctx, page->sheet, page->text, 0);
         ctm = pagectm (page);
         fz_run_display_list (state.ctx, page->dlist,
                              tdev, &ctm, &fz_infinite_rect, NULL);
@@ -2932,88 +2883,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
     CAMLreturn (ret_v);
 }
 
-enum { uuri, ugoto, utext, uunexpected, ulaunch,
-       unamed, uremote, uremotedest, uannot };
-
-#define LINKTOVAL                                                       \
-{                                                                       \
-    int pageno;                                                         \
-                                                                        \
-    switch (link->dest.kind) {                                          \
-    case FZ_LINK_GOTO:                                                  \
-        {                                                               \
-            fz_point p;                                                 \
-                                                                        \
-            pageno = link->dest.ld.gotor.page;                          \
-            p.x = 0;                                                    \
-            p.y = 0;                                                    \
-                                                                        \
-            if (link->dest.ld.gotor.flags & fz_link_flag_t_valid) {     \
-                p.y = link->dest.ld.gotor.lt.y;                         \
-                fz_transform_point (&p, &pdim->lctm);                   \
-                if (p.y < 0) p.y = 0;                                   \
-            }                                                           \
-            tup_v = caml_alloc_tuple (2);                               \
-            ret_v = caml_alloc_small (1, ugoto);                        \
-            Field (tup_v, 0) = Val_int (pageno);                        \
-            Field (tup_v, 1) = Val_int (p.y);                           \
-            Field (ret_v, 0) = tup_v;                                   \
-        }                                                               \
-        break;                                                          \
-                                                                        \
-    case FZ_LINK_URI:                                                   \
-        str_v = caml_copy_string (link->dest.ld.uri.uri);               \
-        ret_v = caml_alloc_small (1, uuri);                             \
-        Field (ret_v, 0) = str_v;                                       \
-        break;                                                          \
-                                                                        \
-    case FZ_LINK_LAUNCH:                                                \
-        str_v = caml_copy_string (link->dest.ld.launch.file_spec);      \
-        ret_v = caml_alloc_small (1, ulaunch);                          \
-        Field (ret_v, 0) = str_v;                                       \
-        break;                                                          \
-                                                                        \
-    case FZ_LINK_NAMED:                                                 \
-        str_v = caml_copy_string (link->dest.ld.named.named);           \
-        ret_v = caml_alloc_small (1, unamed);                           \
-        Field (ret_v, 0) = str_v;                                       \
-        break;                                                          \
-                                                                        \
-    case FZ_LINK_GOTOR:                                                 \
-        {                                                               \
-            int rty;                                                    \
-                                                                        \
-            str_v = caml_copy_string (link->dest.ld.gotor.file_spec);   \
-            pageno = link->dest.ld.gotor.page;                          \
-            if (pageno == -1) {                                         \
-                gr_v = caml_copy_string (link->dest.ld.gotor.dest);     \
-                rty = uremotedest;                                      \
-            }                                                           \
-            else {                                                      \
-                gr_v = Val_int (pageno);                                \
-                rty = uremote;                                          \
-            }                                                           \
-            tup_v = caml_alloc_tuple (2);                               \
-            ret_v = caml_alloc_small (1, rty);                          \
-            Field (tup_v, 0) = str_v;                                   \
-            Field (tup_v, 1) = gr_v;                                    \
-            Field (ret_v, 0) = tup_v;                                   \
-        }                                                               \
-        break;                                                          \
-                                                                        \
-    default:                                                            \
-        {                                                               \
-            char buf[80];                                               \
-                                                                        \
-            snprintf (buf, sizeof (buf),                                \
-                      "unhandled link kind %d", link->dest.kind);       \
-            str_v = caml_copy_string (buf);                             \
-            ret_v = caml_alloc_small (1, uunexpected);                  \
-            Field (ret_v, 0) = str_v;                                   \
-        }                                                               \
-        break;                                                          \
-    }                                                                   \
-}
+enum { uuri, utext, uannot };
 
 CAMLprim value ml_getlink (value ptr_v, value n_v)
 {
@@ -3021,7 +2891,6 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
     fz_link *link;
     struct page *page;
-    struct pagedim *pdim;
     char *s = String_val (ptr_v);
     struct slink *slink;
 
@@ -3030,11 +2899,12 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
 
     lock (__func__);
     ensureslinks (page);
-    pdim = &state.pagedims[page->pdimno];
     slink = &page->slinks[Int_val (n_v)];
     if (slink->tag == SLINK) {
         link = slink->u.link;
-        LINKTOVAL;
+        str_v = caml_copy_string (link->uri);
+        ret_v = caml_alloc_small (1, uuri);
+        Field (ret_v, 0) = str_v;
     }
     else {
         ret_v = caml_alloc_small (1, uannot);
@@ -3147,7 +3017,9 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
 
     link = getlink (page, x, y);
     if (link) {
-        LINKTOVAL;
+        str_v = caml_copy_string (link->uri);
+        ret_v = caml_alloc_small (1, uuri);
+        Field (ret_v, 0) = str_v;
     }
     else {
         fz_rect *b;
@@ -3192,10 +3064,11 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                             fz_stext_style *style = span->text->style;
                             const char *n2 =
                                 style->font
-                                ? style->font->name
+                                ? fz_font_name (state.ctx, style->font)
                                 : "Span has no font name"
                                 ;
-                            FT_FaceRec *face = style->font->ft_face;
+                            FT_FaceRec *face = fz_font_ft_face (state.ctx,
+                                                                style->font);
                             if (face && face->family_name) {
                                 char *s;
                                 char *n1 = face->family_name;
@@ -3240,7 +3113,7 @@ static int uninteresting (int c)
         || ispunct (c);
 }
 
-CAMLprim value ml_clearmark (value ptr_v)
+CAMLprim void ml_clearmark (value ptr_v)
 {
     CAMLparam1 (ptr_v);
     char *s = String_val (ptr_v);
@@ -3258,7 +3131,7 @@ CAMLprim value ml_clearmark (value ptr_v)
 
     unlock (__func__);
  done:
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
@@ -3478,7 +3351,7 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_seltext (value ptr_v, value rect_v)
+CAMLprim void ml_seltext (value ptr_v, value rect_v)
 {
     CAMLparam2 (ptr_v, rect_v);
     fz_rect b;
@@ -3565,7 +3438,7 @@ CAMLprim value ml_seltext (value ptr_v, value rect_v)
     unlock (__func__);
 
  done:
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static int UNUSED_ATTR pipespan (FILE *f, fz_stext_span *span, int a, int b)
@@ -3686,7 +3559,7 @@ CAMLprim value ml_hassel (value ptr_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_copysel (value fd_v, value ptr_v)
+CAMLprim void ml_copysel (value fd_v, value ptr_v)
 {
     CAMLparam2 (fd_v, ptr_v);
     FILE *f;
@@ -3773,7 +3646,7 @@ CAMLprim value ml_copysel (value fd_v, value ptr_v)
                      strerror (errno));
         }
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_getpdimrect (value pagedimno_v)
@@ -3915,12 +3788,12 @@ CAMLprim value ml_getpagebox (value opaque_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_setaalevel (value level_v)
+CAMLprim void ml_setaalevel (value level_v)
 {
     CAMLparam1 (level_v);
 
     state.aalevel = Int_val (level_v);
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 #pragma GCC diagnostic push
@@ -3958,35 +3831,6 @@ static struct {
     Cursor curs[CURS_COUNT];
 } glx;
 
-#ifdef VISAVIS
-static VisualID initvisual (void)
-{
-    /* On this system with: `Haswell-ULT Integrated Graphics
-       Controller' and Mesa 11.0.6; perf stat reports [1] that when
-       using glX chosen visual and auto scrolling some document in
-       fullscreen the power/energy-gpu is more than 1 joule bigger
-       than when using hand picked visual that stands alone in glxinfo
-       output: it's dead last in the list and it's the only one with
-       `visual dep' (sic) of 32
-
-       No clue what's going on here...
-
-       [1] perf stat -a -I 1200 -e "power/energy-gpu/"
-     */
-    XVisualInfo info;
-    int ret = 1;
-
-    info.depth = 32;
-    info.class = TrueColor;
-    glx.visual = XGetVisualInfo (glx.dpy, VisualDepthMask | VisualClassMask,
-                                 &info, &ret);
-    if (!ret || !glx.visual) {
-        XCloseDisplay (glx.dpy);
-        caml_failwith ("XGetVisualInfo");
-    }
-    return glx.visual->visualid;
-}
-#endif
 
 static void initcurs (void)
 {
@@ -4010,11 +3854,7 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     int num_conf;
     EGLint visid;
     EGLint attribs[] = {
-#ifdef VISAVIS
-        EGL_NATIVE_VISUAL_ID, 0,
-#else
         EGL_DEPTH_SIZE, 24,
-#endif
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
         EGL_NONE
@@ -4037,22 +3877,16 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         caml_failwith ("eglInitialize");
     }
 
-#ifdef VISAVIS
-    attribs[1] = visid = initvisual ();
-#endif
-
     if (!eglChooseConfig (glx.edpy, attribs, &conf, 1, &num_conf) ||
         !num_conf) {
         caml_failwith ("eglChooseConfig");
     }
 
-    glx.conf = conf;
-#ifndef VISAVIS
-    if (!eglGetConfigAttrib (glx.edpy, glx.conf,
-                             EGL_NATIVE_VISUAL_ID, &visid)) {
+    if (!eglGetConfigAttrib (glx.edpy, conf, EGL_NATIVE_VISUAL_ID, &visid)) {
         caml_failwith ("eglGetConfigAttrib");
     }
-#endif
+
+    glx.conf = conf;
     initcurs ();
 
     glx.wid = Int_val (wid_v);
@@ -4079,7 +3913,7 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("eglMakeCurrent");
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn (unit_v);
 }
 #else
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
@@ -4091,16 +3925,13 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
         caml_failwith ("XOpenDisplay");
     }
 
-#ifdef VISAVIS
-    initvisual ();
-#else
     int attribs[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
     glx.visual = glXChooseVisual (glx.dpy, Int_val (screen_v), attribs);
     if (!glx.visual) {
         XCloseDisplay (glx.dpy);
         caml_failwith ("glXChooseVisual");
     }
-#endif
+
     initcurs ();
 
     glx.wid = Int_val (wid_v);
@@ -4124,11 +3955,11 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("glXMakeCurrent");
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn (unit_v);
 }
 #endif
 
-CAMLprim value ml_setcursor (value cursor_v)
+CAMLprim void ml_setcursor (value cursor_v)
 {
     CAMLparam1 (cursor_v);
     size_t cursn = Int_val (cursor_v);
@@ -4136,7 +3967,7 @@ CAMLprim value ml_setcursor (value cursor_v)
     if (cursn >= CURS_COUNT) caml_failwith ("cursor index out of range");
     XDefineCursor (glx.dpy, glx.wid, glx.curs[cursn]);
     XFlush (glx.dpy);
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_swapb (value unit_v)
@@ -4149,7 +3980,7 @@ CAMLprim value ml_swapb (value unit_v)
 #else
     glXSwapBuffers (glx.dpy, glx.wid);
 #endif
-    CAMLreturn (Val_unit);
+    CAMLreturn (unit_v);
 }
 
 #include "keysym2ucs.c"
@@ -4224,7 +4055,7 @@ CAMLprim value ml_platform (value unit_v)
     CAMLreturn (tup_v);
 }
 
-CAMLprim value ml_cloexec (value fd_v)
+CAMLprim void ml_cloexec (value fd_v)
 {
     CAMLparam1 (fd_v);
     int fd = Int_val (fd_v);
@@ -4232,7 +4063,7 @@ CAMLprim value ml_cloexec (value fd_v)
     if (fcntl (fd, F_SETFD, FD_CLOEXEC, 1)) {
         uerror ("fcntl", Nothing);
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
@@ -4301,7 +4132,7 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_freepbo (value s_v)
+CAMLprim void ml_freepbo (value s_v)
 {
     CAMLparam1 (s_v);
     char *s = String_val (s_v);
@@ -4313,10 +4144,10 @@ CAMLprim value ml_freepbo (value s_v)
         tile->pbo->ptr = NULL;
         tile->pbo->size = -1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
-CAMLprim value ml_unmappbo (value s_v)
+CAMLprim void ml_unmappbo (value s_v)
 {
     CAMLparam1 (s_v);
     char *s = String_val (s_v);
@@ -4330,7 +4161,7 @@ CAMLprim value ml_unmappbo (value s_v)
         tile->pbo->ptr = NULL;
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static void setuppbo (void)
@@ -4455,8 +4286,8 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
-                            value contents_v)
+CAMLprim void ml_addannot (value ptr_v, value x_v, value y_v,
+                           value contents_v)
 {
     CAMLparam4 (ptr_v, x_v, y_v, contents_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4468,20 +4299,20 @@ CAMLprim value ml_addannot (value ptr_v, value x_v, value y_v,
         char *s = String_val (ptr_v);
 
         page = parse_pointer (__func__, s);
-        annot = pdf_create_annot (state.ctx, pdf,
+        annot = pdf_create_annot (state.ctx,
                                   pdf_page_from_fz_page (state.ctx,
                                                          page->fzpage),
-                                  FZ_ANNOT_TEXT);
+                                  PDF_ANNOT_TEXT);
         p.x = Int_val (x_v);
         p.y = Int_val (y_v);
-        pdf_set_annot_contents (state.ctx, pdf, annot, String_val (contents_v));
-        pdf_set_text_annot_position (state.ctx, pdf, annot, p);
+        pdf_set_annot_contents (state.ctx, annot, String_val (contents_v));
+        pdf_set_text_annot_position (state.ctx, annot, p);
         state.dirty = 1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
-CAMLprim value ml_delannot (value ptr_v, value n_v)
+CAMLprim void ml_delannot (value ptr_v, value n_v)
 {
     CAMLparam2 (ptr_v, n_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4493,15 +4324,15 @@ CAMLprim value ml_delannot (value ptr_v, value n_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        pdf_delete_annot (state.ctx, pdf,
+        pdf_delete_annot (state.ctx,
                           pdf_page_from_fz_page (state.ctx, page->fzpage),
                           (pdf_annot *) slink->u.annot);
         state.dirty = 1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
-CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
+CAMLprim void ml_modannot (value ptr_v, value n_v, value str_v)
 {
     CAMLparam3 (ptr_v, n_v, str_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4513,11 +4344,11 @@ CAMLprim value ml_modannot (value ptr_v, value n_v, value str_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        pdf_set_annot_contents (state.ctx, pdf, (pdf_annot *) slink->u.annot,
+        pdf_set_annot_contents (state.ctx, (pdf_annot *) slink->u.annot,
                                 String_val (str_v));
         state.dirty = 1;
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 CAMLprim value ml_hasunsavedchanges (value unit_v)
@@ -4526,7 +4357,7 @@ CAMLprim value ml_hasunsavedchanges (value unit_v)
     CAMLreturn (Val_bool (state.dirty));
 }
 
-CAMLprim value ml_savedoc (value path_v)
+CAMLprim void ml_savedoc (value path_v)
 {
     CAMLparam1 (path_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -4534,7 +4365,7 @@ CAMLprim value ml_savedoc (value path_v)
     if (pdf) {
         pdf_save_document (state.ctx, pdf, String_val (path_v), NULL);
     }
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }
 
 static void makestippletex (void)
@@ -4561,102 +4392,7 @@ CAMLprim value ml_fz_version (value UNUSED_ATTR unit_v)
     return caml_copy_string (FZ_VERSION);
 }
 
-#ifdef USE_FONTCONFIG
-static struct {
-    int inited;
-    FcConfig *config;
-} fc;
-
-static fz_font *fc_load_system_font_func (fz_context *ctx,
-                                          const char *name,
-                                          int bold,
-                                          int italic,
-                                          int UNUSED_ATTR needs_exact_metrics)
-{
-    char *buf;
-    size_t i, size;
-    fz_font *font;
-    FcChar8 *path;
-    FcResult result;
-    FcPattern *pat, *pat1;
-
-    lprintf ("looking up %s bold:%d italic:%d needs_exact_metrics:%d\n",
-             name, bold, italic, needs_exact_metrics);
-    if (!fc.inited) {
-        fc.inited = 1;
-        fc.config = FcInitLoadConfigAndFonts ();
-        if (!fc.config) {
-            lprintf ("FcInitLoadConfigAndFonts failed\n");
-            return NULL;
-        }
-    }
-    if (!fc.config) return NULL;
-
-    size = strlen (name);
-    if (bold) size += sizeof (":bold") - 1;
-    if (italic) size += sizeof (":italic") - 1;
-    size += 1;
-
-    buf = malloc (size);
-    if (!buf) {
-        err (1, "malloc %zu failed", size);
-    }
-
-    strcpy (buf, name);
-    if (bold && italic) {
-        strcat (buf, ":bold:italic");
-    }
-    else {
-        if (bold) strcat (buf, ":bold");
-        if (italic) strcat (buf, ":italic");
-    }
-    for (i = 0; i < size; ++i) {
-        if (buf[i] == ',' || buf[i] == '-') buf[i] = ':';
-    }
-
-    lprintf ("fcbuf=%s\n", buf);
-    pat = FcNameParse ((FcChar8 *) buf);
-    if (!pat) {
-        printd ("emsg FcNameParse failed\n");
-        free (buf);
-        return NULL;
-    }
-
-    if (!FcConfigSubstitute (fc.config, pat, FcMatchPattern)) {
-        printd ("emsg FcConfigSubstitute failed\n");
-        free (buf);
-        return NULL;
-    }
-    FcDefaultSubstitute (pat);
-
-    pat1 = FcFontMatch (fc.config, pat, &result);
-    if (!pat1) {
-        printd ("emsg FcFontMatch failed\n");
-        FcPatternDestroy (pat);
-        free (buf);
-        return NULL;
-    }
-
-    if (FcPatternGetString (pat1, FC_FILE, 0, &path) != FcResultMatch) {
-        printd ("emsg FcPatternGetString failed\n");
-        FcPatternDestroy (pat);
-        FcPatternDestroy (pat1);
-        free (buf);
-        return NULL;
-    }
-
-#if 0
-    printd ("emsg name=%s path=%s\n", name, path);
-#endif
-    font = fz_new_font_from_file (ctx, name, (char *) path, 0, 0);
-    FcPatternDestroy (pat);
-    FcPatternDestroy (pat1);
-    free (buf);
-    return font;
-}
-#endif
-
-CAMLprim value ml_init (value csock_v, value params_v)
+CAMLprim void ml_init (value csock_v, value params_v)
 {
     CAMLparam2 (csock_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
@@ -4685,18 +4421,11 @@ CAMLprim value ml_init (value csock_v, value params_v)
                      strerror (errno));
         }
     }
+
     haspboext           = Bool_val (Field (params_v, 9));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);
-
-#ifdef USE_FONTCONFIG
-    if (Bool_val (Field (params_v, 10))) {
-        fz_install_load_system_font_funcs (
-            state.ctx, fc_load_system_font_func, NULL
-            );
-    }
-#endif
 
     state.trimmargins = Bool_val (Field (trim_v, 0));
     fuzz_v            = Field (trim_v, 1);
@@ -4708,43 +4437,7 @@ CAMLprim value ml_init (value csock_v, value params_v)
     set_tex_params (colorspace);
 
     if (*fontpath) {
-#ifndef USE_FONTCONFIG
         state.face = load_font (fontpath);
-#else
-        FcChar8 *path;
-        FcResult result;
-        char *buf = fontpath;
-        FcPattern *pat, *pat1;
-
-        fc.inited = 1;
-        fc.config = FcInitLoadConfigAndFonts ();
-        if (!fc.config) {
-            errx (1, "FcInitLoadConfigAndFonts failed");
-        }
-
-        pat = FcNameParse ((FcChar8 *) buf);
-        if (!pat) {
-            errx (1, "FcNameParse failed");
-        }
-
-        if (!FcConfigSubstitute (fc.config, pat, FcMatchPattern)) {
-            errx (1, "FcConfigSubstitute failed");
-        }
-        FcDefaultSubstitute (pat);
-
-        pat1 = FcFontMatch (fc.config, pat, &result);
-        if (!pat1) {
-            errx (1, "FcFontMatch failed");
-        }
-
-        if (FcPatternGetString (pat1, FC_FILE, 0, &path) != FcResultMatch) {
-            errx (1, "FcPatternGetString failed");
-        }
-
-        state.face = load_font ((char *) path);
-        FcPatternDestroy (pat);
-        FcPatternDestroy (pat1);
-#endif
     }
     else {
         int len;
@@ -4767,5 +4460,5 @@ CAMLprim value ml_init (value csock_v, value params_v)
         errx (1, "pthread_create: %s", strerror (ret));
     }
 
-    CAMLreturn (Val_unit);
+    CAMLreturn0;
 }

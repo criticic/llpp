@@ -6,16 +6,22 @@ if test x"$1" = x; then
 else
     builddir="$1"
 fi
+test $(ocamlc --version | awk -F. '{print $1 $2}') -lt 404 && {
+    echo "OCaml version 4.04.0 or higher required"
+    exit 1
+} || true
+
+test x"$2" = "x" || cty="$2" && cty=""
 
 ccopt="$CFLAGS -Wno-pointer-sign -O2"
 mlopt='-warn-error +a -w +a -g -safe-string'
 if test -z "$native"; then
-    comp=ocamlc.opt
+    comp=ocamlc$cty
     osu=.cmo
     asu=.cma
     lfl=-custom
 else
-    comp=ocamlopt.opt
+    comp=ocamlopt$cty
     osu=.cmx
     asu=.cmxa
     lfl=
@@ -30,6 +36,7 @@ $comp -ccopt "$ccopt -o $builddir/lablGL/ml_gl.o" -c $srcdir/lablGL/ml_gl.c
 $comp -ccopt "$ccopt -o $builddir/lablGL/ml_glarray.o" -c $srcdir/lablGL/ml_glarray.c
 $comp -ccopt "-I $srcdir/mupdf/include -I $srcdir/mupdf/thirdparty/freetype/include -Wextra -Wall -Werror -D_GNU_SOURCE -O -g -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow -o $builddir/link.o" -c $srcdir/link.c
 /bin/sh $srcdir/mkhelp.sh $srcdir/KEYS "$version" >$builddir/help.ml
+$comp -c $mloptgl -o $builddir/keys$osu $srcdir/keys.ml
 $comp -c $mloptgl -o $builddir/lablGL/gl$osu $srcdir/lablGL/gl.ml
 $comp -c $mloptgl -o $builddir/lablGL/raw$osu $srcdir/lablGL/raw.ml
 $comp -c $mloptgl -o $builddir/lablGL/glPix$osu $srcdir/lablGL/glPix.ml
@@ -44,10 +51,9 @@ $comp -c $mloptgl -o $builddir/lablGL/glArray$osu $srcdir/lablGL/glArray.ml
 $comp -c $mloptgl -o $builddir/lablGL/glClear$osu $srcdir/lablGL/glClear.ml
 $comp -c -o $builddir/help$osu $builddir/help.ml
 $comp -c $mlopt -o $builddir/utils$osu $srcdir/utils.ml
-$comp -c $mlopt -o $builddir/parser$osu $srcdir/parser.ml
+$comp -c $mlopt -I $builddir -o $builddir/parser$osu $srcdir/parser.ml
 $comp -c $mlopt -I $builddir -o $builddir/wsi.cmi $srcdir/wsi.mli
 $comp -c $mloptgl -I $builddir -o $builddir/config$osu $srcdir/config.ml
-sed -f $srcdir/pp.sed $srcdir/main.ml >$builddir/main.ml
-$comp -c $mloptgl -I $builddir -o $builddir/main$osu $builddir/main.ml
+$comp -c $mloptgl -I $builddir -o $builddir/main$osu $srcdir/main.ml
 $comp -c $mlopt -I $builddir -o $builddir/wsi$osu $srcdir/wsi.ml
 $comp -g $lfl -I lablGL -o $builddir/llpp unix$asu str$asu $builddir/help$osu $builddir/lablGL/raw$osu $builddir/utils$osu $builddir/parser$osu $builddir/lablGL/glMisc$osu $builddir/wsi$osu $builddir/lablGL/gl$osu $builddir/lablGL/glMat$osu $builddir/lablGL/glFunc$osu $builddir/lablGL/glClear$osu $builddir/lablGL/glPix$osu $builddir/lablGL/glTex$osu $builddir/lablGL/glDraw$osu $builddir/config$osu $builddir/lablGL/glArray$osu $builddir/main$osu $builddir/link.o -cclib "-lGL -lX11 -lmupdf -lmupdfthird -lpthread -L$srcdir/mupdf/build/native -lcrypto $builddir/lablGL/ml_gl.o $builddir/lablGL/ml_glarray.o $builddir/lablGL/ml_raw.o"

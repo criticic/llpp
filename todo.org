@@ -1,0 +1,32 @@
+* TODO progressive zoom
+* TODO wayland
+* TODO incorporate Nicolás's changes
+* DONE backspace selected linknav preservation
+  CLOSED: [2016-11-22 Tue 17:06]
+* DONE move read/writedata to C
+  CLOSED: [2016-11-22 Tue 17:43]
+   unbreak abstr. boundry wrt 4 as the size of len and extra space in buf
+* DONE xclip zombie
+  CLOSED: [2016-11-22 Tue 17:44]
+   doesn't play nicely with mc
+* DONE user specified css for epubs/html (-css <path> or something)
+* DONE quoting in gc.awk [' ( )]
+  CLOSED: [2016-11-22 Tue 17:44]
+* DONE Investigate selection oddities (select under selects vast rects)
+   CLOSED: [2016-11-05 Sat 15:22]
+   Age of discovery page 57
+   Problem upstream
+* DONE pdf/asn.1 date parser
+  CLOSED: [2016-11-20 Sun 07:54]
+* DONE Remember css in llpp.conf (?)
+  CLOSED: [2016-11-21 Mon 02:14]
+* TODO Fixme
+  ? text selection and searches are broken in case of non zero rotation
+    deletion broken?? [intentionally removed actually]
+  ? linknav + presentation (link might not fit the visible area)
+  fullscreening while loading complex documents has visual quirks
+* TODO outline for cbz
+  file names? exif?
+* TODO somehow merge kv2pv and xlatt/xlatf
+* DONE ctrl in (at least) help mode yields a key and not found message
+  CLOSED: [2016-12-30 Fri 10:53]
