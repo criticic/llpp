@@ -46,7 +46,7 @@
 	<key>CFBundleVersion</key>
 	<string>@BUNDLE_VERSION@</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>10.11</string>
+	<string>10.10</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
