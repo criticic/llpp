@@ -33,3 +33,19 @@ or
   llpp% runghc Shakefile.hs -j0 [build/llpp.native]
 
 Standalone binary should now be in build/llpp[.native]
+
+Native OS X Installation Instructions
+-------------------------------------
+
+  git clone https://github.com/nojb/llpp
+  cd llpp
+  git clone git://git.ghostscript.com/mupdf.git --recursive
+  cd mupdf
+  git checkout ffbe41a191dd6355a0bab327b539f9497ad5a7a9
+  git submodule update --recursive
+  make build=native libs
+  cd ..
+  make llpp.app
+
+At the end (if all goes well) you should have a native OS X app, llpp.app,
+in the llpp directory.  Let me know how it goes if you try it out!
