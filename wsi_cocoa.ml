@@ -180,8 +180,8 @@ let handleresp resp =
           if false then nslog "open %S" path;
           state.t#opendoc path
       | chunk_len ->
-          if false then nslog "open-append %S" (Bytes.sub resp 4 chunk_len);
-          Buffer.add_substring state.path resp 4 chunk_len
+          if false then nslog "open-append %S" (Bytes.sub_string resp 4 chunk_len);
+          Buffer.add_subbytes state.path resp 4 chunk_len
       end
   | _ ->
       vlog "unknown server message %d" opcode
@@ -210,7 +210,7 @@ let readresp sock =
 let fontsizefactor () =
   get_backing_scale_factor ()
 
-let init t _ w h platform =
+let init t _ w h _platform =
   let fd = get_server_fd () in
   state.t <- t;
   state.fd <- fd;
@@ -288,16 +288,6 @@ let namekey name =
     if String.length name = 1
     then Char.code name.[0]
     else int_of_string name;
-;;
-
-let keypadtodigitkey key = (* FIXME *)
-  if key >= 0xffb0 && key <= 0xffb9 (* keypad numbers *)
-  then key - 0xffb0 + 48 else key
-;;
-
-let isspecialkey key =
-  (0x0 <= key && key <= 0x1F) || key = 0x7f || (0x80 <= key && key <= 0x9F) ||
-  (key land 0xf700 = 0xf700)
 ;;
 
 let kc2kt =
