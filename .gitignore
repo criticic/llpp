@@ -6,13 +6,4 @@
 /.gdb_history
 /.tramp_history
 test/
-*.native
-*.byte
-*.cm*
-*.o
-/help.ml
-/wsi.ml
-/llpp
-.tramp_history
-/llpp.app
 mupdf
