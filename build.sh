@@ -38,7 +38,7 @@ version=$(cd $srcdir && git describe --tags 2>/dev/null) || version=unknown
 shortversion=$(echo $version | sed -n 's/v\([0-9]*\).*/\1/p')
 mloptgl="-I $srcdir/lablGL -I $builddir/lablGL"
 set -x
-cp $srcdir/wsi_cocoa.ml $srcdir/wsi.ml
+cp $srcdir/wsi_osx.ml $srcdir/wsi.ml
 $comp -ccopt "$ccopt -o $builddir/lablGL/ml_raw.o" -c $srcdir/lablGL/ml_raw.c
 $comp -ccopt "$ccopt -o $builddir/lablGL/ml_gl.o" -c $srcdir/lablGL/ml_gl.c
 $comp -ccopt "$ccopt -o $builddir/lablGL/ml_glarray.o" -c $srcdir/lablGL/ml_glarray.c
