@@ -4634,12 +4634,14 @@ let prevpage () =
 
 let save () =
   if emptystr conf.savecmd
-  then error "don't know where to save modified document"
+  then adderrmsg "savepath-command is empty"
+                 "don't know where to save modified document"
   else
     let savecmd = Str.global_replace percentsre state.path conf.savecmd in
     let path =
       getcmdoutput
-        (fun s -> error "failed to obtain path to the saved copy: %s" s)
+        (fun exn ->
+          adderrfmt savecmd "failed to produce path to the saved copy: %s" exn)
         savecmd
     in
     if nonemptystr path
