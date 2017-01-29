@@ -1,6 +1,6 @@
 Prerequisites for building from sources:
         mupdf         [http://mupdf.com/]
-        ocaml (4.02+) [http://ocaml.org/]
+        ocaml (4.04+) [http://ocaml.org/]
         gcc           [https://gcc.gnu.org/]
         binutils      [http://www.gnu.org/software/binutils/]
         make          [http://www.gnu.org/software/make/]
