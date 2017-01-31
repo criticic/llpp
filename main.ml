@@ -5171,23 +5171,12 @@ let linknavkeyboard key mask linknav =
          let opt, dir =
            let open Keys in
            match pv with
-           | Home ->
-              Some (findlink opaque LDfirst), -1
-
-           | End ->
-              Some (findlink opaque LDlast), 1
-
-           | Left ->
-              Some (findlink opaque (LDleft n)), -1
-
-           | Right ->
-              Some (findlink opaque (LDright n)), 1
-
-           | Up ->
-              Some (findlink opaque (LDup n)), -1
-
-           | Down ->
-              Some (findlink opaque (LDdown n)), 1
+           | Home -> Some (findlink opaque LDfirst), -1
+           | End -> Some (findlink opaque LDlast), 1
+           | Left -> Some (findlink opaque (LDleft n)), -1
+           | Right -> Some (findlink opaque (LDright n)), 1
+           | Up -> Some (findlink opaque (LDup n)), -1
+           | Down -> Some (findlink opaque (LDdown n)), 1
 
            | Delete|Escape|Insert|Enter|Next|Prior|Ascii _
            | Code _|Fn _|Ctrl _|Backspace -> None, 0
