@@ -85,27 +85,27 @@ end;;
 
 let _debugl l =
   dolog {|l %d dim=%d {
-  WxH     %dx%d
-  vWxH    %dx%d
-  pagex,y %d,%d
-  dispx,y %d,%d
-  column  %d
-}|}
-  l.pageno l.pagedimno
-  l.pagew l.pageh
-  l.pagevw l.pagevh
-  l.pagex l.pagey
-  l.pagedispx l.pagedispy
-  l.pagecol
+         WxH     %dx%d
+         vWxH    %dx%d
+         pagex,y %d,%d
+         dispx,y %d,%d
+         column  %d
+         }|}
+        l.pageno l.pagedimno
+        l.pagew l.pageh
+        l.pagevw l.pagevh
+        l.pagex l.pagey
+        l.pagedispx l.pagedispy
+        l.pagecol
 ;;
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog {|rect {
-  x0,y0=(% f, % f)
-  x1,y1=(% f, % f)
-  x2,y2=(% f, % f)
-  x3,y3=(% f, % f)
-}|} x0 y0 x1 y1 x2 y2 x3 y3;
+         x0,y0=(% f, % f)
+         x1,y1=(% f, % f)
+         x2,y2=(% f, % f)
+         x3,y3=(% f, % f)
+         }|} x0 y0 x1 y1 x2 y2 x3 y3;
 ;;
 
 let isbirdseye = function
@@ -879,7 +879,7 @@ let gotoxy x y =
     | LinkNav lt ->
        begin match lt with
        | Ltnotready (_, dir)
-         | Ltgendir dir ->
+       | Ltgendir dir ->
           let linknav =
             let rec loop = function
               | [] -> lt
@@ -1843,7 +1843,7 @@ let act cmds =
                Buffer.add_char b ']';
                Buffer.contents b
              else args
-           )
+             )
            else args
        else args
      in
@@ -2347,7 +2347,7 @@ let [@warning "-4"] optentry mode _ key =
      TEstop
 
   | _ ->
-    TEcont state.text
+     TEcont state.text
 ;;
 
 class type lvsource =
@@ -2377,7 +2377,8 @@ class virtual lvsourcebase = object
           method getminfo : (int * int) array = E.a
         end;;
 
-let [@warning "-4"] textentrykeyboard
+let [@warning "-4"]
+      textentrykeyboard
       key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
   state.text <- E.s;
   let enttext te =
@@ -2395,7 +2396,8 @@ let [@warning "-4"] textentrykeyboard
            );
        G.postRedisplay "textentry histaction"
   in
-  let open Keys in let kt = Wsi.kc2kt key in
+  let open Keys in
+  let kt = Wsi.kc2kt key in
   match kt with
   | Backspace ->
      if emptystr text && cancelonempty
@@ -3683,8 +3685,8 @@ let enterinfomode =
                  leavebirdseye beye false;
                  enterbirdseye ()
               | Textentry _
-                | View
-                | LinkNav _ -> ()
+              | View
+              | LinkNav _ -> ()
             );
 
     let mode = state.mode in
@@ -4486,7 +4488,7 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
           coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
         G.postRedisplay "enter selector";
       )
-    )
+     )
   in
   let mkenter sourcetype errmsg =
     let enter = mkselector sourcetype in
@@ -4735,20 +4737,20 @@ let viewkeyboard key mask =
      pivotzoom (conf.zoom +. incr)
 
   | Ascii '+' ->
-              let ondone s =
-                let n =
-                  try int_of_string s with exn ->
-                    state.text <-
-                      Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
-                    max_int
-                in
-                if n != max_int
-                then (
-                  conf.pagebias <- n;
-                  state.text <- "page bias is now " ^ string_of_int n;
-                )
-              in
-              enttext ("page bias: ", E.s, None, intentry, ondone, true)
+     let ondone s =
+       let n =
+         try int_of_string s with exn ->
+           state.text <-
+             Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
+           max_int
+       in
+       if n != max_int
+       then (
+         conf.pagebias <- n;
+         state.text <- "page bias is now " ^ string_of_int n;
+       )
+     in
+     enttext ("page bias: ", E.s, None, intentry, ondone, true)
 
   | Ascii '-' when ctrl ->
      let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
@@ -4780,14 +4782,14 @@ let viewkeyboard key mask =
      then setzoom zoom
 
   | Ascii '3' when ctrl ->
-                   let fm =
-                     match conf.fitmodel with
-                     | FitWidth -> FitProportional
-                     | FitProportional -> FitPage
-                     | FitPage -> FitWidth
-                   in
-                   state.text <- "fit model: " ^ FMTE.to_string fm;
-                   reqlayout conf.angle fm
+     let fm =
+       match conf.fitmodel with
+       | FitWidth -> FitProportional
+       | FitProportional -> FitPage
+       | FitPage -> FitWidth
+     in
+     state.text <- "fit model: " ^ FMTE.to_string fm;
+     reqlayout conf.angle fm
 
   | Ascii '4' when ctrl ->
      let zoom = getmaxw () /. float state.winw in
@@ -4815,7 +4817,7 @@ let viewkeyboard key mask =
      in
      let [@warning "-4"] pageentry text = function
        | Keys.Ascii 'g' -> TEdone text
-                     | key -> intentry text key
+       | key -> intentry text key
      in
      let text = String.make 1 (Char.chr key) in
      enttext (":", text, Some (onhist state.hists.pag),
@@ -4904,7 +4906,7 @@ let viewkeyboard key mask =
      end
 
   | Ascii ' ' ->
-              nextpage ()
+     nextpage ()
 
   | Delete ->
      prevpage ()
@@ -4949,29 +4951,29 @@ let viewkeyboard key mask =
      showtext ' ' "Quick bookmark added";
 
   | Ascii 'z' ->
-              begin match state.layout with
-              | l :: _ ->
-                 let rect = getpdimrect l.pagedimno in
-                 let w, h =
-                   if conf.crophack
-                   then
-                     (truncate (1.8 *. (rect.(1) -. rect.(0))),
-                      truncate (1.2 *. (rect.(3) -. rect.(0))))
-                   else
-                     (truncate (rect.(1) -. rect.(0)),
-                      truncate (rect.(3) -. rect.(0)))
-                 in
-                 let w = truncate ((float w)*.conf.zoom)
-                 and h = truncate ((float h)*.conf.zoom) in
-                 if w != 0 && h != 0
-                 then (
-                   state.anchor <- getanchor ();
-                   Wsi.reshape w (h + conf.interpagespace)
-                 );
-                 G.postRedisplay "z";
+     begin match state.layout with
+     | l :: _ ->
+        let rect = getpdimrect l.pagedimno in
+        let w, h =
+          if conf.crophack
+          then
+            (truncate (1.8 *. (rect.(1) -. rect.(0))),
+             truncate (1.2 *. (rect.(3) -. rect.(0))))
+          else
+            (truncate (rect.(1) -. rect.(0)),
+             truncate (rect.(3) -. rect.(0)))
+        in
+        let w = truncate ((float w)*.conf.zoom)
+        and h = truncate ((float h)*.conf.zoom) in
+        if w != 0 && h != 0
+        then (
+          state.anchor <- getanchor ();
+          Wsi.reshape w (h + conf.interpagespace)
+        );
+        G.postRedisplay "z";
 
-              | [] -> ()
-              end
+     | [] -> ()
+     end
 
   | Ascii 'x' -> state.roam ()
 
@@ -4985,28 +4987,28 @@ let viewkeyboard key mask =
      G.postRedisplay "brightness";
 
   | Ascii 'c' when state.mode = View ->
-                   if Wsi.withalt mask
-                   then (
-                     if conf.zoom > 1.0
-                     then
-                       let m = (state.winw - state.w) / 2 in
-                       gotoxy_and_clear_text m state.y
-                   )
-                   else
-                     let (c, a, b), z =
-                       match state.prevcolumns with
-                       | None -> (1, 0, 0), 1.0
-                       | Some (columns, z) ->
-                          let cab =
-                            match columns with
-                            | Csplit (c, _) -> -c, 0, 0
-                            | Cmulti ((c, a, b), _) -> c, a, b
-                            | Csingle _ -> 1, 0, 0
-                          in
-                          cab, z
-                     in
-                     setcolumns View c a b;
-                     setzoom z
+     if Wsi.withalt mask
+     then (
+       if conf.zoom > 1.0
+       then
+         let m = (state.winw - state.w) / 2 in
+         gotoxy_and_clear_text m state.y
+     )
+     else
+       let (c, a, b), z =
+         match state.prevcolumns with
+         | None -> (1, 0, 0), 1.0
+         | Some (columns, z) ->
+            let cab =
+              match columns with
+              | Csplit (c, _) -> -c, 0, 0
+              | Cmulti ((c, a, b), _) -> c, a, b
+              | Csingle _ -> 1, 0, 0
+            in
+            cab, z
+       in
+       setcolumns View c a b;
+       setzoom z
 
   | Down | Up when ctrl && Wsi.withshift mask ->
      let zoom, x = state.prevzoom in
@@ -5014,40 +5016,40 @@ let viewkeyboard key mask =
      state.x <- x;
 
   | Ascii 'k' | Up ->
-                 begin match state.autoscroll with
-                 | None ->
-                    begin match state.mode with
-                    | Birdseye beye -> upbirdseye 1 beye
-                    | Textentry _ | View | LinkNav _ ->
-                       if ctrl
-                       then gotoxy_and_clear_text state.x (clamp ~-(state.winh/2))
-                       else (
-                         if not (Wsi.withshift mask) && conf.presentation
-                         then prevpage ()
-                         else gotoghyll1 true (clamp (-conf.scrollstep))
-                       )
-                    end
-                 | Some n ->
-                    setautoscrollspeed n false
-                 end
+     begin match state.autoscroll with
+     | None ->
+        begin match state.mode with
+        | Birdseye beye -> upbirdseye 1 beye
+        | Textentry _ | View | LinkNav _ ->
+           if ctrl
+           then gotoxy_and_clear_text state.x (clamp ~-(state.winh/2))
+           else (
+             if not (Wsi.withshift mask) && conf.presentation
+             then prevpage ()
+             else gotoghyll1 true (clamp (-conf.scrollstep))
+           )
+        end
+     | Some n ->
+        setautoscrollspeed n false
+     end
 
   | Ascii 'j' | Down ->
-                 begin match state.autoscroll with
-                 | None ->
-                    begin match state.mode with
-                    | Birdseye beye -> downbirdseye 1 beye
-                    | Textentry _ | View | LinkNav _ ->
-                       if ctrl
-                       then gotoxy_and_clear_text state.x (clamp (state.winh/2))
-                       else (
-                         if not (Wsi.withshift mask) && conf.presentation
-                         then nextpage ()
-                         else gotoghyll1 true (clamp (conf.scrollstep))
-                       )
-                    end
-                 | Some n ->
-                    setautoscrollspeed n true
-                 end
+     begin match state.autoscroll with
+     | None ->
+        begin match state.mode with
+        | Birdseye beye -> downbirdseye 1 beye
+        | Textentry _ | View | LinkNav _ ->
+           if ctrl
+           then gotoxy_and_clear_text state.x (clamp (state.winh/2))
+           else (
+             if not (Wsi.withshift mask) && conf.presentation
+             then nextpage ()
+             else gotoghyll1 true (clamp (conf.scrollstep))
+           )
+        end
+     | Some n ->
+        setautoscrollspeed n true
+     end
 
   | Left | Right when not (Wsi.withalt mask) ->
      if canpan ()
@@ -5095,8 +5097,8 @@ let viewkeyboard key mask =
      addnav ();
      gotoghyll 0
   | Ascii 'G' | End ->
-                 addnav ();
-                 gotoghyll (clamp state.maxy)
+     addnav ();
+     gotoghyll (clamp state.maxy)
 
   | Right when Wsi.withalt mask ->
      gotoghyll (getnav 1)
@@ -5107,21 +5109,21 @@ let viewkeyboard key mask =
      reload ()
 
   | Ascii 'v' when conf.debug ->
-                   state.rects <- [];
-                   List.iter (fun l ->
-                       match getopaque l.pageno with
-                       | None -> ()
-                       | Some opaque ->
-                          let x0, y0, x1, y1 = pagebbox opaque in
-                          let rect = (float x0, float y0,
-                                      float x1, float y0,
-                                      float x1, float y1,
-                                      float x0, float y1) in
-                          debugrect rect;
-                          let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
-                          state.rects <- (l.pageno, color, rect) :: state.rects;
-                     ) state.layout;
-                   G.postRedisplay "v";
+     state.rects <- [];
+     List.iter (fun l ->
+         match getopaque l.pageno with
+         | None -> ()
+         | Some opaque ->
+            let x0, y0, x1, y1 = pagebbox opaque in
+            let rect = (float x0, float y0,
+                        float x1, float y0,
+                        float x1, float y1,
+                        float x0, float y1) in
+            debugrect rect;
+            let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
+            state.rects <- (l.pageno, color, rect) :: state.rects;
+       ) state.layout;
+     G.postRedisplay "v";
 
   | Ascii '|' ->
      let mode = state.mode in
@@ -5403,9 +5405,9 @@ let postdrawpage l linkindexbase =
          match state.mode with
          | Textentry ((_, s, _, _, _, _), _) when state.glinks -> s
          | Textentry _
-           | Birdseye _
-           | View
-           | LinkNav _ -> E.s
+         | Birdseye _
+         | View
+         | LinkNav _ -> E.s
        in
        Hashtbl.find_all state.prects l.pageno |>
          List.iter (fun vals -> drawprect opaque x y vals);
@@ -5502,9 +5504,9 @@ let display () =
        | None -> state.rects
        end
     | LinkNav (Ltgendir _) | LinkNav (Ltnotready _)
-      | Birdseye _
-      | Textentry _
-      | View -> state.rects
+    | Birdseye _
+    | Textentry _
+    | View -> state.rects
   in
   showrects rects;
   let rec postloop linkindexbase = function
