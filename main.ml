@@ -293,7 +293,7 @@ let selstring s =
   | exception exn -> impmsg "pipe failed: %s" @@ exntos exn
   | (r, w) ->
      let clo cap fd =
-       Ne.clo fd (fun msg -> impmsg "failed to close %s: %s" cap msg)
+       Ne.clo fd (fun msg -> impmsg "selstring failed to close %s: %s" cap msg)
      in
      begin match spawn conf.selcmd [r, 0; w, -1] with
      | exception exn ->
@@ -307,8 +307,8 @@ let selstring s =
           then impmsg "failed to write %d characters to sel pipe, wrote %d" l n;
         with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
      end;
-     clo "selstring pipe/w" w;
-     clo "selstring pipe/r" r;
+     clo "pipe/w" w;
+     clo "pipe/r" r;
 ;;
 
 let undertext = function
