@@ -305,7 +305,8 @@ let selstring s =
           let bytes = Bytes.unsafe_of_string s in
           let n = tempfailureretry (Unix.write w bytes 0) l in
           if n != l
-          then impmsg "failed to write %d characters to sel pipe, wrote %d" l n
+          then impmsg "failed to write %d characters to sel pipe, wrote %d" l n;
+          clo "selstring pipe/w" w;
         with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
      end;
      clo "selstring pipe/r" r;
