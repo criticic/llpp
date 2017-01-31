@@ -4799,8 +4799,7 @@ let viewkeyboard key mask =
   | Ascii '9' when ctrl ->
      togglebirdseye ()
 
-  | Ascii ('0'..'9')
-                when not ctrl ->
+  | Ascii ('0'..'9') when not ctrl ->
      let ondone s =
        let n =
          try int_of_string s with exn ->
