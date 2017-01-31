@@ -6,7 +6,6 @@ exception Quit;;
 external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;
-external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : opaque -> int -> int -> under = "ml_whatsunder";;
 external markunder : opaque -> int -> int -> mark -> bool = "ml_markunder";;
@@ -53,6 +52,9 @@ external rcmd : Unix.file_descr -> string = "ml_rcmd";;
 external uritolocation : string
                          -> (pageno * float * float) = "ml_uritolocation";;
 external isexternallink : string -> bool = "ml_isexternallink";;
+
+(* copysel _will_ close the supplied descriptor *)
+external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 
 let selfexec = ref E.s;;
 let opengl_has_pbo = ref false;;
@@ -246,21 +248,25 @@ let impmsg fmt =
   Format.ksprintf (fun s -> showtext '!' s) fmt;
 ;;
 
+let pipef ?(closew=true) cap f cmd =
+  match Unix.pipe () with
+  | exception exn -> dolog "%s cannot create pipe: %S" cap @@ exntos exn
+  | (r, w) ->
+     begin match spawn cmd [r, 0; w, -1] with
+     | exception exn -> dolog "%s: cannot execute %S: %s" cap cmd @@ exntos exn
+     | _pid -> f w
+     end;
+     Ne.clo r (dolog "%s failed to close r: %s" cap);
+     if closew then Ne.clo w (dolog "%s failed to close w: %s" cap);
+;;
+
 let pipesel opaque cmd =
   if hassel opaque
-  then
-    match Unix.pipe () with
-    | exception exn -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
-    | (r, w) ->
-       begin match spawn cmd [r, 0; w, -1] with
-       | exception exn ->
-          dolog "cannot execute %S: %s" cmd @@ exntos exn
-       | _pid ->
-          copysel w opaque;
-          G.postRedisplay "pipesel";
-       end;
-       Ne.clo r (dolog "pipesel failed to close r: %s");
-       Ne.clo w (dolog "pipesel failed to close w: %s");
+  then pipef ~closew:false "pipesel"
+             (fun w ->
+               copysel w opaque;
+               G.postRedisplay "pipesel"
+             ) cmd
 ;;
 
 let paxunder x y =
@@ -286,23 +292,16 @@ let paxunder x y =
 ;;
 
 let selstring s =
-  match Unix.pipe () with
-  | exception exn -> impmsg "pipe failed: %s" @@ exntos exn
-  | (r, w) ->
-     begin match spawn conf.selcmd [r, 0; w, -1] with
-     | exception exn ->
-        impmsg "failed to execute %s: %s" conf.selcmd @@ exntos exn
-     | _pid ->
-        try
-          let l = String.length s in
-          let bytes = Bytes.unsafe_of_string s in
-          let n = tempfailureretry (Unix.write w bytes 0) l in
-          if n != l
-          then impmsg "failed to write %d characters to sel pipe, wrote %d" l n;
-        with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
-     end;
-     Ne.clo r (impmsg "selstring failed to close r: %s");
-     Ne.clo w (impmsg "selstring failed to close w: %s");
+  pipef
+    "selstring" (fun w ->
+      try
+        let l = String.length s in
+        let bytes = Bytes.unsafe_of_string s in
+        let n = tempfailureretry (Unix.write w bytes 0) l in
+        if n != l
+        then impmsg "failed to write %d characters to sel pipe, wrote %d" l n;
+      with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
+    ) conf.selcmd
 ;;
 
 let undertext = function
@@ -2994,11 +2993,11 @@ object (self)
        G.postRedisplay "listview motion";
        coe {< m_first = first; m_active = first >}
     | Msel _
-      | Mpan _
-      | Mscrollx
-      | Mzoom _
-      | Mzoomrect _
-      | Mnone -> coe self
+    | Mpan _
+    | Mscrollx
+    | Mzoom _
+    | Mzoomrect _
+    | Mnone -> coe self
 
   method pmotion x y =
     if x < state.winw - conf.scrollbw
@@ -4680,10 +4679,10 @@ let viewkeyboard key mask =
         resetmstate ();
         G.postRedisplay "kill rect";
      | Msel _
-       | Mpan _
-       | Mscrolly | Mscrollx
-       | Mzoom _
-       | Mnone ->
+     | Mpan _
+     | Mscrolly | Mscrollx
+     | Mzoom _
+     | Mnone ->
         begin match state.mode with
         | LinkNav ln ->
            begin match ln with
@@ -4736,19 +4735,20 @@ let viewkeyboard key mask =
      pivotzoom (conf.zoom +. incr)
 
   | Ascii '+' ->
-     let ondone s =
-       let n =
-         try int_of_string s with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
-           max_int
-       in
-       if n != max_int
-       then (
-         conf.pagebias <- n;
-         state.text <- "page bias is now " ^ string_of_int n;
-       )
-     in
-     enttext ("page bias: ", E.s, None, intentry, ondone, true)
+              let ondone s =
+                let n =
+                  try int_of_string s with exn ->
+                    state.text <-
+                      Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
+                    max_int
+                in
+                if n != max_int
+                then (
+                  conf.pagebias <- n;
+                  state.text <- "page bias is now " ^ string_of_int n;
+                )
+              in
+              enttext ("page bias: ", E.s, None, intentry, ondone, true)
 
   | Ascii '-' when ctrl ->
      let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
@@ -4780,14 +4780,14 @@ let viewkeyboard key mask =
      then setzoom zoom
 
   | Ascii '3' when ctrl ->
-     let fm =
-       match conf.fitmodel with
-       | FitWidth -> FitProportional
-       | FitProportional -> FitPage
-       | FitPage -> FitWidth
-     in
-     state.text <- "fit model: " ^ FMTE.to_string fm;
-     reqlayout conf.angle fm
+                   let fm =
+                     match conf.fitmodel with
+                     | FitWidth -> FitProportional
+                     | FitProportional -> FitPage
+                     | FitPage -> FitWidth
+                   in
+                   state.text <- "fit model: " ^ FMTE.to_string fm;
+                   reqlayout conf.angle fm
 
   | Ascii '4' when ctrl ->
      let zoom = getmaxw () /. float state.winw in
@@ -4800,7 +4800,7 @@ let viewkeyboard key mask =
      togglebirdseye ()
 
   | Ascii ('0'..'9')
-       when not ctrl ->
+                when not ctrl ->
      let ondone s =
        let n =
          try int_of_string s with exn ->
@@ -4816,7 +4816,7 @@ let viewkeyboard key mask =
      in
      let [@warning "-4"] pageentry text = function
        | Keys.Ascii 'g' -> TEdone text
-       | key -> intentry text key
+                     | key -> intentry text key
      in
      let text = String.make 1 (Char.chr key) in
      enttext (":", text, Some (onhist state.hists.pag),
@@ -4905,7 +4905,7 @@ let viewkeyboard key mask =
      end
 
   | Ascii ' ' ->
-     nextpage ()
+              nextpage ()
 
   | Delete ->
      prevpage ()
@@ -4950,29 +4950,29 @@ let viewkeyboard key mask =
      showtext ' ' "Quick bookmark added";
 
   | Ascii 'z' ->
-     begin match state.layout with
-     | l :: _ ->
-        let rect = getpdimrect l.pagedimno in
-        let w, h =
-          if conf.crophack
-          then
-            (truncate (1.8 *. (rect.(1) -. rect.(0))),
-             truncate (1.2 *. (rect.(3) -. rect.(0))))
-          else
-            (truncate (rect.(1) -. rect.(0)),
-             truncate (rect.(3) -. rect.(0)))
-        in
-        let w = truncate ((float w)*.conf.zoom)
-        and h = truncate ((float h)*.conf.zoom) in
-        if w != 0 && h != 0
-        then (
-          state.anchor <- getanchor ();
-          Wsi.reshape w (h + conf.interpagespace)
-        );
-        G.postRedisplay "z";
+              begin match state.layout with
+              | l :: _ ->
+                 let rect = getpdimrect l.pagedimno in
+                 let w, h =
+                   if conf.crophack
+                   then
+                     (truncate (1.8 *. (rect.(1) -. rect.(0))),
+                      truncate (1.2 *. (rect.(3) -. rect.(0))))
+                   else
+                     (truncate (rect.(1) -. rect.(0)),
+                      truncate (rect.(3) -. rect.(0)))
+                 in
+                 let w = truncate ((float w)*.conf.zoom)
+                 and h = truncate ((float h)*.conf.zoom) in
+                 if w != 0 && h != 0
+                 then (
+                   state.anchor <- getanchor ();
+                   Wsi.reshape w (h + conf.interpagespace)
+                 );
+                 G.postRedisplay "z";
 
-     | [] -> ()
-     end
+              | [] -> ()
+              end
 
   | Ascii 'x' -> state.roam ()
 
@@ -4986,28 +4986,28 @@ let viewkeyboard key mask =
      G.postRedisplay "brightness";
 
   | Ascii 'c' when state.mode = View ->
-     if Wsi.withalt mask
-     then (
-       if conf.zoom > 1.0
-       then
-         let m = (state.winw - state.w) / 2 in
-         gotoxy_and_clear_text m state.y
-     )
-     else
-       let (c, a, b), z =
-         match state.prevcolumns with
-         | None -> (1, 0, 0), 1.0
-         | Some (columns, z) ->
-            let cab =
-              match columns with
-              | Csplit (c, _) -> -c, 0, 0
-              | Cmulti ((c, a, b), _) -> c, a, b
-              | Csingle _ -> 1, 0, 0
-            in
-            cab, z
-       in
-       setcolumns View c a b;
-       setzoom z
+                   if Wsi.withalt mask
+                   then (
+                     if conf.zoom > 1.0
+                     then
+                       let m = (state.winw - state.w) / 2 in
+                       gotoxy_and_clear_text m state.y
+                   )
+                   else
+                     let (c, a, b), z =
+                       match state.prevcolumns with
+                       | None -> (1, 0, 0), 1.0
+                       | Some (columns, z) ->
+                          let cab =
+                            match columns with
+                            | Csplit (c, _) -> -c, 0, 0
+                            | Cmulti ((c, a, b), _) -> c, a, b
+                            | Csingle _ -> 1, 0, 0
+                          in
+                          cab, z
+                     in
+                     setcolumns View c a b;
+                     setzoom z
 
   | Down | Up when ctrl && Wsi.withshift mask ->
      let zoom, x = state.prevzoom in
@@ -5015,40 +5015,40 @@ let viewkeyboard key mask =
      state.x <- x;
 
   | Ascii 'k' | Up ->
-     begin match state.autoscroll with
-     | None ->
-        begin match state.mode with
-        | Birdseye beye -> upbirdseye 1 beye
-        | Textentry _ | View | LinkNav _ ->
-           if ctrl
-           then gotoxy_and_clear_text state.x (clamp ~-(state.winh/2))
-           else (
-             if not (Wsi.withshift mask) && conf.presentation
-             then prevpage ()
-             else gotoghyll1 true (clamp (-conf.scrollstep))
-           )
-        end
-     | Some n ->
-        setautoscrollspeed n false
-     end
+                 begin match state.autoscroll with
+                 | None ->
+                    begin match state.mode with
+                    | Birdseye beye -> upbirdseye 1 beye
+                    | Textentry _ | View | LinkNav _ ->
+                       if ctrl
+                       then gotoxy_and_clear_text state.x (clamp ~-(state.winh/2))
+                       else (
+                         if not (Wsi.withshift mask) && conf.presentation
+                         then prevpage ()
+                         else gotoghyll1 true (clamp (-conf.scrollstep))
+                       )
+                    end
+                 | Some n ->
+                    setautoscrollspeed n false
+                 end
 
   | Ascii 'j' | Down ->
-     begin match state.autoscroll with
-     | None ->
-        begin match state.mode with
-        | Birdseye beye -> downbirdseye 1 beye
-        | Textentry _ | View | LinkNav _ ->
-           if ctrl
-           then gotoxy_and_clear_text state.x (clamp (state.winh/2))
-           else (
-             if not (Wsi.withshift mask) && conf.presentation
-             then nextpage ()
-             else gotoghyll1 true (clamp (conf.scrollstep))
-           )
-        end
-     | Some n ->
-        setautoscrollspeed n true
-     end
+                 begin match state.autoscroll with
+                 | None ->
+                    begin match state.mode with
+                    | Birdseye beye -> downbirdseye 1 beye
+                    | Textentry _ | View | LinkNav _ ->
+                       if ctrl
+                       then gotoxy_and_clear_text state.x (clamp (state.winh/2))
+                       else (
+                         if not (Wsi.withshift mask) && conf.presentation
+                         then nextpage ()
+                         else gotoghyll1 true (clamp (conf.scrollstep))
+                       )
+                    end
+                 | Some n ->
+                    setautoscrollspeed n true
+                 end
 
   | Left | Right when not (Wsi.withalt mask) ->
      if canpan ()
@@ -5096,8 +5096,8 @@ let viewkeyboard key mask =
      addnav ();
      gotoghyll 0
   | Ascii 'G' | End ->
-     addnav ();
-     gotoghyll (clamp state.maxy)
+                 addnav ();
+                 gotoghyll (clamp state.maxy)
 
   | Right when Wsi.withalt mask ->
      gotoghyll (getnav 1)
@@ -5108,21 +5108,21 @@ let viewkeyboard key mask =
      reload ()
 
   | Ascii 'v' when conf.debug ->
-     state.rects <- [];
-     List.iter (fun l ->
-         match getopaque l.pageno with
-         | None -> ()
-         | Some opaque ->
-            let x0, y0, x1, y1 = pagebbox opaque in
-            let rect = (float x0, float y0,
-                        float x1, float y0,
-                        float x1, float y1,
-                        float x0, float y1) in
-            debugrect rect;
-            let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
-            state.rects <- (l.pageno, color, rect) :: state.rects;
-       ) state.layout;
-     G.postRedisplay "v";
+                   state.rects <- [];
+                   List.iter (fun l ->
+                       match getopaque l.pageno with
+                       | None -> ()
+                       | Some opaque ->
+                          let x0, y0, x1, y1 = pagebbox opaque in
+                          let rect = (float x0, float y0,
+                                      float x1, float y0,
+                                      float x1, float y1,
+                                      float x0, float y1) in
+                          debugrect rect;
+                          let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
+                          state.rects <- (l.pageno, color, rect) :: state.rects;
+                     ) state.layout;
+                   G.postRedisplay "v";
 
   | Ascii '|' ->
      let mode = state.mode in
@@ -5862,20 +5862,10 @@ let viewmouse button down x y mask =
                     match getopaque l.pageno with
                     | Some opaque ->
                        let dosel cmd () =
-                         match Unix.pipe () with
-                         | exception exn ->
-                            impmsg "cannot create sel pipe: %s" @@
-                              exntos exn;
-                         | (r, w) ->
-                            begin match spawn cmd [r, 0; w, -1] with
-                            | exception exn ->
-                               dolog "cannot execute %S: %s" cmd @@ exntos exn
-                            | _pid ->
-                               copysel w opaque;
-                               G.postRedisplay "copysel";
-                            end;
-                            Ne.clo r (impmsg "Msel failed to close r: %s");
-                            Ne.clo w (impmsg "Msel failed to close w: %s");
+                         pipef ~closew:false "Msel"
+                               (fun w ->
+                                 copysel w opaque;
+                                 G.postRedisplay "Msel") cmd
                        in
                        dosel conf.selcmd ();
                        state.roam <- dosel conf.paxcmd;
