@@ -252,18 +252,15 @@ let pipesel opaque cmd =
     match Unix.pipe () with
     | exception exn -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
     | (r, w) ->
-       let doclose what fd =
-         Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
-       in
        begin match spawn cmd [r, 0; w, -1] with
        | exception exn ->
-          doclose "pipesel pipe/w" w;
           dolog "cannot execute %S: %s" cmd @@ exntos exn
        | _pid ->
           copysel w opaque;
           G.postRedisplay "pipesel";
        end;
-       doclose "pipesel pipe/r" r;
+       Ne.clo r (dolog "pipesel failed to close r: %s");
+       Ne.clo w (dolog "pipesel failed to close w: %s");
 ;;
 
 let paxunder x y =
@@ -304,8 +301,8 @@ let selstring s =
           then impmsg "failed to write %d characters to sel pipe, wrote %d" l n;
         with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
      end;
-     Ne.clo w @@ impmsg "selstring failed to close pipe/w: %s";
-     Ne.clo r @@ impmsg "selstring failed to close pipe/r: %s";
+     Ne.clo r (impmsg "selstring failed to close r: %s");
+     Ne.clo w (impmsg "selstring failed to close w: %s");
 ;;
 
 let undertext = function
@@ -5870,19 +5867,15 @@ let viewmouse button down x y mask =
                             impmsg "cannot create sel pipe: %s" @@
                               exntos exn;
                          | (r, w) ->
-                            let clo what fd =
-                              Ne.clo fd (fun msg ->
-                                       dolog "%s close failed: %s" what msg)
-                            in
                             begin match spawn cmd [r, 0; w, -1] with
                             | exception exn ->
-                               clo "Msel pipe/w" w;
                                dolog "cannot execute %S: %s" cmd @@ exntos exn
                             | _pid ->
                                copysel w opaque;
                                G.postRedisplay "copysel";
                             end;
-                            clo "Msel pipe/r" r;
+                            Ne.clo r (impmsg "Msel failed to close r: %s");
+                            Ne.clo w (impmsg "Msel failed to close w: %s");
                        in
                        dosel conf.selcmd ();
                        state.roam <- dosel conf.paxcmd;
@@ -6302,7 +6295,6 @@ let () =
     match spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
     | exception exn -> error "failed to execute gc script: %s" @@ exntos exn
     | _pid ->
-       Ne.clo c @@ (fun s -> error "failed to close gc fd %s" s);
        Config.gc s;
        exit 0
   );
