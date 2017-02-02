@@ -85,12 +85,12 @@ end;;
 
 let _debugl l =
   dolog {|l %d dim=%d {
-         WxH     %dx%d
-         vWxH    %dx%d
-         pagex,y %d,%d
-         dispx,y %d,%d
-         column  %d
-         }|}
+  WxH     %dx%d
+  vWxH    %dx%d
+  pagex,y %d,%d
+  dispx,y %d,%d
+  column  %d\n
+}|}
         l.pageno l.pagedimno
         l.pagew l.pageh
         l.pagevw l.pagevh
@@ -101,11 +101,11 @@ let _debugl l =
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog {|rect {
-         x0,y0=(% f, % f)
-         x1,y1=(% f, % f)
-         x2,y2=(% f, % f)
-         x3,y3=(% f, % f)
-         }|} x0 y0 x1 y1 x2 y2 x3 y3;
+  x0,y0=(% f, % f)
+  x1,y1=(% f, % f)
+  x2,y2=(% f, % f)
+  x3,y3=(% f, % f)
+}|} x0 y0 x1 y1 x2 y2 x3 y3;
 ;;
 
 let isbirdseye = function
