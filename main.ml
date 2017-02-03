@@ -6,7 +6,6 @@ exception Quit;;
 external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;
-external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
 external whatsunder : opaque -> int -> int -> under = "ml_whatsunder";;
 external markunder : opaque -> int -> int -> mark -> bool = "ml_markunder";;
@@ -54,10 +53,8 @@ external uritolocation : string
                          -> (pageno * float * float) = "ml_uritolocation";;
 external isexternallink : string -> bool = "ml_isexternallink";;
 
-let ellipsis = "\xe2\x80\xa6"
-let radical = "\xe2\x88\x9a"
-let lguillemet = "\xc2\xab"
-let rguillemet = "\xc2\xbb"
+(* copysel _will_ close the supplied descriptor *)
+external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 
 let selfexec = ref E.s;;
 let opengl_has_pbo = ref false;;
@@ -92,14 +89,14 @@ let _debugl l =
   vWxH    %dx%d
   pagex,y %d,%d
   dispx,y %d,%d
-  column  %d
+  column  %d\n
 }|}
-  l.pageno l.pagedimno
-  l.pagew l.pageh
-  l.pagevw l.pagevh
-  l.pagex l.pagey
-  l.pagedispx l.pagedispy
-  l.pagecol
+        l.pageno l.pagedimno
+        l.pagew l.pageh
+        l.pagevw l.pagevh
+        l.pagex l.pagey
+        l.pagedispx l.pagedispy
+        l.pagecol
 ;;
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
@@ -251,24 +248,25 @@ let impmsg fmt =
   Format.ksprintf (fun s -> showtext '!' s) fmt;
 ;;
 
+let pipef ?(closew=true) cap f cmd =
+  match Unix.pipe () with
+  | exception exn -> dolog "%s cannot create pipe: %S" cap @@ exntos exn
+  | (r, w) ->
+     begin match spawn cmd [r, 0; w, -1] with
+     | exception exn -> dolog "%s: cannot execute %S: %s" cap cmd @@ exntos exn
+     | _pid -> f w
+     end;
+     Ne.clo r (dolog "%s failed to close r: %s" cap);
+     if closew then Ne.clo w (dolog "%s failed to close w: %s" cap);
+;;
+
 let pipesel opaque cmd =
   if hassel opaque
-  then
-    match Unix.pipe () with
-    | exception exn -> dolog "pipesel cannot create pipe: %S" @@ exntos exn;
-    | (r, w) ->
-       let doclose what fd =
-         Ne.clo fd (fun msg -> dolog "%s close failed: %s" what msg)
-       in
-       begin match spawn cmd [r, 0; w, -1] with
-       | exception exn ->
-          doclose "pipesel pipe/w" w;
-          dolog "cannot execute %S: %s" cmd @@ exntos exn
-       | _pid ->
-          copysel w opaque;
-          G.postRedisplay "pipesel";
-       end;
-       doclose "pipesel pipe/r" r;
+  then pipef ~closew:false "pipesel"
+             (fun w ->
+               copysel w opaque;
+               G.postRedisplay "pipesel"
+             ) cmd
 ;;
 
 let paxunder x y =
@@ -294,26 +292,16 @@ let paxunder x y =
 ;;
 
 let selstring s =
-  match Unix.pipe () with
-  | exception exn -> impmsg "pipe failed: %s" @@ exntos exn
-  | (r, w) ->
-     let clo cap fd =
-       Ne.clo fd (fun msg -> impmsg "failed to close %s: %s" cap msg)
-     in
-     begin match spawn conf.selcmd [r, 0; w, -1] with
-     | exception exn ->
-        clo "selstring pipe/w" w;
-        impmsg "failed to execute %s: %s" conf.selcmd @@ exntos exn
-     | _pid ->
-        try
-          let l = String.length s in
-          let bytes = Bytes.unsafe_of_string s in
-          let n = tempfailureretry (Unix.write w bytes 0) l in
-          if n != l
-          then impmsg "failed to write %d characters to sel pipe, wrote %d" l n
-        with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
-     end;
-     clo "selstring pipe/r" r;
+  pipef
+    "selstring" (fun w ->
+      try
+        let l = String.length s in
+        let bytes = Bytes.unsafe_of_string s in
+        let n = tempfailureretry (Unix.write w bytes 0) l in
+        if n != l
+        then impmsg "failed to write %d characters to sel pipe, wrote %d" l n;
+      with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
+    ) conf.selcmd
 ;;
 
 let undertext = function
@@ -891,7 +879,7 @@ let gotoxy x y =
     | LinkNav lt ->
        begin match lt with
        | Ltnotready (_, dir)
-         | Ltgendir dir ->
+       | Ltgendir dir ->
           let linknav =
             let rec loop = function
               | [] -> lt
@@ -1855,7 +1843,7 @@ let act cmds =
                Buffer.add_char b ']';
                Buffer.contents b
              else args
-           )
+             )
            else args
        else args
      in
@@ -2359,7 +2347,7 @@ let [@warning "-4"] optentry mode _ key =
      TEstop
 
   | _ ->
-    TEcont state.text
+     TEcont state.text
 ;;
 
 class type lvsource =
@@ -2389,7 +2377,8 @@ class virtual lvsourcebase = object
           method getminfo : (int * int) array = E.a
         end;;
 
-let [@warning "-4"] textentrykeyboard
+let [@warning "-4"]
+      textentrykeyboard
       key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
   state.text <- E.s;
   let enttext te =
@@ -2407,7 +2396,8 @@ let [@warning "-4"] textentrykeyboard
            );
        G.postRedisplay "textentry histaction"
   in
-  let open Keys in let kt = Wsi.kc2kt key in
+  let open Keys in
+  let kt = Wsi.kc2kt key in
   match kt with
   | Backspace ->
      if emptystr text && cancelonempty
@@ -3005,11 +2995,11 @@ object (self)
        G.postRedisplay "listview motion";
        coe {< m_first = first; m_active = first >}
     | Msel _
-      | Mpan _
-      | Mscrollx
-      | Mzoom _
-      | Mzoomrect _
-      | Mnone -> coe self
+    | Mpan _
+    | Mscrollx
+    | Mzoom _
+    | Mzoomrect _
+    | Mnone -> coe self
 
   method pmotion x y =
     if x < state.winw - conf.scrollbw
@@ -3715,8 +3705,8 @@ let enterinfomode =
                  leavebirdseye beye false;
                  enterbirdseye ()
               | Textentry _
-                | View
-                | LinkNav _ -> ()
+              | View
+              | LinkNav _ -> ()
             );
 
     let mode = state.mode in
@@ -4518,7 +4508,7 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
           coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
         G.postRedisplay "enter selector";
       )
-    )
+     )
   in
   let mkenter sourcetype errmsg =
     let enter = mkselector sourcetype in
@@ -4659,12 +4649,14 @@ let prevpage () =
 
 let save () =
   if emptystr conf.savecmd
-  then error "don't know where to save modified document"
+  then adderrmsg "savepath-command is empty"
+                 "don't know where to save modified document"
   else
     let savecmd = Str.global_replace percentsre state.path conf.savecmd in
     let path =
       getcmdoutput
-        (fun s -> error "failed to obtain path to the saved copy: %s" s)
+        (fun exn ->
+          adderrfmt savecmd "failed to produce path to the saved copy: %s" exn)
         savecmd
     in
     if nonemptystr path
@@ -4709,10 +4701,10 @@ let viewkeyboard key mask =
         resetmstate ();
         G.postRedisplay "kill rect";
      | Msel _
-       | Mpan _
-       | Mscrolly | Mscrollx
-       | Mzoom _
-       | Mnone ->
+     | Mpan _
+     | Mscrolly | Mscrollx
+     | Mzoom _
+     | Mnone ->
         begin match state.mode with
         | LinkNav ln ->
            begin match ln with
@@ -4768,7 +4760,8 @@ let viewkeyboard key mask =
      let ondone s =
        let n =
          try int_of_string s with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
+           state.text <-
+             Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
            max_int
        in
        if n != max_int
@@ -4828,8 +4821,7 @@ let viewkeyboard key mask =
   | Ascii '9' when ctrl ->
      togglebirdseye ()
 
-  | Ascii ('0'..'9')
-       when not ctrl ->
+  | Ascii ('0'..'9') when not ctrl ->
      let ondone s =
        let n =
          try int_of_string s with exn ->
@@ -5011,7 +5003,7 @@ let viewkeyboard key mask =
 
   | Ascii ('['|']' as c) ->
      conf.colorscale <-
-       bound (conf.colorscale +. (if c = '>' then 0.1 else -0.1)) 0.0 1.0;
+       bound (conf.colorscale +. (if c = ']' then 0.1 else -0.1)) 0.0 1.0;
      G.postRedisplay "brightness";
 
   | Ascii 'c' when state.mode = View ->
@@ -5201,23 +5193,12 @@ let linknavkeyboard key mask linknav =
          let opt, dir =
            let open Keys in
            match pv with
-           | Home ->
-              Some (findlink opaque LDfirst), -1
-
-           | End ->
-              Some (findlink opaque LDlast), 1
-
-           | Left ->
-              Some (findlink opaque (LDleft n)), -1
-
-           | Right ->
-              Some (findlink opaque (LDright n)), 1
-
-           | Up ->
-              Some (findlink opaque (LDup n)), -1
-
-           | Down ->
-              Some (findlink opaque (LDdown n)), 1
+           | Home -> Some (findlink opaque LDfirst), -1
+           | End -> Some (findlink opaque LDlast), 1
+           | Left -> Some (findlink opaque (LDleft n)), -1
+           | Right -> Some (findlink opaque (LDright n)), 1
+           | Up -> Some (findlink opaque (LDup n)), -1
+           | Down -> Some (findlink opaque (LDdown n)), 1
 
            | Delete|Escape|Insert|Enter|Next|Prior|Ascii _
            | Code _|Fn _|Ctrl _|Backspace -> None, 0
@@ -5444,9 +5425,9 @@ let postdrawpage l linkindexbase =
          match state.mode with
          | Textentry ((_, s, _, _, _, _), _) when state.glinks -> s
          | Textentry _
-           | Birdseye _
-           | View
-           | LinkNav _ -> E.s
+         | Birdseye _
+         | View
+         | LinkNav _ -> E.s
        in
        Hashtbl.find_all state.prects l.pageno |>
          List.iter (fun vals -> drawprect opaque x y vals);
@@ -5543,9 +5524,9 @@ let display () =
        | None -> state.rects
        end
     | LinkNav (Ltgendir _) | LinkNav (Ltnotready _)
-      | Birdseye _
-      | Textentry _
-      | View -> state.rects
+    | Birdseye _
+    | Textentry _
+    | View -> state.rects
   in
   showrects rects;
   let rec postloop linkindexbase = function
@@ -5891,24 +5872,10 @@ let viewmouse button down x y mask =
                     match getopaque l.pageno with
                     | Some opaque ->
                        let dosel cmd () =
-                         match Unix.pipe () with
-                         | exception exn ->
-                            impmsg "cannot create sel pipe: %s" @@
-                              exntos exn;
-                         | (r, w) ->
-                            let clo what fd =
-                              Ne.clo fd (fun msg ->
-                                       dolog "%s close failed: %s" what msg)
-                            in
-                            begin match spawn cmd [r, 0; w, -1] with
-                            | exception exn ->
-                               clo "Msel pipe/w" w;
-                               dolog "cannot execute %S: %s" cmd @@ exntos exn
-                            | _pid ->
-                               copysel w opaque;
-                               G.postRedisplay "copysel";
-                            end;
-                            clo "Msel pipe/r" r;
+                         pipef ~closew:false "Msel"
+                               (fun w ->
+                                 copysel w opaque;
+                                 G.postRedisplay "Msel") cmd
                        in
                        dosel conf.selcmd ();
                        state.roam <- dosel conf.paxcmd;
@@ -6334,7 +6301,6 @@ let () =
     match spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
     | exception exn -> error "failed to execute gc script: %s" @@ exntos exn
     | _pid ->
-       Ne.clo c @@ (fun s -> error "failed to close gc fd %s" s);
        Config.gc s;
        exit 0
   );

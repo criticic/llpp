@@ -6,7 +6,8 @@ if test x"$1" = x; then
 else
     builddir="$1"
 fi
-test $(ocamlc --version | awk -F. '{print $1 $2}') -lt 404 && {
+test $((ocamlc 2>/dev/null --version || echo 0.0) \
+           | awk -F. '{print $1 $2}') -lt 404 && {
     echo "OCaml version 4.04.0 or higher required"
     exit 1
 } || true
