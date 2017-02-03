@@ -1946,52 +1946,20 @@ let save leavebirdseye =
       dolog "error saving configuration: %s" @@ exntos exn
 ;;
 
-let gc fd =
-  let wr s n =
-    (* This here has a potential of rising SIGPIPE, silently and
-       seemingly harmlessly (when -gc was supplied an invalid
-       executable for instance) probably needs revisiting *)
-    let n' = Unix.write fd (Bytes.of_string s) 0 n in
-    if n != n'
-    then Utils.error "Unix.write %d = %d" n n'
-  in
-  let href = ref (Hashtbl.create 0) in
+let gc () =
+  let href = ref @@ Hashtbl.create 0 in
   let cref = ref defconf in
   let push (h, dc) =
-    let f path (pc, _pb, _px, _pa, _po) =
-      let s =
-        Printf.sprintf "%s\000%ld\000" path (Int32.of_float pc.lastvisit)
-      in
-      wr s (String.length s)
-    in
-    Hashtbl.iter f h;
+    let f path v =
+      if Sys.file_exists path
+      then Some v
+      else (dolog "removing %s" path; None) in
+    Hashtbl.filter_map_inplace f h;
     href := h;
     cref := dc;
     true
   in
   ignore (load1 push);
-  Unix.shutdown fd Unix.SHUTDOWN_SEND;
-  let s = fdcontents fd in
-  let rec f ppos =
-    match String.index_from s ppos '\000' with
-    | exception Not_found -> ()
-    | zpos1 ->
-       match String.index_from s (zpos1+1) '\000' with
-       | exception Not_found -> error "invalid gc input in (%S) at %d" s zpos1
-       | zpos2 ->
-          let okey = StringLabels.sub s ~pos:ppos ~len:(zpos1-ppos) in
-          let nkey = StringLabels.sub s ~pos:(zpos1+1) ~len:(zpos2-zpos1-1) in
-          if emptystr nkey
-          then (Hashtbl.remove !href okey; f (zpos2+1))
-          else
-            match Hashtbl.find !href okey with
-            | exception Not_found -> Utils.error "gc: cannot find %S" okey
-            | v ->
-               Hashtbl.remove !href okey;
-               Hashtbl.replace !href nkey v;
-               f (zpos2+1)
-  in
-  f 0;
   let bb = Buffer.create 32768 in
   let save2 (_h, dc) = save1 bb (fun _ _ -> ()) 0 !href dc in
   if load1 save2 && Buffer.length bb > 0
