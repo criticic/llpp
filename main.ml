@@ -3035,6 +3035,26 @@ object (self)
   method modehash = modehash
   method eformsgs = false
   method alwaysscrolly = true
+  method scroll _ dy =
+    let self =
+      if dy != 0 then begin
+        let len = source#getitemcount in
+        let first =
+          if dy > 0 && m_first + fstate.maxrows >= len
+          then
+            m_first
+          else
+            let first = m_first + dy / 10 in
+            bound first 0 (len - 1)
+        in
+        G.postRedisplay "listview wheel";
+        {< m_first = first >}
+      end else
+        self
+    in
+    coe self
+
+  method zoom _ _ _ = ()
 end;;
 
 class outlinelistview ~zebra ~source =
@@ -6029,6 +6049,12 @@ let uioh = object
 
     method eformsgs = true
     method alwaysscrolly = false
+    method scroll dx dy =
+      let x = if canpan () then panbound (state.x + dx) else state.x in
+      gotoxy_and_clear_text x (clamp (2 * dy));
+      state.uioh
+    method zoom z x y =
+      pivotzoom ~x ~y (conf.zoom *. exp z);
   end;;
 
 let addrect pageno r g b a x0 y0 x1 y1 =
@@ -6372,7 +6398,14 @@ let () =
         state.uioh <- state.uioh#pmotion x y
       method leave = state.mpos <- (-1, -1)
       method winstate wsl = state.winstate <- wsl
-      method quit = raise Quit
+      method quit : 'a. 'a = raise Quit
+      method scroll dx dy = state.uioh <- state.uioh#scroll dx dy
+      method zoom z x y = state.uioh#zoom z x y
+      method opendoc path =
+        state.mode <- View;
+        state.uioh <- uioh;
+        G.postRedisplay "opendoc";
+        opendoc path state.password
     end
   in
   let wsfd, winw, winh = Wsi.init mu !rootwid conf.cwinw conf.cwinh platform in

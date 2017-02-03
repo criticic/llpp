@@ -10,7 +10,7 @@ type fontstate =
 ;;
 
 let fstate =
-  { fontsize = 20
+  { fontsize = 20 * Wsi.fontsizefactor ()
   ; wwidth = nan
   ; maxrows = -1
   }
@@ -169,6 +169,8 @@ class type uioh =
     method modehash : keyhash
     method eformsgs : bool
     method alwaysscrolly : bool
+    method scroll : int -> int -> uioh
+    method zoom : float -> int -> int -> unit
   end;;
 
 module type TextEnumType =
@@ -467,6 +469,8 @@ let nouioh : uioh = object (self)
                       method modehash = emptykeyhash
                       method eformsgs = false
                       method alwaysscrolly = false
+                      method scroll _ _ = self
+                      method zoom _ _ _ = ()
                     end;;
 
 let platform_to_string = function
@@ -545,7 +549,7 @@ let defconf =
   ; columns        = Csingle [||]
   ; beyecolumns    = None
   ; updatecurs     = true
-  ; hfsize         = 12
+  ; hfsize         = 12 * Wsi.fontsizefactor ()
   ; pgscale        = 1.0
   ; usepbo         = false
   ; wheelbypage    = false

@@ -33,3 +33,9 @@ or
   llpp% runghc Shakefile.hs -j0 [build/llpp.native]
 
 Standalone binary should now be in build/llpp[.native]
+
+Native OS X Installation Instructions
+-------------------------------------
+
+  Only supported using build.sh as above.  If build is successful, the
+  standalone OS X app should now be in build/llpp.app or somwhere/llpp.app.

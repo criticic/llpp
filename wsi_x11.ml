@@ -30,8 +30,6 @@ external swapb : unit -> unit = "ml_swapb";;
 external setcursor : cursor -> unit = "ml_setcursor";;
 external setwinbgcol : int -> unit = "ml_setbgcol";;
 
-let vlog fmt = Format.ksprintf ignore fmt;;
-
 let onot = object
     method display         = ()
     method map _           = ()
@@ -45,7 +43,10 @@ let onot = object
     method enter _ _       = ()
     method leave           = ()
     method winstate _      = ()
-    method quit            = exit 0
+    method quit : 'a. 'a   = exit 0
+    method scroll _ _      = ()
+    method zoom _ _ _      = ()
+    method opendoc _       = ()
   end;;
 
 class type t =
@@ -62,7 +63,10 @@ class type t =
     method enter    : int -> int -> unit
     method leave    : unit
     method winstate : winstate list -> unit
-    method quit     : unit
+    method quit     : 'a. 'a
+    method scroll   : int -> int -> unit
+    method zoom     : float -> int -> int -> unit
+    method opendoc  : string -> unit
   end;;
 
 type state =
@@ -138,37 +142,7 @@ let state =
   }
 ;;
 
-let w8 s pos i = Bytes.set s pos (Char.chr (i land 0xff));;
-let r8 s pos = Char.code (Bytes.get s pos);;
-
 let ordermagic = 'l';;
-
-let w16 s pos i =
-  w8 s pos i;
-  w8 s (pos+1) (i lsr 8)
-;;
-
-let w32 s pos i =
-  w16 s pos i;
-  w16 s (pos+2) (i lsr 16)
-;;
-
-let r16 s pos =
-  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
-  (rb 0) lor ((rb 1) lsl 8)
-;;
-
-let r16s s pos =
-  let i = r16 s pos in
-  i - ((i land 0x8000) lsl 1)
-;;
-
-let r32 s pos =
-  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
-  let l = (rb 0) lor ((rb 1) lsl 8)
-  and u = (rb 2) lor ((rb 3) lsl 8) in
-  (u lsl 16) lor l
-;;
 
 let makereq opcode len reqlen =
   let s = Bytes.create len in
@@ -1340,3 +1314,5 @@ let kc2kt =
   | code when code land 0xff00 = 0xff00 -> Ctrl code
   | code -> Code code
 ;;
+
+let fontsizefactor () = 1

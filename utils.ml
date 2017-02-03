@@ -117,14 +117,14 @@ let string_with_suffix_of_int n =
 
 let color_of_string s =
   Scanf.sscanf s "%d/%d/%d" (fun r g b ->
-                 (float r /. 256.0, float g /. 256.0, float b /. 256.0)
+                 (float r /. 255.0, float g /. 255.0, float b /. 255.0)
                )
 ;;
 
 let color_to_string (r, g, b) =
-  let r = truncate (r *. 256.0)
-  and g = truncate (g *. 256.0)
-  and b = truncate (b *. 256.0) in
+  let r = truncate (r *. 255.0)
+  and g = truncate (g *. 255.0)
+  and b = truncate (b *. 255.0) in
   Printf.sprintf "%d/%d/%d" r g b
 ;;
 
@@ -293,3 +293,45 @@ let substratis s pos subs =
     in cmp 0
   else false
 ;;
+
+let w8 s pos i = Bytes.set s pos (Char.chr (i land 0xff));;
+let r8 s pos = Char.code (Bytes.get s pos);;
+
+let w16 s pos i =
+  w8 s pos i;
+  w8 s (pos+1) (i lsr 8)
+;;
+
+let w32 s pos i =
+  w16 s pos i;
+  w16 s (pos+2) (i lsr 16)
+;;
+
+let r16 s pos =
+  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
+  (rb 0) lor ((rb 1) lsl 8)
+;;
+
+let r16s s pos =
+  let i = r16 s pos in
+  i - ((i land 0x8000) lsl 1)
+;;
+
+let r32 s pos =
+  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
+  let l = (rb 0) lor ((rb 1) lsl 8)
+  and u = (rb 2) lor ((rb 3) lsl 8) in
+  (u lsl 16) lor l
+;;
+
+let r32s s pos =
+  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
+  let v0 = rb 0 and v1 = rb 1 and v2 = rb 2 and v3 = rb 3 in
+  let v = v0 lor (v1 lsl 8) lor (v2 lsl 16) lor (v3 lsl 24) in
+  if v3 land 0x80 = 0 then
+    v
+  else
+    (v - (1 lsl 32))
+;;
+
+let vlog fmt = Format.ksprintf ignore fmt;;

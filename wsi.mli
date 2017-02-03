@@ -32,7 +32,10 @@ class type t =
     method enter    : int -> int -> unit
     method leave    : unit
     method winstate : winstate list -> unit
-    method quit     : unit
+    method quit     : 'a. 'a
+    method scroll   : int -> int -> unit
+    method zoom     : float -> int -> int -> unit
+    method opendoc  : string -> unit
   end;;
 
 val setcursor : cursor -> unit;;
@@ -57,4 +60,5 @@ val ctrlmask : int;;
 val keyname : int -> string;;
 val namekey : string -> int;;
 val setwinbgcol : int -> unit;;
+val fontsizefactor : unit -> int;;
 val kc2kt : int -> Keys.t;;

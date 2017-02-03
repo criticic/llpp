@@ -29,7 +29,15 @@
 #include <limits.h>
 #include <inttypes.h>
 
+#ifdef __COCOA__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 
 #include <caml/fail.h>
 #include <caml/alloc.h>
@@ -3790,6 +3798,8 @@ CAMLprim void ml_setaalevel (value level_v)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
+
+#ifndef __COCOA__
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
 #pragma GCC diagnostic pop
@@ -3990,6 +4000,21 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
     str_v = caml_copy_string (buf);
     CAMLreturn (str_v);
 }
+#else
+CAMLprim value ml_keysymtoutf8 (value keysym_v)
+{
+    CAMLparam1 (keysym_v);
+    CAMLlocal1 (str_v);
+    long ucs_v = Long_val (keysym_v);
+    int len;
+    char buf[5];
+
+    len = fz_runetochar (buf, ucs_v);
+    buf[len] = 0;
+    str_v = caml_copy_string (buf);
+    CAMLreturn (str_v);
+}
+#endif
 
 enum { piunknown, pilinux, piosx, pisun, pibsd, picygwin };
 
@@ -4141,6 +4166,12 @@ CAMLprim void ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
+#ifdef __COCOA__
+  static CFBundleRef framework = NULL;
+  if (framework == NULL)
+    framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
+#define GGPA(n) (&state.n = CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
+#else
 #ifdef USE_EGL
 #define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
 #else
@@ -4152,6 +4183,7 @@ static void setuppbo (void)
         && GGPA (glBufferDataARB)
         && GGPA (glGenBuffersARB)
         && GGPA (glDeleteBuffersARB);
+#endif
 #undef GGPA
 }
 
