@@ -6267,16 +6267,8 @@ let () =
 
   if nonemptystr !gcconfig
   then (
-    let (c, s) =
-      match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
-      | exception exn -> error "socketpair for gc failed: %s" @@ exntos exn
-      | fds -> fds
-    in
-    match spawn !gcconfig [(c, 0); (c, 1); (s, -1)] with
-    | exception exn -> error "failed to execute gc script: %s" @@ exntos exn
-    | _pid ->
-       Config.gc s;
-       exit 0
+    Config.gc ();
+    exit 0
   );
 
   let mu =
