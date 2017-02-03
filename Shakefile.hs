@@ -35,8 +35,9 @@ ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
 ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
-ocamlflagstbl = [("main", "-I lablGL")
-                ,("config", "-I lablGL")]
+ocamlflagstbl = [("main", "-I lablGL -I wsi/x11")
+                ,("wsi/x11/wsi", "-I wsi/x11")
+                ,("config", "-I lablGL -I wsi/x11")]
 cflags = "-Wall -Werror -D_GNU_SOURCE -O\
          \ -g -std=c99 -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow"
