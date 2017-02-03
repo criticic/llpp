@@ -6186,7 +6186,7 @@ let remoteopen path =
 ;;
 
 let () =
-  let gcconfig = ref E.s in
+  let gcconfig = ref false in
   let trimcachepath = ref E.s in
   let rcmdpath = ref E.s in
   let pageno = ref None in
@@ -6230,8 +6230,7 @@ let () =
         ("-remote", Arg.String (fun s -> rcmdpath := s),
          "<path> Set path to the source of remote commands");
 
-        ("-gc", Arg.Set_string gcconfig,
-         "<path> Collect garbage with the help of a script");
+        ("-gc", Arg.Set gcconfig, " Collect config garbage");
 
         ("-v", Arg.Unit (fun () ->
                    Printf.printf
@@ -6265,7 +6264,7 @@ let () =
   | None -> ()
   end;
 
-  if nonemptystr !gcconfig
+  if !gcconfig
   then (
     Config.gc ();
     exit 0
