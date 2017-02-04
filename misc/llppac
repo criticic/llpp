@@ -58,6 +58,7 @@ done
 shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: path"
 
+origin="$1"
 if test ! -e "$1" && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
     if executable_p wget; then
         dl() {
@@ -211,5 +212,6 @@ esac
 hash=$(md5sum "$md5of") || die "$hash"
 casp=$cachedir/${hash%% *}$caspsuf
 (test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
+shift
 
-exec llpp -origin "$@" "$casp"
+exec llpp -origin $origin "$@" "$casp"
