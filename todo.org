@@ -1,6 +1,7 @@
 * TODO progressive zoom
 * TODO wayland
-* TODO incorporate Nicolás's changes
+* DONE incorporate Nicolás's changes
+  CLOSED: [2017-02-04 Sat 07:57]
 * DONE backspace selected linknav preservation
   CLOSED: [2016-11-22 Tue 17:06]
 * DONE move read/writedata to C
@@ -30,3 +31,4 @@
 * TODO somehow merge kv2pv and xlatt/xlatf
 * DONE ctrl in (at least) help mode yields a key and not found message
   CLOSED: [2016-12-30 Fri 10:53]
+* TODO do something about wsi.mli
