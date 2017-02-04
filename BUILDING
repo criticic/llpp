@@ -39,3 +39,6 @@ Native OS X Installation Instructions
 
   Only supported using build.sh as above.  If build is successful, the
   standalone OS X app should now be in build/llpp.app or somwhere/llpp.app.
+
+  (N.B. mupdf under macOS is in a bit of a disarray now so to build it
+        `make -k build=native libs' is in order)
