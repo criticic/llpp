@@ -13,7 +13,7 @@ test $((ocamlc 2>/dev/null --version || echo 0.0) \
 } || true
 
 case $(uname -s) in
-    darwin*)
+    Darwin)
         wsi=wsi/osx
         macos=true
         ;;
