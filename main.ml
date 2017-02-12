@@ -1894,11 +1894,14 @@ let search pattern forward =
 
 let [@warning "-4"] intentry text key =
   let text =
-    match key with
-    | Keys.Ascii ('0'..'9' as c) -> addchar text c
-    | _ ->
-       state.text <- "invalid key";
-       text
+    if emptystr text && key = Keys.Ascii '-'
+    then addchar text '-'
+    else
+      match key with
+      | Keys.Ascii ('0'..'9' as c) -> addchar text c
+      | _ ->
+         state.text <- "invalid key";
+         text
   in
   TEcont text
 ;;
