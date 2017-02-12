@@ -22,7 +22,6 @@ t                       - align top of the screen with the top of the page
 <,>                     - rotate
 Ctrl-pageup/pagedown    - align top of the screen with first/last visible page
 F                       - go to hinted link
-a                       - autoscroll
 if auto scrolling is active:
     up/down arrows and mouse buttons 3/4 will make scrolling go faster/slower
 
@@ -95,6 +94,10 @@ h,F1                    - switch to help mode
 i                       - switch to info mode
 P                       - switch to "presentation" mode
 c                       - switch to previous column layout
+a                       - auto scroll mode
+S                       - slide show mode
+  (auto scroll step is interepreted as a delay (in seconds) between transitions)
+
 
 -----Tunables-----
 -i                      - toggle case sensitivity of searches
