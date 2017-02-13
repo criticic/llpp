@@ -441,6 +441,7 @@ type state =
   ; mutable traw          : [`float] Raw.t
   ; mutable vraw          : [`float] Raw.t
   ; mutable lnava         : (pageno * linkno) option
+  ; mutable slideshow     : int
   }
  and hists =
    { pat : string circbuf
@@ -718,6 +719,7 @@ let state =
   ; traw          = Raw.create_static `float ~len:8
   ; vraw          = Raw.create_static `float ~len:8
   ; lnava         = None
+  ; slideshow     = 0
   }
 ;;
 

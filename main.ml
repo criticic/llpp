@@ -4680,6 +4680,8 @@ let viewkeyboard key mask =
   let ctrl = Wsi.withctrl mask in
   let open Keys in
   match Wsi.kc2kt key with
+  | Ascii 'S' -> state.slideshow <- state.slideshow lxor 1
+
   | Ascii 'Q' -> exit 0
 
   | Ascii 'W' ->
@@ -4897,9 +4899,8 @@ let viewkeyboard key mask =
         conf.autoscrollstep <- step;
         state.autoscroll <- None
      | None ->
-        if conf.autoscrollstep = 0
-        then state.autoscroll <- Some 1
-        else state.autoscroll <- Some conf.autoscrollstep
+        state.autoscroll <- Some conf.autoscrollstep;
+        state.slideshow <- state.slideshow land lnot 2
      end
 
   | Ascii 'p' when ctrl ->
@@ -6536,17 +6537,25 @@ let () =
          then
            match state.autoscroll with
            | Some step when step != 0 ->
-              let y = state.y + step in
-              let fy = if conf.maxhfit then state.winh else 0 in
-              let y =
-                if y < 0
-                then state.maxy - fy
-                else if y >= state.maxy - fy then 0 else y
-              in
-              if state.mode = View
-              then gotoxy_and_clear_text state.x y
-              else gotoxy state.x y;
-              deadline +. 0.01
+              if state.slideshow land 1 = 1
+              then (
+                if state.slideshow land 2 = 0
+                then state.slideshow <- state.slideshow lor 2
+                else if step < 0 then prevpage () else nextpage ();
+                deadline +. (float (abs step))
+              )
+              else
+                let y = state.y + step in
+                let fy = if conf.maxhfit then state.winh else 0 in
+                let y =
+                  if y < 0
+                  then state.maxy - fy
+                  else if y >= state.maxy - fy then 0 else y
+                in
+                if state.mode = View
+                then gotoxy_and_clear_text state.x y
+                else gotoxy state.x y;
+                deadline +. 0.01
            | _ -> infinity
          else deadline +. 0.01
        in
