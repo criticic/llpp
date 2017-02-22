@@ -8,7 +8,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+
 #include <wchar.h>
+#include <locale.h>
+#include <langinfo.h>
 
 #include <unistd.h>
 #include <pthread.h>
@@ -1569,6 +1572,18 @@ static char *mbtoutf8 (char *s)
     char *p, *r;
     wchar_t *tmp;
     size_t i, ret, len;
+    static int utf8_cookie;
+
+    if (!utf8_cookie) {
+        /* taken from dvtm/vt.c */
+        setlocale (LC_CTYPE, "");
+        const char *cset = nl_langinfo (CODESET);
+        utf8_cookie = !strcmp (cset, "UTF-8") + 1;
+    }
+
+    if (utf8_cookie == 2) {
+        return s;
+    }
 
     len = mbstowcs (NULL, s, strlen (s));
     if (len == 0) {
@@ -1576,6 +1591,7 @@ static char *mbtoutf8 (char *s)
     }
     else {
         if (len == (size_t) -1) {
+            printd ("emsg mbstowcs %d:%s\n", errno, strerror (errno));
             return s;
         }
     }
