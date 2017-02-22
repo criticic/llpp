@@ -277,6 +277,7 @@ struct {
         pdf_document *pdf;
     } pdflut;
 #endif
+    int utf8cs;
 } state;
 
 struct bo {
@@ -1572,16 +1573,8 @@ static char *mbtoutf8 (char *s)
     char *p, *r;
     wchar_t *tmp;
     size_t i, ret, len;
-    static int utf8_cookie;
 
-    if (!utf8_cookie) {
-        /* taken from dvtm/vt.c */
-        setlocale (LC_CTYPE, "");
-        const char *cset = nl_langinfo (CODESET);
-        utf8_cookie = !strcmp (cset, "UTF-8") + 1;
-    }
-
-    if (utf8_cookie == 2) {
+    if (state.utf8cs) {
         return s;
     }
 
@@ -4418,6 +4411,17 @@ CAMLprim void ml_init (value csock_v, value params_v)
     int colorspace;
     int mustoresize;
     int haspboext;
+
+    /* Without following(dummy) call to setlocale mbstowcs fails for,
+       at least, strings containing chinese symbols (中 for instance)
+       (with glibc citing EILSEQ="Invalid or incomplete multibyte or
+       wide character" as the reason of failure and with macOS
+       producing bogus output) */
+    if (!setlocale (LC_CTYPE, "")) {
+        /* Following two lines were taken from dvtm/vt.c */
+        const char *cset = nl_langinfo (CODESET);
+        state.utf8cs = !strcmp (cset, "UTF-8");
+    }
 
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
