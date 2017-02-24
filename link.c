@@ -1584,18 +1584,22 @@ static char *mbtoutf8 (char *s)
     }
     else {
         if (len == (size_t) -1) {
-            printd ("emsg mbstowcs %d:%s\n", errno, strerror (errno));
+            printd ("emsg mbtoutf8: mbstowcs %d:%s\n", errno, strerror (errno));
             return s;
         }
     }
 
-    tmp = malloc (len * sizeof (wchar_t));
+    tmp = calloc (len, sizeof (wchar_t));
     if (!tmp) {
+        printd ("emsg mbtoutf8: calloc(%zu, %zu) %d:%s",
+                len, sizeof (wchar_t), errno, strerror (errno));
         return s;
     }
 
     ret = mbstowcs (tmp, s, len);
     if (ret == (size_t) -1) {
+        printd ("emsg mbtoutf8: mbswcs %zu characters failed %d:%s\n",
+                len, errno, strerror (errno));
         free (tmp);
         return s;
     }
@@ -1607,6 +1611,7 @@ static char *mbtoutf8 (char *s)
 
     p = r = malloc (len + 1);
     if (!r) {
+        printd ("emsg mbtoutf8: malloc(%zu)", len);
         free (tmp);
         return s;
     }
