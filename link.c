@@ -4412,8 +4412,8 @@ CAMLprim void ml_init (value csock_v, value params_v)
     int mustoresize;
     int haspboext;
 
-    /* Without following(dummy) call to setlocale mbstowcs fails for,
-       at least, strings containing chinese symbols (中 for instance)
+    /* Without following call to setlocale mbstowcs fails for, at
+       least, strings containing chinese symbols (中 for instance)
        (with glibc citing EILSEQ="Invalid or incomplete multibyte or
        wide character" as the reason of failure and with macOS
        producing bogus output) */
