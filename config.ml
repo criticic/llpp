@@ -1552,7 +1552,8 @@ let add_attrs bb always dc c time =
   and oC s a b = o (always || a <> b) "%s='%s'" s (CSTE.to_string a)
   and oR s a b = o (always || a <> b) "%s='%s'" s (irect_to_string a)
   and oFm s a b = o (always || a <> b) "%s='%s'" s (FMTE.to_string a)
-  and oSv s a b m = o (always || a <> b) "%s='%b'" s (a land m != 0)
+  and oSv s a b m =
+    o (always || a land m <> b land m) "%s='%b'" s (a land m != 0)
   and oPm s a b = o (always || a <> b) "%s='%s'" s (MTE.to_string a)
   and os s a b =
     o (always || a <> b) "%s='%s'" s @@ Parser.enent a 0 (String.length a)
