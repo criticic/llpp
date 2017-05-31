@@ -53,8 +53,11 @@
 #pragma GCC diagnostic ignored "-Wclobbered"
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
+#pragma GCC diagnostic pop
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -938,7 +941,6 @@ static void initpdims (int wthack)
                         fz_matrix ctm, page_ctm;
 
                         dev = fz_new_bbox_device (ctx, &rect);
-                        dev->hints |= FZ_IGNORE_SHADE;
                         pdf_page_transform (ctx, page, &mediabox, &page_ctm);
                         fz_invert_matrix (&ctm, &page_ctm);
                         pdf_run_page (ctx, page, dev, &fz_identity, NULL);
@@ -1042,7 +1044,6 @@ static void initpdims (int wthack)
                         fz_device *dev;
 
                         dev = fz_new_bbox_device (ctx, &rect);
-                        dev->hints |= FZ_IGNORE_SHADE;
                         fz_run_page (ctx, page, dev, &fz_identity, NULL);
                         fz_close_device (ctx, dev);
                         fz_drop_device (ctx, dev);
@@ -3786,7 +3787,6 @@ CAMLprim value ml_getpagebox (value opaque_v)
 
     ret_v = caml_alloc_tuple (4);
     dev = fz_new_bbox_device (state.ctx, &rect);
-    dev->hints |= FZ_IGNORE_SHADE;
 
     ctm = pagectm (page);
     fz_run_page (state.ctx, page->fzpage, dev, &ctm, NULL);
