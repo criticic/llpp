@@ -4747,13 +4747,13 @@ let viewkeyboard key mask =
          Hashtbl.clear state.prects) state.pagemap;
      G.postRedisplay "dehighlight";
 
-  | (Ascii '/' | Ascii '?') as pv ->
+  | Ascii (('/' | '?') as c) as pv ->
      let ondone isforw s =
        cbput state.hists.pat s;
        state.searchpattern <- s;
        search s isforw
      in
-     let s = String.make 1 (Char.chr key) in
+     let s = String.make 1 c in
      enttext (s, E.s, Some (onhist state.hists.pat),
               textentry, ondone (pv = Ascii '/'), true)
 
@@ -4826,7 +4826,7 @@ let viewkeyboard key mask =
   | Ascii '9' when ctrl ->
      togglebirdseye ()
 
-  | Ascii ('0'..'9') when not ctrl ->
+  | Ascii ('0'..'9' as c) when not ctrl ->
      let ondone s =
        let n =
          try int_of_string s with exn ->
@@ -4844,7 +4844,7 @@ let viewkeyboard key mask =
        | Keys.Ascii 'g' -> TEdone text
        | key -> intentry text key
      in
-     let text = String.make 1 (Char.chr key) in
+     let text = String.make 1 c in
      enttext (":", text, Some (onhist state.hists.pag),
               pageentry, ondone, true)
 
