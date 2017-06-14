@@ -4747,7 +4747,7 @@ let viewkeyboard key mask =
          Hashtbl.clear state.prects) state.pagemap;
      G.postRedisplay "dehighlight";
 
-  | Ascii (('/' | '?') as c) as pv ->
+  | Ascii (('/' | '?') as c) ->
      let ondone isforw s =
        cbput state.hists.pat s;
        state.searchpattern <- s;
@@ -4755,7 +4755,7 @@ let viewkeyboard key mask =
      in
      let s = String.make 1 c in
      enttext (s, E.s, Some (onhist state.hists.pat),
-              textentry, ondone (pv = Ascii '/'), true)
+              textentry, ondone (c = '/'), true)
 
   | Ascii '+' | Ascii '=' when ctrl ->
      let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
