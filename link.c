@@ -828,7 +828,7 @@ pdf_collect_pages(pdf_document *doc, pdf_obj *node)
         fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
     for (int i = 0; i < len; i++) {
         pdf_obj *kid = pdf_array_get (ctx, kids, i);
-        char *type = pdf_to_name (ctx, pdf_dict_gets (ctx, kid, "Type"));
+        const char *type = pdf_to_name (ctx, pdf_dict_gets (ctx, kid, "Type"));
         if (*type
             ? !strcmp (type, "Pages")
             : pdf_dict_gets (ctx, kid, "Kids")
@@ -4469,8 +4469,9 @@ CAMLprim void ml_init (value csock_v, value params_v)
     }
     else {
         int len;
-        const char *data = pdf_lookup_substitute_font (state.ctx, 0, 0,
-                                                       0, 0, &len);
+        const unsigned char *data;
+
+        data = pdf_lookup_substitute_font (state.ctx, 0, 0, 0, 0, &len);
         state.face = load_builtin_font (data, len);
     }
     if (!state.face) _exit (1);
