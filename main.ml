@@ -5519,11 +5519,11 @@ let display () =
        | Some opaque ->
           let x0, y0, x1, y1 = getlinkrect opaque linkno in
           let color = (0.0, 0.0, 0.5, 0.5) in
-          (pageno, color, (
-             float x0, float y0,
-             float x1, float y0,
-             float x1, float y1,
-             float x0, float y1)
+          (pageno, color,
+           (float x0, float y0,
+            float x1, float y0,
+            float x1, float y1,
+            float x0, float y1)
           ) :: state.rects
        | None -> state.rects
        end
