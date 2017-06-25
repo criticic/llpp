@@ -2486,20 +2486,20 @@ static void uploadslice (struct tile *tile, struct slice *slice)
     }
 }
 
-CAMLprim value ml_begintiles (value unit_v)
+CAMLprim void ml_begintiles (value unit_v)
 {
     CAMLparam1 (unit_v);
     glEnable (TEXT_TYPE);
     glTexCoordPointer (2, GL_FLOAT, 0, state.texcoords);
     glVertexPointer (2, GL_FLOAT, 0, state.vertices);
-    CAMLreturn (unit_v);
+    CAMLreturn0;
 }
 
-CAMLprim value ml_endtiles (value unit_v)
+CAMLprim void ml_endtiles (value unit_v)
 {
     CAMLparam1 (unit_v);
     glDisable (TEXT_TYPE);
-    CAMLreturn (unit_v);
+    CAMLreturn0;
 }
 
 CAMLprim void ml_drawtile (value args_v, value ptr_v)
@@ -3907,7 +3907,7 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     CAMLreturn (Val_int (visid));
 }
 
-CAMLprim value ml_glxcompleteinit (value unit_v)
+CAMLprim void ml_glxcompleteinit (value unit_v)
 {
     CAMLparam1 (unit_v);
 
@@ -3927,7 +3927,7 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("eglMakeCurrent");
     }
-    CAMLreturn (unit_v);
+    CAMLreturn0;
 }
 #else
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
@@ -3952,7 +3952,7 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     CAMLreturn (Val_int (glx.visual->visualid));
 }
 
-CAMLprim value ml_glxcompleteinit (value unit_v)
+CAMLprim void ml_glxcompleteinit (value unit_v)
 {
     CAMLparam1 (unit_v);
 
@@ -3969,7 +3969,7 @@ CAMLprim value ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("glXMakeCurrent");
     }
-    CAMLreturn (unit_v);
+    CAMLreturn0;
 }
 #endif
 
@@ -3984,7 +3984,7 @@ CAMLprim void ml_setcursor (value cursor_v)
     CAMLreturn0;
 }
 
-CAMLprim value ml_swapb (value unit_v)
+CAMLprim void ml_swapb (value unit_v)
 {
     CAMLparam1 (unit_v);
 #ifdef USE_EGL
@@ -3994,7 +3994,7 @@ CAMLprim value ml_swapb (value unit_v)
 #else
     glXSwapBuffers (glx.dpy, glx.wid);
 #endif
-    CAMLreturn (unit_v);
+    CAMLreturn0;
 }
 
 #include "keysym2ucs.c"
