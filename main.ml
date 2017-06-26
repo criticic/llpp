@@ -5502,9 +5502,8 @@ let showrects =
                                   (x2+.dx) (y2+.dy);
                     )
                   ) state.layout
-              ) rects
-            ;
-              Gl.disable `blend;
+              ) rects;
+            Gl.disable `blend;
 ;;
 
 let display () =
