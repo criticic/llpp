@@ -3868,7 +3868,6 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     int num_conf;
     EGLint visid;
     EGLint attribs[] = {
-        EGL_DEPTH_SIZE, 24,
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
         EGL_NONE
