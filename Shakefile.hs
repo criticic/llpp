@@ -153,7 +153,8 @@ binInOutDir ty globjs depln target =
     need cmxs
     unit $ cmd ocamlopt "-g -I lablGL -o" out
       "unix.cmxa str.cmxa" (reverse cmxs)
-      (inOutDir "link.o") "-cclib" (cclibRelease : globjs)
+      (inOutDir "link.o") "-cclib"
+      ((if ty == "native" then cclibNative else cclibRelease) : globjs)
 
 main = do
   depl <- newMVar ([] :: [String])
