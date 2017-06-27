@@ -3921,7 +3921,6 @@ CAMLprim void ml_glxcompleteinit (value unit_v)
         caml_failwith ("eglCreateWindowSurface");
     }
 
-    XFree (glx.visual);
     if (!eglMakeCurrent (glx.edpy, glx.win, glx.win, glx.ctx)) {
         glx.ctx = NULL;
         caml_failwith ("eglMakeCurrent");
