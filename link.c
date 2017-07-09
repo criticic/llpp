@@ -3810,10 +3810,9 @@ CAMLprim void ml_setaalevel (value level_v)
     CAMLreturn0;
 }
 
+#ifndef __COCOA__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
-
-#ifndef __COCOA__
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
 #pragma GCC diagnostic pop
