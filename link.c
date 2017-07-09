@@ -4447,7 +4447,7 @@ CAMLprim void ml_init (value csock_v, value params_v)
         }
     }
 
-    haspboext           = Bool_val (Field (params_v, 9));
+    haspboext         = Bool_val (Field (params_v, 9));
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);
