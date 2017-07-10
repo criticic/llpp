@@ -41,6 +41,34 @@ static pthread_mutex_t terminate_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int server_fd = -1;
 static CGFloat backing_scale_factor = -1.0;
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 10120
+
+#define NS_CRITICAL_ALERT_STYLE NSAlertStyleCritical
+#define NS_FULL_SCREEN_WINDOW_MASK NSWindowStyleMaskFullScreen
+#define NS_DEVICE_INDEPENDENT_MODIFIER_FLAGS_MASK NSEventModifierFlagDeviceIndependentFlagsMask
+#define NS_FUNCTION_KEY_MASK NSEventModifierFlagFunction
+#define NS_ALTERNATE_KEY_MASK NSEventModifierFlagOption
+#define NS_COMMAND_KEY_MASK NSEventModifierFlagCommand
+#define NS_CLOSABLE_WINDOW_MASK NSWindowStyleMaskClosable
+#define NS_MINIATURIZABLE_WINDOW_MASK NSWindowStyleMaskMiniaturizable
+#define NS_TITLED_WINDOW_MASK NSWindowStyleMaskTitled
+#define NS_RESIZABLE_WINDOW_MASK NSWindowStyleMaskResizable
+
+#else
+
+#define NS_CRITICAL_ALERT_STYLE NSCriticalAlertStyle
+#define NS_FULL_SCREEN_WINDOW_MASK NSFullScreenWindowMask
+#define NS_DEVICE_INDEPENDENT_MODIFIER_FLAGS_MASK NSDeviceIndependentModifierFlagsMask
+#define NS_FUNCTION_KEY_MASK NSFunctionKeyMask
+#define NS_ALTERNATE_KEY_MASK NSAlternateKeyMask
+#define NS_COMMAND_KEY_MASK NSCommandKeyMask
+#define NS_CLOSABLE_WINDOW_MASK NSClosableWindowMask
+#define NS_MINIATURIZABLE_WINDOW_MASK NSMiniaturizableWindowMask
+#define NS_TITLED_WINDOW_MASK NSTitledWindowMask
+#define NS_RESIZABLE_WINDOW_MASK NSResizableWindowMask
+
+#endif
+
 void Abort (NSString *format, ...)
 {
   va_list argList;
@@ -52,7 +80,7 @@ void Abort (NSString *format, ...)
   [alert addButtonWithTitle:@"Quit"];
   [alert setMessageText:@"Internal Error"];
   [alert setInformativeText:str];
-  [alert setAlertStyle:NSCriticalAlertStyle];
+  [alert setAlertStyle:NS_CRITICAL_ALERT_STYLE];
   [alert runModal];
   [NSApp terminate:nil];
 }
@@ -94,7 +122,7 @@ NSCursor *GetCursor (int idx)
 
 - (BOOL)isFullScreen
 {
-  return ([self styleMask] & NSFullScreenWindowMask) == NSFullScreenWindowMask;
+  return ([self styleMask] & NS_FULL_SCREEN_WINDOW_MASK) == NS_FULL_SCREEN_WINDOW_MASK;
 }
 
 @end
@@ -121,7 +149,7 @@ NSCursor *GetCursor (int idx)
 
 - (int)deviceIndependentModifierFlags
 {
-  return [self modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+  return [self modifierFlags] & NS_DEVICE_INDEPENDENT_MODIFIER_FLAGS_MASK;
 }
 
 @end
@@ -376,7 +404,7 @@ NSCursor *GetCursor (int idx)
   NSString *chars = [event charactersIgnoringModifiers];
   const uint32_t *c = (uint32_t *) [chars cStringUsingEncoding:NSUTF32LittleEndianStringEncoding];
   while (*c) {
-    if (*c == 0x7f && !(mask & NSFunctionKeyMask)) {
+    if (*c == 0x7f && !(mask & NS_FUNCTION_KEY_MASK)) {
       [connector keyDown:0x8 modifierFlags:mask];
     } else {
       [connector keyDown:*c modifierFlags:mask];
@@ -555,7 +583,7 @@ NSCursor *GetCursor (int idx)
   id hideOthersMenuItem = [[NSMenuItem alloc] initWithTitle:@"Hide Others"
                                                      action:@selector(hideOtherApplications:)
                                               keyEquivalent:@"h"];
-  [hideOthersMenuItem setKeyEquivalentModifierMask:(NSAlternateKeyMask | NSCommandKeyMask)];
+  [hideOthersMenuItem setKeyEquivalentModifierMask:(NS_ALTERNATE_KEY_MASK | NS_COMMAND_KEY_MASK)];
   id showAllMenuItem = [[NSMenuItem alloc] initWithTitle:@"Show All"
                                                   action:@selector(unhideAllApplications:)
                                            keyEquivalent:@""];
@@ -603,7 +631,7 @@ NSCursor *GetCursor (int idx)
   [helpMenuItem setSubmenu:helpMenu];
 
   window = [[MyWindow alloc] initWithContentRect:NSMakeRect(0, 0, 400, 400)
-                                       styleMask:(NSClosableWindowMask | NSMiniaturizableWindowMask | NSTitledWindowMask | NSResizableWindowMask)
+                                       styleMask:(NS_CLOSABLE_WINDOW_MASK | NS_MINIATURIZABLE_WINDOW_MASK | NS_TITLED_WINDOW_MASK | NS_RESIZABLE_WINDOW_MASK)
                                          backing:NSBackingStoreBuffered
                                            defer:NO];
 
@@ -767,33 +795,33 @@ NSCursor *GetCursor (int idx)
 CAMLprim value ml_mapwin (value unit)
 {
   CAMLparam1 (unit);
-  [[NSApp delegate] performSelectorOnMainThread:@selector(mapwin)
-                                     withObject:nil
-                                  waitUntilDone:YES];
+  [(MyDelegate *)[NSApp delegate] performSelectorOnMainThread:@selector(mapwin)
+                                                   withObject:nil
+                                                waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 
 CAMLprim value ml_swapb (value unit)
 {
   CAMLparam1 (unit);
-  [[NSApp delegate] swapb];
+  [(MyDelegate *)[NSApp delegate] swapb];
   CAMLreturn (Val_unit);
 }
 
 CAMLprim value ml_getw (value unit)
 {
-  return Val_int([[NSApp delegate] getw]);
+  return Val_int([(MyDelegate *)[NSApp delegate] getw]);
 }
 
 CAMLprim value ml_geth (value unit)
 {
-  return Val_int([[NSApp delegate] geth]);
+  return Val_int([(MyDelegate *)[NSApp delegate] geth]);
 }
 
 CAMLprim value ml_makecurrentcontext (value unit)
 {
   CAMLparam1 (unit);
-  [[NSApp delegate] makeCurrentContext];
+  [(MyDelegate *)[NSApp delegate] makeCurrentContext];
   CAMLreturn (Val_unit);
 }
 
@@ -804,9 +832,9 @@ CAMLprim value ml_setwinbgcol (value col)
   int g = ((col >> 8) & 0xff) / 255;
   int b = ((col >> 0) & 0xff) / 255;
   NSColor *color = [NSColor colorWithRed:r green:g blue:b alpha:1.0];
-  [[NSApp delegate] performSelectorOnMainThread:@selector(setwinbgcol:)
-                                     withObject:color
-                                  waitUntilDone:YES];
+  [(MyDelegate *)[NSApp delegate] performSelectorOnMainThread:@selector(setwinbgcol:)
+                                                   withObject:color
+                                                waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 
@@ -814,9 +842,9 @@ CAMLprim value ml_settitle (value title)
 {
   CAMLparam1 (title);
   NSString *str = [NSString stringWithUTF8String:String_val(title)];
-  [[NSApp delegate] performSelectorOnMainThread:@selector(setTitle:)
-                                     withObject:str
-                                  waitUntilDone:YES];
+  [(MyDelegate *)[NSApp delegate] performSelectorOnMainThread:@selector(setTitle:)
+                                                   withObject:str
+                                                waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 
@@ -824,18 +852,18 @@ CAMLprim value ml_reshape (value w, value h)
 {
   CAMLparam2 (w, h);
   NSRect r = NSMakeRect (0, 0, Int_val (w), Int_val (h));
-  [[NSApp delegate] performSelectorOnMainThread:@selector(reshape:)
-                                     withObject:[NSValue valueWithRect:r]
-                                  waitUntilDone:YES];
+  [(MyDelegate *)[NSApp delegate] performSelectorOnMainThread:@selector(reshape:)
+                                                   withObject:[NSValue valueWithRect:r]
+                                                waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 
 CAMLprim value ml_fullscreen (value unit)
 {
   CAMLparam1 (unit);
-  [[NSApp delegate] performSelectorOnMainThread:@selector(fullscreen)
-                                     withObject:nil
-                                  waitUntilDone:YES];
+  [(MyDelegate *)[NSApp delegate] performSelectorOnMainThread:@selector(fullscreen)
+                                                   withObject:nil
+                                                waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 
@@ -844,9 +872,9 @@ CAMLprim value ml_setcursor (value curs)
   CAMLparam1 (curs);
   // NSLog (@"ml_setcursor: %d", Int_val (curs));
   NSCursor *cursor = GetCursor (Int_val (curs));
-  [[NSApp delegate] performSelectorOnMainThread:@selector(setCursor:)
-                                     withObject:cursor
-                                  waitUntilDone:YES];
+  [(MyDelegate *)[NSApp delegate] performSelectorOnMainThread:@selector(setCursor:)
+                                                   withObject:cursor
+                                                waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 
