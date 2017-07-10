@@ -121,6 +121,7 @@ case $type in
     djvu) conv='ddjvu -format=pdf - "$casp"';;
     html) {
         missing prince "PrinceXML(http://www.princexml.com/)"
+        caspsuf=".pdf"
         conv='prince $css - -o "$casp"'
     };;
     html2epub) {
