@@ -407,6 +407,7 @@ static int readlen (int fd)
 {
     /* Type punned unions here. Why? Less code (Adjusted by more comments).
        https://en.wikipedia.org/wiki/Type_punning */
+    /* Then again https://bugs.llvm.org/show_bug.cgi?id=31928 - hmm */
     union { uint32_t len; char raw[4]; } buf;
     readdata (fd, buf.raw, 4);
     return buf.len;
