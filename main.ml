@@ -2846,10 +2846,9 @@ object (self)
 
     | Ascii _ | Code _ ->
        let utf8 =
-         match [@warning "-4"] kt with
+         match [@warning "-8"] kt with
          | Ascii c -> String.make 1 c
          | Code code -> toutf8 code
-         | _ -> assert false
        in
        let pattern = m_qsearch ^ utf8 in
        let active, first =
