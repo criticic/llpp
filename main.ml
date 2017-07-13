@@ -2020,14 +2020,18 @@ let pivotzoom ?(vw=min state.w state.winw)
   let hw = w /. 2.0 in
   let ratio = float vh /. float vw in
   let hh = hw *. ratio in
-  let x0 = if zoom < 1.0 then 0.0 else float x -. hw in
-  let y0 = float y -. hh in
+  let x0 = float x -. hw
+  and y0 = float y -. hh in
   gotoxy (state.x - truncate x0) (state.y + truncate y0);
   setzoom zoom;
 ;;
 
 let pivotzoom ?vw ?vh ?x ?y zoom =
-  if nogeomcmds state.geomcmds then pivotzoom ?vw ?vh ?x ?y zoom
+  if nogeomcmds state.geomcmds
+  then
+    if zoom > 1.0
+    then pivotzoom ?vw ?vh ?x ?y zoom
+    else setzoom zoom
 ;;
 
 let setcolumns mode columns coverA coverB =
