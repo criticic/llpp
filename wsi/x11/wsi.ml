@@ -615,6 +615,7 @@ let readresp sock =
      then
        let s = getpropreq false state.wid atom 4 in
        sendwithrep sock s (fun resp ->
+                     state.fs <- NoFs;
                      let len = r32 resp 4 in
                      let nitems = r32 resp 16 in
                      let wsl =
