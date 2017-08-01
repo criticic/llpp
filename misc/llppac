@@ -115,13 +115,13 @@ if test -z "$type"; then
     esac
 fi
 
+caspsuf=".pdf"
 case $type in
     ps) conv='ps2pdf - "$casp"';;
     image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
     djvu) conv='ddjvu -format=pdf - "$casp"';;
     html) {
         missing prince "PrinceXML(http://www.princexml.com/)"
-        caspsuf=".pdf"
         conv='prince $css - -o "$casp"'
     };;
     html2epub) {
@@ -132,7 +132,6 @@ case $type in
     word) {
         if executable_p unoconv && test -z "$dc"; then
             unset filt
-            caspsuf=.pdf
             conv='unoconv -o "$casp" "$1"'
         else
             missing antiword "antiword or unoconv"
@@ -144,7 +143,6 @@ case $type in
         unset filt
         missing unoconv "unoconv(http://dag.wiee.rs/home-made/unoconv/)"
         conv='unoconv -o "$casp" "$1"'
-        caspsuf=.pdf
     };;
     svg) {
         if executable_p inkscape && test -z "$dc"; then
@@ -176,7 +174,6 @@ EOF
         unset filt
         missing pango-view "pango-view(http://www.pango.org/)"
         conv='FONTCONFIG_PATH=$cachedir/fonts/ pango-view -q $arg -o $casp'
-        caspsuf=.pdf
     };;
     fcfont) {
         if test -e "$2"; then
@@ -188,7 +185,6 @@ EOF
         unset filt
         missing pango-view "pango-view(http://www.pango.org/)"
         conv='pango-view --font="$1" -q $arg -o $casp'
-        caspsuf=.pdf
         md5of=/dev/null
         force=1
     };;
