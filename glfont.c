@@ -99,10 +99,38 @@ static void clear_font_cache(void)
         g_cache_row_h = 0;
 }
 
+static void *filecontents (char *path, int *len)
+{
+        int ret, fd;
+        void *res;
+        struct stat st;
+        ssize_t nread;
+
+        ret = stat(path, &st);
+        if (ret) err (1, "failed to stat `%s'", path);
+        if (st.st_size > INT_MAX) err(1, "font `%s' is too big", path);
+        res = malloc(st.st_size);
+        if (!res)
+                err(1, "failed to allocate %llu bytes for `%s'",
+                    st.st_size+0ull, path);
+
+        fd = open(path, O_RDONLY | O_BINARY);
+        if (fd < 0) err(1, "failed to open `%s'", path);
+
+        nread = read(fd, res, st.st_size);
+        if (nread - st.st_size)
+                err(1, "read %llu failed, ret=%zd",
+                    st.st_size+0llu, nread);
+
+        *len = (int) st.st_size;
+        return res;
+}
+
 static FT_Face load_font(char *fontname)
 {
         FT_Face face;
-        int code;
+        int code, len;
+        void *base;
 
         if (g_freetype_lib == NULL)
         {
@@ -110,10 +138,12 @@ static FT_Face load_font(char *fontname)
                 clear_font_cache();
         }
 
-        code = FT_New_Face (g_freetype_lib, fontname, 0, &face);
-        if (code) {
-                fprintf (stderr, "failed to load font `%s'\n", fontname);
-                return NULL;
+        base = filecontents(fontname, &len);
+        code = FT_New_Memory_Face(g_freetype_lib, base, len, 0, &face);
+        if (code)
+        {
+                err(1, "FT_New_Memory_Face for `%s' failed: %d",
+                    fontname, code);
         }
 
         FT_Select_Charmap(face, ft_encoding_unicode);
@@ -132,8 +162,9 @@ static FT_Face UNUSED_ATTR load_builtin_font(const void *base, int len)
         }
 
         code = FT_New_Memory_Face(g_freetype_lib, base, len, 0, &face);
-        if (code) {
-                fprintf (stderr, "failed to load builtin font\n");
+        if (code)
+        {
+                errx (1, "failed to load builtin font: %d\n", code);
                 return NULL;
         }
 
@@ -377,3 +408,8 @@ static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
 
         return x;
 }
+/*
+  Local Variables:
+  c-file-style: "linux"
+  End:
+*/
