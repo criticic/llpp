@@ -119,8 +119,7 @@ static void *filecontents (char *path, int *len)
 
         nread = read(fd, res, st.st_size);
         if (nread - st.st_size)
-                err(1, "read %llu failed, ret=%zd",
-                    st.st_size+0llu, nread);
+                err(1, "read %llu failed, ret=%zd", st.st_size+0llu, nread);
 
         *len = (int) st.st_size;
         return res;
@@ -142,8 +141,8 @@ static FT_Face load_font(char *fontname)
         code = FT_New_Memory_Face(g_freetype_lib, base, len, 0, &face);
         if (code)
         {
-                err(1, "FT_New_Memory_Face for `%s' failed: %d",
-                    fontname, code);
+                errx(1, "FT_New_Memory_Face for `%s' failed: %d",
+                     fontname, code);
         }
 
         FT_Select_Charmap(face, ft_encoding_unicode);
