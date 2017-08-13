@@ -107,8 +107,8 @@ static void *filecontents (char *path, int *len)
         ssize_t nread;
 
         ret = stat(path, &st);
-        if (ret) err (1, "failed to stat `%s'", path);
-        if (st.st_size > INT_MAX) err(1, "font `%s' is too big", path);
+        if (ret) err(1, "failed to stat `%s'", path);
+        if (st.st_size > INT_MAX) errx(1, "font `%s' is too big", path);
         res = malloc(st.st_size);
         if (!res)
                 err(1, "failed to allocate %llu bytes for `%s'",
