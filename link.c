@@ -201,7 +201,6 @@ struct page {
     int pageno;
     int pdimno;
     fz_stext_page *text;
-    fz_stext_sheet *sheet;
     fz_page *fzpage;
     fz_display_list *dlist;
     int slinkcount;
@@ -209,8 +208,7 @@ struct page {
     int annotcount;
     struct annot *annots;
     struct mark {
-        int i;
-        fz_stext_span *span;
+        fz_stext_char *ch;
     } fmark, lmark;
 };
 
@@ -566,9 +564,6 @@ static void freepage (struct page *page)
     if (!page) return;
     if (page->text) {
         fz_drop_stext_page (state.ctx, page->text);
-    }
-    if (page->sheet) {
-        fz_drop_stext_sheet (state.ctx, page->sheet);
     }
     if (page->slinks) {
         free (page->slinks);
@@ -1302,7 +1297,7 @@ static void process_outline (void)
     }
 }
 
-static char *strofspan (fz_stext_span *span)
+static char *strofline (fz_stext_line *line)
 {
     char *p;
     char utf8[10];
@@ -1312,7 +1307,7 @@ static char *strofspan (fz_stext_span *span)
     p = malloc (cap + 1);
     if (!p) return NULL;
 
-    for (ch = span->text; ch < span->text + span->len; ++ch) {
+    for (ch = line->first_char; ch; ch = ch->next) {
         int n = fz_runetochar (utf8, ch->c);
         if (size + n > cap) {
             cap *= 2;
@@ -1327,17 +1322,14 @@ static char *strofspan (fz_stext_span *span)
     return p;
 }
 
-static int matchspan (regex_t *re, fz_stext_span *span,
+static int matchline (regex_t *re, fz_stext_line *line,
                       int stop, int pageno, double start)
 {
     int ret;
     char *p;
     regmatch_t rm;
-    int a, b, c;
-    fz_rect sb, eb;
-    fz_point p1, p2, p3, p4;
 
-    p = strofspan (span);
+    p = strofline (line);
     if (!p) return -1;
 
     ret = regexec (re, p, 1, &rm, 0);
@@ -1354,30 +1346,32 @@ static int matchspan (regex_t *re, fz_stext_span *span,
         return 0;
     }
     else {
-        int l = span->len;
+        fz_point p1, p2, p3, p4;
+        fz_rect s = {0,0,0,0}, e;
+        fz_stext_char *ch;
+        int o = 0;
 
-        for (a = 0, c = 0; c < rm.rm_so && a < l; a++) {
-            c += fz_runelen (span->text[a].c);
+        for (ch = line->first_char; ch; ch = ch->next) {
+            o += fz_runelen (ch->c);
+            if (o > rm.rm_so) {
+                s = ch->bbox;
+                break;
+            }
         }
-        for (b = a; c < rm.rm_eo - 1 && b < l; b++) {
-            c += fz_runelen (span->text[b].c);
+        for (;ch; ch = ch->next) {
+            o += fz_runelen (ch->c);
+            if (o > rm.rm_eo) break;
         }
+        e = ch->bbox;
 
-        if (fz_runelen (span->text[b].c) > 1) {
-            b = fz_maxi (0, b-1);
-        }
-
-        fz_stext_char_bbox (state.ctx, &sb, span, a);
-        fz_stext_char_bbox (state.ctx, &eb, span, b);
-
-        p1.x = sb.x0;
-        p1.y = sb.y0;
-        p2.x = eb.x1;
-        p2.y = sb.y0;
-        p3.x = eb.x1;
-        p3.y = eb.y1;
-        p4.x = sb.x0;
-        p4.y = eb.y1;
+        p1.x = s.x0;
+        p1.y = s.y0;
+        p2.x = e.x1;
+        p2.y = s.y0;
+        p3.x = e.x1;
+        p3.y = e.y1;
+        p4.x = s.x0;
+        p4.y = e.y1;
 
         if (!stop) {
             printd ("firstmatch %d %d %f %f %f %f %f %f %f %f",
@@ -1404,24 +1398,16 @@ static int matchspan (regex_t *re, fz_stext_span *span,
     }
 }
 
-static int compareblocks (const void *l, const void *r)
-{
-    fz_stext_block const *ls = l;
-    fz_stext_block const *rs = r;
-    return ls->bbox.y0 - rs->bbox.y0;
-}
-
 /* wishful thinking function */
 static void search (regex_t *re, int pageno, int y, int forward)
 {
-    int j;
     fz_device *tdev;
     fz_stext_page *text;
-    fz_stext_sheet *sheet;
     struct pagedim *pdim;
     int stop = 0, niters = 0;
     double start, end;
     fz_page *page;
+    fz_stext_block *block;
 
     start = now ();
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
@@ -1439,9 +1425,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
             }
         }
         pdim = pdimofpageno (pageno);
-        sheet = fz_new_stext_sheet (state.ctx);
         text = fz_new_stext_page (state.ctx, &pdim->mediabox);
-        tdev = fz_new_stext_device (state.ctx, sheet, text, 0);
+        tdev = fz_new_stext_device (state.ctx, text, 0);
 
         page = fz_load_page (state.ctx, state.doc, pageno);
         {
@@ -1449,34 +1434,18 @@ static void search (regex_t *re, int pageno, int y, int forward)
             fz_run_page (state.ctx, page, tdev, &ctm, NULL);
         }
 
-        qsort (text->blocks, text->len, sizeof (*text->blocks), compareblocks);
         fz_close_device (state.ctx, tdev);
         fz_drop_device (state.ctx, tdev);
 
-        for (j = 0; j < text->len; ++j) {
-            int k;
-            fz_page_block *pb;
-            fz_stext_block *block;
-
-            pb = &text->blocks[forward ? j : text->len - 1 - j];
-            if (pb->type != FZ_PAGE_BLOCK_TEXT) continue;
-            block = pb->u.text;
-
-            for (k = 0; k < block->len; ++k) {
+        if (forward) {
+            for (block = text->first_block; block; block = block->next) {
                 fz_stext_line *line;
-                fz_stext_span *span;
 
-                if (forward) {
-                    line = &block->lines[k];
+                if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+                for (line = block->u.t.first_line; line; line = line->next) {
                     if (line->bbox.y0 < y + 1) continue;
-                }
-                else {
-                    line = &block->lines[block->len - 1 - k];
-                    if (line->bbox.y0 > y - 1) continue;
-                }
 
-                for (span = line->first_span; span; span = span->next) {
-                    switch (matchspan (re, span, stop, pageno, start)) {
+                    switch (matchline (re, line, stop, pageno, start)) {
                     case 0: break;
                     case 1: stop = 1; break;
                     case -1: stop = 1; goto endloop;
@@ -1484,6 +1453,23 @@ static void search (regex_t *re, int pageno, int y, int forward)
                 }
             }
         }
+        else {
+            for (block = text->last_block; block; block = block->prev) {
+                fz_stext_line *line;
+
+                if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+                for (line = block->u.t.last_line; line; line = line->prev) {
+                    if (line->bbox.y0 < y + 1) continue;
+
+                    switch (matchline (re, line, stop, pageno, start)) {
+                    case 0: break;
+                    case 1: stop = 1; break;
+                    case -1: stop = 1; goto endloop;
+                    }
+                }
+            }
+        }
+
         if (forward) {
             pageno += 1;
             y = 0;
@@ -1494,7 +1480,6 @@ static void search (regex_t *re, int pageno, int y, int forward)
         }
     endloop:
         fz_drop_stext_page (state.ctx, text);
-        fz_drop_stext_sheet (state.ctx, sheet);
         fz_drop_page (state.ctx, page);
     }
     end = now ();
@@ -2009,19 +1994,13 @@ static void recti (int x0, int y0, int x1, int y1)
 
 static void showsel (struct page *page, int ox, int oy)
 {
-    int seen = 0;
     fz_irect bbox;
     fz_rect rect;
-    fz_stext_line *line;
-    fz_page_block *pageb;
     fz_stext_block *block;
-    struct mark first, last;
+    int seen = 0;
     unsigned char selcolor[] = {15,15,15,140};
 
-    first = page->fmark;
-    last = page->lmark;
-
-    if (!first.span || !last.span) return;
+    if (!page->fmark.ch || !page->lmark.ch) return;
 
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
@@ -2029,67 +2008,31 @@ static void showsel (struct page *page, int ox, int oy)
 
     ox += state.pagedims[page->pdimno].bounds.x0;
     oy += state.pagedims[page->pdimno].bounds.y0;
-    for (pageb = page->text->blocks;
-         pageb < page->text->blocks + page->text->len;
-         ++pageb) {
-        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
-        block = pageb->u.text;
 
-        for (line = block->lines;
-             line < block->lines + block->len;
-             ++line) {
-            fz_stext_span *span;
-            rect = fz_empty_rect;
+    for (block = page->text->first_block; block; block = block->next) {
+        fz_stext_line *line;
 
-            for (span = line->first_span; span; span = span->next) {
-                int i, j, k;
-                bbox.x0 = bbox.y0 = bbox.x1 = bbox.y1 = 0;
+        rect = fz_empty_rect;
+        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        for (line = block->u.t.first_line; line; line = line->next) {
+            fz_stext_char *ch;
 
-                j = 0;
-                k = span->len - 1;
-
-                if (span == page->fmark.span && span == page->lmark.span) {
-                    seen = 1;
-                    j = fz_mini (first.i, last.i);
-                    k = fz_maxi (first.i, last.i);
-                }
-                else {
-                    if (span == first.span) {
-                        seen = 1;
-                        j = first.i;
-                    }
-                    else if (span == last.span) {
-                        seen = 1;
-                        k = last.i;
-                    }
-                }
-
-                if (seen) {
-                    for (i = j; i <= k; ++i) {
-                        fz_rect bbox1;
-                        fz_union_rect (&rect,
-                                       fz_stext_char_bbox (state.ctx, &bbox1,
-                                                           span, i));
-                    }
+            for (ch = line->first_char; ch; ch = ch->next) {
+                if (ch == page->fmark.ch) seen = 1;
+                if (seen) fz_union_rect (&rect, &ch->bbox);
+                if (ch == page->lmark.ch) {
                     fz_round_rect (&bbox, &rect);
-                    lprintf ("%d %d %d %d oy=%d ox=%d\n",
-                             bbox.x0,
-                             bbox.y0,
-                             bbox.x1,
-                             bbox.y1,
-                             oy, ox);
-
                     recti (bbox.x0 + ox, bbox.y0 + oy,
                            bbox.x1 + ox, bbox.y1 + oy);
-                    if (span == last.span) {
-                        goto done;
-                    }
-                    rect = fz_empty_rect;
+                    goto done;
                 }
             }
+            fz_round_rect (&bbox, &rect);
+            recti (bbox.x0 + ox, bbox.y0 + oy,
+                   bbox.x1 + ox, bbox.y1 + oy);
         }
     }
- done:
+done:
     glDisable (GL_BLEND);
 }
 
@@ -2235,15 +2178,9 @@ static void droptext (struct page *page)
 {
     if (page->text) {
         fz_drop_stext_page (state.ctx, page->text);
-        page->fmark.i = -1;
-        page->lmark.i = -1;
-        page->fmark.span = NULL;
-        page->lmark.span = NULL;
+        page->fmark.ch = NULL;
+        page->lmark.ch = NULL;
         page->text = NULL;
-    }
-    if (page->sheet) {
-        fz_drop_stext_sheet (state.ctx, page->sheet);
-        page->sheet = NULL;
     }
 }
 
@@ -2718,13 +2655,10 @@ static void ensuretext (struct page *page)
 
         page->text = fz_new_stext_page (state.ctx,
                                         &state.pagedims[page->pdimno].mediabox);
-        page->sheet = fz_new_stext_sheet (state.ctx);
-        tdev = fz_new_stext_device (state.ctx, page->sheet, page->text, 0);
+        tdev = fz_new_stext_device (state.ctx, page->text, 0);
         ctm = pagectm (page);
         fz_run_display_list (state.ctx, page->dlist,
                              tdev, &ctm, &fz_infinite_rect, NULL);
-        qsort (page->text->blocks, page->text->len,
-               sizeof (*page->text->blocks), compareblocks);
         fz_close_device (state.ctx, tdev);
         fz_drop_device (state.ctx, tdev);
     }
@@ -3040,85 +2974,70 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
     }
     else {
         fz_rect *b;
-        fz_page_block *pageb;
         fz_stext_block *block;
 
         ensuretext (page);
-        for (pageb = page->text->blocks;
-             pageb < page->text->blocks + page->text->len;
-             ++pageb) {
-            fz_stext_line *line;
-            if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
-            block = pageb->u.text;
 
+        for (block = page->text->first_block; block; block = block->next) {
+            fz_stext_line *line;
+
+            if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
             b = &block->bbox;
             if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
                 continue;
 
-            for (line = block->lines;
-                 line < block->lines + block->len;
-                 ++line) {
-                fz_stext_span *span;
+            for (line = block->u.t.first_line; line; line = line->next) {
+                fz_stext_char *ch;
 
                 b = &line->bbox;
                 if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
                     continue;
 
-                for (span = line->first_span; span; span = span->next) {
-                    int charnum;
+                for (ch = line->first_char; ch; ch = ch->next) {
+                    fz_rect bbox;
+                    bbox = ch->bbox;
+                    /* fz_stext_char_bbox (state.ctx, &bbox, line, ch); */
+                    b = &bbox;
 
-                    b = &span->bbox;
-                    if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
-                        continue;
+                    if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                        const char *n2 = fz_font_name (state.ctx, ch->font);
+                        FT_FaceRec *face = fz_font_ft_face (state.ctx,
+                                                            ch->font);
 
-                    for (charnum = 0; charnum < span->len; ++charnum) {
-                        fz_rect bbox;
-                        fz_stext_char_bbox (state.ctx, &bbox, span, charnum);
-                        b = &bbox;
+                        if (!n2) n2 = "<unknown font>";
 
-                        if (x >= b->x0 && x <= b->x1
-                            && y >= b->y0 && y <= b->y1) {
-                            fz_stext_style *style = span->text->style;
-                            const char *n2 =
-                                style->font
-                                ? fz_font_name (state.ctx, style->font)
-                                : "Span has no font name"
-                                ;
-                            FT_FaceRec *face = fz_font_ft_face (state.ctx,
-                                                                style->font);
-                            if (face && face->family_name) {
-                                char *s;
-                                char *n1 = face->family_name;
-                                size_t l1 = strlen (n1);
-                                size_t l2 = strlen (n2);
+                        if (face && face->family_name) {
+                            char *s;
+                            char *n1 = face->family_name;
+                            size_t l1 = strlen (n1);
+                            size_t l2 = strlen (n2);
 
-                                if (l1 != l2 || memcmp (n1, n2, l1)) {
-                                    s = malloc (l1 + l2 + 2);
-                                    if (s) {
-                                        memcpy (s, n2, l2);
-                                        s[l2] = '=';
-                                        memcpy (s + l2 + 1, n1, l1 + 1);
-                                        str_v = caml_copy_string (s);
-                                        free (s);
-                                    }
+                            if (l1 != l2 || memcmp (n1, n2, l1)) {
+                                s = malloc (l1 + l2 + 2);
+                                if (s) {
+                                    memcpy (s, n2, l2);
+                                    s[l2] = '=';
+                                    memcpy (s + l2 + 1, n1, l1 + 1);
+                                    str_v = caml_copy_string (s);
+                                    free (s);
                                 }
                             }
-                            if (str_v == Val_unit) {
-                                str_v = caml_copy_string (n2);
-                            }
-                            ret_v = caml_alloc_small (1, utext);
-                            Field (ret_v, 0) = str_v;
-                            goto unlock;
                         }
+                        if (str_v == Val_unit) {
+                            str_v = caml_copy_string (n2);
+                        }
+                        ret_v = caml_alloc_small (1, utext);
+                        Field (ret_v, 0) = str_v;
+                        goto unlock;
                     }
                 }
             }
         }
     }
- unlock:
+unlock:
     unlock (__func__);
 
- done:
+done:
     CAMLreturn (ret_v);
 }
 
@@ -3141,10 +3060,8 @@ CAMLprim void ml_clearmark (value ptr_v)
     }
 
     page = parse_pointer (__func__, s);
-    page->fmark.span = NULL;
-    page->lmark.span = NULL;
-    page->fmark.i = 0;
-    page->lmark.i = 0;
+    page->fmark.ch = NULL;
+    page->lmark.ch = NULL;
 
     unlock (__func__);
  done:
@@ -3158,7 +3075,6 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     fz_rect *b;
     struct page *page;
     fz_stext_line *line;
-    fz_page_block *pageb;
     fz_stext_block *block;
     struct pagedim *pdim;
     int mark = Int_val (mark_v);
@@ -3176,34 +3092,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     ensuretext (page);
 
     if (mark == mark_page) {
-        int i;
-        fz_page_block *pb1 = NULL, *pb2 = NULL;
-
-        for (i = 0; i < page->text->len; ++i) {
-            if (page->text->blocks[i].type == FZ_PAGE_BLOCK_TEXT) {
-                pb1 = &page->text->blocks[i];
-                break;
-            }
-        }
-        if (!pb1) goto unlock;
-
-        for (i = page->text->len - 1; i >= 0; --i) {
-            if (page->text->blocks[i].type == FZ_PAGE_BLOCK_TEXT) {
-                pb2 = &page->text->blocks[i];
-                break;
-            }
-        }
-        if (!pb2) goto unlock;
-
-        block = pb1->u.text;
-
-        page->fmark.i = 0;
-        page->fmark.span = block->lines->first_span;
-
-        block = pb2->u.text;
-        line = &block->lines[block->len - 1];
-        page->lmark.i = line->last_span->len - 1;
-        page->lmark.span = line->last_span;
+        page->fmark.ch = page->text->first_block->u.t.first_line->first_char;
+        page->lmark.ch = page->text->last_block->u.t.last_line->last_char;
         ret_v = Val_bool (1);
         goto unlock;
     }
@@ -3211,102 +3101,62 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     x += pdim->bounds.x0;
     y += pdim->bounds.y0;
 
-    for (pageb = page->text->blocks;
-         pageb < page->text->blocks + page->text->len;
-         ++pageb) {
-        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
-        block = pageb->u.text;
-
+    for (block = page->text->first_block; block; block = block->next) {
+        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
         b = &block->bbox;
         if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
             continue;
 
         if (mark == mark_block) {
-            page->fmark.i = 0;
-            page->fmark.span = block->lines->first_span;
-
-            line = &block->lines[block->len - 1];
-            page->lmark.i = line->last_span->len - 1;
-            page->lmark.span = line->last_span;
+            page->fmark.ch = block->u.t.first_line->first_char;
+            page->lmark.ch = block->u.t.last_line->last_char;
             ret_v = Val_bool (1);
             goto unlock;
         }
 
-        for (line = block->lines;
-             line < block->lines + block->len;
-             ++line) {
-            fz_stext_span *span;
+        for (line = block->u.t.first_line; line; line = line->next) {
+            fz_stext_char *ch;
 
             b = &line->bbox;
             if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
                 continue;
 
             if (mark == mark_line) {
-                page->fmark.i = 0;
-                page->fmark.span = line->first_span;
-
-                page->lmark.i = line->last_span->len - 1;
-                page->lmark.span = line->last_span;
+                page->fmark.ch = line->first_char;
+                page->lmark.ch = line->last_char;
                 ret_v = Val_bool (1);
                 goto unlock;
             }
 
-            for (span = line->first_span; span; span = span->next) {
-                int charnum;
-
-                b = &span->bbox;
-                if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
-                    continue;
-
-                for (charnum = 0; charnum < span->len; ++charnum) {
-                    fz_rect bbox;
-                    fz_stext_char_bbox (state.ctx, &bbox, span, charnum);
-                    b = &bbox;
-
-                    if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
-                        /* unicode ftw */
-                        int charnum2, charnum3 = -1, charnum4 = -1;
-
-                        if (uninteresting (span->text[charnum].c)) goto unlock;
-
-                        for (charnum2 = charnum; charnum2 >= 0; --charnum2) {
-                            if (uninteresting (span->text[charnum2].c)) {
-                                charnum3 = charnum2 + 1;
-                                break;
-                            }
-                        }
-                        if (charnum3 == -1) charnum3 = 0;
-
-                        charnum4 = charnum;
-                        for (charnum2 = charnum + 1;
-                             charnum2 < span->len;
-                             ++charnum2) {
-                            if (uninteresting (span->text[charnum2].c)) break;
-                            charnum4 = charnum2;
-                        }
-
-                        page->fmark.i = charnum3;
-                        page->fmark.span = span;
-
-                        page->lmark.i = charnum4;
-                        page->lmark.span = span;
-                        ret_v = Val_bool (1);
-                        goto unlock;
+            for (ch = line->first_char; ch; ch = ch->next) {
+                fz_stext_char *ch2, *first = NULL, *last = NULL;
+                b = &ch->bbox;
+                if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                    for (ch2 = line->first_char; ch2 != ch; ch2 = ch2->next) {
+                        if (uninteresting (ch2->c)) first = NULL;
+                        else if (!first) first = ch2;
                     }
+                    for (ch2 = ch; ch2; ch2 = ch2->next) {
+                        if (uninteresting (ch2->c)) break;
+                        last = ch2;
+                    }
+
+                    page->fmark.ch = first;
+                    page->lmark.ch = last;
+                    ret_v = Val_bool (1);
+                    goto unlock;
                 }
             }
         }
     }
- unlock:
+unlock:
     if (!Bool_val (ret_v)) {
-        page->fmark.span = NULL;
-        page->lmark.span = NULL;
-        page->fmark.i = 0;
-        page->lmark.i = 0;
+        page->fmark.ch = NULL;
+        page->lmark.ch = NULL;
     }
     unlock (__func__);
 
- done:
+done:
     CAMLreturn (ret_v);
 }
 
@@ -3316,8 +3166,8 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
     CAMLlocal2 (ret_v, res_v);
     fz_rect *b = NULL;
     struct page *page;
-    fz_page_block *pageb;
     struct pagedim *pdim;
+    fz_stext_block *block;
     char *s = String_val (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
 
@@ -3333,16 +3183,14 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
 
     ensuretext (page);
 
-    for (pageb = page->text->blocks;
-         pageb < page->text->blocks + page->text->len;
-         ++pageb) {
-        switch (pageb->type) {
-        case FZ_PAGE_BLOCK_TEXT:
-            b = &pageb->u.text->bbox;
+    for (block = page->text->first_block; block; block = block->next) {
+        switch (block->type) {
+        case FZ_STEXT_BLOCK_TEXT:
+            b = &block->bbox;
             break;
 
-        case FZ_PAGE_BLOCK_IMAGE:
-            b = &pageb->u.image->bbox;
+        case FZ_STEXT_BLOCK_IMAGE:
+            b = &block->bbox;
             break;
 
         default:
@@ -3375,11 +3223,11 @@ CAMLprim void ml_seltext (value ptr_v, value rect_v)
     struct page *page;
     struct pagedim *pdim;
     char *s = String_val (ptr_v);
-    int i, x0, x1, y0, y1, fi, li;
+    int x0, x1, y0, y1;
+    fz_stext_char *ch;
     fz_stext_line *line;
-    fz_page_block *pageb;
     fz_stext_block *block;
-    fz_stext_span *span, *fspan, *lspan;
+    fz_stext_char *fc, *lc;
 
     if (trylock (__func__)) {
         goto done;
@@ -3402,55 +3250,33 @@ CAMLprim void ml_seltext (value ptr_v, value rect_v)
         x1 = t;
     }
 
-    fi = page->fmark.i;
-    fspan = page->fmark.span;
+    fc = page->fmark.ch;
+    lc = page->lmark.ch;
 
-    li = page->lmark.i;
-    lspan = page->lmark.span;
-
-    for (pageb = page->text->blocks;
-         pageb < page->text->blocks + page->text->len;
-         ++pageb) {
-        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
-        block = pageb->u.text;
-        for (line = block->lines;
-             line < block->lines + block->len;
-             ++line) {
-
-            for (span = line->first_span; span; span = span->next) {
-                for (i = 0; i < span->len; ++i) {
-                    fz_stext_char_bbox (state.ctx, &b, span, i);
-
-                    if (x0 >= b.x0 && x0 <= b.x1
-                        && y0 >= b.y0 && y0 <= b.y1) {
-                        fspan = span;
-                        fi = i;
-                    }
-                    if (x1 >= b.x0 && x1 <= b.x1
-                        && y1 >= b.y0 && y1 <= b.y1) {
-                        lspan = span;
-                        li = i;
-                    }
+    for (block = page->text->first_block; block; block = block->next) {
+        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        for (line = block->u.t.first_line; line; line = line->next) {
+            for (ch = line->first_char; ch; ch = ch->next) {
+                b = ch->bbox;
+                if (x0 >= b.x0 && x0 <= b.x1 && y0 >= b.y0 && y0 <= b.y1) {
+                    fc = ch;
+                }
+                if (x1 >= b.x0 && x1 <= b.x1 && y1 >= b.y0 && y1 <= b.y1) {
+                    lc = ch;
                 }
             }
         }
     }
-    if (x1 < x0 && fspan == lspan) {
-        i = fi;
-        span = fspan;
+    if (x1 < x0 && fc == lc) {
+        fz_stext_char *t;
 
-        fi = li;
-        fspan = lspan;
-
-        li = i;
-        lspan = span;
+        t = fc;
+        fc = lc;
+        lc = t;
     }
 
-    page->fmark.i = fi;
-    page->fmark.span = fspan;
-
-    page->lmark.i = li;
-    page->lmark.span = lspan;
+    page->fmark.ch = fc;
+    page->lmark.ch = lc;
 
     unlock (__func__);
 
@@ -3458,20 +3284,17 @@ CAMLprim void ml_seltext (value ptr_v, value rect_v)
     CAMLreturn0;
 }
 
-static int UNUSED_ATTR pipespan (FILE *f, fz_stext_span *span, int a, int b)
+static int pipechar (FILE *f, fz_stext_char *ch)
 {
     char buf[4];
-    int i, len, ret;
+    int len, ret;
 
-    for (i = a; i <= b; ++i) {
-        len = fz_runetochar (buf, span->text[i].c);
-        ret = fwrite (buf, len, 1, f);
-
-        if (ret != 1) {
-            fprintf (stderr, "failed to write %d bytes ret=%d: %s\n",
-                     len, ret, strerror (errno));
-            return -1;
-        }
+    len = fz_runetochar (buf, ch->c);
+    ret = fwrite (buf, len, 1, f);
+    if (ret != 1) {
+        fprintf (stderr, "failed to write %d bytes ret=%d: %s\n",
+                 len, ret, strerror (errno));
+        return -1;
     }
     return 0;
 }
@@ -3570,7 +3393,7 @@ CAMLprim value ml_hassel (value ptr_v)
     }
 
     page = parse_pointer (__func__, s);
-    ret_v = Val_bool (page->fmark.span && page->lmark.span);
+    ret_v = Val_bool (page->fmark.ch && page->lmark.ch);
     unlock (__func__);
  done:
     CAMLreturn (ret_v);
@@ -3583,7 +3406,6 @@ CAMLprim void ml_copysel (value fd_v, value ptr_v)
     int seen = 0;
     struct page *page;
     fz_stext_line *line;
-    fz_page_block *pageb;
     fz_stext_block *block;
     int fd = Int_val (fd_v);
     char *s = String_val (ptr_v);
@@ -3594,7 +3416,7 @@ CAMLprim void ml_copysel (value fd_v, value ptr_v)
 
     page = parse_pointer (__func__, s);
 
-    if (!page->fmark.span || !page->lmark.span) {
+    if (!page->fmark.ch || !page->lmark.ch) {
         fprintf (stderr, "nothing to copy on page %d\n", page->pageno);
         goto unlock;
     }
@@ -3606,43 +3428,24 @@ CAMLprim void ml_copysel (value fd_v, value ptr_v)
         f = stdout;
     }
 
-    for (pageb = page->text->blocks;
-         pageb < page->text->blocks + page->text->len;
-         ++pageb) {
-        if (pageb->type != FZ_PAGE_BLOCK_TEXT) continue;
-        block = pageb->u.text;
-        for (line = block->lines;
-             line < block->lines + block->len;
-             ++line) {
-            fz_stext_span *span;
-
-            for (span = line->first_span; span; span = span->next) {
-                int a, b;
-
-                seen |= span == page->fmark.span || span == page->lmark.span;
-                a = span == page->fmark.span ? page->fmark.i : 0;
-                b = span == page->lmark.span ? page->lmark.i : span->len - 1;
-
-                if (seen) {
-                    if (pipespan (f, span, a, b)) {
-                        goto close;
-                    }
-                    if (span == page->lmark.span) {
-                        goto close;
-                    }
-                    if (span == line->last_span) {
-                        if (putc ('\n', f) == EOF) {
-                            fprintf (stderr,
-                                     "failed break line on sel pipe: %s\n",
-                                     strerror (errno));
-                            goto close;
-                        }
-                    }
+    for (block = page->text->first_block; block; block = block->next) {
+        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        for (line = block->u.t.first_line; line; line = line->next) {
+            fz_stext_char *ch;
+            for (ch = line->first_char; ch; ch = ch->next) {
+                if (seen || ch == page->fmark.ch) {
+                    do {
+                        pipechar (f, ch);
+                        if (ch == page->lmark.ch) goto close;
+                    } while ((ch = ch->next));
+                    seen = 1;
+                    break;
                 }
             }
+            if (seen) fputc ('\n', f);
         }
     }
- close:
+close:
     if (f != stdout) {
         int ret = fclose (f);
         fd = -1;
@@ -3653,10 +3456,10 @@ CAMLprim void ml_copysel (value fd_v, value ptr_v)
             }
         }
     }
- unlock:
+unlock:
     unlock (__func__);
 
- done:
+done:
     if (fd >= 0) {
         if (close (fd)) {
             fprintf (stderr, "failed to close sel pipe: %s\n",
