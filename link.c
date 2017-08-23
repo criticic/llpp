@@ -2012,11 +2012,11 @@ static void showsel (struct page *page, int ox, int oy)
     for (block = page->text->first_block; block; block = block->next) {
         fz_stext_line *line;
 
-        rect = fz_empty_rect;
         if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
         for (line = block->u.t.first_line; line; line = line->next) {
             fz_stext_char *ch;
 
+            rect = fz_empty_rect;
             for (ch = line->first_char; ch; ch = ch->next) {
                 if (ch == page->fmark.ch) seen = 1;
                 if (seen) fz_union_rect (&rect, &ch->bbox);
