@@ -2994,10 +2994,7 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                     continue;
 
                 for (ch = line->first_char; ch; ch = ch->next) {
-                    fz_rect bbox;
-                    bbox = ch->bbox;
-                    /* fz_stext_char_bbox (state.ctx, &bbox, line, ch); */
-                    b = &bbox;
+                    b = &ch->bbox;
 
                     if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
                         const char *n2 = fz_font_name (state.ctx, ch->font);
