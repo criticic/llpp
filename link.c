@@ -1533,17 +1533,13 @@ static void realloctexts (int texcount)
                           state.texids + texcount);
     }
 
-    size = texcount * sizeof (*state.texids);
+    size = texcount * (sizeof (*state.texids) + sizeof (*state.texowners));
     state.texids = realloc (state.texids, size);
     if (!state.texids) {
-        err (1, "realloc texids %" FMT_s, size);
+        err (1, "realloc texs %" FMT_s, size);
     }
 
-    size = texcount * sizeof (*state.texowners);
-    state.texowners = realloc (state.texowners, size);
-    if (!state.texowners) {
-        err (1, "realloc texowners %" FMT_s, size);
-    }
+    state.texowners = (void *) (state.texids + texcount);
     if (texcount > state.texcount) {
         glGenTextures (texcount - state.texcount,
                        state.texids + state.texcount);
