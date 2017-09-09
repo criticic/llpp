@@ -3317,22 +3317,20 @@ let setcheckers enabled =
 ;;
 
 let describe_location () =
-  let fn = page_of_y state.y in
-  let ln = page_of_y (state.y + state.winh - 1) in
-  let maxy = maxy () in
+  let pages =
+    let layout = layout state.x state.y state.winw state.winh in
+    List.map (fun l -> string_of_int (l.pageno + 1)) layout
+  in
   let percent =
+    let maxy = maxy () in
     if maxy <= 0
     then 100.
     else 100. *. (float state.y /. float maxy)
   in
-  if fn = ln
-  then
-    Printf.sprintf "page %d of %d [%.2f%%]"
-                   (fn+1) state.pagecount percent
-  else
-    Printf.sprintf
-      "pages %d-%d of %d [%.2f%%]"
-      (fn+1) (ln+1) state.pagecount percent
+  match pages with
+  | s :: [] -> Printf.sprintf "page %s of %d [%.2f%%]" s state.pagecount percent
+  | ss -> Printf.sprintf "pages [%s] of %d [%.2f%%]" (String.concat "," ss)
+                         state.pagecount percent
 ;;
 
 let setpresentationmode v =
