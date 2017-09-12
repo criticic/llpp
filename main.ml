@@ -3320,7 +3320,7 @@ let describe_location () =
   let layout = layout state.x state.y state.winw state.winh in
   let d =
     match layout with
-    | [] -> "0"
+    | [] -> "Page 0"
     | l :: [] -> Printf.sprintf "Page %d" (l.pageno+1)
     | l :: rest ->
        let rangestr a b =
