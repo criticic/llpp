@@ -3317,9 +3317,23 @@ let setcheckers enabled =
 ;;
 
 let describe_location () =
-  let pages =
-    let layout = layout state.x state.y state.winw state.winh in
-    List.map (fun l -> string_of_int (l.pageno + 1)) layout
+  let layout = layout state.x state.y state.winw state.winh in
+  let d =
+    match layout with
+    | [] -> "0"
+    | l :: [] -> Printf.sprintf "Page %d" (l.pageno+1)
+    | l :: rest ->
+       let rangestr a b =
+         let sep = if a.pageno+1 = b.pageno then " " else ".." in
+         Printf.sprintf "%d%s%d" (a.pageno+1) sep (b.pageno+1)
+       in
+       let rec fold s la lb = function
+         | [] when la == lb -> Printf.sprintf "%s %d" s (la.pageno+1)
+         | [] -> Printf.sprintf "%s %s" s (rangestr la lb)
+         | l :: rest when l.pageno = succ lb.pageno -> fold s la l rest
+         | l :: rest -> fold (s ^ " " ^ rangestr la lb) l l rest
+       in
+       fold "Pages" l l rest
   in
   let percent =
     let maxy = maxy () in
@@ -3327,10 +3341,7 @@ let describe_location () =
     then 100.
     else 100. *. (float state.y /. float maxy)
   in
-  match pages with
-  | s :: [] -> Printf.sprintf "page %s of %d [%.2f%%]" s state.pagecount percent
-  | ss -> Printf.sprintf "pages [%s] of %d [%.2f%%]" (String.concat "," ss)
-                         state.pagecount percent
+  Printf.sprintf "%s of %d [%.2f%%]" d state.pagecount percent
 ;;
 
 let setpresentationmode v =
