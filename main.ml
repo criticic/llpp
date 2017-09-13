@@ -3317,9 +3317,8 @@ let setcheckers enabled =
 ;;
 
 let describe_location () =
-  let layout = layout state.x state.y state.winw state.winh in
   let d =
-    match layout with
+    match state.layout with
     | [] -> "Page 0"
     | l :: [] -> Printf.sprintf "Page %d" (l.pageno+1)
     | l :: rest ->
