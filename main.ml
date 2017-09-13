@@ -3323,11 +3323,12 @@ let describe_location () =
     | l :: [] -> Printf.sprintf "Page %d" (l.pageno+1)
     | l :: rest ->
        let rangestr a b =
-         let sep = if a.pageno+1 = b.pageno then " " else ".." in
-         Printf.sprintf "%d%s%d" (a.pageno+1) sep (b.pageno+1)
+         if a.pageno = b.pageno then Printf.sprintf "%d" (a.pageno+1)
+         else
+           let sep = if a.pageno+1 = b.pageno then " " else ".." in
+           Printf.sprintf "%d%s%d" (a.pageno+1) sep (b.pageno+1)
        in
        let rec fold s la lb = function
-         | [] when la == lb -> Printf.sprintf "%s %d" s (la.pageno+1)
          | [] -> Printf.sprintf "%s %s" s (rangestr la lb)
          | l :: rest when l.pageno = succ lb.pageno -> fold s la l rest
          | l :: rest -> fold (s ^ " " ^ rangestr la lb) l l rest
