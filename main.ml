@@ -3325,7 +3325,7 @@ let describe_location () =
        let rangestr a b =
          if a.pageno = b.pageno then Printf.sprintf "%d" (a.pageno+1)
          else
-           let sep = if a.pageno+1 = b.pageno then " " else ".." in
+           let sep = if a.pageno+1 = b.pageno then " " else UniSyms.ellipsis in
            Printf.sprintf "%d%s%d" (a.pageno+1) sep (b.pageno+1)
        in
        let rec fold s la lb = function
