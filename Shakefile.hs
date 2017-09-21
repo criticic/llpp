@@ -103,8 +103,7 @@ depscaml flags src = do
 
 compilecaml comp flagl out src = do
   let fixedflags = fixincludes flagl
-  () <- cmd comp "-c -I" outdir fixedflags "-o" out src
-  return ()
+  cmd_ comp "-c -I" outdir fixedflags "-o" out src
 
 deplistE reqs =
   [if takeDirectory1 n == outdir then n else inOutDir n | n <- reqs]
