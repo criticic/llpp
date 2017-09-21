@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 import Data.List.Extra
 import Control.Monad
@@ -21,6 +21,13 @@ newtype CCmdLineOracle = CCmdLineOracle String
                        deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 newtype GitDescribeOracle = GitDescribeOracle ()
                           deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+
+type instance RuleResult GitDescribeOracle = String
+type instance RuleResult OcamlCmdLineOracle = (String, String)
+type instance RuleResult OcamlCmdLineOracleN = (String, String)
+type instance RuleResult OcamlOrdOracle = ()
+type instance RuleResult OcamlOrdOracleN = ()
+type instance RuleResult CCmdLineOracle = String
 
 data Bt = Native | Bytecode
 
