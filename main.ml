@@ -3316,9 +3316,9 @@ let setcheckers enabled =
      );
 ;;
 
-let describe_location () =
+let describe_layout layout =
   let d =
-    match state.layout with
+    match layout with
     | [] -> "Page 0"
     | l :: [] -> Printf.sprintf "Page %d" (l.pageno+1)
     | l :: rest ->
@@ -3762,17 +3762,15 @@ let enterinfomode =
                      Printf.sprintf "%dx%d" state.x state.y
                    ) 1
     else
-      src#caption2 "Position" (fun () -> describe_location ()) 1
-    ;
+      src#caption2 "Position" (fun () -> describe_layout state.layout) 1;
 
-      sep ();
+    sep ();
     src#bool ~offset:0 ~btos:(fun v -> if v then "(on)" else "(off)")
              "Save these parameters as global defaults at exit"
              (fun () -> conf.bedefault)
-             (fun v -> conf.bedefault <- v)
-    ;
+             (fun v -> conf.bedefault <- v);
 
-      sep ();
+    sep ();
     let btos b = if b then UniSyms.lguillemet else UniSyms.rguillemet in
     src#bool ~offset:0 ~btos "Extended parameters"
              (fun () -> !showextended)
@@ -4948,7 +4946,7 @@ let viewkeyboard key mask =
      prevpage ()
 
   | Ascii '=' ->
-     showtext ' ' (describe_location ());
+     showtext ' ' (describe_layout state.layout);
 
   | Ascii 'w' ->
      begin match state.layout with
