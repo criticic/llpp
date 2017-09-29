@@ -181,13 +181,12 @@ main = do
   ocamlOracleN <- addOracle $ \(OcamlCmdLineOracleN s) ->
     return $ ocamlKey ocamlopt ocamlflagstbl s
 
-  ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) ->
-    unless (takeExtension s == ".cmi") $
-      liftIO $ modifyMVar_ depl $ \l -> return $ s:l
+  let ordoracle d s =
+        unless (takeExtension s == ".cmi") $
+          liftIO $ modifyMVar_ d $ \l -> return $ s:l
 
-  ocamlOrdOracleN <- addOracle $ \(OcamlOrdOracleN s) ->
-    unless (takeExtension s == ".cmi") $
-      liftIO $ modifyMVar_ depln $ \l -> return $ s:l
+  ocamlOrdOracle <- addOracle $ \(OcamlOrdOracle s) -> ordoracle depl s
+  ocamlOrdOracleN <- addOracle $ \(OcamlOrdOracleN s) -> ordoracle depln s
 
   cOracle <- addOracle $ \(CCmdLineOracle s) -> return $ cKey envcflags s
 
