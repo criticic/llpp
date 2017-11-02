@@ -114,7 +114,7 @@ static void *filecontents (char *path, int *len)
                 err(1, "failed to allocate %llu bytes for `%s'",
                     st.st_size+0ull, path);
 
-        fd = open(path, O_RDONLY | O_BINARY);
+        fd = open(path, O_RDONLY);
         if (fd < 0) err(1, "failed to open `%s'", path);
 
         nread = read(fd, res, st.st_size);

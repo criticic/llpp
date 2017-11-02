@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
+#include <math.h>
 #include <wchar.h>
 #include <locale.h>
 #include <langinfo.h>
@@ -17,6 +18,8 @@
 #include <pthread.h>
 #include <sys/uio.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
