@@ -2868,8 +2868,9 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
 CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
 {
     CAMLparam2 (ptr_v, n_v);
+    CAMLlocal1 (ret_v);
     pdf_document *pdf;
-    const char *contents = "";
+    char *contents = "";
 
     lock (__func__);
     pdf = pdf_specifics (state.ctx, state.doc);
@@ -2880,11 +2881,13 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        contents = pdf_annot_contents (state.ctx,
-                                       (pdf_annot *) slink->u.annot);
+        contents = pdf_copy_annot_contents (state.ctx,
+                                            (pdf_annot *) slink->u.annot);
     }
     unlock (__func__);
-    CAMLreturn (caml_copy_string (contents));
+    ret_v = caml_copy_string (contents);
+    fz_free (state.ctx, contents);
+    CAMLreturn (ret_v);
 }
 
 CAMLprim value ml_getlinkcount (value ptr_v)
