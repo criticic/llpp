@@ -2344,7 +2344,7 @@ let [@warning "-4"] optentry mode _ key =
 
   | Keys.Ascii 'M' ->
      if conf.pax == None
-     then conf.pax <- Some (ref (0.0, 0, 0))
+     then conf.pax <- Some 0.0
      else conf.pax <- None;
      TEdone ("PAX " ^ btos (conf.pax != None))
 
@@ -3799,7 +3799,7 @@ let enterinfomode =
                (fun () -> conf.pax != None)
                (fun v ->
                  if v
-                 then conf.pax <- Some (ref (now (), 0, 0))
+                 then conf.pax <- Some (now ())
                  else conf.pax <- None);
       src#string "uri launcher"
                  (fun () -> conf.urilauncher)
@@ -6014,13 +6014,12 @@ let uioh = object
             then
               match conf.pax with
               | None -> ()
-              | Some r ->
-                 let past, _, _ = !r in
+              | Some past ->
                  let now = now () in
                  let delta = now -. past in
                  if delta > 0.01
                  then paxunder x y
-                 else r := (now, x, y)
+                 else conf.pax <- Some now
       end;
       state.uioh
 

@@ -275,7 +275,7 @@ type conf =
   ; mutable wheelbypage    : bool
   ; mutable stcmd          : string
   ; mutable riani          : bool
-  ; mutable pax            : (float * int * int) ref option
+  ; mutable pax            : float option
   ; mutable paxmark        : mark
   ; mutable leftscroll     : bool
   ; mutable title          : string
@@ -1089,7 +1089,7 @@ let config_of c attrs =
       | "point-and-x" ->
          { c with pax =
                     if bool_of_string v
-                    then Some (ref (0.0, 0, 0))
+                    then Some 0.0
                     else None }
       | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
@@ -1223,7 +1223,7 @@ let setconf dst src =
   dst.pax            <-
     if src.pax = None
     then None
-    else Some ((ref (0.0, 0, 0)));
+    else Some 0.0;
 ;;
 
 let findkeyhash c name =
