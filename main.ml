@@ -5695,39 +5695,22 @@ let viewmouse button down x y mask =
   | n when (n == 4 || n == 5) && not down ->
      if Wsi.withctrl mask
      then (
-       match state.mstate with
-       | Mzoom (oldn, i, (ftx, fty)) ->
-          let recenter =
-            if false
-            then abs (ftx - x) > 5 || abs (fty - y) > 5
-            else false
-          in
-          if oldn = n
-          then (
-            if i = 2
-            then
-              let incr =
-                match n with
-                | 5 ->
-                   if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01
-                | _ ->
-                   if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
-              in
-              let zoom = conf.zoom -. incr in
-              if recenter
-              then pivotzoom ~x ~y zoom
-              else pivotzoom zoom;
-              state.mstate <- Mzoom (n, 0, (x, y));
-            else
-              state.mstate <- Mzoom (n, i+1, (ftx, fty));
-          )
-          else state.mstate <- Mzoom (n, 0, (ftx, fty))
-
-       | Msel _
-       | Mpan _
-       | Mscrolly | Mscrollx
-       | Mzoomrect _
-       | Mnone -> state.mstate <- Mzoom (n, 0, (0, 0))
+       let incr =
+         if n = 4
+         then if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01
+         else if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
+       in
+       let fx, fy =
+         match state.mstate with
+         | Mzoom (oldn, _, pos) when n = oldn -> pos
+         | Mzoomrect _ | Mnone | Mpan _
+         | Msel _ | Mscrollx | Mscrolly | Mzoom _ -> (x, y)
+       in
+       let zoom = conf.zoom -. incr in
+       state.mstate <- Mzoom (n, 0, (x, y));
+       if false && abs (fx - x) > 5 || abs (fy - y) > 5
+       then pivotzoom ~x ~y zoom
+       else pivotzoom zoom
      )
      else (
        match state.autoscroll with
