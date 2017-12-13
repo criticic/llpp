@@ -5696,7 +5696,7 @@ let viewmouse button down x y mask =
      if Wsi.withctrl mask
      then (
        let incr =
-         if n = 4
+         if n = 5
          then if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01
          else if conf.zoom -. 0.1 < 0.1 then -0.01 else -0.1
        in
