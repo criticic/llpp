@@ -203,6 +203,7 @@ struct page {
     fz_stext_page *text;
     fz_page *fzpage;
     fz_display_list *dlist;
+    fz_link *links;
     int slinkcount;
     struct slink *slinks;
     int annotcount;
@@ -2091,14 +2092,20 @@ static void solidrect (fz_matrix *m,
     glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
 }
 
+static void ensurelinks (struct page *page)
+{
+    if (!page->links)
+        page->links = fz_load_links (state.ctx, page->fzpage);
+}
+
 static void highlightlinks (struct page *page, int xoff, int yoff)
 {
     fz_matrix ctm, tm, pm;
-    fz_link *link, *links;
+    fz_link *link;
     GLfloat *texcoords = state.texcoords;
     GLfloat *vertices = state.vertices;
 
-    links = fz_load_links (state.ctx, page->fzpage);
+    ensurelinks (page);
 
     glEnable (GL_TEXTURE_1D);
     glEnable (GL_BLEND);
@@ -2114,7 +2121,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     glTexCoordPointer (1, GL_FLOAT, 0, texcoords);
     glVertexPointer (2, GL_FLOAT, 0, vertices);
 
-    for (link = links; link; link = link->next) {
+    for (link = page->links; link; link = link->next) {
         fz_point p1, p2, p3, p4;
 
         p1.x = link->rect.x0;
@@ -2233,6 +2240,10 @@ static void dropslinks (struct page *page)
         page->slinks = NULL;
         page->slinkcount = 0;
     }
+    if (page->links) {
+        fz_drop_link (state.ctx, page->links);
+        page->links = NULL;
+    }
 }
 
 static void ensureslinks (struct page *page)
@@ -2240,7 +2251,7 @@ static void ensureslinks (struct page *page)
     fz_matrix ctm;
     int i, count;
     size_t slinksize = sizeof (*page->slinks);
-    fz_link *link, *links;
+    fz_link *link;
 
     ensureannots (page);
     if (state.gen != page->sgen) {
@@ -2249,11 +2260,11 @@ static void ensureslinks (struct page *page)
     }
     if (page->slinks) return;
 
-    links = fz_load_links (state.ctx, page->fzpage);
+    ensurelinks (page);
     ctm = pagectm (page);
 
     count = page->annotcount;
-    for (link = links; link; link = link->next) {
+    for (link = page->links; link; link = link->next) {
         count++;
     }
     if (count > 0) {
@@ -2265,7 +2276,7 @@ static void ensureslinks (struct page *page)
             err (1, "calloc slinks %d", count);
         }
 
-        for (i = 0, link = links; link; ++i, link = link->next) {
+        for (i = 0, link = page->links; link; ++i, link = link->next) {
             fz_rect rect;
 
             rect = link->rect;
@@ -2618,9 +2629,9 @@ static fz_link *getlink (struct page *page, int x, int y)
 {
     fz_point p;
     fz_matrix ctm;
-    fz_link *link, *links;
+    fz_link *link;
 
-    links = fz_load_links (state.ctx, page->fzpage);
+    ensureslinks (page);
 
     p.x = x;
     p.y = y;
@@ -2629,7 +2640,7 @@ static fz_link *getlink (struct page *page, int x, int y)
     fz_invert_matrix (&ctm, &ctm);
     fz_transform_point (&p, &ctm);
 
-    for (link = links; link; link = link->next) {
+    for (link = page->links; link; link = link->next) {
         if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
             if (p.y >= link->rect.y0 && p.y <= link->rect.y1) {
                 return link;
@@ -2694,7 +2705,9 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
         }
         else {
             fz_page *page = fz_load_page (state.ctx, state.doc, i);
-            found = !!fz_load_links (state.ctx, page);
+            fz_link *link = fz_load_links (state.ctx, page);
+            found = !!link;
+            fz_drop_link (state.ctx, link);
             fz_drop_page (state.ctx, page);
         }
 
