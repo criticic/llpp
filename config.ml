@@ -248,7 +248,9 @@ type conf =
   ; mutable sliceheight    : sliceheight
   ; mutable thumbw         : width
   ; mutable jumpback       : bool
-  ; mutable bgcolor        : (float * float * float)
+  ; mutable bgcolor        : rgb
+  ; mutable sbarcolor      : rgba
+  ; mutable sbarhndlcolor  : rgba
   ; mutable bedefault      : bool
   ; mutable tilew          : int
   ; mutable tileh          : int
@@ -299,6 +301,8 @@ type conf =
    | Ohistory of (filename * conf * outline list * x * anchor * filename)
  and outline = (caption * outlinelevel * outlinekind)
  and outlinelevel = int
+ and rgb = (float * float * float)
+ and rgba = (float * float * float * float)
 ;;
 
 type page =
@@ -521,6 +525,8 @@ let defconf =
   ; thumbw         = 76
   ; jumpback       = true
   ; bgcolor        = (0.5, 0.5, 0.5)
+  ; sbarcolor      = (0.64, 0.64, 0.64, 0.7)
+  ; sbarhndlcolor  = (0.0, 0.0, 0.0, 0.7)
   ; bedefault      = false
   ; tilew          = 2048
   ; tileh          = 2048
@@ -1040,6 +1046,8 @@ let config_of c attrs =
       | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
       | "persistent-location" -> { c with jumpback = bool_of_string v }
       | "background-color" -> { c with bgcolor = color_of_string v }
+      | "scrollbar-color" -> { c with sbarcolor = rgba_of_string v }
+      | "scrollbar-handle-color" -> { c with sbarhndlcolor = rgba_of_string v }
       | "tile-width" -> { c with tilew = max 2 (int_of_string v) }
       | "tile-height" -> { c with tileh = max 2 (int_of_string v) }
       | "mupdf-store-size" ->
@@ -1220,6 +1228,8 @@ let setconf dst src =
   dst.coarseprespos  <- src.coarseprespos;
   dst.css            <- src.css;
   dst.usedoccss      <- src.usedoccss;
+  dst.sbarcolor      <- src.sbarcolor;
+  dst.sbarhndlcolor  <- src.sbarhndlcolor;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1549,6 +1559,7 @@ let add_attrs bb always dc c time =
   and oF s a b = o (always || a <> b) "%s='%f'" s a
   and oL s a b = o (always || a <> b) "%s='%Ld'" s a
   and oc s a b = o (always || a <> b) "%s='%s'" s (color_to_string a)
+  and oA s a b = o (always || a <> b) "%s='%s'" s (rgba_to_string a)
   and oC s a b = o (always || a <> b) "%s='%s'" s (CSTE.to_string a)
   and oR s a b = o (always || a <> b) "%s='%s'" s (irect_to_string a)
   and oFm s a b = o (always || a <> b) "%s='%s'" s (FMTE.to_string a)
@@ -1620,6 +1631,8 @@ let add_attrs bb always dc c time =
   oi "thumbnail-width" c.thumbw dc.thumbw;
   ob "persistent-location" c.jumpback dc.jumpback;
   oc "background-color" c.bgcolor dc.bgcolor;
+  oA "scrollbar-color" c.sbarcolor dc.sbarcolor;
+  oA "scrollbar-handle-color" c.sbarhndlcolor dc.sbarhndlcolor;
   oi "tile-width" c.tilew dc.tilew;
   oi "tile-height" c.tileh dc.tileh;
   oI "mupdf-store-size" c.mustoresize dc.mustoresize;

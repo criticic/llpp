@@ -3366,6 +3366,7 @@ let setbgcol (r, g, b) =
 let enterinfomode =
   let btos b = if b then UniSyms.radical else E.s in
   let showextended = ref false in
+  let showcolors = ref false in
   let leave mode _ =  state.mode <- mode in
   let src =
     (object
@@ -3605,6 +3606,18 @@ let enterinfomode =
                  (fun v ->
                    try
                      let c = color_of_string v in
+                     set c
+                   with exn ->
+                     state.text <-
+                       Printf.sprintf "bad color `%s': %s" v @@ exntos exn
+                 )
+    in
+    let rgba name get set =
+      src#string name
+                 (fun () -> rgba_to_string (get ()))
+                 (fun v ->
+                   try
+                     let c = rgba_of_string v in
                      set c
                    with exn ->
                      state.text <-
@@ -3857,9 +3870,6 @@ let enterinfomode =
       src#int "hint font size"
               (fun () -> conf.hfsize)
               (fun v -> conf.hfsize <- bound v 5 100);
-      colorp "background color"
-             (fun () -> conf.bgcolor)
-             (fun v -> conf.bgcolor <- v; setbgcol v);
       src#bool "crop hack"
                (fun () -> conf.crophack)
                (fun v -> conf.crophack <- v);
@@ -3958,7 +3968,22 @@ let enterinfomode =
                  conf.usedoccss <- v;
                  state.anchor <- getanchor ();
                  opendoc state.path state.password;
-               )
+               );
+      src#bool ~btos "colors"
+               (fun () -> !showcolors)
+               (fun v -> showcolors := v; fillsrc prevmode prevuioh);
+      if !showcolors
+      then (
+        colorp "   background"
+               (fun () -> conf.bgcolor)
+               (fun v -> conf.bgcolor <- v; setbgcol v);
+        rgba "   scrollbar"
+             (fun () -> conf.sbarcolor)
+             (fun v -> conf.sbarcolor <- v);
+        rgba "   scrollbar handle"
+             (fun () -> conf.sbarhndlcolor)
+             (fun v -> conf.sbarhndlcolor <- v);
+      );
     );
 
     sep ();
@@ -5465,13 +5490,14 @@ let scrollindicator () =
 
   Gl.enable `blend;
   GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
-  GlDraw.color (0.64, 0.64, 0.64) ~alpha:0.7;
+  let (r, g, b, alpha) = conf.sbarcolor in
+  GlDraw.color (r, g, b) ~alpha;
   filledrect (float x0) 0. (float x1) (float state.winh);
   filledrect
     (float hx0) (float (state.winh - sbh))
-    (float (hx0 + state.winw)) (float state.winh)
-  ;
-    GlDraw.color (0.0, 0.0, 0.0) ~alpha:0.7;
+    (float (hx0 + state.winw)) (float state.winh);
+  let (r, g, b, alpha) = conf.sbarhndlcolor in
+  GlDraw.color (r, g, b) ~alpha;
 
   filledrect (float x0) ph (float x1) (ph +. sh);
   let pw = pw +. float hx0 in
