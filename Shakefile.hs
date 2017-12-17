@@ -40,7 +40,6 @@ egl = False
 
 ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
-ocamldep = "ocamldep.opt"
 ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
 ocamlflagstbl = [("main", "-I lablGL -I wsi/x11")
                 ,("wsi/x11/wsi", "-I wsi/x11")
@@ -96,7 +95,7 @@ needsrc key suff = do
   return src
 
 depscaml flags src = do
-  (Stdout stdout) <- cmd ocamldep "-one-line" incs "-I" outdir src
+  (Stdout stdout) <- cmd ocamlc "-depend -one-line" incs "-I" outdir src
   return stdout
   where flagl = words flags
         incs = unwords ["-I " ++ d | d <- getincludes flagl, not $ isabsinc d]
