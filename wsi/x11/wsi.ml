@@ -651,6 +651,10 @@ let readresp sock =
                      state.t#winstate (List.sort compare wsl)
                    );
 
+  | 24 ->
+     (* ignore gravity events *)
+     ()
+
   | n ->
      dolog "event %d %S" n (Bytes.unsafe_to_string resp)
 ;;
