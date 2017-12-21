@@ -626,13 +626,16 @@ let cbnew n v =
 
 let cbcap b = Array.length b.store;;
 
-let cbput b v =
+let cbput ?(update_rc=true) b v  =
   let cap = cbcap b in
   b.store.(b.wc) <- v;
   b.wc <- (b.wc + 1) mod cap;
-  b.rc <- b.wc;
+  if update_rc
+  then b.rc <- b.wc;
   b.len <- min (b.len + 1) cap;
 ;;
+
+let cbput_dont_update_rc b v = cbput ~update_rc:false b v;;
 
 let cbempty b = b.len = 0;;
 

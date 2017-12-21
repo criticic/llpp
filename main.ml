@@ -947,7 +947,11 @@ let gotoanchor anchor =
 ;;
 
 let addnav () =
-  cbput state.hists.nav (getanchor ());
+  getanchor () |> cbput state.hists.nav;
+;;
+
+let addnavnorc () =
+  getanchor () |> cbput_dont_update_rc state.hists.nav;
 ;;
 
 let getnav dir =
@@ -4766,6 +4770,7 @@ let viewkeyboard key mask =
      end;
 
   | Backspace ->
+     addnavnorc ();
      gotoghyll (getnav ~-1)
 
   | Ascii 'o' ->
@@ -5160,8 +5165,10 @@ let viewkeyboard key mask =
      gotoghyll (clamp state.maxy)
 
   | Right when Wsi.withalt mask ->
+     addnavnorc ();
      gotoghyll (getnav 1)
   | Left when Wsi.withalt mask ->
+     addnavnorc ();
      gotoghyll (getnav ~-1)
 
   | Ascii 'r' ->
