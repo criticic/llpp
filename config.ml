@@ -1537,13 +1537,16 @@ let load openlast =
         | exception Not_found ->
            let key = try Digest.file absname |> Digest.to_hex with _ -> E.s in
            match (
-             Hashtbl.iter (fun p ((c, _, _, _, _) as v) ->
-                 if c.key = key
-                 then (
-                   dolog "will use %s's settings due to matching keys" p;
-                   raise (E v)
-                 )
-               ) h
+             if emptystr key
+             then ()
+             else
+               Hashtbl.iter (fun p ((c, _, _, _, _) as v) ->
+                   if c.key = key
+                   then (
+                     dolog "will use %s's settings due to matching keys" p;
+                     raise (E v)
+                   )
+                 ) h
            )
            with
            | _ -> def
