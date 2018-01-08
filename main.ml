@@ -57,6 +57,7 @@ external isexternallink : string -> bool = "ml_isexternallink";;
 external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 
 let selfexec = ref E.s;;
+let ignoredoctitlte = ref false;;
 let opengl_has_pbo = ref false;;
 
 let drawstring size x y s =
@@ -1819,7 +1820,8 @@ let act cmds =
          if c = "Title"
          then (
            conf.title <- v;
-           Wsi.settitle v;
+           if not !ignoredoctitlte
+           then Wsi.settitle v;
            args
          )
          else
@@ -6293,6 +6295,8 @@ let () =
 
         ("-origin", Arg.String (fun s -> state.origin <- s),
          "<origin> <undocumented>");
+
+        ("-no-title", Arg.Set ignoredoctitlte, " ignore document title")
        ]
     )
     (fun s -> state.path <- s)

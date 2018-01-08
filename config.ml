@@ -286,6 +286,7 @@ type conf =
   ; mutable coarseprespos  : bool
   ; mutable css            : css
   ; mutable usedoccss      : usedoccss
+  ; mutable key            : string
   }
  and columns =
    | Csingle of singlecolumn
@@ -571,6 +572,7 @@ let defconf =
   ; coarseprespos  = false
   ; css            = E.s
   ; usedoccss      = true
+  ; key            = E.s
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1144,17 +1146,18 @@ let bookmark_of attrs =
 ;;
 
 let doc_of attrs =
-  let rec fold path page rely pan visy origin = function
-    | ("path", v) :: rest -> fold v page rely pan visy origin rest
-    | ("page", v) :: rest -> fold path v rely pan visy origin rest
-    | ("rely", v) :: rest -> fold path page v pan visy origin rest
-    | ("pan", v) :: rest -> fold path page rely v visy origin rest
-    | ("visy", v) :: rest -> fold path page rely pan v origin rest
-    | ("origin", v) :: rest -> fold path page rely pan visy v rest
-    | _ :: rest -> fold path page rely pan visy origin rest
-    | [] -> path, page, rely, pan, visy, origin
+  let rec fold path key page rely pan visy origin = function
+    | ("path", v) :: rest -> fold v key page rely pan visy origin rest
+    | ("key", v) :: rest -> fold path v page rely pan visy origin rest
+    | ("page", v) :: rest -> fold path key v rely pan visy origin rest
+    | ("rely", v) :: rest -> fold path key page v pan visy origin rest
+    | ("pan", v) :: rest -> fold path key page rely v visy origin rest
+    | ("visy", v) :: rest -> fold path key page rely pan v origin rest
+    | ("origin", v) :: rest -> fold path key page rely pan visy v rest
+    | _ :: rest -> fold path key page rely pan visy origin rest
+    | [] -> path, key, page, rely, pan, visy, origin
   in
-  fold E.s "0" "0" "0" "0" E.s attrs
+  fold E.s E.s "0" "0" "0" "0" E.s attrs
 ;;
 
 let map_of attrs =
@@ -1233,6 +1236,7 @@ let setconf dst src =
   dst.usedoccss      <- src.usedoccss;
   dst.sbarcolor      <- src.sbarcolor;
   dst.sbarhndlcolor  <- src.sbarhndlcolor;
+  dst.key            <- src.key;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1284,7 +1288,7 @@ let get s =
        else { v with f = uifont (Buffer.create 10) }
 
     | Vopen ("doc", attrs, closed) ->
-       let pathent, spage, srely, span, svisy, origin = doc_of attrs in
+       let pathent, key, spage, srely, span, svisy, origin = doc_of attrs in
        let path = unentS pathent
        and origin = unentS origin
        and pageno = fromstring int_of_string spos "page" spage 0
@@ -1292,6 +1296,7 @@ let get s =
        and pan = fromstring int_of_string spos "pan" span 0
        and visy = fromstring float_of_string spos "visy" svisy 0.0 in
        let c = config_of dc attrs in
+       c.key <- key;
        let anchor = (pageno, rely, visy) in
        if closed
        then (Hashtbl.add h path (c, [], pan, anchor, origin); v)
@@ -1521,10 +1526,28 @@ let load openlast =
       state.path <- path;
     );
     let pc, pb, px, pa, po =
-      try
+      let def = dc, [], 0, emptyanchor, state.origin in
+      if emptystr state.path
+      then def
+      else
         let absname = abspath state.path in
-        Hashtbl.find h absname
-      with Not_found -> dc, [], 0, emptyanchor, state.origin
+        let exception E of (conf * outline list * int * anchor * string) in
+        match Hashtbl.find h absname with
+        | v -> v
+        | exception Not_found ->
+           let key = try Digest.file absname |> Digest.to_hex with _ -> E.s in
+           match (
+             Hashtbl.iter (fun p ((c, _, _, _, _) as v) ->
+                 if c.key = key
+                 then (
+                   dolog "will use %s's settings due to matching keys" p;
+                   raise (E v)
+                 )
+               ) h
+           )
+           with
+           | _ -> def
+           | exception E v -> v
     in
     setconf defconf dc;
     setconf conf pc;
@@ -1814,6 +1837,10 @@ let save1 bb leavebirdseye x h dc =
       Printf.bprintf bb "<doc path='%s'"
                      (Parser.enent path 0 (String.length path));
 
+      if nonemptystr c.key
+      then
+        Printf.bprintf bb "\n    key='%s'" c.key;
+
       if nonemptystr origin
       then Printf.bprintf bb "\n    origin='%s'"
                           (Parser.enent origin 0 (String.length origin));
@@ -1920,7 +1947,11 @@ let save1 bb leavebirdseye x h dc =
              | View
              | LinkNav _ -> ()
              end;
-             { conf with autoscrollstep = autoscrollstep }
+             let key =
+               try Digest.file docpath |> Digest.to_hex
+               with _ -> E.s
+             in
+             { conf with autoscrollstep; key }
            )
            (if conf.savebmarks then state.bookmarks else [])
            (now ())
