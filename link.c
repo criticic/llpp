@@ -1721,7 +1721,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
             if (ret != 1) {
                 errx (1, "malformed freepage `%.*s' ret=%d", len, p, ret);
             }
+            lock ("freepage");
             freepage (ptr);
+            unlock ("freepage");
         }
         else if (!strncmp ("freetile", p, 8)) {
             void *ptr;
@@ -1730,7 +1732,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
             if (ret != 1) {
                 errx (1, "malformed freetile `%.*s' ret=%d", len, p, ret);
             }
+            lock ("freetile");
             freetile (ptr);
+            unlock ("freetile");
         }
         else if (!strncmp ("search", p, 6)) {
             int icase, pageno, y, len2, forward;
