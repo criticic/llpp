@@ -1531,10 +1531,10 @@ let load openlast =
       then def
       else
         let absname = abspath state.path in
-        let exception E of (conf * outline list * int * anchor * string) in
         match Hashtbl.find h absname with
         | v -> v
         | exception Not_found ->
+           let exception E of (conf * outline list * int * anchor * string) in
            let key = try Digest.file absname |> Digest.to_hex with _ -> E.s in
            match (
              if emptystr key
