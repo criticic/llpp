@@ -1080,6 +1080,15 @@ let stateh h =
   h - d
 ;;
 
+let fillhelp () =
+  state.help <-
+    let sl = keystostrlist conf in
+    let rec loop accu =
+      function | [] -> accu
+               | s :: rest -> loop ((s, 0, Noaction) :: accu) rest
+    in makehelp () @ (("", 0, Noaction) :: loop [] sl) |> Array.of_list
+;;
+
 let opendoc path password =
   state.path <- path;
   state.password <- password;
@@ -1104,12 +1113,7 @@ let opendoc path password =
                     conf.angle (FMTE.to_int conf.fitmodel)
                     (stateh state.winh) state.nameddest
              );
-  state.help <-
-    let sl = keystostrlist conf in
-    let rec loop accu =
-      function | [] -> accu
-               | s :: rest -> loop ((s, 0, Noaction) :: accu) rest
-    in makehelp () @ (("", 0, Noaction) :: loop [] sl) |> Array.of_list
+  fillhelp ();
 ;;
 
 let reload () =
@@ -6315,6 +6319,7 @@ let () =
   | None -> ()
   end;
 
+  fillhelp ();
   if !gcconfig
   then (
     Config.gc ();
