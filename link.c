@@ -1255,7 +1255,6 @@ uritoanchor (const char *uri)
     fz_point p;
     struct anchor a;
 
-    a.n = -1;
     a.n = fz_resolve_link (state.ctx, state.doc, uri, &p.x, &p.y);
     if (a.n >= 0) {
         struct pagedim *pdim = pdimofpageno (a.n);
