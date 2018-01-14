@@ -1248,30 +1248,17 @@ struct pagedim *pdimofpageno (int pageno)
     return pdim;
 }
 
-static
-struct anchor { int n; int x; int y; int w; int h; }
-uritoanchor (const char *uri)
-{
-    fz_point p;
-    struct anchor a;
-
-    a.n = fz_resolve_link (state.ctx, state.doc, uri, &p.x, &p.y);
-    if (a.n >= 0) {
-        struct pagedim *pdim = pdimofpageno (a.n);
-        fz_transform_point (&p, &pdim->ctm);
-        a.x = p.x;
-        a.y = p.y;
-        a.h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
-    }
-    return a;
-}
-
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        struct anchor a = uritoanchor (outline->uri);
-        if (a.n >= 0) {
-            printd ("o %d %d %d %d %s", level, a.n, a.y, a.h, outline->title);
+        fz_point p = {.x = outline->x, .y = outline->y};
+
+        if (outline->page >= 0) {
+            struct pagedim *pdim = pdimofpageno (outline->page);
+            int h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
+            fz_transform_point (&p, &pdim->ctm);
+            printd ("o %d %d %d %d %s",
+                    level, outline->page, (int) p.y, h, outline->title);
         }
         else {
             printd ("on %d %s", level, outline->title);
