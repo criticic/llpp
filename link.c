@@ -1251,9 +1251,8 @@ struct pagedim *pdimofpageno (int pageno)
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        fz_point p = {.x = outline->x, .y = outline->y};
-
         if (outline->page >= 0) {
+            fz_point p = {.x = outline->x, .y = outline->y};
             struct pagedim *pdim = pdimofpageno (outline->page);
             int h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
             fz_transform_point (&p, &pdim->ctm);
