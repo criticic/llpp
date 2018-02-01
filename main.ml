@@ -90,7 +90,7 @@ let _debugl l =
   vWxH    %dx%d
   pagex,y %d,%d
   dispx,y %d,%d
-  column  %d\n
+  column  %d
 }|}
         l.pageno l.pagedimno
         l.pagew l.pageh
