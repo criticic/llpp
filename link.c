@@ -1659,6 +1659,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
             fz_catch (state.ctx) {
                 utf8filename = mbtoutf8 (filename);
                 printd ("msg Could not open %s", utf8filename);
+                if (utf8filename != filename) {
+                    free (utf8filename);
+                }
             }
             if (ok) {
                 pdfinfo ();
