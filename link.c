@@ -429,9 +429,9 @@ CAMLprim value ml_rcmd (value fd_v)
 
 static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 {
-    int size = 64, len;
+    char fbuf[64];
+    int size = sizeof (fbuf), len;
     va_list ap;
-    char fbuf[size];
     char *buf = fbuf;
 
     for (;;) {
