@@ -46,13 +46,13 @@ EOF
 
 trap 'test -n "$casp" && rm -f "$casp"' 0
 
-while getopts m:t:f opt; do
+while getopts c:m:t:f opt; do
     case $opt in
         m) mime=$OPTARG;;
         t) type=$OPTARG;;
         f) force=1;;
         c) css="-s $OPTARG";;
-        ?) die "usage: $0 [-m mime/type] [-t filter] [-f] [path|url]";;
+        ?) die "usage: $0 [-c css] [-m mime/type] [-t filter] [-f] [path|url]";;
     esac
 done
 shift $(($OPTIND - 1))
