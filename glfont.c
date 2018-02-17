@@ -149,7 +149,7 @@ static FT_Face load_font(char *fontname)
         return face;
 }
 
-static FT_Face UNUSED_ATTR load_builtin_font(const void *base, int len)
+static FT_Face load_builtin_font(const void *base, int len)
 {
         FT_Face face;
         int code;
