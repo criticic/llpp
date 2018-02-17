@@ -607,7 +607,6 @@ let readresp sock =
      state.h <- h;
      state.x <- x;
      state.y <- y;
-     state.t#expose
 
   | 28 ->
      let atom = r32 resp 8 in
