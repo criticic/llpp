@@ -1,4 +1,4 @@
-#ifdef __clang__
+#if defined __clang__ && !defined __APPLE__
 #pragma GCC diagnostic error "-Weverything"
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #pragma GCC diagnostic ignored "-Wpadded"
