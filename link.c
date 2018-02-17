@@ -6,7 +6,6 @@
 #pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#pragma GCC diagnostic ignored "-Wcovered-switch-default"
 #endif
 
 /* lots of code c&p-ed directly from mupdf */
@@ -253,7 +252,8 @@ static struct {
     } *texowners;
 
     int rotate;
-    enum { FitWidth, FitProportional, FitPage } fitmodel;
+    enum { FitWidth, FitProportional, FitPage };
+    int fitmodel;
     int trimmargins;
     int needoutline;
     int gen;
@@ -1793,11 +1793,11 @@ static void * mainloop (void UNUSED_ATTR *unused)
         else if (!strncmp ("reqlayout", p, 9)) {
             char *nameddest;
             int rotate, off, h;
-            unsigned int fitmodel;
+            int fitmodel;
             pdf_document *pdf;
 
             printd ("clear");
-            ret = sscanf (p + 9, " %d %u %d %n",
+            ret = sscanf (p + 9, " %d %d %d %n",
                           &rotate, &fitmodel, &h, &off);
             if (ret != 3) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
