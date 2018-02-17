@@ -1,3 +1,14 @@
+#ifdef __clang__
+#pragma GCC diagnostic error "-Weverything"
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#pragma GCC diagnostic ignored "-Wpadded"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
+#pragma GCC diagnostic ignored "-Wdocumentation"
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+#pragma GCC diagnostic ignored "-Wcovered-switch-default"
+#endif
+
 /* lots of code c&p-ed directly from mupdf */
 #define CAML_NAME_SPACE
 #define FIXME 0
@@ -45,6 +56,9 @@
 #include <GL/gl.h>
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreserved-id-macro"
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include <caml/fail.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
@@ -61,6 +75,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#pragma GCC diagnostic pop
 
 #define PIGGYBACK
 #define CACHE_PAGEREFS
@@ -213,7 +228,7 @@ struct page {
     } fmark, lmark;
 };
 
-struct {
+static struct {
     int sliceheight;
     struct pagedim *pagedims;
     int pagecount;
@@ -288,6 +303,7 @@ struct bo {
     size_t size;
 };
 
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
 static void UNUSED_ATTR debug_rect (const char *cap, fz_rect r)
 {
     printf ("%s(rect) %.2f,%.2f,%.2f,%.2f\n", cap, r.x0, r.y0, r.x1, r.y1);
@@ -303,6 +319,7 @@ static void UNUSED_ATTR debug_matrix (const char *cap, fz_matrix m)
     printf ("%s(matrix) %.2f,%.2f,%.2f,%.2f %.2f %.2f\n", cap,
             m.a, m.b, m.c, m.d, m.e, m.f);
 }
+#pragma GCC diagnostic error "-Wdouble-promotion"
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -669,10 +686,11 @@ static void trimctm (pdf_page *page, int pindex)
 static fz_matrix pagectm1 (fz_page *fzpage, struct pagedim *pdim)
 {
     fz_matrix ctm, tm;
-    int pdimno = pdim - state.pagedims;
+    ptrdiff_t pdimno = pdim - state.pagedims;
 
+    ARSERT (pdim - state.pagedims < INT_MAX);
     if (pdf_specifics (state.ctx, state.doc)) {
-        trimctm (pdf_page_from_fz_page (state.ctx, fzpage), pdimno);
+        trimctm (pdf_page_from_fz_page (state.ctx, fzpage), (int) pdimno);
         fz_concat (&ctm, &pdim->tctm, &pdim->ctm);
     }
     else {
@@ -860,7 +878,7 @@ static void initpdims (int wthack)
 {
     double start, end;
     FILE *trimf = NULL;
-    fz_rect rootmediabox;
+    fz_rect rootmediabox = fz_empty_rect;
     int pageno, trim, show;
     int trimw = 0, cxcount;
     fz_context *ctx = state.ctx;
@@ -908,7 +926,7 @@ static void initpdims (int wthack)
     for (pageno = 0; pageno < cxcount; ++pageno) {
         int rotate = 0;
         struct pagedim *p;
-        fz_rect mediabox;
+        fz_rect mediabox = fz_empty_rect;
 
         fz_var (rotate);
         if (pdf) {
@@ -1063,7 +1081,7 @@ static void initpdims (int wthack)
                 fz_catch (ctx) {
                 }
                 if (trimf) {
-                    int n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
+                    size_t n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
                     if (n - 1) {
                         err (1, "fwrite trim mediabox");
                     }
@@ -1071,7 +1089,7 @@ static void initpdims (int wthack)
             }
             else {
                 if (trimf) {
-                    int n = fread (&mediabox, sizeof (mediabox), 1, trimf);
+                    size_t n = fread (&mediabox, sizeof (mediabox), 1, trimf);
                     if (n - 1) {
                         err (1, "fread trim mediabox %d", pageno);
                     }
@@ -1098,7 +1116,8 @@ static void initpdims (int wthack)
         }
 
         if (state.pagedimcount == 0
-            || (p = &state.pagedims[state.pagedimcount-1], p->rotate != rotate)
+            || ((void) (p = &state.pagedims[state.pagedimcount-1])
+                , p->rotate != rotate)
             || memcmp (&p->mediabox, &mediabox, sizeof (mediabox))) {
             size_t size;
 
@@ -1134,15 +1153,15 @@ static void layout (void)
     int pindex;
     fz_rect box;
     fz_matrix ctm, rm;
-    struct pagedim *p = p;
-    double zw, w, maxw = 0.0, zoom = zoom;
+    struct pagedim *p = NULL;
+    float zw, w, maxw = 0.0, zoom = 1.0;
 
     if (state.pagedimcount == 0) return;
 
     switch (state.fitmodel) {
     case FitProportional:
         for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
-            double x0, x1;
+            float x0, x1;
 
             p = &state.pagedims[pindex];
             fz_rotate (&rm, p->rotate + state.rotate);
@@ -1181,16 +1200,16 @@ static void layout (void)
         w = box.x1 - box.x0;
         switch (state.fitmodel) {
         case FitProportional:
-            p->left = ((maxw - w) * zoom) / 2.0;
+            p->left = (int) (((maxw - w) * zoom) / 2.f);
             break;
         case FitPage:
             {
-                double zh, h;
+                float zh, h;
                 zw = maxw / w;
                 h = box.y1 - box.y0;
                 zh = state.h / h;
                 zoom = fz_min (zw, zh);
-                p->left = (maxw - (w * zoom)) / 2.0;
+                p->left = (int) ((maxw - (w * zoom)) / 2.f);
             }
             break;
         case FitWidth:
@@ -1356,6 +1375,7 @@ static int matchline (regex_t *re, fz_stext_line *line,
         p4.x = s.x0;
         p4.y = e.y1;
 
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
         if (!stop) {
             printd ("firstmatch %d %d %f %f %f %f %f %f %f %f",
                     pageno, 1,
@@ -1376,6 +1396,7 @@ static int matchline (regex_t *re, fz_stext_line *line,
                     p3.x, p3.y,
                     p4.x, p4.y);
         }
+#pragma GCC diagnostic error "-Wdouble-promotion"
         free (p);
         return 1;
     }
@@ -1941,8 +1962,8 @@ CAMLprim value ml_uritolocation (value uri_v)
     fz_transform_point (&xy, &pdim->ctm);
     ret_v = caml_alloc_tuple (3);
     Field (ret_v, 0) = Val_int (pageno);
-    Field (ret_v, 1) = caml_copy_double (xy.x);
-    Field (ret_v, 2) = caml_copy_double (xy.y);
+    Field (ret_v, 1) = caml_copy_double ((double) xy.x);
+    Field (ret_v, 2) = caml_copy_double ((double) xy.y);
     CAMLreturn (ret_v);
 }
 
@@ -2019,7 +2040,10 @@ done:
     glDisable (GL_BLEND);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weverything"
 #include "glfont.c"
+#pragma GCC diagnostic pop
 
 static void stipplerect (fz_matrix *m,
                          fz_point *p1,
@@ -2284,6 +2308,8 @@ static void ensureslinks (struct page *page)
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 /* slightly tweaked fmt_ulong by D.J. Bernstein */
 static void fmt_linkn (char *s, unsigned int u)
 {
@@ -2298,13 +2324,14 @@ static void fmt_linkn (char *s, unsigned int u)
   }
   s[len] = 0;
 }
+#pragma GCC diagnostic pop
 
 static void highlightslinks (struct page *page, int xoff, int yoff,
-                             int noff, char *targ, int tlen, int hfsize)
+                             int noff, char *targ, mlsize_t tlen, int hfsize)
 {
     char buf[40];
     struct slink *slink;
-    double x0, y0, x1, y1, w;
+    float x0, y0, x1, y1, w;
 
     ensureslinks (page);
     glColor3ub (0xc3, 0xb0, 0x91);
@@ -2318,7 +2345,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
             y0 = y1 + 10 + hfsize;
             w = measure_string (state.face, hfsize, buf);
             x1 = x0 + w + 10;
-            recti (x0, y0, x1, y1);
+            recti ((int) x0, (int) y0, (int) x1, (int) y1);
         }
     }
 
@@ -2504,17 +2531,17 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
     glVertexPointer (2, GL_FLOAT, 0, vertices);
 
     glColor4dv (v);
-    p1.x = v[4];
-    p1.y = v[5];
+    p1.x = (float) v[4];
+    p1.y = (float) v[5];
 
-    p2.x = v[6];
-    p2.y = v[5];
+    p2.x = (float) v[6];
+    p2.y = (float) v[5];
 
-    p3.x = v[6];
-    p3.y = v[7];
+    p3.x = (float) v[6];
+    p3.y = (float) v[7];
 
-    p4.x = v[4];
-    p4.y = v[7];
+    p4.x = (float) v[4];
+    p4.y = (float) v[7];
     solidrect (&ctm, &p1, &p2, &p3, &p4, vertices);
     glDisable (GL_BLEND);
 }
@@ -2528,7 +2555,7 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     int yoff = Int_val (yoff_v);
     int noff = Int_val (Field (li_v, 0));
     char *targ = String_val (Field (li_v, 1));
-    int tlen = caml_string_length (Field (li_v, 1));
+    mlsize_t tlen = caml_string_length (Field (li_v, 1));
     int hfsize = Int_val (Field (li_v, 2));
     char *s = String_val (ptr_v);
     int hlmask = Int_val (hlinks_v);
@@ -3204,10 +3231,10 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
     if (b) {
         res_v = caml_alloc_small (4 * Double_wosize, Double_array_tag);
         ret_v = caml_alloc_small (1, 1);
-        Store_double_field (res_v, 0, b->x0);
-        Store_double_field (res_v, 1, b->x1);
-        Store_double_field (res_v, 2, b->y0);
-        Store_double_field (res_v, 3, b->y1);
+        Store_double_field (res_v, 0, (double) b->x0);
+        Store_double_field (res_v, 1, (double) b->x1);
+        Store_double_field (res_v, 2, (double) b->y0);
+        Store_double_field (res_v, 3, (double) b->y1);
         Field (ret_v, 0) = res_v;
     }
     unlock (__func__);
@@ -3287,12 +3314,13 @@ CAMLprim void ml_seltext (value ptr_v, value rect_v)
 static int pipechar (FILE *f, fz_stext_char *ch)
 {
     char buf[4];
-    int len, ret;
+    int len;
+    size_t ret;
 
     len = fz_runetochar (buf, ch->c);
     ret = fwrite (buf, len, 1, f);
     if (ret != 1) {
-        fprintf (stderr, "failed to write %d bytes ret=%d: %s\n",
+        fprintf (stderr, "failed to write %d bytes ret=%zu: %s\n",
                  len, ret, strerror (errno));
         return -1;
     }
@@ -3310,7 +3338,7 @@ CAMLprim value ml_spawn (value command_v, value fds_v)
     CAMLparam2 (command_v, fds_v);
     CAMLlocal2 (l_v, tup_v);
     int ret, ret1;
-    pid_t pid;
+    pid_t pid = (pid_t) -1;
     char *msg = NULL;
     value earg_v = Nothing;
     posix_spawnattr_t attr;
@@ -3485,10 +3513,10 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
         unlock (__func__);
     }
 
-    Store_double_field (ret_v, 0, box.x0);
-    Store_double_field (ret_v, 1, box.x1);
-    Store_double_field (ret_v, 2, box.y0);
-    Store_double_field (ret_v, 3, box.y1);
+    Store_double_field (ret_v, 0, (double) box.x0);
+    Store_double_field (ret_v, 1, (double) box.x1);
+    Store_double_field (ret_v, 2, (double) box.y0);
+    Store_double_field (ret_v, 3, (double) box.y1);
 
     CAMLreturn (ret_v);
 }
@@ -3499,22 +3527,22 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     CAMLparam4 (winw_v, winh_v, dw_v, cols_v);
     CAMLlocal1 (ret_v);
     int i;
-    double zoom = -1.;
-    double maxh = 0.0;
+    float zoom = -1.;
+    float maxh = 0.0;
     struct pagedim *p;
-    double winw = Int_val (winw_v);
-    double winh = Int_val (winh_v);
-    double dw = Int_val (dw_v);
-    double cols = Int_val (cols_v);
-    double pw = 1.0, ph = 1.0;
+    float winw = Int_val (winw_v);
+    float winh = Int_val (winh_v);
+    float dw = Int_val (dw_v);
+    float cols = Int_val (cols_v);
+    float pw = 1.0, ph = 1.0;
 
     if (trylock (__func__)) {
         goto done;
     }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        double w = p->pagebox.x1 / cols;
-        double h = p->pagebox.y1;
+        float w = p->pagebox.x1 / cols;
+        float h = p->pagebox.y1;
         if (h > maxh) {
             maxh = h;
             ph = h;
@@ -3526,7 +3554,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     zoom = (((winh / ph) * pw) + dw) / winw;
     unlock (__func__);
  done:
-    ret_v = caml_copy_double (zoom);
+    ret_v = caml_copy_double ((double) zoom);
     CAMLreturn (ret_v);
 }
 
@@ -3535,7 +3563,7 @@ CAMLprim value ml_getmaxw (value unit_v)
     CAMLparam1 (unit_v);
     CAMLlocal1 (ret_v);
     int i;
-    double maxw = -1.;
+    float maxw = -1.;
     struct pagedim *p;
 
     if (trylock (__func__)) {
@@ -3543,13 +3571,13 @@ CAMLprim value ml_getmaxw (value unit_v)
     }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        double w = p->pagebox.x1;
+        float w = p->pagebox.x1;
         maxw = fz_max (maxw, w);
     }
 
     unlock (__func__);
  done:
-    ret_v = caml_copy_double (maxw);
+    ret_v = caml_copy_double ((double) maxw);
     CAMLreturn (ret_v);
 }
 
@@ -3562,7 +3590,7 @@ CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
     int y = Int_val (y_v);
     double w;
 
-    w = draw_string (state.face, pt, x, y, String_val (string_v));
+    w = (double) draw_string (state.face, pt, x, y, String_val (string_v));
     ret_v = caml_copy_double (w);
     CAMLreturn (ret_v);
 }
@@ -3574,7 +3602,7 @@ CAMLprim value ml_measure_string (value pt_v, value string_v)
     int pt = Int_val (pt_v);
     double w;
 
-    w = measure_string (state.face, pt, String_val (string_v));
+    w = (double) measure_string (state.face, pt, String_val (string_v));
     ret_v = caml_copy_double (w);
     CAMLreturn (ret_v);
 }
@@ -3799,7 +3827,10 @@ CAMLprim void ml_swapb (value unit_v)
     CAMLreturn0;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-variable-declarations"
 #include "keysym2ucs.c"
+#pragma GCC diagnostic pop
 
 CAMLprim value ml_keysymtoutf8 (value keysym_v)
 {
@@ -3810,7 +3841,7 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
     int len;
     char buf[5];
 
-    rune = keysym2ucs (keysym);
+    rune = (Rune) keysym2ucs (keysym);
     len = fz_runetochar (buf, rune);
     buf[len] = 0;
     str_v = caml_copy_string (buf);
@@ -3911,7 +3942,7 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
 
         state.glGenBuffersARB (1, &pbo->id);
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, pbo->id);
-        state.glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, pbo->size,
+        state.glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, (GLsizei) pbo->size,
                                NULL, GL_STREAM_DRAW);
         pbo->ptr = state.glMapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB,
                                          GL_READ_WRITE);
@@ -3989,9 +4020,9 @@ static void setuppbo (void)
 #define GGPA(n) (&state.n = CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
 #else
 #ifdef USE_EGL
-#define GGPA(n) (*(void (**) ()) &state.n = eglGetProcAddress (#n))
+#define GGPA(n) (*(void (**) (void)) &state.n = eglGetProcAddress (#n))
 #else
-#define GGPA(n) (*(void (**) ()) &state.n = glXGetProcAddress ((GLubyte *) #n))
+#define GGPA(n) (*(void (**) (void)) &state.n = glXGetProcAddress ((GLubyte *) #n))
 #endif
     state.bo_usable = GGPA (glBindBufferARB)
         && GGPA (glUnmapBufferARB)
@@ -4062,7 +4093,7 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     char *s = String_val (ptr_v);
     int pageno = Int_val (pageno_v);
     int pdimno = Int_val (pdimno_v);
-    double x = Double_val (x_v), y = Double_val (y_v);
+    float x = (float) Double_val (x_v), y = (float) Double_val (y_v);
     struct pagedim *pdim;
     fz_point p;
     fz_matrix ctm;
@@ -4092,8 +4123,8 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     fz_transform_point (&p, &ctm);
 
     ret_v = caml_alloc_tuple (2);
-    Field (ret_v, 0) = caml_copy_double (p.x);
-    Field (ret_v, 1) = caml_copy_double (p.y);
+    Field (ret_v, 0) = caml_copy_double ((double) p.x);
+    Field (ret_v, 1) = caml_copy_double ((double) p.y);
 
     if (!*s) {
         freepage (page);
@@ -4293,3 +4324,7 @@ CAMLprim void ml_init (value csock_v, value params_v)
 
     CAMLreturn0;
 }
+
+#if FIXME || !FIXME
+static void UNUSED_ATTR refmacs OPTIMIZE_ATTR (0) (void) {}
+#endif

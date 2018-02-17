@@ -44,8 +44,8 @@ ocamlflags = "-warn-error +a -w +a -g -safe-string -strict-sequence"
 ocamlflagstbl = [("main", "-I lablGL -I wsi/x11")
                 ,("wsi/x11/wsi", "-I wsi/x11")
                 ,("config", "-I lablGL -I wsi/x11")]
-cflags = "-Wall -Werror -D_GNU_SOURCE -O\
-         \ -g -std=c99 -pedantic-errors\
+cflags = "-D_GNU_SOURCE -O2\
+         \ -g -std=c99 -Wall -Werror -pedantic-errors\
          \ -Wunused-parameter -Wsign-compare -Wshadow"
          ++ (if egl then " -DUSE_EGL" else "")
 cflagstbl =
@@ -200,7 +200,7 @@ main = do
     flags <- cOracle $ CCmdLineOracle key
     let src = key -<.> ".c"
     let dep = out -<.> ".d"
-    unit $ cmd ocamlc "-ccopt"
+    unit $ cmd ocamlc "-cc clang -ccopt"
       [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
     needMakefileDependencies dep
 
