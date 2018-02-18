@@ -229,6 +229,8 @@ struct page {
     } fmark, lmark;
 };
 
+enum { FitWidth, FitProportional, FitPage };
+
 static struct {
     int sliceheight;
     struct pagedim *pagedims;
@@ -254,7 +256,6 @@ static struct {
     } *texowners;
 
     int rotate;
-    enum { FitWidth, FitProportional, FitPage };
     int fitmodel;
     int trimmargins;
     int needoutline;
@@ -2043,7 +2044,8 @@ done:
 }
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weverything"
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma GCC diagnostic ignored "-Wconversion"
 #include "glfont.c"
 #pragma GCC diagnostic pop
 
@@ -3830,7 +3832,9 @@ CAMLprim void ml_swapb (value unit_v)
 }
 
 #pragma GCC diagnostic push
+#ifdef __clang__
 #pragma GCC diagnostic ignored "-Wmissing-variable-declarations"
+#endif
 #include "keysym2ucs.c"
 #pragma GCC diagnostic pop
 
@@ -4328,5 +4332,5 @@ CAMLprim void ml_init (value csock_v, value params_v)
 }
 
 #if FIXME || !FIXME
-static void UNUSED_ATTR refmacs OPTIMIZE_ATTR (0) (void) {}
+static void OPTIMIZE_ATTR (0) UNUSED_ATTR refmacs (void) {}
 #endif
