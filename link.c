@@ -24,11 +24,7 @@
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
 
-#ifdef __CYGWIN__
-#include <cygwin/socket.h>      /* FIONREAD */
-#else
 #include <spawn.h>
-#endif
 
 #include <regex.h>
 #include <stdarg.h>
@@ -3317,12 +3313,6 @@ static int pipechar (FILE *f, fz_stext_char *ch)
     return 0;
 }
 
-#ifdef __CYGWIN__
-CAMLprim value ml_spawn (value UNUSED_ATTR u1, value UNUSED_ATTR u2)
-{
-    caml_failwith ("ml_popen not implemented under Cygwin");
-}
-#else
 CAMLprim value ml_spawn (value command_v, value fds_v)
 {
     CAMLparam2 (command_v, fds_v);
@@ -3396,7 +3386,6 @@ CAMLprim value ml_spawn (value command_v, value fds_v)
 
     CAMLreturn (Val_int (pid));
 }
-#endif
 
 CAMLprim value ml_hassel (value ptr_v)
 {
@@ -3855,7 +3844,7 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
 }
 #endif
 
-enum { piunknown, pilinux, piosx, pisun, pibsd, picygwin };
+enum { piunknown, pilinux, piosx, pisun, pibsd };
 
 CAMLprim value ml_platform (value unit_v)
 {
@@ -3866,8 +3855,6 @@ CAMLprim value ml_platform (value unit_v)
 
 #if defined __linux__
     platid = pilinux;
-#elif defined __CYGWIN__
-    platid = picygwin;
 #elif defined __DragonFly__ || defined __FreeBSD__
     || defined __OpenBSD__ || defined __NetBSD__
     platid = pibsd;

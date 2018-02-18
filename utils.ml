@@ -4,7 +4,7 @@ module E = struct
   let a = [||];;
 end;;
 
-type platform = | Punknown | Plinux | Posx | Psun | Pbsd | Pcygwin;;
+type platform = | Punknown | Plinux | Posx | Psun | Pbsd;;
 
 let asciilower = let auld = Char.code 'A' - Char.code 'a' in
                  function
@@ -43,12 +43,6 @@ module IntSet = Set.Make (struct type t = int let compare = (-) end);;
 let emptystr s = String.length s = 0;;
 let nonemptystr s = String.length s > 0;;
 let bound v minv maxv = max minv (min maxv v);;
-
-let spawn cmd fda =
-  if platform = Pcygwin
-  then failwith "spawn not implemented under cygwin yet"
-  else spawn cmd fda;
-;;
 
 module Opaque :
 sig

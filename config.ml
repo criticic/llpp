@@ -485,7 +485,6 @@ let platform_to_string = function
   | Posx          -> "OSX"
   | Psun          -> "Sun"
   | Pbsd          -> "BSD"
-  | Pcygwin       -> "Cygwin"
 ;;
 
 let version () =
@@ -538,14 +537,12 @@ let defconf =
       (match platform with
        | Plinux | Psun | Pbsd -> "xdg-open \"%s\""
        | Posx -> "open \"%s\""
-       | Pcygwin -> "cygstart \"%s\""
        | Punknown -> "echo %s")
   ; pathlauncher   = "lp \"%s\""
   ; selcmd         =
       (match platform with
        | Plinux | Pbsd | Psun -> "xsel -i"
        | Posx -> "pbcopy"
-       | Pcygwin -> "wsel"
        | Punknown -> "cat")
   ; paxcmd         = "cat"
   ; passcmd        = E.s
