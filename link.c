@@ -1,13 +1,3 @@
-#if defined __clang__ && !defined __APPLE__
-#pragma GCC diagnostic error "-Weverything"
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#pragma GCC diagnostic ignored "-Wpadded"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
-#pragma GCC diagnostic ignored "-Wdocumentation"
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#endif
-
 /* lots of code c&p-ed directly from mupdf */
 #define CAML_NAME_SPACE
 #define FIXME 0

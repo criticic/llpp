@@ -37,6 +37,7 @@ mulibs ty = [mudir </> "build" </> ty </> "libmupdf.a"
             ,mudir </> "build" </> ty </> "libmupdfthird.a"]
 inOutDir s = outdir </> s
 egl = False
+clang = False
 
 ocamlc = "ocamlc.opt"
 ocamlopt = "ocamlopt.opt"
@@ -200,8 +201,12 @@ main = do
     flags <- cOracle $ CCmdLineOracle key
     let src = key -<.> ".c"
     let dep = out -<.> ".d"
-    unit $ cmd ocamlc "-cc clang -ccopt"
-      [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
+    unit $ if clang
+      then cmd ocamlc "-cc clang" "-ccopt"
+           ["-include diag.h " ++ flags ++ " -MMD -MF "
+            ++ dep ++ " -o " ++ out] "-c" src
+      else cmd ocamlc "-ccopt "
+           [flags ++ " -MMD -MF " ++ dep ++ " -o " ++ out] "-c" src
     needMakefileDependencies dep
 
   let globjs = map (inOutDir . (++) "lablGL/ml_") ["gl.o", "glarray.o", "raw.o"]
