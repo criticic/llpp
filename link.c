@@ -71,10 +71,6 @@
 #define PIGGYBACK
 #define CACHE_PAGEREFS
 
-#ifndef __USE_GNU
-extern char **environ;
-#endif
-
 #if defined __GNUC__
 #define NORETURN_ATTR __attribute__ ((noreturn))
 #define UNUSED_ATTR __attribute__ ((unused))
