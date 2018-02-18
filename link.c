@@ -56,7 +56,9 @@
 #endif
 
 #pragma GCC diagnostic push
+#ifdef __clang__
 #pragma GCC diagnostic ignored "-Wreserved-id-macro"
+#endif
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include <caml/fail.h>
 #include <caml/alloc.h>
