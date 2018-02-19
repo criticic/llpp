@@ -608,6 +608,9 @@ let readresp sock =
      state.x <- x;
      state.y <- y;
 
+  | 24 ->                       (* Gravity notify *)
+     ()
+
   | 28 ->                       (* Property notify *)
      let atom = r32 resp 8 in
      if atom = state.nwmsatom
@@ -649,10 +652,6 @@ let readresp sock =
                      in
                      state.t#winstate (List.sort compare wsl)
                    );
-
-  | 24 ->
-     (* ignore gravity events *)
-     ()
 
   | n ->
      dolog "event %d %S" n (Bytes.unsafe_to_string resp)
