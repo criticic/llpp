@@ -608,7 +608,7 @@ let readresp sock =
      state.x <- x;
      state.y <- y;
 
-  | 28 ->
+  | 28 ->                       (* Property notify *)
      let atom = r32 resp 8 in
      if atom = state.nwmsatom
      then
