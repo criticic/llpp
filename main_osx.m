@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <pthread.h>
+#include <string.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
@@ -918,7 +919,7 @@ int main(int argc, char **argv)
     int sv[2];
     int ret = socketpair (AF_UNIX, SOCK_STREAM, 0, sv);
     if (ret != 0) {
-      Abort (@"socketpair: %s", strerror (ret));
+      Abort (@"socketpair: %s", strerror (errno));
     }
     // NSLog (@"socketpair sv0 %d sv1 %d", sv[0], sv[1]);
     server_fd = sv[0];
