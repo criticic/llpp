@@ -3363,16 +3363,6 @@ let setpresentationmode v =
   represent ();
 ;;
 
-let setbgcol (r, g, b) =
-  let col =
-    let r = r *. 255.0 |> truncate
-    and g = g *. 255.0 |> truncate
-    and b = b *. 255.0 |> truncate in
-    r lsl 16 |> (lor) (g lsl 8) |> (lor) b
-  in
-  Wsi.setwinbgcol col;
-;;
-
 let enterinfomode =
   let btos b = if b then UniSyms.radical else E.s in
   let showextended = ref false in
@@ -3986,7 +3976,7 @@ let enterinfomode =
       then (
         colorp "   background"
                (fun () -> conf.bgcolor)
-               (fun v -> conf.bgcolor <- v; setbgcol v);
+               (fun v -> conf.bgcolor <- v);
         rgba "   scrollbar"
              (fun () -> conf.sbarcolor)
              (fun v -> conf.sbarcolor <- v);
@@ -6439,8 +6429,6 @@ let () =
     end
   in
   let wsfd, winw, winh = Wsi.init mu !rootwid conf.cwinw conf.cwinh platform in
-
-  setbgcol conf.bgcolor;
   state.wsfd <- wsfd;
 
   if not @@ List.exists GlMisc.check_extension

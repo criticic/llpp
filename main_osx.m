@@ -335,7 +335,6 @@ NSCursor *GetCursor (int idx)
 - (int)getw;
 - (int)geth;
 - (void)swapb;
-- (void)setwinbgcol:(NSColor *)col;
 - (void)applicationWillFinishLaunching:(NSNotification *)not;
 - (void)applicationDidFinishLaunching:(NSNotification *)not;
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication;
@@ -553,11 +552,6 @@ NSCursor *GetCursor (int idx)
 - (int)geth
 {
   return [[window contentView] convertFrameToBacking].size.height;
-}
-
-- (void)setwinbgcol:(NSColor *)col
-{
-  [window setBackgroundColor:col];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)not
@@ -823,19 +817,6 @@ CAMLprim value ml_makecurrentcontext (value unit)
 {
   CAMLparam1 (unit);
   [(MyDelegate *)[NSApp delegate] makeCurrentContext];
-  CAMLreturn (Val_unit);
-}
-
-CAMLprim value ml_setwinbgcol (value col)
-{
-  CAMLparam1 (col);
-  int r = ((col >> 16) & 0xff) / 255;
-  int g = ((col >> 8) & 0xff) / 255;
-  int b = ((col >> 0) & 0xff) / 255;
-  NSColor *color = [NSColor colorWithRed:r green:g blue:b alpha:1.0];
-  [(MyDelegate *)[NSApp delegate] performSelectorOnMainThread:@selector(setwinbgcol:)
-                                                   withObject:color
-                                                waitUntilDone:YES];
   CAMLreturn (Val_unit);
 }
 

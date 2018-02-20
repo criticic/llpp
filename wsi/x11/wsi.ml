@@ -28,7 +28,6 @@ external glxinit : string -> wid -> screenno -> vid = "ml_glxinit";;
 external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
 external swapb : unit -> unit = "ml_swapb";;
 external setcursor : cursor -> unit = "ml_setcursor";;
-external setwinbgcol : int -> unit = "ml_setbgcol";;
 
 let onot = object
     method display         = ()
@@ -303,7 +302,7 @@ let sendintern sock s onlyifexists f =
 ;;
 
 let createwindowreq wid parent x y w h bw eventmask vid depth mid =
-  let s = makereq 1 48 12 in
+  let s = makereq 1 44 11 in
   w8 s 1 depth;
   w32 s 4 wid;
   w32 s 8 parent;
@@ -314,15 +313,13 @@ let createwindowreq wid parent x y w h bw eventmask vid depth mid =
   w16 s 20 bw;
   w16 s 22 0;                           (* copyfromparent *)
   w32 s 24 vid;                         (* visual *)
-  w32 s 28 0x280a;                      (* valuemask =
-                                         | background pixel
+  w32 s 28 0x2808;                      (* valuemask =
                                          | border pixel
                                          | event mask
                                          | colormap *)
-  w32 s 32 0;                           (* background pixel *)
-  w32 s 36 0;                           (* border pixel*)
-  w32 s 40 eventmask;
-  w32 s 44 mid;
+  w32 s 32 0;                           (* border pixel*)
+  w32 s 36 eventmask;
+  w32 s 40 mid;
   s;
 ;;
 

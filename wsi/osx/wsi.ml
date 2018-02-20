@@ -84,7 +84,6 @@ external get_server_fd: unit -> Unix.file_descr = "ml_get_server_fd"
 external get_backing_scale_factor: unit -> int = "ml_get_backing_scale_factor"
 external fullscreen: unit -> unit = "ml_fullscreen"
 external mapwin: unit -> unit = "ml_mapwin"
-external setwinbgcol: int -> unit = "ml_setwinbgcol"
 external nslog: string -> unit = "ml_nslog"
 
 let nslog fmt =
