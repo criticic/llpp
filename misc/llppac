@@ -64,7 +64,7 @@ origin="$1"
 if ${force-test ! -e "$1"} && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
     if executable_p wget; then
         dl() {
-            wget -q -c -nc $1 -O $2
+            wget -q $1 -O $2
         }
     elif executable_p curl; then
         dl() {
