@@ -210,7 +210,8 @@ esac
 
 hash=$(md5sum "$md5of") || die "$hash"
 casp=$cachedir/${hash%% *}$caspsuf
-(test -n "$force" -o ! -e "$casp") && eval "$filt" "$conv"
+
+{ test -n "$force" || test ! -e "$casp"; } && eval "$filt" "$conv"
 shift
 
 exec llpp -origin $origin "$@" "$casp"
