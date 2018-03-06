@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+die() { echo "$1" >&2; exit 1; }
+
+cachedir="${XDG_CACHE_HOME:-$HOME/.cache}/llpp"
+test -d "$cachedir" || die "cache directory '$cachedir' does not exist"
+
+command -v prince >/dev/null 2>&1 || { die "$0: need princeXML to work"; }
+
+css=$HOME/xsrc/llpp/misc/prince.css
+test -e "$css" || unset css
+while getopts c:f opt; do
+    case $opt in
+        c) css="$OPTARG";;
+        f) force=true;;
+        ?) die "usage: $0 [-c css] url";;
+    esac
+done
+shift $(($OPTIND - 1))
+test -z "$1" && die "usage $0: url"
+
+url="$1"
+set -- $(echo "$url" | md5sum)
+pdf="$cachedir/$1.pdf"
+
+${force-$(test ! -e "$pdf")} && prince ${css:+--style $css} -o "$pdf" "$url"
+exec llpp -origin "$url" "$pdf"
