@@ -123,7 +123,16 @@ caspsuf=".pdf"
 case $type in
     ps) conv='ps2pdf - "$casp"';;
     image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
-    djvu) conv='ddjvu -format=pdf - "$casp"';;
+    texi) {
+        missing texi2html "texi2html(http://www.nongnu.org/texi2html/)"
+        missing prince "PrinceXML(http://www.princexml.com/)"
+        caspsuf=".pdf"
+        conv='texi2html - -o - | prince $css - -o "$casp"'
+    };;
+    djvu) {
+        missing ddjvu "ddjvu(http://djvu.sourceforge.net/doc/man/ddjvu.html)"
+        conv='ddjvu -format=pdf - "$casp"'
+    };;
     html) {
         missing prince "PrinceXML(http://www.princexml.com/)"
         conv='prince $css - -o "$casp"'
