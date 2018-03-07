@@ -126,7 +126,6 @@ case $type in
     texi) {
         missing texi2html "texi2html(http://www.nongnu.org/texi2html/)"
         missing prince "PrinceXML(http://www.princexml.com/)"
-        caspsuf=".pdf"
         conv='texi2html - -o - | prince $css - -o "$casp"'
     };;
     djvu) {
