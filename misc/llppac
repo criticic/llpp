@@ -22,14 +22,30 @@ missing() {
 }
 
 maketext() {
+    # https://github.com/react-boilerplate/react-boilerplate/issues/1340
     test -d "$cachedir/fonts" || mkdir "$cachedir/fonts"
-    cat >"$cachedir/fonts/text" <<EOF
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+    cat >"$cachedir/fonts/text.html" <<EOF
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style type="text/css">
+      @font-face {
+          font-family: 'moo';
+          src: url("$1");
+      }
+      pre {
+          font-size: 10pt;
+          font-family: "moo";
+      }
+    </style>
+    <title>test</title>
+  </head>
+
+  <body>
+    <pre>
+Lorem ipsum dolor sit amet, consectetur...datat non proident, sunt in
 culpa qui officia deserunt mollit anim id est laborum.
 Posting Soccer Goals On Vine Is Illegal, Say England's Premier League
 abcdefghizklmnopqrstwxyz
@@ -37,12 +53,31 @@ ABCDEFGHIZKLMNOPQRSTWXYZ
 абвгдеёжзийклмнопрстуфхцчшщэюя
 АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
 \`1234567890-=\\
-~!@#\$%^&*()_+|
+~!@#\$$%^&*()_+|
 [];',./
-{}:"<>?"
-S in S9 59 is too much like 5
+{}:"&lt;&gt;?"
+S in S9 59 is like 5
 3ЗЭэзээз3ЗqgO0o ijklI1| bgqpykvwlliliiijil1
+Ре́ҙю̈мȩ̊́́́
+01234567890 3ДС ЗДС
+- - (~-) ~ ~ (-~)
+curly vs plain braces {} () {}
 
+echo \${@:5}
+life           [l i fe]
+weird          [we i rd]
+Before         [Bef ore, Be for e]
+higher         [gh]
+multi          [mu lti]
+languge        [an]
+when           [wh]
+kerning        [rn]
+мне            [мн е]
+oiled          [oi led]
+mkfifo         [mk f i fo, mk f i fo]
+didn't         [di dn't]
+</pre>
+</html>
 EOF
 }
 
@@ -166,39 +201,8 @@ case $type in
         fi
     };;
     font) {
-        if test -e "$2"; then
-            arg="$2"
-        else
-            arg="--waterfall $cachedir/fonts/text"
-            maketext
-        fi
-        # https://mail.gnome.org/archives/gtk-i18n-list/2010-June/msg00000.html
-        eval $filt cat >$cachedir/fonts/font
-        cat >$cachedir/fonts/fonts.conf <<EOF
-<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
-<fontconfig>
-<dir>$cachedir/fonts/</dir>
-<cachedir>$cachedir/fonts/</cachedir>
-<config></config>
-</fontconfig>
-EOF
-        unset filt
-        missing pango-view "pango-view(http://www.pango.org/)"
-        conv='FONTCONFIG_PATH=$cachedir/fonts/ pango-view -q $arg -o $casp'
-    };;
-    fcfont) {
-        if test -e "$2"; then
-            arg="$2"
-        else
-            arg="--waterfall $cachedir/fonts/text"
-            maketext
-        fi
-        unset filt
-        missing pango-view "pango-view(http://www.pango.org/)"
-        conv='pango-view --font="$1" -q $arg -o $casp'
-        md5of=/dev/null
-        force=1
+        maketext $1
+        exec llpp "$cachedir/fonts/text.html"
     };;
     image) {
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
