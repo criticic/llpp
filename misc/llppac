@@ -21,30 +21,10 @@ missing() {
         eval "$1() { die \"$2 is needed for \$type conversion\"; }"
 }
 
-maketext() {
-    # https://github.com/react-boilerplate/react-boilerplate/issues/1340
-    test -d "$cachedir/fonts" || mkdir "$cachedir/fonts"
-    cat >"$cachedir/fonts/text.html" <<EOF
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
- "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <style type="text/css">
-      @font-face {
-          font-family: 'moo';
-          src: url("$1");
-      }
-      pre {
-          font-size: 10pt;
-          font-family: "moo";
-      }
-    </style>
-    <title>test</title>
-  </head>
-
-  <body>
-    <pre>
+text() {
+    cat <<EOF
+<pre style="font-size: ${1}pt;">
+=== $1 ===
 Lorem ipsum dolor sit amet, consectetur...datat non proident, sunt in
 culpa qui officia deserunt mollit anim id est laborum.
 Posting Soccer Goals On Vine Is Illegal, Say England's Premier League
@@ -77,6 +57,37 @@ oiled          [oi led]
 mkfifo         [mk f i fo, mk f i fo]
 didn't         [di dn't]
 </pre>
+EOF
+}
+
+maketext() {
+    # https://github.com/react-boilerplate/react-boilerplate/issues/1340
+    test -d "$cachedir/fonts" || mkdir "$cachedir/fonts"
+    cat >"$cachedir/fonts/text.html" <<EOF
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style type="text/css">
+      @font-face {
+          font-family: 'moo';
+          src: url('$1');
+      }
+      pre {
+          font-family: "moo";
+      }
+    </style>
+    <title>test</title>
+  </head>
+
+  <body>
+EOF
+    for size in 6 8 10 12 4 2; do
+        text $size >>"$cachedir/fonts/text.html"
+    done;
+    cat >>"$cachedir/fonts/text.html" <<EOF
+  </body>
 </html>
 EOF
 }
@@ -201,7 +212,7 @@ case $type in
         fi
     };;
     font) {
-        maketext $1
+        maketext "$1"
         exec llpp "$cachedir/fonts/text.html"
     };;
     image) {
