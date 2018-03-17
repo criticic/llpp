@@ -40,6 +40,7 @@ S in S9 59 S9 is like 5
 3ЗЭэзээз3ЗqgO0o ijklI1| bgqpykvwlliliiijil1
 Ре́ҙю̈мȩ̊́́́
 01234567890 3ДС ЗДС
+Apay Арау
 - - (~-) ~ ~ (-~)
 curly vs plain braces {} () {}
 
@@ -49,13 +50,14 @@ weird          [we i rd]
 Before         [Bef ore, Be for e]
 higher         [gh]
 multi          [mu lti]
-languge        [an]
+languag        [an]
 when           [wh]
 kerning        [rn]
 мне            [мн е]
 oiled          [oi led]
 mkfifo         [mk f i fo, mk f i fo]
 didn't         [di dn't]
+argumnet       []
 </pre>
 EOF
 }
@@ -82,6 +84,7 @@ maketext() {
   </head>
 
   <body>
+  $(basename $1)<br/>$(file -b "$1")
 EOF
     for size in 6 8 10 12 4 2; do
         text $size >>"$cachedir/fonts/text.html"
