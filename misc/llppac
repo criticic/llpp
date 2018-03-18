@@ -57,7 +57,19 @@ kerning        [rn]
 oiled          [oi led]
 mkfifo         [mk f i fo, mk f i fo]
 didn't         [di dn't]
-argumnet       []
+argumnet (sic) []
+
+(from UTF8-demo.txt)
+Box drawing alignment tests:                                          █
+                                                                      ▉
+  ╔══╦══╗  ┌──┬──┐  ╭──┬──╮  ╭──┬──╮  ┏━━┳━━┓  ┎┒┏┑   ╷  ╻ ┏┯┓ ┌┰┐    ▊ ╱╲╱╲╳╳╳
+  ║┌─╨─┐║  │╔═╧═╗│  │╒═╪═╕│  │╓─╁─╖│  ┃┌─╂─┐┃  ┗╃╄┙  ╶┼╴╺╋╸┠┼┨ ┝╋┥    ▋ ╲╱╲╱╳╳╳
+  ║│╲ ╱│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╿ │┃  ┍╅╆┓   ╵  ╹ ┗┷┛ └┸┘    ▌ ╱╲╱╲╳╳╳
+  ╠╡ ╳ ╞╣  ├╢   ╟┤  ├┼─┼─┼┤  ├╫─╂─╫┤  ┣┿╾┼╼┿┫  ┕┛┖┚     ┌┄┄┐ ╎ ┏┅┅┓ ┋ ▍ ╲╱╲╱╳╳╳
+  ║│╱ ╲│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╽ │┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▎
+  ║└─╥─┘║  │╚═╤═╝│  │╘═╪═╛│  │╙─╀─╜│  ┃└─╂─┘┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▏
+  ╚══╩══╝  └──┴──┘  ╰──┴──╯  ╰──┴──╯  ┗━━┻━━┛  ▗▄▖▛▀▜   └╌╌┘ ╎ ┗╍╍┛ ┋  ▁▂▃▄▅▆▇█
+                                               ▝▀▘▙▄▟
 </pre>
 EOF
 }
@@ -73,18 +85,17 @@ maketext() {
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style type="text/css">
       @font-face {
-          font-family: 'moo';
+          font-family: moo;
           src: url('$1');
       }
       pre {
-          font-family: "moo";
+          font-family: moo;
       }
     </style>
     <title>test</title>
   </head>
 
-  <body>
-  $(basename $1)<br/>$(file -b "$1")
+  <body>$(basename $1)
 EOF
     for size in 6 8 10 12 4 2; do
         text $size >>"$cachedir/fonts/text.html"
@@ -216,7 +227,7 @@ case $type in
     };;
     font) {
         maketext "$1"
-        exec llpp "$cachedir/fonts/text.html"
+        exec llpp -origin "$1" "$cachedir/fonts/text.html"
     };;
     image) {
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
