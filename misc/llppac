@@ -25,9 +25,6 @@ text() {
     cat <<EOF
 <pre style="font-size: ${1}pt;">
 === $1 ===
-Lorem ipsum dolor sit amet, consectetur...datat non proident, sunt in
-culpa qui officia deserunt mollit anim id est laborum.
-Posting Soccer Goals On Vine Is Illegal, Say England's Premier League
 abcdefghizklmnopqrstwxyz
 ABCDEFGHIZKLMNOPQRSTWXYZ
 абвгдеёжзийклмнопрстуфхцчшщэюя
@@ -38,26 +35,37 @@ ABCDEFGHIZKLMNOPQRSTWXYZ
 {}:"&lt;&gt;?"
 S in S9 59 S9 is like 5
 3ЗЭэзээз3ЗqgO0o ijklI1| bgqpykvwlliliiijil1
-Ре́ҙю̈мȩ̊́́́
 01234567890 3ДС ЗДС
+rnrmnnmrrrnmmr
 Apay Арау
 - - (~-) ~ ~ (-~)
 curly vs plain braces {} () {}
 
-echo \${@:5}
-life           [l i fe]
-weird          [we i rd]
-Before         [Bef ore, Be for e]
-higher         [gh]
-multi          [mu lti]
-language       [an]
-when           [wh]
-kerning        [rn]
-мне            [мн е]
-oiled          [oi led]
-mkfifo         [mk f i fo, mk f i fo]
-didn't         [di dn't]
-argumnet (sic) []
+kerning
+    echo \${@:5}
+    life           [l i fe]
+    weird          [we i rd]
+    Before         [Bef ore, Be for e]
+    higher         [gh]
+    multi          [mu lti]
+    language       [an]
+    when           [wh]
+    kerning        [rn]
+    мне            [мн е]
+    oiled          [oi led]
+    mkfifo         [mk f i fo, mk f i fo]
+    didn't         [di dn't]
+    argumnet (sic) []
+    CmmCall        [CmmC a l l]
+
+almost kerning
+    hope doesn't
+    Illegal
+    automatically effective
+
+alignment
+    ibm plex sans
+    pt serif
 
 (from UTF8-demo.txt)
 Box drawing alignment tests:                                          █
@@ -83,6 +91,7 @@ maketext() {
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>test</title>
     <style type="text/css">
       @font-face {
           font-family: moo;
@@ -92,15 +101,17 @@ maketext() {
           font-family: moo;
       }
     </style>
-    <title>test</title>
   </head>
 
-  <body>$(basename $1)
+        $(basename $1)
 EOF
-    for size in 6 8 10 12 4 2; do
+    #for size in 8; do
+    for size in  6 8 10 12 4 2; do
         text $size >>"$cachedir/fonts/text.html"
     done;
     cat >>"$cachedir/fonts/text.html" <<EOF
+    </br>
+    $(fc-scan -f '%{fullname} %{style} %{slant} %{file} %{fontversion} %{capability} %{lang}' "$1" || file "$1")
   </body>
 </html>
 EOF
@@ -226,8 +237,15 @@ case $type in
         fi
     };;
     font) {
+        llpp=llpp
+        if executable_p $llpp; then
+            v="$llpp -origin $1"
+        else
+            mupdf=$HOME/x/rcs/git/mupdf/build/native/mupdf-gl
+            executable_p $mupdf || v=mupdf-gl && v=$mupdf
+        fi
         maketext "$1"
-        exec llpp -origin "$1" "$cachedir/fonts/text.html"
+        exec $v "$cachedir/fonts/text.html"
     };;
     image) {
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
