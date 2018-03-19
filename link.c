@@ -506,6 +506,7 @@ static int openxref (char *filename, char *password)
             }
         }
     }
+    fz_layout_document (state.ctx, state.doc, 460, 0, 12);
     state.pagecount = fz_count_pages (state.ctx, state.doc);
     return 1;
 }
