@@ -119,12 +119,13 @@ EOF
 
 trap 'test -n "$casp" && rm -f "$casp"' 0
 
-while getopts c:m:t:f opt; do
+while getopts c:m:t:fu opt; do
     case $opt in
         m) mime=$OPTARG;;
         t) type=$OPTARG;;
         f) force=true;;
         c) css="-s $OPTARG";;
+        u) usemupdf=true;;
         ?) die "usage: $0 [-c css] [-m mime/type] [-t filter] [-f] [path|url]";;
     esac
 done
@@ -237,9 +238,8 @@ case $type in
         fi
     };;
     font) {
-        llpp=llpp
-        if executable_p $llpp; then
-            v="$llpp -origin $1"
+        if test -z $usemupdf; then
+            v="llpp -origin $1"
         else
             mupdf=$HOME/x/rcs/git/mupdf/build/native/mupdf-gl
             executable_p $mupdf || v=mupdf-gl && v=$mupdf
