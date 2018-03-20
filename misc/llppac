@@ -22,9 +22,26 @@ missing() {
 }
 
 text() {
+    # ibm plex mono   = ~ S9 З3 align
+    # droid sans mono = ~ S9 З3
+    # fira mono       = S9
+    # pt mono         = ~
+    # anonymous pro   = life
+    # camingo code    = З3
+    #   roboto mono
+    # | anonymous pro = ЁЖЗ
+    # source code pro = S9
+    # tex gyre cursor = ~
+    # ubuntu mono     = ~ S9 З3
+    # go mono         = З3 align
+    # everson mono    = З3 life 0 ~
     cat <<EOF
 <pre style="font-size: ${1}pt;">
 === $1 ===
+S9 З3 align
+~
+ЁЖЗ
+
 abcdefghizklmnopqrstwxyz
 ABCDEFGHIZKLMNOPQRSTWXYZ
 абвгдеёжзийклмнопрстуфхцчшщэюя
@@ -46,7 +63,7 @@ kerning
     life           [l i fe]
     weird          [we i rd]
     Before         [Bef ore, Be for e]
-    higher         [gh]
+    higher         [gh, h i gher, hi gher]
     multi          [mu lti]
     language       [an]
     when           [wh]
@@ -56,16 +73,15 @@ kerning
     mkfifo         [mk f i fo, mk f i fo]
     didn't         [di dn't]
     argumnet (sic) []
+    more           [mo re]
     CmmCall        [CmmC a l l]
+    -Wvla          [-Wv la]
+    align          [a l i gn]
 
 almost kerning
     hope doesn't
     Illegal
     automatically effective
-
-alignment
-    ibm plex sans
-    pt serif
 
 (from UTF8-demo.txt)
 Box drawing alignment tests:                                          █
