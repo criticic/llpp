@@ -11,6 +11,3 @@ body { margin-left: 10%; margin-right: 10%; font-family: gentium plus; }
     font-family: monospace;
     src: local("ibm plex mono");
 }
-@page {
-    size: 22cm 1000cm;
-}
