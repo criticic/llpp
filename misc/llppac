@@ -26,7 +26,7 @@ text() {
     # droid sans mono = ~ S9 З3
     # input mono      = S9 З3 -Wvla didn't
     # fira mono       = S9
-    # pt mono         = ~
+    # pt mono         = ~ plan
     # anonymous pro   = life З3
     # camingo code    = S9
     #   roboto mono
@@ -67,6 +67,7 @@ kerning
     higher         [gh, h i gher, hi gher]
     multi          [mu lti]
     language       [an]
+    plan           [la]
     when           [wh]
     kerning        [rn]
     мне            [мн е]
