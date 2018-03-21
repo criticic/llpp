@@ -108,7 +108,7 @@ maketext() {
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>test</title>
+    <title>llpp font view</title>
     <body>
     <style type="text/css">
       @font-face {
