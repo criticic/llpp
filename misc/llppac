@@ -34,7 +34,7 @@ text() {
     # source code pro = S9
     # tex gyre cursor = ~
     # ubuntu mono     = ~ S9 З3
-    # go mono         = З3 align
+    # go mono         = З3 align plan
     # everson mono    = З3 life 0 ~
     cat <<EOF
 <pre style="font-size: ${1}pt;">
