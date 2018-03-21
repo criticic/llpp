@@ -36,7 +36,7 @@ text() {
     # ubuntu mono     = ~ S9 З3
     # go mono         = З3 align plan
     # everson mono    = З3 life 0 ~
-    # lato            = Ilium is the Latin for Ilion.
+    # open sans       = Ilium is the Latin for Ilion.
     cat <<EOF
 <pre style="font-size: ${1}pt;">
 === $1 ===
