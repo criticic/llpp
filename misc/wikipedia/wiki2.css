@@ -18,7 +18,18 @@
 
 
 /* malc */
-
+@font-face {
+    font-family: sans-serif;
+    src: local("lato")
+}
+@font-face {
+    font-family: serif;
+    src: local("charis sil")
+}
+@font-face {
+    font-family: monospace;
+    src: local("ibm plex mono");
+}
 @page {
   size: a4;
   margin: 4cm;
