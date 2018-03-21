@@ -127,7 +127,7 @@ EOF
         text $size >>"$cachedir/fonts/text.html"
     done;
     cat >>"$cachedir/fonts/text.html" <<EOF
-    </br>
+    <br/>
     $(fc-scan -f '%{fullname} %{style} %{slant} %{file} %{fontversion} %{capability} %{lang}' "$1" || file "$1")
   </body>
 </html>
