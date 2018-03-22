@@ -80,6 +80,8 @@ kerning
     CmmCall        [CmmC a l l]
     -Wvla          [-Wv la]
     align          [a l i gn]
+    Compiling      [Co mp iling]
+    Pokorna
 
 almost kerning
     hope doesn't
@@ -105,7 +107,7 @@ EOF
 maketext() {
     # https://github.com/react-boilerplate/react-boilerplate/issues/1340
     test -d "$cachedir/fonts" || mkdir "$cachedir/fonts"
-    filename="$(basename $1)"
+    filename="$(basename "$1")"
     cat >"$cachedir/fonts/text.html" <<EOF
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
