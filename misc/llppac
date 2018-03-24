@@ -70,7 +70,7 @@ kerning
     language       [an]
     plan           [la]
     when           [wh]
-    kerning        [rn]
+    kerning        [rn | ng]
     мне            [мн е]
     oiled          [oi led]
     mkfifo         [mk f i fo, mk f i fo]
@@ -81,7 +81,13 @@ kerning
     -Wvla          [-Wv la]
     align          [a l i gn]
     Compiling      [Co mp iling]
+    print          [pr int]
+    fcmono         [f cmono]
+    Mail           [M ail]
+    xsrc           [x src]
     Pokorna
+    buildglyphs.js [buil dg lyphs]
+    Dollar         [Do ll ar]
 
 almost kerning
     hope doesn't
@@ -129,7 +135,7 @@ maketext() {
   <body>
 EOF
     #for size in 8; do
-    for size in  6 8 10 12 4 2; do
+    for size in 6 8 10 12 4 2; do
         text $size >>"$cachedir/fonts/text.html"
     done;
     cat >>"$cachedir/fonts/text.html" <<EOF
