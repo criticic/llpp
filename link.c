@@ -988,7 +988,7 @@ static void initpdims (int wthack)
                     }
                 }
                 fz_catch (ctx) {
-                    fprintf (stderr, "failed to load page %d\n", pageno+1);
+                    printd ("emsg failed to load page %d", pageno);
                 }
             }
             else {
@@ -1020,9 +1020,8 @@ static void initpdims (int wthack)
                 else {
                     if (empty) {
                         if (fz_is_empty_rect (&rootmediabox)) {
-                            fprintf (stderr,
-                                     "cannot find page size for page %d\n",
-                                     pageno+1);
+                            printd ("emsg cannot find page size for page %d",
+                                    pageno);
                         }
                         else {
                             mediabox = rootmediabox;
@@ -1095,7 +1094,7 @@ static void initpdims (int wthack)
                         }
                     }
                     fz_catch (ctx) {
-                        fprintf (stderr, "failed to load page %d\n", pageno);
+                        printd ("emsg failed to load page %d", pageno);
                     }
                 }
             }
@@ -1555,21 +1554,21 @@ static char *mbtoutf8 (char *s)
     }
     else {
         if (len == (size_t) -1) {
-            printd ("emsg mbtoutf8: mbstowcs %d:%s\n", errno, strerror (errno));
+            printd ("emsg mbtoutf8: mbstowcs: %d:%s", errno, strerror (errno));
             return s;
         }
     }
 
     tmp = calloc (len, sizeof (wchar_t));
     if (!tmp) {
-        printd ("emsg mbtoutf8: calloc(%zu, %zu) %d:%s",
+        printd ("emsg mbtoutf8: calloc(%zu, %zu): %d:%s",
                 len, sizeof (wchar_t), errno, strerror (errno));
         return s;
     }
 
     ret = mbstowcs (tmp, s, len);
     if (ret == (size_t) -1) {
-        printd ("emsg mbtoutf8: mbswcs %zu characters failed %d:%s\n",
+        printd ("emsg mbtoutf8: mbswcs %zu characters failed: %d:%s",
                 len, errno, strerror (errno));
         free (tmp);
         return s;
@@ -3307,8 +3306,8 @@ static int pipechar (FILE *f, fz_stext_char *ch)
     len = fz_runetochar (buf, ch->c);
     ret = fwrite (buf, len, 1, f);
     if (ret != 1) {
-        fprintf (stderr, "failed to write %d bytes ret=%zu: %s\n",
-                 len, ret, strerror (errno));
+        printd ("emsg failed to write %d bytes ret=%zu: %d:%s",
+                len, ret, errno, strerror (errno));
         return -1;
     }
     return 0;
@@ -3373,13 +3372,13 @@ CAMLprim value ml_spawn (value command_v, value fds_v)
 
  fail:
     if ((ret1 = posix_spawnattr_destroy (&attr)) != 0) {
-        fprintf (stderr, "posix_spawnattr_destroy: %s\n", strerror (ret1));
+        printd ("emsg posix_spawnattr_destroy: %d:%s", ret1, strerror (ret1));
     }
 
  fail1:
     if ((ret1 = posix_spawn_file_actions_destroy (&fa)) != 0) {
-        fprintf (stderr, "posix_spawn_file_actions_destroy: %s\n",
-                 strerror (ret1));
+        printd ("emsg posix_spawn_file_actions_destroy: %d:%s",
+                ret1, strerror (ret1));
     }
 
     if (msg)
@@ -3425,14 +3424,14 @@ CAMLprim void ml_copysel (value fd_v, value ptr_v)
     page = parse_pointer (__func__, s);
 
     if (!page->fmark.ch || !page->lmark.ch) {
-        fprintf (stderr, "nothing to copy on page %d\n", page->pageno);
+        printd ("emsg nothing to copy on page %d", page->pageno);
         goto unlock;
     }
 
     f = fdopen (fd, "w");
     if (!f) {
-        fprintf (stderr, "failed to fdopen sel pipe (from fd %d): %s\n",
-                 fd, strerror (errno));
+        printd ("emsg failed to fdopen sel pipe (from fd %d): %d:%s",
+                fd, errno, strerror (errno));
         f = stdout;
     }
 
@@ -3459,8 +3458,8 @@ close:
         fd = -1;
         if (ret == -1) {
             if (errno != ECHILD) {
-                fprintf (stderr, "failed to close sel pipe: %s\n",
-                         strerror (errno));
+                printd ("emsg failed to close sel pipe: %d:%s",
+                        errno, strerror (errno));
             }
         }
     }
@@ -3470,8 +3469,8 @@ unlock:
 done:
     if (fd >= 0) {
         if (close (fd)) {
-            fprintf (stderr, "failed to close sel pipe: %s\n",
-                     strerror (errno));
+            printd ("emsg failed to close sel pipe: %d:%s",
+                    errno, strerror (errno));
         }
     }
     CAMLreturn0;
@@ -3921,7 +3920,7 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
                                          GL_READ_WRITE);
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
         if (!pbo->ptr) {
-            fprintf (stderr, "glMapBufferARB failed: %#x\n", glGetError ());
+            printd ("emsg glMapBufferARB failed: %#x", glGetError ());
             state.glDeleteBuffersARB (1, &pbo->id);
             free (pbo);
             ret_v = caml_copy_string ("0");
@@ -4223,15 +4222,6 @@ CAMLprim void ml_init (value csock_v, value params_v)
     int mustoresize;
     int haspboext;
 
-    /* http://www.cl.cam.ac.uk/~mgk25/unicode.html */
-    if (setlocale (LC_CTYPE, "")) {
-        const char *cset = nl_langinfo (CODESET);
-        state.utf8cs = !strcmp (cset, "UTF-8");
-    }
-    else {
-        fprintf (stderr, "setlocale failed\n");
-    }
-
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
     state.fitmodel      = Int_val (Field (params_v, 1));
@@ -4242,12 +4232,21 @@ CAMLprim void ml_init (value csock_v, value params_v)
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
 
+    /* http://www.cl.cam.ac.uk/~mgk25/unicode.html */
+    if (setlocale (LC_CTYPE, "")) {
+        const char *cset = nl_langinfo (CODESET);
+        state.utf8cs = !strcmp (cset, "UTF-8");
+    }
+    else {
+        printd ("emsg setlocale: %d:%s", errno, strerror (errno));
+    }
+
     if (caml_string_length (Field (params_v, 8)) > 0) {
         state.trimcachepath = strdup (String_val (Field (params_v, 8)));
 
         if (!state.trimcachepath) {
-            fprintf (stderr, "failed to strdup trimcachepath: %s\n",
-                     strerror (errno));
+            printd ("emsg failed to strdup trimcachepath: %d:%s",
+                    errno, strerror (errno));
         }
     }
 
