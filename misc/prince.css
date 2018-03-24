@@ -1,7 +1,7 @@
 body { margin-left: 10%; margin-right: 10%; font-family: gentium plus; }
 @font-face {
     font-family: sans-serif;
-    src: local("lato")
+    src: local("exo 2")
 }
 @font-face {
     font-family: serif;
@@ -9,5 +9,5 @@ body { margin-left: 10%; margin-right: 10%; font-family: gentium plus; }
 }
 @font-face {
     font-family: monospace;
-    src: local("ibm plex mono");
+    src: local("iosevka malc");
 }
