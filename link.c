@@ -4223,13 +4223,8 @@ CAMLprim void ml_init (value csock_v, value params_v)
     int mustoresize;
     int haspboext;
 
-    /* Without following call to setlocale mbstowcs fails for, at
-       least, strings containing chinese symbols (中 for instance)
-       (with glibc citing EILSEQ="Invalid or incomplete multibyte or
-       wide character" as the reason of failure and with macOS
-       producing bogus output) */
+    /* http://www.cl.cam.ac.uk/~mgk25/unicode.html */
     if (setlocale (LC_CTYPE, "")) {
-        /* Following two lines were taken from dvtm/vt.c */
         const char *cset = nl_langinfo (CODESET);
         state.utf8cs = !strcmp (cset, "UTF-8");
     }
