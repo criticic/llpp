@@ -5,7 +5,7 @@ body { margin-left: 10%; margin-right: 10%; font-family: gentium plus; }
 }
 @font-face {
     font-family: serif;
-    src: local("charis sil")
+    src: local("pt serif")
 }
 @font-face {
     font-family: monospace;
