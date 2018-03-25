@@ -1,0 +1,135 @@
+llpp(1)
+=======
+
+== NAME
+
+llpp - a graphical PDF viewer which aims to superficially resemble less
+
+== SYNOPSIS
+
+llpp [-c path] [-css path] [-cxack] [-dest named-dest] [-embed window-id] [-f path] [-gc] [-help|--help] [-last] [-no-title] [-origin origin] [-p password] [-page page-number] [-remote path] [-tcf path] [-v] [-wtmode] some.pdf
+
+== DESCRIPTION
+
+*llpp* is a graphical PDF viewer that can be totally controlled without a mouse.
+Normally MuPDF (https://mupdf.com/) is used to render the document.
+The default keybindings resemble those of less(1), but can be configured by the user.
+
+== OPTIONS
+
+-c path::
+Set path to the configuration file.
+
+-css path::
+Set path to the style sheet to use with EPUB/HTML.
+
+-cxack::
+Cut corners.
+
+-dest named-dest::
+Set named destination.
+
+-embed window-id::
+Embed into window.
+
+-f path::
+Set path to the user interface font.
+
+-gc::
+Collect config garbage.
+
+-help, --help::
+Display this list of options.
+
+-last::
+Open last document.
+
+-no-title::
+ignore document title.
+
+-origin origin::
+<undocumented>.
+
+-p password::
+Set password.
+
+-page page-number::
+Jump to page.
+
+-remote path::
+Set path to the source of remote commands.
+
+-tcf path::
+Set path to the trim cache file.
+
+-v::
+Print version and exit.
+
+-wtmode::
+Operate in wt mode.
+
+== FILES
+
+=== ~/.config/llpp.conf
+
+This is the user specific configuration file. If $XDG_CONFIG_HOME is set
+$XDG_CONFIG_HOME/llpp.conf is used instead. It has a XML structure
+
+You can specify a custom path using the -c option.
+
+.Configuration structure
+-------------------------------------------------------------
+<llppconfig>
+<ui-font size='20'/>
+<defaults
+  width='1200'
+  height='1000'
+  ...
+  use-document-css='true'/>
+  <doc path='/some/path/file1.pdf'
+    page='1'
+    ...
+    height='1000'/>
+  <doc path='/some/path/file2.pdf'
+    page='3'
+    ...
+    height='600'/>
+  ...
+</llppconfig>
+-------------------------------------------------------------
+
+==== Some configuration tips
+- To change the user interface font add a ui-font in the followig way:
+-------------------------------------------------------------
+<llppconfig>
+  <ui-font size='16'>
+    <![CDATA[/usr/share/fonts/TTF/DejaVuSansMono.ttf]]>
+  </ui-font>
+  <defaults ... />
+</llppconfig>
+-------------------------------------------------------------
+- To change the key bindings, add keymaps to the defaults element, e.g.
+disable Escape key in the view mode:
+-------------------------------------------------------------
+<llppconfig>
+  <defaults ... >
+    <keymap mode='view'>
+      <map in='esc' out=/>
+    </keymap>
+  </defaults>
+</llppconfig>
+-------------------------------------------------------------
+The different modes are _birdseye_, _global_, _help_, _info_, _listview_, _outline_, and _view_.
+
+== TODO
+
+There is still lot of work to do. Please check our bugtracker for up-to-date
+information about tasks which are still not finished.
+
+== SEE ALSO
+
+llppac(1), llpphtml(1)
+
+== AUTHOR
+
+moosotc and contributors
