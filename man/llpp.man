@@ -12,7 +12,8 @@ llpp [-c path] [-css path] [-cxack] [-dest named-dest] [-embed window-id] [-f pa
 == DESCRIPTION
 
 *llpp* is a graphical PDF viewer that can be totally controlled without a mouse.
-It is based on the MuPDF library and uses default keybindings that resemble less(1).
+Normally MuPDF (https://mupdf.com/) is used to render the document.
+The default keybindings resemble those of less(1), but can be configured by the user.
 
 == OPTIONS
 
