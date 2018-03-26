@@ -110,6 +110,7 @@ Box drawing alignment tests:                                          █
                                                ▝▀▘▙▄▟
 
 https://mirrors.zju.edu.cn/CTAN/fonts/gofonts/doc/gofonts.pdf (page 2)
+"""
 DIN Legibility Standard 
 
 The recent German DIN 1450 legibility standard
@@ -119,7 +120,10 @@ conform to the 1450 standard by carefully differentiating zero from
 capital O; numeral 1 from capital I (eye) and lowercase l (ell);
 numeral 5 from capital S; and numeral 8 from capital B. The shapes of
 bowls of b d p q follow the natural asymmetries of legible Renaissance
-handwriting, aiding differentiation to reduce confusion. [5] 
+handwriting, aiding differentiation to reduce confusion. [5]
+"""
+
+Mistaking S for a 5 (at certain sizes) is more of a problem... but... Ze Germans
 </pre>
 EOF
 }
