@@ -22,21 +22,6 @@ missing() {
 }
 
 text() {
-    # ibm plex mono   = ~ S9 З3 align
-    # droid sans mono = ~ S9 З3
-    # input mono      = S9 З3 -Wvla didn't
-    # fira mono       = S9
-    # pt mono         = ~ plan
-    # anonymous pro   = life З3
-    # camingo code    = S9
-    #   roboto mono
-    # | anonymous pro = ЁЖЗ
-    # source code pro = S9
-    # tex gyre cursor = ~
-    # ubuntu mono     = ~ S9 З3
-    # go mono         = З3 align plan
-    # everson mono    = З3 life 0 ~
-    # open sans       = Ilium is the Latin for Ilion.
     cat <<EOF
 <pre style="font-size: ${1}pt;">
 === $1 ===
