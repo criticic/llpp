@@ -108,6 +108,18 @@ Box drawing alignment tests:                                          █
   ║└─╥─┘║  │╚═╤═╝│  │╘═╪═╛│  │╙─╀─╜│  ┃└─╂─┘┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▏
   ╚══╩══╝  └──┴──┘  ╰──┴──╯  ╰──┴──╯  ┗━━┻━━┛  ▗▄▖▛▀▜   └╌╌┘ ╎ ┗╍╍┛ ┋  ▁▂▃▄▅▆▇█
                                                ▝▀▘▙▄▟
+
+https://mirrors.zju.edu.cn/CTAN/fonts/gofonts/doc/gofonts.pdf (page 2)
+DIN Legibility Standard 
+
+The recent German DIN 1450 legibility standard
+recommends several features for font legibility, including
+differentiation of letter shapes to reduce confusion. The Go fonts
+conform to the 1450 standard by carefully differentiating zero from
+capital O; numeral 1 from capital I (eye) and lowercase l (ell);
+numeral 5 from capital S; and numeral 8 from capital B. The shapes of
+bowls of b d p q follow the natural asymmetries of legible Renaissance
+handwriting, aiding differentiation to reduce confusion. [5] 
 </pre>
 EOF
 }
