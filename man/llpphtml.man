@@ -27,6 +27,6 @@ Force downloading the document, even though it might be cached.
 
 llpp(1)
 
-== AUTHOR
+== REPORTING BUGS
 
-moosotc and contributors
+https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com

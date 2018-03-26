@@ -36,6 +36,6 @@ The type is llppac internal, possible values include, but are not limited to _ps
 
 llpp(1)
 
-== AUTHOR
+== REPORTING BUGS
 
-moosotc and contributors
+https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com

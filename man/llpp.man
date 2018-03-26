@@ -130,6 +130,6 @@ information about tasks which are still not finished.
 
 llppac(1), llpphtml(1)
 
-== AUTHOR
+== REPORTING BUGS
 
-moosotc and contributors
+https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com
