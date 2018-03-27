@@ -133,3 +133,7 @@ llppac(1), llpphtml(1)
 == REPORTING BUGS
 
 https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com
+
+== macOS
+
+Nicolás Ojeda Bär contributed macOS port.
