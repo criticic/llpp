@@ -20,7 +20,7 @@
 /* malc */
 @font-face {
     font-family: sans-serif;
-    src: local("lato")
+    src: local("pt sans")
 }
 @font-face {
     font-family: serif;
@@ -28,7 +28,7 @@
 }
 @font-face {
     font-family: monospace;
-    src: local("ibm plex mono");
+    src: local("iosevka malc");
 }
 @page {
   size: a4;
