@@ -25,6 +25,8 @@ text() {
     cat <<EOF
 <pre style="font-size: ${1}pt;">
 === $1 ===
+EOF
+    test -n "$2" && cat $2 || cat <<EOF
 S9 З3 align
 ~
 ЁЖЗ
@@ -128,6 +130,7 @@ maketext() {
     # https://github.com/react-boilerplate/react-boilerplate/issues/1340
     test -d "$cachedir/fonts" || mkdir "$cachedir/fonts"
     filename="$(basename "$1")"
+    textfilename="$2"
     cat >"$cachedir/fonts/text.html" <<EOF
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -148,10 +151,9 @@ maketext() {
   $filename
   <body>
 EOF
-    #for size in 8; do
     for size in 6 8 10 12 4 2; do
-        text $size >>"$cachedir/fonts/text.html"
-    done;
+        text $size $textfilename >>"$cachedir/fonts/text.html"
+    done
     cat >>"$cachedir/fonts/text.html" <<EOF
     <br/>
     $(fc-scan -f '%{fullname} %{style} %{slant} %{file} %{fontversion} %{capability} %{lang}' "$1" || file "$1")
@@ -162,14 +164,15 @@ EOF
 
 trap 'test -n "$casp" && rm -f "$casp"' 0
 
-while getopts c:m:t:fu opt; do
+while getopts s:c:m:t:fu opt; do
     case $opt in
         m) mime=$OPTARG;;
         t) type=$OPTARG;;
         f) force=true;;
         c) css="-s $OPTARG";;
         u) usemupdf=true;;
-        ?) die "usage: $0 [-c css] [-m mime/type] [-t filter] [-f] [path|url]";;
+        s) textfilename="$OPTARG";;
+        ?) die "usage: $0 [-c css] [-m mime/type] [-t filter] [-f] [-s textfile] [path|url]";;
     esac
 done
 shift $(($OPTIND - 1))
@@ -294,7 +297,7 @@ case $type in
             mupdf=$HOME/x/rcs/git/mupdf/build/native/mupdf-gl
             executable_p $mupdf || v=mupdf-gl && v=$mupdf
         fi
-        maketext "$1"
+        maketext "$1" "$textfilename"
         exec $v "$cachedir/fonts/text.html"
     };;
     image) {
