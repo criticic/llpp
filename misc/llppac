@@ -210,9 +210,8 @@ esac
 
 filt='"${dc-cat}" "$1" |'
 
-if test -z "$type"; then
-    test -z "$mime" && mime=$(file -L --mime-type -bz "$1" || die "$mime")
-    case $mime in
+typeofmime() {
+    case "$1" in
         application/postscript) type=ps;;
         application/pdf) type=pdf;;
         image/vnd.djvu) type=djvu;;
@@ -230,8 +229,16 @@ if test -z "$type"; then
         application/x-font-ttf                  \
             | application/vnd.ms-opentype       \
             | application/font-sfnt) type=font;;
-        *) die "unhandled file type: '$mime'";;
+        *) return 1;;
     esac
+    return 0
+}
+
+if test -z "$type"; then
+    test -z "$mime" &&                                          \
+        mime=$(file -L --mime-type -b "$1" || die "$mime") ||   \
+            $(file -L --mime-type -bz "$1" || die "$mime")
+    typeofmime "$mime" || die "unhandled file type: '$mime'"
 fi
 
 caspsuf=".pdf"
