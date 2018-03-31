@@ -1,7 +1,7 @@
-body { margin-left: 10%; margin-right: 10%; font-family: gentium plus; }
+body { margin-left: 10%; margin-right: 10%; font-family: pt serif; }
 @font-face {
     font-family: sans-serif;
-    src: local("exo 2")
+    src: local("pt sans")
 }
 @font-face {
     font-family: serif;

@@ -33,7 +33,7 @@
 @page {
   size: a4;
   margin: 4cm;
-  font: 11pt/1.3 "Gentium Plus", serif;
+  font: 11pt/1.3 "p052", serif;
 
   @top-right {
     content: string(title);
@@ -55,7 +55,7 @@
 /* basic style settings*/
 
 body {
-    font: 14pt/1.3 "Gentium Plus", "FreeSerif",
+    font: 14pt/1.3 "p052", "FreeSerif",
           "Noto Serif", serif, "FreeSans", "Noto Sans", "unifont";
     prince-linebreak-magic: auto;
     hyphens: auto;
