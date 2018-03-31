@@ -5,7 +5,7 @@ body { margin-left: 10%; margin-right: 10%; font-family: pt serif; }
 }
 @font-face {
     font-family: serif;
-    src: local("pt serif")
+    src: local("pt astra serif")
 }
 @font-face {
     font-family: monospace;

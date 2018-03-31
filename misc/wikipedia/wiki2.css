@@ -12,8 +12,6 @@
 
 */
 
-/* @import url(http://www.princexml.com/fonts/gentium/index.css); */
-
 /* set headers and footers */
 
 
@@ -24,7 +22,7 @@
 }
 @font-face {
     font-family: serif;
-    src: local("charis sil")
+    src: local("pt astra serif")
 }
 @font-face {
     font-family: monospace;
@@ -54,7 +52,7 @@
 /* basic style settings*/
 
 body {
-    font: 14pt/1.3 "gentium plus", serif, "unifont";
+    font: 14pt/1.3 "pt astra serif", "unifont";
     prince-linebreak-magic: auto;
     hyphens: auto;
     text-align: justify;
