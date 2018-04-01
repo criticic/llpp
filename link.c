@@ -36,6 +36,7 @@
 #endif
 
 #ifdef __APPLE__
+extern char ** environ;
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
