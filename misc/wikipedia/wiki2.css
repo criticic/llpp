@@ -52,7 +52,7 @@
 /* basic style settings*/
 
 body {
-    font: 14pt/1.3 "pt astra serif", "unifont";
+    font: 14pt/1.3 "pt astra serif", "alegreya", "unifont";
     prince-linebreak-magic: auto;
     hyphens: auto;
     text-align: justify;
@@ -237,7 +237,7 @@ table.wikitable[align] { float: none; width: 100%; margin: 1em 0 }
 table.wikitable[align] td { padding: 0.2em 0.3em }
 table.wikitable[align] th { padding: 0.2em 0.3em; text-align: center; font-weight: bold }
 
-table.wikitable img { width: auto; height: auto; prince-image-resolution: 150dpi }
+table.wikitable img { width: auto; height: auto; prince-image-resolution: 1800dpi }
 
 .ambox { border: thin solid black; padding: 0.3em; margin: 0.7em 0 }
 
