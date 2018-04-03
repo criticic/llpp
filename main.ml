@@ -1603,8 +1603,8 @@ let act cmds =
      in
      let y = (getpagey pageno) + truncate y0 in
      let x =
-       if conf.zoom > 1.0
-       then state.winw/2
+       if (state.x < - truncate x0) || (state.x > state.winw - truncate x1)
+       then state.winw/2 - truncate (x0 /. 2. +. x1 /. 2.)
        else state.x
      in
      addnav ();
