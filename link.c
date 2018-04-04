@@ -476,7 +476,7 @@ static void closedoc (void)
     }
 }
 
-static int openxref (char *filename, char *password)
+static int openxref (char *filename, char *password, int layouth)
 {
     for (int i = 0; i < state.texcount; ++i) {
         state.texowners[i].w = -1;
@@ -507,7 +507,8 @@ static int openxref (char *filename, char *password)
             }
         }
     }
-    fz_layout_document (state.ctx, state.doc, 460, 0, 12);
+    if (layouth >= 0)
+        fz_layout_document (state.ctx, state.doc, 460, layouth, 12);
     state.pagecount = fz_count_pages (state.ctx, state.doc);
     return 1;
 }
@@ -1635,14 +1636,15 @@ static void * mainloop (void UNUSED_ATTR *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
-            int off, usedoccss, ok = 0;
+            int off, usedoccss, ok = 0, layouth;
             char *password;
             char *filename;
             char *utf8filename;
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p + 5, " %d %d %n", &state.cxack, &usedoccss, &off);
+            ret = sscanf (p + 5, " %d %d %d %n",
+                          &state.cxack, &usedoccss, &layouth, &off);
             if (ret != 3) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
@@ -1658,7 +1660,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             lock ("open");
             fz_set_use_document_css (state.ctx, usedoccss);
             fz_try (state.ctx) {
-                ok = openxref (filename, password);
+                ok = openxref (filename, password, layouth);
             }
             fz_catch (state.ctx) {
                 utf8filename = mbtoutf8 (filename);
