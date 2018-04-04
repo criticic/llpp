@@ -9,3 +9,4 @@ test/
 mupdf
 /man/*.xml
 /man/*.1
+patches/*
