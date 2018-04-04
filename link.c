@@ -1638,7 +1638,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             fz_var (ok);
             ret = sscanf (p + 5, " %d %d %n", &usedoccss, &layouth, &off);
-            if (ret != 3) {
+            if (ret != 2) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
 
