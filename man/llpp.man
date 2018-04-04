@@ -7,7 +7,7 @@ llpp - a graphical PDF viewer which aims to superficially resemble less
 
 == SYNOPSIS
 
-llpp [-c path] [-css path] [-dest named-dest] [-embed window-id] [-f path] [-gc] [-help|--help] [-last] [-no-title] [-origin origin] [-p password] [-page page-number] [-remote path] [-tcf path] [-v] some.pdf
+llpp [-c path] [-css path] [-dest named-dest] [-embed window-id] [-f path] [-gc] [-help|--help] [-last] [-no-title] [-origin origin] [-p password] [-page page-number] [-remote path] [-tcf path] [-layout-height height] [-v] some.pdf
 
 == DESCRIPTION
 
@@ -58,6 +58,9 @@ Set path to the source of remote commands.
 
 -tcf path::
 Set path to the trim cache file.
+
+-layout-height height::
+Set page height for reflowable documents (-1 == default, 0 == unlimited).
 
 -v::
 Print version and exit.
