@@ -3943,7 +3943,11 @@ let enterinfomode =
                );
       src#int "layout height"
         (fun () -> conf.layouth)
-        (fun v -> conf.layouth <- v);
+        (fun v ->
+          conf.layouth <- v;
+          state.anchor <- getanchor ();
+          opendoc state.path state.password;
+        );
       src#bool ~btos "colors"
                (fun () -> !showcolors)
                (fun v -> showcolors := v; fillsrc prevmode prevuioh);
