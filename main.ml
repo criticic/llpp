@@ -119,8 +119,6 @@ let istextentry = function
   | Birdseye _ | View | LinkNav _ -> false
 ;;
 
-let cxack = ref false;;
-
 let pgscale h = truncate (float h *. conf.pgscale);;
 
 let hscrollh () =
@@ -1102,8 +1100,8 @@ let opendoc path password =
     else state.origin
   in
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
-  wcmd "open %d %d %d %s\000%s\000%s\000"
-       (btod !cxack) (btod conf.usedoccss) conf.layouth
+  wcmd "open %d %d %s\000%s\000%s\000"
+       (btod conf.usedoccss) conf.layouth
        path password conf.css;
   invalidate "reqlayout"
              (fun () ->
@@ -6243,8 +6241,6 @@ let () =
 
         ("-dest", Arg.String (fun s -> state.nameddest <- s),
          "<named-destination> Set named destination");
-
-        ("-cxack", Arg.Set cxack, " Cut corners");
 
         ("-remote", Arg.String (fun s -> rcmdpath := s),
          "<path> Set path to the source of remote commands");

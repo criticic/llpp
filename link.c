@@ -254,7 +254,6 @@ static struct {
     FT_Face face;
 
     char *trimcachepath;
-    int cxack;
     int dirty;
 
     GLuint stid;
@@ -885,7 +884,7 @@ static void initpdims (void)
         }
     }
 
-    if (state.trimmargins || pdf || !state.cxack)
+    if (state.trimmargins || pdf)
         cxcount = state.pagecount;
     else
         cxcount = fz_mini (state.pagecount, 1);
@@ -1059,11 +1058,6 @@ static void initpdims (void)
                         }
                     }
                     fz_drop_page (ctx, page);
-                    if (!state.cxack) {
-                        printd ("progress %f loading %d",
-                                (double) (pageno + 1) / state.pagecount,
-                                pageno + 1);
-                    }
                 }
                 fz_catch (ctx) {
                 }
@@ -1643,8 +1637,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p + 5, " %d %d %d %n",
-                          &state.cxack, &usedoccss, &layouth, &off);
+            ret = sscanf (p + 5, " %d %d %n", &usedoccss, &layouth, &off);
             if (ret != 3) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }

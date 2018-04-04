@@ -7,7 +7,7 @@ llpp - a graphical PDF viewer which aims to superficially resemble less
 
 == SYNOPSIS
 
-llpp [-c path] [-css path] [-cxack] [-dest named-dest] [-embed window-id] [-f path] [-gc] [-help|--help] [-last] [-no-title] [-origin origin] [-p password] [-page page-number] [-remote path] [-tcf path] [-v] some.pdf
+llpp [-c path] [-css path] [-dest named-dest] [-embed window-id] [-f path] [-gc] [-help|--help] [-last] [-no-title] [-origin origin] [-p password] [-page page-number] [-remote path] [-tcf path] [-v] some.pdf
 
 == DESCRIPTION
 
@@ -22,9 +22,6 @@ Set path to the configuration file.
 
 -css path::
 Set path to the style sheet to use with EPUB/HTML.
-
--cxack::
-Cut corners.
 
 -dest named-dest::
 Set named destination.
