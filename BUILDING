@@ -15,24 +15,9 @@ Prerequisites for building from sources:
   mupdf% git submodule update --recursive
   mupdf% make build=native libs
   mupdf% cd ..
-
-Easy way:
   llpp% sh build.sh build
-or
-  somewhere% sh /path/to/llpp/build.sh $(pwd)
 
-Standalone binary should now be in build/llpp or somewhere/llpp
-
-Hard way:
-     Prerequisites:
-        ghc           [https://www.haskell.org/ghc/]
-        shake         [http://shakebuild.com/]
-
-  llpp% shake -j0 [build/llpp.native]
-or
-  llpp% runghc Shakefile.hs -j0 [build/llpp.native]
-
-Standalone binary should now be in build/llpp[.native]
+Standalone binary should now be in build/llpp
 
 Native OS X Installation Instructions
 -------------------------------------
