@@ -307,6 +307,7 @@ case $type in
         else
             mupdf=$HOME/x/rcs/git/mupdf/build/native/mupdf-gl
             executable_p $mupdf || v=mupdf-gl && v=$mupdf
+            v="$v -H 0"
         fi
         maketext "$1" "$textfilename"
         exec $v "$cachedir/fonts/text.html"
