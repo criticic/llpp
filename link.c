@@ -2,6 +2,8 @@
 #define CAML_NAME_SPACE
 #define FIXME 0
 
+extern char **environ;
+
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -36,7 +38,6 @@
 #endif
 
 #ifdef __APPLE__
-extern char ** environ;
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
