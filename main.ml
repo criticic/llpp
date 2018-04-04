@@ -1102,8 +1102,8 @@ let opendoc path password =
     else state.origin
   in
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
-  wcmd "open %d %d %s\000%s\000%s\000"
-       (btod !cxack) (btod conf.usedoccss)
+  wcmd "open %d %d %d %s\000%s\000%s\000"
+       (btod !cxack) (btod conf.usedoccss) conf.layouth
        path password conf.css;
   invalidate "reqlayout"
              (fun () ->
@@ -3943,6 +3943,9 @@ let enterinfomode =
                  state.anchor <- getanchor ();
                  opendoc state.path state.password;
                );
+      src#int "layout height"
+        (fun () -> conf.layouth)
+        (fun v -> conf.layouth <- v);
       src#bool ~btos "colors"
                (fun () -> !showcolors)
                (fun v -> showcolors := v; fillsrc prevmode prevuioh);
