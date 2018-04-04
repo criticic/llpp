@@ -861,7 +861,7 @@ pdf_load_page_objs (pdf_document *doc)
 }
 #endif
 
-static void initpdims (int wthack)
+static void initpdims (void)
 {
     double start, end;
     FILE *trimf = NULL;
@@ -1121,11 +1121,9 @@ static void initpdims (int wthack)
         }
     }
     end = now ();
-    if (!wthack) {
-        printd ("progress 1 %s %d pages in %f seconds",
-                state.trimmargins ? "Trimmed" : "Processed",
-                state.pagecount, end - start);
-    }
+    printd ("progress 1 %s %d pages in %f seconds",
+            state.trimmargins ? "Trimmed" : "Processed",
+            state.pagecount, end - start);
     state.trimanew = 0;
     if (trimf) {
         if (fclose (trimf)) {
@@ -1637,15 +1635,14 @@ static void * mainloop (void UNUSED_ATTR *unused)
         p[len] = 0;
 
         if (!strncmp ("open", p, 4)) {
-            int wthack, off, usedoccss, ok = 0;
+            int off, usedoccss, ok = 0;
             char *password;
             char *filename;
             char *utf8filename;
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p + 5, " %d %d %d %n",
-                          &wthack, &state.cxack, &usedoccss, &off);
+            ret = sscanf (p + 5, " %d %d %n", &state.cxack, &usedoccss, &off);
             if (ret != 3) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
@@ -1672,18 +1669,15 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             if (ok) {
                 pdfinfo ();
-                initpdims (wthack);
+                initpdims ();
             }
             unlock ("open");
 
             if (ok) {
-                if (!wthack) {
-                    utf8filename = mbtoutf8 (filename);
-                    printd ("msg Opened %s (press h/F1 to get help)",
-                            utf8filename);
-                    if (utf8filename != filename) {
-                        free (utf8filename);
-                    }
+                utf8filename = mbtoutf8 (filename);
+                printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
+                if (utf8filename != filename) {
+                    free (utf8filename);
                 }
                 state.needoutline = 1;
             }
@@ -1895,7 +1889,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             state.pagedimcount = 0;
             free (state.pagedims);
             state.pagedims = NULL;
-            initpdims (0);
+            initpdims ();
             layout ();
             process_outline ();
             unlock ("settrim");

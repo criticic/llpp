@@ -119,7 +119,6 @@ let istextentry = function
   | Birdseye _ | View | LinkNav _ -> false
 ;;
 
-let wtmode = ref false;;
 let cxack = ref false;;
 
 let pgscale h = truncate (float h *. conf.pgscale);;
@@ -833,8 +832,7 @@ let gotoxy x y =
 
     | _ ->
        let layout = layout x y state.winw state.winh in
-       if not !wtmode || layoutready layout
-       then G.postRedisplay "gotoxy ready";
+       G.postRedisplay "gotoxy ready";
        y, layout, true
   in
   if proceed
@@ -1104,8 +1102,8 @@ let opendoc path password =
     else state.origin
   in
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
-  wcmd "open %d %d %d %s\000%s\000%s\000"
-       (btod !wtmode) (btod !cxack) (btod conf.usedoccss)
+  wcmd "open %d %d %s\000%s\000%s\000"
+       (btod !cxack) (btod conf.usedoccss)
        path password conf.css;
   invalidate "reqlayout"
              (fun () ->
@@ -1442,7 +1440,7 @@ let onpagerect pageno f =
     f w h
 ;;
 
-let gotopagexy1 wtmode pageno x y =
+let gotopagexy1 pageno x y =
   let _,w1,h1,leftx = getpagedim pageno in
   let top = y /. (float h1) in
   let left = x /. (float w1) in
@@ -1471,38 +1469,14 @@ let gotopagexy1 wtmode pageno x y =
     else state.y
   in
   if state.x != sx || state.y != sy
-  then (
-    let x, y =
-      if wtmode
-      then (
-        let ww = state.winw in
-        let qx = sx / ww
-        and qy = pdy / wh in
-        let x = qx * ww
-        and y = py + qy * wh in
-        let x = if -x + ww > w1 then -(w1-ww) else x
-        and y' = if y + wh > state.maxy then state.maxy - wh else y in
-        let y =
-          if conf.presentation
-          then
-            if abs (py - y') > wh
-            then y'
-            else py
-          else y';
-        in
-        (x, y)
-      )
-      else (sx, sy)
-    in
-    gotoxy_and_clear_text x y;
-  )
+  then gotoxy_and_clear_text sx sy
   else gotoxy_and_clear_text state.x state.y;
 ;;
 
-let gotopagexy wtmode pageno x y =
+let gotopagexy pageno x y =
   match state.mode with
   | Birdseye _ -> gotopage pageno 0.0
-  | Textentry _ | View | LinkNav _ -> gotopagexy1 wtmode pageno x y
+  | Textentry _ | View | LinkNav _ -> gotopagexy1 pageno x y
 ;;
 
 let getpassword () =
@@ -1518,7 +1492,7 @@ let getpassword () =
 let pgoto opaque pageno x y =
   let pdimno = getpdimno pageno in
   let x, y = project opaque pageno pdimno x y in
-  gotopagexy false pageno x y;
+  gotopagexy pageno x y;
 ;;
 
 let act cmds =
@@ -1570,7 +1544,7 @@ let act cmds =
         f ();
         state.geomcmds <- s, List.rev rest;
      end;
-     if conf.maxwait = None && not !wtmode
+     if conf.maxwait = None
      then G.postRedisplay "continue";
 
   | "msg", args ->
@@ -1753,7 +1727,7 @@ let act cmds =
                   && conf.colorspace = cs
                   && conf.angle = angle
                   && tilevisible state.layout l.pageno x y
-                  && (not !wtmode || layoutready state.layout)
+                  && layoutready state.layout
              then G.postRedisplay "tile nothrottle";
 
           | Some (layout, y, _) ->
@@ -1814,7 +1788,7 @@ let act cmds =
      let (n, l, t) =
        scan args "%u %d %d" (fun n l t -> n, l, t)
      in
-     state.reprf <- (fun () -> gotopagexy !wtmode n (float l) (float t))
+     state.reprf <- (fun () -> gotopagexy n (float l) (float t))
 
   | "info", args ->
      let c, v = splitatchar args '\t' in
@@ -4347,7 +4321,7 @@ let gotounder = function
   | Ulinkuri s ->
      let pageno, x, y = uritolocation s in
      addnav ();
-     gotopagexy !wtmode pageno x y
+     gotopagexy pageno x y
   | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
 ;;
@@ -6119,10 +6093,10 @@ let ract cmds =
           (fun pageno x y ->
             let cmd, _ = state.geomcmds in
             if emptystr cmd
-            then gotopagexy !wtmode pageno x y
+            then gotopagexy pageno x y
             else
               let f prevf () =
-                gotopagexy !wtmode pageno x y;
+                gotopagexy pageno x y;
                 prevf ()
               in
               state.reprf <- f state.reprf
@@ -6267,7 +6241,6 @@ let () =
         ("-dest", Arg.String (fun s -> state.nameddest <- s),
          "<named-destination> Set named destination");
 
-        ("-wtmode", Arg.Set wtmode, " Operate in wt mode");
         ("-cxack", Arg.Set cxack, " Cut corners");
 
         ("-remote", Arg.String (fun s -> rcmdpath := s),
@@ -6295,9 +6268,6 @@ let () =
     )
     (fun s -> state.path <- s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:");
-
-  if !wtmode
-  then selfexec := !selfexec ^ " -wtmode";
 
   let histmode = emptystr state.path && not !openlast in
 
