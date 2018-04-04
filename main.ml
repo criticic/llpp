@@ -59,6 +59,7 @@ external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
 let opengl_has_pbo = ref false;;
+let layouth = ref ~-1;;
 
 let drawstring size x y s =
   Gl.enable `blend;
@@ -1101,7 +1102,7 @@ let opendoc path password =
   in
   Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
   wcmd "open %d %d %s\000%s\000%s\000"
-       (btod conf.usedoccss) conf.layouth
+       (btod conf.usedoccss) !layouth
        path password conf.css;
   invalidate "reqlayout"
              (fun () ->
@@ -3941,13 +3942,6 @@ let enterinfomode =
                  state.anchor <- getanchor ();
                  opendoc state.path state.password;
                );
-      src#int "layout height"
-        (fun () -> conf.layouth)
-        (fun v ->
-          conf.layouth <- v;
-          state.anchor <- getanchor ();
-          opendoc state.path state.password;
-        );
       src#bool ~btos "colors"
                (fun () -> !showcolors)
                (fun v -> showcolors := v; fillsrc prevmode prevuioh);
@@ -6266,7 +6260,9 @@ let () =
         ("-origin", Arg.String (fun s -> state.origin <- s),
          "<origin> <undocumented>");
 
-        ("-no-title", Arg.Set ignoredoctitlte, " ignore document title")
+        ("-no-title", Arg.Set ignoredoctitlte, " ignore document title");
+        ("-layout-height", Arg.Set_int layouth,
+         "<height> layout height html/epub/etc (-1, 0, N)");
        ]
     )
     (fun s -> state.path <- s)

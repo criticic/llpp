@@ -287,7 +287,6 @@ type conf =
   ; mutable css            : css
   ; mutable usedoccss      : usedoccss
   ; mutable key            : string
-  ; mutable layouth        : int
   }
  and columns =
    | Csingle of singlecolumn
@@ -571,7 +570,6 @@ let defconf =
   ; css            = E.s
   ; usedoccss      = true
   ; key            = E.s
-  ; layouth        = -1
   ; keyhashes      =
       let mk n = (n, Hashtbl.create 1) in
       [ mk "global"
@@ -1111,7 +1109,6 @@ let config_of c attrs =
       | "coarse-presentation-positioning" ->
          { c with coarseprespos = bool_of_string v }
       | "use-document-css" -> { c with usedoccss = bool_of_string v }
-      | "layout-height" -> { c with layouth = int_of_string v }
       | _ -> c
     with exn ->
       dolog "error processing attribute (`%S' = `%S'): %s" k v @@ exntos exn;
@@ -1237,7 +1234,6 @@ let setconf dst src =
   dst.sbarcolor      <- src.sbarcolor;
   dst.sbarhndlcolor  <- src.sbarhndlcolor;
   dst.key            <- src.key;
-  dst.layouth        <- src.layouth;
   dst.pax            <-
     if src.pax = None
     then None
@@ -1699,7 +1695,6 @@ let add_attrs bb always dc c time =
   ob "edit-annotations-inline" c.annotinline dc.annotinline;
   ob "coarse-presentation-positioning" c.coarseprespos dc.coarseprespos;
   ob "use-document-css" c.usedoccss dc.usedoccss;
-  oi "layout-height" c.layouth dc.layouth;
 ;;
 
 let keymapsbuf always dc c =
