@@ -91,7 +91,7 @@ bocamlc() {
     mudir=$srcd/mupdf
     muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
     cmd="ocamlc -ccopt \"-O2 $muinc -o $o\" $s"
-    keycmd="stat -c %Y $o 2>/dev/null"
+    keycmd="stat -c %Y $o $s 2>/dev/null | tr -d '\n'"
     getpast "$o" "$cmd" "$keycmd"
     test -n "$dirty" && {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/} [${dirty-fresh}]"
