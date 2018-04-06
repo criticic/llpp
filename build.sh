@@ -112,9 +112,8 @@ test -n "$dirty" && { eval $cmd || die "mkhelp failed"; }
 eval "key=\$($keycmd)" || die "$keycmd: failed"
 printf "cmd='$cmd'\nkey='$key'\n" >$outd/help.ml.past
 
-for f in glMisc raw glTex; do
-    bocaml lablGL/$f.cmo 0 || true
-done
+bocaml lablGL/glMisc.cmo 0 || true
+bocaml lablGL/glTex.cmo 0 || true
 bocaml wsi/x11/wsi.cmo 0 || true
 bocaml main.cmo 0 || true
 bocamlc link.o
