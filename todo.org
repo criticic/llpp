@@ -32,4 +32,6 @@
 * TODO somehow merge kv2pv and xlatt/xlatf
 * DONE ctrl in (at least) help mode yields a key and not found message
   CLOSED: [2016-12-30 Fri 10:53]
-* TODO do something about wsi.mli
+* DONE do something about wsi.mli
+  CLOSED: [2018-04-07 Sat 01:55]
+* TODO Make new build.sh work on macOS
