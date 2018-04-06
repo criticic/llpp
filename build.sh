@@ -43,8 +43,7 @@ bocaml1() {
         test -z "$depl" || {
             for d in $(eval echo $depl); do
                 d=${d#$srcd/}
-                bocaml $d $((n+1))
-                test $? -eq 0 || dirty=transitive
+                bocaml $d $((n+1)) || dirty=transitive
             done
         }
     }
@@ -98,39 +97,41 @@ bocamlc() {
         eval "$cmd" || die "compilation failed"
         eval "key=\$($keycmd)" || die "$keycmd failed"
         printf "cmd='$cmd'\nkey='$key'\n" >$o.past
-    } || true
+        return 1
+    } || return 0
 }
 
 mkdir -p $outd/wsi/x11
 mkdir -p $outd/lablGL
+relink=0
 :>$outd/ordered
 
 cmd="$SHELL $srcd/mkhelp.sh $srcd/KEYS >$outd/help.ml"
 keycmd="stat -c %Y $srcd/KEYS 2>/dev/null"
 getpast "$outd/help.ml" "$cmd" "$keycmd"
-test -n "$dirty" && { eval $cmd || die "mkhelp failed"; }
+test -n "$dirty" && { eval $cmd || die "mkhelp failed"; relink=1; }
 eval "key=\$($keycmd)" || die "$keycmd: failed"
 printf "cmd='$cmd'\nkey='$key'\n" >$outd/help.ml.past
 
 for m in lablGL/glMisc.cmo lablGL/glTex.cmo wsi/x11/wsi.cmo main.cmo; do
-    bocaml $m 0 || true
+    bocaml $m 0 || relink=1
 done
-bocamlc link.o
+bocamlc link.o || relink=1
 
 libs="str.cma unix.cma"
 clibs="-lGL -lX11 -L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
 globjs=
 for f in ml_gl ml_glarray ml_raw; do
-    bocamlc lablGL/$f.o || true
+    bocamlc lablGL/$f.o || relink=1
     globjs="$globjs $outd/lablGL/$f.o"
 done
 
 ord=$(grep -v \.cmi $outd/ordered | tr "\n" " ")
 cmd="ocamlc -custom $libs -o $outd/llpp $ord"
 cmd="$cmd $globjs $outd/link.o -cclib \"$clibs\""
-keycmd="stat -c %Y $outd/llpp 2>/dev/null"
+keycmd="stat -c %Y $outd/llpp $ord 2>/dev/null"
 getpast "$outd/llpp" "$cmd" "$keycmd"
-test -n "$dirty" && {
+test $relink -ne 0 || test -n "$dirty" && {
     eval $cmd
     eval "key=\$($keycmd)" || die "$keycmd: failed"
     printf "cmd='$cmd'\nkey='$key'\n" >$outd/llpp.past
