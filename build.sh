@@ -29,8 +29,9 @@ getpast() {
     test -r $past && {
         . $past
         test "$cmd" = "$cur_cmd" && {
-            eval "cur_key=\$($key_cmd)" || cur_key=none
-            test "$cur_key" = "$key" || dirty="$cur_key!=$key"
+            eval "cur_key=\$($key_cmd)" || dirty=nokey && {
+                    test "$cur_key" = "$key" || dirty="$cur_key!=$key"
+                }
         } || dirty="cmd"
     } || dirty="initial"
 }
@@ -106,7 +107,24 @@ mkdir -p $outd/lablGL
 relink=0
 :>$outd/ordered
 
-cmd="$SHELL $srcd/mkhelp.sh $srcd/KEYS >$outd/help.ml"
+mkhelp() {
+    vers=$(cd $srcd && git describe --tags || echo unknown)
+    ocaml str.cma -stdin $srcd/KEYS <<EOF
+let fixup = let open Str in
+  let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
+  and head = regexp {|-----\(.*\)-----|} in fun s ->
+  String.escaped s |> global_replace dash {|\1\t\2|}
+                   |> global_replace head {|\xc2\xb7\1|};;
+let rec iter ic = match input_line ic with
+| s -> Printf.printf "\"%s\";\\n" @@ fixup s; iter ic
+| exception End_of_file -> ();;
+Printf.printf "let keys = [\\n";
+iter @@ open_in Sys.argv.(1);;
+Printf.printf "] and version = \"$vers\"";;
+EOF
+}
+
+cmd="mkhelp >$outd/help.ml"
 keycmd="stat -c %Y $srcd/KEYS 2>/dev/null"
 getpast "$outd/help.ml" "$cmd" "$keycmd"
 test -n "$dirty" && { eval $cmd || die "mkhelp failed"; relink=1; }
