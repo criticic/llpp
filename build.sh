@@ -1,85 +1,141 @@
 #!/bin/sh
 set -e
-if test x"$1" = x; then
-    printf "No build directory specified\n" 1>&2
-    exit 1
-else
-    builddir="$1"
-fi
-test $( (ocamlc 2>/dev/null --version || echo 0.0) \
-           | awk -F. '{print $1 $2}') -lt 404 && {
-    echo "OCaml version 4.04.0 or higher required"
-    exit 1
-} || true
 
-case $(uname -s) in
-    Darwin)
-        wsi=wsi/osx
-        macos=true
-        ;;
-    *)
-        wsi=wsi/x11
-        macos=false
-        ;;
-esac
+trap 'test $? -eq 0 || echo build failed' EXIT
 
-test x"$2" = "x" || cty="$2" && cty=""
+date --help | grep -q GNU-date-that-actually-works-with-N && {
+    now() { date +%N; }
+    scl=1000000000.0
+} || {
+    now() { date +%s; }
+    scl=1
+}
+tstart=$(now)
 
-ccopt="$CFLAGS -Wno-pointer-sign -O2"
-mlopt='-warn-error +a -w +a -g -safe-string'
-if test -z "$native"; then
-    comp=ocamlc$cty
-    osu=.cmo
-    asu=.cma
-    lfl=-custom
-else
-    comp=ocamlopt$cty
-    osu=.cmx
-    asu=.cmxa
-    lfl=
-fi
-ccomp=$(ocamlc -config | grep bytecomp_c_co | cut -d: -f2)
-mkdir -p "$builddir/lablGL" "$builddir/$wsi"
-srcdir=$(dirname $0)
-version=$(cd $srcdir && git describe --tags 2>/dev/null) || version=unknown
-shortversion=$(echo $version | sed -n 's/v\([0-9]*\).*/\1/p')
-mloptgl="-I $srcdir/lablGL -I $builddir/lablGL"
-# $comp -ccopt "$ccopt -o $builddir/lablGL/ml_raw.o" -c $srcdir/lablGL/ml_raw.c
-# $comp -ccopt "$ccopt -o $builddir/lablGL/ml_gl.o" -c $srcdir/lablGL/ml_gl.c
-# $comp -ccopt "$ccopt -o $builddir/lablGL/ml_glarray.o" -c $srcdir/lablGL/ml_glarray.c
-# if $macos; then
-#     $comp -ccopt "-D__COCOA__ -I $srcdir/mupdf/include -I $srcdir/mupdf/thirdparty/freetype/include -Wextra -Wall -Werror -D_GNU_SOURCE -O -g -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow -o $builddir/link.o" -c $srcdir/link.c
-#     $ccomp -c -I $(ocamlc -where) -o $builddir/main_osx.o $srcdir/main_osx.m
-# else
-     $comp -ccopt "-I $srcdir/mupdf/include -I $srcdir/mupdf/thirdparty/freetype/include -Wextra -Wall -Werror -D_GNU_SOURCE -O -g -std=c99 -pedantic-errors -Wunused-parameter -Wsign-compare -Wshadow -o $builddir/link.o" -c $srcdir/link.c
-# fi
-# /bin/sh $srcdir/mkhelp.sh $srcdir/KEYS "$version" >$builddir/help.ml
-# $comp -c $mloptgl -o $builddir/keys$osu $srcdir/keys.ml
-# $comp -c $mloptgl -o $builddir/lablGL/gl$osu $srcdir/lablGL/gl.ml
-# $comp -c $mloptgl -o $builddir/lablGL/raw$osu $srcdir/lablGL/raw.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glPix$osu $srcdir/lablGL/glPix.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glDraw$osu $srcdir/lablGL/glDraw.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glTex.cmi $srcdir/lablGL/glTex.mli
-# $comp -c $mloptgl -o $builddir/lablGL/glMisc.cmi $srcdir/lablGL/glMisc.mli
-# $comp -c $mloptgl -o $builddir/lablGL/glMat$osu $srcdir/lablGL/glMat.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glMisc$osu $srcdir/lablGL/glMisc.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glFunc$osu $srcdir/lablGL/glFunc.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glTex$osu $srcdir/lablGL/glTex.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glArray$osu $srcdir/lablGL/glArray.ml
-# $comp -c $mloptgl -o $builddir/lablGL/glClear$osu $srcdir/lablGL/glClear.ml
-# $comp -c -o $builddir/help$osu $builddir/help.ml
-# $comp -c $mlopt -o $builddir/utils$osu $srcdir/utils.ml
-# $comp -c $mlopt -I $builddir -o $builddir/parser$osu $srcdir/parser.ml
-# $comp -c $mlopt -I $builddir -o $builddir/$wsi/wsi.cmi $srcdir/$wsi/wsi.mli
-$comp -c $mloptgl -I $builddir -I $builddir/$wsi -o $builddir/config$osu $srcdir/config.ml
-$comp -c $mloptgl -I $builddir -I $builddir/$wsi -o $builddir/main$osu $srcdir/main.ml
-# $comp -c $mlopt -I $builddir -I $builddir/$wsi -o $builddir/wsi$osu $srcdir/$wsi/wsi.ml
+die() {
+    echo "$*" >&2
+    exit 111
+}
 
-if $macos; then
-    $comp -g $lfl -I lablGL -o $builddir/llpp unix$asu str$asu $builddir/help$osu $builddir/lablGL/raw$osu $builddir/utils$osu $builddir/parser$osu $builddir/lablGL/glMisc$osu $builddir/wsi$osu $builddir/lablGL/gl$osu $builddir/lablGL/glMat$osu $builddir/lablGL/glFunc$osu $builddir/lablGL/glClear$osu $builddir/lablGL/glPix$osu $builddir/lablGL/glTex$osu $builddir/lablGL/glDraw$osu $builddir/config$osu $builddir/lablGL/glArray$osu $builddir/main$osu $builddir/link.o $builddir/main_osx.o -cclib "-framework Cocoa -framework OpenGL -lmupdf -lmupdfthird -lpthread -L$srcdir/mupdf/build/native $builddir/lablGL/ml_gl.o $builddir/lablGL/ml_glarray.o $builddir/lablGL/ml_raw.o"
-    mkdir -p $builddir/llpp.app/Contents/MacOS
-    cat $srcdir/misc/Info.plist | sed s/@VERSION@/$shortversion/ | sed s/@BUNDLE_VERSION@/$version/ > $builddir/llpp.app/Contents/Info.plist
-    cp $builddir/llpp $builddir/llpp.app/Contents/MacOS/
-else
-    $comp -g $lfl -I lablGL -o $builddir/llpp unix$asu str$asu $builddir/help$osu $builddir/lablGL/raw$osu $builddir/utils$osu $builddir/parser$osu $builddir/lablGL/glMisc$osu $builddir/wsi$osu $builddir/lablGL/gl$osu $builddir/lablGL/glMat$osu $builddir/lablGL/glFunc$osu $builddir/lablGL/glClear$osu $builddir/lablGL/glPix$osu $builddir/lablGL/glTex$osu $builddir/lablGL/glDraw$osu $builddir/config$osu $builddir/lablGL/glArray$osu $builddir/main$osu $builddir/link.o -cclib "-lX11 -lGL -lmupdf -lmupdfthird -lpthread -L$srcdir/mupdf/build/native $builddir/lablGL/ml_gl.o $builddir/lablGL/ml_glarray.o $builddir/lablGL/ml_raw.o"
-fi
+test -n "$1" || die "usage: $0 build-directory"
+
+outd=$1
+srcd=$PWD
+
+getpast() {
+    past="$1.past"
+    cur_cmd="$2"
+    key_cmd="$3"
+    test -r $past && {
+        . $past
+        test "$cmd" = "$cur_cmd" && {
+            eval "cur_key=\$($key_cmd)" || cur_key=none
+            test "$cur_key" = "$key" && dirty="" || dirty="$cur_key!=$key"
+        } || dirty="cmd"
+    } || dirty="initial"
+}
+
+bocaml1() {
+    s="$1"
+    o="$2"
+    eval ocamlc -depend -bytecode -one-line $incs $s | {
+        read _ _ depl
+        test -z "$depl" || {
+            for d in $(eval echo $depl); do
+                d=${d#$srcd/}
+                bocaml $d $((n+1))
+                test $? -eq 0 || dirty=transitive
+            done
+        }
+    }
+    cmd="ocamlc $incs -c -o $o $s"
+    keycmd="stat -c %Y $o $s 2>/dev/null | tr -d '\n'"
+    getpast "$o" "$cmd" "$keycmd"
+    test -n "$dirty" && {
+        printf "%*.s%s -> %s\n" $n '' \
+               "${s#$srcd/}" "${o#$outd/} [${dirty-fresh}]"
+        eval "$cmd" || die "compilation failed"
+        eval "key=\$($keycmd)"
+        printf "cmd='$cmd'\nkey='$key'\n" >$o.past
+        grep -q "$o" $outd/ordered || echo "$o" >>$outd/ordered
+        return 1
+    } || {
+        grep -q "$o" $outd/ordered || echo "$o" >>$outd/ordered
+        return 0
+    }
+}
+
+bocaml() (
+    o=$1
+    n=$2
+    wocmi="${o%.cmi}"
+    test ${wocmi%help.cmo} !=  ${wocmi} && {
+        s=$outd/help.ml
+        o=$outd/help.cmo
+    } || {
+        test "$o" = "$wocmi" && {
+            s=${o%.cmo}.ml
+        } || {
+            s=$wocmi.mli
+        }
+        s=$srcd/$s
+        o=$outd/$o
+    }
+    incs="-I lablGL -I $outd/lablGL -I wsi/x11 -I $outd/wsi/x11 -I $outd"
+    bocaml1 "$s" "$o" || return 1 && return 0
+)
+
+bocamlc() {
+    o=$outd/$1
+    s=$srcd/${1%.o}.c
+    mudir=$srcd/mupdf
+    muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
+    cmd="ocamlc -ccopt \"-O2 $muinc -o $o\" $s"
+    keycmd="stat -c %Y $o 2>/dev/null"
+    getpast "$o" "$cmd" "$keycmd"
+    test -n "$dirty" && {
+        printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/} [${dirty-fresh}]"
+        eval "$cmd" || die "compilation failed"
+        eval "key=\$($keycmd)" || die "$keycmd failed"
+        printf "cmd='$cmd'\nkey='$key'\n" >$o.past
+    } || true
+}
+
+mkdir -p $outd/wsi/x11
+mkdir -p $outd/lablGL
+:>$outd/ordered
+
+cmd="$SHELL $srcd/mkhelp.sh $srcd/KEYS >$outd/help.ml"
+keycmd="stat -c %Y $srcd/KEYS 2>/dev/null"
+getpast "$outd/help.ml" "$cmd" "$keycmd"
+test -n "$dirty" && { eval $cmd || die "mkhelp failed"; }
+eval "key=\$($keycmd)" || die "$keycmd: failed"
+printf "cmd='$cmd'\nkey='$key'\n" >$outd/help.ml.past
+
+for f in glMisc raw glTex; do
+    bocaml lablGL/$f.cmo 0 || true
+done
+bocaml wsi/x11/wsi.cmo 0 || true
+bocaml main.cmo 0 || true
+bocamlc link.o
+
+libs="str.cma unix.cma"
+clibs="-lGL -lX11 -L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
+globjs=
+for f in ml_gl ml_glarray ml_raw; do
+    bocamlc lablGL/$f.o || true
+    globjs="$globjs $outd/lablGL/$f.o"
+done
+
+ord=$(grep -v \.cmi $outd/ordered | tr "\n" " ")
+cmd="ocamlc -custom $libs -o $outd/llpp $ord"
+cmd="$cmd $globjs $outd/link.o -cclib \"$clibs\""
+keycmd="stat -c %Y $outd/llpp 2>/dev/null"
+getpast "$outd/llpp" "$cmd" "$keycmd"
+test -n "$dirty" && {
+    eval $cmd
+    eval "key=\$($keycmd)" || die "$keycmd: failed"
+    printf "cmd='$cmd'\nkey='$key'\n" >$outd/llpp.past
+} || echo "nothing to be done"
+
+printf "took %s sec\n" $(echo "scale=3; ($(now) - $tstart) / $scl" | bc -l)
