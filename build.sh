@@ -30,7 +30,7 @@ getpast() {
         . $past
         test "$cmd" = "$cur_cmd" && {
             eval "cur_key=\$($key_cmd)" || cur_key=none
-            test "$cur_key" = "$key" && dirty="" || dirty="$cur_key!=$key"
+            test "$cur_key" = "$key" || dirty="$cur_key!=$key"
         } || dirty="cmd"
     } || dirty="initial"
 }
