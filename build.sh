@@ -132,9 +132,10 @@ cmd="$cmd $globjs $outd/link.o -cclib \"$clibs\""
 keycmd="stat -c %Y $outd/llpp $ord 2>/dev/null"
 getpast "$outd/llpp" "$cmd" "$keycmd"
 test $relink -ne 0 || test -n "$dirty" && {
-    eval $cmd
-    eval "key=\$($keycmd)" || die "$keycmd: failed"
-    printf "cmd='$cmd'\nkey='$key'\n" >$outd/llpp.past
-} || echo "nothing to be done"
+        echo "linking"
+        eval $cmd
+        eval "key=\$($keycmd)" || die "$keycmd: failed"
+        printf "cmd='$cmd'\nkey='$key'\n" >$outd/llpp.past
+    } || echo "nothing to be done"
 
 printf "took %s sec\n" $(echo "scale=3; ($(now) - $tstart) / $scl" | bc -l)
