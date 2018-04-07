@@ -66,8 +66,8 @@ bocaml1() {
 }
 
 bocaml() (
-    o=$1
-    n=$2
+    o="$1"
+    n="$2"
     wocmi="${o%.cmi}"
     test ${wocmi%help.cmo} !=  ${wocmi} && {
         s=$outd/help.ml
