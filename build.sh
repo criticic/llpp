@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 date --version | grep -q "GNU" && dfmt="%s.%N" || dfmt="%s"
 now() { date +$dfmt; }
@@ -35,12 +35,9 @@ isfresh() {
 bocaml1() {
     eval ocamlc -depend -bytecode -one-line $incs $s | {
         read _ _ depl
-        test -z "$depl" || {
-            for d in $(eval echo $depl); do
-                d=${d#$srcd/}
-                bocaml $d $((n+1))
-            done
-        }
+        for d in $(eval echo $depl); do
+            bocaml ${d#$srcd/} $((n+1))
+        done
     }
     cmd="ocamlc $incs -c -o $o $s"
     keycmd="sum $o $s"
@@ -75,7 +72,7 @@ bocamlc() {
     mudir=$srcd/mupdf
     muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
     cmd="ocamlc -ccopt \"-O2 $muinc -MMD -MF $o.dep -MT_ -o $o\" $s"
-    test -r $o.dep && read _ d <$o.dep
+    test -r $o.dep && read _ d <$o.dep || d=
     keycmd='sum $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
