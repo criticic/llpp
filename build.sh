@@ -3,6 +3,8 @@ set -e
 
 vecho=${vecho-:}
 
+command -v shasum >/dev/null && alias sum=shasum
+
 date --version | grep -q "GNU date with working +%N" && {
     now() { date +%N; }
     scl=1000000000.0
@@ -48,7 +50,7 @@ bocaml1() {
         }
     }
     cmd="ocamlc $incs -c -o $o $s"
-    keycmd="stat -c %Y $o $s"
+    keycmd="sum $o $s"
     grep -q "$o" $outd/ordered || echo "$o" >>$outd/ordered
     isfresh "$o" '$cmd$keymd' || {
         printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
@@ -79,7 +81,7 @@ bocamlc() {
     mudir=$srcd/mupdf
     muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
     cmd="ocamlc -ccopt \"-O2 $muinc -o $o\" $s"
-    keycmd="stat -c %Y $o $s 2>/dev/null"
+    keycmd="sum $o $s 2>/dev/null"
     isfresh "$o" '$cmd$keycmd' || {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
@@ -107,9 +109,9 @@ Printf.printf "] and version = \"$ver\"";;
 EOF
 }
 
-ver=$(cd $srcd && git describe --tags || echo unknown)
+ver=$(cd $srcd && git describe --tags) || echo unknown
 cmd="mkhelp >$outd/help.ml"
-keycmd="stat -c %Y $srcd/KEYS"
+keycmd="sum $srcd/KEYS"
 isfresh "$outd/help.ml" '$cmd$keycmd$ver' || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
