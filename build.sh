@@ -44,12 +44,14 @@ bocaml1() {
     }
     cmd="ocamlc $incs -c -o $o $s"
     keycmd="sum $o $s"
-    grep -q "$o" $outd/ordered || echo "$o" >>$outd/ordered
-    isfresh "$o" '$cmd$keymd' || {
-        printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
-        eval "$cmd"
-        echo "k='$cmd$(eval $keycmd)'" >$o.past
-    } && $vecho "fresh '$o'"
+    grep -q "$o" $outd/ordered || {
+        echo "$o" >>$outd/ordered
+        isfresh "$o" '$cmd$keymd' || {
+            printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
+            eval "$cmd"
+            echo "k='$cmd$(eval $keycmd)'" >$o.past
+        } && $vecho "fresh '$o'"
+    }
 }
 
 bocaml() (
