@@ -6,7 +6,7 @@ now() { date +$dfmt; }
 
 tstart=$(now)
 vecho=${vecho-:}
-command -v md5sum >/dev/null && alias sum=md5sum
+command -v md5sum >/dev/null && alias sum='md5sum 2>/dev/null'
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
@@ -76,7 +76,7 @@ bocamlc() {
     muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
     cmd="ocamlc -ccopt \"-O2 $muinc -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep
-    keycmd='sum $o $d 2>/dev/null'
+    keycmd='sum $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
