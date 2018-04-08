@@ -106,16 +106,16 @@ let rec iter ic = match input_line ic with
 | exception End_of_file -> ();;
 Printf.printf "let keys = [\\n";
 iter @@ open_in Sys.argv.(1);;
-Printf.printf "] and version = \"$ver\"";;
+Printf.printf "] and version = \"$ver\";;"
 EOF
 }
 
 ver=$(cd $srcd && git describe --tags) || echo unknown
 cmd="mkhelp >$outd/help.ml"
-keycmd="sum $srcd/KEYS"
+keycmd="sum $srcd/KEYS; echo $ver"
 isfresh "$outd/help.ml" '$cmd$keycmd$ver' || {
     eval $cmd
-    echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
+    echo "k='$cmd$(eval $keycmd)'" >$outd/help.ml.past
 }
 
 for m in lablGL/glMisc.cmo lablGL/glTex.cmo wsi/x11/wsi.cmo main.cmo; do
