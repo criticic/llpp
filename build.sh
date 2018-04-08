@@ -30,8 +30,9 @@ srcd=$PWD
 
 isfresh() {
     test -e "$1" && test -r "$1.past" && {
-        . "$1.past" test "$k" = "$2" || echo "key mismatch\n '$k'\n '$2'"
-    }
+            . "$1.past"
+            eval "test K=$2"
+        }
 }
 
 bocaml1() {
