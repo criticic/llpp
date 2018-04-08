@@ -6,7 +6,7 @@ now() { date +$dfmt; }
 
 tstart=$(now)
 vecho=${vecho-:}
-command -v shasum >/dev/null && alias sum=shasum
+command -v md5sum >/dev/null && alias sum=md5sum
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
