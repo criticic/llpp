@@ -31,7 +31,7 @@ srcd=$PWD
 isfresh() {
     test -e "$1" && test -r "$1.past" && {
             . "$1.past"
-            eval 'test $k=$2'
+            eval 'test "$k"="$2"'
         }
 }
 
