@@ -62,8 +62,7 @@ bocaml() (
         s=$outd/help.ml
         o=$outd/help.cmo
     } || {
-        test "$o" = "$wocmi" && s=${o%.cmo}.ml || s=$wocmi.mli
-        s=$srcd/$s
+        test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
         o=$outd/$o
     }
     incs="-I lablGL -I $outd/lablGL -I wsi/x11 -I $outd/wsi/x11 -I $outd"
