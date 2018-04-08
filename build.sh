@@ -1,24 +1,16 @@
 #!/bin/sh
 set -e
 
-vecho=${vecho-:}
-
-command -v shasum >/dev/null && alias sum=shasum
-
-date --version | grep -q "GNU" && {
-    dfmt="%s%N"
-    scle=1000000000
-} || {
-    dfmt="%s"
-    scle=1
-}
+date --version | grep -q "GNU" && dfmt="%s.%N" || dfmt="%s"
 now() { date +$dfmt; }
 
 tstart=$(now)
+vecho=${vecho-:}
+command -v shasum >/dev/null && alias sum=shasum
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
-    echo "$msg $(echo "scale=3; ($(now) - $tstart) / $scle" | bc -l) sec"
+    echo "$msg $(echo "scale=3; ($(now) - $tstart)/1" | bc -l) sec"
 }
 
 die() {
