@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-date --help | grep -q GNU-date-that-actually-works-with-N && {
+date --version | grep -q "GNU date with working +%N" && {
     now() { date +%N; }
     scl=1000000000.0
 } || {
