@@ -128,7 +128,7 @@ done
 ord=$(echo $(eval grep -v \.cmi $outd/ordered))
 cmd="ocamlc -custom $libs -o $outd/llpp $ord"
 cmd="$cmd $globjs $outd/link.o -cclib \"$clibs\""
-keycmd='sum $outd/llpp $ord'
+keycmd="sum $outd/llpp $ord"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
         eval $cmd
