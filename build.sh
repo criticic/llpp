@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+vecho=${vecho-:}
+
 date --version | grep -q "GNU date with working +%N" && {
     now() { date +%N; }
     scl=1000000000.0
@@ -52,7 +54,7 @@ bocaml1() {
         printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
         eval "$cmd"
         echo "k='$cmd$(eval $keycmd)'" >$o.past
-    }
+    } && $vecho "fresh '$o'"
 }
 
 bocaml() (
@@ -129,7 +131,8 @@ done
 ord=$(echo $(eval grep -v \.cmi $outd/ordered))
 cmd="ocamlc -custom $libs -o $outd/llpp $ord"
 cmd="$cmd $globjs $outd/link.o -cclib \"$clibs\""
-isfresh "$outd/llpp" '$cmd$keycmd' && echo fresh || {
+keycmd='sum $outd/llpp $ord'
+isfresh "$outd/llpp" '$cmd$keycmd' || {
         echo linking $outd/llpp
         eval $cmd
         echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
