@@ -28,11 +28,6 @@ srcd=$PWD
 isfresh() {
     test -e "$1" && test -r "$1.past" && {
             . "$1.past"
-            true || {
-                echo "$1"
-                echo "$k" | md5sum
-                echo "$2" | md5sum
-            }
             test "$k" = "$2"
         }
 }
