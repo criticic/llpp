@@ -31,7 +31,7 @@ srcd=$PWD
 isfresh() {
     test -e "$1" && test -r "$1.past" && {
             . "$1.past"
-            eval "test K=$2"
+            eval 'test $k=$2'
         }
 }
 
@@ -48,7 +48,7 @@ bocaml1() {
     cmd="ocamlc $incs -c -o $o $s"
     keycmd="stat -c %Y $o $s"
     grep -q "$o" $outd/ordered || echo "$o" >>$outd/ordered
-    isfresh "$o" "'$cmd$(eval $keymd)'" || {
+    isfresh "$o" '$cmd$keymd' || {
         printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
         eval "$cmd"
         echo "k='$cmd$(eval $keycmd)'" >$o.past
@@ -78,7 +78,7 @@ bocamlc() {
     muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
     cmd="ocamlc -ccopt \"-O2 $muinc -o $o\" $s"
     keycmd="stat -c %Y $o $s 2>/dev/null"
-    isfresh "$o" "'$cmd$(eval $keycmd)'" || {
+    isfresh "$o" '$cmd$keycmd' || {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
         echo "k='$cmd$(eval $keycmd)'" >$o.past
@@ -108,7 +108,7 @@ EOF
 ver=$(cd $srcd && git describe --tags || echo unknown)
 cmd="mkhelp >$outd/help.ml"
 keycmd="stat -c %Y $srcd/KEYS"
-isfresh "$outd/help.ml" "'$cmd$(eval $keycmd)$ver'" || {
+isfresh "$outd/help.ml" '$cmd$keycmd$ver' || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
 }
@@ -129,7 +129,8 @@ done
 ord=$(echo $(eval grep -v \.cmi $outd/ordered))
 cmd="ocamlc -custom $libs -o $outd/llpp $ord"
 cmd="$cmd $globjs $outd/link.o -cclib \"$clibs\""
-isfresh "$outd/llpp" "'$cmd$(eval $keycmd)'" && echo fresh || {
+isfresh "$outd/llpp" '$cmd$keycmd' && echo fresh || {
+        echo linking $outd/llpp
         eval $cmd
         echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
     }
