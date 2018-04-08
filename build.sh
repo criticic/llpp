@@ -12,8 +12,8 @@ date --version | grep -q "GNU date with working +%N" && {
 tstart=$(now)
 
 partmsg() {
-    test $? -eq 0 && msg="pokatit" || msg="fignja"
-    echo "$msg $(echo "scale=3; ($(now) - $tstart) / $scl" | bc -l)"
+    test $? -eq 0 && msg="ok" || msg="ko"
+    echo "$msg $(echo "scale=3; ($(now) - $tstart) / $scl" | bc -l) sec"
 }
 
 die() {
