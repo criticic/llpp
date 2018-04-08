@@ -28,7 +28,12 @@ srcd=$PWD
 isfresh() {
     test -e "$1" && test -r "$1.past" && {
             . "$1.past"
-            eval 'test "$k"="$2"'
+            true || {
+                echo "$1"
+                echo "$k" | md5sum
+                echo "$2" | md5sum
+            }
+            test "$k" = "$2"
         }
 }
 
@@ -46,7 +51,7 @@ bocaml1() {
     keycmd="sum $o $s"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>$outd/ordered
-        isfresh "$o" '$cmd$(eval $keycmd)' || {
+        isfresh "$o" "$cmd$(eval $keycmd)" || {
             printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
             eval "$cmd"
             echo "k='$cmd$(eval $keycmd)'" >$o.past
@@ -75,11 +80,13 @@ bocamlc() {
     s=$srcd/${1%.o}.c
     mudir=$srcd/mupdf
     muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
-    cmd="ocamlc -ccopt \"-O2 $muinc -o $o\" $s"
-    keycmd="sum $o $s 2>/dev/null"
-    isfresh "$o" '$cmd$(eval $keycmd)' || {
+    cmd="ocamlc -ccopt \"-O2 $muinc -MMD -MF $o.dep -MT_ -o $o\" $s"
+    test -r $o.dep && read _ d <$o.dep
+    keycmd='sum $o $d 2>/dev/null'
+    isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
+        read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >$o.past
     }
 }
@@ -109,7 +116,7 @@ cmd="mkhelp >$outd/help.ml"
 keycmd="sum $srcd/KEYS; echo $ver"
 isfresh "$outd/help.ml" '$cmd$(eval keycmd)$ver' || {
     eval $cmd
-    echo "k='$cmd$(eval $keycmd)'" >$outd/help.ml.past
+    echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
 }
 
 for m in lablGL/glMisc.cmo lablGL/glTex.cmo wsi/x11/wsi.cmo main.cmo; do
