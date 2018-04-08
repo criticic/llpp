@@ -5,19 +5,20 @@ vecho=${vecho-:}
 
 command -v shasum >/dev/null && alias sum=shasum
 
-date --version | grep -q "GNU date with working +%N" && {
-    now() { date +%N; }
-    scl=1000000000.0
+date --version | grep -q "GNU" && {
+    dfmt="%s%N"
+    scle=1000000000
 } || {
-    now() { date +%s; }
-    scl=1
+    dfmt="%s"
+    scle=1
 }
+now() { date +$dfmt; }
 
 tstart=$(now)
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
-    echo "$msg $(echo "scale=3; ($(now) - $tstart) / $scl" | bc -l) sec"
+    echo "$msg $(echo "scale=3; ($(now) - $tstart) / $scle" | bc -l) sec"
 }
 
 die() {
