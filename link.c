@@ -4202,6 +4202,18 @@ CAMLprim value ml_fz_version (value UNUSED_ATTR unit_v)
     return caml_copy_string (FZ_VERSION);
 }
 
+static char *ystrdup (const char *s)
+{
+    size_t len = strlen (s);
+    if (len > 0) {
+        char *r = malloc (len+1);
+        if (!r) errx (1, "malloc %zu", len+1);
+        memcpy (r, s, len+1);
+        return r;
+    }
+    return NULL;
+}
+
 CAMLprim void ml_init (value csock_v, value params_v)
 {
     CAMLparam2 (csock_v, params_v);
@@ -4233,7 +4245,7 @@ CAMLprim void ml_init (value csock_v, value params_v)
     }
 
     if (caml_string_length (Field (params_v, 8)) > 0) {
-        state.trimcachepath = strdup (String_val (Field (params_v, 8)));
+        state.trimcachepath = ystrdup (String_val (Field (params_v, 8)));
 
         if (!state.trimcachepath) {
             printd ("emsg failed to strdup trimcachepath: %d:%s",

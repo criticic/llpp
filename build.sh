@@ -45,8 +45,9 @@ oflags() {
 
 cflags() {
     case "${1#$outd/}" in
-        link.o) echo "-g -O2 $muinc -Wall -Werror -Wextra -pedantic-errors";;
-        *) :;;
+        link.o)
+            echo "-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors";;
+        *) echo "-g -O2";;
     esac
 }
 
