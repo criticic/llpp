@@ -34,4 +34,5 @@
   CLOSED: [2016-12-30 Fri 10:53]
 * DONE do something about wsi.mli
   CLOSED: [2018-04-07 Sat 01:55]
-* TODO Make new build.sh work on macOS
+* DONE Make new build.sh work on macOS
+  CLOSED: [2018-04-09 Mon 12:46]
