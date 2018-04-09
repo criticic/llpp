@@ -503,7 +503,7 @@ let readresp sock =
        let code = r8 resp 1 in
        let mask = r16 resp 28 in
        let keysym = getkeysym code mask in
-       vlog "release keysym = %x %c mask %#x code %#d"
+       vlog "release keysym = %x %c mask %#x code %d"
             keysym (Char.unsafe_chr keysym) mask code
 
   | 4 ->                                (* buttonpress *)
