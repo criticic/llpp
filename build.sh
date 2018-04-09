@@ -184,7 +184,7 @@ for f in ml_gl ml_glarray ml_raw; do
     globjs="$globjs $outd/lablGL/$f.o"
 done
 
-ord=$(grep -v \.cmi $outd/ordered)
+ord=$(echo $(grep -v \.cmi $outd/ordered))
 cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
 cmd="$cmd $globjs -cclib \"$clibs\""
 keycmd="digest $outd/llpp $outd/link.o $ord"
