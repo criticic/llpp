@@ -6,11 +6,12 @@ unameN=$(uname)
 test "$unameN" = Darwin && {
     darwin=true
     wsi="wsi/osx"
+    dfmt="%s"
 } || {
     darwin=false
     wsi="wsi/x11"
+    dfmt="%s.%N"
 }
-dfmt="%s"                       # %s.%N ftw
 
 tstart=$(now)
 vecho=${vecho-:}
