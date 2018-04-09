@@ -34,13 +34,13 @@ isfresh() {
         }
 }
 
-_i="-I lablGL -I $outd/lablGL -I wsi/x11 -I $outd/wsi/x11 -I $outd"
 oflags() {
     case "${1#$outd/}" in
         main.cmo|utils.cmo|config.cmo|parser.cmo|wsi.cmi|wsi/x11/wsi.cmo)
-            echo "-g -strict-sequence -strict-formats -warn-error a $_i";;
-        *) echo "-g $_i";;
+            f="-g -strict-sequence -strict-formats -warn-error a";;
+        *) f="-g";;
     esac
+    echo "-I lablGL -I $outd/lablGL -I wsi/x11 -I $outd/wsi/x11 -I $outd $f"
 }
 
 cflags() {
