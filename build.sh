@@ -159,6 +159,9 @@ isfresh "$outd/help.ml" '$cmd$(eval keycmd)$ver' || {
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
 }
 
+# following is disgusting (from "generalize everything" perspective),
+# but generic method of derviving .ml's location from .mli's is not
+# immediately obvious
 for m in lablGL/glMisc.cmo lablGL/glTex.cmo $wsi/wsi.cmo main.cmo; do
     bocaml $m 0
 done
