@@ -24,12 +24,30 @@ test -n "$1" || die "usage: $0 build-directory"
 
 outd=$1
 srcd=$PWD
+mudir=$srcd/mupdf
+muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
 isfresh() {
     test -e "$1" && test -r "$1.past" && {
             . "$1.past"
             test "$k" = "$2"
         }
+}
+
+_i="-I lablGL -I $outd/lablGL -I wsi/x11 -I $outd/wsi/x11 -I $outd"
+oflags() {
+    case "${1#$outd/}" in
+        main.cmo|utils.cmo|config.cmo|parser.cmo|wsi.cmi|wsi/x11/wsi.cmo)
+            echo "-g -strict-sequence -warn-error a $_i";;
+        *) echo "-g $_i";;
+    esac
+}
+
+cflags() {
+    case "${1#$outd/}" in
+        link.o) echo "-g -O2 $muinc -Wall -Werror -Wextra -pedantic-errors";;
+        *) :;;
+    esac
 }
 
 bocaml1() {
@@ -39,7 +57,7 @@ bocaml1() {
             bocaml ${d#$srcd/} $((n+1))
         done
     }
-    cmd="ocamlc $incs -c -o $o $s"
+    cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="sum $o $s"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>$outd/ordered
@@ -69,9 +87,7 @@ bocaml() (
 bocamlc() {
     o=$outd/$1
     s=$srcd/${1%.o}.c
-    mudir=$srcd/mupdf
-    muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
-    cmd="ocamlc -ccopt \"-O2 $muinc -MMD -MF $o.dep -MT_ -o $o\" $s"
+    cmd="ocamlc -ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
     keycmd='sum $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
