@@ -37,7 +37,7 @@ trap 'partmsg' EXIT
 test -n "$1" || die "usage: $0 build-directory"
 
 outd=$1
-srcd=$PWD
+srcd=$(dirname $0)
 mudir=$srcd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
