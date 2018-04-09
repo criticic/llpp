@@ -6,12 +6,15 @@ unameN=$(uname)
 test "$unameN" = Darwin && {
     darwin=true
     wsi="wsi/osx"
-    dfmt="%s"
 } || {
     darwin=false
     wsi="wsi/x11"
-    dfmt="%s.%N"
 }
+
+dfmt="%s"
+if $(expr >/dev/null "$(date --version 2>/dev/null)" : ".*GNU"); then
+    dfmt="%s.%N"
+fi
 
 tstart=$(now)
 vecho=${vecho-:}
