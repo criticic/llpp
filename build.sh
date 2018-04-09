@@ -153,7 +153,7 @@ EOF
 ver=$(cd $srcd && git describe --tags --dirty) || echo unknown
 cmd="mkhelp >$outd/help.ml"
 keycmd="digest $srcd/KEYS; echo $ver"
-isfresh "$outd/help.ml" '$cmd$(eval keycmd)$ver' || {
+isfresh "$outd/help.ml" '$cmd$(eval $keycmd)$ver' || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
 }
