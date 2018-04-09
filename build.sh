@@ -18,9 +18,8 @@ fi
 
 tstart=$(now)
 vecho=${vecho-:}
-command -v md5sum >/dev/null || {
-    alias sum='sum 2>/dev/null'
-} && alias sum='md5sum 2>/dev/null'
+command -v md5sum >/dev/null || true && alias sum=md5sum
+digest() { sum "$@" 2>/dev/null | while read h _; do  printf $h; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
@@ -77,7 +76,7 @@ bocaml1() {
         done
     }
     cmd="ocamlc $(oflags $o) -c -o $o $s"
-    keycmd="sum $o $s"
+    keycmd="digest $o $s"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>$outd/ordered
         isfresh "$o" "$cmd$(eval $keycmd)" || {
@@ -108,7 +107,7 @@ bocamlc() {
     s=$srcd/${1%.o}.c
     cmd="ocamlc -ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
-    keycmd='sum $o $d'
+    keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
@@ -122,7 +121,7 @@ bobjc() {
     s=$srcd/${1%.o}.m
     cmd="$mcomp $(mflags $o) -MMD -MF $o.dep -MT_ -c -o $o $s"
     test -r $o.dep && read _ d <$o.dep || d=
-    keycmd='sum $o $d'
+    keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
@@ -153,7 +152,7 @@ EOF
 
 ver=$(cd $srcd && git describe --tags --dirty) || echo unknown
 cmd="mkhelp >$outd/help.ml"
-keycmd="sum $srcd/KEYS; echo $ver"
+keycmd="digest $srcd/KEYS; echo $ver"
 isfresh "$outd/help.ml" '$cmd$(eval keycmd)$ver' || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
@@ -188,7 +187,7 @@ done
 ord=$(echo $(eval grep -v \.cmi $outd/ordered))
 cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
 cmd="$cmd $globjs -cclib \"$clibs\""
-keycmd="sum $outd/llpp $outd/link.o $ord"
+keycmd="digest $outd/llpp $outd/link.o $ord"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
         eval $cmd || echo "$cmd failed"
