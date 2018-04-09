@@ -1529,7 +1529,7 @@ let load openlast =
       else
         let absname = abspath state.path in
         match Hashtbl.find h absname with
-        | (c,b,x,a,o) -> (c,b,x,a,state.origin)
+        | (c,b,x,a,_) -> (c,b,x,a,state.origin)
         | exception Not_found ->
            let exception E of (conf * outline list * int * anchor * string) in
            let key = try Digest.file absname |> Digest.to_hex with _ -> E.s in
