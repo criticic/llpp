@@ -151,7 +151,7 @@ Printf.printf "] and version = \"$ver\";;"
 EOF
 }
 
-ver=$(cd $srcd && git describe --tags) || echo unknown
+ver=$(cd $srcd && git describe --tags --dirty) || echo unknown
 cmd="mkhelp >$outd/help.ml"
 keycmd="sum $srcd/KEYS; echo $ver"
 isfresh "$outd/help.ml" '$cmd$(eval keycmd)$ver' || {
