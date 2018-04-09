@@ -1,12 +1,22 @@
 #!/bin/sh
 set -eu
 
-date --version | grep -q "GNU" && dfmt="%s.%N" || dfmt="%s"
 now() { date +$dfmt; }
+unameN=$(uname)
+test "$unameN" = Darwin && {
+    darwin=true
+    wsi="wsi/osx"
+} || {
+    darwin=false
+    wsi="wsi/x11"
+}
+dfmt="%s"                       # %s.%N ftw
 
 tstart=$(now)
 vecho=${vecho-:}
-command -v md5sum >/dev/null && alias sum='md5sum 2>/dev/null'
+command -v md5sum >/dev/null || {
+    alias sum='sum 2>/dev/null'
+} && alias sum='md5sum 2>/dev/null'
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
@@ -36,20 +46,25 @@ isfresh() {
 
 oflags() {
     case "${1#$outd/}" in
-        main.cmo|utils.cmo|config.cmo|parser.cmo|wsi.cmi|wsi/x11/wsi.cmo)
+        main.cmo|utils.cmo|config.cmo|parser.cmo|wsi.cmi|$wsi/wsi.cmo)
             f="-g -strict-sequence -strict-formats -warn-error a";;
         *) f="-g";;
     esac
-    echo "-I lablGL -I $outd/lablGL -I wsi/x11 -I $outd/wsi/x11 -I $outd $f"
+    echo "-I lablGL -I $outd/lablGL -I $wsi -I $outd/$wsi -I $outd $f"
 }
 
 cflags() {
     case "${1#$outd/}" in
         link.o)
-            echo "-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors";;
+            f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
+            $darwin && f="$f -D__COCOA__" || true
+            echo $f;;
+        */ml_gl.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
     esac
 }
+
+mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 
 bocaml1() {
     eval ocamlc -depend -bytecode -one-line $incs $s | {
@@ -81,7 +96,7 @@ bocaml() (
         test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
         o=$outd/$o
     }
-    incs="-I lablGL -I $outd/lablGL -I wsi/x11 -I $outd/wsi/x11 -I $outd"
+    incs="-I lablGL -I $outd/lablGL -I $wsi -I $outd/$wsi -I $outd"
     bocaml1 "$s" "$o"
 )
 
@@ -99,7 +114,21 @@ bocamlc() {
     }
 }
 
-mkdir -p $outd/wsi/x11
+bobjc() {
+    o=$outd/$1
+    s=$srcd/${1%.o}.m
+    cmd="$mcomp $(mflags $o) -MMD -MF $o.dep -MT_ -c -o $o $s"
+    test -r $o.dep && read _ d <$o.dep || d=
+    keycmd='sum $o $d'
+    isfresh "$o" "$cmd$(eval $keycmd)" || {
+        printf "%s -> %s\n" "${s#$srcd/}" "$o"
+        eval "$cmd"
+        read _ d <$o.dep
+        echo "k='$cmd$(eval $keycmd)'" >$o.past
+    }
+}
+
+mkdir -p $outd/$wsi
 mkdir -p $outd/lablGL
 :>$outd/ordered
 
@@ -127,13 +156,23 @@ isfresh "$outd/help.ml" '$cmd$(eval keycmd)$ver' || {
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
 }
 
-for m in lablGL/glMisc.cmo lablGL/glTex.cmo wsi/x11/wsi.cmo main.cmo; do
+for m in lablGL/glMisc.cmo lablGL/glTex.cmo $wsi/wsi.cmo main.cmo; do
     bocaml $m 0
 done
 bocamlc link.o
+cobjs="$outd/link.o"
 
 libs="str.cma unix.cma"
-clibs="-lGL -lX11 -L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
+clibs="-L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
+if $darwin; then
+    mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
+    clibs="$clibs -framework Cocoa -framework OpenGL"
+    bobjc main_osx.o
+    cobjs="$cobjs $outd/main_osx.o"
+else
+    clibs="$clibs -lGL -lX11"
+fi
+
 globjs=
 for f in ml_gl ml_glarray ml_raw; do
     bocamlc lablGL/$f.o
@@ -141,11 +180,11 @@ for f in ml_gl ml_glarray ml_raw; do
 done
 
 ord=$(echo $(eval grep -v \.cmi $outd/ordered))
-cmd="ocamlc -custom $libs -o $outd/llpp $ord"
-cmd="$cmd $globjs $outd/link.o -cclib \"$clibs\""
-keycmd="sum $outd/llpp $ord"
+cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
+cmd="$cmd $globjs -cclib \"$clibs\""
+keycmd="sum $outd/llpp $outd/link.o $ord"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
-        eval $cmd
+        eval $cmd || echo "$cmd failed"
         echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
     }
