@@ -205,8 +205,9 @@ if $darwin; then
     } && vecho "fresh plist"
 
     out=$outd/llpp.app/Contents/MacOS/llpp
-    isfresh $out "$(digest $out  $outd/llpp)" || {
+    keycmd="digest $out"
+    isfresh $out "$(eval $keycmd)" || {
         cp $outd/llpp $out
-        echo "k=$(digest $out)" >"$out.past"
+        echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh app"
 fi
