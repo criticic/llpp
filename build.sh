@@ -33,6 +33,10 @@ die() {
 
 trap 'partmsg' EXIT
 
+test $(ocamlc -version | {IFS=. read a b _; echo $a$b}) -lt 406 && {
+    die OCaml version 4.06+ is required
+}
+
 test -n "${1-}" || die "usage: $0 build-directory"
 
 outd=$1
