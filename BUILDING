@@ -1,13 +1,8 @@
 Prerequisites for building from sources:
         mupdf         [http://mupdf.com/]
         ocaml (4.06+) [http://ocaml.org/]
-        gcc           [https://gcc.gnu.org/]
-        binutils      [http://www.gnu.org/software/binutils/]
-        make          [http://www.gnu.org/software/make/]
-        git           [https://git-scm.com/]
-        openssl       [https://www.openssl.org/source/]
-                       MuPDF depends on libcrypto part of OpenSSL
         opengl        [http://en.wikipedia.org/wiki/OpenGL]
+        git           [https://git-scm.com/] [optional]
 
   llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
   llpp% cd mupdf
