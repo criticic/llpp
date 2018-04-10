@@ -2,7 +2,7 @@ Prerequisites for building from sources:
         mupdf         [http://mupdf.com/]
         ocaml (4.06+) [http://ocaml.org/]
         opengl        [http://en.wikipedia.org/wiki/OpenGL]
-        git           [https://git-scm.com/] [optional]
+        git           [https://git-scm.com/]
 
   llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
   llpp% cd mupdf
