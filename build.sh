@@ -78,11 +78,11 @@ bocaml1() {
     cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="digest $o $s"
     grep -q "$o" $outd/ordered || {
-        echo "$o" >>$outd/ordered
+        echo "$o" >>"$outd/ordered"
         isfresh "$o" "$cmd$(eval $keycmd)" || {
             printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
             eval "$cmd"
-            echo "k='$cmd$(eval $keycmd)'" >$o.past
+            echo "k='$cmd$(eval $keycmd)'" >"$o.past"
         } && vecho "fresh '$o'"
     }
 }
@@ -112,7 +112,7 @@ bocamlc() {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
         read _ d <$o.dep
-        echo "k='$cmd$(eval $keycmd)'" >$o.past
+        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
 }
 
@@ -126,7 +126,7 @@ bobjc() {
         printf "%s -> %s\n" "${s#$srcd/}" "$o"
         eval "$cmd"
         read _ d <$o.dep
-        echo "k='$cmd$(eval $keycmd)'" >$o.past
+        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
 }
 
@@ -155,7 +155,7 @@ cmd="mkhelp >$outd/help.ml"
 keycmd="digest $srcd/KEYS; echo $ver"
 isfresh "$outd/help.ml" '$cmd$(eval $keycmd)$ver' || {
     eval $cmd
-    echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
+    echo "k='$cmd$(eval $keycmd)$ver'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
 # following is disgusting (from "generalize everything" perspective),
@@ -191,7 +191,7 @@ keycmd="digest $outd/llpp $outd/link.o $ord"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
         eval $cmd || echo "$cmd failed"
-        echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
+        echo "k='$cmd$(eval $keycmd)'" >"$outd/llpp.past"
     } && vecho "fresh llpp"
 
 if $darwin; then
@@ -200,13 +200,13 @@ if $darwin; then
     isfresh $out "$(eval $keycmd)" || {
         shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         mkdir -p $outd/llpp.app/Contents/MacOS
-        . $srcd/misc/Info.plist.sh >$outd/llpp.app/Contents/Info.plist
-        echo "k=$(eval $keycmd)" >$out.past
+        . $srcd/misc/Info.plist.sh >"$out"
+        echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh plist"
 
     out=$outd/llpp.app/Contents/MacOS/llpp
     isfresh $out "$(digest $out  $outd/llpp)" || {
         cp $outd/llpp $out
-        echo "k=$(digest $out)" >$out.past
+        echo "k=$(digest $out)" >"$out.past"
     } && vecho "fresh app"
 fi
