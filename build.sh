@@ -33,7 +33,7 @@ die() {
 
 trap 'partmsg' EXIT
 
-test -n "$1" || die "usage: $0 build-directory"
+test -n "${1-}" || die "usage: $0 build-directory"
 
 outd=$1
 srcd=$(dirname $0)
