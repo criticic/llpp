@@ -200,7 +200,7 @@ if $darwin; then
     isfresh $out "$(eval $keycmd)" || {
         shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         d=$(dirname $out)
-        test -d "$d" || mkdir -p $d
+        test -d "$d" || mkdir -p "$d"
         . $srcd/misc/Info.plist.sh >"$out"
         echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh plist"
@@ -209,7 +209,7 @@ if $darwin; then
     keycmd="digest $out"
     isfresh $out "$(eval $keycmd)" || {
         d=$(dirname $out)
-        test -d "$d" || mkdir -p $d
+        test -d "$d" || mkdir -p "$d"
         cp $outd/llpp $out
         echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh app"
