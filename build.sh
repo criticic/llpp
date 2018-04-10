@@ -33,7 +33,7 @@ die() {
 
 trap 'partmsg' EXIT
 
-test $(ocamlc -version | {IFS=. read a b _; echo $a$b}) -lt 406 && {
+test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }; ) -lt 406 && {
     die OCaml version 4.06+ is required
 }
 
