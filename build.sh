@@ -212,5 +212,5 @@ if $darwin; then
         test -d "$d" || mkdir -p "$d"
         cp $outd/llpp $out
         echo "k=$(eval $keycmd)" >"$out.past"
-    } && vecho "fresh app"
+    } && vecho "fresh bundle"
 fi
