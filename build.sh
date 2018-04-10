@@ -195,9 +195,13 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     } && $vecho "fresh llpp"
 
 if $darwin; then
-    shortver=$(echo $ver | sed -n 's/v\([0-9]*\).*/\1/p')
-    mkdir -p $outd/llpp.app/Contents/MacOS
-    sed s/@VERSION@/$shortver/ $srcd/misc/Info.plist | \
-        sed s/@BUNDLE_VERSION@/$ver/ > $outd/llpp.app/Contents/Info.plist
-    cp $outd/llpp $outd/llpp.app/Contents/MacOS/
+    isfresh $outd/llpp.app/Contents/Info.plist \
+            "$ver$srcd/misc/Info.plist.sh" || {
+        shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
+        mkdir -p $outd/llpp.app/Contents/MacOS
+        . $srcd/misc/Info.plist.sh >$outd/llpp.app/Contents/Info.plist
+        isfresh $outd/llpp.app/Contents/MacOS/llpp "" || {
+            cp $outd/llpp $outd/llpp.app/Contents/MacOS/llpp
+        }
+    } && $vecho "fresh llpp.app"
 fi

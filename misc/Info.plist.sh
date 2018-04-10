@@ -1,3 +1,4 @@
+cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -36,7 +37,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>@VERSION@</string>
+	<string>$shortver</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleSupportedPlatforms</key>
@@ -44,10 +45,11 @@
 		<string>MacOSX</string>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>@BUNDLE_VERSION@</string>
+	<string>$ver</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.10</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
 </plist>
+EOF
