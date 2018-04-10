@@ -194,7 +194,7 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
     } && vecho "fresh llpp"
 
-if true || $darwin; then
+if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"
     keycmd="digest $out $srcd/misc/Info.plist.sh"
     isfresh $out "$(eval $keycmd)" || {
