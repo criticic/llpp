@@ -17,7 +17,7 @@ if $(expr >/dev/null "$(date --version 2>/dev/null)" : ".*GNU"); then
 fi
 
 tstart=$(now)
-vecho=${vecho-:}
+alias vecho=${vecho-:}
 command -v md5sum >/dev/null || true && alias sum=md5sum
 digest() { sum "$@" 2>/dev/null | while read h _; do  printf $h; done; }
 
@@ -83,7 +83,7 @@ bocaml1() {
             printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
             eval "$cmd"
             echo "k='$cmd$(eval $keycmd)'" >$o.past
-        } && $vecho "fresh '$o'"
+        } && vecho "fresh '$o'"
     }
 }
 
@@ -113,7 +113,7 @@ bocamlc() {
         eval "$cmd"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >$o.past
-    } && $vecho "fresh $o"
+    } && vecho "fresh $o"
 }
 
 bobjc() {
@@ -127,7 +127,7 @@ bobjc() {
         eval "$cmd"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >$o.past
-    } && $vecho "fresh $o"
+    } && vecho "fresh $o"
 }
 
 mkdir -p $outd/$wsi
@@ -156,7 +156,7 @@ keycmd="digest $srcd/KEYS; echo $ver"
 isfresh "$outd/help.ml" '$cmd$(eval $keycmd)$ver' || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
-} && $vecho "fresh $outd/help.ml"
+} && vecho "fresh $outd/help.ml"
 
 # following is disgusting (from "generalize everything" perspective),
 # but generic method of derviving .ml's location from .mli's is not
@@ -192,7 +192,7 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
         eval $cmd || echo "$cmd failed"
         echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
-    } && $vecho "fresh llpp"
+    } && vecho "fresh llpp"
 
 if $darwin; then
     isfresh $outd/llpp.app/Contents/Info.plist \
@@ -203,5 +203,5 @@ if $darwin; then
         isfresh $outd/llpp.app/Contents/MacOS/llpp "" || {
             cp $outd/llpp $outd/llpp.app/Contents/MacOS/llpp
         }
-    } && $vecho "fresh llpp.app"
+    } && vecho "fresh llpp.app"
 fi
