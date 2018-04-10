@@ -194,14 +194,19 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
     } && vecho "fresh llpp"
 
-if $darwin; then
-    isfresh $outd/llpp.app/Contents/Info.plist \
-            "$ver$srcd/misc/Info.plist.sh" || {
+if true || $darwin; then
+    out="$outd/llpp.app/Contents/Info.plist"
+    keycmd="digest $out $srcd/misc/Info.plist.sh"
+    isfresh $out "$(eval $keycmd)" || {
         shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         mkdir -p $outd/llpp.app/Contents/MacOS
         . $srcd/misc/Info.plist.sh >$outd/llpp.app/Contents/Info.plist
-        isfresh $outd/llpp.app/Contents/MacOS/llpp "" || {
-            cp $outd/llpp $outd/llpp.app/Contents/MacOS/llpp
-        }
-    } && vecho "fresh llpp.app"
+        echo "k=$(eval $keycmd)" >$out.past
+    } && vecho "fresh plist"
+
+    out=$outd/llpp.app/Contents/MacOS/llpp
+    isfresh $out "$(digest $out  $outd/llpp)" || {
+        cp $outd/llpp $out
+        echo "k=$(digest $out)" >"$out.past"
+    } && vecho "fresh app"
 fi
