@@ -208,7 +208,7 @@ if $darwin; then
     out=$outd/llpp.app/Contents/MacOS/llpp
     keycmd="digest $out"
     isfresh $out "$(eval $keycmd)" || {
-        d=$(dirname $out)
+        d=$(dirname $out $outd/llpp)
         test -d "$d" || mkdir -p "$d"
         cp $outd/llpp $out
         echo "k=$(eval $keycmd)" >"$out.past"
