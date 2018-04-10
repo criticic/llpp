@@ -113,7 +113,7 @@ bocamlc() {
         eval "$cmd"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >$o.past
-    }
+    } && $vecho "fresh $o"
 }
 
 bobjc() {
@@ -127,7 +127,7 @@ bobjc() {
         eval "$cmd"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >$o.past
-    }
+    } && $vecho "fresh $o"
 }
 
 mkdir -p $outd/$wsi
@@ -156,7 +156,7 @@ keycmd="digest $srcd/KEYS; echo $ver"
 isfresh "$outd/help.ml" '$cmd$(eval $keycmd)$ver' || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)$ver'" >$outd/help.ml.past
-}
+} && $vecho "fresh $outd/help.ml"
 
 # following is disgusting (from "generalize everything" perspective),
 # but generic method of derviving .ml's location from .mli's is not
@@ -192,7 +192,7 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
         eval $cmd || echo "$cmd failed"
         echo "k='$cmd$(eval $keycmd)'" >$outd/llpp.past
-    }
+    } && $vecho "fresh llpp"
 
 if $darwin; then
     shortver=$(echo $ver | sed -n 's/v\([0-9]*\).*/\1/p')
