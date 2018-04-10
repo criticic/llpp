@@ -207,6 +207,6 @@ if true || $darwin; then
     out=$outd/llpp.app/Contents/MacOS/llpp
     isfresh $out "$(digest $out  $outd/llpp)" || {
         cp $outd/llpp $out
-        echo "k=$(digest $out)" >"$out.past"
+        echo "k=$(digest $out)" >$out.past
     } && vecho "fresh app"
 fi
