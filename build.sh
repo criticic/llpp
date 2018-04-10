@@ -210,10 +210,10 @@ if $darwin; then
     } && vecho "fresh plist"
 
     out=$outd/llpp.app/Contents/MacOS/llpp
-    keycmd="digest $out"
+    keycmd="digest $out $outd/llpp"
     isfresh $out "$(eval $keycmd)" || {
-        d=$(dirname $out $outd/llpp)
-        test -d "$d" || mkdir -p "$d"
+        d=$(dirname $out)
+        mkdir -p "$d"
         cp $outd/llpp $out
         echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh bundle"
