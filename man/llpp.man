@@ -70,7 +70,7 @@ Print version and exit.
 === ~/.config/llpp.conf
 
 This is the user specific configuration file. If $XDG_CONFIG_HOME is set
-$XDG_CONFIG_HOME/llpp.conf is used instead. It has a XML structure
+$XDG_CONFIG_HOME/llpp.conf is used instead. It has an XML structure.
 
 You can specify a custom path using the -c option.
 
