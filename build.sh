@@ -162,6 +162,31 @@ isfresh "$outd/help.ml" '$cmd$(eval $keycmd)$ver' || {
     echo "k='$cmd$(eval $keycmd)$ver'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
+
+case "${2-}" in
+    man)
+        md=$outd/man
+        mkdir -p $md
+        for m in llpp llppac llpphtml; do
+            man=$srcd/man/$m.man
+            xml=$md/$m.xml
+            out=$md/$m.1
+            ketcmd="digest $xml $man"
+            conf="$srcd/man/asciidoc.conf"
+            cmd="asciidoc -d manpage -b docbook -f $conf -o '$xml' '$man'"
+            isfresh "$xml" "$cmd$(eval $keycmd)" || {
+                eval $cmd
+                echo "k='$cmd$(eval $keycmd)'" >"$md/$m.past"
+            }
+            ketcmd="digest $out $xml"
+            isfresh "$out" "$cmd$(eval $keycmd)" || {
+                xmlto man -o $md $xml
+            }
+        done
+        shift;;
+    *) ;;
+esac
+
 # following is disgusting (from "generalize everything" perspective),
 # but generic method of derviving .ml's location from .mli's is not
 # immediately obvious
