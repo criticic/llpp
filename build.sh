@@ -18,16 +18,8 @@ fi
 
 tstart=$(now)
 alias vecho=${vecho-:}
-command -v md5sum >/dev/null || true && alias sum=md5sum
-digest() (
-    set -- $(sum $*)
-    h=
-    while test $# -ne 0; do
-        h="$h$1"
-        shift; shift
-    done
-    printf "$h"
-)
+command -v md5sum >/dev/null && alias sum=md5sum || true
+digest() { sum $* 2>/dev/null | while read h _; do printf "$h"; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
