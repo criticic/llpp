@@ -40,3 +40,10 @@
   I would have to be very bored to DONE this...  And so i was, the
   only Make remnants are incompletions, boredom must be absolute to
   "fix" that.
+* build.sh
+  Updating KEYS results in:
+        - sh build.sh build        
+        linking build/llpp
+        File "_none_", line 1:
+        Error: Files build/config.cmo and build/help.cmo
+               make inconsistent assumptions over interface Help
