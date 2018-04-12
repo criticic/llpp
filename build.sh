@@ -57,7 +57,7 @@ oflags() {
             f="-g -strict-sequence -strict-formats -warn-error a";;
         *) f="-g";;
     esac
-    echo "-I lablGL -I $outd/lablGL -I $wsi -I $outd/$wsi -I $outd $f"
+    echo "$incs $f"
 }
 
 cflags() {
@@ -102,7 +102,7 @@ bocaml() (
         test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
         o=$outd/$o
     }
-    incs="-I lablGL -I $outd/lablGL -I $wsi -I $outd/$wsi -I $outd"
+    incs="-I $srcd/lablGL -I $outd/lablGL -I $srcd/$wsi -I $outd/$wsi -I $srcd -I $outd"
     bocaml1 "$s" "$o"
 )
 
