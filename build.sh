@@ -21,7 +21,8 @@ alias vecho=${vecho-:}
 command -v md5sum >/dev/null || true && alias sum=md5sum
 digest() {
     ah=
-    sum "$@" 2>/dev/null | while read h _; do ah="$ah$h"; done; printf "$ah"
+    sum "$@" 2>/dev/null | while read h _; do ah="$ah$h"; done
+    printf "$ah"
 }
 
 partmsg() {
