@@ -178,8 +178,10 @@ case "${2-}" in
                 echo "k='$cmd$(eval $keycmd)'" >"$md/$m.past"
             }
             ketcmd="digest $out $xml"
+            cmd="xmlto man -o $md $xml"
             isfresh "$out" "$cmd$(eval $keycmd)" || {
-                xmlto man -o $md $xml
+                eval $cmd
+                echo "k='$cmd$(eval $keycmd)'" >"$out.past"
             }
         done
         shift;;
