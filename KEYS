@@ -184,5 +184,5 @@ and selection command otherwise
 [5] document will also be reloaded upon reception of the HUP signal
 
 -----Caveat emptor-----
-o Selection can not cross page boundaries
+o Text selection is limited to a single page
 o Text searching is very naive
