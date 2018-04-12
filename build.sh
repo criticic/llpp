@@ -170,14 +170,14 @@ case "${2-}" in
             man=$srcd/man/$m.man
             xml=$md/$m.xml
             out=$md/$m.1
-            ketcmd="digest $xml $man"
+            keycmd="digest $xml $man"
             conf="$srcd/man/asciidoc.conf"
             cmd="asciidoc -d manpage -b docbook -f $conf -o '$xml' '$man'"
             isfresh "$xml" "$cmd$(eval $keycmd)" || {
                 eval $cmd
                 echo "k='$cmd$(eval $keycmd)'" >"$md/$m.past"
             }
-            ketcmd="digest $out $xml"
+            keycmd="digest $out $xml"
             cmd="xmlto man -o $md $xml"
             isfresh "$out" "$cmd$(eval $keycmd)" || {
                 eval $cmd
