@@ -162,7 +162,6 @@ isfresh "$outd/help.ml" '$cmd$(eval $keycmd)$ver' || {
     echo "k='$cmd$(eval $keycmd)$ver'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
-
 case "${2-}" in
     man)
         md=$outd/man
