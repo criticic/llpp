@@ -19,7 +19,9 @@ fi
 tstart=$(now)
 alias vecho=${vecho-:}
 command -v md5sum >/dev/null && alias sum=md5sum || true
-digest() { sum $* 2>/dev/null | while read h _; do printf "$h"; done; }
+test -z "${debugdeps-}" \
+    && digest() { sum $* 2>/dev/null | while read h _; do printf "$h"; done; } \
+        || digest() { sum $* 2>/dev/null; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
@@ -39,8 +41,8 @@ test $(ocamlc -version | { IFS=. read a b _; echo $a$b; } ) -lt 406 && {
 
 test -n "${1-}" || die "usage: $0 build-directory"
 
-outd=$1
-srcd=$(dirname $0)
+outd=$(readlink -f "$1")
+srcd=$(readlink -f "$(dirname $0)")
 mudir=$srcd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
@@ -73,7 +75,7 @@ cflags() {
 mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 
 bocaml1() {
-    eval ocamlc -depend -bytecode -one-line $incs $s | {
+    ocamlc -depend -bytecode -one-line $incs $s | {
         read _ _ depl
         for d in $(eval echo $depl); do
             bocaml ${d#$srcd/} $((n+1))
@@ -84,7 +86,7 @@ bocaml1() {
     grep -q "$o" $outd/ordered || {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$cmd$(eval $keycmd)" || {
-            printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "$o"
+            printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
             eval "$cmd"
             echo "k='$cmd$(eval $keycmd)'" >"$o.past"
         } && vecho "fresh '$o'"
@@ -102,7 +104,8 @@ bocaml() (
         test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
         o=$outd/$o
     }
-    incs="-I $srcd/lablGL -I $outd/lablGL -I $srcd/$wsi -I $outd/$wsi -I $srcd -I $outd"
+    incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
+    incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
     bocaml1 "$s" "$o"
 )
 
@@ -113,7 +116,7 @@ bocamlc() {
     test -r $o.dep && read _ d <$o.dep || d=
     keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
-        printf "%s -> %s\n" "${s#$srcd/}" "$o"
+        printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >"$o.past"
@@ -127,7 +130,7 @@ bobjc() {
     test -r $o.dep && read _ d <$o.dep || d=
     keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
-        printf "%s -> %s\n" "${s#$srcd/}" "$o"
+        printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >"$o.past"
