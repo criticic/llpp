@@ -100,7 +100,7 @@ You can specify a custom path using the -c option.
 -------------------------------------------------------------
 <llppconfig>
   <ui-font size='16'>
-    <![CDATA[/usr/share/fonts/TTF/DejaVuSansMono.ttf]]>
+    <![CDATA[/home/username/.fonts/PTF55F.ttf]]>
   </ui-font>
   <defaults ... />
 </llppconfig>
