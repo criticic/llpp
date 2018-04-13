@@ -75,7 +75,7 @@ cflags() {
 mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 
 bocaml1() {
-    ocamlc -depend -bytecode -one-line $incs $s | {
+    ocamlc -depend -bytecode -one-line $(echo $incs) $s | {
         read _ _ depl
         for d in $(eval echo $depl); do
             bocaml ${d#$srcd/} $((n+1))
