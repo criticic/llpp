@@ -24,24 +24,11 @@ true && {
     cd ..
 }
 
-true && {
+cd ..
+test -d mupdf || {
     rmudir=$HOME/x/rcs/git/mupdf
     test -d $rmudir || ref= && ref="--reference $rmudir"
-    test -e mupdf || {
-        git clone --recursive $ref git://git.ghostscript.com/mupdf.git
-    } && {
-        cd mupdf
-        git pull
-        cd -
-    }
+    git clone --recursive $ref git://git.ghostscript.com/mupdf.git
     make -C mupdf build=native -j4 libs
 }
-
-test -e llpp || git clone git://repo.or.cz/llpp.git && {
-        cd llpp
-        git pull
-        cd -
-    }
-ln -sf $PWD/mupdf llpp
-cd llpp
-PATH=$prefix/bin:$PATH sh ./build.sh build
+PATH=$prefix/bin:$PATH sh ./build.sh build-strap
