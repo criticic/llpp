@@ -13,10 +13,11 @@ mkdir -p bootstrap
 prefix=$PWD/bootstrap
 
 true && {
-    xz=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
-    test -e ocaml-4.06.1.tar.xz || dl $xz ocaml-4.06.1.xz
-    tar xf ocaml-4.06.1.xz
-    cd ocaml-4.06.1
+    url=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
+    xz=$(basename $url)
+    test -e $xz || dl $url $xz
+    tar xf $xz
+    cd ${xz%.tar.xz}
     ./configure -prefix $prefix
     make -j4 world -s
     make install
