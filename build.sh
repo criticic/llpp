@@ -187,13 +187,13 @@ case "${2-}" in
             isfresh "$xml" "$cmd$(eval $keycmd)" || {
                 eval $cmd
                 echo "k='$cmd$(eval $keycmd)'" >"$md/$m.past"
-            }
+            } && vecho "fresh manual xmls"
             keycmd="digest $out $xml"
             cmd="xmlto man -o $md $xml"
             isfresh "$out" "$cmd$(eval $keycmd)" || {
                 eval $cmd
                 echo "k='$cmd$(eval $keycmd)'" >"$out.past"
-            }
+            } && vecho "fresh manual pages"
         done
         shift;;
     *) ;;
