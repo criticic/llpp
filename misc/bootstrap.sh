@@ -12,7 +12,7 @@ fi
 mkdir -p bootstrap
 prefix=$PWD/bootstrap
 
-false && {
+true && {
     xz=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
     test -e ocaml-4.06.1.tar.xz || dl $xz ocaml-4.06.0.1.xz
     tar xf ocaml-4.06.0.1.xz
@@ -23,14 +23,24 @@ false && {
     cd ..
 }
 
-false && {
+true && {
     rmudir=$HOME/x/rcs/git/mupdf
     test -e $rmudir || ref= && ref="--reference $rmudir"
-    test -e mupdf || git clone $ref git://git.ghostscript.com/mupdf.git
-    make -C mupdf build=native -j4
+    test -e mupdf || {
+        git clone --recursive $ref git://git.ghostscript.com/mupdf.git
+    } && {
+        cd mupdf
+        git pull
+        cd -
+    }
+    make -C mupdf build=native -j4 libs
 }
 
-git clone git://repo.or.cz/llpp.git
+test -e llpp || git clone git://repo.or.cz/llpp.git && {
+        cd llpp
+        git pull
+        cd -
+    }
+ln -sf $PWD/mupdf llpp
 cd llpp
-ln -s ../mupdf
 PATH=$prefix/bin:$PATH sh ./build.sh build
