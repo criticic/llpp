@@ -74,6 +74,7 @@ cflags() {
     case "${1#$outd/}" in
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
+            f="$f -D_POSIX_C_SOURCE"
             $darwin && echo "$f -D__COCOA__" || echo $f;;
         */ml_gl.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
