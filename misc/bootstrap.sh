@@ -14,8 +14,8 @@ prefix=$PWD/bootstrap
 
 true && {
     xz=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
-    test -e ocaml-4.06.1.tar.xz || dl $xz ocaml-4.06.0.1.xz
-    tar xf ocaml-4.06.0.1.xz
+    test -e ocaml-4.06.1.tar.xz || dl $xz ocaml-4.06.1.xz
+    tar xf ocaml-4.06.1.xz
     cd ocaml-4.06.1
     ./configure -prefix $prefix
     make -j4 world -s
@@ -25,7 +25,7 @@ true && {
 
 true && {
     rmudir=$HOME/x/rcs/git/mupdf
-    test -e $rmudir || ref= && ref="--reference $rmudir"
+    test -d $rmudir || ref= && ref="--reference $rmudir"
     test -e mupdf || {
         git clone --recursive $ref git://git.ghostscript.com/mupdf.git
     } && {
