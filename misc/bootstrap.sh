@@ -27,8 +27,16 @@ true && {
 cd ..
 test -d mupdf || {
     rmudir=$HOME/x/rcs/git/mupdf
-    test -d $rmudir || ref= && ref="--reference $rmudir"
+    if test -d $rmudir ; then
+        ref="--reference $rmudir"
+    else
+        ref=""
+    fi
     git clone --recursive $ref git://git.ghostscript.com/mupdf.git
+    cd mupdf
+    git checkout 4a7822d6750ecb6e0b63f4357738dc20ecaa58f6
+    git submodule update --recursive
+    cd -
     make -C mupdf build=native -j4 libs
 }
 PATH=$prefix/bin:$PATH sh ./build.sh build-strap

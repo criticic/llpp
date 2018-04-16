@@ -1,4 +1,5 @@
 /* lots of code c&p-ed directly from mupdf */
+#define _GNU_SOURCE
 #define CAML_NAME_SPACE
 #define FIXME 0
 
