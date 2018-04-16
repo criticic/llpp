@@ -27,7 +27,7 @@ text() {
 === $1 ===
 EOF
     test -n "$2" && cat $2 || cat <<EOF
-S9 З3 align
+S9 З3 Il1
 ~
 ЁЖЗ
 
