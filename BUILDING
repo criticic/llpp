@@ -12,7 +12,7 @@ Prerequisites for building from sources:
   mupdf% cd ..
   llpp% sh build.sh build
 
-Standalone binary should now be in build/llpp
+Standalone binary should now be in build/llpp.
 
 Native macOS Installation Instructions
 --------------------------------------
