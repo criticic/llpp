@@ -41,8 +41,8 @@ test $(ocamlc -version | { IFS=. read a b _; echo $a$b; } ) -lt 406 && {
 
 test -n "${1-}" || die "usage: $0 build-directory"
 
-outd=$(readlink -f "$1")
-srcd=$(readlink -f "$(dirname $0)")
+outd="$1"
+srcd="$(dirname $0)"
 mudir=$srcd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
@@ -74,7 +74,7 @@ cflags() {
     case "${1#$outd/}" in
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
-            f="$f -D_POSIX_C_SOURCE"
+            f="$f -D_GNU_SOURCE"
             $darwin && echo "$f -D__COCOA__" || echo $f;;
         */ml_gl.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
