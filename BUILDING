@@ -21,7 +21,7 @@ Native macOS Installation Instructions
   build/llpp.app.
 
 
-MacOS/Windows10/ or when OCaml is too old (Debian, etc)
+macOS/Windows10/ or when OCaml is too old (Debian, etc)
 -------------------------------------------------------
   llpp% cd misc
   misc% sh bootstrap.sh
