@@ -19,3 +19,10 @@ Native macOS Installation Instructions
 
   If `sh build.sh build' succeeds, standalone macOS app should be in
   build/llpp.app.
+
+Or...
+  llpp% cd misc
+  misc% sh bootstrap.sh
+
+  If `sh bootstrap.sh' succeeds (fetching and building ocaml, mupdf and llpp)
+  standalone binary should be in llpp/build-strap/llpp.
