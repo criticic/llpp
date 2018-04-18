@@ -9,6 +9,7 @@ elif executable_p curl; then dl() { curl $1 -o $2; }
 else die "no program to fetch remote urls found"
 fi
 
+cd "$(dirname $0)"
 mkdir -p bootstrap
 prefix=$PWD/bootstrap
 
