@@ -37,9 +37,9 @@
 * DONE Make new build.sh work on macOS
   CLOSED: [2018-04-09 Mon 12:46]
 * TODO remove vestiges of make
-  I would have to be very bored to DONE this...  And so i was, the
-  only Make remnants are incompletions, boredom must be absolute to
-  "fix" that.
+  I would have to be very bored to mark that "DONE"...  And so i was,
+  the only Make remnants are in completions/, boredom must be absolute
+  to "fix" that.
 * build.sh
 ** TODO Track ocaml version
 ** FIXME Updating KEYS results in:
