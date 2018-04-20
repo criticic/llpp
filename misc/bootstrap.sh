@@ -35,7 +35,7 @@ test -d mupdf || {
     fi
     git clone --recursive $ref git://git.ghostscript.com/mupdf.git
     cd mupdf
-    git checkout 4a7822d6750ecb6e0b63f4357738dc20ecaa58f6
+    git checkout 56a752c928146b94838b09c7269c50b0aa800e68
     git submodule update --recursive
     cd -
     make -C mupdf build=native -j4 libs
