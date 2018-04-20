@@ -2,7 +2,7 @@
 set -e
 range="$1..${2-HEAD}"
 (echo "Summary $range"
- git shortlog --no-merges -s $range
+ git shortlog --no-merges -ns $range
  printf "\nDiffstat $range\n"
  git diff --stat $range) | xclip -i
 xclip -o
