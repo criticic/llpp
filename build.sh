@@ -1,7 +1,6 @@
 #!/bin/sh
 set -eu
 
-now() { date +$dfmt; }
 unameN=$(uname)
 test "$unameN" = Darwin && {
     darwin=true
@@ -11,10 +10,7 @@ test "$unameN" = Darwin && {
     wsi="wsi/x11"
 }
 
-dfmt="%s"
-if $(expr >/dev/null "$(date --version 2>/dev/null)" : ".*GNU"); then
-    dfmt="%s.%N"
-fi
+now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 
 tstart=$(now)
 alias vecho=${vecho-:}
