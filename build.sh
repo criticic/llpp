@@ -12,7 +12,7 @@ test "$(uname)" = Darwin && {
 now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 
 tstart=$(now)
-alias vecho=${vecho-:}
+vecho() { ${vecho-:} "$*"; }
 command -v md5sum >/dev/null && alias sum=md5sum || true
 test -z "${debugdeps-}" \
     && digest() { sum $* 2>/dev/null | while read h _; do printf "$h"; done; } \
@@ -30,7 +30,7 @@ die() {
 
 trap 'partmsg' EXIT
 
-test $(ocamlc -version | { IFS=. read a b _; echo $a$b; } ) -lt 406 && {
+test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }) -lt 406 && {
     die OCaml version 4.06+ is required
 }
 
