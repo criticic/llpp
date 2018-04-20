@@ -184,8 +184,7 @@ let updkmap sock resp =
     else E.b
   in
   let m = len / syms in
-  state.keymap <- Array.make_matrix
-                    (state.maxk - state.mink) syms 0xffffff;
+  state.keymap <- Array.make_matrix state.maxk syms 0xffffff;
   let rec loop i = if i = m then () else
                      let k = i*4*syms in
                      let rec loop2 k l = if l = syms then () else
