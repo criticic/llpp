@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
 
-unameN=$(uname)
-test "$unameN" = Darwin && {
+test "$(uname)" = Darwin && {
     darwin=true
     wsi="wsi/osx"
 } || {
