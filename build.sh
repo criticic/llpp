@@ -165,9 +165,9 @@ EOF
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 cmd="mkhelp >$outd/help.ml"
 keycmd="digest $srcd/KEYS; echo $ver"
-isfresh "$outd/help.ml" '$cmd$(eval $keycmd)$ver' || {
+isfresh "$outd/help.ml" '$cmd$(eval $keycmd)' || {
     eval $cmd
-    echo "k='$cmd$(eval $keycmd)$ver'" >"$outd/help.ml.past"
+    echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
 case "${2-}" in
