@@ -86,11 +86,9 @@ bocaml1() {
         depl=$(eval echo $depl)
         for d in $depl; do
             bocaml ${d#$srcd/} $((n+1))
-            test $d = "build/help.cmo" && {
-                printf "$outd/help.cmo " >>$o.depl
-            } || {
-                printf "$outd/${d#$srcd/} " >>$o.depl
-            }
+            test $d = "build/help.cmo" \
+                && dd=$outd/help.cmo || dd=$outd/${d#$srcd/}
+            printf "$dd " >>$o.depl
         done
     }
     cmd="ocamlc $(oflags $o) -c -o $o $s"
