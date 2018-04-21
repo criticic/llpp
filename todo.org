@@ -40,9 +40,10 @@
   I would have to be very bored to mark that "DONE"...  And so i was,
   the only Make remnants are in completions/, boredom must be absolute
   to "fix" that.
-* build.sh
+* TODO build.sh
 ** TODO Track ocaml version
-** FIXME Updating KEYS results in:
+** DONE Updating KEYS results in:
+   CLOSED: [2018-04-21 Sat 09:10]
     - sh build.sh build        
     linking build/llpp
     File "_none_", line 1:

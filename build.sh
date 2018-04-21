@@ -80,14 +80,21 @@ cflags() {
 mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 
 bocaml1() {
+    :>$o.depl
     ocamlc -depend -bytecode -one-line $(echo $incs) $s | {
         read _ _ depl
-        for d in $(eval echo $depl); do
+        depl=$(eval echo $depl)
+        for d in $depl; do
             bocaml ${d#$srcd/} $((n+1))
+            test $d = "build/help.cmo" && {
+                printf "$outd/help.cmo " >>$o.depl
+            } || {
+                printf "$outd/${d#$srcd/} " >>$o.depl
+            }
         done
     }
     cmd="ocamlc $(oflags $o) -c -o $o $s"
-    keycmd="digest $o $s"
+    keycmd="digest $s $(cat $o.depl)"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$cmd$(eval $keycmd)" || {
