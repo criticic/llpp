@@ -99,7 +99,7 @@ bocaml1() {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$cmd$(eval $keycmd)" || {
             printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
-            eval "$cmd"
+            eval "$cmd" || die "$cmd failed"
             echo "k='$cmd$(eval $keycmd)'" >"$o.past"
         } && vecho "fresh '$o'"
     }
