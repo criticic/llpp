@@ -220,7 +220,7 @@ if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
     bobjc wsi/osx/wsi.o
-    cobjs="$cobjs $outd/main_osx.o"
+    cobjs="$cobjs $outd/wsi/osx/wsi.o"
 else
     clibs="$clibs -lGL -lX11"
 fi
