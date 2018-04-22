@@ -237,7 +237,7 @@ cmd="$cmd $globjs -cclib \"$clibs\""
 keycmd="digest $outd/llpp $cobjs $ord"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
-        eval $cmd || echo "$cmd failed"
+        eval $cmd || die "$cmd failed"
         echo "k='$cmd$(eval $keycmd)'" >"$outd/llpp.past"
     } && vecho "fresh llpp"
 
