@@ -3790,13 +3790,7 @@ CAMLprim void ml_swapb (value unit_v)
     CAMLreturn0;
 }
 
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Wmissing-variable-declarations"
-#endif
-#include "keysym2ucs.c"
-#pragma GCC diagnostic pop
-
+long keysym2ucs (KeySym);
 CAMLprim value ml_keysymtoutf8 (value keysym_v)
 {
     CAMLparam1 (keysym_v);

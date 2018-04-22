@@ -72,6 +72,7 @@ cflags() {
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
             f="$f -D_GNU_SOURCE"
             $darwin && echo "$f -D__COCOA__" || echo $f;;
+        keysym2ucs.o) echo "-DKeySym=long";;
         */ml_gl.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
     esac
@@ -127,7 +128,7 @@ bocamlc() {
     keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
-        eval "$cmd"
+        eval "$cmd" || die "$cmd failed"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
@@ -207,8 +208,11 @@ esac
 for m in lablGL/glMisc.cmo lablGL/glTex.cmo $wsi/wsi.cmo main.cmo; do
     bocaml $m 0
 done
-bocamlc link.o
-cobjs="$outd/link.o"
+cobjs=
+for m in keysym2ucs.o link.o; do
+    bocamlc $m
+    cobjs="$cobjs $outd/$m"
+done
 
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
@@ -230,7 +234,7 @@ done
 ord=$(echo $(grep -v \.cmi $outd/ordered))
 cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
 cmd="$cmd $globjs -cclib \"$clibs\""
-keycmd="digest $outd/llpp $outd/link.o $ord"
+keycmd="digest $outd/llpp $cobjs $ord"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
         eval $cmd || echo "$cmd failed"
