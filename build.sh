@@ -59,7 +59,7 @@ test "${USER-}" = "malc" && {
 
 oflags() {
     case "${1#$outd/}" in
-        main.cmo|utils.cmo|config.cmo|parser.cmo|wsi.cmi|$wsi/wsi.cmo)
+        main.cmo|utils.cmo|config.cmo|parser.cmo|$wsi/wsi.cmo)
             f="-g -strict-sequence -strict-formats -warn-error a";;
         *) f="-g";;
     esac
