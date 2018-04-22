@@ -219,7 +219,7 @@ clibs="-L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
 if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
-    bobjc main_osx.o
+    bobjc wsi/osx/wsi.o
     cobjs="$cobjs $outd/main_osx.o"
 else
     clibs="$clibs -lGL -lX11"
