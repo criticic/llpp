@@ -1,4 +1,5 @@
 /build/
+/build-strap/
 /misc/completions/bash/llpp
 /misc/completions/bash/llppac
 /misc/completions/zsh/llpp
