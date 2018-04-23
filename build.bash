@@ -13,7 +13,13 @@ now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { sum $* 2>/dev/null | while read h _; do printf "$h"; done; }
+digest() {
+    ocaml -stdin $@ <<EOF
+for i = 1 to -2 + Array.length Sys.argv; do 
+    print_string @@ Digest.to_hex @@ Digest.file Sys.argv.(i)
+done
+EOF
+}
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
