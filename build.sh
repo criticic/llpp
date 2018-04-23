@@ -72,7 +72,7 @@ cflags() {
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
             f="$f -D_GNU_SOURCE"
             $darwin && echo "$f -D__COCOA__" || echo $f;;
-        keysym2ucs.o) echo "-DKeySym=long";;
+        */keysym2ucs.o) echo "-DKeySym=long";;
         */ml_gl.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
     esac
@@ -208,11 +208,8 @@ esac
 for m in lablGL/glMisc.cmo lablGL/glTex.cmo $wsi/wsi.cmo main.cmo; do
     bocaml $m 0
 done
-cobjs=
-for m in keysym2ucs.o link.o; do
-    bocamlc $m
-    cobjs="$cobjs $outd/$m"
-done
+cobjs=$outd/link.o
+bocamlc link.o
 
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
@@ -223,6 +220,8 @@ if $darwin; then
     cobjs="$cobjs $outd/wsi/osx/wsi.o"
 else
     clibs="$clibs -lGL -lX11"
+    cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o"
+    bocamlc wsi/x11/keysym2ucs.o
 fi
 
 globjs=
