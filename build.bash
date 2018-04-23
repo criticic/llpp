@@ -14,7 +14,7 @@ now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() {
-    ocaml -stdin $@ <<EOF
+    ocaml -stdin $@ 2>/dev/null <<EOF
 for i = 1 to -2 + Array.length Sys.argv; do 
     print_string @@ Digest.to_hex @@ Digest.file Sys.argv.(i)
 done
