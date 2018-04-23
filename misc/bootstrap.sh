@@ -40,4 +40,4 @@ test -d mupdf || {
     cd -
     make -C mupdf build=native -j4 libs
 }
-PATH=$prefix/bin:$PATH bahsh ./build.bash build-strap
+PATH=$prefix/bin:$PATH bash ./build.bash build-strap
