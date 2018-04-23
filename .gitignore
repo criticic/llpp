@@ -7,7 +7,5 @@
 /.gdb_history
 /.tramp_history
 test/
-mupdf
-/man/*.xml
-/man/*.1
-patches/*
+mupdf/
+patches/
