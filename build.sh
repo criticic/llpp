@@ -130,9 +130,7 @@ bocaml() (
         */glTex) s="$srcd/lablGL/glTex.ml";;
         *) vecho $wocmi;;
     esac
-    test -z "$s" || {
-        bocaml1 "$s" "${s%.ml}.cmo" "${o#$outd/}"
-    }
+    test -z "$s" || bocaml1 "$s" "$outd/${s%.ml}.cmo" "${o#$outd/}"
 )
 
 bocamlc() {
