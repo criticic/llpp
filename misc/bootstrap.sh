@@ -33,7 +33,7 @@ test -d mupdf || {
     else
         ref=""
     fi
-    git clone --recursive $ref git://git.ghostscript.com/mupdf.git
+    git clone --recursive $ref https://github.com/ArtifexSoftware/mupdf
     cd mupdf
     git checkout db4e21fea6c156f8b2b710937cbee1e7e8d7b7c2
     git submodule update --recursive
