@@ -128,7 +128,7 @@ bocaml() (
         */glMisc) s="$srcd/lablGL/glMisc.ml";;
         */glTex) s="$srcd/lablGL/glTex.ml";;
         *) false;;
-    esac && bocaml1 "$s" "$outd/${s%.ml}.cmo" "${o#$outd/}" || true
+    esac && { bocaml1 "$s" "$outd/${s%.ml}.cmo" "${o#$outd/}"; } || true
 )
 
 bocamlc() {
