@@ -84,9 +84,8 @@ bocaml1() {
     local s="$1"
     local o="$2"
     :>$o.depl
-    ocamlc -depend -bytecode -one-line $(echo $incs) $s | {
+    ocamlc -depend -bytecode -one-line $incs $s | {
         read _ _ depl
-        depl=$(eval echo $depl)
         for d in $depl; do
             bocaml ${d#$srcd/} $((n+1))
             test $d = "build/help.cmo" \
@@ -232,7 +231,7 @@ for f in ml_gl ml_glarray ml_raw; do
     globjs="$globjs $outd/lablGL/$f.o"
 done
 
-ord=$(echo $(grep -v \.cmi $outd/ordered))
+ord=$(grep -v \.cmi $outd/ordered)
 cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
 cmd="$cmd $globjs -cclib \"$clibs\""
 keycmd="digest $outd/llpp $cobjs $ord"
