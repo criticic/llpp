@@ -49,7 +49,8 @@
     File "_none_", line 1:
     Error: Files build/config.cmo and build/help.cmo
            make inconsistent assumptions over interface Help
-** TODO Fix .mli ugliness
+** DONE Fix .mli ugliness
+   CLOSED: [2018-04-23 Mon 12:35]
 * TODO misc/bootstrap.sh
   Out of tree
   Shallow clone
