@@ -14,7 +14,7 @@ now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() {
-    ocaml -stdin $@ 2>/dev/null <<EOF
+    ocaml -stdin $@ <<EOF
 for i = 1 to -2 + Array.length Sys.argv; do 
     print_string @@ Digest.to_hex @@ Digest.file Sys.argv.(i)
 done
@@ -97,8 +97,7 @@ bocaml1() {
             D=${d#$srcd/}
             test "$O" = "$D" || {
                 bocaml "$D" $n
-                test $d = "build/help.cmo" \
-                    && dd=$outd/help.cmo || dd=$outd/${d#$srcd/}
+                test $d = "$outd/help.cmo" && dd=$d || dd=$outd/${d#$srcd/}
                 printf "$dd " >>$o.depl
             }
         done
