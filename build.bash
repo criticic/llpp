@@ -13,10 +13,7 @@ now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
-command -v md5sum >/dev/null && alias sum=md5sum || true
-test -z "${debugdeps-}" \
-    && digest() { sum $* 2>/dev/null | while read h _; do printf "$h"; done; } \
-        || digest() { sum $* 2>/dev/null; }
+digest() { sum $* 2>/dev/null | while read h _; do printf "$h"; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
