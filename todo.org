@@ -51,3 +51,5 @@
            make inconsistent assumptions over interface Help
 * TODO misc/bootstrap.sh
   Out of tree
+  Shallow clone
+  Shallow submodules
