@@ -15,7 +15,7 @@ tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() {
     ocaml -stdin $@ <<EOF
-for i = 1 to -2 + Array.length Sys.argv; do 
+for i = 1 to Array.length Sys.argv - 1; do 
     print_string @@ Digest.to_hex @@ Digest.file Sys.argv.(i)
 done
 EOF
