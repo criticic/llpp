@@ -1,4 +1,8 @@
 /* lots of code c&p-ed directly from mupdf */
+#ifdef __clang__
+#include "diag.h"
+#endif
+
 #define CAML_NAME_SPACE
 #define FIXME 0
 
