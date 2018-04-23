@@ -3819,7 +3819,7 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
     int len;
     char buf[5];
 
-    len = fz_runetochar (buf, ucs_v);
+    len = fz_runetochar (buf, (int) ucs_v);
     buf[len] = 0;
     str_v = caml_copy_string (buf);
     CAMLreturn (str_v);
@@ -3974,6 +3974,9 @@ CAMLprim void ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Wunused-macros"
+#endif
 #ifdef __COCOA__
   static CFBundleRef framework = NULL;
   if (framework == NULL)
