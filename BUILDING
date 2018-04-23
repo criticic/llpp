@@ -11,15 +11,15 @@ Prerequisites for building from sources:
   mupdf% git submodule update --recursive
   mupdf% make build=native libs
   mupdf% cd ..
-  llpp% bash build.sh build
+  llpp% bash build.bash build
 
 Standalone binary should now be in build/llpp.
 
 Native macOS Installation Instructions
 --------------------------------------
 
-  If `bash build.sh build' succeeds, standalone macOS app should be in
-  build/llpp.app.
+  If `bash build.bashsh build' succeeds, standalone macOS app should
+  be in build/llpp.app.
 
 
 macOS/Windows10/ or when OCaml is too old (Debian, etc)
