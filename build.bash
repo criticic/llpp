@@ -53,7 +53,7 @@ isfresh() {
 
 test "${USER-}" = "malc" && {
     keycmd="cd $mudir && git describe --tags --dirty"
-    isfresh "$outd/mupdf"  "$(eval $keycmd)" || (
+    isfresh "$outd/mupdf" "$(eval $keycmd)" || (
         mkdir -p $outd
         make -C "$mudir" CC='ccache gcc' build=native -j4 libs && :>$outd/mupdf
         echo "k=$(eval $keycmd)" >$outd/mupdf.past
@@ -82,6 +82,9 @@ cflags() {
 }
 
 mflags() { echo "-I $(ocamlc -where) -g -O2"; }
+
+incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
+incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 
 bocaml1() {
     local s="$1"
@@ -116,6 +119,7 @@ bocaml() (
     local o="$1"
     local n="$2"
     local wocmi="${o%.cmi}"
+    local s
     test ${wocmi%help.cmo} !=  $wocmi && {
         s=$outd/help.ml
         o=$outd/help.cmo
@@ -123,8 +127,6 @@ bocaml() (
         test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
         o=$outd/$o
     }
-    incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
-    incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
     bocaml1 "$s" "$o"
     case $wocmi in
         wsi) s="$srcd/$wsi/wsi.ml";;
@@ -183,8 +185,8 @@ EOF
 }
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
-cmd="mkhelp >$outd/help.ml"
-keycmd="digest $srcd/KEYS; echo $ver"
+cmd="mkhelp >$outd/help.ml # $ver"
+keycmd="digest $srcd/KEYS # $ver"
 isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
