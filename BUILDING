@@ -1,5 +1,5 @@
 Prerequisites for building from sources:
-        bash          [https://fr.wikipedia.org/wiki/Bourne-Again_shell]
+        bash          [https://en.wikipedia.org/wiki/Bash_(Unix_shell)]
         mupdf         [http://mupdf.com/]
         ocaml (4.06+) [http://ocaml.org/]
         opengl        [http://en.wikipedia.org/wiki/OpenGL]
