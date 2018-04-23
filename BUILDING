@@ -18,7 +18,7 @@ Standalone binary should now be in build/llpp.
 Native macOS Installation Instructions
 --------------------------------------
 
-  If `bash build.bashsh build' succeeds, standalone macOS app should
+  If `bash build.bash build' succeeds, standalone macOS app should
   be in build/llpp.app.
 
 
