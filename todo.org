@@ -49,3 +49,5 @@
     File "_none_", line 1:
     Error: Files build/config.cmo and build/help.cmo
            make inconsistent assumptions over interface Help
+* TODO misc/bootstrap.sh
+  Out of tree
