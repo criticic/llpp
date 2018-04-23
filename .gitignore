@@ -6,6 +6,6 @@
 /misc/completions/zsh/llppac
 /.gdb_history
 /.tramp_history
-test/
-mupdf/
-patches/
+/test/
+/mupdf/
+/patches/
