@@ -123,14 +123,12 @@ bocaml() (
     incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
     incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
     bocaml1 "$s" "$o"
-    s=
     case $wocmi in
         wsi) s="$srcd/$wsi/wsi.ml";;
         */glMisc) s="$srcd/lablGL/glMisc.ml";;
         */glTex) s="$srcd/lablGL/glTex.ml";;
-        *) vecho $wocmi;;
-    esac
-    test -z "$s" || bocaml1 "$s" "$outd/${s%.ml}.cmo" "${o#$outd/}"
+        *) false;;
+    esac && bocaml1 "$s" "$outd/${s%.ml}.cmo" "${o#$outd/}" || true
 )
 
 bocamlc() {
