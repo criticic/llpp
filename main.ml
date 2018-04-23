@@ -1106,6 +1106,10 @@ let opendoc path password =
        path password conf.css;
   invalidate "reqlayout"
              (fun () ->
+               begin state.statkeyhack <-
+                 try ((Unix.stat state.path).st_mtime, conf.key)
+                 with _ -> (nan, E.s)
+               end;
                wcmd "reqlayout %d %d %d %s\000"
                     conf.angle (FMTE.to_int conf.fitmodel)
                     (stateh state.winh) state.nameddest
