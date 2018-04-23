@@ -1,1 +1,1 @@
-((nil . ((compile-command . "sh build.sh build"))))
+((nil . ((compile-command . "bash build.sh build"))))

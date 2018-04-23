@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 test "$(uname)" = Darwin && {
@@ -81,6 +81,8 @@ cflags() {
 mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 
 bocaml1() {
+    local s="$1"
+    local o="$2"
     :>$o.depl
     ocamlc -depend -bytecode -one-line $(echo $incs) $s | {
         read _ _ depl
@@ -105,9 +107,9 @@ bocaml1() {
 }
 
 bocaml() (
-    o="$1"
-    n="$2"
-    wocmi="${o%.cmi}"
+    local o="$1"
+    local n="$2"
+    local wocmi="${o%.cmi}"
     test ${wocmi%help.cmo} !=  $wocmi && {
         s=$outd/help.ml
         o=$outd/help.cmo
@@ -117,15 +119,15 @@ bocaml() (
     }
     incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
     incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
-    bocaml1
+    bocaml1 "$s" "$o"
 )
 
 bocamlc() {
-    o=$outd/$1
-    s=$srcd/${1%.o}.c
-    cmd="ocamlc -ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
+    local o=$outd/$1
+    local s=$srcd/${1%.o}.c
+    local cmd="ocamlc -ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
-    keycmd='digest $o $d'
+    local keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd" || die "$cmd failed"
@@ -135,11 +137,11 @@ bocamlc() {
 }
 
 bobjc() {
-    o=$outd/$1
-    s=$srcd/${1%.o}.m
-    cmd="$mcomp $(mflags $o) -MMD -MF $o.dep -MT_ -c -o $o $s"
+    local o=$outd/$1
+    local s=$srcd/${1%.o}.m
+    local cmd="$mcomp $(mflags $o) -MMD -MF $o.dep -MT_ -c -o $o $s"
     test -r $o.dep && read _ d <$o.dep || d=
-    keycmd='digest $o $d'
+    local keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd"
