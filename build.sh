@@ -83,14 +83,18 @@ mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 bocaml1() {
     local s="$1"
     local o="$2"
+    local O=${3-}
     :>$o.depl
     ocamlc -depend -bytecode -one-line $incs $s | {
         read _ _ depl
         for d in $depl; do
-            bocaml ${d#$srcd/} $((n+1))
-            test $d = "build/help.cmo" \
-                && dd=$outd/help.cmo || dd=$outd/${d#$srcd/}
-            printf "$dd " >>$o.depl
+            D=${d#$srcd/}
+            test "$O" = "$D" || {
+                bocaml "$D" $n
+                test $d = "build/help.cmo" \
+                    && dd=$outd/help.cmo || dd=$outd/${d#$srcd/}
+                printf "$dd " >>$o.depl
+            }
         done
     }
     cmd="ocamlc $(oflags $o) -c -o $o $s"
@@ -119,6 +123,16 @@ bocaml() (
     incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
     incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
     bocaml1 "$s" "$o"
+    s=
+    case $wocmi in
+        wsi) s="$srcd/$wsi/wsi.ml";;
+        */glMisc) s="$srcd/lablGL/glMisc.ml";;
+        */glTex) s="$srcd/lablGL/glTex.ml";;
+        *) vecho $wocmi;;
+    esac
+    test -z "$s" || {
+        bocaml1 "$s" "${s%.ml}.cmo" "${o#$outd/}"
+    }
 )
 
 bocamlc() {
@@ -203,12 +217,8 @@ case "${2-}" in
     *) ;;
 esac
 
-# following is disgusting (from "generalize everything" perspective),
-# but generic method of derviving .ml's location from .mli's is not
-# immediately obvious
-for m in lablGL/glMisc.cmo lablGL/glTex.cmo $wsi/wsi.cmo main.cmo; do
-    bocaml $m 0
-done
+bocaml main.cmo 0
+
 cobjs=$outd/link.o
 bocamlc link.o
 
