@@ -5,7 +5,7 @@ Prerequisites for building from sources:
         opengl        [http://en.wikipedia.org/wiki/OpenGL]
         git           [https://git-scm.com/]
 
-  llpp% git clone git://git.ghostscript.com/mupdf.git --recursive
+  llpp% git clone https://github.com/ArtifexSoftware/mupdf --recursive
   llpp% cd mupdf
   mupdf% git checkout db4e21fea6c156f8b2b710937cbee1e7e8d7b7c2
   mupdf% git submodule update --recursive
