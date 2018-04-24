@@ -132,7 +132,10 @@ bocaml() (
         */glMisc) s="$srcd/lablGL/glMisc.ml";;
         */glTex) s="$srcd/lablGL/glTex.ml";;
         *) false;;
-    esac && { bocaml1 "$s" "$outd/${s%.ml}.cmo" "${o#$outd/}"; } || true
+    esac && {
+        local s1=${s#$srcd/}
+        bocaml1 "$s" "${s1%.ml}.cmo" "${o#$outd/}"
+    } || true
 )
 
 bocamlc() {
