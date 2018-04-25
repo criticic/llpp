@@ -94,7 +94,7 @@ bocaml1() {
     ocamlc -depend -bytecode -one-line $incs $s | {
         read _ _ depl
         for d in $depl; do
-            D=${d#$srcd/}
+            local D=${d#$srcd/}
             test "$O" = "$D" || {
                 bocaml "$D" $n
                 test $d = "$outd/help.cmo" && dd=$d || dd=$outd/${d#$srcd/}
@@ -102,8 +102,8 @@ bocaml1() {
             }
         done
     }
-    cmd="ocamlc $(oflags $o) -c -o $o $s"
-    keycmd="digest $s $(cat $o.depl)"
+    local cmd="ocamlc $(oflags $o) -c -o $o $s"
+    local keycmd="digest $s $(cat $o.depl)"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$cmd$(eval $keycmd)" || {
