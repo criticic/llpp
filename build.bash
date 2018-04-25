@@ -23,7 +23,7 @@ EOF
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
-    echo "$msg $(echo "scale=3; ($(now) - $tstart)/1" | bc -l) sec"
+    echo "$msg $(echo "scale=3; $(now) - $tstart" | bc -l) sec"
 }
 
 die() {
