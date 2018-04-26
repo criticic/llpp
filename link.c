@@ -4236,6 +4236,9 @@ CAMLprim void ml_init (value csock_v, value params_v)
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
 
+#ifdef __COCOA__
+    state.utf8cs = 1;
+#else
     /* http://www.cl.cam.ac.uk/~mgk25/unicode.html */
     if (setlocale (LC_CTYPE, "")) {
         const char *cset = nl_langinfo (CODESET);
@@ -4244,6 +4247,7 @@ CAMLprim void ml_init (value csock_v, value params_v)
     else {
         printd ("emsg setlocale: %d:%s", errno, strerror (errno));
     }
+#endif
 
     if (caml_string_length (Field (params_v, 8)) > 0) {
         state.trimcachepath = ystrdup (String_val (Field (params_v, 8)));
