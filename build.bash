@@ -13,7 +13,7 @@ now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { sum 2>/dev/null $*; }
+digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
