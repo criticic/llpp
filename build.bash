@@ -13,7 +13,7 @@ now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
 
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { sum $*; }
+digest() { sum 2>/dev/null $*; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
@@ -128,7 +128,7 @@ bocaml() (
         *) false;;
     esac && {
         local s1=${s#$srcd/}
-        bocaml1 "$s" "${s1%.ml}.cmo" "${o#$outd/}"
+        bocaml1 "$s" "$outd/${s1%.ml}.cmo" "${o#$outd/}"
     } || true
 )
 
