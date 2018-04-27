@@ -77,14 +77,14 @@ incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 
 test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }) -lt 407 && {
-    executable_p() { command -v "$1" >/dev/null 2>&1; }
-    if executable_p wget; then dl() { wget -q $1 -O $2; }
-    elif executable_p curl; then dl() { curl $1 -o $2; }
-    else die "no program to fetch remote urls found"
-    fi
     uri=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0+beta2.tar.xz
     tar=$outd/$(basename $uri)
     isfresh $tar $uri || {
+        executable_p() { command -v "$1" >/dev/null 2>&1; }
+        if executable_p wget; then dl() { wget -q $1 -O $2; }
+        elif executable_p curl; then dl() { curl $1 -o $2; }
+        else die "no program to fetch remote urls found"
+        fi
         dl $uri $tar
         echo "k=$uri" >$tar.past
     }
