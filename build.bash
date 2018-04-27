@@ -9,9 +9,7 @@ test "$(uname)" = Darwin && {
     wsi="wsi/x11"
 }
 
-now() { echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin; }
-
-tstart=$(now)
+tstart=$(echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin)
 vecho() { ${vecho-:} "$*"; }
 digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
