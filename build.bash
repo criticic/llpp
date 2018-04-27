@@ -1,6 +1,10 @@
 #!/bin/bash
 set -eu
 
+tstart=$(echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin)
+vecho() { ${vecho-:} "$*"; }
+digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
+
 test "$(uname)" = Darwin && {
     darwin=true
     wsi="wsi/osx"
@@ -8,10 +12,6 @@ test "$(uname)" = Darwin && {
     darwin=false
     wsi="wsi/x11"
 }
-
-tstart=$(echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin)
-vecho() { ${vecho-:} "$*"; }
-digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
