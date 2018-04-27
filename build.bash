@@ -107,6 +107,7 @@ bocaml1() {
     local s="$2"
     local o="$3"
     local O=${4-}
+    local dd
 
     local cmd="ocamlc -depend -bytecode -one-line $incs $s"
     local keycmd="digest $s"
@@ -125,7 +126,7 @@ bocaml1() {
         } || die "$cmd failed"
         echo "k='$cmd$(eval $keycmd)'" >"$o.depl.past"
     } && {
-        for d in $(cat $o.depl); do
+        for d in $(< $o.depl); do
             test $d = "$outd/help.cmo" && dd=$d || dd=${d#$outd/}
             bocaml $dd $((n+1))
         done
