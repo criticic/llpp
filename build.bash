@@ -107,20 +107,32 @@ bocaml1() {
     local s="$2"
     local o="$3"
     local O=${4-}
-    :>$o.depl
-    ocamlc -depend -bytecode -one-line $incs $s | {
-        read _ _ depl
-        for d in $depl; do
-            local D=${d#$srcd/}
-            test "$O" = "$D" || {
-                bocaml "$D" $((n+1))
-                test $d = "$outd/help.cmo" && dd=$d || dd=$outd/${d#$srcd/}
-                printf "$dd " >>$o.depl
-            }
+
+    local cmd="ocamlc -depend -bytecode -one-line $incs $s"
+    local keycmd="digest $s"
+    isfresh "$o.depl" "$cmd$(eval $keycmd)" || {
+        :>"$o.depl"
+        eval "$cmd" | {
+            read _ _ depl
+            for d in $depl; do
+                local D=${d#$srcd/}
+                test "$O" = "$D" || {
+                    bocaml "$D" $((n+1))
+                    test $d = "$outd/help.cmo" && dd=$d || dd=$outd/${d#$srcd/}
+                    printf "$dd " >>"$o.depl"
+                }
+            done
+        } || die "$cmd failed"
+        echo "k='$cmd$(eval $keycmd)'" >"$o.depl.past"
+    } && {
+        for d in $(cat $o.depl); do
+            test $d = "$outd/help.cmo" && dd=$d || dd=${d#$outd/}
+            bocaml $dd $((n+1))
         done
     }
-    local cmd="ocamlc $(oflags $o) -c -o $o $s"
-    local keycmd="digest $s $(cat $o.depl)"
+
+    cmd="ocamlc $(oflags $o) -c -o $o $s"
+    keycmd="digest $s $(cat $o.depl)"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$cmd$(eval $keycmd)" || {
