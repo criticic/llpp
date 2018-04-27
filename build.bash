@@ -17,7 +17,9 @@ digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
-    echo "$msg $(echo "scale=3; $(now) - $tstart" | bc -l) sec"
+    ocaml unix.cma -stdin <<EOF
+    Printf.printf "%.3f sec\n" @@ Unix.gettimeofday () -. $tstart
+EOF
 }
 
 die() {
