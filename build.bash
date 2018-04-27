@@ -103,16 +103,17 @@ test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }) -lt 407 && {
 }
 
 bocaml1() {
-    local s="$1"
-    local o="$2"
-    local O=${3-}
+    local n=$1
+    local s="$2"
+    local o="$3"
+    local O=${4-}
     :>$o.depl
     ocamlc -depend -bytecode -one-line $incs $s | {
         read _ _ depl
         for d in $depl; do
             local D=${d#$srcd/}
             test "$O" = "$D" || {
-                bocaml "$D" $n
+                bocaml "$D" $((n+1))
                 test $d = "$outd/help.cmo" && dd=$d || dd=$outd/${d#$srcd/}
                 printf "$dd " >>$o.depl
             }
@@ -142,7 +143,7 @@ bocaml() (
         test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
         o=$outd/$o
     }
-    bocaml1 "$s" "$o"
+    bocaml1 $n "$s" "$o"
     case $wocmi in
         wsi) s="$srcd/$wsi/wsi.ml";;
         */glMisc) s="$srcd/lablGL/glMisc.ml";;
@@ -150,7 +151,7 @@ bocaml() (
         *) false;;
     esac && {
         local s1=${s#$srcd/}
-        bocaml1 "$s" "$outd/${s1%.ml}.cmo" "${o#$outd/}"
+        bocaml1 $n "$s" "$outd/${s1%.ml}.cmo" "${o#$outd/}"
     } || true
 )
 
