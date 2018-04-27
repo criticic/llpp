@@ -1,11 +1,10 @@
 build/
-build-strap/
+test/
+mupdf/
+patches/
 misc/completions/bash/llpp
 misc/completions/bash/llppac
 misc/completions/zsh/llpp
 misc/completions/zsh/llppac
 .gdb_history
 .tramp_history
-test/
-mupdf/
-patches/
