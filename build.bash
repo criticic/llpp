@@ -27,10 +27,6 @@ die() {
 
 trap 'partmsg' EXIT
 
-test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }) -lt 406 && {
-    die OCaml version 4.06+ is required
-}
-
 test -n "${1-}" || die "usage: $0 build-directory"
 
 outd="$1"
@@ -79,6 +75,32 @@ mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 
 incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
+
+test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }) -lt 407 && {
+    executable_p() { command -v "$1" >/dev/null 2>&1; }
+    if executable_p wget; then dl() { wget -q $1 -O $2; }
+    elif executable_p curl; then dl() { curl $1 -o $2; }
+    else die "no program to fetch remote urls found"
+    fi
+    uri=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0+beta2.tar.xz
+    tar=$outd/$(basename $uri)
+    isfresh $tar $uri || {
+        dl $uri $tar
+        echo "k=$uri" >$tar.past
+    }
+    absprefix=$(cd $outd &>/dev/null; pwd -P)
+    export PATH=$absprefix/bin:$PATH
+    isfresh $outd/bin/ocamlc "$(eval ocamlc -version)"  || (
+        d=$(pwd)
+        tar xf $tar -C $outd
+        bn=$(basename $uri)
+        cd $outd/${bn%.tar.xz}
+        ./configure -prefix $absprefix
+        make -s -j4 world
+        make -s install
+        echo "k='$(ocamlc -version)'" >$d/$outd/bin/ocamlc.past
+    )
+}
 
 bocaml1() {
     local s="$1"
