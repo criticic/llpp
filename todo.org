@@ -40,8 +40,9 @@
   I would have to be very bored to mark that "DONE"...  And so i was,
   the only Make remnants are in completions/, boredom must be absolute
   to "fix" that.
-* TODO build.sh
-** TODO Track ocaml version
+* build.sh
+** DONE Track ocaml version
+   CLOSED: [2018-04-28 Sat 09:53]
 ** DONE Updating KEYS results in:
    CLOSED: [2018-04-21 Sat 09:10]
     - sh build.sh build        
@@ -51,6 +52,7 @@
            make inconsistent assumptions over interface Help
 ** DONE Fix .mli ugliness
    CLOSED: [2018-04-23 Mon 12:35]
+** TODO Parallel builds
 * TODO misc/bootstrap.sh
   Out of tree
   Shallow clone

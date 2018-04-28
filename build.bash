@@ -76,7 +76,9 @@ mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 
-test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }) -lt 407 && {
+overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
+overs=$(echo $overs | { IFS=. read a b _; echo $a$b; })
+test $overs -ge 407 || {
     uri=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0+beta2.tar.xz
     tar=$outd/$(basename $uri)
     isfresh $tar $uri || {
@@ -98,8 +100,10 @@ test $(ocamlc -version | { IFS=. read a b _; echo $a$b; }) -lt 407 && {
         ./configure -prefix $absprefix
         make -s -j4 world
         make -s install
-        echo "k='$(ocamlc -version)'" >$d/$outd/bin/ocamlc.past
+        echo "k='$overs'" >$d/$outd/bin/ocamlc.past
     )
+    overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
+    overs=$(echo $overs | { IFS=. read a b _; echo $a$b; })
 }
 
 bocaml1() {
@@ -111,7 +115,7 @@ bocaml1() {
 
     local cmd="ocamlc -depend -bytecode -one-line $incs $s"
     local keycmd="digest $s"
-    isfresh "$o.depl" "$cmd$(eval $keycmd)" || {
+    isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         :>"$o.depl"
         eval "$cmd" | {
             read _ _ depl
@@ -124,7 +128,7 @@ bocaml1() {
                 }
             done
         } || die "$cmd failed"
-        echo "k='$cmd$(eval $keycmd)'" >"$o.depl.past"
+        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.depl.past"
     } && {
         for d in $(< $o.depl); do
             test $d = "$outd/help.cmo" && dd=$d || dd=${d#$outd/}
@@ -139,7 +143,7 @@ bocaml1() {
         isfresh "$o" "$cmd$(eval $keycmd)" || {
             printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
             eval "$cmd" || die "$cmd failed"
-            echo "k='$cmd$(eval $keycmd)'" >"$o.past"
+            echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
         } && vecho "fresh '$o'"
     }
 }
