@@ -7,7 +7,7 @@ Prerequisites for building from sources:
 
   llpp% git clone https://github.com/ArtifexSoftware/mupdf --recursive
   llpp% cd mupdf
-  mupdf% git checkout db4e21fea6c156f8b2b710937cbee1e7e8d7b7c2
+  mupdf% git checkout f4d01e231ac609889b18d9073bc314455b875c79
   mupdf% git submodule update --recursive
   mupdf% make build=native libs
   mupdf% cd ..

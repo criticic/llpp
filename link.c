@@ -964,14 +964,14 @@ static void initpdims (void)
                         }
 
                         obj = pdf_new_array (ctx, pdf, 4);
-                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
-                                                                mediabox.x0));
-                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
-                                                                mediabox.y0));
-                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
-                                                                mediabox.x1));
-                        pdf_array_push (ctx, obj, pdf_new_real (ctx, pdf,
-                                                                mediabox.y1));
+                        pdf_array_push (ctx, obj,
+                                        pdf_new_real (ctx, mediabox.x0));
+                        pdf_array_push (ctx, obj,
+                                        pdf_new_real (ctx, mediabox.y0));
+                        pdf_array_push (ctx, obj,
+                                        pdf_new_real (ctx, mediabox.x1));
+                        pdf_array_push (ctx, obj,
+                                        pdf_new_real (ctx, mediabox.y1));
                         pdf_dict_puts (ctx, pageobj, "llpp.TrimBox", obj);
                     }
                     else {
