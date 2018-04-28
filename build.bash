@@ -1,7 +1,8 @@
 #!/bin/bash
 set -eu
 
-tstart=$(echo "print_float @@ Unix.gettimeofday ()" | ocaml unix.cma -stdin)
+now() { printf "%(%s)T"; }
+tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
@@ -15,9 +16,7 @@ test "$(uname)" = Darwin && {
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
-    ocaml unix.cma -stdin <<EOF
-    Printf.printf "%.3f sec\n" @@ Unix.gettimeofday () -. $tstart
-EOF
+    echo "$msg $(($(now)-tstart)) sec"
 }
 
 die() {
@@ -78,6 +77,7 @@ incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 
 overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
 overs=$(echo $overs | { IFS=. read a b _; echo $a$b; })
+
 test $overs -ge 407 || {
     uri=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0+beta2.tar.xz
     tar=$outd/$(basename $uri)
@@ -92,7 +92,7 @@ test $overs -ge 407 || {
     }
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
-    isfresh $outd/bin/ocamlc "$(eval ocamlc -version)"  || (
+    isfresh $absprefix/bin/ocamlc "$uri" || (
         d=$(pwd)
         tar xf $tar -C $outd
         bn=$(basename $uri)
@@ -100,7 +100,7 @@ test $overs -ge 407 || {
         ./configure -prefix $absprefix
         make -s -j4 world
         make -s install
-        echo "k='$overs'" >$d/$outd/bin/ocamlc.past
+        echo "k='$uri'" >$d/$outd/bin/ocamlc.past
     )
     overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
     overs=$(echo $overs | { IFS=. read a b _; echo $a$b; })
@@ -140,7 +140,7 @@ bocaml1() {
     keycmd="digest $s $(cat $o.depl)"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>"$outd/ordered"
-        isfresh "$o" "$cmd$(eval $keycmd)" || {
+        isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
             printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
             eval "$cmd" || die "$cmd failed"
             echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
