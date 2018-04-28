@@ -260,7 +260,7 @@ cobjs=$outd/link.o
 bocamlc link.o
 
 libs="str.cma unix.cma"
-clibs="-L$mudir/build/native -lmupdf -lmupdfthird -lpthread"
+clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
