@@ -75,10 +75,10 @@ mflags() { echo "-I $(ocamlc -where) -g -O2"; }
 incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 
-overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
-overs=$(echo $overs | { IFS=. read a b _; echo $a$b; })
+overs="$(ocamlc --version 2>/dev/null)" || overs="0.0.0"
+oversnum="$(echo $overs | { IFS=. read a b _; echo $a$b; })"
 
-test $overs -ge 407 || {
+test $oversnum -ge 407 || {
     uri=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0+beta2.tar.xz
     tar=$outd/$(basename $uri)
     isfresh $tar $uri || {
@@ -103,7 +103,7 @@ test $overs -ge 407 || {
         echo "k='$uri'" >$d/$outd/bin/ocamlc.past
     )
     overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
-    overs=$(echo $overs | { IFS=. read a b _; echo $a$b; })
+    oversnum=$(echo $overs | { IFS=. read a b _; echo $a$b; })
 }
 
 bocaml1() {
