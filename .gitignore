@@ -1,6 +1,6 @@
 build/
 test/
-mupdf/
+mupdf
 patches/
 misc/completions/bash/llpp
 misc/completions/bash/llppac
