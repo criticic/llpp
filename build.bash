@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-now() { printf "%(%s)T"; }
+now() { date +%s; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
@@ -32,6 +32,10 @@ outd="$1"
 srcd="$(dirname $0)"
 mudir=$srcd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
+
+mkdir -p $outd/$wsi
+mkdir -p $outd/lablGL
+:>$outd/ordered
 
 isfresh() {
     test -e "$1" && test -r "$1.past" && {
@@ -199,10 +203,6 @@ bobjc() {
         echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
 }
-
-mkdir -p $outd/$wsi
-mkdir -p $outd/lablGL
-:>$outd/ordered
 
 mkhelp() {
     ocaml str.cma -stdin $srcd/KEYS <<EOF
