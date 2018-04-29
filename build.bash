@@ -104,7 +104,7 @@ test $oversnum -ge 407 || {
         ./configure -prefix $absprefix
         make -s -j4 world
         make -s install
-        echo "k='$uri'" >$d/$outd/bin/ocamlc.past
+        echo "k='$uri'" >$outd/bin/ocamlc.past
     )
     overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
     oversnum=$(echo $overs | { IFS=. read a b _; echo $a$b; })
