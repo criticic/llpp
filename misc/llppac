@@ -56,6 +56,7 @@ kerning
     echo \${@:5}
     life           [l i fe]
     lambdabot      [l a mb]
+    Commutative    [Co mm utative]
     weird          [we i rd]
     Before         [Bef ore, Be for e]
     higher         [gh, h i gher, hi gher]
