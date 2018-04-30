@@ -47,7 +47,6 @@ isfresh() {
 test "${USER-}" = "malc" && {
     keycmd="cd $mudir && git describe --tags --dirty"
     isfresh "$outd/mupdf" "$(eval $keycmd)" || (
-        mkdir -p $outd
         make -C "$mudir" CC='ccache gcc' build=native -j4 libs && :>$outd/mupdf
         echo "k=$(eval $keycmd)" >$outd/mupdf.past
     ) && vecho "fresh mupdf"
