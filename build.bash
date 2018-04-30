@@ -149,7 +149,7 @@ bocaml1() {
         }
     }
     cmd="ocamlc $(oflags $o) -c -o $o $s"
-    keycmd="digest $s $(cat $o.depl)"
+    keycmd="digest $s $(< $o.depl)"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
