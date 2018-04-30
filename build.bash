@@ -117,7 +117,9 @@ bocaml1() {
     local O=${4-}
     local dd
 
-    local cmd="ocamlc -depend -bytecode -one-line $incs $s"
+    test -x $srcd/ppx && ppx="-ppx \"out=$o sh $srcd/ppx\"" || ppx=
+    
+    local cmd="ocamlc -depend $ppx -bytecode -one-line $incs $s"
     local keycmd="digest $s"
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         :>"$o.depl"
@@ -140,6 +142,13 @@ bocaml1() {
         done
     }
 
+    test -e "$o.cmt" && {
+        test "${o%.cmi}" = "$o" && {
+            s="-impl $o.cmt"
+        } || {
+            s="-intf $o.cmt"
+        }
+    }
     cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="digest $s $(cat $o.depl)"
     grep -q "$o" $outd/ordered || {
