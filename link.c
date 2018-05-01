@@ -1,6 +1,12 @@
 /* lots of code c&p-ed directly from mupdf */
 #ifdef __clang__
-#include "diag.h"
+#pragma GCC diagnostic error "-Weverything"
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#pragma GCC diagnostic ignored "-Wpadded"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
+#pragma GCC diagnostic ignored "-Wdocumentation"
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #endif
 
 #define CAML_NAME_SPACE
