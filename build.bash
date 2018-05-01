@@ -46,9 +46,9 @@ isfresh() {
 
 test "${USER-}" = "malc" && {
     keycmd="cd $mudir && git describe --tags --dirty"
-    isfresh "$outd/mupdf" "$(eval $keycmd)" || (
-        make -C "$mudir" CC='ccache gcc' build=native -j4 libs && :>$outd/mupdf
-        echo "k=$(eval $keycmd)" >$outd/mupdf.past
+    isfresh "$mudir/build/native/libmupdf.a" "$(eval $keycmd)" || (
+        make -C "$mudir" CC='ccache gcc' build=native -j4 libs
+        echo "k=$(eval $keycmd)" >$mudir/build/native/libmupdf.a.past
     ) && vecho "fresh mupdf"
 }
 
@@ -302,7 +302,7 @@ if $darwin; then
     isfresh $out "$(eval $keycmd)" || {
         shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         d=$(dirname $out)
-        test -d "$d" || mkdir -p "$d"
+        mkdir -p "$d"
         . $srcd/misc/Info.plist.sh >"$out"
         echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh plist"
@@ -310,8 +310,6 @@ if $darwin; then
     out=$outd/llpp.app/Contents/MacOS/llpp
     keycmd="digest $out $outd/llpp"
     isfresh $out "$(eval $keycmd)" || {
-        d=$(dirname $out)
-        mkdir -p "$d"
         cp $outd/llpp $out
         echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh bundle"
