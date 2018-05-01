@@ -17,8 +17,7 @@ Prerequisites for building from sources:
 
 Standalone binary should now be in build/llpp.
 
-Native macOS Installation Instructions
---------------------------------------
-
+Native macOS
+------------
   If `bash build.bash build' succeeds, standalone macOS app should
   be in build/llpp.app.
