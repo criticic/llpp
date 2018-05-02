@@ -1,7 +1,6 @@
 /* lots of code c&p-ed directly from mupdf */
 #ifdef __clang__
 #pragma GCC diagnostic error "-Weverything"
-#pragma GCC diagnostic ignored "-Wfloat-equal"
 #pragma GCC diagnostic ignored "-Wpadded"
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
@@ -69,8 +68,11 @@ extern char **environ;
 #pragma GCC diagnostic ignored "-Wclobbered"
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
+#pragma GCC diagnostic pop
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
