@@ -4,7 +4,7 @@ Prerequisites for building from sources:
         opengl        [http://en.wikipedia.org/wiki/OpenGL]
         git           [https://git-scm.com/]
         ocaml (4.07+) [http://ocaml.org/]
-           If not present will be downloaded from network and
+           If not present will be downloaded from the network and
            built/used locally without systemwide installation.
 
   llpp% git clone https://github.com/ArtifexSoftware/mupdf --recursive
