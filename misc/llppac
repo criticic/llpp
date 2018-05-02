@@ -278,7 +278,7 @@ case $type in
     html2epub) {
         missing pandoc "pandoc(http://pandoc.org)"
         caspsuf=".epub"
-        conv='pandoc -r html - -w epub -o "$casp"'
+        conv='pandoc -r html - -w epub2 -o "$casp"'
     };;
     word) {
         if executable_p unoconv && test -z "$dc"; then
@@ -327,7 +327,7 @@ case $type in
     };;
     text) {
         missing pandoc "pandoc(http://pandoc.org/)"
-        conv='pandoc -t epub - -o "$casp"'
+        conv='pandoc -t epub2 - -o "$casp"'
         caspsuf=.epub
     };;
     *) die "unhandled filter type: '$type'";;
