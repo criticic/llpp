@@ -310,6 +310,7 @@ if $darwin; then
     out=$outd/llpp.app/Contents/MacOS/llpp
     keycmd="digest $out $outd/llpp"
     isfresh $out "$(eval $keycmd)" || {
+        mkdir -p "$(dirname $out)"
         cp $outd/llpp $out
         echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh bundle"
