@@ -6210,7 +6210,6 @@ let () =
   let trimcachepath = ref E.s in
   let rcmdpath = ref E.s in
   let pageno = ref None in
-  let rootwid = ref 0 in
   let openlast = ref false in
   let doreap = ref false in
   let csspath = ref None in
@@ -6258,8 +6257,6 @@ let () =
 
         ("-css", Arg.String (fun s -> csspath := Some s),
          "<path> Set path to the style sheet to use with EPUB/HTML");
-
-        ("-embed", Arg.Set_int rootwid, "<window-id> Embed into window");
 
         ("-origin", Arg.String (fun s -> state.origin <- s),
          "<origin> <undocumented>");
@@ -6401,7 +6398,7 @@ let () =
         opendoc path state.password
     end
   in
-  let wsfd, winw, winh = Wsi.init mu !rootwid conf.cwinw conf.cwinh platform in
+  let wsfd, winw, winh = Wsi.init mu conf.cwinw conf.cwinh platform in
   state.wsfd <- wsfd;
 
   if not @@ List.exists GlMisc.check_extension

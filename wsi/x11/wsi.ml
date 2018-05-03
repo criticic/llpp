@@ -1108,7 +1108,7 @@ let getauth haddr dnum =
        E.s, E.s
 ;;
 
-let init t rootwid w h platform =
+let init t w h platform =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
@@ -1194,7 +1194,7 @@ let init t rootwid w h platform =
   w16 s 8 (String.length adata);
   sendstr1 s 0 (Bytes.length s) fd;
   state.sock <- fd;
-  setup d fd rootwid screennum w h;
+  setup d fd 0 screennum w h;
   state.t <- t;
   fd, state.w, state.h;
 ;;
