@@ -18,8 +18,6 @@ let fstate =
 
 let scrollbvv = 1;;
 let scrollbhv = 2;;
-let fastghyllscroll = (5,1,2);;
-let neatghyllscroll = (10,1,9);;
 
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
@@ -27,25 +25,6 @@ let irect_of_string s =
 
 let irect_to_string (x0,y0,x1,y1) =
   Printf.sprintf "%d/%d/%d/%d" x0 y0 x1 y1
-;;
-
-let ghyllscroll_of_string s =
-  match s with
-  | "fast" -> Some fastghyllscroll
-  | "neat" -> Some (10,1,9)
-  | "" | "none" -> None
-  | _ ->
-     let (n,a,b) as nab =
-       Scanf.sscanf s "%u,%u,%u" (fun n a b -> n, a, b) in
-     if n <= a || n <= b || a >= b
-     then error "N(%d),A(%d),B(%d) (N <= A, A < B, N <= B)" n a b;
-     Some nab
-;;
-
-let ghyllscroll_to_string ((n, a, b) as nab) =
-  if nab = fastghyllscroll then "fast"
-  else if nab = neatghyllscroll then "neat"
-  else Printf.sprintf "%d,%d,%d" n a b;
 ;;
 
 let multicolumns_to_string (n, a, b) =
@@ -262,7 +241,6 @@ type conf =
   ; mutable colorspace     : colorspace
   ; mutable invert         : bool
   ; mutable colorscale     : float
-  ; mutable ghyllscroll    : (int * int * int) option
   ; mutable columns        : columns
   ; mutable beyecolumns    : columncount option
   ; mutable selcmd         : string
@@ -425,7 +403,6 @@ type state =
   ; mutable gen           : gen
   ; mutable throttle      : (page list * int * float) option
   ; mutable autoscroll    : int option
-  ; mutable ghyll         : (int option -> unit)
   ; mutable help          : helpitem array
   ; mutable docinfo       : (int * string) list
   ; mutable checkerstexid : GlTex.texture_id option
@@ -459,7 +436,6 @@ type state =
 
 let emptyanchor = (0, 0.0, 0.0);;
 let emptykeyhash = Hashtbl.create 0;;
-let noghyll _ = ();;
 let noreprf () = ();;
 let noroam () = ();;
 
@@ -551,7 +527,6 @@ let defconf =
   ; colorspace     = Rgb
   ; invert         = false
   ; colorscale     = 1.0
-  ; ghyllscroll    = None
   ; columns        = Csingle [||]
   ; beyecolumns    = None
   ; updatecurs     = true
@@ -707,7 +682,6 @@ let state =
   ; gen           = 0
   ; throttle      = None
   ; autoscroll    = None
-  ; ghyll         = noghyll
   ; help          = E.a
   ; docinfo       = []
   ; checkerstexid = None
@@ -1065,7 +1039,6 @@ let config_of c attrs =
       | "color-space" -> { c with colorspace = CSTE.of_string v }
       | "invert-colors" -> { c with invert = bool_of_string v }
       | "brightness" -> { c with colorscale = float_of_string v }
-      | "ghyllscroll" -> { c with ghyllscroll = ghyllscroll_of_string v }
       | "columns" ->
          let (n, _, _) as nab = multicolumns_of_string v in
          if n < 0
@@ -1208,7 +1181,6 @@ let setconf dst src =
   dst.colorspace     <- src.colorspace;
   dst.invert         <- src.invert;
   dst.colorscale     <- src.colorscale;
-  dst.ghyllscroll    <- src.ghyllscroll;
   dst.columns        <- src.columns;
   dst.beyecolumns    <- src.beyecolumns;
   dst.selcmd         <- src.selcmd;
@@ -1596,15 +1568,6 @@ let add_attrs bb always dc c time =
   and oPm s a b = o (always || a <> b) "%s='%s'" s (MTE.to_string a)
   and os s a b =
     o (always || a <> b) "%s='%s'" s @@ Parser.enent a 0 (String.length a)
-  and og s a b =
-    if always || a <> b
-    then
-      match a with
-      | Some (_N, _A, _B) -> o' "%s='%u,%u,%u'" s _N _A _B
-      | None ->
-         match b with
-         | None -> ()
-         | _ -> o' "%s='none'" s
   and oW s a b =
     if always || a <> b
     then
@@ -1673,7 +1636,6 @@ let add_attrs bb always dc c time =
   oC "color-space" c.colorspace dc.colorspace;
   ob "invert-colors" c.invert dc.invert;
   oF "brightness" c.colorscale dc.colorscale;
-  og "ghyllscroll" c.ghyllscroll dc.ghyllscroll;
   oco "columns" c.columns dc.columns;
   obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
   os "selection-command" c.selcmd dc.selcmd;

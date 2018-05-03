@@ -804,7 +804,7 @@ let gotoxy x y =
   let y = bound y 0 state.maxy in
   let y, layout, proceed =
     match conf.maxwait with
-    | Some time when state.ghyll == noghyll ->
+    | Some time ->
        begin match state.throttle with
        | None ->
           let layout = layout x y state.winw state.winh in
@@ -910,7 +910,6 @@ let gotoxy x y =
     end;
     preload layout;
   );
-  state.ghyll <- noghyll;
   if conf.updatecurs
   then (
     let mx, my = state.mpos in
@@ -957,76 +956,16 @@ let getnav dir =
   getanchory anchor;
 ;;
 
-let gotoghyll1 single y =
-  let scroll f n a b =
-    (* http://devmaster.net/forums/topic/9796-ease-in-ease-out-algorithm/ *)
-    let snake f a b =
-      let s x = 3.0*.x**2.0 -. 2.0*.x**3.0 in
-      if f < a
-      then s (float f /. float a)
-      else (
-        if f > b
-        then 1.0 -. s ((float (f-b) /. float (n-b)))
-        else 1.0
-      );
-    in
-    snake f a b
-  and summa n a b =
-    let ins = float a *. 0.5
-    and outs = float (n-b) *. 0.5 in
-    let ones = b - a in
-    ins +. outs +. float ones
-  in
-  let rec set nab y sy =
-    let (_N, _A, _B), y =
-      if single
-      then
-        let scl = if y > sy then 2 else -2 in
-        let _N, _, _ = nab in
-        (_N,0,_N), y+conf.scrollstep*scl
-      else nab,y in
-    let sum = summa _N _A _B in
-    let dy = float (y - sy) in
-    state.ghyll <- (
-      let rec gf n y1 o =
-        if n >= _N
-        then state.ghyll <- noghyll
-        else
-          let go n =
-            let s = scroll n _N _A _B in
-            let y1 = y1 +. ((s *. dy) /. sum) in
-            gotoxy_and_clear_text state.x (truncate y1);
-            state.ghyll <- gf (n+1) y1;
-          in
-          match o with
-          | None -> go n
-          | Some y' when single -> set nab y' state.y
-          | Some y' -> set (_N/2, 1, 1) y' state.y
-      in
-      gf 0 (float state.y)
-    )
-  in
-  match conf.ghyllscroll with
-  | Some nab when not conf.presentation ->
-     if state.ghyll == noghyll
-     then set nab y state.y
-     else state.ghyll (Some y)
-  | _ ->
-     gotoxy_and_clear_text state.x y
-;;
-
-let gotoghyll = gotoghyll1 false;;
-
 let gotopage n top =
   let y, h = getpageyh n in
   let y = y + (truncate (top *. float h)) in
-  gotoghyll y
+  gotoxy state.x y
 ;;
 
 let gotopage1 n top =
   let y = getpagey n in
   let y = y + top in
-  gotoghyll y
+  gotoxy state.x y
 ;;
 
 let invalidate s f =
@@ -3882,21 +3821,6 @@ let enterinfomode =
                      state.text <- Printf.sprintf "bad time `%s': %s" v
                                    @@ exntos exn
                  );
-      src#string "ghyll scroll"
-                 (fun () ->
-                   match conf.ghyllscroll with
-                   | None -> E.s
-                   | Some nab -> ghyllscroll_to_string nab
-                 )
-                 (fun v ->
-                   try conf.ghyllscroll <- ghyllscroll_of_string v
-                   with
-                   | Failure msg ->
-                      state.text <- Printf.sprintf "bad ghyll `%s': %s" v msg
-                   | exn ->
-                      state.text <- Printf.sprintf "bad ghyll `%s': %s" v
-                                    @@ exntos exn
-                 );
       src#string "selection command"
                  (fun () -> conf.selcmd)
                  (fun v -> conf.selcmd <- v);
@@ -4338,7 +4262,7 @@ let gotooutline (_, _, kind) =
                (if conf.presentation then (pageno, y, 1.0) else anchor)
      in
      addnav ();
-     gotoghyll y
+     gotoxy state.x y
   | Ouri uri -> gotounder (Ulinkuri uri)
   | Olaunch _cmd -> failwith "gotounder (Ulaunch cmd)"
   | Oremote _remote -> failwith "gotounder (Uremote remote)"
@@ -4588,55 +4512,55 @@ let nextpage () =
   match state.layout with
   | [] ->
      let pageno = page_of_y state.y in
-     gotoghyll (getpagey (pageno+1))
+     gotoxy state.x (getpagey (pageno+1))
   | l :: rest ->
      match conf.columns with
      | Csingle _ ->
         if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
         then
           let y = clamp (pgscale state.winh) in
-          gotoghyll y
+          gotoxy state.x y
         else
           let pageno = min (l.pageno+1) (state.pagecount-1) in
-          gotoghyll (getpagey pageno)
+          gotoxy state.x (getpagey pageno)
      | Cmulti ((c, _, _) as cl, _) ->
         if conf.presentation
            && (existsinrow l.pageno cl
                            (fun l -> l.pageh > l.pagey + l.pagevh))
         then
           let y = clamp (pgscale state.winh) in
-          gotoghyll y
+          gotoxy state.x y
         else
           let pageno = min (l.pageno+c) (state.pagecount-1) in
-          gotoghyll (getpagey pageno)
+          gotoxy state.x (getpagey pageno)
      | Csplit (n, _) ->
         if l.pageno < state.pagecount - 1 || l.pagecol < n - 1
         then
           let pagey, pageh = getpageyh l.pageno in
           let pagey = pagey + pageh * l.pagecol in
           let ips = if l.pagecol = 0 then 0 else conf.interpagespace in
-          gotoghyll (pagey + pageh + ips)
+          gotoxy state.x (pagey + pageh + ips)
 ;;
 
 let prevpage () =
   match state.layout with
   | [] ->
      let pageno = page_of_y state.y in
-     gotoghyll (getpagey (pageno-1))
+     gotoxy state.x (getpagey (pageno-1))
   | l :: _ ->
      match conf.columns with
      | Csingle _ ->
         if conf.presentation && l.pagey != 0
         then
-          gotoghyll (clamp (pgscale ~-(state.winh)))
+          gotoxy state.x (clamp (pgscale ~-(state.winh)))
         else
           let pageno = max 0 (l.pageno-1) in
-          gotoghyll (getpagey pageno)
+          gotoxy state.x (getpagey pageno)
      | Cmulti ((c, _, coverB) as cl, _) ->
         if conf.presentation &&
              (existsinrow l.pageno cl (fun l -> l.pagey != 0))
         then
-          gotoghyll (clamp (pgscale ~-(state.winh)))
+          gotoxy state.x (clamp (pgscale ~-(state.winh)))
         else
           let decr =
             if l.pageno = state.pagecount - coverB
@@ -4644,7 +4568,7 @@ let prevpage () =
             else c
           in
           let pageno = max 0 (l.pageno-decr) in
-          gotoghyll (getpagey pageno)
+          gotoxy state.x (getpagey pageno)
      | Csplit (n, _) ->
         let y =
           if l.pagecol = 0
@@ -4659,7 +4583,7 @@ let prevpage () =
             let pagey, pageh = getpageyh l.pageno in
             pagey + pageh * (l.pagecol-1) - conf.interpagespace
         in
-        gotoghyll y
+        gotoxy state.x y
 ;;
 
 let save () =
@@ -4744,7 +4668,7 @@ let viewkeyboard key mask =
 
   | Backspace ->
      addnavnorc ();
-     gotoghyll (getnav ~-1)
+     gotoxy state.x (getnav ~-1)
 
   | Ascii 'o' ->
      enteroutlinemode ()
@@ -4939,7 +4863,7 @@ let viewkeyboard key mask =
      begin match state.layout with
      | [] -> ()
      | l :: _ ->
-        gotoghyll (getpagey l.pageno)
+        gotoxy state.x (getpagey l.pageno)
      end
 
   | Ascii ' ' ->
@@ -5063,7 +4987,7 @@ let viewkeyboard key mask =
            else (
              if not (Wsi.withshift mask) && conf.presentation
              then prevpage ()
-             else gotoghyll1 true (clamp (-conf.scrollstep))
+             else gotoxy state.x (clamp (-conf.scrollstep))
            )
         end
      | Some n ->
@@ -5081,7 +5005,7 @@ let viewkeyboard key mask =
            else (
              if not (Wsi.withshift mask) && conf.presentation
              then nextpage ()
-             else gotoghyll1 true (clamp (conf.scrollstep))
+             else gotoxy state.x (clamp (conf.scrollstep))
            )
         end
      | Some n ->
@@ -5116,7 +5040,7 @@ let viewkeyboard key mask =
        else
          clamp (pgscale (-state.winh))
      in
-     gotoghyll y
+     gotoxy state.x y
 
   | Next ->
      let y =
@@ -5128,21 +5052,21 @@ let viewkeyboard key mask =
        else
          clamp (pgscale state.winh)
      in
-     gotoghyll y
+     gotoxy state.x y
 
   | Ascii 'g' | Home ->
      addnav ();
-     gotoghyll 0
+     gotoxy 0 0
   | Ascii 'G' | End ->
      addnav ();
-     gotoghyll (clamp state.maxy)
+     gotoxy 0 (clamp state.maxy)
 
   | Right when Wsi.withalt mask ->
      addnavnorc ();
-     gotoghyll (getnav 1)
+     gotoxy state.x (getnav 1)
   | Left when Wsi.withalt mask ->
      addnavnorc ();
-     gotoghyll (getnav ~-1)
+     gotoxy state.x (getnav ~-1)
 
   | Ascii 'r' ->
      reload ()
@@ -6402,9 +6326,9 @@ let () =
   state.wsfd <- wsfd;
 
   if not @@ List.exists GlMisc.check_extension
-                        [ "GL_ARB_texture_rectangle"
-                        ; "GL_EXT_texture_recangle"
-                        ; "GL_NV_texture_rectangle" ]
+              [ "GL_ARB_texture_rectangle"
+              ; "GL_EXT_texture_recangle"
+              ; "GL_NV_texture_rectangle" ]
   then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
 
   if substratis (GlMisc.get_string `renderer) 0 "Mesa DRI Intel("
@@ -6443,10 +6367,10 @@ let () =
              else css);
   end;
   init cs (
-         conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
-         conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-         !Config.fontpath, !trimcachepath, !opengl_has_pbo
-       );
+      conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
+      conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
+      !Config.fontpath, !trimcachepath, !opengl_has_pbo
+    );
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;
   reshape ~firsttime:true winw winh;
@@ -6515,33 +6439,29 @@ let () =
     in
     begin match r with
     | [] ->
-       state.ghyll None;
        let newdeadline =
-         if state.ghyll == noghyll
-         then
-           match state.autoscroll with
-           | Some step when step != 0 ->
-              if state.slideshow land 1 = 1
-              then (
-                if state.slideshow land 2 = 0
-                then state.slideshow <- state.slideshow lor 2
-                else if step < 0 then prevpage () else nextpage ();
-                deadline +. (float (abs step))
-              )
-              else
-                let y = state.y + step in
-                let fy = if conf.maxhfit then state.winh else 0 in
-                let y =
-                  if y < 0
-                  then state.maxy - fy
-                  else if y >= state.maxy - fy then 0 else y
-                in
-                if state.mode = View
-                then gotoxy_and_clear_text state.x y
-                else gotoxy state.x y;
-                deadline +. 0.01
-           | _ -> infinity
-         else deadline +. 0.01
+         match state.autoscroll with
+         | Some step when step != 0 ->
+            if state.slideshow land 1 = 1
+            then (
+              if state.slideshow land 2 = 0
+              then state.slideshow <- state.slideshow lor 2
+              else if step < 0 then prevpage () else nextpage ();
+              deadline +. (float (abs step))
+            )
+            else
+              let y = state.y + step in
+              let fy = if conf.maxhfit then state.winh else 0 in
+              let y =
+                if y < 0
+                then state.maxy - fy
+                else if y >= state.maxy - fy then 0 else y
+              in
+              if state.mode = View
+              then gotoxy_and_clear_text state.x y
+              else gotoxy state.x y;
+              deadline +. 0.01
+         | _ -> infinity
        in
        loop newdeadline
 
@@ -6577,7 +6497,7 @@ let () =
          in
          match state.autoscroll with
          | Some step when step != 0 -> deadline1
-         | _ -> if state.ghyll == noghyll then infinity else deadline1
+         | _ -> infinity
        in
        loop newdeadline
     end;
