@@ -262,7 +262,7 @@ for target; do
                 } && vecho "fresh manual pages"
             done;;
 
-        completions) ;;
+        completions) die "not yet";;
 
         *) die "no clue - '$target'";;
     esac
