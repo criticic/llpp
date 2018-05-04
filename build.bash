@@ -236,31 +236,37 @@ isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
-case "${2-}" in
-    man)
-        md=$outd/man
-        mkdir -p $md
-        for m in llpp llppac llpphtml; do
-            man=$srcd/man/$m.man
-            xml=$md/$m.xml
-            out=$md/$m.1
-            keycmd="digest $xml $man"
-            conf="$srcd/man/asciidoc.conf"
-            cmd="asciidoc -d manpage -b docbook -f $conf -o '$xml' '$man'"
-            isfresh "$xml" "$cmd$(eval $keycmd)" || {
-                eval $cmd
-                echo "k='$cmd$(eval $keycmd)'" >"$md/$m.past"
-            } && vecho "fresh manual xmls"
-            keycmd="digest $out $xml"
-            cmd="xmlto man -o $md $xml"
-            isfresh "$out" "$cmd$(eval $keycmd)" || {
-                eval $cmd
-                echo "k='$cmd$(eval $keycmd)'" >"$out.past"
-            } && vecho "fresh manual pages"
-        done
-        shift;;
-    *) ;;
-esac
+
+shift 1
+for target; do
+    case "$target" in
+        man)
+            md=$outd/man
+            mkdir -p $md
+            for m in llpp llppac llpphtml; do
+                man=$srcd/man/$m.man
+                xml=$md/$m.xml
+                out=$md/$m.1
+                keycmd="digest $xml $man"
+                conf="$srcd/man/asciidoc.conf"
+                cmd="asciidoc -d manpage -b docbook -f $conf -o '$xml' '$man'"
+                isfresh "$xml" "$cmd$(eval $keycmd)" || {
+                    eval $cmd
+                    echo "k='$cmd$(eval $keycmd)'" >"$md/$m.past"
+                } && vecho "fresh manual xmls"
+                keycmd="digest $out $xml"
+                cmd="xmlto man -o $md $xml"
+                isfresh "$out" "$cmd$(eval $keycmd)" || {
+                    eval $cmd
+                    echo "k='$cmd$(eval $keycmd)'" >"$out.past"
+                } && vecho "fresh manual pages"
+            done;;
+
+        completions) ;;
+
+        *) die "no clue - '$target'";;
+    esac
+done
 
 bocaml main.cmo 0
 
