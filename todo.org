@@ -33,7 +33,9 @@
     UTF8... no idea)
 * TODO outline for cbz
   file names? exif?
-* TODO somehow merge kv2pv and xlatt/xlatf
+* DONE (WONTFIX) somehow merge kv2pv and xlatt/xlatf
+  CLOSED: [2018-05-04 Fri 11:24]
+  ENOCONTEXT (also this is self flagellation)
 * DONE ctrl in (at least) help mode yields a key and not found message
   CLOSED: [2016-12-30 Fri 10:53]
 * DONE do something about wsi.mli
