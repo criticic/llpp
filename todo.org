@@ -42,7 +42,8 @@
   CLOSED: [2018-04-07 Sat 01:55]
 * DONE Make new build.sh work on macOS
   CLOSED: [2018-04-09 Mon 12:46]
-* TODO remove vestiges of make
+* DONE remove vestiges of make
+  CLOSED: [2018-05-04 Fri 12:13]
   I would have to be very bored to mark that "DONE"...  And so i was,
   the only Make remnants are in completions/, boredom must be absolute
   to "fix" that.
