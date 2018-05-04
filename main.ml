@@ -924,7 +924,7 @@ let conttiling pageno opaque =
             else state.layout)
 ;;
 
-let gotoxy_and_clear_text x y =
+let gotoxy x y =
   if not conf.verbose then state.text <- E.s;
   gotoxy x y;
 ;;
@@ -1411,8 +1411,8 @@ let gotopagexy1 pageno x y =
     else state.y
   in
   if state.x != sx || state.y != sy
-  then gotoxy_and_clear_text sx sy
-  else gotoxy_and_clear_text state.x state.y;
+  then gotoxy sx sy
+  else gotoxy state.x state.y;
 ;;
 
 let gotopagexy pageno x y =
@@ -4953,7 +4953,7 @@ let viewkeyboard key mask =
        if conf.zoom > 1.0
        then
          let m = (state.winw - state.w) / 2 in
-         gotoxy_and_clear_text m state.y
+         gotoxy m state.y
      )
      else
        let (c, a, b), z =
@@ -4983,7 +4983,7 @@ let viewkeyboard key mask =
         | Birdseye beye -> upbirdseye 1 beye
         | Textentry _ | View | LinkNav _ ->
            if ctrl
-           then gotoxy_and_clear_text state.x (clamp ~-(state.winh/2))
+           then gotoxy state.x (clamp ~-(state.winh/2))
            else (
              if not (Wsi.withshift mask) && conf.presentation
              then prevpage ()
@@ -5001,7 +5001,7 @@ let viewkeyboard key mask =
         | Birdseye beye -> downbirdseye 1 beye
         | Textentry _ | View | LinkNav _ ->
            if ctrl
-           then gotoxy_and_clear_text state.x (clamp (state.winh/2))
+           then gotoxy state.x (clamp (state.winh/2))
            else (
              if not (Wsi.withshift mask) && conf.presentation
              then nextpage ()
@@ -5024,7 +5024,7 @@ let viewkeyboard key mask =
          let pv = Wsi.kc2kt key in
          if pv = Keys.Left then dx else -dx
        in
-       gotoxy_and_clear_text (panbound (state.x + dx)) state.y
+       gotoxy (panbound (state.x + dx)) state.y
      else (
        state.text <- E.s;
        G.postRedisplay "left/right"
@@ -5560,7 +5560,7 @@ let zoomblock x y =
        let pagey = getpagey l.pageno in
        let margin = (state.w - l.pagew)/2 in
        let nx = -truncate x0 - margin in
-       gotoxy_and_clear_text nx (pagey + truncate y0);
+       gotoxy nx (pagey + truncate y0);
        state.anchor <- getanchor ();
        setzoom zoom;
        None
@@ -5576,14 +5576,14 @@ let scrollx x =
   let winw = state.winw - 1 in
   let s = float x /. float winw in
   let destx = truncate (float (state.w + winw) *. s) in
-  gotoxy_and_clear_text (winw - destx) state.y;
+  gotoxy (winw - destx) state.y;
   state.mstate <- Mscrollx;
 ;;
 
 let scrolly y =
   let s = float y /. float state.winh in
   let desty = truncate (s *. float (maxy ())) in
-  gotoxy_and_clear_text state.x desty;
+  gotoxy state.x desty;
   state.mstate <- Mscrolly;
 ;;
 
@@ -5660,13 +5660,13 @@ let viewmouse button down x y mask =
             in
             let incr = incr * 2 in
             let y = clamp incr in
-            gotoxy_and_clear_text state.x y
+            gotoxy state.x y
      )
 
   | n when (n = 6 || n = 7) && not down && canpan () ->
      let x =
        panbound (state.x + (if n = 7 then -2 else 2) * conf.hscrollstep) in
-     gotoxy_and_clear_text x state.y
+     gotoxy x state.y
 
   | 1 when Wsi.withshift mask ->
      state.mstate <- Mnone;
@@ -5875,7 +5875,7 @@ let uioh = object
             state.mstate <- Mpan (x, y);
             let x = if canpan () then panbound (state.x + dx) else state.x in
             let y = clamp dy in
-            gotoxy_and_clear_text x y
+            gotoxy x y
 
          | Msel (a, _) ->
             state.mstate <- Msel (a, (x, y));
@@ -5976,7 +5976,7 @@ let uioh = object
     method alwaysscrolly = false
     method scroll dx dy =
       let x = if canpan () then panbound (state.x + dx) else state.x in
-      gotoxy_and_clear_text x (clamp (2 * dy));
+      gotoxy x (clamp (2 * dy));
       state.uioh
     method zoom z x y =
       pivotzoom ~x ~y (conf.zoom *. exp z);
@@ -6457,9 +6457,7 @@ let () =
                 then state.maxy - fy
                 else if y >= state.maxy - fy then 0 else y
               in
-              if state.mode = View
-              then gotoxy_and_clear_text state.x y
-              else gotoxy state.x y;
+              gotoxy state.x y;
               deadline +. 0.01
          | _ -> infinity
        in
