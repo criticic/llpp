@@ -117,7 +117,7 @@ bocaml1() {
     local dd
     local ppx
 
-    test -x $srcd/ppx && ppx="-ppx \"out=$o $srcd/ppx\"" || ppx=
+    test -x $srcd/misc/ppx && ppx="-ppx \"out=$o $srcd/misc/ppx\"" || ppx=
     local cmd="ocamlc -depend $ppx -bytecode -one-line $incs $s"
     local keycmd="digest $s"
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
