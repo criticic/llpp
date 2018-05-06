@@ -64,7 +64,7 @@ extern char **environ;
 
 #if __GNUC__ < 5 && !defined __clang__
 /* At least gcc (Gentoo 4.9.3 p1.0, pie-0.6.2) 4.9.3 emits erroneous
-   clobbered diagnostics */
+   clobbered diagnostic message */
 #pragma GCC diagnostic ignored "-Wclobbered"
 #endif
 
