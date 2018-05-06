@@ -62,12 +62,6 @@ extern char **environ;
 #include <caml/memory.h>
 #include <caml/unixsupport.h>
 
-#if __GNUC__ < 5 && !defined __clang__
-/* At least gcc (Gentoo 4.9.3 p1.0, pie-0.6.2) 4.9.3 emits erroneous
-   clobbered diagnostic message */
-#pragma GCC diagnostic ignored "-Wclobbered"
-#endif
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #include <mupdf/fitz.h>
