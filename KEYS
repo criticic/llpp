@@ -159,9 +159,9 @@ up/down arrow           - previous/next entered text
 enter                   - confirm
 Ctrl-g,esc              - cancel
 
-double/triple/quadruple/... clicks in view mode will pipe the
-word/line/block/page through pax command when control is held
-and selection command otherwise
+double/triple/quadruple/quintuple clicks in view mode will pipe the
+word/line/block/page through pax command when control is held and
+selection command otherwise
 
 [1] if the document was previously visited initial backspace will
     jump to the last visited place
