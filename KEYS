@@ -26,7 +26,7 @@ if auto scrolling is active:
     up/down arrows and mouse buttons 3/4 will make scrolling go faster/slower
 
 -----Mouse-----
-primary mouse button[2] - click on link or select text[3]
+primary mouse button    - click on link or select text[2]
   when shift is held    - execute "synctex command" with coordinates of the point [4]
   when control is held  - pan
   zoom to block         - when in block zoom mode
@@ -34,7 +34,7 @@ primary mouse button[2] - click on link or select text[3]
 mouse buttons 3/4       - scroll up/down (aka mouse wheel)
   when control is held  - zoom
 mouse buttons 5/6       - pan left/right (aka horizontal mouse wheel)
-other mouse button[2]   - select rectangle to zoom to
+secondary mouse button  - select rectangle to zoom to
   when shift is held    - add text annotation
 
 Note:
