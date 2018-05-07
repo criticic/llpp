@@ -518,8 +518,8 @@ let defconf =
   ; pathlauncher   = "lp \"%s\""
   ; selcmd         =
       (match platform with
-       | Plinux | Pbsd | Psun -> "xsel -i"
-       | Posx -> "pbcopy"
+       | Plinux | Pbsd | Psun -> "LC_CTYPE=UTF-8 xclip -i"
+       | Posx -> "LC_CTYPE=UTF-8 pbcopy"
        | Punknown -> "cat")
   ; paxcmd         = "cat"
   ; passcmd        = E.s
