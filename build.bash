@@ -4,7 +4,11 @@ set -eu
 now() { date +%s; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
+if false; then
+    digest() { stat 2>/dev/null -c %Y $*; }
+else
+    digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
+fi
 
 test "$(uname)" = Darwin && {
     darwin=true
