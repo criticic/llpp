@@ -78,13 +78,6 @@ let drawstring2 size x y fmt =
   Printf.kprintf (drawstring size (x+1) (y+size+1)) fmt
 ;;
 
-module UniSyms = struct
-  let ellipsis = "\xe2\x80\xa6";;
-  let radical = "\xe2\x88\x9a";;
-  let lguillemet = "\xc2\xab";;
-  let rguillemet = "\xc2\xbb";;
-end;;
-
 let _debugl l =
   dolog {|l %d dim=%d {
   WxH     %dx%d
