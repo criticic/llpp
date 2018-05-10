@@ -129,7 +129,7 @@ Ctrl-l                  - center the view on the currently selected page
 (page)up/(page)down     - navigate
 home/end                - go to first/last page
 enter                   - select the page and leave bird's eye mode
-1st mouse button        - select the page under cursor and leave bird's eye mode
+primary mouse button    - select the page under cursor and leave bird's eye mode
 
 -----Outline/bookmark/help/info/history mode-----
 esc                     - leave outline/bookmark mode
