@@ -1032,7 +1032,7 @@ let opendoc path password =
     then path
     else state.origin
   in
-  Wsi.settitle ("llpp " ^ (mbtoutf8 (Filename.basename titlepath)));
+  Wsi.settitle ("llpp " ^ mbtoutf8 (Filename.basename titlepath));
   wcmd "open %d %d %s\000%s\000%s\000"
        (btod conf.usedoccss) !layouth
        path password conf.css;
