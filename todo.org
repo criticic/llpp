@@ -63,6 +63,7 @@
 ** TODO Parallel builds
 ** TODO cmt/cmti instead of -impl/-intf
 ** TODO Avoid infinite recursion
+** TODO Make isfresh work (properly) with multiple targets
 * DONE misc/bootstrap.sh
   CLOSED: [2018-04-28 Sat 12:39]
   Out of tree

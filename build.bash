@@ -48,11 +48,12 @@ isfresh() {
         }
 }
 
+mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 test "${USER-}" = "malc" && {
-    keycmd="cd $mudir && git describe --tags --dirty"
-    isfresh "$outd/mupdf" "$(eval $keycmd)" || (
+    keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
+    isfresh "$mulibs" "$(eval $keycmd)" || (
         make -C "$mudir" CC='ccache gcc' build=native -j4 libs && :>$outd/mupdf
-        echo "k=$(eval $keycmd)" >$outd/mupdf.past
+        echo "k=\"$(eval $keycmd)\"" >$mudir/build/native/libmupdf.a.past
     ) && vecho "fresh mupdf"
 }
 
@@ -299,7 +300,7 @@ done
 ord=$(grep -v \.cmi $outd/ordered)
 cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
 cmd="$cmd $globjs -cclib \"$clibs\""
-keycmd="digest $outd/llpp $cobjs $ord"
+keycmd="digest $outd/llpp $cobjs $ord $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
         echo linking $outd/llpp
         eval $cmd || die "$cmd failed"
