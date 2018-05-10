@@ -52,7 +52,7 @@ mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 test "${USER-}" = "malc" && {
     keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
     isfresh "$mulibs" "$(eval $keycmd)" || (
-        make -C "$mudir" CC='ccache gcc' build=native -j4 libs && :>$outd/mupdf
+        make -C "$mudir" CC='ccache gcc' build=native -j4 libs
         echo "k=\"$(eval $keycmd)\"" >$mudir/build/native/libmupdf.a.past
     ) && vecho "fresh mupdf"
 }
