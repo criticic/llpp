@@ -1039,7 +1039,7 @@ let opendoc path password =
   invalidate "reqlayout"
              (fun () ->
                begin state.statkeyhack <-
-                 try ((Unix.stat state.path).st_mtime, conf.key)
+                 try ((Unix.stat state.path).Unix.st_mtime, conf.key)
                  with _ -> (nan, E.s)
                end;
                wcmd "reqlayout %d %d %d %s\000"

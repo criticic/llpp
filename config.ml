@@ -1914,7 +1914,7 @@ let save1 bb leavebirdseye x h dc =
              let key =
                try
                  let t, h = state.statkeyhack in
-                 let t' = try (Unix.stat docpath).st_mtime with _ -> nan in
+                 let t' = try (Unix.stat docpath).Unix.st_mtime with _ -> nan in
                  if t <> t'
                  then Digest.file docpath |> Digest.to_hex
                  else h
