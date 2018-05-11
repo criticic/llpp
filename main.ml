@@ -2450,7 +2450,7 @@ object (self)
                   then s
                   else
                     let s' = withoutlastutf8 s in
-                    let s = s' ^ UniSyms.ellipsis in
+                    let s = s' ^ Unisyms.ellipsis in
                     let w = measurestr fs s in
                     if float x' +. w +. ww < float (hw + x')
                     then s
@@ -3174,7 +3174,7 @@ let describe_layout layout =
        let rangestr a b =
          if a.pageno = b.pageno then Printf.sprintf "%d" (a.pageno+1)
          else
-           let sep = if a.pageno+1 = b.pageno then ", " else UniSyms.ellipsis in
+           let sep = if a.pageno+1 = b.pageno then ", " else Unisyms.ellipsis in
            Printf.sprintf "%d%s%d" (a.pageno+1) sep (b.pageno+1)
        in
        let rec fold s la lb = function
@@ -3203,7 +3203,7 @@ let setpresentationmode v =
 ;;
 
 let enterinfomode =
-  let btos b = if b then UniSyms.radical else E.s in
+  let btos b = if b then Unisyms.radical else E.s in
   let showextended = ref false in
   let showcolors = ref false in
   let leave mode _ =  state.mode <- mode in
@@ -3623,7 +3623,7 @@ let enterinfomode =
              (fun v -> conf.bedefault <- v);
 
     sep ();
-    let btos b = if b then UniSyms.lguillemet else UniSyms.rguillemet in
+    let btos b = if b then Unisyms.lguillemet else Unisyms.rguillemet in
     src#bool ~offset:0 ~btos "Extended parameters"
              (fun () -> !showextended)
              (fun v -> showextended := v; fillsrc prevmode prevuioh);
@@ -4236,7 +4236,7 @@ class outlinesoucebase fetchoutlines = object (self)
       let s =
         match m_narrow_patterns with
         | one :: [] -> one
-        | many -> String.concat UniSyms.ellipsis (List.rev many)
+        | many -> String.concat Unisyms.ellipsis (List.rev many)
       in
       "Narrowed to " ^ s ^ " (ctrl-u to restore)"
     else E.s
@@ -4245,7 +4245,7 @@ class outlinesoucebase fetchoutlines = object (self)
     match m_narrow_patterns with
     | [] -> E.s
     | one :: [] -> one
-    | head :: _ -> UniSyms.ellipsis ^ head
+    | head :: _ -> Unisyms.ellipsis ^ head
 
   method narrow pattern =
     match Str.regexp_case_fold pattern with
@@ -4290,7 +4290,7 @@ class outlinesoucebase fetchoutlines = object (self)
     | list ->
        List.fold_left (fun accu pattern ->
            self#narrow pattern;
-           pattern ^ UniSyms.ellipsis ^ accu) E.s list
+           pattern ^ Unisyms.ellipsis ^ accu) E.s list
 
   method calcactive (_:anchor) = 0
 
