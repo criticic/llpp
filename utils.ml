@@ -351,3 +351,15 @@ module UniSyms = struct
   let lguillemet = "\xc2\xab";;
   let rguillemet = "\xc2\xbb";;
 end;;
+
+let pipef ?(closew=true) cap f cmd =
+  match Unix.pipe () with
+  | exception exn -> dolog "%s cannot create pipe: %S" cap @@ exntos exn
+  | (r, w) ->
+     begin match spawn cmd [r, 0; w, -1] with
+     | exception exn -> dolog "%s: cannot execute %S: %s" cap cmd @@ exntos exn
+     | _pid -> f w
+     end;
+     Ne.clo r (dolog "%s failed to close r: %s" cap);
+     if closew then Ne.clo w (dolog "%s failed to close w: %s" cap);
+;;
