@@ -1,5 +1,6 @@
 open Utils;;
 open Config;;
+open Glutils;;
 
 exception Quit;;
 
@@ -12,8 +13,6 @@ external markunder : opaque -> int -> int -> mark -> bool = "ml_markunder";;
 external clearmark : opaque -> unit = "ml_clearmark";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external getmaxw : unit -> float = "ml_getmaxw";;
-external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
-external measurestr : int -> string -> float = "ml_measure_string";;
 external postprocess : opaque -> int -> int -> int -> (int * string * int)
                        -> int = "ml_postprocess";;
 external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
@@ -60,23 +59,6 @@ let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
 let opengl_has_pbo = ref false;;
 let layouth = ref ~-1;;
-
-let drawstring size x y s =
-  Gl.enable `blend;
-  Gl.enable `texture_2d;
-  GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
-  ignore (drawstr size x y s);
-  Gl.disable `blend;
-  Gl.disable `texture_2d;
-;;
-
-let drawstring1 size x y s =
-  drawstr size x y s;
-;;
-
-let drawstring2 size x y fmt =
-  Printf.kprintf (drawstring size (x+1) (y+size+1)) fmt
-;;
 
 let _debugl l =
   dolog {|l %d dim=%d {
@@ -165,7 +147,8 @@ module G =
       vlog "redisplay for [%S]" who;
       state.redisplay <- true;
     ;;
-  end;;
+  end
+;;
 
 let getopaque pageno =
   try Some (Hashtbl.find state.pagemap (pageno, state.gen))
@@ -540,28 +523,6 @@ let puttileopaque l col row gen colorspace angle opaque size elapsed =
   Hashtbl.add state.tilemap key (opaque, size, elapsed)
 ;;
 
-let filledrect2 x0 y0 x1 y1 x2 y2 x3 y3 =
-  Raw.sets_float state.vraw ~pos:0 [| x0; y0; x1; y1; x2; y2; x3; y3 |];
-  GlArray.vertex `two state.vraw;
-  GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
-;;
-
-let filledrect1 x0 y0 x1 y1 = filledrect2 x0 y0 x0 y1 x1 y0 x1 y1;;
-
-let filledrect x0 y0 x1 y1 =
-  GlArray.disable `texture_coord;
-  filledrect1 x0 y0 x1 y1;
-  GlArray.enable `texture_coord;
-;;
-
-let linerect x0 y0 x1 y1 =
-  GlArray.disable `texture_coord;
-  Raw.sets_float state.vraw ~pos:0 [| x0; y0; x0; y1; x1; y1; x1; y0 |];
-  GlArray.vertex `two state.vraw;
-  GlArray.draw_arrays `line_loop ~first:0 ~count:4;
-  GlArray.enable `texture_coord;
-;;
-
 let drawtiles l color =
   GlDraw.color color;
   begintiles ();
@@ -618,12 +579,12 @@ let drawtiles l color =
           and ty0 = float tiley /. 16.0 in
           let tx1 = tx0 +. tw
           and ty1 = ty0 +. th in
-          Raw.sets_float state.vraw ~pos:0
+          Raw.sets_float raw.vraw ~pos:0
                          [| x0; y0; x0; y1; x1; y0; x1; y1 |];
-          Raw.sets_float state.traw ~pos:0
+          Raw.sets_float raw.traw ~pos:0
                          [| tx0; ty0; tx0; ty1; tx1; ty0; tx1; ty1 |];
-          GlArray.vertex `two state.vraw;
-          GlArray.tex_coord `two state.traw;
+          GlArray.vertex `two raw.vraw;
+          GlArray.tex_coord `two raw.traw;
           GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
           Gl.disable `texture_2d;
 
@@ -3201,21 +3162,6 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   reshape ~firsttime:true state.winw state.winh;
   opendoc path origin;
   setzoom c.zoom;
-;;
-
-let makecheckers () =
-  (* Based on lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had
-     following to say:
-     converted by Issac Trotts.  July 25, 2002 *)
-  let image = GlPix.create `ubyte ~format:`luminance ~width:2 ~height:2 in
-  Raw.sets_string (GlPix.to_raw image) ~pos:0 "\255\200\200\255";
-  let id = GlTex.gen_texture () in
-  GlTex.bind_texture ~target:`texture_2d id;
-  GlPix.store (`unpack_alignment 1);
-  GlTex.image2d image;
-  List.iter (GlTex.parameter ~target:`texture_2d)
-            [ `mag_filter `nearest; `min_filter `nearest ];
-  id;
 ;;
 
 let setcheckers enabled =

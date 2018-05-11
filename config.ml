@@ -420,8 +420,6 @@ type state =
   ; mutable origin        : string
   ; mutable roam          : (unit -> unit)
   ; mutable bzoom         : bool
-  ; mutable traw          : [`float] Raw.t
-  ; mutable vraw          : [`float] Raw.t
   ; mutable lnava         : (pageno * linkno) option
   ; mutable slideshow     : int
   }
@@ -698,8 +696,6 @@ let state =
   ; origin        = E.s
   ; roam          = noroam
   ; bzoom         = false
-  ; traw          = Raw.create_static `float ~len:8
-  ; vraw          = Raw.create_static `float ~len:8
   ; lnava         = None
   ; slideshow     = 0
   }
