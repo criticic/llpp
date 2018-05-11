@@ -61,7 +61,7 @@
 ** DONE Fix .mli ugliness
    CLOSED: [2018-04-23 Mon 12:35]
 ** TODO Parallel builds
-** TODO cmt/cmti instead of -impl/-intf
+** WONTDO cmt/cmti instead of -impl/-intf
 ** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
 * DONE misc/bootstrap.sh
