@@ -4,11 +4,7 @@ set -eu
 now() { date +%s; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
-if false; then
-    digest() { stat 2>/dev/null -c %Y $*; }
-else
-    digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
-fi
+digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
 test "$(uname)" = Darwin && {
     darwin=true
@@ -120,10 +116,8 @@ bocaml1() {
     local o="$3"
     local O=${4-}
     local dd
-    local ppx
 
-    test -x $srcd/misc/ppx && ppx="-ppx \"out=$o $srcd/misc/ppx\"" || ppx=
-    local cmd="ocamlc -depend $ppx -bytecode -one-line $incs $s"
+    local cmd="ocamlc -depend -bytecode -one-line $incs $s"
     local keycmd="digest $s"
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         :>"$o.depl"
@@ -146,13 +140,6 @@ bocaml1() {
         done
     }
 
-    test -n "$ppx" && {
-        test "${o%.cmi}" = "$o" && {
-            s="-impl $o.cmt"
-        } || {
-            s="-intf $o.cmt"
-        }
-    }
     cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="digest $s $(< $o.depl)"
     grep -q "$o" $outd/ordered || {
