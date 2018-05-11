@@ -424,7 +424,6 @@ type state =
   ; mutable vraw          : [`float] Raw.t
   ; mutable lnava         : (pageno * linkno) option
   ; mutable slideshow     : int
-  ; mutable statkeyhack   : (float * string)
   }
  and hists =
    { pat : string circbuf
@@ -703,7 +702,6 @@ let state =
   ; vraw          = Raw.create_static `float ~len:8
   ; lnava         = None
   ; slideshow     = 0
-  ; statkeyhack   = (nan, E.s)
   }
 ;;
 
@@ -1911,15 +1909,8 @@ let save1 bb leavebirdseye x h dc =
              | View
              | LinkNav _ -> ()
              end;
-             let key =
-               try
-                 let t, h = state.statkeyhack in
-                 let t' = try (Unix.stat docpath).Unix.st_mtime with _ -> nan in
-                 if t <> t'
-                 then Digest.file docpath |> Digest.to_hex
-                 else h
-               with _ -> E.s
-             in
+             let key = try Digest.file docpath |> Digest.to_hex
+                       with _ -> E.s in
              { conf with autoscrollstep; key }
            )
            (if conf.savebmarks then state.bookmarks else [])
