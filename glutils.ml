@@ -1,21 +1,12 @@
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 external measurestr : int -> string -> float = "ml_measure_string";;
 
-type raw =
-  { mutable traw          : [`float] Raw.t
-  ; mutable vraw          : [`float] Raw.t
-  }
-;;
-
-let raw =
-  { traw          = Raw.create_static `float ~len:8
-  ; vraw          = Raw.create_static `float ~len:8
-  }
-;;
+let traw = Raw.create_static `float ~len:8;;
+let vraw = Raw.create_static `float ~len:8;;
 
 let filledrect2 x0 y0 x1 y1 x2 y2 x3 y3 =
-  Raw.sets_float raw.vraw ~pos:0 [| x0; y0; x1; y1; x2; y2; x3; y3 |];
-  GlArray.vertex `two raw.vraw;
+  Raw.sets_float vraw ~pos:0 [| x0; y0; x1; y1; x2; y2; x3; y3 |];
+  GlArray.vertex `two vraw;
   GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
 ;;
 
@@ -29,8 +20,8 @@ let filledrect x0 y0 x1 y1 =
 
 let linerect x0 y0 x1 y1 =
   GlArray.disable `texture_coord;
-  Raw.sets_float raw.vraw ~pos:0 [| x0; y0; x0; y1; x1; y1; x1; y0 |];
-  GlArray.vertex `two raw.vraw;
+  Raw.sets_float vraw ~pos:0 [| x0; y0; x0; y1; x1; y1; x1; y0 |];
+  GlArray.vertex `two vraw;
   GlArray.draw_arrays `line_loop ~first:0 ~count:4;
   GlArray.enable `texture_coord;
 ;;

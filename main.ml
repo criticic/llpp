@@ -565,12 +565,12 @@ let drawtiles l color =
           and ty0 = float tiley /. 16.0 in
           let tx1 = tx0 +. tw
           and ty1 = ty0 +. th in
-          Raw.sets_float raw.vraw ~pos:0
+          Raw.sets_float Glutils.vraw ~pos:0
                          [| x0; y0; x0; y1; x1; y0; x1; y1 |];
-          Raw.sets_float raw.traw ~pos:0
+          Raw.sets_float Glutils.traw ~pos:0
                          [| tx0; ty0; tx0; ty1; tx1; ty0; tx1; ty1 |];
-          GlArray.vertex `two raw.vraw;
-          GlArray.tex_coord `two raw.traw;
+          GlArray.vertex `two Glutils.vraw;
+          GlArray.tex_coord `two Glutils.traw;
           GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
           Gl.disable `texture_2d;
 
