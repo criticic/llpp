@@ -2,8 +2,6 @@ open Utils;;
 open Config;;
 open Glutils;;
 
-exception Quit;;
-
 external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;

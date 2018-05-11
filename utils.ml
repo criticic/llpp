@@ -1,3 +1,5 @@
+exception Quit;;
+
 module E = struct
   let s = "";;
   let b = Bytes.empty;;
