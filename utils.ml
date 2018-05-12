@@ -358,3 +358,16 @@ let pipef ?(closew=true) cap f cmd =
      Ne.clo r (dolog "%s failed to close r: %s" cap);
      if closew then Ne.clo w (dolog "%s failed to close w: %s" cap);
 ;;
+
+let selstring selcmd s =
+  pipef
+    "selstring" (fun w ->
+      try
+        let l = String.length s in
+        let bytes = Bytes.unsafe_of_string s in
+        let n = tempfailureretry (Unix.write w bytes 0) l in
+        if n != l
+        then dolog "failed to write %d characters to sel pipe, wrote %d" l n;
+      with exn -> dolog "failed to write to sel pipe: %s" @@ exntos exn
+    ) selcmd
+;;

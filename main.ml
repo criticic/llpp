@@ -252,19 +252,6 @@ let paxunder x y =
   state.roam <- onppundermouse g x y (fun () -> impmsg "whoopsie daisy");
 ;;
 
-let selstring s =
-  pipef
-    "selstring" (fun w ->
-      try
-        let l = String.length s in
-        let bytes = Bytes.unsafe_of_string s in
-        let n = tempfailureretry (Unix.write w bytes 0) l in
-        if n != l
-        then impmsg "failed to write %d characters to sel pipe, wrote %d" l n;
-      with exn -> impmsg "failed to write to sel pipe: %s" @@ exntos exn
-    ) conf.selcmd
-;;
-
 let undertext = function
   | Unone -> "none"
   | Ulinkuri s -> s
@@ -2681,7 +2668,7 @@ object (self)
        if m_active >= 0 && m_active < source#getitemcount
        then (
          let s, _ = source#getitem m_active in
-         selstring s;
+         selstring conf.selcmd s;
        );
        coe self
 
@@ -4087,7 +4074,7 @@ let enterannotmode opaque slinkindex =
          in
          m_text <- s;
          m_items <-
-           (   "[Copy]", fun () -> selstring m_text)
+           (   "[Copy]", fun () -> selstring conf.selcmd m_text)
            :: ("[Delete]", dele)
            :: ("[Edit]", edit conf.annotinline)
            :: (E.s, unit)
@@ -4743,7 +4730,8 @@ let viewkeyboard key mask =
      state.mode <-
        Textentry (
            (":", E.s, None, linknentry,
-            linknact (fun under -> selstring (undertext under)), false),
+            linknact (fun under ->
+                selstring conf.selcmd (undertext under)), false),
            (fun _ ->
              state.glinks <- false;
              state.mode <- mode)
