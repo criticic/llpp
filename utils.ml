@@ -341,7 +341,9 @@ let r32s s pos =
   let v = v0 lor (v1 lsl 8) lor (v2 lsl 16) lor (v3 lsl 24) in
   if v3 land 0x80 = 0
   then v
-  else (v - (1 lsl 32))
+  else
+    (* XXX This is broken on 32bit platforms *)
+    (v - (1 lsl 32))
 ;;
 
 let vlog fmt = Format.ksprintf ignore fmt;;
