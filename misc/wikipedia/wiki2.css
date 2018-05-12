@@ -56,7 +56,7 @@ body {
     prince-linebreak-magic: auto;
     hyphens: auto;
     text-align: justify;
-    prince-image-resolution: auto, 1800dpi;
+    prince-image-resolution: normal;
 }
 
 ul, ol, dl { text-align: left; hyphens: manual; }
