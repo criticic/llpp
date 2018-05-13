@@ -335,15 +335,16 @@ let r32 s pos =
   (u lsl 16) lor l
 ;;
 
-let r32s s pos =
-  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
-  let v0 = rb 0 and v1 = rb 1 and v2 = rb 2 and v3 = rb 3 in
-  let v = v0 lor (v1 lsl 8) lor (v2 lsl 16) lor (v3 lsl 24) in
-  if v3 land 0x80 = 0
-  then v
-  else
-    (* XXX This is broken on 32bit platforms *)
-    (v - (1 lsl 32))
+let r32s =
+  if Sys.word_size > 32
+  then fun s pos ->
+       let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
+       let v0 = rb 0 and v1 = rb 1 and v2 = rb 2 and v3 = rb 3 in
+       let v = v0 lor (v1 lsl 8) lor (v2 lsl 16) lor (v3 lsl 24) in
+       if v3 land 0x80 = 0
+       then v
+       else (v - (1 lsl 32))
+  else failwith "not implemented for word_size <= 32"
 ;;
 
 let vlog fmt = Format.ksprintf ignore fmt;;
