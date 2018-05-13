@@ -362,8 +362,7 @@ let pipef ?(closew=true) cap f cmd =
 ;;
 
 let selstring selcmd s =
-  pipef
-    "selstring" (fun w ->
+  pipef "selstring" (fun w ->
       try
         let l = String.length s in
         let bytes = Bytes.unsafe_of_string s in
