@@ -344,7 +344,7 @@ let r32s =
        if v3 land 0x80 = 0
        then v
        else (v - (1 lsl 32))
-  else failwith "not implemented for word_size <= 32"
+  else failwith "r32s: not implemented for word_size <= 32"
 ;;
 
 let vlog fmt = Format.ksprintf ignore fmt;;
