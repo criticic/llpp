@@ -209,7 +209,6 @@ type conf =
   ; mutable maxhfit        : bool
   ; mutable crophack       : bool
   ; mutable autoscrollstep : int
-  ; mutable maxwait        : float option
   ; mutable hlinks         : bool
   ; mutable underinfo      : bool
   ; mutable interpagespace : interpagespace
@@ -401,7 +400,6 @@ type state =
   ; mutable geomcmds      : (string * ((string * (unit -> unit)) list))
   ; mutable memused       : memsize
   ; mutable gen           : gen
-  ; mutable throttle      : (page list * int * float) option
   ; mutable autoscroll    : int option
   ; mutable help          : helpitem array
   ; mutable docinfo       : (int * string) list
@@ -480,7 +478,6 @@ let defconf =
   ; maxhfit        = true
   ; crophack       = false
   ; autoscrollstep = 2
-  ; maxwait        = None
   ; hlinks         = false
   ; underinfo      = false
   ; interpagespace = 2
@@ -677,7 +674,6 @@ let state =
       }
   ; memused       = 0
   ; gen           = 0
-  ; throttle      = None
   ; autoscroll    = None
   ; help          = E.a
   ; docinfo       = []
@@ -982,14 +978,6 @@ let config_of c attrs =
          { c with autoscrollstep = max 0 (int_of_string v) }
       | "max-height-fit" -> { c with maxhfit = bool_of_string v }
       | "crop-hack" -> { c with crophack = bool_of_string v }
-      | "throttle" ->
-         let mw =
-           match String.map asciilower v with
-           | "true" -> Some infinity
-           | "false" -> None
-           | f -> Some (float_of_string f)
-         in
-         { c with maxwait = mw }
       | "highlight-links" -> { c with hlinks = bool_of_string v }
       | "under-cursor-info" -> { c with underinfo = bool_of_string v }
       | "vertical-margin" ->
@@ -1147,7 +1135,6 @@ let setconf dst src =
   dst.maxhfit        <- src.maxhfit;
   dst.crophack       <- src.crophack;
   dst.autoscrollstep <- src.autoscrollstep;
-  dst.maxwait        <- src.maxwait;
   dst.hlinks         <- src.hlinks;
   dst.underinfo      <- src.underinfo;
   dst.interpagespace <- src.interpagespace;
@@ -1562,18 +1549,6 @@ let add_attrs bb always dc c time =
   and oPm s a b = o (always || a <> b) "%s='%s'" s (MTE.to_string a)
   and os s a b =
     o (always || a <> b) "%s='%s'" s @@ Parser.enent a 0 (String.length a)
-  and oW s a b =
-    if always || a <> b
-    then
-      let v =
-        match a with
-        | None -> "false"
-        | Some f ->
-           if f = infinity
-           then "true"
-           else string_of_float f
-      in
-      o' "%s='%s'" s v
   and oco s a b =
     if always || a <> b
     then
@@ -1601,7 +1576,6 @@ let add_attrs bb always dc c time =
   oi "auto-scroll-step" c.autoscrollstep dc.autoscrollstep;
   ob "max-height-fit" c.maxhfit dc.maxhfit;
   ob "crop-hack" c.crophack dc.crophack;
-  oW "throttle" c.maxwait dc.maxwait;
   ob "highlight-links" c.hlinks dc.hlinks;
   ob "under-cursor-info" c.underinfo dc.underinfo;
   oi "vertical-margin" c.interpagespace dc.interpagespace;

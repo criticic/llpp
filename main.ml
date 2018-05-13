@@ -729,114 +729,84 @@ let layoutready layout =
 
 let gotoxy x y =
   let y = bound y 0 state.maxy in
-  let y, layout, proceed =
-    match conf.maxwait with
-    | Some time ->
-       begin match state.throttle with
-       | None ->
-          let layout = layout x y state.winw state.winh in
-          let ready = layoutready layout in
-          if not ready
-          then (
-            load layout;
-            state.throttle <- Some (layout, y, now ());
-          )
-          else G.postRedisplay "gotoxy showall (None)";
-          y, layout, ready
-       | Some (_, _, started) ->
-          let dt = now () -. started in
-          if dt > time
-          then (
-            state.throttle <- None;
-            let layout = layout x y state.winw state.winh in
-            load layout;
-            G.postRedisplay "maxwait";
-            y, layout, true
-          )
-          else -1, [], false
-       end
-
-    | _ ->
-       let layout = layout x y state.winw state.winh in
-       G.postRedisplay "gotoxy ready";
-       y, layout, true
+  let y, layout =
+    let layout = layout x y state.winw state.winh in
+    G.postRedisplay "gotoxy ready";
+    y, layout
   in
-  if proceed
-  then (
-    state.x <- x;
-    state.y <- y;
-    state.layout <- layout;
-    begin match state.mode with
-    | LinkNav ln ->
-       begin match ln with
-       | Ltexact (pageno, linkno) ->
+  state.x <- x;
+  state.y <- y;
+  state.layout <- layout;
+  begin match state.mode with
+  | LinkNav ln ->
+     begin match ln with
+     | Ltexact (pageno, linkno) ->
+        let rec loop = function
+          | [] ->
+             state.lnava <- Some (pageno, linkno);
+             state.mode <- LinkNav (Ltgendir 0)
+          | l :: _ when l.pageno = pageno ->
+             begin match getopaque pageno with
+             | None -> state.mode <- LinkNav (Ltnotready (pageno, 0))
+             | Some opaque ->
+                let x0, y0, x1, y1 = getlinkrect opaque linkno in
+                if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
+                        && y0 >= l.pagey && y1 <= l.pagey + l.pagevh)
+                then state.mode <- LinkNav (Ltgendir 0)
+             end
+          | _ :: rest -> loop rest
+        in
+        loop layout
+     | Ltnotready _ | Ltgendir _ -> ()
+     end
+  | Birdseye _ | Textentry _ | View -> ()
+  end;
+  begin match state.mode with
+  | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
+     if not (pagevisible layout pageno)
+     then (
+       match state.layout with
+       | [] -> ()
+       | l :: _ ->
+          state.mode <- Birdseye (
+                            conf, leftx, l.pageno, hooverpageno, anchor
+                          )
+     );
+  | LinkNav lt ->
+     begin match lt with
+     | Ltnotready (_, dir)
+     | Ltgendir dir ->
+        let linknav =
           let rec loop = function
-            | [] ->
-               state.lnava <- Some (pageno, linkno);
-               state.mode <- LinkNav (Ltgendir 0)
-            | l :: _ when l.pageno = pageno ->
-               begin match getopaque pageno with
-               | None -> state.mode <- LinkNav (Ltnotready (pageno, 0))
+            | [] -> lt
+            | l :: rest ->
+               match getopaque l.pageno with
+               | None -> Ltnotready (l.pageno, dir)
                | Some opaque ->
-                  let x0, y0, x1, y1 = getlinkrect opaque linkno in
-                  if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
-                          && y0 >= l.pagey && y1 <= l.pagey + l.pagevh)
-                  then state.mode <- LinkNav (Ltgendir 0)
-               end
-            | _ :: rest -> loop rest
-          in
-          loop layout
-       | Ltnotready _ | Ltgendir _ -> ()
-       end
-    | Birdseye _ | Textentry _ | View -> ()
-    end;
-    begin match state.mode with
-    | Birdseye (conf, leftx, pageno, hooverpageno, anchor) ->
-       if not (pagevisible layout pageno)
-       then (
-         match state.layout with
-         | [] -> ()
-         | l :: _ ->
-            state.mode <- Birdseye (
-                              conf, leftx, l.pageno, hooverpageno, anchor
-                            )
-       );
-    | LinkNav lt ->
-       begin match lt with
-       | Ltnotready (_, dir)
-       | Ltgendir dir ->
-          let linknav =
-            let rec loop = function
-              | [] -> lt
-              | l :: rest ->
-                 match getopaque l.pageno with
-                 | None -> Ltnotready (l.pageno, dir)
-                 | Some opaque ->
-                    let link =
-                      let ld =
-                        if dir = 0
-                        then LDfirstvisible (l.pagex, l.pagey, dir)
-                        else (
-                          if dir > 0 then LDfirst else LDlast
-                        )
-                      in
-                      findlink opaque ld
+                  let link =
+                    let ld =
+                      if dir = 0
+                      then LDfirstvisible (l.pagex, l.pagey, dir)
+                      else (
+                        if dir > 0 then LDfirst else LDlast
+                      )
                     in
-                    match link with
-                    | Lnotfound -> loop rest
-                    | Lfound n ->
-                       showlinktype (getlink opaque n);
-                       Ltexact (l.pageno, n)
-            in
-            loop state.layout
+                    findlink opaque ld
+                  in
+                  match link with
+                  | Lnotfound -> loop rest
+                  | Lfound n ->
+                     showlinktype (getlink opaque n);
+                     Ltexact (l.pageno, n)
           in
-          state.mode <- LinkNav linknav
-       | Ltexact _ -> ()
-       end
-    | Textentry _ | View -> ()
-    end;
-    preload layout;
-  );
+          loop state.layout
+        in
+        state.mode <- LinkNav linknav
+     | Ltexact _ -> ()
+     end
+  | Textentry _ | View -> ()
+  end;
+  preload layout;
   if conf.updatecurs
   then (
     let mx, my = state.mpos in
@@ -1251,15 +1221,9 @@ let enttext () =
 
 let gctiles () =
   let len = Queue.length state.tilelru in
-  let layout = lazy (
-                   match state.throttle with
-                   | None ->
-                      if conf.preload
-                      then preloadlayout state.x state.y state.winw state.winh
-                      else state.layout
-                   | Some (layout, _, _) ->
-                      layout
-                 ) in
+  let layout = lazy (if conf.preload
+                     then preloadlayout state.x state.y state.winw state.winh
+                     else state.layout) in
   let rec loop qpos =
     if state.memused > conf.memlimit
     then (
@@ -1403,14 +1367,12 @@ let act cmds =
      begin match List.rev cmds with
      | [] ->
         state.geomcmds <- E.s, [];
-        state.throttle <- None;
         represent ();
      | (s, f) :: rest ->
         f ();
         state.geomcmds <- s, List.rev rest;
      end;
-     if conf.maxwait = None
-     then G.postRedisplay "continue";
+     G.postRedisplay "continue";
 
   | "msg", args ->
      showtext ' ' args
@@ -1427,8 +1389,8 @@ let act cmds =
   | "progress", args ->
      let progress, text =
        scan args "%f %n"
-            (fun f pos ->
-              f, String.sub args pos (String.length args - pos))
+         (fun f pos ->
+           f, String.sub args pos (String.length args - pos))
      in
      state.text <- text;
      state.progress <- progress;
@@ -1437,8 +1399,8 @@ let act cmds =
   | "firstmatch", args ->
      let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
        scan args "%u %d %f %f %f %f %f %f %f %f"
-            (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
-              (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
+         (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
+           (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
      in
      let y = (getpagey pageno) + truncate y0 in
      let x =
@@ -1454,8 +1416,8 @@ let act cmds =
   | "match", args ->
      let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
        scan args "%u %d %f %f %f %f %f %f %f %f"
-            (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
-              (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
+         (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
+           (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
      in
      let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
      state.rects1 <-
@@ -1468,78 +1430,69 @@ let act cmds =
      | Loading (l, gen) ->
         vlog "page %d took %f sec" l.pageno t;
         Hashtbl.replace state.pagemap (l.pageno, gen) pageopaque;
-        begin match state.throttle with
-        | None ->
-           let preloadedpages =
-             if conf.preload
-             then preloadlayout state.x state.y state.winw state.winh
-             else state.layout
-           in
-           let evict () =
-             let set =
-               List.fold_left (fun s l -> IntSet.add l.pageno s)
-                              IntSet.empty preloadedpages
-             in
-             let evictedpages =
-               Hashtbl.fold (fun ((pageno, _) as key) opaque accu ->
-                   if not (IntSet.mem pageno set)
-                   then (
-                     wcmd "freepage %s" (~> opaque);
-                     key :: accu
-                   )
-                   else accu
-                 ) state.pagemap []
-             in
-             List.iter (Hashtbl.remove state.pagemap) evictedpages;
-           in
-           evict ();
-           state.currently <- Idle;
-           if gen = state.gen
-           then (
-             tilepage l.pageno pageopaque state.layout;
-             load state.layout;
-             load preloadedpages;
-             let visible = pagevisible state.layout l.pageno in
-             if visible
-             then (
-               match state.mode with
-               | LinkNav (Ltnotready (pageno, dir)) ->
-                  if pageno = l.pageno
-                  then (
-                    let link =
-                      let ld =
-                        if dir = 0
-                        then LDfirstvisible (l.pagex, l.pagey, dir)
-                        else (
-                          if dir > 0 then LDfirst else LDlast
-                        )
-                      in
-                      findlink pageopaque ld
-                    in
-                    match link with
-                    | Lnotfound -> ()
-                    | Lfound n ->
-                       showlinktype (getlink pageopaque n);
-                       state.mode <- LinkNav (Ltexact (l.pageno, n))
-                  )
-               | LinkNav (Ltgendir _)
-               | LinkNav (Ltexact _)
-               | View
-               | Birdseye _
-               | Textentry _ -> ()
-             );
+        let preloadedpages =
+          if conf.preload
+          then preloadlayout state.x state.y state.winw state.winh
+          else state.layout
+        in
+        let evict () =
+          let set = List.fold_left (fun s l -> IntSet.add l.pageno s)
+                      IntSet.empty preloadedpages
+          in
+          let evictedpages =
+            Hashtbl.fold (fun ((pageno, _) as key) opaque accu ->
+                if not (IntSet.mem pageno set)
+                then (
+                  wcmd "freepage %s" (~> opaque);
+                  key :: accu
+                )
+                else accu
+              ) state.pagemap []
+          in
+          List.iter (Hashtbl.remove state.pagemap) evictedpages;
+        in
+        evict ();
+        state.currently <- Idle;
+        if gen = state.gen
+        then (
+          tilepage l.pageno pageopaque state.layout;
+          load state.layout;
+          load preloadedpages;
+          let visible = pagevisible state.layout l.pageno in
+          if visible
+          then (
+            match state.mode with
+            | LinkNav (Ltnotready (pageno, dir)) ->
+               if pageno = l.pageno
+               then (
+                 let link =
+                   let ld =
+                     if dir = 0
+                     then LDfirstvisible (l.pagex, l.pagey, dir)
+                     else (
+                       if dir > 0 then LDfirst else LDlast
+                     )
+                   in
+                   findlink pageopaque ld
+                 in
+                 match link with
+                 | Lnotfound -> ()
+                 | Lfound n ->
+                    showlinktype (getlink pageopaque n);
+                    state.mode <- LinkNav (Ltexact (l.pageno, n))
+               )
+            | LinkNav (Ltgendir _)
+            | LinkNav (Ltexact _)
+            | View
+            | Birdseye _
+            | Textentry _ -> ()
+          );
 
-             if visible && layoutready state.layout
-             then (
-               G.postRedisplay "page";
-             )
-           )
-
-        | Some (layout, _, _) ->
-           state.currently <- Idle;
-           tilepage l.pageno pageopaque layout;
-           load state.layout
-        end;
+          if visible && layoutready state.layout
+          then (
+            G.postRedisplay "page";
+          )
+        )
 
      | Idle | Tiling _ | Outlining _ ->
         dolog "Inconsistent loading state";
@@ -1550,7 +1503,7 @@ let act cmds =
   | "tile" , args ->
      let (x, y, opaques, size, t) =
        scan args "%u %u %s %u %f"
-            (fun x y p size t -> (x, y, p, size, t))
+         (fun x y p size t -> (x, y, p, size, t))
      in
      let opaque = ~< opaques in
      begin match state.currently with
@@ -1572,41 +1525,21 @@ let act cmds =
           Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                       opaque, size) state.tilelru;
 
-          let layout =
-            match state.throttle with
-            | None -> state.layout
-            | Some (layout, _, _) -> layout
-          in
-
           state.currently <- Idle;
           if    gen = state.gen
                 && conf.colorspace = cs
                 && conf.angle = angle
-                && tilevisible layout l.pageno x y
+                && tilevisible state.layout l.pageno x y
           then conttiling l.pageno pageopaque;
 
-          begin match state.throttle with
-          | None ->
-             preload state.layout;
-             if   gen = state.gen
-                  && conf.colorspace = cs
-                  && conf.angle = angle
-                  && tilevisible state.layout l.pageno x y
-                  && layoutready state.layout
-             then G.postRedisplay "tile nothrottle";
-
-          | Some (layout, y, _) ->
-             let ready = layoutready layout in
-             if ready
-             then (
-               state.y <- y;
-               state.layout <- layout;
-               state.throttle <- None;
-               G.postRedisplay "throttle";
-             )
-             else load layout;
-          end;
-        );
+          preload state.layout;
+          if   gen = state.gen
+               && conf.colorspace = cs
+               && conf.angle = angle
+               && tilevisible state.layout l.pageno x y
+               && layoutready state.layout
+          then G.postRedisplay "tile nothrottle";
+        )
 
      | Idle | Loading _ | Outlining _ ->
         dolog "Inconsistent tiling state";
@@ -1632,7 +1565,7 @@ let act cmds =
   | "o", args ->
      let (l, n, t, h, pos) =
        scan args "%u %u %d %u %n"
-            (fun l n t h pos -> l, n, t, h, pos)
+         (fun l n t h pos -> l, n, t, h, pos)
      in
      let s = String.sub args pos (String.length args - pos) in
      addoutline (s, l, Oanchor (n, float t /. float h, 0.0))
@@ -1692,7 +1625,7 @@ let act cmds =
                Buffer.add_char b ']';
                Buffer.contents b
              else args
-             )
+           )
            else args
        else args
      in
@@ -1803,25 +1736,22 @@ let [@warning "-4"] textentry text = function
 ;;
 
 let reqlayout angle fitmodel =
-  match state.throttle with
-  | None ->
-     if nogeomcmds state.geomcmds
-     then state.anchor <- getanchor ();
-     conf.angle <- angle mod 360;
-     if conf.angle != 0
-     then (
-       match state.mode with
-       | LinkNav _ -> state.mode <- View
-       | Birdseye _ | Textentry _ | View -> ()
-     );
-     conf.fitmodel <- fitmodel;
-     invalidate
-       "reqlayout"
-       (fun () ->
-         wcmd "reqlayout %d %d %d"
-              conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh)
-       );
-  | _ -> ()
+  if nogeomcmds state.geomcmds
+  then state.anchor <- getanchor ();
+  conf.angle <- angle mod 360;
+  if conf.angle != 0
+  then (
+    match state.mode with
+    | LinkNav _ -> state.mode <- View
+    | Birdseye _ | Textentry _ | View -> ()
+  );
+  conf.fitmodel <- fitmodel;
+  invalidate
+    "reqlayout"
+    (fun () ->
+      wcmd "reqlayout %d %d %d"
+        conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh)
+    );
 ;;
 
 let settrim trimmargins trimfuzz =
@@ -1837,29 +1767,14 @@ let settrim trimmargins trimfuzz =
 ;;
 
 let setzoom zoom =
-  match state.throttle with
-  | None ->
-     let zoom = max 0.0001 zoom in
-     if zoom <> conf.zoom
-     then (
-       state.prevzoom <- (conf.zoom, state.x);
-       conf.zoom <- zoom;
-       reshape state.winw state.winh;
-       state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
-     )
-
-  | Some (layout, y, started) ->
-     let time =
-       match conf.maxwait with
-       | None -> 0.0
-       | Some t -> t
-     in
-     let dt = now () -. started in
-     if dt > time
-     then (
-       state.y <- y;
-       load layout;
-     )
+  let zoom = max 0.0001 zoom in
+  if zoom <> conf.zoom
+  then (
+    state.prevzoom <- (conf.zoom, state.x);
+    conf.zoom <- zoom;
+    reshape state.winw state.winh;
+    state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
+  )
 ;;
 
 let pivotzoom ?(vw=min state.w state.winw)
@@ -1946,7 +1861,6 @@ let enterbirdseye () =
   conf.hlinks <- false;
   conf.fitmodel <- FitPage;
   state.x <- 0;
-  conf.maxwait <- None;
   conf.columns <- (
     match conf.beyecolumns with
     | Some c ->
@@ -1969,7 +1883,6 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   conf.zoom <- c.zoom;
   conf.presentation <- c.presentation;
   conf.interpagespace <- c.interpagespace;
-  conf.maxwait <- c.maxwait;
   conf.hlinks <- c.hlinks;
   conf.fitmodel <- c.fitmodel;
   conf.beyecolumns <- (
@@ -2126,18 +2039,6 @@ let [@warning "-4"] optentry mode _ key =
   | Keys.Ascii 'c' ->
      conf.crophack <- not conf.crophack;
      TEdone ("crophack " ^ btos conf.crophack)
-
-  | Keys.Ascii 'a' ->
-     let s =
-       match conf.maxwait with
-       | None ->
-          conf.maxwait <- Some infinity;
-          "always wait for page to complete"
-       | Some _ ->
-          conf.maxwait <- None;
-          "show placeholder if page is not ready"
-     in
-     TEdone s
 
   | Keys.Ascii 'f' ->
      conf.underinfo <- not conf.underinfo;
@@ -3706,27 +3607,6 @@ let enterinfomode =
                      then settrim true conf.trimfuzz;
                    with exn ->
                      state.text <- Printf.sprintf "bad irect `%s': %s" v
-                                   @@ exntos exn
-                 );
-      src#string "throttle"
-                 (fun () ->
-                   match conf.maxwait with
-                   | None -> "show place holder if page is not ready"
-                   | Some time ->
-                      if time = infinity
-                      then "wait for page to fully render"
-                      else
-                        "wait " ^ string_of_float time
-                        ^ " seconds before showing placeholder"
-                 )
-                 (fun v ->
-                   try
-                     let f = float_of_string v in
-                     if f <= 0.0
-                     then conf.maxwait <- None
-                     else conf.maxwait <- Some f
-                   with exn ->
-                     state.text <- Printf.sprintf "bad time `%s': %s" v
                                    @@ exntos exn
                  );
       src#string "selection command"
