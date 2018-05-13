@@ -519,7 +519,7 @@ static int openxref (char *filename, char *password, int layouth)
     return 1;
 }
 
-static void pdfinfo (void)
+static void docinfo (void)
 {
     struct { char *tag; char *name; } metatbl[] = {
         { FZ_META_INFO_TITLE, "Title" },
@@ -544,7 +544,7 @@ static void pdfinfo (void)
             }
             else {
                 buf = realloc (buf, need + 1);
-                if (!buf) err (1, "pdfinfo realloc %d", need + 1);
+                if (!buf) err (1, "docinfo realloc %d", need + 1);
                 len = need + 1;
                 goto again;
             }
@@ -1670,7 +1670,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 }
             }
             if (ok) {
-                pdfinfo ();
+                docinfo ();
                 initpdims ();
             }
             unlock ("open");
