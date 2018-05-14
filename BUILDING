@@ -7,9 +7,9 @@ Prerequisites for building from sources:
            If not present will be downloaded from the network and
            built/used locally without system-wide installation.
 
-  To obtain and build version of mupdf that llpp is known to work with
+  To obtain and build version of mupdf that llpp is known to work with:
      llpp% bash misc/domupdf.bash
-     (Caveat emptor: this will clone the entire mupdf)
+     (Caveat emptor: mupdf+sunmodules repository is humongous)
 
   llpp% bash build.bash build
 
