@@ -102,7 +102,7 @@ test $oversnum -ge 407 || {
         bn=$(basename $uri)
         cd $outd/${bn%.tar.xz}
         ./configure -prefix $absprefix
-        make -s -j4 world
+        make -s -j $(getconf _NPROCESSORS_ONLN || echo 1) world
         make -s install
         echo "k='$uri'" >$absprefix/bin/ocamlc.past
     )

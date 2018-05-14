@@ -19,4 +19,4 @@ fi
 echo "mupdf current version is ${MUPDF_VERSION} switching to ${MUPDF_DESIRED_VERSION}"
 git checkout ${MUPDF_DESIRED_VERSION}
 git submodule update --recursive
-make build=native libs
+make build=native libs -j $(getconf _NPROCESSORS_ONLN || echo 1)
