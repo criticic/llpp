@@ -4565,7 +4565,7 @@ let viewkeyboard key mask =
          gotopage1 (n + conf.pagebias - 1) 0;
        )
      in
-     let pageentry text = function [@warning "-4"] 
+     let pageentry text = function [@warning "-4"]
        | Keys.Ascii 'g' -> TEdone text
        | key -> intentry text key
      in
