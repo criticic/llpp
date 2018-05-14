@@ -280,9 +280,9 @@ let showlinktype under =
   then showtext ' ' @@ undertext under
 ;;
 
-let [@warning "-4"] intentry_with_suffix text key =
+let intentry_with_suffix text key =
   let text =
-    match key with
+    match [@warning "-4"] key with
     | Keys.Ascii ('0'..'9' as c) -> addchar text c
     | Keys.Ascii ('k' | 'm' | 'g' | 'K' | 'M' | 'G' as c) ->
        addchar text @@ asciilower c
@@ -1675,12 +1675,12 @@ let search pattern forward =
             (btod conf.icase) pn py (btod forward) pattern;
 ;;
 
-let [@warning "-4"] intentry text key =
+let intentry text key =
   let text =
     if emptystr text && key = Keys.Ascii '-'
     then addchar text '-'
     else
-      match key with
+      match [@warning "-4"] key with
       | Keys.Ascii ('0'..'9' as c) -> addchar text c
       | _ ->
          state.text <- "invalid key";
@@ -1720,7 +1720,7 @@ let linknact f s =
   )
 ;;
 
-let [@warning "-4"] linknentry text = function
+let linknentry text = function [@warning "-4"]
   | Keys.Ascii c ->
      let text = addchar text c in
      linknact (fun under -> state.text <- undertext under) text;
@@ -1730,7 +1730,7 @@ let [@warning "-4"] linknentry text = function
      TEcont text
 ;;
 
-let [@warning "-4"] textentry text = function
+let textentry text = function [@warning "-4"]
   | Keys.Ascii c -> TEcont (addchar text c)
   | Keys.Code c -> TEcont (text ^ toutf8 c)
   | _ -> TEcont text
@@ -1948,9 +1948,9 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   state.text <- E.s;
 ;;
 
-let [@warning "-4"] optentry mode _ key =
+let optentry mode _ key =
   let btos b = if b then "on" else "off" in
-  match key with
+  match [@warning "-4"] key with
   | Keys.Ascii 's' ->
      let ondone s =
        try conf.scrollstep <- int_of_string s with exn ->
@@ -2135,8 +2135,7 @@ class virtual lvsourcebase = object
           method getminfo : (int * int) array = E.a
         end;;
 
-let [@warning "-4"]
-      textentrykeyboard
+let textentrykeyboard
       key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
   state.text <- E.s;
   let enttext te =
@@ -2156,7 +2155,7 @@ let [@warning "-4"]
   in
   let open Keys in
   let kt = Wsi.kc2kt key in
-  match kt with
+  match [@warning "-4"] kt with
   | Backspace ->
      if emptystr text && cancelonempty
      then (
@@ -4566,7 +4565,7 @@ let viewkeyboard key mask =
          gotopage1 (n + conf.pagebias - 1) 0;
        )
      in
-     let [@warning "-4"] pageentry text = function
+     let pageentry text = function [@warning "-4"] 
        | Keys.Ascii 'g' -> TEdone text
        | key -> intentry text key
      in
