@@ -8,7 +8,7 @@ Prerequisites for building from sources:
            built/used locally without system-wide installation.
 
   To obtain and build version of mupdf that llpp is known to work with
-     llpp% bash misc/getmupdf.bash
+     llpp% bash misc/domupdf.bash
      (Caveat emptor: this will clone the entire mupdf)
 
   llpp% bash build.bash build
