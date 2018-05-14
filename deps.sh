@@ -1,4 +1,4 @@
-#!/bib/bash
+#!/bin/bash
 
 MUPDF_OUTPUT_DIR="mupdf"
 MUPDF_URL="https://github.com/ArtifexSoftware/mupdf"
