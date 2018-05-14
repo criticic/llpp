@@ -239,15 +239,10 @@ for target; do
                 man=$srcd/man/$m.man
                 xml=$md/$m.xml
                 out=$md/$m.1
-                keycmd="digest $xml $man"
                 conf="$srcd/man/asciidoc.conf"
-                cmd="asciidoc -d manpage -b docbook -f $conf -o '$xml' '$man'"
-                isfresh "$xml" "$cmd$(eval $keycmd)" || {
-                    eval $cmd
-                    echo "k='$cmd$(eval $keycmd)'" >"$md/$m.past"
-                } && vecho "fresh manual xmls"
-                keycmd="digest $out $xml"
-                cmd="xmlto man -o $md $xml"
+                keycmd="digest $out $man $conf"
+                cmd="a2x -D $md -d manpage -f manpage "
+                cmd="$cmd --asciidoc-opts='-f $conf --out-file=$xml' $man"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     eval $cmd
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
