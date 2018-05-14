@@ -214,9 +214,7 @@ struct page {
     struct slink *slinks;
     int annotcount;
     struct annot *annots;
-    struct mark {
-        fz_stext_char *ch;
-    } fmark, lmark;
+    fz_stext_char *fmark, *lmark;
 };
 
 enum { FitWidth, FitProportional, FitPage };
@@ -1986,7 +1984,7 @@ static void showsel (struct page *page, int ox, int oy)
     int seen = 0;
     unsigned char selcolor[] = {15,15,15,140};
 
-    if (!page->fmark.ch || !page->lmark.ch) return;
+    if (!page->fmark || !page->lmark) return;
 
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
@@ -2004,9 +2002,9 @@ static void showsel (struct page *page, int ox, int oy)
 
             rect = fz_empty_rect;
             for (ch = line->first_char; ch; ch = ch->next) {
-                if (ch == page->fmark.ch) seen = 1;
+                if (ch == page->fmark) seen = 1;
                 if (seen) fz_union_rect (&rect, &ch->bbox);
-                if (ch == page->lmark.ch) {
+                if (ch == page->lmark) {
                     fz_round_rect (&bbox, &rect);
                     recti (bbox.x0 + ox, bbox.y0 + oy,
                            bbox.x1 + ox, bbox.y1 + oy);
@@ -2174,8 +2172,8 @@ static void droptext (struct page *page)
 {
     if (page->text) {
         fz_drop_stext_page (state.ctx, page->text);
-        page->fmark.ch = NULL;
-        page->lmark.ch = NULL;
+        page->fmark = NULL;
+        page->lmark = NULL;
         page->text = NULL;
     }
 }
@@ -3070,8 +3068,8 @@ CAMLprim void ml_clearmark (value ptr_v)
     }
 
     page = parse_pointer (__func__, s);
-    page->fmark.ch = NULL;
-    page->lmark.ch = NULL;
+    page->fmark = NULL;
+    page->lmark = NULL;
 
     unlock (__func__);
  done:
@@ -3102,8 +3100,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     ensuretext (page);
 
     if (mark == mark_page) {
-        page->fmark.ch = page->text->first_block->u.t.first_line->first_char;
-        page->lmark.ch = page->text->last_block->u.t.last_line->last_char;
+        page->fmark = page->text->first_block->u.t.first_line->first_char;
+        page->lmark = page->text->last_block->u.t.last_line->last_char;
         ret_v = Val_bool (1);
         goto unlock;
     }
@@ -3118,8 +3116,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
             continue;
 
         if (mark == mark_block) {
-            page->fmark.ch = block->u.t.first_line->first_char;
-            page->lmark.ch = block->u.t.last_line->last_char;
+            page->fmark = block->u.t.first_line->first_char;
+            page->lmark = block->u.t.last_line->last_char;
             ret_v = Val_bool (1);
             goto unlock;
         }
@@ -3132,8 +3130,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                 continue;
 
             if (mark == mark_line) {
-                page->fmark.ch = line->first_char;
-                page->lmark.ch = line->last_char;
+                page->fmark = line->first_char;
+                page->lmark = line->last_char;
                 ret_v = Val_bool (1);
                 goto unlock;
             }
@@ -3151,8 +3149,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                         last = ch2;
                     }
 
-                    page->fmark.ch = first;
-                    page->lmark.ch = last;
+                    page->fmark = first;
+                    page->lmark = last;
                     ret_v = Val_bool (1);
                     goto unlock;
                 }
@@ -3161,8 +3159,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
     }
 unlock:
     if (!Bool_val (ret_v)) {
-        page->fmark.ch = NULL;
-        page->lmark.ch = NULL;
+        page->fmark = NULL;
+        page->lmark = NULL;
     }
     unlock (__func__);
 
@@ -3260,8 +3258,8 @@ CAMLprim void ml_seltext (value ptr_v, value rect_v)
         x1 = t;
     }
 
-    fc = page->fmark.ch;
-    lc = page->lmark.ch;
+    fc = page->fmark;
+    lc = page->lmark;
 
     for (block = page->text->first_block; block; block = block->next) {
         if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
@@ -3285,8 +3283,8 @@ CAMLprim void ml_seltext (value ptr_v, value rect_v)
         lc = t;
     }
 
-    page->fmark.ch = fc;
-    page->lmark.ch = lc;
+    page->fmark = fc;
+    page->lmark = lc;
 
     unlock (__func__);
 
@@ -3397,7 +3395,7 @@ CAMLprim value ml_hassel (value ptr_v)
     }
 
     page = parse_pointer (__func__, s);
-    ret_v = Val_bool (page->fmark.ch && page->lmark.ch);
+    ret_v = Val_bool (page->fmark && page->lmark);
     unlock (__func__);
  done:
     CAMLreturn (ret_v);
@@ -3420,7 +3418,7 @@ CAMLprim void ml_copysel (value fd_v, value ptr_v)
 
     page = parse_pointer (__func__, s);
 
-    if (!page->fmark.ch || !page->lmark.ch) {
+    if (!page->fmark || !page->lmark) {
         printd ("emsg nothing to copy on page %d", page->pageno);
         goto unlock;
     }
@@ -3437,10 +3435,10 @@ CAMLprim void ml_copysel (value fd_v, value ptr_v)
         for (line = block->u.t.first_line; line; line = line->next) {
             fz_stext_char *ch;
             for (ch = line->first_char; ch; ch = ch->next) {
-                if (seen || ch == page->fmark.ch) {
+                if (seen || ch == page->fmark) {
                     do {
                         pipechar (f, ch);
-                        if (ch == page->lmark.ch) goto close;
+                        if (ch == page->lmark) goto close;
                     } while ((ch = ch->next));
                     seen = 1;
                     break;
