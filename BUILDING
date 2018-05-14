@@ -7,7 +7,7 @@ Prerequisites for building from sources:
            If not present will be downloaded from the network and
            built/used locally without system-wide installation.
 
-  llpp% bash getmupdf.bash && bash build.bash build
+  llpp% bash misc/getmupdf.bash && bash build.bash build
 
   Or if you like to do things manually:
 
