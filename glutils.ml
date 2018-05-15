@@ -57,3 +57,13 @@ let makecheckers () =
             [ `mag_filter `nearest; `min_filter `nearest ];
   id;
 ;;
+
+module G =
+  struct
+    let redisplay = ref false;;
+    let postRedisplay who =
+      Utils.vlog "redisplay for [%S]" who;
+      redisplay := true;
+    ;;
+  end
+;;
