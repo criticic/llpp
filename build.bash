@@ -232,7 +232,7 @@ for target; do
     case "$target" in
         doc)
             doct=${doct-manpage}
-            md=$outd/man
+            md=$outd/doc
             mkdir -p $md
             for m in llpp llppac llpphtml; do
                 man=$srcd/man/$m.man
