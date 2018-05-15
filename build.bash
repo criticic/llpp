@@ -243,7 +243,7 @@ for target; do
                 conf="$srcd/man/asciidoc.conf"
                 keycmd="digest $out $man $conf"
                 cmd="a2x -D $md -d manpage -f $doct "
-                cmd="$cmd --asciidoc-opts=\"-f $conf --out-file=$xml\" $man"
+                cmd="$cmd $man"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     eval $cmd
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
