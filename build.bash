@@ -236,7 +236,6 @@ for target; do
             mkdir -p $md
             for m in llpp llppac llpphtml; do
                 man=$srcd/man/$m.man
-                xml=$md/$m.xml
                 # XXX: out name is only correct for manpage
                 out=$md/$m.1
                 conf="$srcd/man/asciidoc.conf"
