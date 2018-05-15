@@ -234,10 +234,14 @@ for target; do
             doct=${doct-manpage}
             md=$outd/doc
             mkdir -p $md
+            case $doct in
+                epub) suf=.epub;;
+                manpage) suf=.1;;
+                *) die "unknown doc type";;
+            esac
             for m in llpp llppac llpphtml; do
                 man=$srcd/man/$m.man
-                # XXX: out name is only correct for manpage
-                out=$md/$m.1
+                out=$md/$m$suf
                 conf="$srcd/man/asciidoc.conf"
                 keycmd="digest $out $m $conf"
                 cmd="a2x -D $md -d manpage -f $doct $man"
