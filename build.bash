@@ -30,7 +30,7 @@ test -n "${1-}" || die "usage: $0 build-directory"
 
 outd="$1"
 srcd="$(dirname $0)"
-mudir=$srcd/mupdf
+mudir=$outd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
 mkdir -p $outd/$wsi
@@ -45,13 +45,11 @@ isfresh() {
 }
 
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
-test "${USER-}" = "malc" && {
-    keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
-    isfresh "$mulibs" "$(eval $keycmd)" || (
-        make -C "$mudir" CC='ccache gcc' build=native -j4 libs
-        echo "k=\"$(eval $keycmd)\"" >$mudir/build/native/libmupdf.a.past
-    ) && vecho "fresh mupdf"
-}
+keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
+isfresh "$mulibs" "$(eval $keycmd)" || (
+    make -C "$mudir" CC='ccache gcc' build=native -j4 libs
+    echo "k=\"$(eval $keycmd)\"" >$mudir/build/native/libmupdf.a.past
+) && vecho "fresh mupdf"
 
 oflags() {
     case "${1#$outd/}" in

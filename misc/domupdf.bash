@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MUPDF_OUTPUT_DIR="mupdf"
+MUPDF_OUTPUT_DIR="$1"
 MUPDF_URL="https://github.com/ArtifexSoftware/mupdf"
 MUPDF_DESIRED_VERSION="bd88b96f7b7b21d64d4fb32a2674653a08f8cb38"
 
