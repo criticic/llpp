@@ -242,8 +242,7 @@ for target; do
                 out=$md/$m.1
                 conf="$srcd/man/asciidoc.conf"
                 keycmd="digest $out $man $conf"
-                cmd="a2x -D $md -d manpage -f $doct "
-                cmd="$cmd $man"
+                cmd="a2x -D $md -d manpage -f $doct $man"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     eval $cmd
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
