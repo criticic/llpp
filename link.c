@@ -353,10 +353,7 @@ static void *parse_pointer (const char *cap, const char *s)
 static double now (void)
 {
     struct timeval tv;
-
-    if (gettimeofday (&tv, NULL)) {
-        err (1, "gettimeofday");
-    }
+    gettimeofday (&tv, NULL);
     return tv.tv_sec + tv.tv_usec*1e-6;
 }
 
