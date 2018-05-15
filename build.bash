@@ -145,7 +145,7 @@ bocaml1() {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
             printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
-            eval "$cmd" || die "$cmd failed"
+            eval "$cmd || die '$cmd failed'"
             echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
         } && vecho "fresh '$o'"
     }
@@ -183,7 +183,7 @@ bocamlc() {
     local keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
-        eval "$cmd" || die "$cmd failed"
+        eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
@@ -197,7 +197,7 @@ bobjc() {
     local keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
-        eval "$cmd"
+        eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
         echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
@@ -223,7 +223,7 @@ ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 cmd="mkhelp >$outd/help.ml # $ver"
 keycmd="digest $outd/help.ml $srcd/KEYS # $ver"
 isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
-    eval $cmd
+    eval "$cmd || die mkhelp failed"
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
@@ -247,7 +247,7 @@ for target; do
                 keycmd="digest $out $src $conf"
                 cmd="a2x -D $md -d manpage -f $doct $src"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
-                    eval $cmd
+                    eval "$cmd || die '$cmd failed'"
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
                 } && vecho "fresh manual pages"
             done;;
@@ -284,13 +284,13 @@ done
 
 ord=$(grep -v \.cmi $outd/ordered)
 cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
-cmd="$cmd $globjs -cclib \"$clibs\""
+cmd=$(echo $cmd $globjs -cclib \"$clibs\")
 keycmd="digest $outd/llpp $cobjs $ord $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
-        echo linking $outd/llpp
-        eval $cmd || die "$cmd failed"
-        echo "k='$cmd$(eval $keycmd)'" >"$outd/llpp.past"
-    } && vecho "fresh llpp"
+    echo linking $outd/llpp
+    eval "$cmd || die $cmd failed"
+    echo "k='$cmd$(eval $keycmd)'" >"$outd/llpp.past"
+} && vecho "fresh llpp"
 
 if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"
