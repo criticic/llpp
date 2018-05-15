@@ -240,11 +240,11 @@ for target; do
                 *) die "unknown doc type";;
             esac
             for m in llpp llppac llpphtml; do
-                man=$srcd/man/$m.man
+                src=$srcd/man/$m.man
                 out=$md/$m$suf
                 conf="$srcd/man/asciidoc.conf"
-                keycmd="digest $out $m $conf"
-                cmd="a2x -D $md -d manpage -f $doct $man"
+                keycmd="digest $out $src $conf"
+                cmd="a2x -D $md -d manpage -f $doct $src"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     eval $cmd
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
