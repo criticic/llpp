@@ -9,7 +9,7 @@ Prerequisites for building from sources:
 
   To obtain and build version of mupdf that llpp is known to work with:
      llpp% bash misc/domupdf.bash
-     (Caveat emptor: mupdf+sunmodules repository is humongous)
+     (Caveat emptor: mupdf+submodules repository is humongous)
 
   llpp% bash build.bash build
 
