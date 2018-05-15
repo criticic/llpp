@@ -116,7 +116,7 @@ bocaml1() {
     local dd
 
     local cmd="ocamlc -depend -bytecode -one-line $incs $s"
-    local keycmd="digest $s"
+    local keycmd="digest $o $s"
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         :>"$o.depl"
         eval "$cmd" | {
@@ -139,7 +139,7 @@ bocaml1() {
     }
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
-    keycmd="digest $s $(< $o.depl)"
+    keycmd="digest $o $s $(< $o.depl)"
     grep -q "$o" $outd/ordered || {
         echo "$o" >>"$outd/ordered"
         isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
@@ -220,7 +220,7 @@ EOF
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 cmd="mkhelp >$outd/help.ml # $ver"
-keycmd="digest $srcd/KEYS # $ver"
+keycmd="digest $outd/help.ml $srcd/KEYS # $ver"
 isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
     eval $cmd
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
