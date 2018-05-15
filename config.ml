@@ -695,9 +695,7 @@ let state =
   }
 ;;
 
-let copykeyhashes c =
-  List.map (fun (k, v) -> k, Hashtbl.copy v) c.keyhashes;
-;;
+let copykeyhashes c = List.map (fun (k, v) -> k, Hashtbl.copy v) c.keyhashes;;
 
 let calcips h =
   let d = state.winh - h in
