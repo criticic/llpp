@@ -232,7 +232,8 @@ isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
 shift 1
 for target; do
     case "$target" in
-        man)
+        doc)
+            doct=${doct-manpage}
             md=$outd/man
             mkdir -p $md
             for m in llpp llppac llpphtml; do
@@ -241,8 +242,8 @@ for target; do
                 out=$md/$m.1
                 conf="$srcd/man/asciidoc.conf"
                 keycmd="digest $out $man $conf"
-                cmd="a2x -D $md -d manpage -f manpage "
-                cmd="$cmd --asciidoc-opts='-f $conf --out-file=$xml' $man"
+                cmd="a2x -D $md -d manpage -f $doct "
+                cmd="$cmd --asciidoc-opts=\"-f $conf --out-file=$xml\" $man"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     eval $cmd
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
