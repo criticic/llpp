@@ -239,7 +239,7 @@ for target; do
                 # XXX: out name is only correct for manpage
                 out=$md/$m.1
                 conf="$srcd/man/asciidoc.conf"
-                keycmd="digest $out $man $conf"
+                keycmd="digest $out $m $conf"
                 cmd="a2x -D $md -d manpage -f $doct $man"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     eval $cmd
