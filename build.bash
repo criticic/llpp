@@ -32,6 +32,7 @@ outd="$1"
 srcd="$(dirname $0)"
 mudir=$outd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
+mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
 
 mkdir -p $outd/$wsi
 mkdir -p $outd/lablGL
@@ -47,7 +48,7 @@ isfresh() {
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
 isfresh "$mulibs" "$(eval $keycmd)" || (
-    make -C "$mudir" CC='ccache gcc' build=native -j4 libs
+    make -C "$mudir" CC='ccache gcc' build=native -j $mjobs libs
     echo "k=\"$(eval $keycmd)\"" >$mudir/build/native/libmupdf.a.past
 ) && vecho "fresh mupdf"
 
@@ -100,7 +101,7 @@ test $oversnum -ge 407 || {
         bn=$(basename $uri)
         cd $outd/${bn%.tar.xz}
         ./configure -prefix $absprefix
-        make -s -j $(getconf _NPROCESSORS_ONLN || echo 1) world
+        make -s -j $mjobs world
         make -s install
         echo "k='$uri'" >$absprefix/bin/ocamlc.past
     )
