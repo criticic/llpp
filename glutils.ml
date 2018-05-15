@@ -1,5 +1,4 @@
 external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
-external measurestr : int -> string -> float = "ml_measure_string";;
 
 let traw = Raw.create_static `float ~len:8;;
 let vraw = Raw.create_static `float ~len:8;;

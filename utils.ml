@@ -1,5 +1,7 @@
 exception Quit;;
 
+external measurestr : int -> string -> float = "ml_measure_string";;
+
 module E = struct
   let s = "";;
   let b = Bytes.empty;;
