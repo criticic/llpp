@@ -100,7 +100,8 @@ test $oversnum -ge 407 || {
         tar xf $tar -C $outd
         bn=$(basename $uri)
         cd $outd/${bn%.tar.xz}
-        ./configure -prefix $absprefix
+        ./configure -prefix $absprefix                                      \
+                    -no-graph -no-debugger -no-ocamldoc -no-native-compiler
         make -s -j $mjobs world
         make -s install
         echo "k='$uri'" >$absprefix/bin/ocamlc.past
