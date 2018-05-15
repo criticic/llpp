@@ -836,7 +836,7 @@ let gotopage1 n top =
 ;;
 
 let invalidate s f =
-  state.redisplay <- false;
+  G.redisplay := false;
   state.layout <- [];
   state.pdims <- [];
   state.rects <- [];
@@ -4375,7 +4375,7 @@ let postdrawpage l linkindexbase =
          List.iter (fun vals -> drawprect opaque x y vals);
        let n = postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize) in
        if n < 0
-       then (state.redisplay <- true; 0)
+       then (G.redisplay := true; 0)
        else n
      else 0
   | _ -> 0
@@ -5417,9 +5417,9 @@ let () =
       | None -> r
       | Some fd -> fd :: r
     in
-    if state.redisplay
+    if !G.redisplay
     then (
-      state.redisplay <- false;
+      G.redisplay := false;
       display ();
     );
     let timeout =

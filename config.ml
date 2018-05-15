@@ -407,7 +407,6 @@ type state =
   ; hists                 : hists
   ; mutable prevzoom      : (float * int)
   ; mutable progress      : float
-  ; mutable redisplay     : bool
   ; mutable mpos          : mpos
   ; mutable keystate      : keystate
   ; mutable glinks        : bool
@@ -681,7 +680,6 @@ let state =
   ; prevzoom      = (1.0, 0)
   ; progress      = -1.0
   ; uioh          = nouioh
-  ; redisplay     = true
   ; mpos          = (-1, -1)
   ; keystate      = KSnone
   ; glinks        = false
