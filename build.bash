@@ -48,7 +48,7 @@ isfresh() {
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
 isfresh "$mulibs" "$(eval $keycmd)" || (
-    make -C "$mudir" CC='ccache gcc' build=native -j $mjobs libs
+    make -C "$mudir" build=native -j $mjobs libs
     echo "k=\"$(eval $keycmd)\"" >$mudir/build/native/libmupdf.a.past
 ) && vecho "fresh mupdf"
 
