@@ -1,6 +1,5 @@
 build/
 test/
-mupdf
 patches/
 .gdb_history
 .tramp_history
