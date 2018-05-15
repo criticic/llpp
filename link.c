@@ -92,11 +92,8 @@ extern char **environ;
 #endif
 
 #define FMT_s "zu"
-
 #define FMT_ptr PRIxPTR
 #define SCN_ptr SCNxPTR
-#define FMT_ptr_cast(p) ((uintptr_t) (p))
-#define SCN_ptr_cast(p) ((uintptr_t *) (p))
 
 static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...)
@@ -343,7 +340,7 @@ static void *parse_pointer (const char *cap, const char *s)
     int ret;
     void *ptr;
 
-    ret = sscanf (s, "%" SCN_ptr, SCN_ptr_cast (&ptr));
+    ret = sscanf (s, "%" SCN_ptr, (uintptr_t *) &ptr);
     if (ret != 1) {
         errx (1, "%s: cannot parse pointer in `%s'", cap, s);
     }
@@ -1697,7 +1694,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
         else if (!strncmp ("freepage", p, 8)) {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" SCN_ptr, SCN_ptr_cast (&ptr));
+            ret = sscanf (p + 8, " %" SCN_ptr, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freepage `%.*s' ret=%d", len, p, ret);
             }
@@ -1708,7 +1705,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
         else if (!strncmp ("freetile", p, 8)) {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" SCN_ptr, SCN_ptr_cast (&ptr));
+            ret = sscanf (p + 8, " %" SCN_ptr, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freetile `%.*s' ret=%d", len, p, ret);
             }
@@ -1821,7 +1818,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             b = now ();
             unlock ("page");
 
-            printd ("page %" FMT_ptr " %f", FMT_ptr_cast (page), b - a);
+            printd ("page %" FMT_ptr " %f", (uintptr_t) page, b - a);
         }
         else if (!strncmp ("tile", p, 4)) {
             int x, y, w, h;
@@ -1831,8 +1828,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
             void *data;
 
             ret = sscanf (p + 4, " %" SCN_ptr " %d %d %d %d %" SCN_ptr,
-                          SCN_ptr_cast (&page), &x, &y, &w, &h,
-                          SCN_ptr_cast (&data));
+                          (uintptr_t *) &page, &x, &y, &w, &h,
+                          (uintptr_t *) &data);
             if (ret != 6) {
                 errx (1, "bad tile line `%.*s' ret=%d", len, p, ret);
             }
@@ -1844,8 +1841,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             unlock ("tile");
 
             printd ("tile %d %d %" FMT_ptr " %u %f",
-                    x, y,
-                    FMT_ptr_cast (tile),
+                    x, y, (uintptr_t) (tile),
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
         }
@@ -3915,17 +3911,17 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
             int res;
             char *s;
 
-            res = snprintf (NULL, 0, "%" FMT_ptr, FMT_ptr_cast (pbo));
+            res = snprintf (NULL, 0, "%" FMT_ptr, (uintptr_t) pbo);
             if (res < 0) {
-                err (1, "snprintf %" FMT_ptr " failed", FMT_ptr_cast (pbo));
+                err (1, "snprintf %" FMT_ptr " failed", (uintptr_t) pbo);
             }
             s = malloc (res+1);
             if (!s) {
                 err (1, "malloc %d bytes failed", res+1);
             }
-            res = sprintf (s, "%" FMT_ptr, FMT_ptr_cast (pbo));
+            res = sprintf (s, "%" FMT_ptr, (uintptr_t) pbo);
             if (res < 0) {
-                err (1, "sprintf %" FMT_ptr " failed", FMT_ptr_cast (pbo));
+                err (1, "sprintf %" FMT_ptr " failed", (uintptr_t) pbo);
             }
             ret_v = caml_copy_string (s);
             free (s);
