@@ -82,29 +82,29 @@ overs="$(ocamlc --version 2>/dev/null)" || overs="0.0.0"
 oversnum="$(echo $overs | { IFS=. read a b _; echo $a$b; })"
 
 test $oversnum -ge 407 || {
-    uri=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0+beta2.tar.xz
-    tar=$outd/$(basename $uri)
-    isfresh $tar $uri || {
+    url=https://github.com/ocaml/ocaml/archive/trunk.zip
+    zip=$outd/$(basename $url)
+    isfresh $zip $url || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
         if executable_p wget; then dl() { wget -q $1 -O $2; }
         elif executable_p curl; then dl() { curl $1 -o $2; }
         else die "no program to fetch remote urls found"
         fi
-        dl $uri $tar
-        echo "k=$uri" >$tar.past
+        dl $url $zip
+        echo "k=$url" >$zip.past
     }
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
-    isfresh $absprefix/bin/ocamlc "$uri" || (
+    isfresh $absprefix/bin/ocamlc "$url" || (
         d=$(pwd)
-        tar xf $tar -C $outd
-        bn=$(basename $uri)
-        cd $outd/${bn%.tar.xz}
+        unzip -f -d $outd $zip
+        bn=$(basename $url)
+        cd $outd/ocaml-${bn%.zip}
         ./configure -prefix $absprefix                                      \
                     -no-graph -no-debugger -no-ocamldoc -no-native-compiler
         make -s -j $mjobs world
         make -s install
-        echo "k='$uri'" >$absprefix/bin/ocamlc.past
+        echo "k='$url'" >$absprefix/bin/ocamlc.past
     )
     overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
     oversnum=$(echo $overs | { IFS=. read a b _; echo $a$b; })
@@ -268,7 +268,7 @@ bocamlc link.o
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
-    mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
+    mcomp=$(ocamlc -config-var bytecomp_c_copiler)
     clibs="$clibs -framework Cocoa -framework OpenGL"
     bobjc wsi/osx/wsicocoa.o
     cobjs="$cobjs $outd/wsi/osx/wsicocoa.o"
