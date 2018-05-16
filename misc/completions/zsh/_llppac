@@ -4,4 +4,4 @@ _arguments -s \
   '-m[Mime/type]:mime:_mime_types' \
   '-t[Filter]' \
   '-f[Force]' \
-  '*::document:_files -g "*.(pdf|xps|zip|cbz|jpg|jpeg|png|epub|gz|Z|xz|bz2|ps|eps|djv|djvu|dvi|doc|docx|ppt|pptx|xls|odf|odg|odp|ods|odt|md|bmp|gif|pbm|ppm|pgm|svg|svgz|tif|tiff|xbm|xpm|xcf|arw|cr2|crw|nef|nrw|raf|raw|x3f|otf|ttf|ttc)"'
+  '*::document:_files -g "*.(pdf|xps|zip|cbz|jpg|jpeg|png|epub|gz|Z|xz|bz2|ps|eps|djv|djvu|dvi|doc|docx|ppt|pptx|xls|odf|odg|odp|ods|odt|md|bmp|gif|pbm|ppm|pgm|svg|svgz|tif|tiff|xbm|xpm|xcf|arw|cr2|crw|nef|nrw|raf|raw|x3f|otf|ttf|ttc|otc)"'
