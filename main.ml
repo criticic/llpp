@@ -3707,7 +3707,7 @@ let viewkeyboard key mask =
   | Ascii '-' ->
      let ondone msg = state.text <- msg in
      enttext (
-         "option [acfhilpstvxACFPRSZTISM]: ", E.s, None,
+         "option [acfhilpstvxACFRSZTISM]: ", E.s, None,
          optentry state.mode, ondone, true
        )
 

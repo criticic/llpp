@@ -108,7 +108,6 @@ S                       - slide show mode
 -R<number>              - rotate
 -p                      - toggle preloading
 -v                      - toggle verbosity
--P                      - toggle persistent bookmarks
 -h                      - toggle maxfit
 -l                      - toggle proportional display
 -Z<number>              - set zoom (percent)
