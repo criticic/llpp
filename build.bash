@@ -242,12 +242,13 @@ for target; do
                 *) die "unknown doc type";;
             esac
             for m in llpp llppac llpphtml; do
-                src=$srcd/man/$m.man
+                src=$srcd/adoc/$m.adoc
                 out=$md/$m$suf
                 conf="$srcd/man/asciidoc.conf"
                 keycmd="digest $out $src $conf"
                 cmd="a2x -D $md -d manpage -f $doct $src"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
+                    echo "$doct $src -> $out"
                     eval "$cmd || die '$cmd failed'"
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
                 } && vecho "fresh manual pages"

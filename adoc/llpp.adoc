@@ -3,7 +3,7 @@ llpp(1)
 
 == NAME
 
-llpp - a graphical PDF viewer which aims to superficially resemble less
+llpp - a graphical document pager which aims to superficially resemble less
 
 == SYNOPSIS
 
@@ -11,9 +11,9 @@ llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc] [-help|--help] [-l
 
 == DESCRIPTION
 
-*llpp* is a graphical PDF viewer that can be totally controlled without a mouse.
-Normally MuPDF (https://mupdf.com/) is used to render the document.
-The default keybindings resemble those of less(1), but can be configured by the user.
+*llpp* is a graphical document pager utilizing MuPDF
+(https://mupdf.com/) library.  The default keybindings resemble those
+of less(1), but can be configured by the user.
 
 == OPTIONS
 
