@@ -1950,10 +1950,6 @@ let optentry mode _ key =
      conf.underinfo <- not conf.underinfo;
      TEdone ("underinfo " ^ btos conf.underinfo)
 
-  | Keys.Ascii 'P' ->
-     conf.savebmarks <- not conf.savebmarks;
-     TEdone ("persistent bookmarks " ^ btos conf.savebmarks)
-
   | Keys.Ascii 'S' ->
      let ondone s =
        try
@@ -2583,10 +2579,6 @@ let enterinfomode =
     src#bool "under info"
              (fun () -> conf.underinfo)
              (fun v -> conf.underinfo <- v);
-
-    src#bool "persistent bookmarks"
-             (fun () -> conf.savebmarks)
-             (fun v -> conf.savebmarks <- v);
 
     src#fitmodel "fit model"
                  (fun () -> FMTE.to_string conf.fitmodel)
