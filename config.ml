@@ -225,7 +225,6 @@ type conf =
   ; mutable texcount       : texcount
   ; mutable sliceheight    : sliceheight
   ; mutable thumbw         : width
-  ; mutable jumpback       : bool
   ; mutable bgcolor        : rgb
   ; mutable sbarcolor      : rgba
   ; mutable sbarhndlcolor  : rgba
@@ -493,7 +492,6 @@ let defconf =
   ; texcount       = 256
   ; sliceheight    = 24
   ; thumbw         = 76
-  ; jumpback       = true
   ; bgcolor        = (0.5, 0.5, 0.5)
   ; sbarcolor      = (0.64, 0.64, 0.64, 0.7)
   ; sbarhndlcolor  = (0.0, 0.0, 0.0, 0.7)
@@ -986,7 +984,6 @@ let config_of c attrs =
       | "rotation-angle" -> { c with angle = int_of_string v }
       | "width" -> { c with cwinw = max 20 (int_of_string v) }
       | "height" -> { c with cwinh = max 20 (int_of_string v) }
-      | "persistent-bookmarks" -> { c with savebmarks = bool_of_string v }
       | "proportional-display" ->
          let fm =
            if bool_of_string v
@@ -1000,7 +997,6 @@ let config_of c attrs =
       | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
       | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
       | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
-      | "persistent-location" -> { c with jumpback = bool_of_string v }
       | "background-color" -> { c with bgcolor = color_of_string v }
       | "scrollbar-color" -> { c with sbarcolor = rgba_of_string v }
       | "scrollbar-handle-color" -> { c with sbarhndlcolor = rgba_of_string v }
@@ -1145,7 +1141,6 @@ let setconf dst src =
   dst.texcount       <- src.texcount;
   dst.sliceheight    <- src.sliceheight;
   dst.thumbw         <- src.thumbw;
-  dst.jumpback       <- src.jumpback;
   dst.bgcolor        <- src.bgcolor;
   dst.tilew          <- src.tilew;
   dst.tileh          <- src.tileh;
@@ -1505,8 +1500,7 @@ let load openlast =
     state.bookmarks <- pb;
     state.x <- px;
     state.origin <- po;
-    if conf.jumpback
-    then state.anchor <- pa;
+    state.anchor <- pa;
     cbput state.hists.nav pa;
     true
   in
@@ -1578,13 +1572,11 @@ let add_attrs bb always dc c time =
   oz "zoom" c.zoom dc.zoom;
   ob "presentation" c.presentation dc.presentation;
   oi "rotation-angle" c.angle dc.angle;
-  ob "persistent-bookmarks" c.savebmarks dc.savebmarks;
   oFm "fit-model" c.fitmodel dc.fitmodel;
   oI "pixmap-cache-size" c.memlimit dc.memlimit;
   oi "tex-count" c.texcount dc.texcount;
   oi "slice-height" c.sliceheight dc.sliceheight;
   oi "thumbnail-width" c.thumbw dc.thumbw;
-  ob "persistent-location" c.jumpback dc.jumpback;
   oc "background-color" c.bgcolor dc.bgcolor;
   oA "scrollbar-color" c.sbarcolor dc.sbarcolor;
   oA "scrollbar-handle-color" c.sbarhndlcolor dc.sbarhndlcolor;
