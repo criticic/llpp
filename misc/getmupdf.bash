@@ -10,6 +10,7 @@ if [ ! -d ${MUPDF_OUTPUT_DIR} ]; then
 fi
 
 cd ${MUPDF_OUTPUT_DIR}
+git pull
 MUPDF_VERSION=$(git rev-parse HEAD)
 
 if [ "${MUPDF_VERSION}" = "${MUPDF_DESIRED_VERSION}" ]; then
