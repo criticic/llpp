@@ -203,7 +203,7 @@ if ${force-test ! -e "$1"} && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
         }
     elif executable_p curl; then
         dl() {
-            curl $1 -o $2
+            curl -L $1 -o $2
         }
     else
         die "no program to fetch remote urls found"
