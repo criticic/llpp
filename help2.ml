@@ -12,9 +12,9 @@ let gotouri launcher uri =
   if emptystr launcher
   then dolog "%s" uri
   else
-    match geturl uri with
-    | "" -> dolog "obtained empty url from uri %S" uri
-    | url -> gotourl launcher url
+    if nonemptystr @@ geturl uri
+    then gotourl launcher uri
+    else dolog "obtained empty url from uri %S" uri
 ;;
 
 let version () =
