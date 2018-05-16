@@ -87,7 +87,7 @@ test $oversnum -ge 407 || {
     isfresh $zip $url || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
         if executable_p wget; then dl() { wget -q $1 -O $2; }
-        elif executable_p curl; then dl() { curl $1 -o $2; }
+        elif executable_p curl; then dl() { curl -L $1 -o $2; }
         else die "no program to fetch remote urls found"
         fi
         dl $url $zip
