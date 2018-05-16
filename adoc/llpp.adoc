@@ -117,7 +117,7 @@ The different modes are _birdseye_, _global_, _help_, _info_, _listview_, _outli
 
 == TODO
 
-There is still lot of work to do. Please check our bugtracker for up-to-date
+There is still lot of work to do. Please check the bugtracker for up-to-date
 information about tasks which are still not finished.
 
 == SEE ALSO
