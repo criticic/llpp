@@ -248,7 +248,7 @@ for target; do
                 keycmd="digest $out $src $conf"
                 cmd="a2x -D $md -d manpage -f $doct $src"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
-                    echo "$doct $src -> $out"
+                    echo "$src -> $out"
                     eval "$cmd || die '$cmd failed'"
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
                 } && vecho "fresh manual pages"
