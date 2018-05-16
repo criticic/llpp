@@ -1,0 +1,4 @@
+#compdef llpp
+
+_arguments -s \
+  '*::document:_files -g "*.(pdf|xps|zip|cbz|png|jpg|jpeg|jpe|jpx|gif|bmp|jpx|jp2|j2k|hdp|jxr|pbm|pgm|ppm|pam|pnm|epub|tiff|tif|svg|fb2|html|htm|xhtml|wdp)"'
