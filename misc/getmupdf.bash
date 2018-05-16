@@ -17,6 +17,7 @@ if [ "${MUPDF_VERSION}" = "${MUPDF_DESIRED_VERSION}" ]; then
     exit 0
 fi
 
-echo "mupdf current version is ${MUPDF_VERSION} switching to ${MUPDF_DESIRED_VERSION}"
+printf "mupdf current version is ${MUPDF_VERSION} "
+echo "switching to ${MUPDF_DESIRED_VERSION}"
 git checkout ${MUPDF_DESIRED_VERSION}
 git submodule update --recursive
