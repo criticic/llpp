@@ -92,7 +92,7 @@ test $oversnum -ge 407 || {
         fi
         dl $url $zip
         echo "k=$url" >$zip.past
-    }
+    } && vecho "fresh $zip"
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
     isfresh $absprefix/bin/ocamlc "$url" || (
@@ -105,7 +105,7 @@ test $oversnum -ge 407 || {
         make -j $mjobs world
         make install
         echo "k='$url'" >$absprefix/bin/ocamlc.past
-    )
+    ) && vecho "fresh ocamlc"
     overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
     oversnum=$(echo $overs | { IFS=. read a b _; echo $a$b; })
 }
@@ -134,6 +134,7 @@ bocaml1() {
         } || die "$cmd failed"
         echo "k='$overs$cmd$(eval $keycmd)'" >"$o.depl.past"
     } && {
+        vecho "fresh $o.depl"
         for d in $(< $o.depl); do
             test $d = "$outd/help.cmo" && dd=$d || dd=${d#$outd/}
             bocaml $dd $((n+1))
