@@ -269,7 +269,7 @@ bocamlc link.o
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
-    mcomp=$(ocamlc -config | grep bytecomp_c_compiler | cut -d: -f2)
+    mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
     bobjc wsi/osx/wsicocoa.o
     cobjs="$cobjs $outd/wsi/osx/wsicocoa.o"
