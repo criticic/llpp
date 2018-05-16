@@ -82,7 +82,7 @@ overs="$(ocamlc --version 2>/dev/null)" || overs="0.0.0"
 oversnum="$(echo $overs | { IFS=. read a b _; echo $a$b; })"
 
 test $oversnum -ge 407 || {
-    url=https://github.com/ocaml/ocaml/archive/trunk.zip
+    url=https://github.com/ocaml/ocaml/archive/4.07.zip
     zip=$outd/$(basename $url)
     isfresh $zip $url || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
@@ -269,7 +269,7 @@ bocamlc link.o
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
-    mcomp=$(ocamlc -config-var bytecomp_c_compiler)
+    mcomp=$(ocamlc -config | grep bytecomp_c_compiler | IFS=: read _ b; echo $b)
     clibs="$clibs -framework Cocoa -framework OpenGL"
     bobjc wsi/osx/wsicocoa.o
     cobjs="$cobjs $outd/wsi/osx/wsicocoa.o"
