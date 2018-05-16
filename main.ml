@@ -2588,10 +2588,6 @@ let enterinfomode =
              (fun () -> conf.trimmargins)
              (fun v -> settrim v conf.trimfuzz; fillsrc prevmode prevuioh);
 
-    src#bool "persistent location"
-             (fun () -> conf.jumpback)
-             (fun v -> conf.jumpback <- v);
-
     sep ();
     src#int "inter-page space"
             (fun () -> conf.interpagespace)
