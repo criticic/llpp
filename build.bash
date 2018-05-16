@@ -82,7 +82,7 @@ overs="$(ocamlc --version 2>/dev/null)" || overs="0.0.0"
 oversnum="$(echo $overs | { IFS=. read a b _; echo $a$b; })"
 
 test $oversnum -ge 407 || {
-    url=https://github.com/ocaml/ocaml/archive/4.07.zip
+    url=https://github.com/ocaml/ocaml/archive/trunk.zip
     zip=$outd/$(basename $url)
     isfresh $zip $url || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
@@ -97,7 +97,7 @@ test $oversnum -ge 407 || {
     export PATH=$absprefix/bin:$PATH
     isfresh $absprefix/bin/ocamlc "$url" || (
         d=$(pwd)
-        unzip -u -d $outd $zip
+        unzip -o -u -d $outd $zip
         bn=$(basename $url)
         cd $outd/ocaml-${bn%.zip}
         ./configure -prefix $absprefix                                      \
