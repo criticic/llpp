@@ -8,15 +8,11 @@ type rgba = float * float * float * float
 type fitmodel = | FitWidth | FitProportional | FitPage
 type irect = (int * int * int * int)
 type colorspace = | Rgb | Bgr | Gray
-type keymap        =
-  | KMinsrt of key
-  | KMinsrl of key list
-  | KMmulti of key list * key list
-and key            = int * int
-and keyhash        = (key, keymap) Hashtbl.t
-and keystate       =
-  | KSnone
-  | KSinto of (key list * key list)
+type keymap =
+  | KMinsrt of key | KMinsrl of key list | KMmulti of key list * key list
+and key = int * int
+and keyhash = (key, keymap) Hashtbl.t
+and keystate = |KSnone |KSinto of (key list * key list) 
 and css = string
 type columns =
   | Csingle of singlecolumn
