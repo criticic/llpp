@@ -6,6 +6,18 @@ tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
+partmsg() {
+    test $? -eq 0 && msg="ok" || msg="ko"
+    echo "$msg $(($(now)-tstart)) sec"
+}
+
+die() {
+    echo "$*" >&2
+    exit 111
+}
+
+trap 'partmsg' EXIT
+
 darwin=false
 wsi="wsi/x11"
 case "$(uname)" in
@@ -18,18 +30,6 @@ case "$(uname)" in
     OpenBSD) mjobs=$(getconf NPROCESSORS_ONLN || echo 1);;
     *) die $(uname) is not supported;;
 esac
-
-partmsg() {
-    test $? -eq 0 && msg="ok" || msg="ko"
-    echo "$msg $(($(now)-tstart)) sec"
-}
-
-die() {
-    echo "$*" >&2
-    exit 111
-}
-
-trap 'partmsg' EXIT
 
 test -n "${1-}" || die "usage: $0 build-directory"
 
