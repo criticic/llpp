@@ -343,7 +343,7 @@ let platform_to_string = function
   | Pbsd          -> "BSD"
 ;;
 
-let conf = { defconf with angle = defconf.angle };;
+let conf = { defconf with keyhashes = copykeyhashes defconf };;
 
 let cbnew n v =
   { store = Array.make n v
