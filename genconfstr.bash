@@ -36,8 +36,7 @@ and covercount = int
 and width = int and height = int
 and memsize = int and texcount = int
 and sliceheight = int;;
-let scrollbvv = 1;;
-let scrollbhv = 2;;
+let scrollbvv = 1 and scrollbhv = 2;;
 EOF
 
 init=
