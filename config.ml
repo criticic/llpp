@@ -732,7 +732,6 @@ let config_of c attrs =
       | "auto-scroll-step" ->
          { c with autoscrollstep = max 0 (int_of_string v) }
       | "max-height-fit" -> { c with maxhfit = bool_of_string v }
-      | "crop-hack" -> { c with crophack = bool_of_string v }
       | "highlight-links" -> { c with hlinks = bool_of_string v }
       | "under-cursor-info" -> { c with underinfo = bool_of_string v }
       | "vertical-margin" ->
@@ -1256,7 +1255,6 @@ let add_attrs bb always dc c time =
   oi "scroll-step" c.scrollstep dc.scrollstep;
   oi "auto-scroll-step" c.autoscrollstep dc.autoscrollstep;
   ob "max-height-fit" c.maxhfit dc.maxhfit;
-  ob "crop-hack" c.crophack dc.crophack;
   ob "highlight-links" c.hlinks dc.hlinks;
   ob "under-cursor-info" c.underinfo dc.underinfo;
   oi "vertical-margin" c.interpagespace dc.interpagespace;

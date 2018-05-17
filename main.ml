@@ -1943,10 +1943,6 @@ let optentry mode _ key =
      state.maxy <- calcheight ();
      TEdone ("maxhfit " ^ (btos conf.maxhfit))
 
-  | Keys.Ascii 'c' ->
-     conf.crophack <- not conf.crophack;
-     TEdone ("crophack " ^ btos conf.crophack)
-
   | Keys.Ascii 'f' ->
      conf.underinfo <- not conf.underinfo;
      TEdone ("underinfo " ^ btos conf.underinfo)
@@ -2794,9 +2790,6 @@ let enterinfomode =
       src#int "hint font size"
         (fun () -> conf.hfsize)
         (fun v -> conf.hfsize <- bound v 5 100);
-      src#bool "crop hack"
-        (fun () -> conf.crophack)
-        (fun v -> conf.crophack <- v);
       src#string "trim fuzz"
         (fun () -> irect_to_string conf.trimfuzz)
         (fun v ->
@@ -3904,13 +3897,7 @@ let viewkeyboard key mask =
      | l :: _ ->
         let rect = getpdimrect l.pagedimno in
         let w, h =
-          if conf.crophack
-          then
-            (truncate (1.8 *. (rect.(1) -. rect.(0))),
-             truncate (1.2 *. (rect.(3) -. rect.(0))))
-          else
-            (truncate (rect.(1) -. rect.(0)),
-             truncate (rect.(3) -. rect.(0)))
+          (truncate (rect.(1) -. rect.(0)), truncate (rect.(3) -. rect.(0)))
         in
         let w = truncate ((float w)*.conf.zoom)
         and h = truncate ((float h)*.conf.zoom) in

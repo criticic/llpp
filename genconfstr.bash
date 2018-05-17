@@ -77,7 +77,6 @@ b debug false
 i scrollstep 24
 i hscrollstep 24
 b maxhfit true
-b crophack false
 i autoscrollstep 2
 g maxwait "float option" None
 b hlinks false
