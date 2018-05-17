@@ -27,14 +27,14 @@ and mark =
   | Mark_block
   | Mark_line
   | Mark_word
-and multicolumns   = multicol * pagegeom
-and singlecolumn   = pagegeom
-and splitcolumns   = columncount * pagegeom
-and pagegeom       = (pdimno * x * y * (pageno * width * height * leftx)) array
-and multicol       = columncount * covercount * covercount
-and columncount    = int
-and pdimno         = int
-and pageno         = int
+and multicolumns = multicol * pagegeom
+and singlecolumn = pagegeom
+and splitcolumns = columncount * pagegeom
+and pagegeom = (pdimno * x * y * (pageno * width * height * leftx)) array
+and multicol = columncount * covercount * covercount
+and columncount = int
+and pdimno = int
+and pageno = int
 and x = int and y = int and leftx = int
 and covercount = int
 and width = int and height = int
@@ -117,16 +117,8 @@ s savecmd E.s
 b updatecurs true
 K keyhashes '(string * keyhash) list' \
 '(let mk n = (n, Hashtbl.create 1) in
-      [ mk "global"
-      ; mk "info"
-      ; mk "help"
-      ; mk "outline"
-      ; mk "listview"
-      ; mk "birdseye"
-      ; mk "textentry"
-      ; mk "links"
-      ; mk "view"
-      ])'
+      [ mk "global"; mk "info" ; mk "help"; mk "outline"; mk "listview"
+      ; mk "birdseye"; mk "textentry"; mk "links"; mk "view" ])'
 i hfsize '12 * Wsi.fontsizefactor ()'
 f pgscale 1.
 b usepbo false
