@@ -6,13 +6,18 @@ tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() { sum 2>/dev/null $* | while read d _; do printf $d; done; }
 
-test "$(uname)" = Darwin && {
-    darwin=true
-    wsi="wsi/osx"
-} || {
-    darwin=false
-    wsi="wsi/x11"
-}
+darwin=false
+wsi="wsi/x11"
+case "$(uname)" in
+    Darwin)
+        darwin=true
+        wsi="wsi/osx"
+        mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
+        ;;
+    Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
+    OpenBSD) mjobs=$(getconf NPROCESSORS_ONLN || echo 1);;
+    *) die $(uname) is not supported;;
+esac
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
@@ -32,7 +37,6 @@ outd="$1"
 srcd="$(dirname $0)"
 mudir=$outd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
-mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
 
 mkdir -p $outd/$wsi
 mkdir -p $outd/lablGL
