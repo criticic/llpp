@@ -31,6 +31,6 @@ let makehelp launcher =
   List.map (fun s ->
       match geturl s with
       | "" -> (s, 0, Config.Noaction)
-      | url -> (s, 0, Action (fun uioh -> gotourl launcher url; uioh))
+      | url -> (s, 0, Config.Action (fun uioh -> gotourl launcher url; uioh))
     ) strings;
 ;;
