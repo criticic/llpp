@@ -62,27 +62,27 @@ let layouth = ref ~-1;;
 
 let _debugl l =
   dolog {|l %d dim=%d {
-  WxH     %dx%d
-  vWxH    %dx%d
-  pagex,y %d,%d
-  dispx,y %d,%d
-  column  %d
-}|}
-        l.pageno l.pagedimno
-        l.pagew l.pageh
-        l.pagevw l.pagevh
-        l.pagex l.pagey
-        l.pagedispx l.pagedispy
-        l.pagecol
+         WxH     %dx%d
+         vWxH    %dx%d
+         pagex,y %d,%d
+         dispx,y %d,%d
+         column  %d
+         }|}
+    l.pageno l.pagedimno
+    l.pagew l.pageh
+    l.pagevw l.pagevh
+    l.pagex l.pagey
+    l.pagedispx l.pagedispy
+    l.pagecol
 ;;
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog {|rect {
-  x0,y0=(% f, % f)
-  x1,y1=(% f, % f)
-  x2,y2=(% f, % f)
-  x3,y3=(% f, % f)
-}|} x0 y0 x1 y1 x2 y2 x3 y3;
+         x0,y0=(% f, % f)
+         x1,y1=(% f, % f)
+         x2,y2=(% f, % f)
+         x3,y3=(% f, % f)
+         }|} x0 y0 x1 y1 x2 y2 x3 y3;
 ;;
 
 let pgscale h = truncate (float h *. conf.pgscale);;
@@ -194,10 +194,10 @@ let impmsg fmt =
 let pipesel opaque cmd =
   if hassel opaque
   then pipef ~closew:false "pipesel"
-             (fun w ->
-               copysel w opaque;
-               G.postRedisplay "pipesel"
-             ) cmd
+         (fun w ->
+           copysel w opaque;
+           G.postRedisplay "pipesel"
+         ) cmd
 ;;
 
 let paxunder x y =
@@ -488,9 +488,9 @@ let drawtiles l color =
          let w = measurestr fstate.fontsize s in
          GlDraw.color (0.0, 0.0, 0.0);
          filledrect (float (x-2))
-                    (float (y-2))
-                    (float (x+2) +. w)
-                    (float (y + fstate.fontsize + 2));
+           (float (y-2))
+           (float (x+2) +. w)
+           (float (y + fstate.fontsize + 2));
          GlDraw.color color;
          drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
          begintiles ();
@@ -523,9 +523,9 @@ let drawtiles l color =
           let tx1 = tx0 +. tw
           and ty1 = ty0 +. th in
           Raw.sets_float Glutils.vraw ~pos:0
-                         [| x0; y0; x0; y1; x1; y0; x1; y1 |];
+            [| x0; y0; x0; y1; x1; y0; x1; y1 |];
           Raw.sets_float Glutils.traw ~pos:0
-                         [| tx0; ty0; tx0; ty1; tx1; ty0; tx1; ty1 |];
+            [| tx0; ty0; tx0; ty1; tx1; ty0; tx1; ty1 |];
           GlArray.vertex `two Glutils.vraw;
           GlArray.tex_coord `two Glutils.traw;
           GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
@@ -623,7 +623,7 @@ let tilepage n p layout =
                   else ~< "0"
                 in
                 wcmd "tile %s %d %d %d %d %s"
-                     (~> p) x y w h (~> pbo);
+                  (~> p) x y w h (~> pbo);
                 state.currently <-
                   Tiling (
                       l, p, conf.colorspace, conf.angle,
@@ -786,9 +786,9 @@ let gotoxy x y =
 
 let conttiling pageno opaque =
   tilepage pageno opaque
-           (if conf.preload
-            then preloadlayout state.x state.y state.winw state.winh
-            else state.layout)
+    (if conf.preload
+     then preloadlayout state.x state.y state.winw state.winh
+     else state.layout)
 ;;
 
 let gotoxy x y =
@@ -909,14 +909,14 @@ let opendoc path password =
   in
   Wsi.settitle ("llpp " ^ mbtoutf8 (Filename.basename titlepath));
   wcmd "open %d %d %s\000%s\000%s\000"
-       (btod conf.usedoccss) !layouth
-       path password conf.css;
+    (btod conf.usedoccss) !layouth
+    path password conf.css;
   invalidate "reqlayout"
-             (fun () ->
-               wcmd "reqlayout %d %d %d %s\000"
-                    conf.angle (FMTE.to_int conf.fitmodel)
-                    (stateh state.winh) state.nameddest
-             );
+    (fun () ->
+      wcmd "reqlayout %d %d %d %s\000"
+        conf.angle (FMTE.to_int conf.fitmodel)
+        (stateh state.winh) state.nameddest
+    );
   fillhelp ();
 ;;
 
@@ -1111,19 +1111,19 @@ let reshape ?(firsttime=false) w h =
     else float state.x /. float state.w
   in
   invalidate "geometry"
-             (fun () ->
-               state.w <- w;
-               if not firsttime
-               then state.x <- truncate (relx *. float w);
-               let w =
-                 match conf.columns with
-                 | Csingle _ -> w
-                 | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
-                 | Csplit (c, _) -> w * c
-               in
-               wcmd "geometry %d %d %d"
-                    w (stateh h) (FMTE.to_int conf.fitmodel)
-             );
+    (fun () ->
+      state.w <- w;
+      if not firsttime
+      then state.x <- truncate (relx *. float w);
+      let w =
+        match conf.columns with
+        | Csingle _ -> w
+        | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
+        | Csplit (c, _) -> w * c
+      in
+      wcmd "geometry %d %d %d"
+        w (stateh h) (FMTE.to_int conf.fitmodel)
+    );
 ;;
 
 let gctiles () =
@@ -1578,7 +1578,7 @@ let search pattern forward =
             l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
        in
        wcmd "search %d %d %d %d,%s\000"
-            (btod conf.icase) pn py (btod forward) pattern;
+         (btod conf.icase) pn py (btod forward) pattern;
 ;;
 
 let intentry text key =
@@ -1627,19 +1627,19 @@ let linknact f s =
 ;;
 
 let linknentry text = function [@warning "-4"]
-  | Keys.Ascii c ->
-     let text = addchar text c in
-     linknact (fun under -> state.text <- undertext under) text;
-     TEcont text
-  | _ ->
-     state.text <- Printf.sprintf "invalid key";
-     TEcont text
+                             | Keys.Ascii c ->
+                                let text = addchar text c in
+                                linknact (fun under -> state.text <- undertext under) text;
+                                TEcont text
+                             | _ ->
+                                state.text <- Printf.sprintf "invalid key";
+                                TEcont text
 ;;
 
 let textentry text = function [@warning "-4"]
-  | Keys.Ascii c -> TEcont (addchar text c)
-  | Keys.Code c -> TEcont (text ^ toutf8 c)
-  | _ -> TEcont text
+                            | Keys.Ascii c -> TEcont (addchar text c)
+                            | Keys.Code c -> TEcont (text ^ toutf8 c)
+                            | _ -> TEcont text
 ;;
 
 let reqlayout angle fitmodel =
@@ -1685,8 +1685,8 @@ let setzoom zoom =
 ;;
 
 let pivotzoom ?(vw=min state.w state.winw)
-              ?(vh=min (state.maxy-state.y) state.winh)
-              ?(x=vw/2) ?(y=vh/2) zoom =
+      ?(vh=min (state.maxy-state.y) state.winh)
+      ?(x=vw/2) ?(y=vh/2) zoom =
   let w = float state.w /. zoom in
   let hw = w /. 2.0 in
   let ratio = float vh /. float vw in
@@ -1778,7 +1778,7 @@ let enterbirdseye () =
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
-                                 (100.0*.zoom)
+                    (100.0*.zoom)
   else
     state.text <- E.s
   ;
@@ -1807,7 +1807,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-                                 (100.0*.conf.zoom)
+                    (100.0*.conf.zoom)
   ;
     reshape state.winw state.winh;
   state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
@@ -2003,7 +2003,7 @@ let optentry mode _ key =
 
   | (Keys.Ascii c) ->
      state.text <- Printf.sprintf "bad option %d `%c'"
-                                  (Char.code c) c;
+                     (Char.code c) c;
      TEstop
 
   | _ ->
@@ -2324,7 +2324,7 @@ let enterinfomode =
                   try set (int_of_string s)
                   with exn ->
                     state.text <- Printf.sprintf "bad integer `%s': %s"
-                                                 s @@ exntos exn
+                                    s @@ exntos exn
                 in
                 state.text <- E.s;
                 let te = name ^ ": ", E.s, None, intentry, ondone, true in
@@ -2341,7 +2341,7 @@ let enterinfomode =
                   try set (int_of_string_with_suffix s)
                   with exn ->
                     state.text <- Printf.sprintf "bad integer `%s': %s"
-                                                 s @@ exntos exn
+                                    s @@ exntos exn
                 in
                 state.text <- E.s;
                 let te =
@@ -2371,7 +2371,7 @@ let enterinfomode =
                     try color_of_string s
                     with exn ->
                       state.text <- Printf.sprintf "bad color `%s': %s"
-                                                   s @@ exntos exn;
+                                      s @@ exntos exn;
                       invalid
                   in
                   if c <> invalid
@@ -2421,7 +2421,7 @@ let enterinfomode =
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
                 coe (new listview ~zebra:false ~helpmode:false
-                         ~source ~trusted:true ~modehash)
+                       ~source ~trusted:true ~modehash)
            )) :: m_l
 
        method paxmark name get set =
@@ -2449,7 +2449,7 @@ let enterinfomode =
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
                 coe (new listview ~zebra:false ~helpmode:false
-                         ~source ~trusted:true ~modehash)
+                       ~source ~trusted:true ~modehash)
            )) :: m_l
 
        method fitmodel name get set =
@@ -2477,7 +2477,7 @@ let enterinfomode =
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
                 coe (new listview ~zebra:false ~helpmode:false
-                         ~source ~trusted:true ~modehash)
+                       ~source ~trusted:true ~modehash)
            )) :: m_l
 
        method caption s offset =
@@ -2534,27 +2534,27 @@ let enterinfomode =
     let sep () = src#caption E.s 0 in
     let colorp name get set =
       src#string name
-                 (fun () -> color_to_string (get ()))
-                 (fun v ->
-                   try
-                     let c = color_of_string v in
-                     set c
-                   with exn ->
-                     state.text <-
-                       Printf.sprintf "bad color `%s': %s" v @@ exntos exn
-                 )
+        (fun () -> color_to_string (get ()))
+        (fun v ->
+          try
+            let c = color_of_string v in
+            set c
+          with exn ->
+            state.text <-
+              Printf.sprintf "bad color `%s': %s" v @@ exntos exn
+        )
     in
     let rgba name get set =
       src#string name
-                 (fun () -> rgba_to_string (get ()))
-                 (fun v ->
-                   try
-                     let c = rgba_of_string v in
-                     set c
-                   with exn ->
-                     state.text <-
-                       Printf.sprintf "bad color `%s': %s" v @@ exntos exn
-                 )
+        (fun () -> rgba_to_string (get ()))
+        (fun v ->
+          try
+            let c = rgba_of_string v in
+            set c
+          with exn ->
+            state.text <-
+              Printf.sprintf "bad color `%s': %s" v @@ exntos exn
+        )
     in
     let oldmode = state.mode in
     let birdseye = isbirdseye state.mode in
@@ -2562,315 +2562,315 @@ let enterinfomode =
     src#caption (if birdseye then "Setup (Bird's eye)" else "Setup") 0;
 
     src#bool "presentation mode"
-             (fun () -> conf.presentation)
-             (fun v -> setpresentationmode v);
+      (fun () -> conf.presentation)
+      (fun v -> setpresentationmode v);
 
     src#bool "ignore case in searches"
-             (fun () -> conf.icase)
-             (fun v -> conf.icase <- v);
+      (fun () -> conf.icase)
+      (fun v -> conf.icase <- v);
 
     src#bool "preload"
-             (fun () -> conf.preload)
-             (fun v -> conf.preload <- v);
+      (fun () -> conf.preload)
+      (fun v -> conf.preload <- v);
 
     src#bool "highlight links"
-             (fun () -> conf.hlinks)
-             (fun v -> conf.hlinks <- v);
+      (fun () -> conf.hlinks)
+      (fun v -> conf.hlinks <- v);
 
     src#bool "under info"
-             (fun () -> conf.underinfo)
-             (fun v -> conf.underinfo <- v);
+      (fun () -> conf.underinfo)
+      (fun v -> conf.underinfo <- v);
 
     src#fitmodel "fit model"
-                 (fun () -> FMTE.to_string conf.fitmodel)
-                 (fun v -> reqlayout conf.angle (FMTE.of_int v));
+      (fun () -> FMTE.to_string conf.fitmodel)
+      (fun v -> reqlayout conf.angle (FMTE.of_int v));
 
     src#bool "trim margins"
-             (fun () -> conf.trimmargins)
-             (fun v -> settrim v conf.trimfuzz; fillsrc prevmode prevuioh);
+      (fun () -> conf.trimmargins)
+      (fun v -> settrim v conf.trimfuzz; fillsrc prevmode prevuioh);
 
     sep ();
     src#int "inter-page space"
-            (fun () -> conf.interpagespace)
-            (fun n ->
-              conf.interpagespace <- n;
-              docolumns conf.columns;
-              let pageno, py =
-                match state.layout with
-                | [] -> 0, 0
-                | l :: _ ->
-                   l.pageno, l.pagey
-              in
-              state.maxy <- calcheight ();
-              let y = getpagey pageno in
-              gotoxy state.x (y + py)
-            );
+      (fun () -> conf.interpagespace)
+      (fun n ->
+        conf.interpagespace <- n;
+        docolumns conf.columns;
+        let pageno, py =
+          match state.layout with
+          | [] -> 0, 0
+          | l :: _ ->
+             l.pageno, l.pagey
+        in
+        state.maxy <- calcheight ();
+        let y = getpagey pageno in
+        gotoxy state.x (y + py)
+      );
 
     src#int "page bias"
-            (fun () -> conf.pagebias)
-            (fun v -> conf.pagebias <- v);
+      (fun () -> conf.pagebias)
+      (fun v -> conf.pagebias <- v);
 
     src#int "scroll step"
-            (fun () -> conf.scrollstep)
-            (fun n -> conf.scrollstep <- n);
+      (fun () -> conf.scrollstep)
+      (fun n -> conf.scrollstep <- n);
 
     src#int "horizontal scroll step"
-            (fun () -> conf.hscrollstep)
-            (fun v -> conf.hscrollstep <- v);
+      (fun () -> conf.hscrollstep)
+      (fun v -> conf.hscrollstep <- v);
 
     src#int "auto scroll step"
-            (fun () ->
-              match state.autoscroll with
-              | Some step -> step
-              | _ -> conf.autoscrollstep)
-            (fun n ->
-              let n = boundastep state.winh n in
-              if state.autoscroll <> None
-              then state.autoscroll <- Some n;
-              conf.autoscrollstep <- n);
+      (fun () ->
+        match state.autoscroll with
+        | Some step -> step
+        | _ -> conf.autoscrollstep)
+      (fun n ->
+        let n = boundastep state.winh n in
+        if state.autoscroll <> None
+        then state.autoscroll <- Some n;
+        conf.autoscrollstep <- n);
 
     src#int "zoom"
-            (fun () -> truncate (conf.zoom *. 100.))
-            (fun v -> pivotzoom ((float v) /. 100.));
+      (fun () -> truncate (conf.zoom *. 100.))
+      (fun v -> pivotzoom ((float v) /. 100.));
 
     src#int "rotation"
-            (fun () -> conf.angle)
-            (fun v -> reqlayout v conf.fitmodel);
+      (fun () -> conf.angle)
+      (fun v -> reqlayout v conf.fitmodel);
 
     src#int "scroll bar width"
-            (fun () -> conf.scrollbw)
-            (fun v ->
-              conf.scrollbw <- v;
-              reshape state.winw state.winh;
-            );
+      (fun () -> conf.scrollbw)
+      (fun v ->
+        conf.scrollbw <- v;
+        reshape state.winw state.winh;
+      );
 
     src#int "scroll handle height"
-            (fun () -> conf.scrollh)
-            (fun v -> conf.scrollh <- v;);
+      (fun () -> conf.scrollh)
+      (fun v -> conf.scrollh <- v;);
 
     src#int "thumbnail width"
-            (fun () -> conf.thumbw)
-            (fun v ->
-              conf.thumbw <- min 4096 v;
-              match oldmode with
-              | Birdseye beye ->
-                 leavebirdseye beye false;
-                 enterbirdseye ()
-              | Textentry _
-              | View
-              | LinkNav _ -> ()
-            );
+      (fun () -> conf.thumbw)
+      (fun v ->
+        conf.thumbw <- min 4096 v;
+        match oldmode with
+        | Birdseye beye ->
+           leavebirdseye beye false;
+           enterbirdseye ()
+        | Textentry _
+        | View
+        | LinkNav _ -> ()
+      );
 
     let mode = state.mode in
     src#string "columns"
-               (fun () ->
-                 match conf.columns with
-                 | Csingle _ -> "1"
-                 | Cmulti (multi, _) -> multicolumns_to_string multi
-                 | Csplit (count, _) -> "-" ^ string_of_int count
-               )
-               (fun v ->
-                 let n, a, b = multicolumns_of_string v in
-                 setcolumns mode n a b);
+      (fun () ->
+        match conf.columns with
+        | Csingle _ -> "1"
+        | Cmulti (multi, _) -> multicolumns_to_string multi
+        | Csplit (count, _) -> "-" ^ string_of_int count
+      )
+      (fun v ->
+        let n, a, b = multicolumns_of_string v in
+        setcolumns mode n a b);
 
     sep ();
     src#caption "Pixmap cache" 0;
     src#int_with_suffix "size (advisory)"
-                        (fun () -> conf.memlimit)
-                        (fun v -> conf.memlimit <- v);
+      (fun () -> conf.memlimit)
+      (fun v -> conf.memlimit <- v);
 
     src#caption2 "used"
-                 (fun () ->
-                   Printf.sprintf "%s bytes, %d tiles"
-                                  (string_with_suffix_of_int state.memused)
-                                  (Hashtbl.length state.tilemap)) 1;
+      (fun () ->
+        Printf.sprintf "%s bytes, %d tiles"
+          (string_with_suffix_of_int state.memused)
+          (Hashtbl.length state.tilemap)) 1;
 
     sep ();
     src#caption "Layout" 0;
     src#caption2 "Dimension"
-                 (fun () ->
-                   Printf.sprintf "%dx%d (virtual %dx%d)"
-                                  state.winw state.winh
-                                  state.w state.maxy)
-                 1;
+      (fun () ->
+        Printf.sprintf "%dx%d (virtual %dx%d)"
+          state.winw state.winh
+          state.w state.maxy)
+      1;
     if conf.debug
     then
       src#caption2 "Position" (fun () ->
-                     Printf.sprintf "%dx%d" state.x state.y
-                   ) 1
+          Printf.sprintf "%dx%d" state.x state.y
+        ) 1
     else
       src#caption2 "Position" (fun () -> describe_layout state.layout) 1;
 
     sep ();
     src#bool ~offset:0 ~btos:(fun v -> if v then "(on)" else "(off)")
-             "Save these parameters as global defaults at exit"
-             (fun () -> conf.bedefault)
-             (fun v -> conf.bedefault <- v);
+      "Save these parameters as global defaults at exit"
+      (fun () -> conf.bedefault)
+      (fun v -> conf.bedefault <- v);
 
     sep ();
     let btos b = if b then Unisyms.lguillemet else Unisyms.rguillemet in
     src#bool ~offset:0 ~btos "Extended parameters"
-             (fun () -> !showextended)
-             (fun v -> showextended := v; fillsrc prevmode prevuioh);
+      (fun () -> !showextended)
+      (fun v -> showextended := v; fillsrc prevmode prevuioh);
     if !showextended
     then (
       src#bool "checkers"
-               (fun () -> conf.checkers)
-               (fun v -> conf.checkers <- v; setcheckers v);
+        (fun () -> conf.checkers)
+        (fun v -> conf.checkers <- v; setcheckers v);
       src#bool "update cursor"
-               (fun () -> conf.updatecurs)
-               (fun v -> conf.updatecurs <- v);
+        (fun () -> conf.updatecurs)
+        (fun v -> conf.updatecurs <- v);
       src#bool "scroll-bar on the left"
-               (fun () -> conf.leftscroll)
-               (fun v -> conf.leftscroll <- v);
+        (fun () -> conf.leftscroll)
+        (fun v -> conf.leftscroll <- v);
       src#bool "verbose"
-               (fun () -> conf.verbose)
-               (fun v -> conf.verbose <- v);
+        (fun () -> conf.verbose)
+        (fun v -> conf.verbose <- v);
       src#bool "invert colors"
-               (fun () -> conf.invert)
-               (fun v -> conf.invert <- v);
+        (fun () -> conf.invert)
+        (fun v -> conf.invert <- v);
       src#bool "max fit"
-               (fun () -> conf.maxhfit)
-               (fun v -> conf.maxhfit <- v);
+        (fun () -> conf.maxhfit)
+        (fun v -> conf.maxhfit <- v);
       src#bool "pax mode"
-               (fun () -> conf.pax != None)
-               (fun v ->
-                 if v
-                 then conf.pax <- Some (now ())
-                 else conf.pax <- None);
+        (fun () -> conf.pax != None)
+        (fun v ->
+          if v
+          then conf.pax <- Some (now ())
+          else conf.pax <- None);
       src#string "uri launcher"
-                 (fun () -> conf.urilauncher)
-                 (fun v -> conf.urilauncher <- v);
+        (fun () -> conf.urilauncher)
+        (fun v -> conf.urilauncher <- v);
       src#string "path launcher"
-                 (fun () -> conf.pathlauncher)
-                 (fun v -> conf.pathlauncher <- v);
+        (fun () -> conf.pathlauncher)
+        (fun v -> conf.pathlauncher <- v);
       src#string "tile size"
-                 (fun () -> Printf.sprintf "%dx%d" conf.tilew conf.tileh)
-                 (fun v ->
-                   try
-                     let w, h = Scanf.sscanf v "%dx%d" (fun w h -> w, h) in
-                     conf.tilew <- max 64 w;
-                     conf.tileh <- max 64 h;
-                     flushtiles ();
-                   with exn ->
-                     state.text <- Printf.sprintf "bad tile size `%s': %s"
-                                                  v @@ exntos exn
-                 );
+        (fun () -> Printf.sprintf "%dx%d" conf.tilew conf.tileh)
+        (fun v ->
+          try
+            let w, h = Scanf.sscanf v "%dx%d" (fun w h -> w, h) in
+            conf.tilew <- max 64 w;
+            conf.tileh <- max 64 h;
+            flushtiles ();
+          with exn ->
+            state.text <- Printf.sprintf "bad tile size `%s': %s"
+                            v @@ exntos exn
+        );
       src#int "texture count"
-              (fun () -> conf.texcount)
-              (fun v ->
-                if realloctexts v
-                then conf.texcount <- v
-                else impmsg "failed to set texture count please retry later"
-              );
+        (fun () -> conf.texcount)
+        (fun v ->
+          if realloctexts v
+          then conf.texcount <- v
+          else impmsg "failed to set texture count please retry later"
+        );
       src#int "slice height"
-              (fun () -> conf.sliceheight)
-              (fun v ->
-                conf.sliceheight <- v;
-                wcmd "sliceh %d" conf.sliceheight;
-              );
+        (fun () -> conf.sliceheight)
+        (fun v ->
+          conf.sliceheight <- v;
+          wcmd "sliceh %d" conf.sliceheight;
+        );
       src#int "anti-aliasing level"
-              (fun () -> conf.aalevel)
-              (fun v ->
-                conf.aalevel <- bound v 0 8;
-                state.anchor <- getanchor ();
-                opendoc state.path state.password;
-              );
+        (fun () -> conf.aalevel)
+        (fun v ->
+          conf.aalevel <- bound v 0 8;
+          state.anchor <- getanchor ();
+          opendoc state.path state.password;
+        );
       src#string "page scroll scaling factor"
-                 (fun () -> string_of_float conf.pgscale)
-                 (fun v ->
-                   try
-                     let s = float_of_string v in
-                     conf.pgscale <- s
-                   with exn ->
-                     state.text <- Printf.sprintf
-                                     "bad page scroll scaling factor `%s': %s" v
-                                   @@ exntos exn
-                 )
+        (fun () -> string_of_float conf.pgscale)
+        (fun v ->
+          try
+            let s = float_of_string v in
+            conf.pgscale <- s
+          with exn ->
+            state.text <- Printf.sprintf
+                            "bad page scroll scaling factor `%s': %s" v
+                          @@ exntos exn
+        )
       ;
         src#int "ui font size"
-                (fun () -> fstate.fontsize)
-                (fun v -> setfontsize (bound v 5 100));
+          (fun () -> fstate.fontsize)
+          (fun v -> setfontsize (bound v 5 100));
       src#int "hint font size"
-              (fun () -> conf.hfsize)
-              (fun v -> conf.hfsize <- bound v 5 100);
+        (fun () -> conf.hfsize)
+        (fun v -> conf.hfsize <- bound v 5 100);
       src#bool "crop hack"
-               (fun () -> conf.crophack)
-               (fun v -> conf.crophack <- v);
+        (fun () -> conf.crophack)
+        (fun v -> conf.crophack <- v);
       src#string "trim fuzz"
-                 (fun () -> irect_to_string conf.trimfuzz)
-                 (fun v ->
-                   try
-                     conf.trimfuzz <- irect_of_string v;
-                     if conf.trimmargins
-                     then settrim true conf.trimfuzz;
-                   with exn ->
-                     state.text <- Printf.sprintf "bad irect `%s': %s" v
-                                   @@ exntos exn
-                 );
+        (fun () -> irect_to_string conf.trimfuzz)
+        (fun v ->
+          try
+            conf.trimfuzz <- irect_of_string v;
+            if conf.trimmargins
+            then settrim true conf.trimfuzz;
+          with exn ->
+            state.text <- Printf.sprintf "bad irect `%s': %s" v
+                          @@ exntos exn
+        );
       src#string "selection command"
-                 (fun () -> conf.selcmd)
-                 (fun v -> conf.selcmd <- v);
+        (fun () -> conf.selcmd)
+        (fun v -> conf.selcmd <- v);
       src#string "synctex command"
-                 (fun () -> conf.stcmd)
-                 (fun v -> conf.stcmd <- v);
+        (fun () -> conf.stcmd)
+        (fun v -> conf.stcmd <- v);
       src#string "pax command"
-                 (fun () -> conf.paxcmd)
-                 (fun v -> conf.paxcmd <- v);
+        (fun () -> conf.paxcmd)
+        (fun v -> conf.paxcmd <- v);
       src#string "ask password command"
-                 (fun () -> conf.passcmd)
-                 (fun v -> conf.passcmd <- v);
+        (fun () -> conf.passcmd)
+        (fun v -> conf.passcmd <- v);
       src#string "save path command"
-                 (fun () -> conf.savecmd)
-                 (fun v -> conf.savecmd <- v);
+        (fun () -> conf.savecmd)
+        (fun v -> conf.savecmd <- v);
       src#colorspace "color space"
-                     (fun () -> CSTE.to_string conf.colorspace)
-                     (fun v ->
-                       conf.colorspace <- CSTE.of_int v;
-                       wcmd "cs %d" v;
-                       load state.layout;
-                     );
+        (fun () -> CSTE.to_string conf.colorspace)
+        (fun v ->
+          conf.colorspace <- CSTE.of_int v;
+          wcmd "cs %d" v;
+          load state.layout;
+        );
       src#paxmark "pax mark method"
-                  (fun () -> MTE.to_string conf.paxmark)
-                  (fun v -> conf.paxmark <- MTE.of_int v);
+        (fun () -> MTE.to_string conf.paxmark)
+        (fun v -> conf.paxmark <- MTE.of_int v);
       if bousable () && !opengl_has_pbo
       then
         src#bool "use PBO"
-                 (fun () -> conf.usepbo)
-                 (fun v -> conf.usepbo <- v);
+          (fun () -> conf.usepbo)
+          (fun v -> conf.usepbo <- v);
       src#bool "mouse wheel scrolls pages"
-               (fun () -> conf.wheelbypage)
-               (fun v -> conf.wheelbypage <- v);
+        (fun () -> conf.wheelbypage)
+        (fun v -> conf.wheelbypage <- v);
       src#bool "open remote links in a new instance"
-               (fun () -> conf.riani)
-               (fun v -> conf.riani <- v);
+        (fun () -> conf.riani)
+        (fun v -> conf.riani <- v);
       src#bool "edit annotations inline"
-               (fun () -> conf.annotinline)
-               (fun v -> conf.annotinline <- v);
+        (fun () -> conf.annotinline)
+        (fun v -> conf.annotinline <- v);
       src#bool "coarse positioning in presentation mode"
-               (fun () -> conf.coarseprespos)
-               (fun v -> conf.coarseprespos <- v);
+        (fun () -> conf.coarseprespos)
+        (fun v -> conf.coarseprespos <- v);
       src#bool "use document CSS"
-               (fun () -> conf.usedoccss)
-               (fun v ->
-                 conf.usedoccss <- v;
-                 state.anchor <- getanchor ();
-                 opendoc state.path state.password;
-               );
+        (fun () -> conf.usedoccss)
+        (fun v ->
+          conf.usedoccss <- v;
+          state.anchor <- getanchor ();
+          opendoc state.path state.password;
+        );
       src#bool ~btos "colors"
-               (fun () -> !showcolors)
-               (fun v -> showcolors := v; fillsrc prevmode prevuioh);
+        (fun () -> !showcolors)
+        (fun v -> showcolors := v; fillsrc prevmode prevuioh);
       if !showcolors
       then (
         colorp "   background"
-               (fun () -> conf.bgcolor)
-               (fun v -> conf.bgcolor <- v);
+          (fun () -> conf.bgcolor)
+          (fun v -> conf.bgcolor <- v);
         rgba "   scrollbar"
-             (fun () -> conf.sbarcolor)
-             (fun v -> conf.sbarcolor <- v);
+          (fun () -> conf.sbarcolor)
+          (fun v -> conf.sbarcolor <- v);
         rgba "   scrollbar handle"
-             (fun () -> conf.sbarhndlcolor)
-             (fun v -> conf.sbarhndlcolor <- v);
+          (fun () -> conf.sbarhndlcolor)
+          (fun v -> conf.sbarhndlcolor <- v);
       );
     );
 
@@ -2878,9 +2878,9 @@ let enterinfomode =
     src#caption "Document" 0;
     List.iter (fun (_, s) -> src#caption s 1) state.docinfo;
     src#caption2 "Pages"
-                 (fun () ->  string_of_int state.pagecount) 1;
+      (fun () ->  string_of_int state.pagecount) 1;
     src#caption2 "Dimensions"
-                 (fun () -> string_of_int (List.length state.pdims)) 1;
+      (fun () -> string_of_int (List.length state.pdims)) 1;
     if nonemptystr conf.css
     then src#caption2 "CSS" (fun () -> conf.css) 1;
     if conf.trimmargins
@@ -2888,7 +2888,7 @@ let enterinfomode =
       sep ();
       src#caption "Trimmed margins" 0;
       src#caption2 "Dimensions"
-                   (fun () -> string_of_int (List.length state.pdims)) 1;
+        (fun () -> string_of_int (List.length state.pdims)) 1;
     );
 
     sep ();
@@ -2915,7 +2915,7 @@ let enterinfomode =
   state.uioh <-
     coe (object (self)
            inherit listview ~zebra:false ~helpmode:false
-                            ~source ~trusted:true ~modehash as super
+                     ~source ~trusted:true ~modehash as super
            val mutable m_prevmemused = 0
            method! infochanged = function
              | Memused ->
@@ -2975,8 +2975,8 @@ let enterhelpmode =
      let modehash = findkeyhash conf "help" in
      resetmstate ();
      state.uioh <- coe (new listview
-                            ~zebra:false ~helpmode:true
-                            ~source ~trusted:true ~modehash);
+                          ~zebra:false ~helpmode:true
+                          ~source ~trusted:true ~modehash);
      G.postRedisplay "help";
 ;;
 
@@ -3024,13 +3024,13 @@ let entermsgsmode =
      let modehash = findkeyhash conf "listview" in
      state.uioh <-
        coe (object
-              inherit listview ~zebra:false ~helpmode:false
-                               ~source ~trusted:false ~modehash as super
-              method! display =
-                if state.newerrmsgs
-                then msgsource#reset;
-                super#display
-            end);
+             inherit listview ~zebra:false ~helpmode:false
+                       ~source ~trusted:false ~modehash as super
+             method! display =
+               if state.newerrmsgs
+               then msgsource#reset;
+               super#display
+           end);
      G.postRedisplay "msgs";
 ;;
 
@@ -3170,9 +3170,9 @@ let enterannotmode opaque slinkindex =
   let source = (msgsource :> lvsource) in
   let modehash = findkeyhash conf "listview" in
   state.uioh <- coe (object
-                       inherit listview ~zebra:false ~helpmode:false
-                                        ~source ~trusted:false ~modehash
-                     end);
+                      inherit listview ~zebra:false ~helpmode:false
+                                ~source ~trusted:false ~modehash
+                    end);
   G.postRedisplay "enterannotmode";
 ;;
 
@@ -3434,7 +3434,7 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
           coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
         G.postRedisplay "enter selector";
       )
-     )
+    )
   in
   let mkenter sourcetype errmsg =
     let enter = mkselector sourcetype in
@@ -3513,7 +3513,7 @@ let nextpage () =
      | Cmulti ((c, _, _) as cl, _) ->
         if conf.presentation
            && (existsinrow l.pageno cl
-                           (fun l -> l.pageh > l.pagey + l.pagevh))
+                 (fun l -> l.pageh > l.pagey + l.pagevh))
         then
           let y = clamp (pgscale state.winh) in
           gotoxy state.x y
@@ -3576,7 +3576,7 @@ let prevpage () =
 let save () =
   if emptystr conf.savecmd
   then adderrmsg "savepath-command is empty"
-                 "don't know where to save modified document"
+         "don't know where to save modified document"
   else
     let savecmd = Str.global_replace percentsre state.path conf.savecmd in
     let path =
@@ -3765,8 +3765,8 @@ let viewkeyboard key mask =
        )
      in
      let pageentry text = function [@warning "-4"]
-       | Keys.Ascii 'g' -> TEdone text
-       | key -> intentry text key
+                                 | Keys.Ascii 'g' -> TEdone text
+                                 | key -> intentry text key
      in
      let text = String.make 1 c in
      enttext (":", text, Some (onhist state.hists.pag),
@@ -4210,7 +4210,7 @@ let keyboard key mask =
 ;;
 
 let birdseyekeyboard key mask
-                     ((oconf, leftx, pageno, hooverpageno, anchor) as beye) =
+      ((oconf, leftx, pageno, hooverpageno, anchor) as beye) =
   let incr =
     match conf.columns with
     | Csingle _ -> 1
@@ -4244,8 +4244,8 @@ let birdseyekeyboard key mask
         )
         else (
           let layout = layout state.x (state.y-state.winh)
-                              state.winw
-                              (pgh state.layout) in
+                         state.winw
+                         (pgh state.layout) in
           match layout with
           | [] -> gotoxy state.x (clamp (-state.winh))
           | l :: _ ->
@@ -4262,8 +4262,8 @@ let birdseyekeyboard key mask
      begin match List.rev state.layout with
      | l :: _ ->
         let layout = layout state.x
-                            (state.y + (pgh state.layout))
-                            state.winw state.winh in
+                       (state.y + (pgh state.layout))
+                       state.winw state.winh in
         begin match layout with
         | [] ->
            let incr = l.pageh - l.pagevh in
@@ -4425,9 +4425,9 @@ let showrects =
                       let r, g, b, alpha = c in
                       GlDraw.color (r, g, b) ~alpha;
                       filledrect2 (x0+.dx) (y0+.dy)
-                                  (x1+.dx) (y1+.dy)
-                                  (x3+.dx) (y3+.dy)
-                                  (x2+.dx) (y2+.dy);
+                        (x1+.dx) (y1+.dy)
+                        (x3+.dx) (y3+.dy)
+                        (x2+.dx) (y2+.dy);
                     )
                   ) state.layout
               ) rects;
@@ -4670,7 +4670,7 @@ let viewmouse button down x y mask =
           match spawn cmd [] with
           | exception exn ->
              impmsg "execution of synctex command(%S) failed: %S"
-                    conf.stcmd @@ exntos exn
+               conf.stcmd @@ exntos exn
           | _pid -> ()
      )
 
@@ -4787,9 +4787,9 @@ let viewmouse button down x y mask =
                     | Some opaque ->
                        let dosel cmd () =
                          pipef ~closew:false "Msel"
-                               (fun w ->
-                                 copysel w opaque;
-                                 G.postRedisplay "Msel") cmd
+                           (fun w ->
+                             copysel w opaque;
+                             G.postRedisplay "Msel") cmd
                        in
                        dosel conf.selcmd ();
                        state.roam <- dosel conf.paxcmd;
@@ -4805,7 +4805,7 @@ let viewmouse button down x y mask =
 ;;
 
 let birdseyemouse button down x y mask
-                  (conf, leftx, _, hooverpageno, anchor) =
+      (conf, leftx, _, hooverpageno, anchor) =
   match button with
   | 1 when down ->
      let rec loop = function
@@ -4979,11 +4979,11 @@ let ract cmds =
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn -> adderrfmt "remote exec" "error processing '%S': %s\n"
-                          cmds @@ exntos exn
+                  cmds @@ exntos exn
   in
   let rectx s pageno (r, g, b, a) x0 y0 x1 y1 =
     vlog "%s page %d color (%f %f %f %f) x0,y0,x1,y1 = %f %f %f %f"
-         s pageno r g b a x0 y0 x1 y1;
+      s pageno r g b a x0 y0 x1 y1;
     onpagerect
       pageno
       (fun w h ->
@@ -5005,57 +5005,57 @@ let ract cmds =
   | "reload", "" -> reload ()
   | "goto", args ->
      scan args "%u %f %f"
-          (fun pageno x y ->
-            let cmd, _ = state.geomcmds in
-            if emptystr cmd
-            then gotopagexy pageno x y
-            else
-              let f prevf () =
-                gotopagexy pageno x y;
-                prevf ()
-              in
-              state.reprf <- f state.reprf
-          )
+       (fun pageno x y ->
+         let cmd, _ = state.geomcmds in
+         if emptystr cmd
+         then gotopagexy pageno x y
+         else
+           let f prevf () =
+             gotopagexy pageno x y;
+             prevf ()
+           in
+           state.reprf <- f state.reprf
+       )
   | "goto1", args -> scan args "%u %f" gotopage
   | "gotor", args -> scan args "%S" gotoremote
   | "rect", args ->
      scan args "%u %u %f %f %f %f"
-          (fun pageno c x0 y0 x1 y1 ->
-            let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
-            rectx "rect" pageno color x0 y0 x1 y1;
-          )
+       (fun pageno c x0 y0 x1 y1 ->
+         let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
+         rectx "rect" pageno color x0 y0 x1 y1;
+       )
   | "prect", args ->
      scan args "%u %f %f %f %f %f %f %f %f"
-          (fun pageno r g b alpha x0 y0 x1 y1 ->
-            addrect pageno r g b alpha x0 y0 x1 y1;
-            G.postRedisplay "prect"
-          )
+       (fun pageno r g b alpha x0 y0 x1 y1 ->
+         addrect pageno r g b alpha x0 y0 x1 y1;
+         G.postRedisplay "prect"
+       )
   | "pgoto", args ->
      scan args "%u %f %f"
-          (fun pageno x y ->
-            let optopaque =
-              match getopaque pageno with
-              | Some opaque -> opaque
-              | None -> ~< E.s
-            in
-            pgoto optopaque pageno x y;
-            let rec fixx = function
-              | [] -> ()
-              | l :: rest ->
-                 if l.pageno = pageno
-                 then gotoxy (state.x - l.pagedispx) state.y
-                 else fixx rest
-            in
-            let layout =
-              let mult =
-                match conf.columns with
-                | Csingle _ | Csplit _ -> 1
-                | Cmulti ((n, _, _), _) -> n
-              in
-              layout 0 state.y (state.winw * mult) state.winh
-            in
-            fixx layout
-          )
+       (fun pageno x y ->
+         let optopaque =
+           match getopaque pageno with
+           | Some opaque -> opaque
+           | None -> ~< E.s
+         in
+         pgoto optopaque pageno x y;
+         let rec fixx = function
+           | [] -> ()
+           | l :: rest ->
+              if l.pageno = pageno
+              then gotoxy (state.x - l.pagedispx) state.y
+              else fixx rest
+         in
+         let layout =
+           let mult =
+             match conf.columns with
+             | Csingle _ | Csplit _ -> 1
+             | Cmulti ((n, _, _), _) -> n
+           in
+           layout 0 state.y (state.winw * mult) state.winh
+         in
+         fixx layout
+       )
   | "activatewin", "" -> Wsi.activatewin ()
   | "quit", "" -> raise Quit
   | "keys", keys ->
@@ -5063,14 +5063,14 @@ let ract cmds =
          let l = Config.keys_of_string keys in
          List.iter (fun (k, m) -> keyboard k m) l
        with exn -> adderrfmt "error processing keys" "`%S': %s\n"
-                             cmds @@ exntos exn
+                     cmds @@ exntos exn
      end
   | "clearrects", "" ->
      Hashtbl.clear state.prects;
      G.postRedisplay "clearrects"
   | _ ->
      adderrfmt "remote command"
-               "error processing remote command: %S\n" cmds;
+       "error processing remote command: %S\n" cmds;
 ;;
 
 let remote =
