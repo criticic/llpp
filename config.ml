@@ -33,10 +33,10 @@ let multicolumns_of_string s =
     (int_of_string s, 0, 0)
   with _ ->
     Scanf.sscanf s "%u,%u,%u" (fun n a b ->
-                   if a > 1 || b > 1
-                   then failwith "subtly broken";
-                   (n, a, b)
-                 );
+        if a > 1 || b > 1
+        then failwith "subtly broken";
+        (n, a, b)
+      );
 ;;
 
 include Confstruct;;
@@ -139,33 +139,33 @@ module TextEnumMake (Ten : TextEnumType) =
   end;;
 
 module CSTE = TextEnumMake (struct
-                             type t = colorspace;;
-                             let name = "colorspace";;
-                             let names = [|"rgb"; "bgr"; "gray"|];;
-                           end);;
+                  type t = colorspace;;
+                  let name = "colorspace";;
+                  let names = [|"rgb"; "bgr"; "gray"|];;
+                end);;
 
 module MTE = TextEnumMake (struct
-                            type t = mark;;
-                            let name = "mark";;
-                            let names = [|"page"; "block"; "line"; "word"|];;
-                          end);;
+                 type t = mark;;
+                 let name = "mark";;
+                 let names = [|"page"; "block"; "line"; "word"|];;
+               end);;
 
 module FMTE = TextEnumMake (struct
-                             type t = fitmodel;;
-                             let name = "fitmodel";;
-                             let names = [|"width"; "proportional"; "page"|];;
-                           end);;
+                  type t = fitmodel;;
+                  let name = "fitmodel";;
+                  let names = [|"width"; "proportional"; "page"|];;
+                end);;
 
 type outlinekind =
-   | Onone
-   | Oanchor of anchor
-   | Ouri of uri
-   | Olaunch of launchcommand
-   | Oremote of (filename * pageno)
-   | Oremotedest of (filename * destname)
-   | Ohistory of (filename * conf * outline list * x * anchor * filename)
- and outline = (caption * outlinelevel * outlinekind)
- and outlinelevel = int
+  | Onone
+  | Oanchor of anchor
+  | Ouri of uri
+  | Olaunch of launchcommand
+  | Oremote of (filename * pageno)
+  | Oremotedest of (filename * destname)
+  | Ohistory of (filename * conf * outline list * x * anchor * filename)
+and outline = (caption * outlinelevel * outlinekind)
+and outlinelevel = int
 ;;
 
 type page =
@@ -184,30 +184,30 @@ type page =
 ;;
 
 type tile = opaque * pixmapsize * elapsed
- and elapsed = float;;
+and elapsed = float;;
 type pagemapkey = pageno * gen;;
 type tilemapkey = pageno * gen * colorspace * angle * width * height * col * row
- and row = int
- and col = int
- and currently =
-   | Idle
-   | Loading of (page * gen)
-   | Tiling of (
-     page * opaque * colorspace * angle * gen * col * row * width * height
-   )
-   | Outlining of outline list
+and row = int
+and col = int
+and currently =
+  | Idle
+  | Loading of (page * gen)
+  | Tiling of (
+    page * opaque * colorspace * angle * gen * col * row * width * height
+  )
+  | Outlining of outline list
 ;;
 
 type mpos = int * int
- and mstate =
-   | Msel of (mpos * mpos)
-   | Mpan of mpos
-   | Mscrolly | Mscrollx
-   | Mzoom of (buttonno * step * mpos)
-   | Mzoomrect of (mpos * mpos)
-   | Mnone
- and buttonno = int
- and step = int
+and mstate =
+  | Msel of (mpos * mpos)
+  | Mpan of mpos
+  | Mscrolly | Mscrollx
+  | Mzoom of (buttonno * step * mpos)
+  | Mzoomrect of (mpos * mpos)
+  | Mnone
+and buttonno = int
+and step = int
 ;;
 
 type mode =
@@ -215,30 +215,30 @@ type mode =
   | Textentry of (textentry * onleave)
   | View
   | LinkNav of linktarget
- and onleave = leavetextentrystatus -> unit
- and leavetextentrystatus = | Cancel | Confirm
- and helpitem = string * int * action
- and action =
-   | Noaction
-   | Action of (uioh -> uioh)
- and linktarget =
-   | Ltexact of (pageno * direction)
-   | Ltgendir of direction
-   | Ltnotready of (pageno * direction)
- and direction = int             (* -1, 0, 1 *)
- and textentry = string * string * onhist option
-                 * onkey * ondone * cancelonempty
- and onkey = string -> Keys.t -> te
- and ondone = string -> unit
- and histcancel = unit -> unit
- and onhist = ((histcmd -> string) * histcancel)
- and histcmd = HCnext | HCprev | HCfirst | HClast
- and cancelonempty = bool
- and te =
-   | TEstop
-   | TEdone of string
-   | TEcont of string
-   | TEswitch of textentry
+and onleave = leavetextentrystatus -> unit
+and leavetextentrystatus = | Cancel | Confirm
+and helpitem = string * int * action
+and action =
+  | Noaction
+  | Action of (uioh -> uioh)
+and linktarget =
+  | Ltexact of (pageno * direction)
+  | Ltgendir of direction
+  | Ltnotready of (pageno * direction)
+and direction = int             (* -1, 0, 1 *)
+and textentry = string * string * onhist option
+                * onkey * ondone * cancelonempty
+and onkey = string -> Keys.t -> te
+and ondone = string -> unit
+and histcancel = unit -> unit
+and onhist = ((histcmd -> string) * histcancel)
+and histcmd = HCnext | HCprev | HCfirst | HClast
+and cancelonempty = bool
+and te =
+  | TEstop
+  | TEdone of string
+  | TEcont of string
+  | TEswitch of textentry
 ;;
 
 type 'a circbuf =
@@ -305,12 +305,12 @@ type state =
   ; mutable lnava         : (pageno * linkno) option
   ; mutable slideshow     : int
   }
- and hists =
-   { pat : string circbuf
-   ; pag : string circbuf
-   ; nav : anchor circbuf
-   ; sel : string circbuf
-   }
+and hists =
+  { pat : string circbuf
+  ; pag : string circbuf
+  ; nav : anchor circbuf
+  ; sel : string circbuf
+  }
 ;;
 
 let emptyanchor = (0, 0.0, 0.0);;
@@ -1024,8 +1024,8 @@ let get s =
        let b = Buffer.create 10 in
        Buffer.add_substring b s spos (epos - spos);
        { v with f = pcss path origin pan anchor
-                         { c with css = Buffer.contents b }
-                         bookmarks }
+                      { c with css = Buffer.contents b }
+                      bookmarks }
     | Vend -> parse_error "unexpected end of input in css" s spos
     | Vopen _ -> parse_error "unexpected subelement in css" s spos
     | Vclose "css" -> { v with f = doc path origin pan anchor c bookmarks }
@@ -1202,7 +1202,7 @@ let gethist () =
   let f (h, _) =
     Hashtbl.fold (fun path (pc, pb, px, pa, po) accu ->
         (path, pc, pb, px, pa, po) :: accu)
-                 h [];
+      h [];
   in
   load2 f []
 ;;
@@ -1422,8 +1422,8 @@ let save1 bb leavebirdseye x h dc =
   if nonemptystr !fontpath
   then
     Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
-                   uifontsize
-                   !fontpath
+      uifontsize
+      !fontpath
   else (
     if uifontsize <> 14
     then
@@ -1446,7 +1446,7 @@ let save1 bb leavebirdseye x h dc =
     then ()
     else (
       Printf.bprintf bb "<doc path='%s'"
-                     (Parser.enent path 0 (String.length path));
+        (Parser.enent path 0 (String.length path));
 
       if nonemptystr c.key
       then
@@ -1454,7 +1454,7 @@ let save1 bb leavebirdseye x h dc =
 
       if nonemptystr origin
       then Printf.bprintf bb "\n    origin='%s'"
-                          (Parser.enent origin 0 (String.length origin));
+             (Parser.enent origin 0 (String.length origin));
 
       if anchor <> emptyanchor
       then (
@@ -1494,9 +1494,9 @@ let save1 bb leavebirdseye x h dc =
              begin match kind with
              | Oanchor (page, rely, visy) ->
                 Printf.bprintf bb
-                               "<item title='%s' page='%d'"
-                               (Parser.enent title 0 (String.length title))
-                               page
+                  "<item title='%s' page='%d'"
+                  (Parser.enent title 0 (String.length title))
+                  page
                ;
                  if rely > 1e-6
                  then
@@ -1546,25 +1546,25 @@ let save1 bb leavebirdseye x h dc =
   if nonemptystr docpath
   then (
     adddoc docpath pan (getanchor ())
-           (
-             let autoscrollstep =
-               match state.autoscroll with
-               | Some step -> step
-               | None -> conf.autoscrollstep
-             in
-             begin match state.mode with
-             | Birdseye beye -> leavebirdseye beye true
-             | Textentry _
-             | View
-             | LinkNav _ -> ()
-             end;
-             let key = try Digest.file docpath |> Digest.to_hex
-                       with _ -> E.s in
-             { conf with autoscrollstep; key }
-           )
-           state.bookmarks
-           (now ())
-           state.origin
+      (
+        let autoscrollstep =
+          match state.autoscroll with
+          | Some step -> step
+          | None -> conf.autoscrollstep
+        in
+        begin match state.mode with
+        | Birdseye beye -> leavebirdseye beye true
+        | Textentry _
+        | View
+        | LinkNav _ -> ()
+        end;
+        let key = try Digest.file docpath |> Digest.to_hex
+                  with _ -> E.s in
+        { conf with autoscrollstep; key }
+      )
+      state.bookmarks
+      (now ())
+      state.origin
   );
   Hashtbl.iter (fun path (c, bookmarks, x, anchor, origin) ->
       if docpath <> abspath path
@@ -1644,9 +1644,9 @@ let logcurrently = function
        l.pageno col row (~> pageopaque)
        (CSTE.to_string colorspace) angle;
      dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
-           angle gen conf.angle state.gen
-           tilew tileh
-           conf.tilew conf.tileh;
+       angle gen conf.angle state.gen
+       tilew tileh
+       conf.tilew conf.tileh;
   | Outlining _ ->
      dolog "outlining"
 ;;
