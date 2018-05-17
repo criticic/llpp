@@ -42,7 +42,6 @@ and memsize = int and texcount = int
 and sliceheight = int;;
 let scrollbvv = 1;;
 let scrollbhv = 2;;
-
 EOF
 
 init=
