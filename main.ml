@@ -3700,10 +3700,8 @@ let viewkeyboard key mask =
 
   | Ascii '-' ->
      let ondone msg = state.text <- msg in
-     enttext (
-         "option [acfhilpstvxACFRSZTISM]: ", E.s, None,
-         optentry state.mode, ondone, true
-       )
+     enttext ("option: ", E.s, None,
+              optentry state.mode, ondone, true)
 
   | Ascii '0' when ctrl ->
      if conf.zoom = 1.0
