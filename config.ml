@@ -14,9 +14,6 @@ let fstate =
   }
 ;;
 
-let scrollbvv = 1;;
-let scrollbhv = 2;;
-
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
 ;;
@@ -42,94 +39,60 @@ let multicolumns_of_string s =
                  );
 ;;
 
-type keymap        =
-  | KMinsrt of key
-  | KMinsrl of key list
-  | KMmulti of key list * key list
- and key            = int * int
- and keyhash        = (key, keymap) Hashtbl.t
- and keystate       =
-   | KSnone
-   | KSinto of (key list * key list)
- and interpagespace = int
- and multicolumns   = multicol * pagegeom
- and singlecolumn   = pagegeom
- and splitcolumns   = columncount * pagegeom
- and pagegeom       = (pdimno * x * y * (pageno * width * height * leftx)) array
- and multicol       = columncount * covercount * covercount
- and pdimno         = int
- and columncount    = int
- and covercount     = int
- and fitmodel       = | FitWidth | FitProportional | FitPage
- and trimmargins    = bool
- and irect          = (int * int * int * int)
- and memsize        = int
- and texcount       = int
- and sliceheight    = int
- and angle          = int
- and initparams     =
-   (angle * fitmodel * trimparams * texcount * sliceheight * memsize
-    * colorspace * fontpath * trimcachepath * haspbo)
- and width          = int
- and height         = int
- and leftx          = int
- and opaque         = Opaque.t
- and rectcolor      = (float * float * float * float)
- and pixmapsize     = int
- and gen            = int
- and top            = float
- and dtop           = float
- and fontpath       = string
- and trimcachepath  = string
- and css            = string
- and aalevel        = int
- and trimparams     = (trimmargins * irect)
- and colorspace     = | Rgb | Bgr | Gray
- and haspbo         = bool
- and usefontconfig  = bool
- and usedoccss      = bool
- and uri            = string
- and caption        = string
- and x              = int
- and y              = int
- and tilex          = int
- and tiley          = int
- and tileparams     = (x * y * width * height * tilex * tiley)
- and under =
-   | Unone
-   | Ulinkuri of string
-   | Utext of facename
-   | Uannotation of (opaque * slinkindex)
- and slinkindex = int
- and facename = string
- and launchcommand = string
- and filename = string
- and pageno = int
- and linkno = int
- and destname = string
- and mark =
-   | Mark_page
-   | Mark_block
-   | Mark_line
-   | Mark_word
- and link =
-   | Lnotfound
-   | Lfound of int
- and linkdir =
-   | LDfirst
-   | LDlast
-   | LDfirstvisible of (int * int * int)
-   | LDleft of int
-   | LDright of int
-   | LDdown of int
-   | LDup of int
- and pagewithlinks =
-   | Pwlnotfound
-   | Pwl of int
- and scrollb = int
- and anchor = pageno * top * dtop
- and rect = float * float * float * float * float * float * float * float
- and infochange = | Memused | Docinfo | Pdim
+include Confstruct;;
+
+type initparams    =
+  (angle * fitmodel * trimparams * texcount * sliceheight * memsize
+   * colorspace * fontpath * trimcachepath * haspbo)
+and angle          = int
+and opaque         = Opaque.t
+and rectcolor      = rgba
+and pixmapsize     = int
+and gen            = int
+and top            = float
+and dtop           = float
+and fontpath       = string
+and trimcachepath  = string
+and aalevel        = int
+and trimmargins    = bool
+and trimparams     = (trimmargins * irect)
+and haspbo         = bool
+and usefontconfig  = bool
+and usedoccss      = bool
+and uri            = string
+and caption        = string
+and tilex          = int
+and tiley          = int
+and tileparams     = (x * y * width * height * tilex * tiley)
+and under =
+  | Unone
+  | Ulinkuri of string
+  | Utext of facename
+  | Uannotation of (opaque * slinkindex)
+and slinkindex = int
+and facename = string
+and launchcommand = string
+and filename = string
+and linkno = int
+and destname = string
+and link =
+  | Lnotfound
+  | Lfound of int
+and linkdir =
+  | LDfirst
+  | LDlast
+  | LDfirstvisible of (int * int * int)
+  | LDleft of int
+  | LDright of int
+  | LDdown of int
+  | LDup of int
+and pagewithlinks =
+  | Pwlnotfound
+  | Pwl of int
+and scrollb = int
+and anchor = pageno * top * dtop
+and rect = float * float * float * float * float * float * float * float
+and infochange = | Memused | Docinfo | Pdim
 ;;
 
 class type uioh =
@@ -193,80 +156,7 @@ module FMTE = TextEnumMake (struct
                              let names = [|"width"; "proportional"; "page"|];;
                            end);;
 
-type conf =
-  { mutable scrollbw       : int
-  ; mutable scrollh        : int
-  ; mutable scrollb        : scrollb
-  ; mutable icase          : bool
-  ; mutable preload        : bool
-  ; mutable pagebias       : int
-  ; mutable verbose        : bool
-  ; mutable debug          : bool
-  ; mutable scrollstep     : int
-  ; mutable hscrollstep    : int
-  ; mutable maxhfit        : bool
-  ; mutable crophack       : bool
-  ; mutable autoscrollstep : int
-  ; mutable hlinks         : bool
-  ; mutable underinfo      : bool
-  ; mutable interpagespace : interpagespace
-  ; mutable zoom           : float
-  ; mutable presentation   : bool
-  ; mutable angle          : angle
-  ; mutable cwinw          : int
-  ; mutable cwinh          : int
-  ; mutable savebmarks     : bool
-  ; mutable fitmodel       : fitmodel
-  ; mutable trimmargins    : trimmargins
-  ; mutable trimfuzz       : irect
-  ; mutable memlimit       : memsize
-  ; mutable texcount       : texcount
-  ; mutable sliceheight    : sliceheight
-  ; mutable thumbw         : width
-  ; mutable bgcolor        : rgb
-  ; mutable sbarcolor      : rgba
-  ; mutable sbarhndlcolor  : rgba
-  ; mutable bedefault      : bool
-  ; mutable tilew          : int
-  ; mutable tileh          : int
-  ; mutable mustoresize    : memsize
-  ; mutable checkers       : bool
-  ; mutable aalevel        : int
-  ; mutable urilauncher    : string
-  ; mutable pathlauncher   : string
-  ; mutable colorspace     : colorspace
-  ; mutable invert         : bool
-  ; mutable colorscale     : float
-  ; mutable columns        : columns
-  ; mutable beyecolumns    : columncount option
-  ; mutable selcmd         : string
-  ; mutable paxcmd         : string
-  ; mutable passcmd        : string
-  ; mutable savecmd        : string
-  ; mutable updatecurs     : bool
-  ; mutable keyhashes      : (string * keyhash) list
-  ; mutable hfsize         : int
-  ; mutable pgscale        : float
-  ; mutable usepbo         : bool
-  ; mutable wheelbypage    : bool
-  ; mutable stcmd          : string
-  ; mutable riani          : bool
-  ; mutable pax            : float option
-  ; mutable paxmark        : mark
-  ; mutable leftscroll     : bool
-  ; mutable title          : string
-  ; mutable lastvisit      : float
-  ; mutable annotinline    : bool
-  ; mutable coarseprespos  : bool
-  ; mutable css            : css
-  ; mutable usedoccss      : usedoccss
-  ; mutable key            : string
-  }
- and columns =
-   | Csingle of singlecolumn
-   | Cmulti of multicolumns
-   | Csplit of splitcolumns
- and outlinekind =
+type outlinekind =
    | Onone
    | Oanchor of anchor
    | Ouri of uri
@@ -276,8 +166,6 @@ type conf =
    | Ohistory of (filename * conf * outline list * x * anchor * filename)
  and outline = (caption * outlinelevel * outlinekind)
  and outlinelevel = int
- and rgb = (float * float * float)
- and rgba = (float * float * float * float)
 ;;
 
 type page =
@@ -455,96 +343,6 @@ let platform_to_string = function
   | Pbsd          -> "BSD"
 ;;
 
-let defconf =
-  { scrollbw       = 7
-  ; scrollh        = 12
-  ; scrollb        = scrollbhv lor scrollbvv
-  ; icase          = true
-  ; preload        = true
-  ; pagebias       = 0
-  ; verbose        = false
-  ; debug          = false
-  ; scrollstep     = 24
-  ; hscrollstep    = 24
-  ; maxhfit        = true
-  ; crophack       = false
-  ; autoscrollstep = 2
-  ; hlinks         = false
-  ; underinfo      = false
-  ; interpagespace = 2
-  ; zoom           = 1.0
-  ; presentation   = false
-  ; angle          = 0
-  ; cwinw          = 1200
-  ; cwinh          = 1000
-  ; savebmarks     = true
-  ; fitmodel       = FitProportional
-  ; trimmargins    = false
-  ; trimfuzz       = (0,0,0,0)
-  ; memlimit       = 32 lsl 20
-  ; texcount       = 256
-  ; sliceheight    = 24
-  ; thumbw         = 76
-  ; bgcolor        = (0.5, 0.5, 0.5)
-  ; sbarcolor      = (0.64, 0.64, 0.64, 0.7)
-  ; sbarhndlcolor  = (0.0, 0.0, 0.0, 0.7)
-  ; bedefault      = false
-  ; tilew          = 2048
-  ; tileh          = 2048
-  ; mustoresize    = 256 lsl 20
-  ; checkers       = true
-  ; aalevel        = 8
-  ; urilauncher    =
-      (match platform with
-       | Plinux | Psun | Pbsd -> "xdg-open \"%s\""
-       | Posx -> "open \"%s\""
-       | Punknown -> "echo %s")
-  ; pathlauncher   = "lp \"%s\""
-  ; selcmd         =
-      (match platform with
-       | Plinux | Pbsd | Psun -> "LC_CTYPE=UTF-8 xclip -i"
-       | Posx -> "LC_CTYPE=UTF-8 pbcopy"
-       | Punknown -> "cat")
-  ; paxcmd         = "cat"
-  ; passcmd        = E.s
-  ; savecmd        = E.s
-  ; colorspace     = Rgb
-  ; invert         = false
-  ; colorscale     = 1.0
-  ; columns        = Csingle E.a
-  ; beyecolumns    = None
-  ; updatecurs     = true
-  ; hfsize         = 12 * Wsi.fontsizefactor ()
-  ; pgscale        = 1.0
-  ; usepbo         = false
-  ; wheelbypage    = false
-  ; stcmd          = "echo SyncTex"
-  ; riani          = false
-  ; pax            = None
-  ; paxmark        = Mark_word
-  ; leftscroll     = false
-  ; title          = E.s
-  ; lastvisit      = 0.0
-  ; annotinline    = true
-  ; coarseprespos  = false
-  ; css            = E.s
-  ; usedoccss      = true
-  ; key            = E.s
-  ; keyhashes      =
-      let mk n = (n, Hashtbl.create 1) in
-      [ mk "global"
-      ; mk "info"
-      ; mk "help"
-      ; mk "outline"
-      ; mk "listview"
-      ; mk "birdseye"
-      ; mk "textentry"
-      ; mk "links"
-      ; mk "view"
-      ]
-  }
-;;
-
 let conf = { defconf with angle = defconf.angle };;
 
 let cbnew n v =
@@ -657,8 +455,6 @@ let state =
   ; slideshow     = 0
   }
 ;;
-
-let copykeyhashes c = List.map (fun (k, v) -> k, Hashtbl.copy v) c.keyhashes;;
 
 let calcips h =
   let d = state.winh - h in
@@ -1079,76 +875,6 @@ let map_of attrs =
     | [] -> ls, rs
   in
   fold E.s E.s attrs
-;;
-
-let setconf dst src =
-  dst.scrollbw       <- src.scrollbw;
-  dst.scrollh        <- src.scrollh;
-  dst.icase          <- src.icase;
-  dst.preload        <- src.preload;
-  dst.pagebias       <- src.pagebias;
-  dst.verbose        <- src.verbose;
-  dst.scrollstep     <- src.scrollstep;
-  dst.maxhfit        <- src.maxhfit;
-  dst.crophack       <- src.crophack;
-  dst.autoscrollstep <- src.autoscrollstep;
-  dst.hlinks         <- src.hlinks;
-  dst.underinfo      <- src.underinfo;
-  dst.interpagespace <- src.interpagespace;
-  dst.zoom           <- src.zoom;
-  dst.presentation   <- src.presentation;
-  dst.angle          <- src.angle;
-  dst.cwinw          <- src.cwinw;
-  dst.cwinh          <- src.cwinh;
-  dst.savebmarks     <- src.savebmarks;
-  dst.memlimit       <- src.memlimit;
-  dst.fitmodel       <- src.fitmodel;
-  dst.texcount       <- src.texcount;
-  dst.sliceheight    <- src.sliceheight;
-  dst.thumbw         <- src.thumbw;
-  dst.bgcolor        <- src.bgcolor;
-  dst.tilew          <- src.tilew;
-  dst.tileh          <- src.tileh;
-  dst.mustoresize    <- src.mustoresize;
-  dst.checkers       <- src.checkers;
-  dst.aalevel        <- src.aalevel;
-  dst.trimmargins    <- src.trimmargins;
-  dst.trimfuzz       <- src.trimfuzz;
-  dst.urilauncher    <- src.urilauncher;
-  dst.colorspace     <- src.colorspace;
-  dst.invert         <- src.invert;
-  dst.colorscale     <- src.colorscale;
-  dst.columns        <- src.columns;
-  dst.beyecolumns    <- src.beyecolumns;
-  dst.selcmd         <- src.selcmd;
-  dst.updatecurs     <- src.updatecurs;
-  dst.pathlauncher   <- src.pathlauncher;
-  dst.keyhashes      <- copykeyhashes src;
-  dst.hfsize         <- src.hfsize;
-  dst.hscrollstep    <- src.hscrollstep;
-  dst.pgscale        <- src.pgscale;
-  dst.usepbo         <- src.usepbo;
-  dst.wheelbypage    <- src.wheelbypage;
-  dst.stcmd          <- src.stcmd;
-  dst.paxcmd         <- src.paxcmd;
-  dst.passcmd        <- src.passcmd;
-  dst.savecmd        <- src.savecmd;
-  dst.scrollb        <- src.scrollb;
-  dst.riani          <- src.riani;
-  dst.paxmark        <- src.paxmark;
-  dst.leftscroll     <- src.leftscroll;
-  dst.title          <- src.title;
-  dst.annotinline    <- src.annotinline;
-  dst.coarseprespos  <- src.coarseprespos;
-  dst.css            <- src.css;
-  dst.usedoccss      <- src.usedoccss;
-  dst.sbarcolor      <- src.sbarcolor;
-  dst.sbarhndlcolor  <- src.sbarhndlcolor;
-  dst.key            <- src.key;
-  dst.pax            <-
-    if src.pax = None
-    then None
-    else Some 0.0;
 ;;
 
 let findkeyhash c name =
@@ -1836,7 +1562,7 @@ let save1 bb leavebirdseye x h dc =
                        with _ -> E.s in
              { conf with autoscrollstep; key }
            )
-           (if conf.savebmarks then state.bookmarks else [])
+           state.bookmarks
            (now ())
            state.origin
   );

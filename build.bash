@@ -124,14 +124,17 @@ bocaml1() {
     local cmd="ocamlc -depend -bytecode -one-line $incs $s"
     local keycmd="digest $o $s"
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
-        :>"$o.depl"
         eval "$cmd" | {
             read _ _ depl
+            :>"$o.depl"
             for d in $depl; do
                 local D=${d#$srcd/}
                 test "$O" = "$D" || {
                     bocaml "$D" $((n+1))
-                    test $d = "$outd/help.cmo" && dd=$d || dd=$outd/${d#$srcd/}
+                    case $d in
+                        $outd/*) dd=$d;;
+                        *) dd=$outd/${d#$srcd/};;
+                    esac
                     printf "$dd " >>"$o.depl"
                 }
             done
@@ -162,13 +165,20 @@ bocaml() (
     local n="$2"
     local wocmi="${o%.cmi}"
     local s
-    test ${wocmi%help.cmo} !=  $wocmi && {
-        s=$outd/help.ml
-        o=$outd/help.cmo
-    } || {
-        test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
-        o=$outd/$o
-    }
+    case ${wocmi#$outd/} in
+        help.cmo)
+            s=$outd/help.ml
+            o=$outd/help.cmo
+            ;;
+        confstruct.cmo)
+            s=$outd/confstruct.ml
+            o=$outd/confstruct.cmo
+            ;;
+        *)
+            test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
+            o=$outd/$o
+            ;;
+    esac
     bocaml1 $n "$s" "$o"
     case $wocmi in
         wsi) s="$srcd/$wsi/wsi.ml";;
@@ -233,6 +243,12 @@ isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
+cmd="bash $srcd/genconfstr.bash >$outd/confstruct.ml"
+keycmd="digest $srcd/genconfstr.bash $outd/confstruct.ml"
+isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
+    eval "$cmd || die genconfstr.bash failed"
+    echo "k='$cmd$(eval $keycmd)'" > "$outd/confstruct.ml.past"
+} && vecho "fresh $outd/confstruct.ml"
 
 shift 1
 for target; do
