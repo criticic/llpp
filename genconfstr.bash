@@ -95,7 +95,6 @@ g memlimit memsize "32 lsl 20"
 g texcount texcount 256
 g sliceheight sliceheight 24
 g thumbw width 76
-b jumpback true
 g bgcolor rgb "(0.5, 0.5, 0.5)"
 g sbarcolor rgba "(0.64, 0.64, 0.64, 0.7)"
 g sbarhndlcolor rgba "(0.0, 0.0, 0.0, 0.7)"
