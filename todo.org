@@ -69,6 +69,7 @@
   Out of tree
   Shallow clone
   Shallow submodules
-* TODO Generate config structure (and few associated utility functions)
+* DONE Generate config structure (and few associated utility functions)
+  CLOSED: [2018-05-17 Thu 11:35]
   from a template/script of some sort
 
