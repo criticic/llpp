@@ -317,12 +317,12 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
 
 if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"
-    keycmd="digest $out $srcd/misc/Info.plist.sh"
+    keycmd="digest $out $srcd/Info.plist.sh"
     isfresh $out "$(eval $keycmd)" || {
         shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         d=$(dirname $out)
         mkdir -p "$d"
-        . $srcd/misc/Info.plist.sh >"$out"
+        . $srcd/Info.plist.sh >"$out"
         echo "k=$(eval $keycmd)" >"$out.past"
     } && vecho "fresh plist"
 
