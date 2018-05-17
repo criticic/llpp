@@ -47,7 +47,7 @@ EOF
 init=
 assi=
 g() {
-    printf "mutable $1:$2;\n"
+    printf "mutable $1:$2;"
     init="$init $1=$3;"
     assi="$assi dst.$1 <- src.$1;"
 }
