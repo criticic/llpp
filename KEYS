@@ -176,7 +176,7 @@ selection command otherwise
     1 = path to the document
     2 = zero based page number
     3 = X coordinate within the page
-    4 = Y ..........................
+    4 = Y …
 
 [5] document will also be reloaded upon reception of the HUP signal
 
