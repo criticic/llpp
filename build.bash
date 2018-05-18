@@ -71,7 +71,7 @@ cflags() {
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
             f="$f -D_GNU_SOURCE"
             $darwin && echo "$f -D__COCOA__" || echo $f;;
-        */keysym2ucs.o) echo "-DKeySym=long";;
+        */keysym2ucs.o) echo "-include inttypes.h -DKeySym=uint32_t";;
         */ml_gl.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
     esac
