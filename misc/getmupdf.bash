@@ -20,4 +20,4 @@ fi
 printf "mupdf current version is ${MUPDF_VERSION} "
 echo "switching to ${MUPDF_DESIRED_VERSION}"
 git checkout ${MUPDF_DESIRED_VERSION}
-git submodule update --recursive
+git submodule update --init --recursive
