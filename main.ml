@@ -1857,24 +1857,6 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
 let optentry mode _ key =
   let btos b = if b then "on" else "off" in
   match [@warning "-4"] key with
-  | Keys.Ascii 's' ->
-     let ondone s =
-       try conf.scrollstep <- int_of_string s with exn ->
-         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-     in
-     TEswitch ("scroll step: ", E.s, None, intentry, ondone, true)
-
-  | Keys.Ascii 'A' ->
-     let ondone s =
-       try
-         conf.autoscrollstep <- boundastep state.winh (int_of_string s);
-         if state.autoscroll <> None
-         then state.autoscroll <- Some conf.autoscrollstep
-       with exn ->
-         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-     in
-     TEswitch ("auto scroll step: ", E.s, None, intentry, ondone, true)
-
   | Keys.Ascii 'C' ->
      let ondone s =
        try
@@ -1895,40 +1877,9 @@ let optentry mode _ key =
      in
      TEswitch ("zoom: ", E.s, None, intentry, ondone, true)
 
-  | Keys.Ascii 't' ->
-     let ondone s =
-       try
-         conf.thumbw <- bound (int_of_string s) 2 4096;
-         state.text <-
-           Printf.sprintf "thumbnail width is set to %d" conf.thumbw;
-         begin match mode with
-         | Birdseye beye ->
-            leavebirdseye beye false;
-            enterbirdseye ();
-         | Textentry _ | View | LinkNav _ -> ();
-         end
-       with exn ->
-         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-     in
-     TEswitch ("thumbnail width: ", E.s, None, intentry, ondone, true)
-
-  | Keys.Ascii 'R' ->
-     let ondone s =
-       match int_of_string s with
-       | angle -> reqlayout angle conf.fitmodel
-       | exception exn ->
-          state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-     in
-     TEswitch ("rotation: ", E.s, None, intentry, ondone, true)
-
   | Keys.Ascii 'i' ->
      conf.icase <- not conf.icase;
      TEdone ("case insensitive search " ^ (btos conf.icase))
-
-  | Keys.Ascii 'p' ->
-     conf.preload <- not conf.preload;
-     gotoxy state.x state.y;
-     TEdone ("preload " ^ (btos conf.preload))
 
   | Keys.Ascii 'v' ->
      conf.verbose <- not conf.verbose;
@@ -1938,33 +1889,9 @@ let optentry mode _ key =
      conf.debug <- not conf.debug;
      TEdone ("debug " ^ (btos conf.debug))
 
-  | Keys.Ascii 'h' ->
-     conf.maxhfit <- not conf.maxhfit;
-     state.maxy <- calcheight ();
-     TEdone ("maxhfit " ^ (btos conf.maxhfit))
-
   | Keys.Ascii 'f' ->
      conf.underinfo <- not conf.underinfo;
      TEdone ("underinfo " ^ btos conf.underinfo)
-
-  | Keys.Ascii 'S' ->
-     let ondone s =
-       try
-         let pageno, py =
-           match state.layout with
-           | [] -> 0, 0
-           | l :: _ ->
-              l.pageno, l.pagey
-         in
-         conf.interpagespace <- int_of_string s;
-         docolumns conf.columns;
-         state.maxy <- calcheight ();
-         let y = getpagey pageno in
-         gotoxy state.x (y + py)
-       with exn ->
-         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
-     in
-     TEswitch ("vertical margin: ", E.s, None, intentry, ondone, true)
 
   | Keys.Ascii 'l' ->
      let fm =
@@ -1974,10 +1901,6 @@ let optentry mode _ key =
      in
      reqlayout conf.angle fm;
      TEdone ("proportional display " ^ btos (fm == FitProportional))
-
-  | Keys.Ascii 'T' ->
-     settrim (not conf.trimmargins) conf.trimfuzz;
-     TEdone ("trim margins " ^ btos conf.trimmargins)
 
   | Keys.Ascii 'I' ->
      conf.invert <- not conf.invert;
@@ -1998,8 +1921,7 @@ let optentry mode _ key =
      TEdone ("PAX " ^ btos (conf.pax != None))
 
   | (Keys.Ascii c) ->
-     state.text <- Printf.sprintf "bad option %d `%c'"
-                     (Char.code c) c;
+     state.text <- Printf.sprintf "bad option %d `%c'" (Char.code c) c;
      TEstop
 
   | _ ->
