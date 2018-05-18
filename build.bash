@@ -43,10 +43,9 @@ mkdir -p $outd/lablGL
 :>$outd/ordered
 
 isfresh() {
-    test -e "$1" && test -r "$1.past" && {
-            . "$1.past"
-            test "$k" = "$2"
-        }
+    test -e "$1" && {
+        . 2>/dev/null "$1.past" && test "$k" = "$2"
+    }
 }
 
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
