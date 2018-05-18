@@ -42,11 +42,7 @@ mkdir -p $outd/$wsi
 mkdir -p $outd/lablGL
 :>$outd/ordered
 
-isfresh() {
-    test -e "$1" && {
-        . 2>/dev/null "$1.past" && test "$k" = "$2"
-    }
-}
+isfresh() { . 2>/dev/null "$1.past" && test "$k" = "$2"; }
 
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
