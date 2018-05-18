@@ -12,24 +12,26 @@ llppac [-c css] [-m type] [-t type] [-f] (path|file)
 
 == DESCRIPTION
 
-*llppac* is a wrapper to *llpp*. It converts different documents to PDF files
-which are then opened with llpp(1).
+*llppac* is a wrapper to *llpp*. It converts different documents to
+PDF files which are then opened with llpp(1).
 
 == OPTIONS
 
 -c css::
-Use css as a CSS file for the html conversion using prince (http://www.princexml.com/).
+Use css as a CSS file for the html conversion using prince
+(http://www.princexml.com/).
 
 -f::
-Force downloading of remote documents, even though it might be cached.
+Force downloading of remote documents, even though it might be cached
 
 -m type::
 Set the mime type manually. This overwrites the automatic detection
-using file(1).
+using file(1)
 
 -t type::
-Set the type of the the document, totally skipping the mime type check.
-The type is llppac internal, possible values include, but are not limited to _ps_, _texi_, _djvu_, _html_, ...
+Set the type of the the document, totally skipping the mime type
+check.  The type is llppac internal, possible values include, but are
+not limited to _ps_, _texi_, _djvu_, _html_, ...
 
 
 == SEE ALSO

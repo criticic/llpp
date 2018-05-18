@@ -18,49 +18,49 @@ of less(1), but can be configured by the user.
 == OPTIONS
 
 -c path::
-Set path to the configuration file.
+Set path to the configuration file
 
 -css path::
-Set path to the style sheet to use with EPUB/HTML.
+Set path to the style sheet to use with EPUB/HTML
 
 -dest named-dest::
-Set named destination.
+Set named destination
 
 -f path::
-Set path to the user interface font.
+Set path to the user interface font
 
 -gc::
-Collect config garbage.
+Collect config garbage
 
 -help, --help::
-Display this list of options.
+Display this list of options
 
 -last::
-Open last document.
+Open last document
 
 -no-title::
-ignore document title.
+ignore document title
 
 -origin origin::
-<undocumented>.
+<undocumented>
 
 -p password::
-Set password.
+Set password
 
 -page page-number::
-Jump to page.
+Jump to page
 
 -remote path::
-Set path to the source of remote commands.
+Set path to the source of remote commands
 
 -tcf path::
-Set path to the trim cache file.
+Set path to the trim cache file
 
 -layout-height height::
-Set page height for reflowable documents (-1 == default, 0 == unlimited).
+Set page height for reflowable documents (-1 == default, 0 == unlimited)
 
 -v::
-Print version and exit.
+Print version and exit
 
 == FILES
 
