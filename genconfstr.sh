@@ -73,7 +73,6 @@ i scrollstep 24
 i hscrollstep 24
 b maxhfit true
 i autoscrollstep 2
-g maxwait "float option" None
 b hlinks false
 b underinfo false
 i interpagespace 2
@@ -94,7 +93,7 @@ g sbarcolor rgba "(0.64, 0.64, 0.64, 0.7)"
 g sbarhndlcolor rgba "(0.0, 0.0, 0.0, 0.7)"
 b bedefault false
 i tilew 2048
-i tileh 2408
+i tileh 2048
 g mustoresize memsize "256 lsl 20"
 b checkers true
 i aalevel 8
