@@ -57,12 +57,8 @@ let makecheckers () =
   id;
 ;;
 
-module G =
-  struct
-    let redisplay = ref false;;
-    let postRedisplay who =
-      Utils.vlog "redisplay for [%S]" who;
-      redisplay := true;
-    ;;
-  end
+let redisplay = ref false;;
+let postRedisplay who =
+  Utils.vlog "redisplay for [%S]" who;
+  redisplay := true;
 ;;

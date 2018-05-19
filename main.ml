@@ -164,7 +164,7 @@ let getunder x y =
          let rect = (x0, y0, x1, y0, x1, y1, x0, y1) in
          let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
          state.rects <- [l.pageno, color, rect];
-         G.postRedisplay "getunder";
+         postRedisplay "getunder";
       | _ -> ()
     );
     let under = whatsunder opaque px py in
@@ -184,7 +184,7 @@ let unproject x y =
 
 let showtext c s =
   state.text <- Printf.sprintf "%c%s" c s;
-  G.postRedisplay "showtext";
+  postRedisplay "showtext";
 ;;
 
 let impmsg fmt =
@@ -196,7 +196,7 @@ let pipesel opaque cmd =
   then pipef ~closew:false "pipesel"
          (fun w ->
            copysel w opaque;
-           G.postRedisplay "pipesel"
+           postRedisplay "pipesel"
          ) cmd
 ;;
 
@@ -212,7 +212,7 @@ let paxunder x y =
     )
     else None
   in
-  G.postRedisplay "paxunder";
+  postRedisplay "paxunder";
   if conf.paxmark = Mark_page
   then
     List.iter (fun l ->
@@ -701,7 +701,7 @@ let gotoxy x y =
   let y = bound y 0 state.maxy in
   let y, layout =
     let layout = layout x y state.winw state.winh in
-    G.postRedisplay "gotoxy ready";
+    postRedisplay "gotoxy ready";
     y, layout
   in
   state.x <- x;
@@ -836,7 +836,7 @@ let gotopage1 n top =
 ;;
 
 let invalidate s f =
-  G.redisplay := false;
+  Glutils.redisplay := false;
   state.layout <- [];
   state.pdims <- [];
   state.rects <- [];
@@ -1255,7 +1255,7 @@ let act cmds =
 
   | "clearrects", "" ->
      state.rects <- state.rects1;
-     G.postRedisplay "clearrects";
+     postRedisplay "clearrects";
 
   | "continue", args ->
      let n = scan args "%u" (fun n -> n) in
@@ -1279,7 +1279,7 @@ let act cmds =
         f ();
         state.geomcmds <- s, List.rev rest;
      end;
-     G.postRedisplay "continue";
+     postRedisplay "continue";
 
   | "msg", args ->
      showtext ' ' args
@@ -1291,7 +1291,7 @@ let act cmds =
   | "emsg", args ->
      Buffer.add_string state.errmsgs args;
      state.newerrmsgs <- true;
-     G.postRedisplay "error message"
+     postRedisplay "error message"
 
   | "progress", args ->
      let progress, text =
@@ -1301,7 +1301,7 @@ let act cmds =
      in
      state.text <- text;
      state.progress <- progress;
-     G.postRedisplay "progress"
+     postRedisplay "progress"
 
   | "firstmatch", args ->
      let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
@@ -1397,7 +1397,7 @@ let act cmds =
 
           if visible && layoutready state.layout
           then (
-            G.postRedisplay "page";
+            postRedisplay "page";
           )
         )
 
@@ -1445,7 +1445,7 @@ let act cmds =
                && conf.angle = angle
                && tilevisible state.layout l.pageno x y
                && layoutready state.layout
-          then G.postRedisplay "tile nothrottle";
+          then postRedisplay "tile nothrottle";
         )
 
      | Idle | Loading _ | Outlining _ ->
@@ -1827,7 +1827,7 @@ let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
     | [] -> gotopage1 pageno 0
     | l :: _ when l.pageno = pageno ->
        if l.pagedispy >= 0 && l.pagey = 0
-       then G.postRedisplay "upbirdseye"
+       then postRedisplay "upbirdseye"
        else gotopage1 pageno 0
     | _ :: rest -> loop rest
   in
@@ -1847,7 +1847,7 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
     | l :: _ when l.pageno = pageno ->
        if l.pagevh != l.pageh
        then gotoxy state.x (clamp (l.pageh - l.pagevh + conf.interpagespace))
-       else G.postRedisplay "downbirdseye"
+       else postRedisplay "downbirdseye"
     | _ :: rest -> loop rest
   in
   loop state.layout;
@@ -1931,7 +1931,7 @@ let optentry mode _ key =
 let adderrmsg src msg =
   Buffer.add_string state.errmsgs msg;
   state.newerrmsgs <- true;
-  G.postRedisplay src
+  postRedisplay src
 ;;
 
 let adderrfmt src fmt =
@@ -1977,7 +1977,7 @@ class outlinelistview ~zebra ~source =
         let active = m_active + incr in
         let active = bound active 0 (source#getitemcount - 1) in
         let first = calcfirst m_first active in
-        G.postRedisplay "outline navigate";
+        postRedisplay "outline navigate";
         coe {< m_active = active; m_first = first >}
       in
       let navscroll first =
@@ -1991,7 +1991,7 @@ class outlinelistview ~zebra ~source =
             else first + maxrows
           )
         in
-        G.postRedisplay "outline navscroll";
+        postRedisplay "outline navscroll";
         coe {< m_first = first; m_active = active >}
       in
       let ctrl = Wsi.withctrl mask in
@@ -2009,29 +2009,29 @@ class outlinelistview ~zebra ~source =
            )
          in
          settext (not m_autonarrow) text;
-         G.postRedisplay "toggle auto narrowing";
+         postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
 
       | Ascii '/' when emptystr m_qsearch && not m_autonarrow ->
          settext true E.s;
-         G.postRedisplay "toggle auto narrowing";
+         postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = true >}
 
       | Ascii 'n' when ctrl ->
          source#narrow m_qsearch;
          if not m_autonarrow
          then source#add_narrow_pattern m_qsearch;
-         G.postRedisplay "outline ctrl-n";
+         postRedisplay "outline ctrl-n";
          coe {< m_first = 0; m_active = 0 >}
 
       | Ascii 'S' when ctrl ->
          let active = source#calcactive (getanchor ()) in
          let first = firstof m_first active in
-         G.postRedisplay "outline ctrl-s";
+         postRedisplay "outline ctrl-s";
          coe {< m_first = first; m_active = active >}
 
       | Ascii 'u' when ctrl ->
-         G.postRedisplay "outline ctrl-u";
+         postRedisplay "outline ctrl-u";
          if m_autonarrow && nonemptystr m_qsearch
          then (
            ignore (source#renarrow);
@@ -2050,13 +2050,13 @@ class outlinelistview ~zebra ~source =
 
       | Ascii 'l' when ctrl ->
          let first = max 0 (m_active - (fstate.maxrows / 2)) in
-         G.postRedisplay "outline ctrl-l";
+         postRedisplay "outline ctrl-l";
          coe {< m_first = first >}
 
       | Ascii '\t' when m_autonarrow ->
          if nonemptystr m_qsearch
          then (
-           G.postRedisplay "outline list view tab";
+           postRedisplay "outline list view tab";
            source#add_narrow_pattern m_qsearch;
            settext true E.s;
            coe {< m_qsearch = E.s >}
@@ -2075,7 +2075,7 @@ class outlinelistview ~zebra ~source =
 
       | (Ascii _ | Code _) when m_autonarrow ->
          let pattern = m_qsearch ^ toutf8 key in
-         G.postRedisplay "outlinelistview autonarrow add";
+         postRedisplay "outlinelistview autonarrow add";
          source#narrow pattern;
          settext true pattern;
          coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
@@ -2085,7 +2085,7 @@ class outlinelistview ~zebra ~source =
          then coe self
          else
            let pattern = withoutlastutf8 m_qsearch in
-           G.postRedisplay "outlinelistview autonarrow backspace";
+           postRedisplay "outlinelistview autonarrow backspace";
            ignore (source#renarrow);
            source#narrow pattern;
            settext true pattern;
@@ -2106,7 +2106,7 @@ class outlinelistview ~zebra ~source =
          let o =
            if ctrl
            then (
-             G.postRedisplay "outline ctrl right";
+             postRedisplay "outline ctrl right";
              {< m_pan = m_pan + 1 >}
            )
            else self#updownlevel 1
@@ -2117,7 +2117,7 @@ class outlinelistview ~zebra ~source =
          let o =
            if ctrl
            then (
-             G.postRedisplay "outline ctrl left";
+             postRedisplay "outline ctrl left";
              {< m_pan = m_pan - 1 >}
            )
            else self#updownlevel ~-1
@@ -2125,13 +2125,13 @@ class outlinelistview ~zebra ~source =
          coe o
 
       | Home ->
-         G.postRedisplay "outline home";
+         postRedisplay "outline home";
          coe {< m_first = 0; m_active = 0 >}
 
       | End ->
          let active = source#getitemcount - 1 in
          let first = max 0 (active - fstate.maxrows) in
-         G.postRedisplay "outline end";
+         postRedisplay "outline end";
          coe {< m_active = active; m_first = first >}
 
       | Delete|Escape|Insert|Enter|Ascii _|Code _|Ctrl _|Backspace|Fn _ ->
@@ -2837,9 +2837,9 @@ let enterinfomode =
                 if m_prevmemused != state.memused
                 then (
                   m_prevmemused <- state.memused;
-                  G.postRedisplay "memusedchanged";
+                  postRedisplay "memusedchanged";
                 )
-             | Pdim -> G.postRedisplay "pdimchanged"
+             | Pdim -> postRedisplay "pdimchanged"
              | Docinfo -> fillsrc prevmode prevuioh
 
            method! key key mask =
@@ -2851,7 +2851,7 @@ let enterinfomode =
                | _ -> super#key key mask
              else super#key key mask
          end);
-  G.postRedisplay "info";
+  postRedisplay "info";
 ;;
 
 let enterhelpmode =
@@ -2892,7 +2892,7 @@ let enterhelpmode =
      state.uioh <- coe (new listview
                           ~zebra:false ~helpmode:true
                           ~source ~trusted:true ~modehash);
-     G.postRedisplay "help";
+     postRedisplay "help";
 ;;
 
 let entermsgsmode =
@@ -2946,7 +2946,7 @@ let entermsgsmode =
                then msgsource#reset;
                super#display
            end);
-     G.postRedisplay "msgs";
+     postRedisplay "msgs";
 ;;
 
 let getusertext s =
@@ -3088,7 +3088,7 @@ let enterannotmode opaque slinkindex =
                       inherit listview ~zebra:false ~helpmode:false
                                 ~source ~trusted:false ~modehash
                     end);
-  G.postRedisplay "enterannotmode";
+  postRedisplay "enterannotmode";
 ;;
 
 let gotoremote spec =
@@ -3347,7 +3347,7 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
         state.text <- source#greetmsg;
         state.uioh <-
           coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
-        G.postRedisplay "enter selector";
+        postRedisplay "enter selector";
       )
     )
   in
@@ -3513,7 +3513,7 @@ let viewkeyboard key mask =
     state.mode <- Textentry (te, fun _ -> state.mode <- mode);
     state.text <- E.s;
     enttext ();
-    G.postRedisplay "view:enttext"
+    postRedisplay "view:enttext"
   in
   let ctrl = Wsi.withctrl mask in
   let open Keys in
@@ -3542,7 +3542,7 @@ let viewkeyboard key mask =
      begin match state.mstate with
      | Mzoomrect _ ->
         resetmstate ();
-        G.postRedisplay "kill rect";
+        postRedisplay "kill rect";
      | Msel _
      | Mpan _
      | Mscrolly | Mscrollx
@@ -3555,7 +3555,7 @@ let viewkeyboard key mask =
            | Ltgendir _ | Ltnotready _ -> state.lnava <- None
            end;
            state.mode <- View;
-           G.postRedisplay "esc leave linknav"
+           postRedisplay "esc leave linknav"
         | Birdseye _ | Textentry _ | View ->
            match state.ranchors with
            | [] -> raise Quit
@@ -3584,7 +3584,7 @@ let viewkeyboard key mask =
      Hashtbl.iter (fun _ opaque ->
          clearmark opaque;
          Hashtbl.clear state.prects) state.pagemap;
-     G.postRedisplay "dehighlight";
+     postRedisplay "dehighlight";
 
   | Ascii (('/' | '?') as c) ->
      let ondone isforw s =
@@ -3687,7 +3687,7 @@ let viewkeyboard key mask =
 
   | Ascii 'b' ->
      conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
-     G.postRedisplay "toggle scrollbar";
+     postRedisplay "toggle scrollbar";
 
   | Ascii 'B' ->
      state.bzoom <- not state.bzoom;
@@ -3697,7 +3697,7 @@ let viewkeyboard key mask =
   | Ascii 'l' ->
      conf.hlinks <- not conf.hlinks;
      state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
-     G.postRedisplay "toggle highlightlinks";
+     postRedisplay "toggle highlightlinks";
 
   | Ascii 'F' ->
      if conf.angle mod 360 = 0
@@ -3712,7 +3712,7 @@ let viewkeyboard key mask =
                state.mode <- mode)
            );
        state.text <- E.s;
-       G.postRedisplay "view:linkent(F)"
+       postRedisplay "view:linkent(F)"
      )
      else impmsg "hint mode does not work under rotation"
 
@@ -3729,7 +3729,7 @@ let viewkeyboard key mask =
              state.mode <- mode)
          );
      state.text <- E.s;
-     G.postRedisplay "view:linkent"
+     postRedisplay "view:linkent"
 
   | Ascii 'a' ->
      begin match state.autoscroll with
@@ -3781,7 +3781,7 @@ let viewkeyboard key mask =
      | [] -> ()
      | l :: _ ->
         Wsi.reshape l.pagew l.pageh;
-        G.postRedisplay "w"
+        postRedisplay "w"
      end
 
   | Ascii '\'' ->
@@ -3826,7 +3826,7 @@ let viewkeyboard key mask =
           state.anchor <- getanchor ();
           Wsi.reshape w (h + conf.interpagespace)
         );
-        G.postRedisplay "z";
+        postRedisplay "z";
 
      | [] -> ()
      end
@@ -3840,7 +3840,7 @@ let viewkeyboard key mask =
   | Ascii ('['|']' as c) ->
      conf.colorscale <-
        bound (conf.colorscale +. (if c = ']' then 0.1 else -0.1)) 0.0 1.0;
-     G.postRedisplay "brightness";
+     postRedisplay "brightness";
 
   | Ascii 'c' when state.mode = View ->
      if Wsi.withalt mask
@@ -3922,7 +3922,7 @@ let viewkeyboard key mask =
        gotoxy (panbound (state.x + dx)) state.y
      else (
        state.text <- E.s;
-       G.postRedisplay "left/right"
+       postRedisplay "left/right"
      )
 
   | Prior ->
@@ -3981,7 +3981,7 @@ let viewkeyboard key mask =
             let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
             state.rects <- (l.pageno, color, rect) :: state.rects;
        ) state.layout;
-     G.postRedisplay "v";
+     postRedisplay "v";
 
   | Ascii '|' ->
      let mode = state.mode in
@@ -4002,7 +4002,7 @@ let viewkeyboard key mask =
      let te =
        "| ", !cmd, Some (onhist state.hists.sel), textentry, ondone, true
      in
-     G.postRedisplay "|";
+     postRedisplay "|";
      state.mode <- Textentry (te, onleave);
 
   | (Ascii _|Fn _|Enter|Left|Right|Code _|Ctrl _) ->
@@ -4024,7 +4024,7 @@ let linknavkeyboard key mask linknav =
        if pv = Keys.Enter
        then
          let under = getlink opaque n in
-         G.postRedisplay "link gotounder";
+         postRedisplay "link gotounder";
          gotounder under;
          state.mode <- View;
        else
@@ -4065,7 +4065,7 @@ let linknavkeyboard key mask linknav =
                  | Lfound m ->
                     showlinktype (getlink opaque m);
                     state.mode <- LinkNav (Ltexact (pageno, m));
-                    G.postRedisplay "linknav jpage";
+                    postRedisplay "linknav jpage";
                  | Lnotfound -> notfound dir
                  end;
               | _ -> notfound dir
@@ -4085,7 +4085,7 @@ let linknavkeyboard key mask linknav =
                 let d = fstate.fontsize + 1 in
                 if y1 - l.pagey > l.pagevh - d
                 then gotopage1 l.pageno (y1 - state.winh + d)
-                else G.postRedisplay "linknav";
+                else postRedisplay "linknav";
               );
               showlinktype (getlink opaque m);
               state.mode <- LinkNav (Ltexact (l.pageno, m));
@@ -4102,7 +4102,7 @@ let linknavkeyboard key mask linknav =
     | Ltgendir _ | Ltnotready _ -> ()
     end;
     state.mode <- View;
-    G.postRedisplay "leave linknav"
+    postRedisplay "leave linknav"
   )
   else
     match linknav with
@@ -4180,7 +4180,7 @@ let birdseyekeyboard key mask
                Birdseye (
                    oconf, leftx, state.pagecount - 1, hooverpageno, anchor
                  );
-             G.postRedisplay "birdseye pagedown";
+             postRedisplay "birdseye pagedown";
            )
            else gotoxy state.x (clamp (incr + conf.interpagespace*2));
 
@@ -4210,7 +4210,7 @@ let birdseyekeyboard key mask
        gotoxy
          state.x
          (max 0 (getpagey pageno - (state.winh - h - conf.interpagespace)))
-     else G.postRedisplay "birdseye end";
+     else postRedisplay "birdseye end";
 
   | Delete|Insert|Ascii _|Code _|Ctrl _|Fn _|Backspace -> viewkeyboard key mask
 ;;
@@ -4271,7 +4271,7 @@ let postdrawpage l linkindexbase =
          List.iter (fun vals -> drawprect opaque x y vals);
        let n = postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize) in
        if n < 0
-       then (G.redisplay := true; 0)
+       then (Glutils.redisplay := true; 0)
        else n
      else 0
   | _ -> 0
@@ -4438,7 +4438,7 @@ let annot inline x y =
                          fun _ -> state.mode <- mode);
        state.text <- E.s;
        enttext ();
-       G.postRedisplay "annot"
+       postRedisplay "annot"
      else
        add @@ getusertext E.s
   | _ -> ()
@@ -4505,7 +4505,7 @@ let viewmulticlick clicks x y mask =
     )
     else None
   in
-  G.postRedisplay "viewmulticlick";
+  postRedisplay "viewmulticlick";
   onppundermouse g x y (fun () -> impmsg "nothing to select") ();
 ;;
 
@@ -4596,7 +4596,7 @@ let viewmouse button down x y mask =
        if Wsi.withshift mask
        then (
          annot conf.annotinline x y;
-         G.postRedisplay "addannot"
+         postRedisplay "addannot"
        )
        else
          let p = (x, y) in
@@ -4610,7 +4610,7 @@ let viewmouse button down x y mask =
           then zoomrect x0 y0 x y
           else (
             resetmstate ();
-            G.postRedisplay "kill accidental zoom rect";
+            postRedisplay "kill accidental zoom rect";
           )
        | Msel _
        | Mpan _
@@ -4659,7 +4659,7 @@ let viewmouse button down x y mask =
           if canselect ()
           then (
             state.mstate <- Msel ((x, y), (x, y));
-            G.postRedisplay "mouse select";
+            postRedisplay "mouse select";
           )
         )
         else (
@@ -4696,7 +4696,7 @@ let viewmouse button down x y mask =
                          pipef ~closew:false "Msel"
                            (fun w ->
                              copysel w opaque;
-                             G.postRedisplay "Msel") cmd
+                             postRedisplay "Msel") cmd
                        in
                        dosel conf.selcmd ();
                        state.roam <- dosel conf.paxcmd;
@@ -4774,7 +4774,7 @@ let uioh = object
 
          | Msel (a, _) ->
             state.mstate <- Msel (a, (x, y));
-            G.postRedisplay "motion select";
+            postRedisplay "motion select";
 
          | Mscrolly ->
             let y = min state.winh (max 0 y) in
@@ -4786,7 +4786,7 @@ let uioh = object
 
          | Mzoomrect (p0, _) ->
             state.mstate <- Mzoomrect (p0, (x, y));
-            G.postRedisplay "motion zoomrect";
+            postRedisplay "motion zoomrect";
       end;
       state.uioh
 
@@ -4798,14 +4798,14 @@ let uioh = object
               if hooverpageno != -1
               then (
                 state.mode <- Birdseye (conf, leftx, pageno, -1, anchor);
-                G.postRedisplay "pmotion birdseye no hoover";
+                postRedisplay "pmotion birdseye no hoover";
               )
            | l :: rest ->
               if y > l.pagedispy && y < l.pagedispy + l.pagevh
                  && x > l.pagedispx && x < l.pagedispx + l.pagevw
               then (
                 state.mode <- Birdseye (conf, leftx, pageno, l.pageno, anchor);
-                G.postRedisplay "pmotion birdseye hoover";
+                postRedisplay "pmotion birdseye hoover";
               )
               else loop rest
          in
@@ -4905,7 +4905,7 @@ let ract cmds =
         let color = (r, g, b, a) in
         if conf.verbose then debugrect rect;
         state.rects <- (pageno, color, rect) :: state.rects;
-        G.postRedisplay s;
+        postRedisplay s;
       )
   in
   match cl with
@@ -4935,7 +4935,7 @@ let ract cmds =
      scan args "%u %f %f %f %f %f %f %f %f"
        (fun pageno r g b alpha x0 y0 x1 y1 ->
          addrect pageno r g b alpha x0 y0 x1 y1;
-         G.postRedisplay "prect"
+         postRedisplay "prect"
        )
   | "pgoto", args ->
      scan args "%u %f %f"
@@ -4974,7 +4974,7 @@ let ract cmds =
      end
   | "clearrects", "" ->
      Hashtbl.clear state.prects;
-     G.postRedisplay "clearrects"
+     postRedisplay "clearrects"
   | _ ->
      adderrfmt "remote command"
        "error processing remote command: %S\n" cmds;
@@ -5115,7 +5115,7 @@ let () =
       method private cleanup =
         state.roam <- noroam;
         Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap
-      method expose = G.postRedisplay "expose"
+      method expose = postRedisplay "expose"
       method visible v =
         let name =
           match v with
@@ -5149,7 +5149,7 @@ let () =
             if m_clicks = 1
             then (
               self#cleanup;
-              G.postRedisplay "cleanup";
+              postRedisplay "cleanup";
               state.uioh <- state.uioh#button b d x y m;
             )
             else state.uioh <- state.uioh#multiclick m_clicks x y m
@@ -5213,7 +5213,7 @@ let () =
       method opendoc path =
         state.mode <- View;
         state.uioh <- uioh;
-        G.postRedisplay "opendoc";
+        postRedisplay "opendoc";
         opendoc path state.password
     end
   in
@@ -5313,9 +5313,9 @@ let () =
       | None -> r
       | Some fd -> fd :: r
     in
-    if !G.redisplay
+    if !redisplay
     then (
-      G.redisplay := false;
+      Glutils.redisplay := false;
       display ();
     );
     let timeout =

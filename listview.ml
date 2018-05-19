@@ -125,7 +125,7 @@ let textentrykeyboard
   let enttext te =
     state.mode <- Textentry (te, onleave);
     enttext ();
-    G.postRedisplay "textentrykeyboard enttext";
+    postRedisplay "textentrykeyboard enttext";
   in
   let histaction cmd =
     match opthist with
@@ -135,7 +135,7 @@ let textentrykeyboard
          Textentry (
              (c, action cmd, opthist, onkey, ondone, cancelonempty), onleave
            );
-       G.postRedisplay "textentry histaction"
+       postRedisplay "textentry histaction"
   in
   let open Keys in
   let kt = Wsi.kc2kt key in
@@ -144,7 +144,7 @@ let textentrykeyboard
      if emptystr text && cancelonempty
      then (
        onleave Cancel;
-       G.postRedisplay "textentrykeyboard after cancel";
+       postRedisplay "textentrykeyboard after cancel";
      )
      else
        let s = withoutlastutf8 text in
@@ -153,7 +153,7 @@ let textentrykeyboard
   | Enter ->
      ondone text;
      onleave Confirm;
-     G.postRedisplay "textentrykeyboard after confirm"
+     postRedisplay "textentrykeyboard after confirm"
 
   | Up   -> histaction HCprev
   | Down -> histaction HCnext
@@ -169,7 +169,7 @@ let textentrykeyboard
        end;
        onleave Cancel;
        state.text <- E.s;
-       G.postRedisplay "textentrykeyboard after cancel2"
+       postRedisplay "textentrykeyboard after cancel2"
      )
      else (
        enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
@@ -182,18 +182,18 @@ let textentrykeyboard
      | TEdone text ->
         ondone text;
         onleave Confirm;
-        G.postRedisplay "textentrykeyboard after confirm2";
+        postRedisplay "textentrykeyboard after confirm2";
 
      | TEcont text ->
         enttext (c, text, opthist, onkey, ondone, cancelonempty);
 
      | TEstop ->
         onleave Cancel;
-        G.postRedisplay "textentrykeyboard after cancel3"
+        postRedisplay "textentrykeyboard after cancel3"
 
      | TEswitch te ->
         state.mode <- Textentry (te, onleave);
-        G.postRedisplay "textentrykeyboard switch";
+        postRedisplay "textentrykeyboard switch";
      end
   | _ -> vlog "unhandled key"
 ;;
@@ -403,7 +403,7 @@ object (self)
     in
     let active = flow m_active in
     let first = calcfirst m_first active in
-    G.postRedisplay "outline updownlevel";
+    postRedisplay "outline updownlevel";
     {< m_active = active; m_first = first >}
 
   method private key1 key mask =
@@ -516,7 +516,7 @@ object (self)
           in
           active, first
       in
-      G.postRedisplay "listview navigate";
+      postRedisplay "listview navigate";
       set active first;
     in
     let open Keys in
@@ -533,7 +533,7 @@ object (self)
             state.text <- m_qsearch;
             active, firstof m_first active
        in
-       G.postRedisplay "listview ctrl-r/s";
+       postRedisplay "listview ctrl-r/s";
        set1 active first m_qsearch;
 
     | Insert when Wsi.withctrl mask ->
@@ -552,7 +552,7 @@ object (self)
          if emptystr qsearch
          then (
            state.text <- E.s;
-           G.postRedisplay "listview empty qsearch";
+           postRedisplay "listview empty qsearch";
            set1 m_active m_first E.s;
          )
          else
@@ -565,7 +565,7 @@ object (self)
                 state.text <- qsearch;
                 active, firstof m_first active
            in
-           G.postRedisplay "listview backspace qsearch";
+           postRedisplay "listview backspace qsearch";
            set1 active first qsearch
        );
 
@@ -585,14 +585,14 @@ object (self)
             state.text <- pattern;
             active, firstof m_first active
        in
-       G.postRedisplay "listview qsearch add";
+       postRedisplay "listview qsearch add";
        set1 active first pattern;
 
     | Escape ->
        state.text <- E.s;
        if emptystr m_qsearch
        then (
-         G.postRedisplay "list view escape";
+         postRedisplay "list view escape";
          (* XXX:
              let mx, my = state.mpos in
              updateunder mx my;
@@ -603,7 +603,7 @@ object (self)
          | Some uioh -> uioh
        )
        else (
-         G.postRedisplay "list view kill qsearch";
+         postRedisplay "list view kill qsearch";
          coe {< m_qsearch = E.s >}
        )
 
@@ -611,7 +611,7 @@ object (self)
        state.text <- E.s;
        let self = {< m_qsearch = E.s >} in
        let opt =
-         G.postRedisplay "listview enter";
+         postRedisplay "listview enter";
          let cancel = not (m_active >= 0 && m_active < source#getitemcount) in
          source#exit ~uioh:(coe self) ~cancel
                      ~active:m_active ~first:m_first ~pan:m_pan;
@@ -631,23 +631,23 @@ object (self)
 
     | Right ->
        state.text <- E.s;
-       G.postRedisplay "listview right";
+       postRedisplay "listview right";
        coe {< m_pan = m_pan - 1 >}
 
     | Left ->
        state.text <- E.s;
-       G.postRedisplay "listview left";
+       postRedisplay "listview left";
        coe {< m_pan = m_pan + 1 >}
 
     | Home ->
        let active = find 0 1 in
-       G.postRedisplay "listview home";
+       postRedisplay "listview home";
        set active 0;
 
     | End ->
        let first = max 0 (itemcount - fstate.maxrows) in
        let active = find (itemcount - 1) ~-1 in
-       G.postRedisplay "listview end";
+       postRedisplay "listview end";
        set active first;
 
     | _ -> coe self
@@ -663,7 +663,7 @@ object (self)
     let opt =
       match button with
       | 1 when vscrollhit x ->
-         G.postRedisplay "listview scroll";
+         postRedisplay "listview scroll";
          if down
          then
            let _, position, sh = self#scrollph in
@@ -684,7 +684,7 @@ object (self)
       | 1 when down ->
          begin match self#elemunder y with
          | Some n ->
-            G.postRedisplay "listview click";
+            postRedisplay "listview click";
             source#exit ~uioh:(coe {< m_active = n >})
                         ~cancel:false ~active:n ~first:m_first ~pan:m_pan
          | _ ->
@@ -700,11 +700,11 @@ object (self)
              let first = m_first + (if n == 4 then -1 else 1) in
              bound first 0 (len - 1)
          in
-         G.postRedisplay "listview wheel";
+         postRedisplay "listview wheel";
          Some (coe {< m_first = first >})
       | n when (n = 6 || n = 7) && not down ->
          let inc = if n = 7 then -1 else 1 in
-         G.postRedisplay "listview hwheel";
+         postRedisplay "listview hwheel";
          Some (coe {< m_pan = m_pan + inc >})
       | _ ->
          Some (coe self)
@@ -721,7 +721,7 @@ object (self)
        let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
        let first = truncate (s *. float source#getitemcount) in
        let first = min source#getitemcount first in
-       G.postRedisplay "listview motion";
+       postRedisplay "listview motion";
        coe {< m_first = first; m_active = first >}
     | Msel _
     | Mpan _
@@ -740,7 +740,7 @@ object (self)
       in
       let o =
         if n != m_active
-        then (G.postRedisplay "listview pmotion"; {< m_active = n >})
+        then (postRedisplay "listview pmotion"; {< m_active = n >})
         else self
       in
       coe o
@@ -776,7 +776,7 @@ object (self)
             let first = m_first + dy / 10 in
             bound first 0 (len - 1)
         in
-        G.postRedisplay "listview wheel";
+        postRedisplay "listview wheel";
         {< m_first = first >}
       end else
         self
