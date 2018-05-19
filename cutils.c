@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -7,7 +6,6 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/time.h>
-#include <sys/ioctl.h>
 
 #include "cutils.h"
 
