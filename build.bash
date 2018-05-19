@@ -238,10 +238,11 @@ isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
-cmd="bash $srcd/genconfstr.bash >$outd/confstruct.ml"
-keycmd="digest $srcd/genconfstr.bash $outd/confstruct.ml"
+cmd="zsh $srcd/genconfstr.sh >$outd/confstruct.ml"
+keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
-    eval "$cmd || die genconfstr.bash failed"
+    echo genconfstr
+    eval "$cmd || die genconfstr.sh failed"
     echo "k='$cmd$(eval $keycmd)'" > "$outd/confstruct.ml.past"
 } && vecho "fresh $outd/confstruct.ml"
 
