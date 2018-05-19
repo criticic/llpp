@@ -77,12 +77,6 @@ void fmt_linkn (char *s, unsigned int u)
   s[len] = 0;
 }
 
-int uninteresting_char (int c)
-{
-    return c == ' ' || c == '\n' || c == '\t' || c == '\n' || c == '\r'
-        || ispunct (c);
-}
-
 char *ystrdup (const char *s)
 {
     size_t len = strlen (s);

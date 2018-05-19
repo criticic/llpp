@@ -2982,6 +2982,12 @@ CAMLprim void ml_clearmark (value ptr_v)
     CAMLreturn0;
 }
 
+static int uninteresting (int c)
+{
+    return c == ' ' || c == '\n' || c == '\t' || c == '\n' || c == '\r'
+        || ispunct (c);
+}
+
 CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 {
     CAMLparam4 (ptr_v, x_v, y_v, mark_v);
@@ -3047,11 +3053,11 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                 b = &ch->bbox;
                 if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
                     for (ch2 = line->first_char; ch2 != ch; ch2 = ch2->next) {
-                        if (uninteresting_char (ch2->c)) first = NULL;
+                        if (uninteresting (ch2->c)) first = NULL;
                         else if (!first) first = ch2;
                     }
                     for (ch2 = ch; ch2; ch2 = ch2->next) {
-                        if (uninteresting_char (ch2->c)) break;
+                        if (uninteresting (ch2->c)) break;
                         last = ch2;
                     }
 
