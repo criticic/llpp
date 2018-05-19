@@ -2282,8 +2282,6 @@ static void ensureslinks (struct page *page)
     }
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
 /* slightly tweaked fmt_ulong by D.J. Bernstein */
 static void fmt_linkn (char *s, unsigned int u)
 {
@@ -2293,12 +2291,12 @@ static void fmt_linkn (char *s, unsigned int u)
   while (q > zma - 1) { ++len; q /= zma; }
   if (s) {
     s += len;
-    do { *--s = 'a' + (u % zma) - (u < zma && len > 1); u /= zma; } while(u);
+    do { *--s = (char)('a' + (u % zma) - (u < zma && len > 1));
+        u /= zma; } while(u);
     /* handles u == 0 */
   }
   s[len] = 0;
 }
-#pragma GCC diagnostic pop
 
 static void highlightslinks (struct page *page, int xoff, int yoff,
                              int noff, char *targ, mlsize_t tlen, int hfsize)
