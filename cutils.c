@@ -11,11 +11,6 @@
 
 #include "cutils.h"
 
-extern void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
-    err (int exitcode, const char *fmt, ...);
-extern void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
-    errx (int exitcode, const char *fmt, ...);
-
 void NORETURN_ATTR GCC_FMT_ATTR (2, 3) err (int exitcode, const char *fmt, ...)
 {
     va_list ap;
