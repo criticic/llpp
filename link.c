@@ -72,56 +72,10 @@ extern char **environ;
 #include FT_FREETYPE_H
 #pragma GCC diagnostic pop
 
+#include "cutils.h"
+
 #define PIGGYBACK
 #define CACHE_PAGEREFS
-
-#if defined __GNUC__
-#define NORETURN_ATTR __attribute__ ((noreturn))
-#define UNUSED_ATTR __attribute__ ((unused))
-#if !defined __clang__
-#define OPTIMIZE_ATTR(n) __attribute__ ((optimize ("O"#n)))
-#else
-#define OPTIMIZE_ATTR(n)
-#endif
-#define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
-#else
-#define NORETURN_ATTR
-#define UNUSED_ATTR
-#define OPTIMIZE_ATTR(n)
-#define GCC_FMT_ATTR(a, b)
-#endif
-
-#define FMT_s "zu"
-#define FMT_ptr PRIxPTR
-#define SCN_ptr SCNxPTR
-
-static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
-    err (int exitcode, const char *fmt, ...)
-{
-    va_list ap;
-    int savederrno;
-
-    savederrno = errno;
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
-    fprintf (stderr, ": %s\n", strerror (savederrno));
-    fflush (stderr);
-    _exit (exitcode);
-}
-
-static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
-    errx (int exitcode, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
-    fputc ('\n', stderr);
-    fflush (stderr);
-    _exit (exitcode);
-}
 
 #ifndef GL_TEXTURE_RECTANGLE_ARB
 #define GL_TEXTURE_RECTANGLE_ARB          0x84F5
@@ -157,6 +111,8 @@ static void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
     }                                                   \
     break;                                              \
 }
+
+#define FMT_s "zu"
 
 struct slice {
     int h;
@@ -333,25 +289,6 @@ static int trylock (const char *cap)
         errx (1, "%s: pthread_mutex_trylock: %s", cap, strerror (ret));
     }
     return ret == EBUSY;
-}
-
-static void *parse_pointer (const char *cap, const char *s)
-{
-    int ret;
-    void *ptr;
-
-    ret = sscanf (s, "%" SCN_ptr, (uintptr_t *) &ptr);
-    if (ret != 1) {
-        errx (1, "%s: cannot parse pointer in `%s'", cap, s);
-    }
-    return ptr;
-}
-
-static double now (void)
-{
-    struct timeval tv;
-    gettimeofday (&tv, NULL);
-    return tv.tv_sec + tv.tv_usec*1e-6;
 }
 
 static int hasdata (void)
@@ -2282,22 +2219,6 @@ static void ensureslinks (struct page *page)
     }
 }
 
-/* slightly tweaked fmt_ulong by D.J. Bernstein */
-static void fmt_linkn (char *s, unsigned int u)
-{
-  unsigned int len; unsigned int q;
-  unsigned int zma = 'z' - 'a' + 1;
-  len = 1; q = u;
-  while (q > zma - 1) { ++len; q /= zma; }
-  if (s) {
-    s += len;
-    do { *--s = (char)('a' + (u % zma) - (u < zma && len > 1));
-        u /= zma; } while(u);
-    /* handles u == 0 */
-  }
-  s[len] = 0;
-}
-
 static void highlightslinks (struct page *page, int xoff, int yoff,
                              int noff, char *targ, mlsize_t tlen, int hfsize)
 {
@@ -3042,12 +2963,6 @@ done:
 
 enum { mark_page, mark_block, mark_line, mark_word };
 
-static int uninteresting (int c)
-{
-    return c == ' ' || c == '\n' || c == '\t' || c == '\n' || c == '\r'
-        || ispunct (c);
-}
-
 CAMLprim void ml_clearmark (value ptr_v)
 {
     CAMLparam1 (ptr_v);
@@ -3132,11 +3047,11 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
                 b = &ch->bbox;
                 if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
                     for (ch2 = line->first_char; ch2 != ch; ch2 = ch2->next) {
-                        if (uninteresting (ch2->c)) first = NULL;
+                        if (uninteresting_char (ch2->c)) first = NULL;
                         else if (!first) first = ch2;
                     }
                     for (ch2 = ch; ch2; ch2 = ch2->next) {
-                        if (uninteresting (ch2->c)) break;
+                        if (uninteresting_char (ch2->c)) break;
                         last = ch2;
                     }
 
@@ -4192,18 +4107,6 @@ static void makestippletex (void)
 CAMLprim value ml_fz_version (value UNUSED_ATTR unit_v)
 {
     return caml_copy_string (FZ_VERSION);
-}
-
-static char *ystrdup (const char *s)
-{
-    size_t len = strlen (s);
-    if (len > 0) {
-        char *r = malloc (len+1);
-        if (!r) errx (1, "malloc %zu", len+1);
-        memcpy (r, s, len+1);
-        return r;
-    }
-    return NULL;
 }
 
 CAMLprim void ml_init (value csock_v, value params_v)

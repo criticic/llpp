@@ -62,7 +62,7 @@ oflags() {
 
 cflags() {
     case "${1#$outd/}" in
-        link.o)
+        link.o|cutils.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
             f="$f -D_GNU_SOURCE"
             $darwin && echo "$f -D__COCOA__" || echo $f;;
@@ -280,8 +280,9 @@ done
 
 bocaml main.cmo 0
 
-cobjs=$outd/link.o
+cobjs="$outd/link.o $outd/cutils.o"
 bocamlc link.o
+bocamlc cutils.o
 
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
