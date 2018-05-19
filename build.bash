@@ -42,9 +42,7 @@ mkdir -p $outd/$wsi
 mkdir -p $outd/lablGL
 :>$outd/ordered
 
-isfresh() {
-    test -r "$1.past" && . 2>/dev/null "$1.past" && test "$k" = "$2";
-}
+isfresh() { . 2>/dev/null "$1.past" && test "$k" = "$2"; }
 
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
@@ -322,7 +320,7 @@ if $darwin; then
         d=$(dirname $out)
         mkdir -p "$d"
         . $srcd/wsi/osx/genplist.sh >"$out"
-        echo "k=$(eval $keycmd)" >"$out.past"
+        echo "k='$(eval $keycmd)'" >"$out.past"
     } && vecho "fresh plist"
 
     out=$outd/llpp.app/Contents/MacOS/llpp
@@ -330,6 +328,6 @@ if $darwin; then
     isfresh $out "$(eval $keycmd)" || {
         mkdir -p "$(dirname $out)"
         cp $outd/llpp $out
-        echo "k=$(eval $keycmd)" >"$out.past"
+        echo "k='$(eval $keycmd)'" >"$out.past"
     } && vecho "fresh bundle"
 fi
