@@ -11,10 +11,7 @@
 #endif
 #define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
 #else
-#define NORETURN_ATTR
-#define UNUSED_ATTR
-#define OPTIMIZE_ATTR(n)
-#define GCC_FMT_ATTR(a, b)
+#error No workee wiz dat cmapjler
 #endif
 
 extern void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
