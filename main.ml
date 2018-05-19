@@ -3812,25 +3812,6 @@ let viewkeyboard key mask =
      quickbookmark ();
      showtext ' ' "Quick bookmark added";
 
-  | Ascii 'z' ->
-     begin match state.layout with
-     | l :: _ ->
-        let rect = getpdimrect l.pagedimno in
-        let w, h =
-          (truncate (rect.(1) -. rect.(0)), truncate (rect.(3) -. rect.(0)))
-        in
-        let w = truncate ((float w)*.conf.zoom)
-        and h = truncate ((float h)*.conf.zoom) in
-        if w != 0 && h != 0
-        then (
-          state.anchor <- getanchor ();
-          Wsi.reshape w (h + conf.interpagespace)
-        );
-        postRedisplay "z";
-
-     | [] -> ()
-     end
-
   | Ascii 'x' -> state.roam ()
 
   | Ascii ('<'|'>' as c) ->

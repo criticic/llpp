@@ -71,7 +71,6 @@ Ctrl-p                  - launch a command with the document path as an argument
 return                  - (in link navigation mode) follow link
 =                       - show current position
 e                       - view error log
-z                       - crop
 
 -----Search-----
 /,?                     - enter text to search for (/ - forward, ? - backward)
