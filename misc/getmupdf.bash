@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -eu
 
 MUPDF_OUTPUT_DIR="$1"
