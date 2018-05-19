@@ -234,7 +234,7 @@ ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 cmd="mkhelp >$outd/help.ml # $ver"
 keycmd="digest $outd/help.ml $srcd/KEYS # $ver"
 isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
-    echo mkhelp
+    vecho mkhelp
     eval "$cmd || die mkhelp failed"
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
@@ -242,7 +242,7 @@ isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
 cmd="zsh $srcd/genconfstr.sh >$outd/confstruct.ml"
 keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
-    echo genconfstr
+    vecho genconfstr
     eval "$cmd || die genconfstr.sh failed"
     echo "k='$cmd$(eval $keycmd)'" > "$outd/confstruct.ml.past"
 } && vecho "fresh $outd/confstruct.ml"
