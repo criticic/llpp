@@ -234,6 +234,7 @@ ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 cmd="mkhelp >$outd/help.ml # $ver"
 keycmd="digest $outd/help.ml $srcd/KEYS # $ver"
 isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
+    echo mkhelp
     eval "$cmd || die mkhelp failed"
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
