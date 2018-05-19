@@ -95,7 +95,6 @@ test $oversnum -ge 407 || {
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
     isfresh $absprefix/bin/ocamlc "$url" || (
-        d=$(pwd)
         unzip -o -u -d $outd $zip
         bn=$(basename $url)
         cd $outd/ocaml-${bn%.zip}
