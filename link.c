@@ -4199,5 +4199,5 @@ CAMLprim void ml_init (value csock_v, value params_v)
 }
 
 #if FIXME || !FIXME
-static void OPTIMIZE_ATTR (0) UNUSED_ATTR refmacs (void) {}
+static void UNUSED_ATTR NO_OPTIMIZE_ATTR refmacs (void) {}
 #endif
