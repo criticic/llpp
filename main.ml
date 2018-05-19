@@ -1902,6 +1902,10 @@ let optentry mode _ key =
      reqlayout conf.angle fm;
      TEdone ("proportional display " ^ btos (fm == FitProportional))
 
+  | Keys.Ascii 'T' ->
+     settrim (not conf.trimmargins) conf.trimfuzz;
+     TEdone ("trim margins " ^ btos conf.trimmargins)
+
   | Keys.Ascii 'I' ->
      conf.invert <- not conf.invert;
      TEdone ("invert colors " ^ btos conf.invert)
