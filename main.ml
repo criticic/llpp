@@ -5054,7 +5054,7 @@ let () =
 
         ("-v", Arg.Unit (fun () ->
                    Printf.printf
-                     "%s\nconfiguration path: %s\n"
+                     "%s\nconfiguration file: %s\n"
                      (Helputils.version ())
                      Config.defconfpath;
                    exit 0), " Print version and exit");
