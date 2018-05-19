@@ -40,7 +40,7 @@ void *parse_pointer (const char *cap, const char *s)
     int ret;
     void *ptr;
 
-    ret = sscanf (s, "%" SCN_ptr, (uintptr_t *) &ptr);
+    ret = sscanf (s, "%" SCNxPTR, (uintptr_t *) &ptr);
     if (ret != 1) {
         errx (1, "%s: cannot parse pointer in `%s'", cap, s);
     }

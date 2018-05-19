@@ -1,9 +1,6 @@
 #ifndef CUTILS_H
 #define CUTILS_H
 
-#define SCN_ptr SCNxPTR
-#define FMT_ptr PRIxPTR
-
 #if defined __GNUC__
 #define NORETURN_ATTR __attribute__ ((noreturn))
 #define UNUSED_ATTR __attribute__ ((unused))

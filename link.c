@@ -112,8 +112,6 @@ extern char **environ;
     break;                                              \
 }
 
-#define FMT_s "zu"
-
 struct slice {
     int h;
     int texindex;
@@ -669,7 +667,7 @@ static struct tile *alloctile (int h)
     tilesize = sizeof (*tile) + ((slicecount - 1) * sizeof (struct slice));
     tile = calloc (tilesize, 1);
     if (!tile) {
-        err (1, "cannot allocate tile (%" FMT_s " bytes)", tilesize);
+        err (1, "cannot allocate tile (%zu bytes)", tilesize);
     }
     for (int i = 0; i < slicecount; ++i) {
         int sh = fz_mini (h, state.sliceheight);
@@ -1041,7 +1039,7 @@ static void initpdims (void)
             size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
             state.pagedims = realloc (state.pagedims, size);
             if (!state.pagedims) {
-                err (1, "realloc pagedims to %" FMT_s " (%d elems)",
+                err (1, "realloc pagedims to %zu (%d elems)",
                      size, state.pagedimcount + 1);
             }
 
@@ -1452,7 +1450,7 @@ static void realloctexts (int texcount)
     size = texcount * (sizeof (*state.texids) + sizeof (*state.texowners));
     state.texids = realloc (state.texids, size);
     if (!state.texids) {
-        err (1, "realloc texs %" FMT_s, size);
+        err (1, "realloc texs %zu", size);
     }
 
     state.texowners = (void *) (state.texids + texcount);
@@ -1631,7 +1629,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
         else if (!strncmp ("freepage", p, 8)) {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" SCN_ptr, (uintptr_t *) &ptr);
+            ret = sscanf (p + 8, " %" SCNxPTR, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freepage `%.*s' ret=%d", len, p, ret);
             }
@@ -1642,7 +1640,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
         else if (!strncmp ("freetile", p, 8)) {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" SCN_ptr, (uintptr_t *) &ptr);
+            ret = sscanf (p + 8, " %" SCNxPTR, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freetile `%.*s' ret=%d", len, p, ret);
             }
@@ -1755,7 +1753,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             b = now ();
             unlock ("page");
 
-            printd ("page %" FMT_ptr " %f", (uintptr_t) page, b - a);
+            printd ("page %" PRIxPTR " %f", (uintptr_t) page, b - a);
         }
         else if (!strncmp ("tile", p, 4)) {
             int x, y, w, h;
@@ -1764,7 +1762,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             double a, b;
             void *data;
 
-            ret = sscanf (p + 4, " %" SCN_ptr " %d %d %d %d %" SCN_ptr,
+            ret = sscanf (p + 4, " %" SCNxPTR " %d %d %d %d %" SCNxPTR,
                           (uintptr_t *) &page, &x, &y, &w, &h,
                           (uintptr_t *) &data);
             if (ret != 6) {
@@ -1777,7 +1775,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             b = now ();
             unlock ("tile");
 
-            printd ("tile %d %d %" FMT_ptr " %u %f",
+            printd ("tile %d %d %" PRIxPTR " %u %f",
                     x, y, (uintptr_t) (tile),
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
@@ -3830,17 +3828,17 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
             int res;
             char *s;
 
-            res = snprintf (NULL, 0, "%" FMT_ptr, (uintptr_t) pbo);
+            res = snprintf (NULL, 0, "%" PRIxPTR, (uintptr_t) pbo);
             if (res < 0) {
-                err (1, "snprintf %" FMT_ptr " failed", (uintptr_t) pbo);
+                err (1, "snprintf %" PRIxPTR " failed", (uintptr_t) pbo);
             }
             s = malloc (res+1);
             if (!s) {
                 err (1, "malloc %d bytes failed", res+1);
             }
-            res = sprintf (s, "%" FMT_ptr, (uintptr_t) pbo);
+            res = sprintf (s, "%" PRIxPTR, (uintptr_t) pbo);
             if (res < 0) {
-                err (1, "sprintf %" FMT_ptr " failed", (uintptr_t) pbo);
+                err (1, "sprintf %" PRIxPTR " failed", (uintptr_t) pbo);
             }
             ret_v = caml_copy_string (s);
             free (s);
