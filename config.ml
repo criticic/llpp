@@ -482,9 +482,8 @@ let rowyh (c, coverA, coverB) b n =
 let page_of_y y =
   let ((c, coverA, coverB) as cl), b =
     match conf.columns with
-    | Csingle b -> (1, 0, 0), b
+    | Csplit (_, b) | Csingle b -> (1, 0, 0), b
     | Cmulti (c, b) -> c, b
-    | Csplit (_, b) -> (1, 0, 0), b
   in
   if Array.length b = 0
   then -1
