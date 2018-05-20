@@ -1610,14 +1610,15 @@ let linknact f s =
   )
 ;;
 
-let linknentry text = function [@warning "-4"]
-                             | Keys.Ascii c ->
-                                let text = addchar text c in
-                                linknact (fun under -> state.text <- undertext under) text;
-                                TEcont text
-                             | _ ->
-                                state.text <- Printf.sprintf "invalid key";
-                                TEcont text
+let linknentry text =
+  function [@warning "-4"]
+         | Keys.Ascii c ->
+            let text = addchar text c in
+            linknact (fun under -> state.text <- undertext under) text;
+            TEcont text
+         | _ ->
+            state.text <- Printf.sprintf "invalid key";
+            TEcont text
 ;;
 
 let textentry text = function [@warning "-4"]
