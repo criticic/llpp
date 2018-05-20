@@ -15,7 +15,7 @@ g, G                    - go to first/last page
 home/end                - go to first/last page
 
 -----Advanced Movement / History-----
-backspace               - go back after jumping (clicking link and suchlike) [1]
+backspace               - go back after jumping (clicking link and suchlike)[1]
 Alt-left/right arrow    - go backward/forward in history
 0..9                    - enter page number to jump to
 t                       - align top of the screen with the top of the page
@@ -27,7 +27,7 @@ if auto scrolling is active:
 
 -----Mouse-----
 primary mouse button    - click on link or select text[2]
-  when shift is held    - execute "synctex command" with coordinates of the point [4]
+  when shift is held    - execute "synctex command" with coordinates of the point[3]
   when control is held  - pan
   zoom to block         - when in block zoom mode
   otherwise             - pan if there's no text/link under the cursor
@@ -63,7 +63,7 @@ Ctrl-9/F9               - enter bird's eye view
 
 -----Actions-----
 u                       - dehighlight
-r                       - reload document [5]
+r                       - reload document[4]
 y                       - select link and paste its description to the clipboard
 |                       - pipe selection through specified command
 x                       - run pax command on selected region
@@ -158,20 +158,17 @@ selection command otherwise
 [1] if the document was previously visited initial backspace will
     jump to the last visited place
 
-[2] i'm somewhat mouse button confused, since i use "left handed" mouse
-    while not being left handed
-
-[3] text selection requires
+[2] text selection requires
     X11     - xclip https://github.com/astrand/xclip
     macOS   - pbcopy ships with the system
 
-[4] arguments to the command are:
+[3] arguments to the command are:
     1 = path to the document
     2 = zero based page number
     3 = X coordinate within the page
     4 = Y …
 
-[5] document will also be reloaded upon reception of the HUP signal
+[4] document will also be reloaded upon reception of the HUP signal
 
 -----Caveat emptor-----
 o Text selection is limited to a single page
