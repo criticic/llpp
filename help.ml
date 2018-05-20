@@ -1,4 +1,30 @@
------Quitting-----
+open Utils;;
+
+external fz_version : unit -> string = "ml_fz_version";;
+let version = "moo";;
+
+let gotourl launcher url =
+  let command = Str.global_replace percentsre url launcher in
+  try ignore @@ spawn command []
+  with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
+;;
+
+let gotouri launcher uri =
+  if emptystr launcher
+  then dolog "%s" uri
+  else
+    if nonemptystr @@ geturl uri
+    then gotourl launcher uri
+    else dolog "obtained empty url from uri %S" uri
+;;
+
+let version () =
+  Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
+                 version (fz_version ()) Sys.ocaml_version Sys.word_size
+;;
+
+let keys = 
+{|-----Quitting-----
 escape/q                - quit
 Q                       - quit without saving the configuration or changes
 W                       - save changes
@@ -172,4 +198,17 @@ selection command otherwise
 
 -----Caveat emptor-----
 o Text selection is limited to a single page
-o Text searching is very naive
+o Text searching is very naive|};;
+
+let makehelp launcher =
+  let strings =
+    fz_version ()
+    :: "(searching in this text works just by typing (i.e. no initial '/'))"
+    :: E.s :: String.split_on_char '\n' keys
+  in
+  List.map (fun s ->
+      match geturl s with
+      | "" -> (s, 0, Config.Noaction)
+      | url -> (s, 0, Config.Action (fun uioh -> gotourl launcher url; uioh))
+    ) strings;
+;;

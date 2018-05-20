@@ -62,9 +62,12 @@ oflags() {
 
 cflags() {
     case "${1#$outd/}" in
-        link.o|cutils.o)
+        cutils.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
-            f="$f -D_GNU_SOURCE"
+            f="$f -D_GNU_SOURCE" echo $f;;
+        link.o)
+            f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
+            f="$f -D_GNU_SOURCE -DLLPP_VERSION=\"$ver\""
             $darwin && echo "$f -D__COCOA__" || echo $f;;
         */keysym2ucs.o) echo "-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) echo "-g -Wno-pointer-sign -O2";;
@@ -137,8 +140,7 @@ bocaml1() {
     } && {
         vecho "fresh $o.depl"
         for d in $(< $o.depl); do
-            test $d = "$outd/help.cmo" && dd=$d || dd=${d#$outd/}
-            bocaml $dd $((n+1))
+            bocaml ${d#$outd/} $((n+1))
         done
     }
 
@@ -160,10 +162,6 @@ bocaml() (
     local wocmi="${o%.cmi}"
     local s
     case ${wocmi#$outd/} in
-        help.cmo)
-            s=$outd/help.ml
-            o=$outd/help.cmo
-            ;;
         confstruct.cmo)
             s=$outd/confstruct.ml
             o=$outd/confstruct.cmo
@@ -213,30 +211,7 @@ bobjc() {
     } && vecho "fresh $o"
 }
 
-genhelp() {
-    ocaml str.cma -stdin $srcd/KEYS <<EOF
-let fixup = let open Str in
-  let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
-  and head = regexp {|-----\(.*\)-----|} in fun s ->
-  String.escaped s |> global_replace dash {|\1\t\2|}
-                   |> global_replace head {|\xc2\xb7\1|};;
-let rec iter ic = match input_line ic with
-| s -> Printf.printf "\"%s\";\\n" @@ fixup s; iter ic
-| exception End_of_file -> ();;
-Printf.printf "let keys = [\\n";
-iter @@ open_in Sys.argv.(1);;
-Printf.printf "] and version = \"$ver\";;"
-EOF
-}
-
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
-cmd="genhelp >$outd/help.ml # $ver"
-keycmd="digest $outd/help.ml $srcd/KEYS # $ver"
-isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
-    echo genhelp
-    eval "$cmd || die genhelp failed"
-    echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
-} && vecho "fresh $outd/help.ml"
 
 cmd="zsh $srcd/genconfstr.sh >$outd/confstruct.ml"
 keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"

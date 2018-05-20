@@ -4108,7 +4108,7 @@ static void makestippletex (void)
         );
 }
 
-CAMLprim value ml_fz_version (value UNUSED_ATTR unit_v)
+CAMLprim value ml_fz_version (void)
 {
     return caml_copy_string (FZ_VERSION);
 }

@@ -889,7 +889,7 @@ let fillhelp () =
     let rec loop accu =
       function | [] -> accu
                | s :: rest -> loop ((s, 0, Noaction) :: accu) rest
-    in Helputils.makehelp conf.urilauncher
+    in Help.makehelp conf.urilauncher
        @ (("", 0, Noaction) :: loop [] sl) |> Array.of_list
 ;;
 
@@ -3150,7 +3150,7 @@ let gotounder = function
   | Ulinkuri s when isexternallink s ->
      if substratis s 0 "file://"
      then gotoremote @@ String.sub s 7 (String.length s - 7)
-     else Helputils.gotouri conf.urilauncher s
+     else Help.gotouri conf.urilauncher s
   | Ulinkuri s ->
      let pageno, x, y = uritolocation s in
      addnav ();
@@ -5055,7 +5055,7 @@ let () =
         ("-v", Arg.Unit (fun () ->
                    Printf.printf
                      "%s\nconfiguration file: %s\n"
-                     (Helputils.version ())
+                     (Help.version ())
                      Config.defconfpath;
                    exit 0), " Print version and exit");
 
