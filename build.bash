@@ -53,7 +53,16 @@ isfresh "$mulibs" "$(eval $keycmd)" || (
 
 oflags() {
     case "${1#$outd/}" in
-        main.cmo|utils.cmo|config.cmo|parser.cmo|$wsi/wsi.cmo)
+        config.cmo                              \
+        | glutils.cmo                           \
+        | help.cmo                              \
+        | keys.cmo                              \
+        | listview.cmo                          \
+        | main.cmo                              \
+        | parser.cmo                            \
+        | unisyms.cmo                           \
+        | utils.cmo                             \
+        | $wsi/wsi.cmo)         # XXX confstruct?
             f="-g -strict-sequence -strict-formats -warn-error @A";;
         *) f="-g";;
     esac
