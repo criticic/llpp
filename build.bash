@@ -61,15 +61,11 @@ oflags() {
 }
 
 cflags() {
+    f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors -O2"
     case "${1#$outd/}" in
-        cutils.o)
-            f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
-            f="$f -D_GNU_SOURCE" echo $f;;
+        cutils.o) echo "$f";;
         version.o) echo '-DLLPP_VERSION="'$ver'"';;
-        link.o)
-            f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
-            f="$f -D_GNU_SOURCE"
-            $darwin && echo "$f -D__COCOA__" || echo $f;;
+        link.o) $darwin && echo "$f -D__COCOA__" || echo "$f -D_GNU_SOURCE";;
         */keysym2ucs.o) echo "-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
