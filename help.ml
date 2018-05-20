@@ -200,11 +200,10 @@ let version () =
     (llpp_version ()) (fz_version ()) Sys.ocaml_version Sys.word_size
 ;;
 
-let fixup = let open Str in
+let fixup = let open Str in let gr = global_replace in
     let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
     and head = regexp {|-----\(.*\)-----|} in
-    fun s -> global_replace dash "\\1\t\\2|"
-             @@ global_replace head "\xc2\xb7\\1" s
+    fun s -> gr dash "\\1\t\\2" @@ gr head "\xc2\xb7\\1" s
 ;;
 
 let makehelp launcher =
