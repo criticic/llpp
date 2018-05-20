@@ -52,8 +52,7 @@
 /* basic style settings*/
 
 body {
-    font: 14pt/1.3 "pt astra serif", "alegreya", "El Messiri",
-          "TITUS Cyberbit Basic", "unifont";
+    font: 14pt/1.3 "pt astra serif", "alegreya", "El Messiri",  "unifont";
     prince-linebreak-magic: auto;
     hyphens: auto;
     text-align: justify;
