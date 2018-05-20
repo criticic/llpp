@@ -530,56 +530,6 @@ static void freetile (struct tile *tile)
     free (tile);
 }
 
-#ifdef __ALTIVEC__
-#include <stdint.h>
-#include <altivec.h>
-
-static int cacheline32bytes;
-
-static void __attribute__ ((constructor)) clcheck (void)
-{
-    char **envp = environ;
-    unsigned long *auxv;
-
-    while (*envp++);
-
-    for (auxv = (unsigned long *) envp; *auxv != 0; auxv += 2) {
-        if (*auxv == 19) {
-            cacheline32bytes = auxv[1] == 32;
-            return;
-        }
-    }
-}
-
-static void OPTIMIZE_ATTR (3) clearpixmap (fz_pixmap *pixmap)
-{
-    size_t size = pixmap->w * pixmap->h * pixmap->n;
-    if (cacheline32bytes && size > 32) {
-        intptr_t a1, a2, diff;
-        size_t sizea, i;
-        vector unsigned char v = vec_splat_u8 (-1);
-        vector unsigned char *p;
-
-        a1 = a2 = (intptr_t) pixmap->samples;
-        a2 = (a1 + 31) & ~31;
-        diff = a2 - a1;
-        sizea = size - diff;
-        p = (void *) a2;
-
-        while (a1 != a2) *(char *) a1++ = 0xff;
-        for (i = 0; i < (sizea & ~31); i += 32) {
-            __asm volatile ("dcbz %0, %1"::"b"(a2),"r"(i));
-            vec_st (v, i, p);
-            vec_st (v, i + 16, p);
-        }
-        while (i < sizea) *((char *) a1 + i++) = 0xff;
-    }
-    else fz_clear_pixmap_with_value (state.ctx, pixmap, 0xff);
-}
-#else
-#define clearpixmap(p) fz_clear_pixmap_with_value (state.ctx, p, 0xff)
-#endif
-
 static void trimctm (pdf_page *page, int pindex)
 {
     fz_matrix ctm;
@@ -729,7 +679,7 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 
     tile->w = w;
     tile->h = h;
-    clearpixmap (tile->pixmap);
+    fz_clear_pixmap_with_value (state.ctx, tile->pixmap, 0xff);
 
     dev = fz_new_draw_device (state.ctx, NULL, tile->pixmap);
     ctm = pagectm (page);
