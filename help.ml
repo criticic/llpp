@@ -203,8 +203,8 @@ let version () =
 let fixup = let open Str in
     let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
     and head = regexp {|-----\(.*\)-----|} in
-    fun s -> global_replace dash {|\1\t\2|} @@
-               global_replace head {|\xc2\xb7\1|} s
+    fun s -> global_replace dash "\\1\t\\2|"
+             @@ global_replace head "\xc2\xb7\\1" s
 ;;
 
 let makehelp launcher =
