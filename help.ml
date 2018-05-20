@@ -1,28 +1,3 @@
-open Utils;;
-
-external fz_version : unit -> string = "ml_fz_version";;
-external llpp_version : unit -> string = "ml_llpp_version";;
-
-let gotourl launcher url =
-  let command = Str.global_replace percentsre url launcher in
-  try ignore @@ spawn command []
-  with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
-;;
-
-let gotouri launcher uri =
-  if emptystr launcher
-  then dolog "%s" uri
-  else
-    if nonemptystr @@ geturl uri
-    then gotourl launcher uri
-    else dolog "obtained empty url from uri %S" uri
-;;
-
-let version () =
-  Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
-    (llpp_version ()) (fz_version ()) Sys.ocaml_version Sys.word_size
-;;
-
 let keys = 
 {|-----Quitting-----
 escape/q                - quit
@@ -199,6 +174,31 @@ selection command otherwise
 -----Caveat emptor-----
 o Text selection is limited to a single page
 o Text searching is very naive|};;
+
+open Utils;;
+
+external fz_version : unit -> string = "ml_fz_version";;
+external llpp_version : unit -> string = "ml_llpp_version";;
+
+let gotourl launcher url =
+  let command = Str.global_replace percentsre url launcher in
+  try ignore @@ spawn command []
+  with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
+;;
+
+let gotouri launcher uri =
+  if emptystr launcher
+  then dolog "%s" uri
+  else
+    if nonemptystr @@ geturl uri
+    then gotourl launcher uri
+    else dolog "obtained empty url from uri %S" uri
+;;
+
+let version () =
+  Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
+    (llpp_version ()) (fz_version ()) Sys.ocaml_version Sys.word_size
+;;
 
 let makehelp launcher =
   let strings =

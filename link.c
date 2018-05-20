@@ -4113,6 +4113,12 @@ CAMLprim value ml_fz_version (void)
     return caml_copy_string (FZ_VERSION);
 }
 
+CAMLprim value ml_llpp_version (void)
+{
+    extern char llpp_version[];
+    return caml_copy_string (llpp_version);
+}
+
 CAMLprim void ml_init (value csock_v, value params_v)
 {
     CAMLparam2 (csock_v, params_v);
