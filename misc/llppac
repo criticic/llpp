@@ -197,12 +197,12 @@ if ${force-test ! -e "$1"} && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
         die "no program to fetch remote urls found"
     fi
 
-    md5of="$cachedir/$(basename "$1")"
-    dl "$1" "$md5of" || test -e "$md5of"
+    hashof="$cachedir/$(basename "$1")"
+    dl "$1" "$hashof" || test -e "$md5of"
     shift
-    set -- "$md5of" "$@"
+    set -- "$hashof" "$@"
 else
-    md5of="$1"
+    hashof="$1"
 fi
 
 test -z "$type" && { ft=$(file -L --mime-type -b "$1") || die "$ft"; }
@@ -322,7 +322,7 @@ case $type in
     *) die "unhandled filter type: '$type'";;
 esac
 
-hash=$(md5sum "$md5of") || die "$hash"
+hash=$(cksum "$hashof") || die "$hash"
 casp=$cachedir/${hash%% *}$caspsuf
 
 { test -n "$force" || test ! -e "$casp"; } && eval "$filt" "$conv"

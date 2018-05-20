@@ -21,7 +21,7 @@ shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: url"
 
 url="$1"
-set -- $(echo "$url" | md5sum)
+set -- $(echo "$url" | cksum)
 pdf="$cachedir/$1.pdf"
 
 ${force-$(test ! -e "$pdf")} && prince ${css:+--style $css} -o "$pdf" "$url"
