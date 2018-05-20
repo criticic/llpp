@@ -60,22 +60,6 @@ let ignoredoctitlte = ref false;;
 let opengl_has_pbo = ref false;;
 let layouth = ref ~-1;;
 
-let _debugl l =
-  dolog {|l %d dim=%d {
-         WxH     %dx%d
-         vWxH    %dx%d
-         pagex,y %d,%d
-         dispx,y %d,%d
-         column  %d
-         }|}
-    l.pageno l.pagedimno
-    l.pagew l.pageh
-    l.pagevw l.pagevh
-    l.pagex l.pagey
-    l.pagedispx l.pagedispy
-    l.pagecol
-;;
-
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog {|rect {
          x0,y0=(% f, % f)
