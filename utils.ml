@@ -48,18 +48,15 @@ let emptystr s = String.length s = 0;;
 let nonemptystr s = String.length s > 0;;
 let bound v minv maxv = max minv (min maxv v);;
 
-module Opaque :
-sig
+module Opaque : sig
   type t = private string
   val of_string : string -> t
   val to_string : t -> string
+end = struct
+  type t = string
+  let of_string s = s
+  let to_string t = t
 end
-  =
-  struct
-    type t = string
-    let of_string s = s
-    let to_string t = t
-  end
 ;;
 
 let (~<) = Opaque.of_string;;
