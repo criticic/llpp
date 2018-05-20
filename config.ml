@@ -1646,7 +1646,7 @@ let logcurrently = function
   | Outlining _ -> dolog "outlining"
 ;;
 
-let _logpage l =
+let logpage l =
   dolog {|l %d dim=%d {
          WxH     %dx%d
          vWxH    %dx%d
