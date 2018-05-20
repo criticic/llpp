@@ -213,7 +213,7 @@ bobjc() {
     } && vecho "fresh $o"
 }
 
-mkhelp() {
+genhelp() {
     ocaml str.cma -stdin $srcd/KEYS <<EOF
 let fixup = let open Str in
   let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
@@ -230,11 +230,11 @@ EOF
 }
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
-cmd="mkhelp >$outd/help.ml # $ver"
+cmd="genhelp >$outd/help.ml # $ver"
 keycmd="digest $outd/help.ml $srcd/KEYS # $ver"
 isfresh "$outd/help.ml" "$cmd$(eval $keycmd)" || {
-    echo mkhelp
-    eval "$cmd || die mkhelp failed"
+    echo genhelp
+    eval "$cmd || die genhelp failed"
     echo "k='$cmd$(eval $keycmd)'" >"$outd/help.ml.past"
 } && vecho "fresh $outd/help.ml"
 
