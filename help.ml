@@ -1,7 +1,7 @@
 open Utils;;
 
 external fz_version : unit -> string = "ml_fz_version";;
-let version = "moo";;
+external llpp_version : unit -> string = "ml_llpp_version";;
 
 let gotourl launcher url =
   let command = Str.global_replace percentsre url launcher in
@@ -20,7 +20,7 @@ let gotouri launcher uri =
 
 let version () =
   Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
-                 version (fz_version ()) Sys.ocaml_version Sys.word_size
+    (llpp_version ()) (fz_version ()) Sys.ocaml_version Sys.word_size
 ;;
 
 let keys = 

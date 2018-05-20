@@ -65,9 +65,10 @@ cflags() {
         cutils.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
             f="$f -D_GNU_SOURCE" echo $f;;
+        version.o) echo '-DLLPP_VERSION="'$ver'"';;
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
-            f="$f -D_GNU_SOURCE -DLLPP_VERSION=\"$ver\""
+            f="$f -D_GNU_SOURCE"
             $darwin && echo "$f -D__COCOA__" || echo $f;;
         */keysym2ucs.o) echo "-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) echo "-g -Wno-pointer-sign -O2";;
@@ -174,6 +175,7 @@ bocaml() (
     bocaml1 $n "$s" "$o"
     case $wocmi in
         wsi) s="$srcd/$wsi/wsi.ml";;
+        help) s="$srcd/help.ml";;
         */glMisc) s="$srcd/lablGL/glMisc.ml";;
         */glTex) s="$srcd/lablGL/glTex.ml";;
         *) false;;
@@ -254,9 +256,10 @@ done
 
 bocaml main.cmo 0
 
-cobjs="$outd/link.o $outd/cutils.o"
+cobjs="$outd/link.o $outd/cutils.o $outd/version.o"
 bocamlc link.o
 bocamlc cutils.o
+bocamlc version.o
 
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
