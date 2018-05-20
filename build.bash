@@ -61,7 +61,7 @@ oflags() {
 }
 
 cflags() {
-    f="-g -std=c99 -O2 $muinc -Wall -Werror -pedantic-errors"
+    f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic-errors"
     case "${1#$outd/}" in
         cutils.o) echo "$f";;
         version.o) echo '-DLLPP_VERSION="'$ver'"';;
