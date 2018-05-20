@@ -12,9 +12,7 @@ test -d "$cachedir" || die "cache directory '$cachedir' does not exist"
 caspsuf=
 type=
 
-executable_p() {
-    command -v "$1" >/dev/null 2>&1
-}
+executable_p() { command -v "$1" >/dev/null 2>&1; }
 
 missing() {
     executable_p $1 || \
@@ -133,7 +131,6 @@ Mistaking S for a 5 (at certain sizes) is more of a problem... but... Ze Germans
     съвсем окласни бяха тук щурпите    og angurvært sungu sópfiðrungar
     и отма равапсатваха прасурси.      við sífgelt týðmana svíræna.
 
-
 (https://en.wikipedia.org/wiki/Typeface)
 
 For the rational mind, type design can be a maddening game
@@ -156,13 +153,8 @@ maketext() {
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>$filename</title>
     <style type="text/css">
-      @font-face {
-          font-family: moo;
-          src: url('$1');
-      }
-      pre {
-          font-family: moo;
-      }
+      @font-face { font-family: moo; src: url('$1'); }
+      pre { font-family: moo; }
     </style>
   </head>
   $filename
@@ -198,13 +190,9 @@ test -z "$1" && die "usage $0: path"
 origin="$1"
 if ${force-test ! -e "$1"} && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
     if executable_p wget; then
-        dl() {
-            wget -q $1 -O $2
-        }
+        dl() { wget -q $1 -O $2; }
     elif executable_p curl; then
-        dl() {
-            curl -L $1 -o $2
-        }
+        dl() { curl -L $1 -o $2; }
     else
         die "no program to fetch remote urls found"
     fi
@@ -217,9 +205,7 @@ else
     md5of="$1"
 fi
 
-test -z "$type" && {
-    ft=$(file -L --mime-type -b "$1") || die "$ft"
-}
+test -z "$type" && { ft=$(file -L --mime-type -b "$1") || die "$ft"; }
 
 case $ft in
     application/x-gzip | application/x-compress) dc=zcat;;
@@ -275,7 +261,7 @@ case $type in
         conv='ddjvu -format=pdf - "$casp"'
     };;
     html) {
-        missing prince "PrinceXML(http://www.princexml.com/)"
+        missing prince "Prince(http://www.princexml.com/)"
         conv='prince $css - -o "$casp"'
     };;
     html2epub) {
