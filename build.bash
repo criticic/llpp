@@ -4,7 +4,7 @@ set -eu
 now() { date +%s; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { cksum 2>/dev/null $* | cut -d ' ' -f 1; }
+digest() { cksum 2>/dev/null $* | while read h _; do printf $h; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
