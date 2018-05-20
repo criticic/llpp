@@ -361,7 +361,7 @@ object (self)
         if row >= 0 && row < itemcount
         then (
           let (s, level) = source#getitem row in
-          let pos0 = nindex s '\000' in
+          let pos0 = Ne.index s '\000' in
           let y = (row - m_first) * nfs in
           let x = float (level + m_pan) *. ww in
           let (first, last) = minfo.(row) in

@@ -149,12 +149,11 @@ let abspath path =
     path
 ;;
 
-let nindex s c =
-  try String.index s c
-  with Not_found -> -1
-;;
-
 module Ne = struct
+  let index s c =
+    try String.index s c
+    with Not_found -> -1
+  ;;
   let clo fd f =
     try tempfailureretry Unix.close fd
     with exn -> f @@ exntos exn
