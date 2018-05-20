@@ -11,8 +11,6 @@
 #define CAML_NAME_SPACE
 #define FIXME 0
 
-extern char **environ;
-
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
