@@ -256,10 +256,11 @@ done
 
 bocaml main.cmo 0
 
-cobjs="$outd/link.o $outd/cutils.o $outd/version.o"
-bocamlc link.o
-bocamlc cutils.o
-bocamlc version.o
+cobjs=
+for m in link cutils version; do
+    bocamlc $m.o
+    cobjs="$cobjs $outd/$m.o"
+done
 
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
