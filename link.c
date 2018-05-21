@@ -3841,12 +3841,14 @@ static void setuppbo (void)
   static CFBundleRef framework = NULL;
   if (framework == NULL)
     framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
-#define GGPA(n) (&state.n = CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
+#define GGPA(n)                                                         \
+  (&state.n = CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
 #else
 #ifdef USE_EGL
 #define GGPA(n) (*(void (**) (void)) &state.n = eglGetProcAddress (#n))
 #else
-#define GGPA(n) (*(void (**) (void)) &state.n = glXGetProcAddress ((GLubyte *) #n))
+#define GGPA(n)                                                         \
+  (*(void (**) (void)) &state.n = glXGetProcAddress ((GLubyte *) #n))
 #endif
     state.bo_usable = GGPA (glBindBufferARB)
         && GGPA (glUnmapBufferARB)
