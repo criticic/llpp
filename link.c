@@ -77,26 +77,10 @@ extern char **environ;
 #define PIGGYBACK
 #define CACHE_PAGEREFS
 
-#ifndef GL_TEXTURE_RECTANGLE_ARB
-#define GL_TEXTURE_RECTANGLE_ARB          0x84F5
-#endif
-
 #ifdef USE_NPOT
 #define TEXT_TYPE GL_TEXTURE_2D
 #else
 #define TEXT_TYPE GL_TEXTURE_RECTANGLE_ARB
-#endif
-
-#ifndef GL_BGRA
-#define GL_BGRA                           0x80E1
-#endif
-
-#ifndef GL_UNSIGNED_INT_8_8_8_8
-#define GL_UNSIGNED_INT_8_8_8_8           0x8035
-#endif
-
-#ifndef GL_UNSIGNED_INT_8_8_8_8_REV
-#define GL_UNSIGNED_INT_8_8_8_8_REV       0x8367
 #endif
 
 #if 0
