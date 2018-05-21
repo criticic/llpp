@@ -92,23 +92,23 @@ overs="$(ocamlc --version 2>/dev/null)" || overs="0.0.0"
 oversnum="$(echo $overs | { IFS=. read a b _; echo $a$b; })"
 
 test $oversnum -ge 407 || {
-    url=https://github.com/ocaml/ocaml/archive/4.07.zip
-    zip=$outd/$(basename $url)
-    isfresh $zip $url || {
+    url=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
+    txz=$outd/$(basename $url)
+    isfresh $txz $url || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
         if executable_p wget; then dl() { wget -q "$1" -O "$2"; }
         elif executable_p curl; then dl() { curl -L "$1" -o "$2"; }
         else die "no program to fetch remote urls found"
         fi
-        dl $url $zip
-        echo "k=$url" >$zip.past
-    } && vecho "fresh $zip"
+        dl $url $txz
+        echo "k=$url" >$txz.past
+    } && vecho "fresh $txz"
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
     isfresh $absprefix/bin/ocamlc "$url" || (
-        unzip -o -u -d $outd $zip
+        tar xf $txz -C $outd
         bn=$(basename $url)
-        cd $outd/ocaml-${bn%.zip}
+        cd $outd/${bn%.tar.xz}
         ./configure -prefix $absprefix                                      \
                     -no-graph -no-debugger -no-ocamldoc -no-native-compiler
         make -j $mjobs world
