@@ -39,7 +39,7 @@ Display this list of options
 Open last document
 
 -no-title::
-ignore document title
+Ignore document title
 
 -origin origin::
 <undocumented>
