@@ -3484,11 +3484,7 @@ CAMLprim void ml_setaalevel (value level_v)
 #include <X11/cursorfont.h>
 #pragma GCC diagnostic pop
 
-#ifdef USE_EGL
-#include <EGL/egl.h>
-#else
 #include <GL/glx.h>
-#endif
 
 static const int shapes[] = {
     XC_left_ptr, XC_hand2, XC_exchange, XC_fleur, XC_xterm
@@ -3499,14 +3495,7 @@ static const int shapes[] = {
 static struct {
     Window wid;
     Display *dpy;
-#ifdef USE_EGL
-    EGLContext ctx;
-    EGLConfig conf;
-    EGLSurface win;
-    EGLDisplay *edpy;
-#else
     GLXContext ctx;
-#endif
     XVisualInfo *visual;
     Cursor curs[CURS_COUNT];
 } glx;
@@ -3519,74 +3508,6 @@ static void initcurs (void)
     }
 }
 
-#ifdef USE_EGL
-CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
-{
-    CAMLparam3 (display_v, wid_v, screen_v);
-    int major, minor;
-    int num_conf;
-    EGLint visid;
-    EGLint attribs[] = {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
-        EGL_NONE
-    };
-    EGLConfig conf;
-
-    glx.dpy = XOpenDisplay (String_val (display_v));
-    if (!glx.dpy) {
-        caml_failwith ("XOpenDisplay");
-    }
-
-    eglBindAPI (EGL_OPENGL_API);
-
-    glx.edpy = eglGetDisplay (glx.dpy);
-    if (glx.edpy == EGL_NO_DISPLAY) {
-        caml_failwith ("eglGetDisplay");
-    }
-
-    if (!eglInitialize (glx.edpy, &major, &minor)) {
-        caml_failwith ("eglInitialize");
-    }
-
-    if (!eglChooseConfig (glx.edpy, attribs, &conf, 1, &num_conf) ||
-        !num_conf) {
-        caml_failwith ("eglChooseConfig");
-    }
-
-    if (!eglGetConfigAttrib (glx.edpy, conf, EGL_NATIVE_VISUAL_ID, &visid)) {
-        caml_failwith ("eglGetConfigAttrib");
-    }
-
-    glx.conf = conf;
-    initcurs ();
-
-    glx.wid = Int_val (wid_v);
-    CAMLreturn (Val_int (visid));
-}
-
-CAMLprim void ml_glxcompleteinit (value unit_v)
-{
-    CAMLparam1 (unit_v);
-
-    glx.ctx = eglCreateContext (glx.edpy, glx.conf, EGL_NO_CONTEXT, NULL);
-    if (!glx.ctx) {
-        caml_failwith ("eglCreateContext");
-    }
-
-    glx.win = eglCreateWindowSurface (glx.edpy, glx.conf,
-                                      glx.wid, NULL);
-    if (glx.win == EGL_NO_SURFACE) {
-        caml_failwith ("eglCreateWindowSurface");
-    }
-
-    if (!eglMakeCurrent (glx.edpy, glx.win, glx.win, glx.ctx)) {
-        glx.ctx = NULL;
-        caml_failwith ("eglMakeCurrent");
-    }
-    CAMLreturn0;
-}
-#else
 CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
 {
     CAMLparam3 (display_v, wid_v, screen_v);
@@ -3628,7 +3549,6 @@ CAMLprim void ml_glxcompleteinit (value unit_v)
     }
     CAMLreturn0;
 }
-#endif
 
 CAMLprim void ml_setcursor (value cursor_v)
 {
@@ -3644,13 +3564,7 @@ CAMLprim void ml_setcursor (value cursor_v)
 CAMLprim void ml_swapb (value unit_v)
 {
     CAMLparam1 (unit_v);
-#ifdef USE_EGL
-    if (!eglSwapBuffers (glx.edpy, glx.win)) {
-        caml_failwith ("eglSwapBuffers");
-    }
-#else
     glXSwapBuffers (glx.dpy, glx.wid);
-#endif
     CAMLreturn0;
 }
 
@@ -3844,9 +3758,6 @@ static void setuppbo (void)
 #define GGPA(n)                                                         \
   (&state.n = CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
 #else
-#ifdef USE_EGL
-#define GGPA(n) (*(void (**) (void)) &state.n = eglGetProcAddress (#n))
-#else
 #define GGPA(n)                                                         \
   (*(void (**) (void)) &state.n = glXGetProcAddress ((GLubyte *) #n))
 #endif
@@ -3856,7 +3767,6 @@ static void setuppbo (void)
         && GGPA (glBufferDataARB)
         && GGPA (glGenBuffersARB)
         && GGPA (glDeleteBuffersARB);
-#endif
 #undef GGPA
 }
 
