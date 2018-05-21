@@ -9,9 +9,9 @@ less
 == SYNOPSIS
 
 llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc]
-[-help|--help] [-last] [-no-title] [-origin origin] [-p password]
-[-page page-number] [-remote path] [-tcf path] [-layout-height height]
-[-v] some.pdf
+ [-help|--help] [-last] [-no-title] [-origin origin] [-p password]
+ [-page page-number] [-remote path] [-tcf path] [-layout-height height]
+ [-v] some.pdf
 
 == DESCRIPTION
 
