@@ -255,7 +255,7 @@ for target; do
                     echo "$src -> $out"
                     eval "$cmd || die '$cmd failed'"
                     echo "k='$cmd$(eval $keycmd)'" >"$out.past"
-                } && vecho "fresh manual pages"
+                } && vecho "fresh $out"
             done;;
 
         completions) die "not yet";;
