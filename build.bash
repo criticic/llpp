@@ -271,6 +271,11 @@ for m in link cutils version; do
     bocamlc $m.o
     cobjs="$cobjs $outd/$m.o"
 done
+for f in ml_gl ml_glarray ml_raw; do
+    bocamlc lablGL/$f.o
+    cobjs="$cobjs $outd/lablGL/$f.o"
+done
+
 
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
@@ -285,15 +290,8 @@ else
     bocamlc wsi/x11/keysym2ucs.o
 fi
 
-globjs=
-for f in ml_gl ml_glarray ml_raw; do
-    bocamlc lablGL/$f.o
-    globjs="$globjs $outd/lablGL/$f.o"
-done
-
 ord=$(grep -v \.cmi $outd/ordered)
-cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord"
-cmd=$(echo $cmd $globjs -cclib \"$clibs\")
+cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $(echo $ord) -cclib \"$clibs\""
 keycmd="digest $outd/llpp $cobjs $ord $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
