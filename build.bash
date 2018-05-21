@@ -91,7 +91,7 @@ incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 overs="$(ocamlc --version 2>/dev/null)" || overs="0.0.0"
 oversnum="$(echo $overs | { IFS=. read a b _; echo $a$b; })"
 
-test $oversnum -ge 407 || {
+test $oversnum -ge 406 || {
     url=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
     txz=$outd/$(basename $url)
     isfresh $txz $url || {
