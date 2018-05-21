@@ -1,3 +1,4 @@
+/* lots of code c&p-ed directly from mupdf */
 #ifdef __clang__
 #pragma GCC diagnostic error "-Weverything"
 #pragma GCC diagnostic ignored "-Wpadded"
@@ -9,7 +10,6 @@
 
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 
-/* lots of code c&p-ed directly from mupdf */
 extern char **environ;
 
 #define CAML_NAME_SPACE
