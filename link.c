@@ -1,6 +1,3 @@
-/* lots of code c&p-ed directly from mupdf */
-extern char **environ;
-
 #ifdef __clang__
 #pragma GCC diagnostic error "-Weverything"
 #pragma GCC diagnostic ignored "-Wpadded"
@@ -9,6 +6,9 @@ extern char **environ;
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #endif
+
+/* lots of code c&p-ed directly from mupdf */
+extern char **environ;
 
 #define CAML_NAME_SPACE
 #define FIXME 0
