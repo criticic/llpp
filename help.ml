@@ -207,15 +207,13 @@ let fixup = let open Str in let gr = global_replace in
 ;;
 
 let makehelp launcher =
-  let strings =
-    version ()
-    :: "(searching in this text works just by typing (i.e. no initial '/'))"
-    :: E.s :: String.split_on_char '\n' keys
-  in
-  List.map (fun s ->
-      let s = fixup s in
-      match geturl s with
-      | "" -> (s, 0, Config.Noaction)
-      | url ->  (s, 0, Config.Action (fun uioh -> gotourl launcher url; uioh))
-    ) strings;
+  version ()
+  :: "(searching in this text works just by typing (i.e. no initial '/'))"
+  :: E.s :: String.split_on_char '\n' keys |>
+    List.map (fun s ->
+        let s = fixup s in
+        match geturl s with
+        | "" -> (s, 0, Config.Noaction)
+        | url ->  (s, 0, Config.Action (fun uioh -> gotourl launcher url; uioh))
+      )
 ;;
