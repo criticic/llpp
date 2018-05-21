@@ -113,8 +113,7 @@ test $oversnum -ge 407 || {
         make install
         echo "k='$url'" >$absprefix/bin/ocamlc.past
     ) && vecho "fresh ocamlc"
-    overs=$(ocamlc --version 2>/dev/null) || overs="0.0.0"
-    oversnum=$(echo $overs | { IFS=. read a b _; echo $a$b; })
+    overs=$(ocamlc --version 2>/dev/null)
 }
 
 bocaml1() {
