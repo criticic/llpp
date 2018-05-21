@@ -3,11 +3,15 @@ llpp(1)
 
 == NAME
 
-llpp - a graphical document pager which aims to superficially resemble less
+llpp - a graphical document pager which aims to superficially resemble
+less
 
 == SYNOPSIS
 
-llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc] [-help|--help] [-last] [-no-title] [-origin origin] [-p password] [-page page-number] [-remote path] [-tcf path] [-layout-height height] [-v] some.pdf
+llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc]
+[-help|--help] [-last] [-no-title] [-origin origin] [-p password]
+[-page page-number] [-remote path] [-tcf path] [-layout-height height]
+[-v] some.pdf
 
 == DESCRIPTION
 
@@ -66,8 +70,9 @@ Print version and exit
 
 === ~/.config/llpp.conf
 
-This is the user specific configuration file. If $XDG_CONFIG_HOME is set
-$XDG_CONFIG_HOME/llpp.conf is used instead. It has an XML structure.
+This is the user specific configuration file. If $XDG_CONFIG_HOME is
+set $XDG_CONFIG_HOME/llpp.conf is used instead. It has an XML
+structure.
 
 You can specify a custom path using the -c option.
 
@@ -100,8 +105,9 @@ You can specify a custom path using the -c option.
   <defaults ... />
 </llppconfig>
 -------------------------------------------------------------
-- To change the key bindings, add keymaps to the defaults element, e.g.
-disable Escape key in the view mode:
+- To change the key bindings, add keymaps to the defaults element,
+e.g.  disable Escape key in the view mode:
+
 -------------------------------------------------------------
 <llppconfig>
   <defaults ... >
@@ -111,7 +117,9 @@ disable Escape key in the view mode:
   </defaults>
 </llppconfig>
 -------------------------------------------------------------
-The different modes are _birdseye_, _global_, _help_, _info_, _listview_, _outline_, and _view_.
+
+The different modes are _birdseye_, _global_, _help_, _info_,
+_listview_, _outline_, and _view_.
 
 == SEE ALSO
 
