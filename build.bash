@@ -73,9 +73,7 @@ cflags() {
     f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic-errors"
     case "${1#$outd/}" in
         version.o) f='-DLLPP_VERSION="'$ver'"';;
-        link.o)
-            f="$f -D_POSIX_C_SOURCE"
-            ! $darwin || f="$f -D__COCOA__";;
+        link.o) $darwin && f="$f -D__COCOA__" || f="$f -D_POSIX_C_SOURCE";;
         */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) f="-g -Wno-pointer-sign -O2";;
         *) f="-g -O2";;
