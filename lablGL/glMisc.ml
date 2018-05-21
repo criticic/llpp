@@ -10,11 +10,10 @@ let rec check_substring ~sep ~start ~buf s =
   if String.length buf < len + start then false else
   if String.sub buf ~pos:start ~len = s &&
     (String.length buf = len + start || buf.[len+start] = sep) then true
-  else match
-    try Some (String.index_from buf start sep) with Not_found -> None
-  with
-  | None -> false
-  | Some n -> check_substring ~sep ~start:(n+1) ~buf s
+  else
+    match String.index_from buf start sep with
+    | exception _ -> false
+    | n -> check_substring ~sep ~start:(n+1) ~buf s
 
 let check_extension s =
   check_substring ~sep:' ' ~start:0 ~buf:(get_string `extensions) s
