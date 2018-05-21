@@ -4203,9 +4203,8 @@ let drawpage l =
            linerect
              (float (dispx-1)) (float (l.pagedispy-1))
              (float (dispx+l.pagevw+1))
-             (float (l.pagedispy+l.pagevh+1))
-           ;
-             GlDraw.line_width 1.0;
+             (float (l.pagedispy+l.pagevh+1));
+           GlDraw.line_width 1.0;
            c;
          )
          else scalecolor 0.8
