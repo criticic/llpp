@@ -119,6 +119,13 @@ test $oversnum -ge 406 || {
 }
 
 bocaml1() {
+    grep -q "$3" $outd/ordered || {
+        bocaml2 $*
+        echo "$3" >>"$outd/ordered"
+    }
+}
+
+bocaml2() {
     local n=$1
     local s="$2"
     local o="$3"
@@ -153,14 +160,11 @@ bocaml1() {
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="digest $o $s $(< $o.depl)"
-    grep -q "$o" $outd/ordered || {
-        echo "$o" >>"$outd/ordered"
-        isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
-            printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
-            eval "$cmd || die '$cmd failed'"
-            echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
-        } && vecho "fresh '$o'"
-    }
+    isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
+        printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
+        eval "$cmd || die '$cmd failed'"
+        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
+    } && vecho "fresh '$o'"
 }
 
 bocaml() (
