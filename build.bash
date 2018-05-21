@@ -72,13 +72,13 @@ oflags() {
 cflags() {
     f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic-errors"
     case "${1#$outd/}" in
-        cutils.o) echo "$f";;
-        version.o) echo '-DLLPP_VERSION="'$ver'"';;
-        link.o) $darwin && echo "$f -D__COCOA__" || echo "$f";;
-        */keysym2ucs.o) echo "-O2 -include inttypes.h -DKeySym=uint32_t";;
-        */ml_*.o) echo "-g -Wno-pointer-sign -O2";;
-        *) echo "-g -O2";;
+        version.o) f='-DLLPP_VERSION="'$ver'"';;
+        link.o) ! $darwin || f="$f -D__COCOA__";;
+        */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
+        */ml_*.o) f="-g -Wno-pointer-sign -O2";;
+        *) f="-g -O2";;
     esac
+    echo $f
 }
 
 mflags() { echo "-I $(ocamlc -where) -g -O2"; }
