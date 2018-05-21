@@ -1,0 +1,8 @@
+* xclip     https://github.com/astrand/xclip
+* stardict  http://www.huzheng.org/stardict/
+* rofi      https://github.com/DaveDavenport/rofi
+* prince    https://www.princexml.com/
+* unoconv   https://github.com/dagwieers/unoconv
+* texi2html http://www.nongnu.org/texi2html/
+* ddjvu     http://djvu.sourceforge.net/doc/man/ddjvu.html
+* pandoc    http://pandoc.org
