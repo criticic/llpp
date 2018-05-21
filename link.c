@@ -62,7 +62,6 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
-#pragma GCC diagnostic ignored "-Wundef"
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
 #pragma GCC diagnostic pop
