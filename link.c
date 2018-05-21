@@ -7,6 +7,8 @@
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #endif
 
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+
 /* lots of code c&p-ed directly from mupdf */
 extern char **environ;
 
@@ -228,7 +230,6 @@ struct bo {
     size_t size;
 };
 
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
 static void UNUSED_ATTR debug_rect (const char *cap, fz_rect r)
 {
     printf ("%s(rect) %.2f,%.2f,%.2f,%.2f\n", cap, r.x0, r.y0, r.x1, r.y1);
@@ -244,7 +245,6 @@ static void UNUSED_ATTR debug_matrix (const char *cap, fz_matrix m)
     printf ("%s(matrix) %.2f,%.2f,%.2f,%.2f %.2f %.2f\n", cap,
             m.a, m.b, m.c, m.d, m.e, m.f);
 }
-#pragma GCC diagnostic error "-Wdouble-promotion"
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -1222,7 +1222,6 @@ static int matchline (regex_t *re, fz_stext_line *line,
         p4.x = s.x0;
         p4.y = e.y1;
 
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
         if (!stop) {
             printd ("firstmatch %d %d %f %f %f %f %f %f %f %f",
                     pageno, 1,
@@ -1243,7 +1242,6 @@ static int matchline (regex_t *re, fz_stext_line *line,
                     p3.x, p3.y,
                     p4.x, p4.y);
         }
-#pragma GCC diagnostic error "-Wdouble-promotion"
         free (p);
         return 1;
     }
@@ -1883,7 +1881,6 @@ done:
 }
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
 #pragma GCC diagnostic ignored "-Wconversion"
 #include "glfont.c"
 #pragma GCC diagnostic pop
