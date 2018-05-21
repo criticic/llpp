@@ -1,4 +1,6 @@
 /* lots of code c&p-ed directly from mupdf */
+extern char **environ;
+
 #ifdef __clang__
 #pragma GCC diagnostic error "-Weverything"
 #pragma GCC diagnostic ignored "-Wpadded"

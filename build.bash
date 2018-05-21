@@ -74,7 +74,7 @@ cflags() {
     case "${1#$outd/}" in
         cutils.o) echo "$f";;
         version.o) echo '-DLLPP_VERSION="'$ver'"';;
-        link.o) $darwin && echo "$f -D__COCOA__" || echo "$f -D_GNU_SOURCE";;
+        link.o) $darwin && echo "$f -D__COCOA__" || echo "$f";;
         */keysym2ucs.o) echo "-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) echo "-g -Wno-pointer-sign -O2";;
         *) echo "-g -O2";;
