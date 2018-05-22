@@ -63,7 +63,7 @@ oflags() {
         | unisyms.cmo                           \
         | utils.cmo                             \
         | $wsi/wsi.cmo)         # XXX confstruct?
-            f="-g -strict-sequence -strict-formats -warn-error @A";;
+            f="-g -strict-sequence -strict-formats -w @A";;
         *) f="-g";;
     esac
     echo "$incs $f"
