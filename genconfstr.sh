@@ -97,14 +97,14 @@ i tileh 2048
 g mustoresize memsize "256 lsl 20"
 b checkers true
 i aalevel 8
-s urilauncher E.s "(match platform with |Plinux|Psun|Pbsd -> {|xdg-open \"%s\"|}|Posx -> {|open \"%s|}\"|Punknown -> {|echo \"%s\"|})"
+s urilauncher E.s "(match platform with |Plinux|Psun|Pbsd -> {|xdg-open \"%s\"|}|Pmacos -> {|open \"%s|}\"|Punknown -> {|echo \"%s\"|})"
 s pathlauncher "{|lp \"%s\"|}"
 g colorspace colorspace Rgb
 b invert false
 f colorscale 1.
 g columns columns "Csingle [||]"
 g beyecolumns "columncount option" None
-s selcmd "(match platform with |Plinux|Pbsd|Psun -> \"LC_CTYPE=UTF-8 xclip -i\"|Posx -> \"LC_CTYPE=UTF-8 pbcopy\"|Punknown -> \"cat\")"
+s selcmd "(match platform with |Plinux|Pbsd|Psun -> \"LC_CTYPE=UTF-8 xclip -i\"|Pmacos -> \"LC_CTYPE=UTF-8 pbcopy\"|Punknown -> \"cat\")"
 s paxcmd '"cat"'
 s passcmd E.s
 s savecmd E.s

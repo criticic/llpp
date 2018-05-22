@@ -1163,7 +1163,7 @@ let init t w h platform =
       then
         let addr =
           match platform with
-          | Utils.Posx -> Unix.ADDR_UNIX d
+          | Utils.Pmacos -> Unix.ADDR_UNIX d
           | Utils.Plinux ->
              Unix.ADDR_UNIX ("\000/tmp/.X11-unix/X" ^ string_of_int dispnum)
           | Utils.Punknown | Utils.Psun | Utils.Pbsd ->

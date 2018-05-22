@@ -338,7 +338,7 @@ let nouioh : uioh = object (self)
 let platform_to_string = function
   | Punknown      -> "unknown"
   | Plinux        -> "Linux"
-  | Posx          -> "macOS"
+  | Pmacos        -> "macOS"
   | Psun          -> "Sun"
   | Pbsd          -> "BSD"
 ;;

@@ -3578,7 +3578,7 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
 }
 #endif
 
-enum { piunknown, pilinux, piosx, pisun, pibsd };
+enum { piunknown, pilinux, pimacos, pisun, pibsd };
 
 CAMLprim value ml_platform (value unit_v)
 {
@@ -3595,7 +3595,7 @@ CAMLprim value ml_platform (value unit_v)
 #elif defined __sun__
     platid = pisun;
 #elif defined __APPLE__
-    platid = piosx;
+    platid = pimacos;
 #endif
     if (uname (&buf)) err (1, "uname");
 
