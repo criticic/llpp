@@ -1,26 +1,5 @@
 * TODO progressive zoom
 * TODO wayland
-* DONE incorporate Nicolás's changes
-  CLOSED: [2017-02-04 Sat 07:57]
-* DONE backspace selected linknav preservation
-  CLOSED: [2016-11-22 Tue 17:06]
-* DONE move read/writedata to C
-  CLOSED: [2016-11-22 Tue 17:43]
-   unbreak abstr. boundry wrt 4 as the size of len and extra space in buf
-* DONE xclip zombie
-  CLOSED: [2016-11-22 Tue 17:44]
-   doesn't play nicely with mc
-* DONE user specified css for epubs/html (-css <path> or something)
-* DONE quoting in gc.awk [' ( )]
-  CLOSED: [2016-11-22 Tue 17:44]
-* DONE Investigate selection oddities (select under selects vast rects)
-   CLOSED: [2016-11-05 Sat 15:22]
-   Age of discovery page 57
-   Problem upstream
-* DONE pdf/asn.1 date parser
-  CLOSED: [2016-11-20 Sun 07:54]
-* DONE Remember css in llpp.conf (?)
-  CLOSED: [2016-11-21 Mon 02:14]
 * TODO Fixme
 ** DONE text selection and searches are broken in case of non zero rotation
    CLOSED: [2018-05-09 Wed 08:40]
@@ -34,20 +13,6 @@
     UTF8... no idea)
 * TODO outline for cbz
   file names? exif?
-* DONE (WONTFIX) somehow merge kv2pv and xlatt/xlatf
-  CLOSED: [2018-05-04 Fri 11:24]
-  ENOCONTEXT (also this is self flagellation)
-* DONE ctrl in (at least) help mode yields a key and not found message
-  CLOSED: [2016-12-30 Fri 10:53]
-* DONE do something about wsi.mli
-  CLOSED: [2018-04-07 Sat 01:55]
-* DONE Make new build.sh work on macOS
-  CLOSED: [2018-04-09 Mon 12:46]
-* DONE remove vestiges of make
-  CLOSED: [2018-05-04 Fri 12:13]
-  I would have to be very bored to mark that "DONE"...  And so i was,
-  the only Make remnants are in completions/, boredom must be absolute
-  to "fix" that.
 * TODO build.sh
 ** DONE Track ocaml version
    CLOSED: [2018-04-28 Sat 09:53]
@@ -65,12 +30,3 @@
 ** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
 ** TODO Investigate associative arrays instead of $outd/ordered
-* DONE misc/bootstrap.sh
-  CLOSED: [2018-04-28 Sat 12:39]
-  Out of tree
-  Shallow clone
-  Shallow submodules
-* DONE Generate config structure (and few associated utility functions)
-  CLOSED: [2018-05-17 Thu 11:35]
-  from a template/script of some sort
-
