@@ -290,10 +290,9 @@ let getcmdoutput errfun cmd =
 
 let geturl =
   let re = Str.regexp {|.*\(\(https?\|ftp\|mailto\|file\)://[^ ]+\).*|} in
-  fun s ->
-  if Str.string_match re s 0
-  then Str.matched_group 1 s
-  else E.s
+  fun s -> if Str.string_match re s 0
+           then Str.matched_group 1 s
+           else E.s
 ;;
 
 let substratis s pos subs =
