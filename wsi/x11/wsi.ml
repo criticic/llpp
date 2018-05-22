@@ -1166,7 +1166,7 @@ let init t w h platform =
           | Utils.Pmacos -> Unix.ADDR_UNIX d
           | Utils.Plinux ->
              Unix.ADDR_UNIX ("\000/tmp/.X11-unix/X" ^ string_of_int dispnum)
-          | Utils.Punknown | Utils.Psun | Utils.Pbsd ->
+          | Utils.Punknown | Utils.Pbsd ->
              Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum)
         in
         Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0, addr

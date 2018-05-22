@@ -339,7 +339,6 @@ let platform_to_string = function
   | Punknown      -> "unknown"
   | Plinux        -> "Linux"
   | Pmacos        -> "macOS"
-  | Psun          -> "Sun"
   | Pbsd          -> "BSD"
 ;;
 

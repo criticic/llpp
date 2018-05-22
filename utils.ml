@@ -8,7 +8,7 @@ module E = struct
   let a = [||];;
 end;;
 
-type platform = | Punknown | Plinux | Pmacos | Psun | Pbsd;;
+type platform = | Punknown | Plinux | Pmacos | Pbsd;;
 
 let asciilower = let auld = Char.code 'A' - Char.code 'a' in
                  function
