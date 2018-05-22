@@ -1,4 +1,3 @@
-
 #ifdef _WIN32
 #include <wtypes.h>
 #endif
@@ -28,7 +27,6 @@ int ml_glSizeOfValue(value v) {
    }
 }
 
-
 CAMLprim value ml_glEdgeFlagPointer(value raw)
 {
   glEdgeFlagPointer(0, (GLboolean*)Addr_raw(raw));
@@ -37,15 +35,15 @@ CAMLprim value ml_glEdgeFlagPointer(value raw)
 
 CAMLprim value ml_glTexCoordPointer(value size, value raw)
 {
-  glTexCoordPointer (ml_glSizeOfValue(size), 
-		     GLenum_val(Kind_raw(raw)), 0, Void_raw(raw));
+  glTexCoordPointer (ml_glSizeOfValue(size),
+                     GLenum_val(Kind_raw(raw)), 0, Void_raw(raw));
   return Val_unit;
 }
 
 CAMLprim value ml_glColorPointer(value size, value raw)
 {
-  glColorPointer (ml_glSizeOfValue(size), 
-		  GLenum_val(Kind_raw(raw)), 0, Void_raw(raw));
+  glColorPointer (ml_glSizeOfValue(size),
+                  GLenum_val(Kind_raw(raw)), 0, Void_raw(raw));
   return Val_unit;
 }
 
@@ -63,8 +61,8 @@ CAMLprim value ml_glNormalPointer(value raw)
 
 CAMLprim value ml_glVertexPointer(value size, value raw)
 {
-  glVertexPointer (ml_glSizeOfValue(size), 
-		   GLenum_val(Kind_raw(raw)), 0, Void_raw(raw));
+  glVertexPointer (ml_glSizeOfValue(size),
+                   GLenum_val(Kind_raw(raw)), 0, Void_raw(raw));
   return Val_unit;
 }
 
@@ -105,7 +103,7 @@ CAMLprim value ml_glDisableClientState(value kl)
 ML_1 (glArrayElement, Int_val);
 ML_3 (glDrawArrays, GLenum_val, Int_val, Int_val);
 
-CAMLprim value ml_glDrawElements(value mode, value count, value raw) 
+CAMLprim value ml_glDrawElements(value mode, value count, value raw)
 {
   glDrawElements (GLenum_val(mode), Int_val(count),
                   GLenum_val(Kind_raw(raw)), Void_raw(raw));
