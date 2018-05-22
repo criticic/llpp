@@ -75,7 +75,8 @@ cflags() {
         version.o) f='-DLLPP_VERSION="'$ver'"';;
         link.o)
             f="$f -D_POSIX_C_SOURCE"
-            ! $darwin || f="$f -D__COCOA__";;
+            $darwin && f="$f -D__COCOA__ -D_GNU_SOURCE" \
+                    || f="$f -D_POSIX_C_SOURCE" ;;
         */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) f="-g -Wno-pointer-sign -O2";;
         *) f="-g -O2";;

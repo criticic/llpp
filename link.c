@@ -3734,7 +3734,8 @@ static void setuppbo (void)
   if (framework == NULL)
     framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
 #define GGPA(n)                                                         \
-  (&state.n = CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
+  (*(void (**) (void)) &state.n =                                       \
+   (void (*) (void)) CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
 #else
 #define GGPA(n)                                                         \
   (*(void (**) (void)) &state.n = glXGetProcAddress ((GLubyte *) #n))
