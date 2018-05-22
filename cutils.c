@@ -64,8 +64,7 @@ void fmt_linkn (char *s, unsigned int u)
   if (s) {
     s += len;
     do { *--s = (char)('a' + (u % zma) - (u < zma && len > 1));
-        u /= zma; } while(u);
-    /* handles u == 0 */
+        u /= zma; } while(u); /* handles u == 0 */
   }
   s[len] = 0;
 }
