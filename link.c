@@ -46,9 +46,6 @@ extern char **environ;
 
 #ifdef __COCOA__
 #include <CoreFoundation/CoreFoundation.h>
-#endif
-
-#ifdef __APPLE__
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
