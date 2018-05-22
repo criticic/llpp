@@ -225,7 +225,7 @@ bobjc() {
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 
-cmd="sh $srcd/genconfstr.sh >$outd/confstruct.ml"
+cmd="(. $srcd/genconfstr.sh >$outd/confstruct.ml)"
 keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo genconfstr
@@ -306,7 +306,7 @@ if $darwin; then
         shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         d=$(dirname $out)
         mkdir -p "$d"
-        . $srcd/wsi/osx/genplist.sh >"$out"
+        (. $srcd/wsi/osx/genplist.sh) >"$out"
         echo "k='$(eval $keycmd)'" >"$out.past"
     } && vecho "fresh plist"
 
