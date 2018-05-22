@@ -225,7 +225,7 @@ bobjc() {
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 
-cmd="zsh $srcd/genconfstr.sh >$outd/confstruct.ml"
+cmd="sh $srcd/genconfstr.sh >$outd/confstruct.ml"
 keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo genconfstr
