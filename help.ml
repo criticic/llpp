@@ -181,7 +181,7 @@ external fz_version : unit -> string = "ml_fz_version";;
 external llpp_version : unit -> string = "ml_llpp_version";;
 
 let gotourl launcher url =
-  let command = Str.global_replace percentsre url launcher in
+  let command = Str.global_replace Utils.Re.percent url launcher in
   try ignore @@ spawn command []
   with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
 ;;

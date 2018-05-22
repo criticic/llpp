@@ -94,7 +94,8 @@ let launchpath () =
   if emptystr conf.pathlauncher
   then dolog "%s" state.path
   else (
-    let command = Str.global_replace percentsre state.path conf.pathlauncher in
+    let command =
+      Str.global_replace Utils.Re.percent state.path conf.pathlauncher in
     match spawn command [] with
     | _pid -> ()
     | exception exn ->
@@ -2914,7 +2915,7 @@ let entermsgsmode =
 
        method reset =
          state.newerrmsgs <- false;
-         let l = Str.split newlinere (Buffer.contents state.errmsgs) in
+         let l = Str.split Utils.Re.crlf (Buffer.contents state.errmsgs) in
          m_items <- Array.of_list l
 
        initializer
@@ -3482,7 +3483,7 @@ let save () =
   then adderrmsg "savepath-command is empty"
          "don't know where to save modified document"
   else
-    let savecmd = Str.global_replace percentsre state.path conf.savecmd in
+    let savecmd = Str.global_replace Utils.Re.percent state.path conf.savecmd in
     let path =
       getcmdoutput
         (fun exn ->

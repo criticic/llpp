@@ -166,9 +166,11 @@ let getenvwithdef name def =
   | exception Not_found -> def
 ;;
 
-let newlinere = Str.regexp "[\r\n]";;
-let percentsre = Str.regexp "%s";;
-let whitere = Str.regexp "[ \t]";;
+module Re = struct
+  let crlf = Str.regexp "[\r\n]";;
+  let percent = Str.regexp "%s";;
+  let whitespace = Str.regexp "[ \t]";;
+end;;
 
 let unit () = ();;
 

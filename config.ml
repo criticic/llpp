@@ -711,7 +711,7 @@ let keys_of_string s =
     in
     loop 0 0 0 elems
   in
-  let elems = Str.split whitere s in
+  let elems = Str.split Utils.Re.whitespace s in
   List.map (key_of_string (Str.regexp "-")) elems
 ;;
 
