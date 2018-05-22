@@ -2,25 +2,21 @@ llpp(1)
 =======
 
 == NAME
-
 llpp - a graphical document pager which aims to superficially resemble
 less
 
 == SYNOPSIS
-
 llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc]
  [-help|--help] [-last] [-no-title] [-origin origin] [-p password]
  [-page page-number] [-remote path] [-tcf path] [-layout-height height]
  [-v] some.pdf
 
 == DESCRIPTION
-
 *llpp* is a graphical document pager utilizing MuPDF
 (https://mupdf.com/) library.  The default keybindings resemble those
 of less(1), but can be configured by the user.
 
 == OPTIONS
-
 -c path::
 Set path to the configuration file
 
@@ -69,7 +65,6 @@ Print version and exit
 == FILES
 
 === ~/.config/llpp.conf
-
 This is the user specific configuration file. If $XDG_CONFIG_HOME is
 set $XDG_CONFIG_HOME/llpp.conf is used instead. It has an XML
 structure.
@@ -124,13 +119,10 @@ The different modes are _birdseye_, _global_, _help_, _info_,
 _listview_, _outline_, and _view_.
 
 == SEE ALSO
-
 llppac(1), llpphtml(1)
 
 == REPORTING BUGS
-
 https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com
 
 == macOS
-
 Nicolás Ojeda Bär contributed macOS port.
