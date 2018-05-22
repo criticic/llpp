@@ -271,9 +271,9 @@ for m in link cutils version; do
     bocamlc $m.o
     cobjs="$cobjs $outd/$m.o"
 done
-for f in ml_gl ml_glarray ml_raw; do
-    bocamlc lablGL/$f.o
-    cobjs="$cobjs $outd/lablGL/$f.o"
+for m in ml_gl ml_glarray ml_raw; do
+    bocamlc lablGL/$m.o
+    cobjs="$cobjs $outd/lablGL/$m.o"
 done
 
 
