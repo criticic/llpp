@@ -88,10 +88,8 @@ mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror -Wno-deprecated -O2"; }
 incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 
-overs="$(ocamlc --version 2>/dev/null)" || overs="0.0.0"
-oversnum="$(echo $overs | { IFS=. read a b _; echo $a$b; })"
-
-test $oversnum -ge 406 || {
+overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
+test $overs = 4.06.1 || {
     url=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
     txz=$outd/$(basename $url)
     isfresh $txz $url || {
@@ -115,7 +113,7 @@ test $oversnum -ge 406 || {
         make install
         echo "k='$url'" >$absprefix/bin/ocamlc.past
     ) && vecho "fresh ocamlc"
-    overs=$(ocamlc --version 2>/dev/null)
+    overs=$(ocamlc -vnum 2>/dev/null)
 }
 
 bocaml1() {
