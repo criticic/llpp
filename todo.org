@@ -1,35 +1,11 @@
 * TODO progressive zoom
 * TODO wayland
 * TODO Fixme
-** DONE text selection and searches are broken in case of non zero rotation
-   CLOSED: [2018-05-09 Wed 08:40]
-   deletion broken?? [intentionally removed actually]
 ** TODO linknav + presentation (link might not fit the visible area)
    fullscreening while loading complex documents has visual quirks
-** DONE macOS and file names with utf8 characters
-   CLOSED: [2018-04-29 Sun 08:58]
-   in "bundled" macOS applications nl_langinfo(3) returns US-ASCII
-   (very same "unbundled" thing with a controlling terminal returns
-    UTF8... no idea)
 * TODO outline for cbz
   file names? exif?
 * TODO build.sh
-** DONE Track ocaml version
-   CLOSED: [2018-04-28 Sat 09:53]
-** DONE Updating KEYS results in:
-   CLOSED: [2018-04-21 Sat 09:10]
-    - sh build.sh build
-    linking build/llpp
-    File "_none_", line 1:
-    Error: Files build/config.cmo and build/help.cmo
-           make inconsistent assumptions over interface Help
-** DONE Fix .mli ugliness
-   CLOSED: [2018-04-23 Mon 12:35]
 ** TODO Parallel builds
-** WONTDO cmt/cmti instead of -impl/-intf
 ** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
-** DONE Investigate associative arrays instead of $outd/ordered
-   CLOSED: [2018-05-23 Wed 07:03]
-   Associative array were introduced in bash 4 and to the best ot my
-   knowledge that falls under GPLv3 so there goes cider portability.
