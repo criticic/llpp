@@ -83,7 +83,7 @@ cflags() {
     echo $f
 }
 
-mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror -Wno-deprecated -O2"; }
+mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror "; }
 
 incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"

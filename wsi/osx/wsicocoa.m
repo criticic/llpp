@@ -359,6 +359,8 @@ NSCursor *GetCursor (int idx)
 
 @implementation MyView
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
 - (instancetype)initWithFrame:(NSRect)frame connector:(Connector *)aConnector
 {
   self = [super initWithFrame:frame];
@@ -370,6 +372,7 @@ NSCursor *GetCursor (int idx)
   }
 
   return self;
+#pragma GCC diagnostic pop
 }
 
 - (void)setCursor:(NSCursor *)aCursor
@@ -765,6 +768,8 @@ NSCursor *GetCursor (int idx)
   return YES;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
 - (void)openDocument:(id)sender
 {
   NSOpenPanel *openPanel = [NSOpenPanel openPanel];
@@ -778,6 +783,7 @@ NSCursor *GetCursor (int idx)
       }
     }];
 }
+#pragma GCC diagnostic pop
 
 - (void)reportIssue:(id)sender
 {
