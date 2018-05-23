@@ -274,7 +274,6 @@ for m in ml_gl ml_glarray ml_raw; do
     cobjs="$cobjs $outd/lablGL/$m.o"
 done
 
-
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
