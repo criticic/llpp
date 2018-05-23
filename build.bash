@@ -89,7 +89,7 @@ incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
-test $overs = 4.06.1 || {
+test "$overs" = "4.06.1" || {
     url=http://caml.inria.fr/pub/distrib/ocaml-4.06/ocaml-4.06.1.tar.xz
     txz=$outd/$(basename $url)
     isfresh $txz $url || {
@@ -310,6 +310,7 @@ if $darwin; then
     out=$outd/llpp.app/Contents/MacOS/llpp
     keycmd="digest $out $outd/llpp"
     isfresh $out "$(eval $keycmd)" || {
+        echo "bundling llpp.app"
         mkdir -p "$(dirname $out)"
         cp $outd/llpp $out
         echo "k='$(eval $keycmd)'" >"$out.past"
