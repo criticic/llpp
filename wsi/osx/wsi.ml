@@ -1,4 +1,4 @@
-open Utils;;
+open Utils
 
 type cursor =
   | CURSOR_INHERIT
@@ -273,21 +273,18 @@ let xlatt, xlatf =
   add "up" [] 0xf700;
   add "down" [] 0xf701;
   (* add "menu" [] 0xff67; *) (* ? *)
-  t, f;
-;;
+  t, f
 
 let keyname k =
   try Hashtbl.find xlatf k
-  with Not_found -> Printf.sprintf "%#x" k;
-;;
+  with Not_found -> Printf.sprintf "%#x" k
 
 let namekey name =
   try Hashtbl.find xlatt name
   with Not_found ->
     if String.length name = 1
     then Char.code name.[0]
-    else int_of_string name;
-;;
+    else int_of_string name
 
 let kc2kt =
   let open Keys in
@@ -314,4 +311,4 @@ let kc2kt =
   | code when code >= 0xf704 && code <= 0xf70f -> Fn (code - 0xf704 + 1)
   | code when code land 0xff00 = 0xff00 -> Ctrl code
   | code -> Code code
-;;
+
