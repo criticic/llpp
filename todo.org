@@ -8,3 +8,21 @@
 ** TODO Parallel builds
 ** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
+** TODO Dependency issue
+- cd /tmp
+/tmp
+- mkdir llpp
+/tmp
+- cd llpp
+/tmp/llpp
+- ln -sf ~/x/rcs/git/mupdf 
+/tmp/llpp
+- ~/xsrc/llpp/build.bash $PWD
+[...]
+wsi/x11/keysym2ucs.c -> wsi/x11/keysym2ucs.o
+linking /tmp/llpp/llpp
+File "_none_", line 1:
+Error: Files /tmp/llpp/confstruct.cmo and /tmp/llpp/wsi/x11/wsi.cmo
+       make inconsistent assumptions over interface Wsi
+ocamlc -custom str.cma unix.cma -o /tmp/llpp/llpp  /tmp/llpp/link.o /tmp/llpp/cutils.o /tmp/llpp/version.o /tmp/llpp/lablGL/ml_gl.o /tmp/llpp/lablGL/ml_glarray.o /tmp/llpp/lablGL/ml_raw.o /tmp/llpp/wsi/x11/keysym2ucs.o /tmp/llpp/utils.cmo /tmp/llpp/keys.cmo /tmp/llpp/wsi/x11/wsi.cmo /tmp/llpp/unisyms.cmo /tmp/llpp/lablGL/raw.cmo /tmp/llpp/lablGL/gl.cmo /tmp/llpp/lablGL/glPix.cmo /tmp/llpp/lablGL/glMisc.cmo /tmp/llpp/lablGL/glTex.cmo /tmp/llpp/lablGL/glFunc.cmo /tmp/llpp/lablGL/glDraw.cmo /tmp/llpp/lablGL/glArray.cmo /tmp/llpp/glutils.cmo /tmp/llpp/lablGL/glMat.cmo /tmp/llpp/parser.cmo /tmp/llpp/confstruct.cmo /tmp/llpp/config.cmo /tmp/llpp/listview.cmo /tmp/llpp/help.cmo /tmp/llpp/lablGL/glClear.cmo /tmp/llpp/main.cmo -cclib "-L/tmp/llpp/mupdf/build/native -lmupdf -lmupdf-third -lpthread -lGL -lX11" failed
+ko 5 sec
