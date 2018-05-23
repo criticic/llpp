@@ -60,7 +60,7 @@ oflags() {
         | listview.cmo                          \
         | main.cmo                              \
         | parser.cmo                            \
-        | unisyms.cmo                           \
+        | utf8syms.cmo                          \
         | utils.cmo                             \
         | $wsi/wsi.cmo)         # XXX confstruct?
             f="-g -strict-sequence -strict-formats -w @A";;

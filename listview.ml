@@ -307,7 +307,7 @@ object (self)
                   then s
                   else
                     let s' = withoutlastutf8 s in
-                    let s = s' ^ Unisyms.ellipsis in
+                    let s = s' ^ Utf8syms.ellipsis in
                     let w = measurestr fs s in
                     if float x' +. w +. ww < float (hw + x')
                     then s
