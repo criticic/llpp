@@ -29,4 +29,7 @@
 ** WONTDO cmt/cmti instead of -impl/-intf
 ** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
-** TODO Investigate associative arrays instead of $outd/ordered
+** DONE Investigate associative arrays instead of $outd/ordered
+   CLOSED: [2018-05-23 Wed 07:03]
+   Associative array were introduced in bash 4 and to the best ot my
+   knowledge that falls under GPLv3 so there goes cider portability.
