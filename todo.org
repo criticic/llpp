@@ -1,5 +1,4 @@
 * TODO progressive zoom
-* TODO wayland
 * TODO Fixme
 ** TODO linknav + presentation (link might not fit the visible area)
    fullscreening while loading complex documents has visual quirks
