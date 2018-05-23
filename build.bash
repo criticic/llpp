@@ -83,7 +83,7 @@ cflags() {
     echo $f
 }
 
-mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror "; }
+mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror -O2"; }
 
 incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
 incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
