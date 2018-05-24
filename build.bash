@@ -1,14 +1,15 @@
 #!/bin/bash
 set -eu
 
-now() { date +%s; }
+expr &>/dev/null "$(date --version)" : '.* GNU' || dfmt=%s && dfmt=%s.%N
+now() { date +$dfmt; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() { cksum 2>/dev/null $* | while read h _; do printf $h; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
-    echo "$msg $(($(now)-tstart)) sec"
+    printf "$msg %.3f sec\n" $(echo $(now) - $tstart | bc)
 }
 
 die() {
