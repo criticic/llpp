@@ -28,3 +28,8 @@ ocamlc -custom str.cma unix.cma -o /tmp/llpp/llpp ..." failed
 ko 5 sec
 *** Ugly workaround
     cd ~/src/llpp; bash build.bash /tmp/llpp
+*** Workaround #2
+Do not descend into llpp, but link mupdf into it and
+build.bash with $PWD/llpp instead of just llpp.
+
+That points to some issue with a way ocamlc locates modules.
