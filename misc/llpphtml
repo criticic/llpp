@@ -6,7 +6,9 @@ die() { echo "$1" >&2; exit 1; }
 cachedir="${XDG_CACHE_HOME:-$HOME/.cache}/llpp"
 test -d "$cachedir" || die "cache directory '$cachedir' does not exist"
 
-command -v prince >/dev/null 2>&1 || { die "$0: need princeXML to work"; }
+command -v prince >/dev/null 2>&1 || {
+    die "$0: prince(https://www.princexml.com/) not found"
+}
 
 css=$HOME/xsrc/llpp/misc/prince.css
 test -e "$css" || unset css
