@@ -63,7 +63,7 @@ cflags() {
     case "${1#$outd/}" in
         version.o) f='-DLLPP_VERSION="'$ver'"';;
         link.o)
-            f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic-errors"
+            f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
             f="$f -DCACHE_PAGEREFS"
             $darwin && f="$f -D__COCOA__ -D_GNU_SOURCE" \
                     || f="$f -D_POSIX_C_SOURCE" ;;
