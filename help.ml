@@ -105,7 +105,6 @@ S                       - slide show mode
 -S<number>              - set space between pages (pixels)
 -R<number>              - rotate
 -v                      - toggle verbosity
--l                      - toggle proportional display
 -Z<number>              - set zoom (percent)
 -T                      - toggle trimming of margins
 -I                      - invert colors
