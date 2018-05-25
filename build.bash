@@ -1,8 +1,7 @@
 #!/bin/bash
 set -eu
 
-expr &>/dev/null "$(date --version)" : '.* GNU' || dfmt=%s && dfmt=%s.%N
-now() { date +$dfmt; }
+now() { date +%s; }
 tstart=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() { cksum 2>/dev/null $* | while read h _; do printf $h; done; }
