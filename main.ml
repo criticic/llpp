@@ -1765,10 +1765,8 @@ let enterbirdseye () =
   then
     state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
                     (100.0*.zoom)
-  else
-    state.text <- E.s
-  ;
-    reshape state.winw state.winh;
+  else state.text <- E.s;
+  reshape state.winw state.winh;
 ;;
 
 let leavebirdseye (c, leftx, pageno, _, anchor) goback =
@@ -1793,9 +1791,8 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   if conf.verbose
   then
     state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-                    (100.0*.conf.zoom)
-  ;
-    reshape state.winw state.winh;
+                    (100.0*.conf.zoom);
+  reshape state.winw state.winh;
   state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
   state.x <- leftx;
 ;;
@@ -2695,11 +2692,10 @@ let enterinfomode =
             state.text <- Printf.sprintf
                             "bad page scroll scaling factor `%s': %s" v
                           @@ exntos exn
-        )
-      ;
-        src#int "ui font size"
-          (fun () -> fstate.fontsize)
-          (fun v -> setfontsize (bound v 5 100));
+        );
+      src#int "ui font size"
+        (fun () -> fstate.fontsize)
+         (fun v -> setfontsize (bound v 5 100));
       src#int "hint font size"
         (fun () -> conf.hfsize)
         (fun v -> conf.hfsize <- bound v 5 100);
