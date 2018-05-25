@@ -1583,21 +1583,20 @@ let linknact f s =
   )
 ;;
 
-let linknentry text =
-  function [@warning "-4"]
-         | Keys.Ascii c ->
-            let text = addchar text c in
-            linknact (fun under -> state.text <- undertext under) text;
-            TEcont text
-         | _ ->
-            state.text <- Printf.sprintf "invalid key";
-            TEcont text
+let linknentry text key = match [@warning "-4"] key with
+  | Keys.Ascii c ->
+     let text = addchar text c in
+     linknact (fun under -> state.text <- undertext under) text;
+     TEcont text
+  | _ ->
+     state.text <- Printf.sprintf "invalid key";
+     TEcont text
 ;;
 
-let textentry text = function [@warning "-4"]
-                            | Keys.Ascii c -> TEcont (addchar text c)
-                            | Keys.Code c -> TEcont (text ^ toutf8 c)
-                            | _ -> TEcont text
+let textentry text key = match [@warning "-4"] key with
+  | Keys.Ascii c -> TEcont (addchar text c)
+  | Keys.Code c -> TEcont (text ^ toutf8 c)
+  | _ -> TEcont text
 ;;
 
 let reqlayout angle fitmodel =
