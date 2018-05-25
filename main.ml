@@ -172,9 +172,7 @@ let showtext c s =
   postRedisplay "showtext";
 ;;
 
-let impmsg fmt =
-  Format.ksprintf (fun s -> showtext '!' s) fmt;
-;;
+let impmsg fmt = Format.ksprintf (fun s -> showtext '!' s) fmt;;
 
 let pipesel opaque cmd =
   if hassel opaque
@@ -421,14 +419,12 @@ let itertiles l f =
       let dh = conf.tileh - y0 in
       let dh = min h dh in
       let rec colloop col x0 dispx w =
-        if w = 0
-        then ()
-        else (
+        if w != 0
+        then
           let dw = conf.tilew - x0 in
           let dw = min w dw in
           f col row dispx dispy x0 y0 dw dh;
           colloop (col+1) 0 (dispx+dw) (w-dw)
-        )
       in
       colloop col tilex l.pagedispx l.pagevw;
       rowloop (row+1) 0 (dispy+dh) (h-dh)
@@ -439,9 +435,8 @@ let itertiles l f =
 ;;
 
 let gettileopaque l col row =
-  let key =
-    l.pageno, state.gen, conf.colorspace, conf.angle, l.pagew, l.pageh, col, row
-  in
+  let key = l.pageno, state.gen, conf.colorspace,
+            conf.angle, l.pagew, l.pageh, col, row in
   try Some (Hashtbl.find state.tilemap key)
   with Not_found -> None
 ;;
@@ -472,7 +467,8 @@ let drawtiles l color =
          in
          let w = measurestr fstate.fontsize s in
          GlDraw.color (0.0, 0.0, 0.0);
-         filledrect (float (x-2))
+         filledrect
+           (float (x-2))
            (float (y-2))
            (float (x+2) +. w)
            (float (y + fstate.fontsize + 2));
@@ -607,8 +603,7 @@ let tilepage n p layout =
                   then getpbo w h conf.colorspace
                   else ~< "0"
                 in
-                wcmd "tile %s %d %d %d %d %s"
-                  (~> p) x y w h (~> pbo);
+                wcmd "tile %s %d %d %d %d %s" (~> p) x y w h (~> pbo);
                 state.currently <-
                   Tiling (
                       l, p, conf.colorspace, conf.angle,
@@ -635,9 +630,8 @@ let preloadlayout x y sw sh =
 
 let load pages =
   let rec loop pages =
-    if state.currently != Idle
-    then ()
-    else
+    if state.currently = Idle
+    then
       match pages with
       | l :: rest ->
          begin match getopaque l.pageno with
@@ -723,10 +717,8 @@ let gotoxy x y =
        match state.layout with
        | [] -> ()
        | l :: _ ->
-          state.mode <- Birdseye (
-                            conf, leftx, l.pageno, hooverpageno, anchor
-                          )
-     );
+          state.mode <- Birdseye (conf, leftx, l.pageno, hooverpageno, anchor)
+     )
   | LinkNav lt ->
      begin match lt with
      | Ltnotready (_, dir)
@@ -842,9 +834,7 @@ let invalidate s f =
 ;;
 
 let flushpages () =
-  Hashtbl.iter (fun _ opaque ->
-      wcmd "freepage %s" (~> opaque);
-    ) state.pagemap;
+  Hashtbl.iter (fun _ opaque -> wcmd "freepage %s" (~> opaque)) state.pagemap;
   Hashtbl.clear state.pagemap;
 ;;
 
@@ -938,8 +928,7 @@ let docolumns columns =
          let y =
            y + (if conf.presentation
                 then (if pageno = 0 then calcips h else calcips ph + calcips h)
-                else (if pageno = 0 then 0 else conf.interpagespace)
-               )
+                else (if pageno = 0 then 0 else conf.interpagespace))
          in
          a.(pageno) <- (pdimno, x, y, pdim);
          loop (pageno+1) pdimno pdim (y + h) h pdims
@@ -1026,9 +1015,8 @@ let docolumns columns =
   | Csplit (c, _) ->
      let a = Array.make (state.pagecount*c) (-1, -1, -1, (-1, -1, -1, -1)) in
      let rec loop pageno pdimno pdim y pdims =
-       if pageno = state.pagecount
-       then ()
-       else
+       if pageno != state.pagecount
+       then
          let pdimno, ((_, w, h, _) as pdim), pdims =
            match pdims with
            | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->
@@ -1106,8 +1094,7 @@ let reshape ?(firsttime=false) w h =
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
-      wcmd "geometry %d %d %d"
-        w (stateh h) (FMTE.to_int conf.fitmodel)
+      wcmd "geometry %d %d %d" w (stateh h) (FMTE.to_int conf.fitmodel)
     );
 ;;
 
@@ -1130,8 +1117,7 @@ let gctiles () =
              && pagew = pw
              && pageh = ph
              && (
-               let x = col*conf.tilew
-               and y = row*conf.tileh in
+               let x = col*conf.tilew and y = row*conf.tileh in
                tilevisible (Lazy.force_val layout) n x y
              )
         then Queue.push lruitem state.tilelru
@@ -1921,9 +1907,7 @@ let adderrmsg src msg =
   postRedisplay src
 ;;
 
-let adderrfmt src fmt =
-  Format.ksprintf (fun s -> adderrmsg src s) fmt;
-;;
+let adderrfmt src fmt = Format.ksprintf (fun s -> adderrmsg src s) fmt;;
 
 class outlinelistview ~zebra ~source =
   let settext autonarrow s =
@@ -1987,7 +1971,10 @@ class outlinelistview ~zebra ~source =
       | Ascii 'a' when ctrl ->
          let text =
            if m_autonarrow
-           then (source#denarrow; E.s)
+           then (
+             source#denarrow;
+             E.s
+           )
            else (
              let pattern = source#renarrow in
              if nonemptystr m_qsearch
@@ -2152,8 +2139,7 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
 
 let setcheckers enabled =
   match state.checkerstexid with
-  | None ->
-     if enabled then state.checkerstexid <- Some (makecheckers ())
+  | None -> if enabled then state.checkerstexid <- Some (makecheckers ())
 
   | Some checkerstexid ->
      if not enabled
@@ -3786,11 +3772,8 @@ let viewkeyboard key mask =
   | Ascii 'm' ->
      let ondone s =
        match state.layout with
-       | l :: _ ->
-          if nonemptystr s
-          then
-            state.bookmarks <-
-              (s, 0, Oanchor (getanchor1 l)) :: state.bookmarks
+       | l :: _ when nonemptystr s ->
+          state.bookmarks <- (s, 0, Oanchor (getanchor1 l)) :: state.bookmarks
        | _ -> ()
      in
      enttext ("bookmark: ", E.s, None, textentry, ondone, true)
@@ -3802,8 +3785,7 @@ let viewkeyboard key mask =
   | Ascii 'x' -> state.roam ()
 
   | Ascii ('<'|'>' as c) ->
-     reqlayout
-       (conf.angle + (if c = '>' then 30 else -30)) conf.fitmodel
+     reqlayout (conf.angle + (if c = '>' then 30 else -30)) conf.fitmodel
 
   | Ascii ('['|']' as c) ->
      conf.colorscale <-
@@ -4005,7 +3987,6 @@ let linknavkeyboard key mask linknav =
            | Right -> Some (findlink opaque (LDright n)), 1
            | Up -> Some (findlink opaque (LDup n)), -1
            | Down -> Some (findlink opaque (LDdown n)), 1
-
            | Delete|Escape|Insert|Enter|Next|Prior|Ascii _
            | Code _|Fn _|Ctrl _|Backspace -> None, 0
          in
@@ -5128,9 +5109,7 @@ let () =
             state.uioh <- state.uioh#button b d x y m
           );
         )
-        else (
-          state.uioh <- state.uioh#button b d x y m
-        )
+        else state.uioh <- state.uioh#button b d x y m
       method motion x y =
         state.mpos <- (x, y);
         state.uioh <- state.uioh#motion x y
