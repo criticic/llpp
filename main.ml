@@ -2672,7 +2672,7 @@ let enterinfomode =
         );
       src#int "ui font size"
         (fun () -> fstate.fontsize)
-         (fun v -> setfontsize (bound v 5 100));
+        (fun v -> setfontsize (bound v 5 100));
       src#int "hint font size"
         (fun () -> conf.hfsize)
         (fun v -> conf.hfsize <- bound v 5 100);
