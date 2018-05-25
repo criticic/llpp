@@ -54,18 +54,8 @@ isfresh "$mulibs" "$(eval $keycmd)" || (
 
 oflags() {
     case "${1#$outd/}" in
-        config.cmo                              \
-        | glutils.cmo                           \
-        | help.cmo                              \
-        | keys.cmo                              \
-        | listview.cmo                          \
-        | main.cmo                              \
-        | parser.cmo                            \
-        | utf8syms.cmo                          \
-        | utils.cmo                             \
-        | $wsi/wsi.cmo)         # XXX confstruct?
-            f="-g -strict-sequence -strict-formats -w @A";;
-        *) f="-g";;
+        lablGL/*) f="-g";;
+        $wsi/wsi.cmo|*) f="-g -strict-sequence -strict-formats -w @A";;
     esac
     echo "$incs $f"
 }
