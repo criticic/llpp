@@ -1862,15 +1862,6 @@ let optentry mode _ key =
      conf.underinfo <- not conf.underinfo;
      TEdone ("underinfo " ^ btos conf.underinfo)
 
-  | Keys.Ascii 'l' ->
-     let fm =
-       match conf.fitmodel with
-       | FitProportional -> FitWidth
-       | FitWidth | FitPage -> FitProportional
-     in
-     reqlayout conf.angle fm;
-     TEdone ("proportional display " ^ btos (fm == FitProportional))
-
   | Keys.Ascii 'T' ->
      settrim (not conf.trimmargins) conf.trimfuzz;
      TEdone ("trim margins " ^ btos conf.trimmargins)
