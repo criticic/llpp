@@ -1610,8 +1610,7 @@ let reqlayout angle fitmodel =
     | Birdseye _ | Textentry _ | View -> ()
   );
   conf.fitmodel <- fitmodel;
-  invalidate
-    "reqlayout"
+  invalidate "reqlayout"
     (fun () ->
       wcmd "reqlayout %d %d %d"
         conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh)
