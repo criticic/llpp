@@ -8,7 +8,7 @@ digest() { cksum 2>/dev/null $* | while read h _; do printf $h; done; }
 
 partmsg() {
     test $? -eq 0 && msg="ok" || msg="ko"
-    printf "$msg %.3f sec\n" $(echo $(now) - $tstart | bc)
+    echo "$msg $(($(now) - $tstart)) sec"
 }
 
 die() {
