@@ -2,8 +2,8 @@
   <keymap mode='view'>
     <!-- menu to follow links -->
     <map in='menu' out='F'/>
-    <!-- ret to enter bird's eye and turn off proportional display -->
-    <map in='ret' out='f9 - l'/>
+    <!-- ret to enter bird's eye -->
+    <map in='ret' out='f9'/>
     <!-- F11 to enter fullscreen -->
     <map in='f11' out='f'/>
     <!-- ignore escape -->
