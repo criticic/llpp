@@ -73,9 +73,6 @@ extern char **environ;
 
 #include "cutils.h"
 
-#define PIGGYBACK
-#define CACHE_PAGEREFS
-
 #ifdef USE_NPOT
 #define TEXT_TYPE GL_TEXTURE_2D
 #else
@@ -494,7 +491,7 @@ static void freetile (struct tile *tile)
 {
     unlinktile (tile);
     if (!tile->pbo) {
-#ifndef PIGGYBACK
+#if 0                           /* piggyback */
         fz_drop_pixmap (state.ctx, tile->pixmap);
 #else
         if (state.pig) {
