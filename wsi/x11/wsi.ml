@@ -732,7 +732,7 @@ let setup disp sock rootwid screennum w h =
      error "X connection failed maj=%d min=%d reason=%S"
            maj min (Bytes.unsafe_to_string reason)
 
-  | '\002' -> failwith "X connection setup failed: authentication required";
+  | '\002' -> error "X connection setup failed: authentication required";
 
   | '\001' ->
      let s       = readstr sock 38 in

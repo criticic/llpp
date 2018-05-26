@@ -34,7 +34,7 @@ let multicolumns_of_string s =
   with _ ->
     Scanf.sscanf s "%u,%u,%u" (fun n a b ->
         if a > 1 || b > 1
-        then failwith "subtly broken";
+        then error "subtly broken";
         (n, a, b)
       );
 ;;
@@ -129,7 +129,7 @@ module TextEnumMake (Ten : TextEnumType) =
     let of_string s =
       let rec find i =
         if i = Array.length names
-        then failwith ("invalid " ^ Ten.name ^ ": " ^ s)
+        then error "invalid %s: %s" Ten.name s
         else (
           if Ten.names.(i) = s
           then of_int i
@@ -876,7 +876,7 @@ let map_of attrs =
 
 let findkeyhash c name =
   try List.assoc name c.keyhashes
-  with Not_found -> failwith ("invalid mode name `" ^ name ^ "'")
+  with Not_found -> error "invalid mode name `%s'" name
 ;;
 
 let get s =
@@ -1503,8 +1503,7 @@ let save1 bb leavebirdseye x h dc =
                    Printf.bprintf bb " visy='%f'" visy
                ;
              | Ohistory _ | Onone | Ouri _ | Oremote _
-             | Oremotedest _ | Olaunch _ ->
-                failwith "unexpected link in bookmarks"
+             | Oremotedest _ | Olaunch _ -> error "unexpected link in bookmarks"
              end;
              Buffer.add_string bb "/>\n";
            ) bookmarks;

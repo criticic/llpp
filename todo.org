@@ -9,3 +9,5 @@
 ** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
 ** TODO Move wsi specific stuff out of link.c and into wsi/../xxx.[cm]
+** TODO modifications to wsi/x11/wsi.ml lead to interface incompatibility
+   with confstruct

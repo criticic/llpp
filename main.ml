@@ -1221,7 +1221,7 @@ let act cmds =
 
      let cur, cmds = state.geomcmds in
      if emptystr cur
-     then failwith "umpossible";
+     then error "empty geomcmd";
 
      begin match List.rev cmds with
      | [] ->
@@ -1740,7 +1740,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
     match conf.columns with
     | Cmulti ((c, _, _), _) -> Some c
     | Csingle _ -> None
-    | Csplit _ -> failwith "leaving bird's eye split mode"
+    | Csplit _ -> error "leaving bird's eye split mode"
   );
   conf.columns <- (
     match c.columns with
@@ -3091,10 +3091,12 @@ let gotooutline (_, _, kind) =
      addnav ();
      gotoxy state.x y
   | Ouri uri -> gotounder (Ulinkuri uri)
-  | Olaunch _cmd -> failwith "gotounder (Ulaunch cmd)"
-  | Oremote _remote -> failwith "gotounder (Uremote remote)"
+  | Olaunch cmd -> error "gotounder (Ulaunch %S)" cmd
+  | Oremote (remote, pageno) ->
+     error "gotounder (Uremote (%S,%d) )" remote pageno
   | Ohistory hist -> gotohist hist
-  | Oremotedest _remotedest -> failwith "gotounder (Uremotedest remotedest)"
+  | Oremotedest (path, dest) ->
+     error "gotounder (Uremotedest (%S, %S))" path dest
 ;;
 
 class outlinesoucebase fetchoutlines = object (self)
@@ -3999,7 +4001,7 @@ let birdseyekeyboard key mask
     match conf.columns with
     | Csingle _ -> 1
     | Cmulti ((c, _, _), _) -> c
-    | Csplit _ -> failwith "bird's eye split mode"
+    | Csplit _ -> error "bird's eye split mode"
   in
   let pgh layout = List.fold_left
                      (fun m l -> max l.pageh m) state.winh layout in

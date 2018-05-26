@@ -66,32 +66,30 @@ let unent b s pos len =
       )
       else (
         Buffer.add_substring b s i (amppos - i);
-        if amppos = i + len then failwith "lonely amp";
+        if amppos = i + len then Utils.error "lonely amp";
 
         let semipos =
           try
             let semipos = String.index_from s (amppos+1) ';' in
             if semipos >= pos + len then raise Not_found;
             semipos
-          with Not_found -> failwith "amp not followed by semicolon"
+          with Not_found ->
+            Utils.error "amp not followed by semicolon at %d" amppos
         in
 
         let subslen = semipos-amppos-1 in
-        if subslen = 0 then failwith "empty amp";
+        if subslen = 0 then Utils.error "empty amp at %d" amppos;
 
         let subs = String.sub s (amppos+1) subslen in
 
         if subs.[0] = '#'
         then (
-          if subslen = 1 then failwith "empty amp followed by hash";
+          if subslen = 1
+          then Utils.error "empty amp followed by hash at %d" amppos;
           let code =
             if subs.[1] = 'x'
-            then (
-              Scanf.sscanf subs "#x%x" (fun n -> n)
-            )
-            else (
-              int_of_string (String.sub subs 1 (subslen-1))
-            )
+            then Scanf.sscanf subs "#x%x" (fun n -> n)
+            else int_of_string (String.sub subs 1 (subslen-1))
           in
           let c = Char.unsafe_chr code in
           Buffer.add_char b c
@@ -103,7 +101,7 @@ let unent b s pos len =
           | "amp" -> Buffer.add_char b '&'
           | "apos" -> Buffer.add_char b '\''
           | "quot" -> Buffer.add_char b '\"'
-          | _ -> failwith ("unknown amp " ^ String.escaped subs)
+          | _ -> Utils.error "unknown amp %S" subs
         );
         loop (semipos+1)
       )
