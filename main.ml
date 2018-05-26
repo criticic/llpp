@@ -98,8 +98,7 @@ let launchpath () =
       Str.global_replace Utils.Re.percent state.path conf.pathlauncher in
     match spawn command [] with
     | _pid -> ()
-    | exception exn ->
-       dolog "failed to execute `%s': %s" command @@ exntos exn
+    | exception exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
   );
 ;;
 
@@ -185,13 +184,12 @@ let pipesel opaque cmd =
 let paxunder x y =
   let g opaque l px py =
     if markunder opaque px py conf.paxmark
-    then (
+    then
       Some (fun () ->
           match getopaque l.pageno with
           | None -> ()
           | Some opaque -> pipesel opaque conf.paxcmd
         )
-    )
     else None
   in
   postRedisplay "paxunder";
@@ -309,10 +307,8 @@ let layoutN ((columns, coverA, coverB), b) x y sw sh =
                 }
               in
               e :: accu
-            else
-              accu
-          else
-            accu
+            else accu
+          else accu
         in
         fold accu (n+1)
   in
@@ -380,10 +376,8 @@ let layoutS (columns, b) x y sw sh =
                 }
               in
               e :: accu
-            else
-              accu
-          else
-            accu
+            else accu
+          else accu
         in
         fold accu (n+1)
   in
@@ -459,10 +453,7 @@ let drawtiles l color =
        if conf.debug
        then (
          endtiles ();
-         let s = Printf.sprintf
-                   "%d[%d,%d] %f sec"
-                   l.pageno col row t
-         in
+         let s = Printf.sprintf "%d[%d,%d] %f sec" l.pageno col row t in
          let w = measurestr fstate.fontsize s in
          GlDraw.color (0.0, 0.0, 0.0);
          filledrect
@@ -477,12 +468,8 @@ let drawtiles l color =
 
     | None ->
        endtiles ();
-       let w =
-         let lw = state.winw - x in
-         min lw w
-       and h =
-         let lh = state.winh - y in
-         min lh h
+       let w = let lw = state.winw - x in min lw w
+       and h = let lh = state.winh - y in min lh h
        in
        if conf.invert
        then GlTex.env (`mode `blend);
