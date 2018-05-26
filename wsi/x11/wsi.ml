@@ -1314,4 +1314,4 @@ let kc2kt =
   | code -> Code code
 ;;
 
-let fontsizefactor () = 1
+let fontsizefactor () = 1;;
