@@ -36,7 +36,7 @@ let dolog fmt = Format.ksprintf prerr_endline fmt;;
 let exntos = function
   | Unix.Unix_error (e, s, a) ->
      Printf.sprintf "%s(%s) : %s (%d)"
-                    s a (Unix.error_message e) (Obj.magic e)
+       s a (Unix.error_message e) (Obj.magic e)
   | exn -> Printexc.to_string exn
 ;;
 
@@ -112,8 +112,8 @@ let string_with_suffix_of_int n =
 
 let color_of_string s =
   Scanf.sscanf s "%d/%d/%d" (fun r g b ->
-                 (float r /. 255.0, float g /. 255.0, float b /. 255.0)
-               )
+      (float r /. 255.0, float g /. 255.0, float b /. 255.0)
+    )
 ;;
 
 let rgba_of_string s =
