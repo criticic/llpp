@@ -1,5 +1,4 @@
 This code, sans local copy of LablGL [1], is in the public domain [2]
 
 [1] Text inside lablGL/COPYRIGHT covers lablGL
-[2] https://github.com/ccxvii/snippets/blob/master/README covers
-    glfont.c
+[2] https://github.com/ccxvii/snippets/blob/master/README covers glfont.c
