@@ -238,7 +238,7 @@ let intentry_with_suffix text key =
     | Keys.Ascii ('k' | 'm' | 'g' | 'K' | 'M' | 'G' as c) ->
        addchar text @@ asciilower c
     | _ ->
-       state.text <- Printf.sprintf "invalid key";
+       state.text <- "invalid key";
        text
   in
   TEcont text
