@@ -224,8 +224,7 @@ and linktarget =
   | Ltgendir of direction
   | Ltnotready of (pageno * direction)
 and direction = int             (* -1, 0, 1 *)
-and textentry = string * string * onhist option
-                * onkey * ondone * cancelonempty
+and textentry = string * string * onhist option * onkey * ondone * cancelonempty
 and onkey = string -> Keys.t -> te
 and ondone = string -> unit
 and histcancel = unit -> unit
@@ -316,22 +315,23 @@ let emptykeyhash = Hashtbl.create 0;;
 let noreprf () = ();;
 let noroam () = ();;
 
-let nouioh : uioh = object (self)
-                      method display = ()
-                      method key _ _ = self
-                      method multiclick _ _ _ _ = self
-                      method button _ _ _ _ _ = self
-                      method motion _ _ = self
-                      method pmotion _ _ = self
-                      method infochanged _ = ()
-                      method scrollpw = (0, nan, nan)
-                      method scrollph = (0, nan, nan)
-                      method modehash = emptykeyhash
-                      method eformsgs = false
-                      method alwaysscrolly = false
-                      method scroll _ _ = self
-                      method zoom _ _ _ = ()
-                    end;;
+let nouioh : uioh =
+  object (self)
+    method display = ()
+    method key _ _ = self
+    method multiclick _ _ _ _ = self
+    method button _ _ _ _ _ = self
+    method motion _ _ = self
+    method pmotion _ _ = self
+    method infochanged _ = ()
+    method scrollpw = (0, nan, nan)
+    method scrollph = (0, nan, nan)
+    method modehash = emptykeyhash
+    method eformsgs = false
+    method alwaysscrolly = false
+    method scroll _ _ = self
+    method zoom _ _ _ = ()
+  end;;
 
 let platform_to_string = function
   | Punknown      -> "unknown"
