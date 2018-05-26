@@ -626,8 +626,7 @@ let getanchor1 l =
   in
   let dtop =
     if l.pagedispy = 0
-    then
-      0.0
+    then 0.0
     else (
       if conf.presentation
       then float l.pagedispy /. float (calcips l.pageh)
@@ -1414,15 +1413,13 @@ let save1 bb leavebirdseye x h dc =
   Buffer.add_string bb "<llppconfig>\n";
 
   if nonemptystr !fontpath
-  then
-    Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
-      uifontsize
-      !fontpath
-  else (
+  then Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
+         uifontsize
+         !fontpath
+  else
     if uifontsize <> 14
-    then
-      Printf.bprintf bb "<ui-font size='%d'/>\n" uifontsize
-  );
+    then Printf.bprintf bb "<ui-font size='%d'/>\n" uifontsize
+  ;
 
   Buffer.add_string bb "<defaults";
   add_attrs bb true dc dc nan;
@@ -1436,15 +1433,13 @@ let save1 bb leavebirdseye x h dc =
   else Buffer.add_string bb "/>\n";
 
   let adddoc path pan anchor c bookmarks time origin =
-    if bookmarks == [] && c = dc && anchor = emptyanchor
-    then ()
-    else (
+    if not (bookmarks == [] && c = dc && anchor = emptyanchor)
+    then (
       Printf.bprintf bb "<doc path='%s'"
         (Parser.enent path 0 (String.length path));
 
       if nonemptystr c.key
-      then
-        Printf.bprintf bb "\n    key='%s'" c.key;
+      then Printf.bprintf bb "\n    key='%s'" c.key;
 
       if nonemptystr origin
       then Printf.bprintf bb "\n    origin='%s'"
@@ -1490,16 +1485,12 @@ let save1 bb leavebirdseye x h dc =
                 Printf.bprintf bb
                   "<item title='%s' page='%d'"
                   (Parser.enent title 0 (String.length title))
-                  page
-               ;
-                 if rely > 1e-6
-                 then
-                   Printf.bprintf bb " rely='%f'" rely
-               ;
-                 if abs_float visy > 1e-6
-                 then
-                   Printf.bprintf bb " visy='%f'" visy
-               ;
+                  page;
+                if rely > 1e-6
+                then Printf.bprintf bb " rely='%f'" rely;
+
+                if abs_float visy > 1e-6
+                then Printf.bprintf bb " visy='%f'" visy;
              | Ohistory _ | Onone | Ouri _ | Oremote _
              | Oremotedest _ | Olaunch _ -> error "unexpected link in bookmarks"
              end;
