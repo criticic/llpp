@@ -8,3 +8,4 @@
 ** TODO Parallel builds
 ** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
+** TODO Move wsi specific stuff out of link.c and into wsi/../xxx.[cm]
