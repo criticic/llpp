@@ -101,9 +101,9 @@ type state =
   ; mutable levl5mask  : int
   ; mutable xkb        : bool
   }
- and fs =
-   | NoFs
-   | Fs of (int * int * int * int)
+and fs =
+  | NoFs
+  | Fs of (int * int * int * int)
 ;;
 
 let state =
@@ -479,7 +479,7 @@ let readresp sock =
      and min = r16 s 8
      and maj = r8 s 10 in
      error "code=%d serial=%d resid=%#x min=%d maj=%d\n%S"
-           code serial resid min maj (Bytes.unsafe_to_string resp);
+       code serial resid min maj (Bytes.unsafe_to_string resp);
 
   | 1 ->                                (* response *)
      let rep = Queue.pop state.fifo in
@@ -492,7 +492,7 @@ let readresp sock =
        let mask = r16 resp 28 in
        let keysym = getkeysym code mask in
        vlog "keysym = %x %c mask %#x code %d"
-            keysym (Char.unsafe_chr keysym) mask code;
+         keysym (Char.unsafe_chr keysym) mask code;
        if keysym != 0
        then state.t#key keysym mask
 
@@ -503,7 +503,7 @@ let readresp sock =
        let mask = r16 resp 28 in
        let keysym = getkeysym code mask in
        vlog "release keysym = %x %c mask %#x code %d"
-            keysym (Char.unsafe_chr keysym) mask code
+         keysym (Char.unsafe_chr keysym) mask code
 
   | 4 ->                                (* buttonpress *)
      let n = r8 resp 1
@@ -595,8 +595,8 @@ let readresp sock =
      and w = r16 resp 20
      and h = r16 resp 22 in
      vlog "configure cur [%d %d %d %d] conf [%d %d %d %d]"
-          state.x state.y state.w state.h
-          x y w h;
+       state.x state.y state.w state.h
+       x y w h;
      if w != state.w || h != state.h
      then state.t#reshape w h;
      state.w <- w;
@@ -613,41 +613,41 @@ let readresp sock =
      then
        let s = getpropreq false state.wid atom 4 in
        sendwithrep sock s (fun resp ->
-                     state.fs <- NoFs;
-                     let len = r32 resp 4 in
-                     let nitems = r32 resp 16 in
-                     let wsl =
-                       if len = 0
-                       then []
-                       else
-                         let s = readstr sock (len*4) in
-                         let rec loop wsl i =
-                           if i = nitems
-                           then wsl
-                           else
-                             let atom = r32 s (i*4) in
-                             let wsl =
-                               if atom = state.maxhatom
-                               then MaxHorz::wsl
-                               else (
-                                 if atom = state.maxvatom
-                                 then MaxVert::wsl
-                                 else (
-                                   if atom = state.fulsatom
-                                   then (
-                                     state.fs <- Fs (state.x, state.y,
-                                                     state.w, state.h);
-                                     Fullscreen::wsl
-                                   )
-                                   else wsl
-                                 )
-                               )
-                             in loop wsl (i+1)
-                         in
-                         loop [] 0
-                     in
-                     state.t#winstate (List.sort compare wsl)
-                   );
+           state.fs <- NoFs;
+           let len = r32 resp 4 in
+           let nitems = r32 resp 16 in
+           let wsl =
+             if len = 0
+             then []
+             else
+               let s = readstr sock (len*4) in
+               let rec loop wsl i =
+                 if i = nitems
+                 then wsl
+                 else
+                   let atom = r32 s (i*4) in
+                   let wsl =
+                     if atom = state.maxhatom
+                     then MaxHorz::wsl
+                     else (
+                       if atom = state.maxvatom
+                       then MaxVert::wsl
+                       else (
+                         if atom = state.fulsatom
+                         then (
+                           state.fs <- Fs (state.x, state.y,
+                                           state.w, state.h);
+                           Fullscreen::wsl
+                         )
+                         else wsl
+                       )
+                     )
+                   in loop wsl (i+1)
+               in
+               loop [] 0
+           in
+           state.t#winstate (List.sort compare wsl)
+         );
 
   | n ->
      dolog "event %d %S" n (Bytes.unsafe_to_string resp)
@@ -730,7 +730,7 @@ let setup disp sock rootwid screennum w h =
      let data = readstr sock len in
      let reason = Bytes.sub data 0 reasonlen in
      error "X connection failed maj=%d min=%d reason=%S"
-           maj min (Bytes.unsafe_to_string reason)
+       maj min (Bytes.unsafe_to_string reason)
 
   | '\002' -> error "X connection setup failed: authentication required";
 
@@ -879,7 +879,7 @@ let setup disp sock rootwid screennum w h =
          if hostname != empty
          then
            let s = changepropreq wid atom state.stringatom 8
-                                 (~> hostname) in
+                     (~> hostname) in
            sendstr s sock;
            sendintern
              sock (~> "_NET_WM_PID") false (fun resp ->
@@ -975,11 +975,11 @@ let setup disp sock rootwid screennum w h =
          if state.nwmsatom != 0
          then (
            sendintern sock (~> "_NET_WM_STATE_MAXIMIZED_VERT") true (fun resp ->
-                        state.maxvatom <- r32 resp 8;
-                      );
+               state.maxvatom <- r32 resp 8;
+             );
            sendintern sock (~> "_NET_WM_STATE_MAXIMIZED_HORZ") true (fun resp ->
-                        state.maxhatom <- r32 resp 8;
-                      );
+               state.maxhatom <- r32 resp 8;
+             );
            sendintern
              sock (~> "_NET_WM_STATE_FULLSCREEN") true (fun resp ->
                state.fulsatom <- r32 resp 8;
@@ -1027,12 +1027,12 @@ let setup disp sock rootwid screennum w h =
        );
      let s = getgeometryreq wid in
      syncsendwithrep sock 2.0 s (fun resp ->
-                       glxcompleteinit ();
-                       let w = r16 resp 16
-                       and h = r16 resp 18 in
-                       state.w <- w;
-                       state.h <- h;
-                     );
+         glxcompleteinit ();
+         let w = r16 resp 16
+         and h = r16 resp 18 in
+         state.w <- w;
+         state.h <- h;
+       );
 
   | c ->
      error "unknown connection setup response %d" (Char.code c)
@@ -1080,7 +1080,7 @@ let getauth haddr dnum =
       let data = rs () in
 
       vlog "family %S addr %S(%S) num %S(%d) name %S data %S"
-           family addr haddr nums dnum name data;
+        family addr haddr nums dnum name data;
       match optnum with
       | Some num when addr = haddr && num = dnum ->
          name, data
@@ -1092,7 +1092,7 @@ let getauth haddr dnum =
       | End_of_file -> E.s, E.s
       | exn ->
          dolog "exception while reading X authority data (%S): %s"
-               path @@ exntos exn;
+           path @@ exntos exn;
          E.s, E.s
     in
     close_in ic;
@@ -1122,7 +1122,7 @@ let init t w h platform =
       try int_of_string s
       with exn ->
         error "invalid DISPLAY %S can not parse %s(%S): %s"
-              d w s @@ exntos exn
+          d w s @@ exntos exn
   in
   let rec phost pos =
     if pos = String.length d
