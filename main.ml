@@ -401,7 +401,6 @@ let layout x y sw sh =
 ;;
 
 let maxy () = state.maxy - if conf.maxhfit then state.winh else 0;;
-
 let clamp incr = bound (state.y + incr) 0 @@ maxy ();;
 
 let itertiles l f =
@@ -778,21 +777,12 @@ let getanchory (n, top, dtop) =
   then
     let ips = calcips h in
     y + truncate (top*.float h -. dtop*.float ips) + ips;
-  else
-    y + truncate (top*.float h -. dtop*.float conf.interpagespace)
+  else y + truncate (top*.float h -. dtop*.float conf.interpagespace)
 ;;
 
-let gotoanchor anchor =
-  gotoxy state.x (getanchory anchor);
-;;
-
-let addnav () =
-  getanchor () |> cbput state.hists.nav;
-;;
-
-let addnavnorc () =
-  getanchor () |> cbput_dont_update_rc state.hists.nav;
-;;
+let gotoanchor anchor = gotoxy state.x (getanchory anchor);;
+let addnav () = getanchor () |> cbput state.hists.nav;;
+let addnavnorc () = getanchor () |> cbput_dont_update_rc state.hists.nav;;
 
 let getnav dir =
   let anchor = cbgetc state.hists.nav dir in
@@ -2130,10 +2120,9 @@ let describe_layout layout =
     | l :: rest ->
        let rangestr a b =
          if a.pageno = b.pageno then Printf.sprintf "%d" (a.pageno+1)
-         else
-           let sep =
-             if a.pageno+1 = b.pageno then ", " else Utf8syms.ellipsis in
-           Printf.sprintf "%d%s%d" (a.pageno+1) sep (b.pageno+1)
+         else Printf.sprintf "%d%s%d" (a.pageno+1)
+                (if a.pageno+1 = b.pageno then ", " else Utf8syms.ellipsis)
+                (b.pageno+1)
        in
        let rec fold s la lb = function
          | [] -> Printf.sprintf "%s %s" s (rangestr la lb)
@@ -2553,12 +2542,10 @@ let enterinfomode =
                    state.w state.maxy)
       1;
     if conf.debug
-    then
-      src#caption2 "Position" (fun () ->
-          Printf.sprintf "%dx%d" state.x state.y
-        ) 1
-    else
-      src#caption2 "Position" (fun () -> describe_layout state.layout) 1;
+    then src#caption2 "Position" (fun () ->
+             Printf.sprintf "%dx%d" state.x state.y
+           ) 1
+    else src#caption2 "Position" (fun () -> describe_layout state.layout) 1;
 
     sep ();
     src#bool ~offset:0 ~btos:(fun v -> if v then "(on)" else "(off)")
@@ -2964,8 +2951,7 @@ let enterannotmode opaque slinkindex =
              then
                let ss = if i = 0 then E.s else String.sub s b i in
                split ((ss, unit)::accu) (p+1) 0
-             else
-               split accu b (i+1)
+             else split accu b (i+1)
          in
          let cleanup () =
            wcmd "freepage %s" (~> opaque);
@@ -3837,8 +3823,7 @@ let viewkeyboard key mask =
          match List.rev state.layout with
          | [] -> state.y
          | l :: _ -> getpagey l.pageno
-       else
-         clamp (pgscale state.winh)
+       else clamp (pgscale state.winh)
      in
      gotoxy state.x y
 
@@ -4329,8 +4314,7 @@ let annot inline x y =
        state.text <- E.s;
        enttext ();
        postRedisplay "annot"
-     else
-       add @@ getusertext E.s
+     else add @@ getusertext E.s
   | _ -> ()
 ;;
 
@@ -4438,11 +4422,7 @@ let viewmouse button down x y mask =
             else nextpage ()
           )
           else
-            let incr =
-              if n = 4
-              then -conf.scrollstep
-              else conf.scrollstep
-            in
+            let incr = if n = 4 then -conf.scrollstep else conf.scrollstep in
             let incr = incr * 2 in
             let y = clamp incr in
             gotoxy state.x y
@@ -4477,8 +4457,7 @@ let viewmouse button down x y mask =
        Wsi.setcursor Wsi.CURSOR_FLEUR;
        state.mstate <- Mpan (x, y)
      )
-     else
-       state.mstate <- Mnone
+     else state.mstate <- Mnone
 
   | 3 ->
      if down
@@ -4516,8 +4495,7 @@ let viewmouse button down x y mask =
        if y > truncate position && y < truncate (position +. sh)
        then state.mstate <- Mscrolly
        else scrolly y
-     else
-       state.mstate <- Mnone
+     else state.mstate <- Mnone
 
   | 1 when y > state.winh - hscrollh () ->
      if down
@@ -4526,8 +4504,7 @@ let viewmouse button down x y mask =
        if x > truncate position && x < truncate (position +. sw)
        then state.mstate <- Mscrollx
        else scrollx x
-     else
-       state.mstate <- Mnone
+     else state.mstate <- Mnone
 
   | 1 when state.bzoom -> if not down then zoomblock x y
 
@@ -5133,9 +5110,7 @@ let () =
      conf.css <-
        if substratis css (l-2) "\r\n"
        then String.sub css 0 (l-2)
-       else (if css.[l-1] = '\n'
-             then String.sub css 0 (l-1)
-             else css);
+       else (if css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
   end;
   init cs (
       conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
@@ -5170,11 +5145,7 @@ let () =
   Sys.set_signal Sys.sigchld (Sys.Signal_handle (fun _ -> doreap := true));
 
   let optrfd =
-    ref (
-        if nonemptystr !rcmdpath
-        then remoteopen !rcmdpath
-        else None
-      )
+    ref (if nonemptystr !rcmdpath then remoteopen !rcmdpath else None)
   in
 
   let rec loop deadline =
