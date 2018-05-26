@@ -1,7 +1,5 @@
 exception Quit;;
 
-external measurestr : int -> string -> float = "ml_measure_string";;
-
 module E = struct
   let s = "";;
   let b = Bytes.empty;;
@@ -22,6 +20,7 @@ let tempfailureretry f a =
   in g ()
 ;;
 
+external measurestr : int -> string -> float = "ml_measure_string";;
 external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
 external toutf8 : int -> string = "ml_keysymtoutf8";;
