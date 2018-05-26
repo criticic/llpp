@@ -11,7 +11,7 @@
 #endif
 #define GCC_FMT_ATTR(a, b) __attribute__ ((format (printf, a, b)))
 #else
-#error No workee wiz dat cmapjler
+#error Stringent C compiler requirements not satisfied
 #endif
 
 extern void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
