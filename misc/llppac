@@ -181,7 +181,6 @@ while getopts s:c:m:t:fu opt; do
         t) type=$OPTARG;;
         f) force=true;;
         c) css="-s $OPTARG";;
-        u) usemupdf=true;;
         s) textfilename="$OPTARG";;
         ?) die "usage: $0 [-c css] [-m mime/type] [-t filter] [-f] [-s textfile] [path|url]";;
     esac
@@ -296,15 +295,8 @@ case $type in
         fi
     };;
     font) {
-        if test -z $usemupdf; then
-            v="llpp -origin $1 -layout-height 0"
-        else
-            mupdf=$HOME/x/rcs/git/mupdf/build/native/mupdf-gl
-            executable_p $mupdf || v=mupdf-gl && v=$mupdf
-            v="$v -H 0"
-        fi
         maketext "$1" "$textfilename"
-        exec $v "$cachedir/fonts/text.html"
+        exec llpp -origin $1 -layout-height 0 "$cachedir/fonts/text.html"
     };;
     image) {
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
