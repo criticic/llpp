@@ -93,10 +93,7 @@ let string_with_suffix_of_int n =
         let n = n / 1000 in
         if n = 0
         then string_of_int h ^ s
-        else (
-          let s = Printf.sprintf "_%03d%s" h s in
-          loop s n
-        )
+        else loop (Printf.sprintf "_%03d%s" h s) n
       in
       loop E.s n
     in
@@ -145,8 +142,7 @@ let abspath path =
     if Filename.is_implicit path
     then Filename.concat cwd path
     else Filename.concat cwd (Filename.basename path)
-  else
-    path
+  else path
 ;;
 
 module Ne = struct
