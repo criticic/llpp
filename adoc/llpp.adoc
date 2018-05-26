@@ -121,6 +121,10 @@ _listview_, _outline_, and _view_.
 == SEE ALSO
 llppac(1), llpphtml(1)
 
+== ENVIRONMENT
+=== LLPP_ASK_PASS
+Command to inquire the user about the password (dmenu/rofi like)
+
 == REPORTING BUGS
 https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com
 
