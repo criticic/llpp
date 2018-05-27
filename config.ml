@@ -1165,9 +1165,8 @@ let load openlast =
            let exception E of (conf * outline list * int * anchor * string) in
            let key = try Digest.file absname |> Digest.to_hex with _ -> E.s in
            match (
-             if emptystr key
-             then ()
-             else
+             if nonemptystr key
+             then
                Hashtbl.iter (fun p ((c, _, _, _, _) as v) ->
                    if c.key = key
                    then (

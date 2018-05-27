@@ -405,9 +405,8 @@ let itertiles l f =
   let row = l.pagey / conf.tileh in
 
   let rec rowloop row y0 dispy h =
-    if h = 0
-    then ()
-    else (
+    if h != 0
+    then
       let dh = conf.tileh - y0 in
       let dh = min h dh in
       let rec colloop col x0 dispx w =
@@ -420,7 +419,6 @@ let itertiles l f =
       in
       colloop col tilex l.pagedispx l.pagevw;
       rowloop (row+1) 0 (dispy+dh) (h-dh)
-    )
   in
   if l.pagevw > 0 && l.pagevh > 0
   then rowloop row tiley l.pagedispy l.pagevh;
@@ -884,9 +882,8 @@ let docolumns columns =
   | Csingle _ ->
      let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
      let rec loop pageno pdimno pdim y ph pdims =
-       if pageno = state.pagecount
-       then ()
-       else
+       if pageno != state.pagecount
+       then
          let pdimno, ((_, w, h, xoff) as pdim), pdims =
            match pdims with
            | ((pageno', _, _, _) as pdim) :: rest when pageno' = pageno ->

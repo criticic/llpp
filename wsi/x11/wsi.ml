@@ -218,9 +218,8 @@ let updmodmap sock resp =
       then
         let p = l*n in
         let rec loop1 m =
-          if m = n
-          then ()
-          else
+          if m != n
+          then
             let p = p+m in
             let code = r8 data p in
             modmap.(l).(m) <- code;
@@ -231,9 +230,8 @@ let updmodmap sock resp =
               then
                 let a = state.keymap.(ki) in
                 let rec capsloop i =
-                  if i = Array.length a || i > 3
-                  then ()
-                  else
+                  if not (i = Array.length a || i > 3)
+                  then
                     let s = a.(i) in
                     if s = 0xffe5
                     then state.capslmask <- 2
@@ -249,9 +247,8 @@ let updmodmap sock resp =
                 then
                   let a = state.keymap.(ki) in
                   let rec lloop i =
-                    if i = Array.length a || i > 3
-                    then ()
-                    else
+                    if not (i = Array.length a || i > 3)
+                    then
                       let s = a.(i) in
                       match s with
                       | 0xfe03 -> state.levl3mask <- 1 lsl l

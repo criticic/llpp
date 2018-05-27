@@ -52,9 +52,8 @@ let enent s pos len =
 
 let unent b s pos len =
   let rec loop i =
-    if i = pos + len
-    then ()
-    else
+    if i != pos + len
+    then
       let amppos =
         try
           String.index_from s i '&'

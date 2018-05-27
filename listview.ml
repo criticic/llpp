@@ -269,9 +269,8 @@ object (self)
     );
     let x0 = 0.0 and x1 = float (state.winw - conf.scrollbw - 1) in
     let rec loop row =
-      if (row - m_first) > fstate.maxrows
-      then ()
-      else (
+      if not ((row - m_first) > fstate.maxrows)
+      then (
         if row >= 0 && row < itemcount
         then (
           let (s, level) = source#getitem row in
