@@ -1,9 +1,5 @@
 (* based on Tor Andersson's XML parser from MuPDF's XPS module *)
 
-let r_comment_terminator = Str.regexp "-->";;
-let r_CDATA_terminator = Str.regexp "\\]\\]>";;
-let r_q_terminator = Str.regexp "\\?>";;
-
 let iswhite = function
   | '\r' | '\n' | '\t' | ' ' -> true
   | _ -> false
@@ -139,6 +135,10 @@ type attr = string * string
 ;;
 
 let parse v s =
+  let r_comment_terminator = Str.regexp "-->"
+  and r_CDATA_terminator = Str.regexp "\\]\\]>"
+  and r_q_terminator = Str.regexp "\\?>" in
+
   let slen = String.length s in
 
   let find_substr pos subs r =
