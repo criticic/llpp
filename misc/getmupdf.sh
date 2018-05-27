@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -eu
 
 MUPDF_OUTPUT_DIR="$1"
@@ -17,6 +17,6 @@ MUPDF_VERSION=$(git rev-parse HEAD)
 test "${MUPDF_VERSION}" = "${MUPDF_DESIRED_VERSION}" || {
     printf "mupdf current version is ${MUPDF_VERSION} "
     echo "switching to ${MUPDF_DESIRED_VERSION}"
-    git checkout ${MUPDF_DESIRED_VERSION}
+    git reset --hard ${MUPDF_DESIRED_VERSION}
     git submodule update --init --recursive
 }

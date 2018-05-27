@@ -8,7 +8,7 @@ Prerequisites for building from sources:
            built/used locally without system-wide installation.
 
   To download mupdf+prerequisites that llpp is known to work with:
-     llpp% mkdir build && bash misc/getmupdf.bash build/mupdf
+     llpp% mkdir build && sh misc/getmupdf.sh build/mupdf
 
   llpp% bash build.bash build
 
