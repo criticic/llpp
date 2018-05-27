@@ -2088,7 +2088,6 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
 let setcheckers enabled =
   match !checkerstexid with
   | None -> if enabled then checkerstexid := Some (makecheckers ())
-
   | Some id ->
      if not enabled
      then (
