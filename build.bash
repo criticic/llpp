@@ -61,7 +61,7 @@ oincs() {
         lablGL/*) incs1="$incs1 lablGL";;
         wsi/$wsi/*) incs1="$incs1 $wsi";;
         main.cmo) incs1="$incs1 $wsi lablGL";;
-        glutils.cmo|config.cmo|listview.cmo) incs1="$incs1 lablGL";;
+        glutils.cmo|listview.cmo) incs1="$incs1 lablGL";;
         *) ;;
     esac
     for i in $incs1; do

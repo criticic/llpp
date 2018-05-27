@@ -285,7 +285,6 @@ type state =
   ; mutable autoscroll    : int option
   ; mutable help          : helpitem array
   ; mutable docinfo       : (int * string) list
-  ; mutable checkerstexid : GlTex.texture_id option
   ; hists                 : hists
   ; mutable prevzoom      : (float * int)
   ; mutable progress      : float
@@ -434,7 +433,6 @@ let state =
   ; autoscroll    = None
   ; help          = E.a
   ; docinfo       = []
-  ; checkerstexid = None
   ; prevzoom      = (1.0, 0)
   ; progress      = -1.0
   ; uioh          = nouioh

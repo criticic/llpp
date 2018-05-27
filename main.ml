@@ -59,6 +59,7 @@ let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
 let opengl_has_pbo = ref false;;
 let layouth = ref ~-1;;
+let checkerstexid = ref None;;
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog {|rect {
@@ -471,7 +472,7 @@ let drawtiles l color =
        in
        if conf.invert
        then GlTex.env (`mode `blend);
-       begin match state.checkerstexid with
+       begin match !checkerstexid with
        | Some id ->
           Gl.enable `texture_2d;
           GlTex.bind_texture ~target:`texture_2d id;
@@ -2085,14 +2086,14 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
 ;;
 
 let setcheckers enabled =
-  match state.checkerstexid with
-  | None -> if enabled then state.checkerstexid <- Some (makecheckers ())
+  match !checkerstexid with
+  | None -> if enabled then checkerstexid := Some (makecheckers ())
 
-  | Some checkerstexid ->
+  | Some id ->
      if not enabled
      then (
-       GlTex.delete_texture checkerstexid;
-       state.checkerstexid <- None;
+       GlTex.delete_texture id;
+       checkerstexid := None;
      );
 ;;
 
