@@ -60,9 +60,7 @@ let unent b s pos len =
         with Not_found -> -1
       in
       if amppos = -1 || amppos >= pos + len
-      then (
-        Buffer.add_substring b s i (pos + len - i)
-      )
+      then Buffer.add_substring b s i (pos + len - i)
       else (
         Buffer.add_substring b s i (amppos - i);
         if amppos = i + len then Utils.error "lonely amp";
@@ -112,13 +110,10 @@ let subs s pos =
   let len = String.length s in
   let left = len - pos in
   if left < 0
-  then
-    Printf.sprintf "(pos=%d len=%d left=%d)"
-                   pos len left
+  then Printf.sprintf "(pos=%d len=%d left=%d)" pos len left
   else
     let len = min left 10 in
-    let s = String.sub s pos len in
-    s;
+    String.sub s pos len
 ;;
 
 let ts = function
