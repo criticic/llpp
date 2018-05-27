@@ -38,13 +38,13 @@ srcd="$(dirname $0)"
 mudir=$outd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
+test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
+
 mkdir -p $outd/$wsi
 mkdir -p $outd/lablGL
 :>$outd/ordered
 
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
-
-test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
 
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
