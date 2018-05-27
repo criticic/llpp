@@ -44,7 +44,7 @@ mkdir -p $outd/lablGL
 
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
 
-test -d "$mudir" || die $mudir is not a directory
+test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
 
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
@@ -53,12 +53,29 @@ isfresh "$mulibs" "$(eval $keycmd)" || (
     echo "k='$(eval $keycmd)'" >$mudir/build/native/libmupdf.a.past
 ) && vecho "fresh mupdf"
 
+oincs() {
+    local i=
+    local incs1=
+    local incs=
+    case "${1#$outd/}" in
+        lablGL/*) incs1="$incs1 lablGL";;
+        wsi/$wsi/*) incs1="$incs1 $wsi";;
+        main.cmo) incs1="$incs1 $wsi lablGL";;
+        glutils.cmo|config.cmo|listview.cmo) incs1="$incs1 lablGL";;
+        *) ;;
+    esac
+    for i in $incs1; do
+        incs="$incs -I $srcd/$i -I $outd/$i"
+    done
+    echo "-I $srcd -I $outd $incs"
+}
+
 oflags() {
     case "${1#$outd/}" in
         lablGL/*) f="-g";;
         $wsi/wsi.cmo|*) f="-g -strict-sequence -strict-formats -w @A";;
     esac
-    echo "$incs $f"
+    echo "$(oincs $1) $f"
 }
 
 cflags() {
@@ -77,8 +94,6 @@ cflags() {
 }
 
 mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror -O2"; }
-
-incs="-I $srcd/lablGL -I $srcd -I $outd/lablGL -I $outd"
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
 test "$overs" = "4.06.1" || {
@@ -122,10 +137,10 @@ bocaml2() {
     local O=${4-}
     local dd
 
-    local cmd="ocamlc -depend -bytecode -one-line $incs $s"
+    local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
     local keycmd="digest $o $s"
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
-        eval "$cmd" | {
+        eval "$cmd || die '$cmd' failed" | {
             read _ _ depl
             :>"$o.depl"
             for d in $depl; do
