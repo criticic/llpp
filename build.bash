@@ -73,7 +73,7 @@ oincs() {
 oflags() {
     case "${1#$outd/}" in
         lablGL/*) f="-g";;
-        $wsi/wsi.cmo|*) f="-g -strict-sequence -strict-formats -w @A";;
+        *) f="-g -strict-sequence -strict-formats -w @A";;
     esac
     echo "$(oincs $1) $f"
 }
