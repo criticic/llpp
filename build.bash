@@ -78,8 +78,7 @@ cflags() {
 
 mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror -O2"; }
 
-incs="-I $srcd/lablGL -I $srcd/$wsi -I $srcd"
-incs="$incs -I $outd/lablGL -I $outd/$wsi -I $outd"
+incs="-I $srcd/lablGL -I $srcd -I $outd/lablGL -I $outd"
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
 test "$overs" = "4.06.1" || {
