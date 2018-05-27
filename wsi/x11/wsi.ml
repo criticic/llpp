@@ -185,15 +185,19 @@ let updkmap sock resp =
   in
   let m = len / syms in
   state.keymap <- Array.make_matrix state.maxk syms 0xffffff;
-  let rec loop i = if i = m then () else
-                     let k = i*4*syms in
-                     let rec loop2 k l = if l = syms then () else
-                                           let v = r32 data k in
-                                           state.keymap.(i).(l) <- v;
-                                           loop2 (k+4) (l+1)
-                     in
-                     loop2 k 0;
-                     loop (i+1);
+  let rec loop i =
+    if i != m
+    then
+      let k = i*4*syms in
+      let rec loop2 k l =
+        if l != syms
+        then
+          let v = r32 data k in
+          state.keymap.(i).(l) <- v;
+          loop2 (k+4) (l+1)
+      in
+      loop2 k 0;
+      loop (i+1);
   in
   loop 0;
 ;;
@@ -206,15 +210,16 @@ let updmodmap sock resp =
     then readstr sock (len*4)
     else E.b
   in
-  if len > 0 then                      (*???*)
+  if len > 0
+  then                      (*???*)
     let modmap = Array.make_matrix 8 n 0xffffff in
     let rec loop l =
-      if l = 8
-      then ()
-      else
+      if l != 8
+      then
         let p = l*n in
         let rec loop1 m =
-          if m = n then ()
+          if m = n
+          then ()
           else
             let p = p+m in
             let code = r8 data p in
@@ -238,7 +243,7 @@ let updmodmap sock resp =
             )
             else (
               if l > 3
-              then (
+              then
                 let ki = code - state.mink in
                 if ki >= 0
                 then
@@ -255,7 +260,6 @@ let updmodmap sock resp =
                       | _ -> lloop (i+1)
                   in
                   lloop 0;
-              )
             );
             loop1 (m+1)
         in
@@ -278,9 +282,7 @@ let padcatl =
   let bl = Buffer.length b in
   let pl = bl land 3 in
   if pl != 0
-  then (
-    Buffer.add_substring b pad 0 (4 - pl);
-  );
+  then Buffer.add_substring b pad 0 (4 - pl);
   Buffer.to_bytes b;
 ;;
 
@@ -445,8 +447,7 @@ let getkeysym pkpk code mask =
     in
     let index =
       if state.xkb && mask land 0x2000 != 0
-      then
-        shift + 2
+      then shift + 2
       else
         let l3 = (mask land state.levl3mask) != 0 in
         let l4 = (mask land state.levl5mask) != 0 in
@@ -579,11 +580,10 @@ let readresp sock =
   | 33 ->                               (* clientmessage *)
      let atom = r32 resp 8 in
      if atom = state.protoatom
-     then (
+     then
        let atom = r32 resp 12 in
        if atom = state.deleatom
        then state.t#quit;
-     );
      vlog "atom %#x" atom
 
   | 21 ->                               (* reparent *)
