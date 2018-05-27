@@ -44,6 +44,8 @@ mkdir -p $outd/lablGL
 
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
 
+test -d "$mudir" || die $mudir is not a directory
+
 mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
 isfresh "$mulibs" "$(eval $keycmd)" || (
