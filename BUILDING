@@ -13,7 +13,4 @@ Prerequisites for building from sources:
   llpp% bash build.bash build
 
 Binary should now be in build/llpp.
-
-macOS
------
-Bundle should now be in build/llpp.app.
+(macOS: Bundle should now be in build/llpp.app/)
