@@ -23,7 +23,7 @@ wsid="wsi/x11"
 case "$(uname)" in
     Darwin)
         darwin=true
-        wsid="wsi/osx"
+        wsid="wsi/cocoa"
         mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     OpenBSD) mjobs=$(getconf NPROCESSORS_ONLN || echo 1);;
@@ -283,8 +283,8 @@ clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
-    bobjc wsi/osx/wsicocoa.o
-    cobjs="$cobjs $outd/wsi/osx/wsicocoa.o"
+    bobjc wsi/cocoa/wsicocoa.o
+    cobjs="$cobjs $outd/wsi/cocoa/wsicocoa.o"
 else
     clibs="$clibs -lGL -lX11"
     cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o"
@@ -302,12 +302,12 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
 
 if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"
-    keycmd="digest $out $srcd/wsi/osx/genplist.sh"
+    keycmd="digest $out $srcd/wsi/cocoa/genplist.sh"
     isfresh $out "$(eval $keycmd)" || {
         shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         d=$(dirname $out)
         mkdir -p "$d"
-        (. $srcd/wsi/osx/genplist.sh) >"$out"
+        (. $srcd/wsi/cocoa/genplist.sh) >"$out"
         echo "k='$(eval $keycmd)'" >"$out.past"
     } && vecho "fresh plist"
 
