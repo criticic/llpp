@@ -12,9 +12,8 @@ Prerequisites for building from sources:
 
   llpp% bash build.bash build
 
-Standalone binary should now be in build/llpp.
+Binary should now be in build/llpp.
 
 macOS
 -----
-If `bash build.bash build' succeeds, macOS bundle should be in
-build/llpp.app.
+Bundle should now be in build/llpp.app.
