@@ -16,5 +16,5 @@ Standalone binary should now be in build/llpp.
 
 macOS
 -----
-  If `bash build.bash build' succeeds, standalone macOS app should
-  be in build/llpp.app.
+If `bash build.bash build' succeeds, macOS bundle should be in
+build/llpp.app.
