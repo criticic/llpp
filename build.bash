@@ -24,8 +24,7 @@ case "$(uname)" in
     Darwin)
         darwin=true
         wsid="wsi/osx"
-        mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
-        ;;
+        mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     OpenBSD) mjobs=$(getconf NPROCESSORS_ONLN || echo 1);;
     *) die $(uname) is not supported;;
@@ -85,7 +84,7 @@ cflags() {
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
             f="$f -DCACHE_PAGEREFS"
             $darwin && f="$f -D__COCOA__ -D_GNU_SOURCE" \
-                    || f="$f -D_POSIX_C_SOURCE" ;;
+                    || f="$f -D_POSIX_C_SOURCE";;
         */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) f="-g -Wno-pointer-sign -O2";;
         *) f="-g -O2";;
@@ -180,12 +179,10 @@ bocaml() (
     case ${wocmi#$outd/} in
         confstruct.cmo)
             s=$outd/confstruct.ml
-            o=$outd/confstruct.cmo
-            ;;
+            o=$outd/confstruct.cmo;;
         *)
             test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
-            o=$outd/$o
-            ;;
+            o=$outd/$o;;
     esac
     bocaml1 $n "$s" "$o"
     case $wocmi in
