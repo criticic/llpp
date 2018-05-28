@@ -490,9 +490,9 @@ static void freetile (struct tile *tile)
 {
     unlinktile (tile);
     if (!tile->pbo) {
-#if 0                           /* piggyback */
+#if 0
         fz_drop_pixmap (state.ctx, tile->pixmap);
-#else
+#else  /* piggyback */
         if (state.pig) {
             fz_drop_pixmap (state.ctx, state.pig);
         }
