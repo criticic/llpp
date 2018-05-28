@@ -6,9 +6,8 @@
 #pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
-#endif
-
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
 
 extern char **environ;
 
