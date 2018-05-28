@@ -19,7 +19,7 @@ die() {
 trap 'partmsg' EXIT
 
 darwin=false
-wsi="wsi/x11"
+wsid="wsi/x11"
 case "$(uname)" in
     Darwin)
         darwin=true
@@ -40,7 +40,7 @@ muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
 test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
 
-mkdir -p $outd/$wsi
+mkdir -p $outd/$wsid
 mkdir -p $outd/lablGL
 :>$outd/ordered
 
@@ -59,8 +59,8 @@ oincs() {
     local incs=
     case "${1#$outd/}" in
         lablGL/*) incs1="$incs1 lablGL";;
-        wsi/$wsi/*) incs1="$incs1 $wsi";;
-        main.cmo) incs1="$incs1 $wsi lablGL";;
+        wsi/$wsid/*) incs1="$incs1 $wsid";;
+        main.cmo) incs1="$incs1 $wsid lablGL";;
         glutils.cmo|listview.cmo) incs1="$incs1 lablGL";;
         *) ;;
     esac
@@ -189,7 +189,7 @@ bocaml() (
     esac
     bocaml1 $n "$s" "$o"
     case $wocmi in
-        wsi) s="$srcd/$wsi/wsi.ml";;
+        wsi) s="$srcd/$wsid/wsi.ml";;
         help) s="$srcd/help.ml";;
         */glMisc) s="$srcd/lablGL/glMisc.ml";;
         */glTex) s="$srcd/lablGL/glTex.ml";;
