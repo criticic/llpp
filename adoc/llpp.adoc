@@ -13,8 +13,8 @@ llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc]
 
 == DESCRIPTION
 *llpp* is a graphical document pager utilizing MuPDF
-(https://mupdf.com/) library.  The default keybindings resemble those
-of less(1), but can be configured by the user.
+(https://mupdf.com/) library. The default keybindings resemble those
+of less(1)
 
 == OPTIONS
 -c path::
@@ -36,7 +36,7 @@ Collect config garbage
 Display this list of options
 
 -last::
-Open last document
+Open last visited document
 
 -no-title::
 Ignore document title
@@ -93,7 +93,7 @@ You can specify a custom path using the -c option.
 -------------------------------------------------------------
 
 ==== Some configuration tips
-- To change the user interface font add a ui-font in the followig way:
+- To change the user interface font:
 -------------------------------------------------------------
 <llppconfig>
   <ui-font size='16'>
@@ -102,8 +102,8 @@ You can specify a custom path using the -c option.
   <defaults ... />
 </llppconfig>
 -------------------------------------------------------------
-- To change the key bindings, add keymaps to the defaults element,
-e.g.  disable Escape key in the view mode:
+- To change keybindings, add keymaps to the defaults element, for
+instance following example disables Escape key in the view mode:
 
 -------------------------------------------------------------
 <llppconfig>
@@ -123,7 +123,7 @@ llppac(1), llpphtml(1)
 
 == ENVIRONMENT
 === LLPP_ASK_PASS
-Command to inquire the user about the password (dmenu/rofi like)
+Command to inquire user about the password (dmenu/rofi like)
 
 == REPORTING BUGS
 https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com
