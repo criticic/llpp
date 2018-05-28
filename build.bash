@@ -23,7 +23,7 @@ wsid="wsi/x11"
 case "$(uname)" in
     Darwin)
         darwin=true
-        wsi="wsi/osx"
+        wsid="wsi/osx"
         mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
         ;;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
