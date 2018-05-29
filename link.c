@@ -1391,14 +1391,10 @@ static char *mbtoutf8 (char *s)
     }
 
     len = mbstowcs (NULL, s, strlen (s));
-    if (len == 0) {
-        return s;
-    }
-    else {
-        if (len == (size_t) -1) {
+    if (len == 0 || len == (size_t) -1) {
+        if (len)
             printd ("emsg mbtoutf8: mbstowcs: %d:%s", errno, strerror (errno));
-            return s;
-        }
+        return s;
     }
 
     tmp = calloc (len, sizeof (wchar_t));
