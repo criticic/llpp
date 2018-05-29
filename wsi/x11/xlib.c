@@ -1,10 +1,7 @@
 #define CAML_NAME_SPACE
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvariadic-macros"
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
-#pragma GCC diagnostic pop
 
 #include <GL/glx.h>
 
