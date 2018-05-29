@@ -222,7 +222,7 @@ ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 cmd="(. $srcd/genconfstr.sh >$outd/confstruct.ml)"
 keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
-    echo genconfstr
+    echo "generating $out"
     eval "$cmd || die genconfstr.sh failed"
     echo "k='$cmd$(eval $keycmd)'" > "$outd/confstruct.ml.past"
 } && vecho "fresh $outd/confstruct.ml"
