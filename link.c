@@ -3626,6 +3626,10 @@ CAMLprim void ml_unmappbo (value s_v)
 static void setuppbo (void)
 {
     extern void (*wsigladdr (const char *name)) (void);
+#pragma GCC diagnostic push
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Wbad-function-cast"
+#endif
 #define GPA(n) (*(uintptr_t *) &state.n = (uintptr_t) wsigladdr (#n))
     state.bo_usable = GPA (glBindBufferARB)
         && GPA (glUnmapBufferARB)
@@ -3633,6 +3637,7 @@ static void setuppbo (void)
         && GPA (glBufferDataARB)
         && GPA (glGenBuffersARB)
         && GPA (glDeleteBuffersARB);
+#pragma GCC diagnostic pop
 #undef GPA
 }
 

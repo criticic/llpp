@@ -93,5 +93,5 @@ CAMLprim void ml_swapb (value unit_v)
 
 void (*wsigladdr (const char *name)) (void)
 {
-    return glXGetProcAddress (name);
+    return glXGetProcAddress ((const GLubyte *) name);
 }
