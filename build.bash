@@ -2,19 +2,11 @@
 set -eu
 
 now() { date +%s; }
-tstart=$(now)
+S=$(now)
 vecho() { ${vecho-:} "$*"; }
 digest() { cksum 2>/dev/null $* | while read h _; do printf $h; done; }
-
-partmsg() {
-    test $? -eq 0 && msg="ok" || msg="ko"
-    echo "$msg $(($(now) - $tstart)) sec"
-}
-
-die() {
-    echo "$*" >&2
-    exit 111
-}
+die() { echo "$*" >&2; exit 111; }
+partmsg() { echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"; }
 
 trap 'partmsg' EXIT
 
