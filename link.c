@@ -1,4 +1,6 @@
 /* lots of code c&p-ed directly from mupdf */
+#define FIXME 0
+
 #ifdef __clang__
 #pragma GCC diagnostic error "-Weverything"
 #pragma GCC diagnostic ignored "-Wpadded"
@@ -10,9 +12,6 @@
 #endif
 
 extern char **environ;
-
-#define CAML_NAME_SPACE
-#define FIXME 0
 
 #include <errno.h>
 #include <stdio.h>
@@ -55,6 +54,7 @@ extern char **environ;
 #pragma GCC diagnostic ignored "-Wreserved-id-macro"
 #endif
 #pragma GCC diagnostic ignored "-Wpedantic"
+#define CAML_NAME_SPACE
 #include <caml/fail.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
