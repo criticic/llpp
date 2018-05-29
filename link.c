@@ -3627,10 +3627,9 @@ static void setuppbo (void)
 #pragma GCC diagnostic pop
 }
 
-CAMLprim value ml_bo_usable (value unit_v)
+CAMLprim value ml_bo_usable (void)
 {
-    CAMLparam1 (unit_v);
-    CAMLreturn (Val_bool (state.bo_usable));
+    return Val_bool (state.bo_usable);
 }
 
 CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
@@ -3791,10 +3790,9 @@ CAMLprim void ml_modannot (value ptr_v, value n_v, value str_v)
     CAMLreturn0;
 }
 
-CAMLprim value ml_hasunsavedchanges (value unit_v)
+CAMLprim value ml_hasunsavedchanges (void)
 {
-    CAMLparam1 (unit_v);
-    CAMLreturn (Val_bool (state.dirty));
+    return Val_bool (state.dirty);
 }
 
 CAMLprim void ml_savedoc (value path_v)

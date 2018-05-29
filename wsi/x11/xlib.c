@@ -53,10 +53,8 @@ CAMLprim value ml_glxinit (value display_v, value wid_v, value screen_v)
     CAMLreturn (Val_int (glx.visual->visualid));
 }
 
-CAMLprim void ml_glxcompleteinit (value unit_v)
+CAMLprim void ml_glxcompleteinit (void)
 {
-    CAMLparam1 (unit_v);
-
     glx.ctx = glXCreateContext (glx.dpy, glx.visual, NULL, True);
     if (!glx.ctx) {
         caml_failwith ("glXCreateContext");
@@ -70,7 +68,6 @@ CAMLprim void ml_glxcompleteinit (value unit_v)
         glx.ctx = NULL;
         caml_failwith ("glXMakeCurrent");
     }
-    CAMLreturn0;
 }
 
 CAMLprim void ml_setcursor (value cursor_v)
@@ -84,11 +81,9 @@ CAMLprim void ml_setcursor (value cursor_v)
     CAMLreturn0;
 }
 
-CAMLprim void ml_swapb (value unit_v)
+CAMLprim void ml_swapb (void)
 {
-    CAMLparam1 (unit_v);
     glXSwapBuffers (glx.dpy, glx.wid);
-    CAMLreturn0;
 }
 
 void (*wsigladdr (const char *name)) (void)
