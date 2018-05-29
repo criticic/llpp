@@ -28,7 +28,7 @@ if auto scrolling is active:
 
 -----Mouse-----
 primary mouse button    - click on link or select text[2]
-  when shift is held    - execute "synctex command" with coordinates of the point[3]
+  when Shift is held    - execute "synctex command" with coordinates of the point[3]
   when Ctrl is held     - pan
   zoom to block         - when in block zoom mode
   otherwise             - pan if there's no text/link under the cursor
@@ -36,7 +36,7 @@ mouse buttons 3/4       - scroll up/down (aka mouse wheel)
   when Ctrl is held     - zoom
 mouse buttons 5/6       - pan left/right (aka horizontal mouse wheel)
 secondary mouse button  - select rectangle to zoom to
-  when shift is held    - add text annotation
+  when Shift is held    - add text annotation
 
 Note:
   moving mouse while holding primary mouse button will pan the page,
@@ -49,7 +49,7 @@ m                       - create named bookmark
 ~                       - create quick bookmark
 
 -----Zoom-----
-Ctrl+shift up/down      - set previous zoom level
+Ctrl+Shift up/down      - set previous zoom level
 B                       - toggle zoom block mode
 w                       - change height of the window to encompass all of the page
 Alt-c                   - center view
