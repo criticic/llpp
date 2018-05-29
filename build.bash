@@ -31,8 +31,7 @@ muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
 test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
 
-mkdir -p $outd/$wsid
-mkdir -p $outd/lablGL
+mkdir -p $outd/{$wsid,lablGL}
 :>$outd/ordered
 
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
