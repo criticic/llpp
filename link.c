@@ -3626,12 +3626,14 @@ CAMLprim void ml_unmappbo (value s_v)
 static void setuppbo (void)
 {
     extern void (*wsigladdr (const char *name)) (void);
-    state.bo_usable = wsigladdr ("glBindBufferARB")
-        && wsigladdr ("glUnmapBufferARB")
-        && wsigladdr ("glMapBufferARB")
-        && wsigladdr ("glBufferDataARB")
-        && wsigladdr ("glGenBuffersARB")
-        && wsigladdr ("glDeleteBuffersARB");
+#define GPA(n) (*(uintptr_t *) &state.n = (uintptr_t) wsigladdr (#n))
+    state.bo_usable = GPA (glBindBufferARB)
+        && GPA (glUnmapBufferARB)
+        && GPA (glMapBufferARB)
+        && GPA (glBufferDataARB)
+        && GPA (glGenBuffersARB)
+        && GPA (glDeleteBuffersARB);
+#undef GPA
 }
 
 CAMLprim value ml_bo_usable (value unit_v)
