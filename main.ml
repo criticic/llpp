@@ -3,9 +3,8 @@ open Config;;
 open Glutils;;
 open Listview;;
 
-type initparams    =
-  (angle * fitmodel * trimparams * texcount * sliceheight * memsize
-   * colorspace * fontpath * trimcachepath);;
+type initparams = (  angle * fitmodel * trimparams * texcount * sliceheight *
+                     memsize * colorspace * fontpath * trimcachepath);;
 
 external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
