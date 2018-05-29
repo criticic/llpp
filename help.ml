@@ -158,9 +158,8 @@ selection command otherwise
 [1] if the document was previously visited initial backspace will
     jump to the last visited place
 
-[2] text selection requires
-    X11     - xclip https://github.com/astrand/xclip
-    macOS   - pbcopy ships with the system
+[2] by default X11 version uses xclip to handle text copy/paste
+    https://github.com/astrand/xclip
 
 [3] arguments to the command are:
     1 = path to the document
