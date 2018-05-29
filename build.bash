@@ -82,7 +82,7 @@ cflags() {
         version.o) f='-DLLPP_VERSION="'$ver'"';;
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
-            f="$f -DCACHE_PAGEREFS"
+            f="$f -DCACHE_PAGEREFS -DKeySym=uint32_t"
             $darwin && f="$f -D__COCOA__ -D_GNU_SOURCE" \
                     || f="$f -D_POSIX_C_SOURCE";;
         */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
@@ -287,8 +287,9 @@ if $darwin; then
     bobjc wsi/cocoa/wsicocoa.o
 else
     clibs="$clibs -lGL -lX11"
-    cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/glx.o"
-    bocamlc wsi/x11/keysym2ucs.o wsi/x11/glx.o
+    cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/xlib.o"
+    bocamlc wsi/x11/keysym2ucs.o
+    bocamlc wsi/x11/xlib.o
 fi
 
 ord=$(grep -v \.cmi $outd/ordered)
