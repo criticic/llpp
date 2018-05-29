@@ -43,7 +43,7 @@ extern char **environ;
 #include <limits.h>
 #include <inttypes.h>
 
-#ifdef __COCOA__
+#ifdef CIDER
 #include <CoreFoundation/CoreFoundation.h>
 #include <OpenGL/gl.h>
 #else
@@ -3451,7 +3451,7 @@ CAMLprim void ml_setaalevel (value level_v)
     CAMLreturn0;
 }
 
-#ifndef __COCOA__
+#ifndef CIDER
 CAMLprim value ml_keysymtoutf8 (value keysym_v)
 {
     CAMLparam1 (keysym_v);
@@ -3871,7 +3871,7 @@ CAMLprim void ml_init (value csock_v, value params_v)
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
 
-#ifdef __COCOA__
+#ifdef CIDER
     state.utf8cs = 1;
 #else
     /* http://www.cl.cam.ac.uk/~mgk25/unicode.html */
