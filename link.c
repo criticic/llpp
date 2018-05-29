@@ -43,7 +43,6 @@ extern char **environ;
 #include <inttypes.h>
 
 #ifdef CIDER
-#include <CoreFoundation/CoreFoundation.h>
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
