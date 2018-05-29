@@ -200,8 +200,7 @@ let wcmd fmt =
     ) b fmt
 ;;
 
-let nogeomcmds cmds =
-  match cmds with
+let nogeomcmds = function
   | s, [] -> emptystr s
   | _ -> false
 ;;
