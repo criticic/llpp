@@ -7,7 +7,7 @@ type rgb = float * float * float
 type rgba = float * float * float * float
 type fitmodel = | FitWidth | FitProportional | FitPage
 type irect = (int * int * int * int)
-type colorspace = | Rgb | Bgr | Gray
+type colorspace = | Rgb | Gray
 type keymap =
   | KMinsrt of key | KMinsrl of key list | KMmulti of key list * key list
 and key = int * int

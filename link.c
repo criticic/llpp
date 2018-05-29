@@ -1340,16 +1340,6 @@ static void set_tex_params (int colorspace)
         state.colorspace = fz_device_rgb (state.ctx);
         break;
     case 1:
-        state.texiform = GL_RGBA8;
-        state.texform = GL_BGRA;
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-        state.texty = GL_UNSIGNED_INT_8_8_8_8_REV;
-#else
-        state.texty = GL_UNSIGNED_INT_8_8_8_8;
-#endif
-        state.colorspace = fz_device_bgr (state.ctx);
-        break;
-    case 2:
         state.texiform = GL_LUMINANCE_ALPHA;
         state.texform = GL_LUMINANCE_ALPHA;
         state.texty = GL_UNSIGNED_BYTE;

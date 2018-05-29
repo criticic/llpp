@@ -135,7 +135,7 @@ end;;
 module CSTE = TextEnumMake (struct
                   type t = colorspace;;
                   let name = "colorspace";;
-                  let names = [|"rgb"; "bgr"; "gray"|];;
+                  let names = [|"rgb"; "gray"|];;
                 end);;
 
 module MTE = TextEnumMake (struct
