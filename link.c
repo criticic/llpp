@@ -3637,8 +3637,8 @@ static void setuppbo (void)
         && GPA (glBufferDataARB)
         && GPA (glGenBuffersARB)
         && GPA (glDeleteBuffersARB);
-#pragma GCC diagnostic pop
 #undef GPA
+#pragma GCC diagnostic pop
 }
 
 CAMLprim value ml_bo_usable (value unit_v)
