@@ -283,13 +283,12 @@ clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
-    bobjc wsi/cocoa/wsicocoa.o
     cobjs="$cobjs $outd/wsi/cocoa/wsicocoa.o"
+    bobjc wsi/cocoa/wsicocoa.o
 else
     clibs="$clibs -lGL -lX11"
-    bocamlc wsi/x11/glx.o
     cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/glx.o"
-    bocamlc wsi/x11/keysym2ucs.o
+    bocamlc wsi/x11/keysym2ucs.o wsi/x11/glx.o
 fi
 
 ord=$(grep -v \.cmi $outd/ordered)
