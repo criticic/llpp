@@ -3542,13 +3542,13 @@ CAMLprim void ml_swapb (value unit_v)
     CAMLreturn0;
 }
 
-long keysym2ucs (KeySym);
 CAMLprim value ml_keysymtoutf8 (value keysym_v)
 {
     CAMLparam1 (keysym_v);
     CAMLlocal1 (str_v);
     KeySym keysym = Int_val (keysym_v);
     Rune rune;
+    extern long keysym2ucs (KeySym);
     int len;
     char buf[5];
 
