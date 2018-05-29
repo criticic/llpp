@@ -295,10 +295,11 @@ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
 
 if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"
-    keycmd="digest $out $srcd/wsi/cocoa/genplist.sh"
+    keycmd="digest $out $srcd/wsi/cocoa/genplist.sh; echo $ver"
     isfresh $out "$(eval $keycmd)" || {
         d=$(dirname $out)
         mkdir -p "$d"
+        echo "generating $out"
         (. $srcd/wsi/cocoa/genplist.sh) >"$out"
         echo "k='$(eval $keycmd)'" >"$out.past"
     } && vecho "fresh plist"
