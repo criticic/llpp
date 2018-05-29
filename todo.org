@@ -11,4 +11,3 @@
 ** TODO Move wsi specific stuff out of link.c and into wsi/../xxx.[cm]
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though
-* TODO Move more stuff out of link.c and intto wsi/*
