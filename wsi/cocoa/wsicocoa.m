@@ -900,6 +900,23 @@ int adjust_argv (int argc, char **argv)
   return argc;
 }
 
+void (*wsigladdr (const char *name)) (void)
+{
+  static CFBundleRef framework = NULL;
+  if (framework == NULL)
+    framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
+
+  char *bytes;
+  CFStringRef str;
+  bytes = CFAllocatorAllocate (CFAllocatorGetDefault(), 6, 0);
+  strcpy (bytes, name);
+  str = CFStringCreateWithCStringNoCopy (NULL, bytes,
+                                         kCFStringEncodingMacRoman, NULL);
+  void (*ret) (void) = CFBundleGetFunctionPointerForName (framework, str);
+  CFRelease (str);
+  return ret;
+}
+
 int main(int argc, char **argv)
 {
   @autoreleasepool {

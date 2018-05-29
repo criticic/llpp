@@ -3720,27 +3720,13 @@ CAMLprim void ml_unmappbo (value s_v)
 
 static void setuppbo (void)
 {
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Wunused-macros"
-#endif
-#ifdef __COCOA__
-  static CFBundleRef framework = NULL;
-  if (framework == NULL)
-    framework = CFBundleGetBundleWithIdentifier (CFSTR ("com.apple.opengl"));
-#define GGPA(n)                                                         \
-  (*(void (**) (void)) &state.n =                                       \
-   (void (*) (void)) CFBundleGetFunctionPointerForName (framework, CFSTR (#n)))
-#else
-#define GGPA(n)                                                         \
-  (*(void (**) (void)) &state.n = glXGetProcAddress ((GLubyte *) #n))
-#endif
-    state.bo_usable = GGPA (glBindBufferARB)
-        && GGPA (glUnmapBufferARB)
-        && GGPA (glMapBufferARB)
-        && GGPA (glBufferDataARB)
-        && GGPA (glGenBuffersARB)
-        && GGPA (glDeleteBuffersARB);
-#undef GGPA
+    extern void (*wsigladdr (const char *name)) (void);
+    state.bo_usable = wsigladdr ("glBindBufferARB")
+        && wsigladdr ("glUnmapBufferARB")
+        && wsigladdr ("glMapBufferARB")
+        && wsigladdr ("glBufferDataARB")
+        && wsigladdr ("glGenBuffersARB")
+        && wsigladdr ("glDeleteBuffersARB");
 }
 
 CAMLprim value ml_bo_usable (value unit_v)

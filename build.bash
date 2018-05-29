@@ -287,7 +287,8 @@ if $darwin; then
     cobjs="$cobjs $outd/wsi/cocoa/wsicocoa.o"
 else
     clibs="$clibs -lGL -lX11"
-    cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o"
+    bocamlc wsi/x11/glx.o
+    cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/glx.o"
     bocamlc wsi/x11/keysym2ucs.o
 fi
 
