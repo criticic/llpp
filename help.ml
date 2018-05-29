@@ -1,4 +1,4 @@
-let keys = 
+let keys =
 {|-----Quitting-----
 escape/q                - quit
 Q                       - quit without saving the configuration or changes
