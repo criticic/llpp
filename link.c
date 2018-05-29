@@ -2260,20 +2260,16 @@ static void uploadslice (struct tile *tile, struct slice *slice)
     }
 }
 
-CAMLprim void ml_begintiles (value unit_v)
+CAMLprim void ml_begintiles (void)
 {
-    CAMLparam1 (unit_v);
     glEnable (TEXT_TYPE);
     glTexCoordPointer (2, GL_FLOAT, 0, state.texcoords);
     glVertexPointer (2, GL_FLOAT, 0, state.vertices);
-    CAMLreturn0;
 }
 
-CAMLprim void ml_endtiles (value unit_v)
+CAMLprim void ml_endtiles (void)
 {
-    CAMLparam1 (unit_v);
     glDisable (TEXT_TYPE);
-    CAMLreturn0;
 }
 
 CAMLprim void ml_drawtile (value args_v, value ptr_v)
