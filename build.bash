@@ -305,7 +305,6 @@ if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"
     keycmd="digest $out $srcd/wsi/cocoa/genplist.sh"
     isfresh $out "$(eval $keycmd)" || {
-        shortver=$(echo $ver | { IFS='-' read s _; echo ${s#v}; })
         d=$(dirname $out)
         mkdir -p "$d"
         (. $srcd/wsi/cocoa/genplist.sh) >"$out"
