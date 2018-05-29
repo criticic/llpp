@@ -3855,7 +3855,6 @@ CAMLprim void ml_init (value csock_v, value params_v)
     char *fontpath;
     int colorspace;
     int mustoresize;
-    int haspboext;
 
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
@@ -3889,8 +3888,6 @@ CAMLprim void ml_init (value csock_v, value params_v)
         }
     }
 
-    haspboext         = Bool_val (Field (params_v, 9));
-
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);
 
@@ -3916,11 +3913,7 @@ CAMLprim void ml_init (value csock_v, value params_v)
     if (!state.face) _exit (1);
 
     realloctexts (texcount);
-
-    if (haspboext) {
-        setuppbo ();
-    }
-
+    setuppbo ();
     makestippletex ();
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);

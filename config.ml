@@ -41,10 +41,7 @@ let multicolumns_of_string s =
 
 include Confstruct;;
 
-type initparams    =
-  (angle * fitmodel * trimparams * texcount * sliceheight * memsize
-   * colorspace * fontpath * trimcachepath * haspbo)
-and angle          = int
+type angle         = int
 and opaque         = Opaque.t
 and rectcolor      = rgba
 and pixmapsize     = int
@@ -56,7 +53,6 @@ and trimcachepath  = string
 and aalevel        = int
 and trimmargins    = bool
 and trimparams     = (trimmargins * irect)
-and haspbo         = bool
 and usefontconfig  = bool
 and usedoccss      = bool
 and uri            = string

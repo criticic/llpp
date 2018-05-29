@@ -3,6 +3,10 @@ open Config;;
 open Glutils;;
 open Listview;;
 
+type initparams    =
+  (angle * fitmodel * trimparams * texcount * sliceheight * memsize
+   * colorspace * fontpath * trimcachepath);;
+
 external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;
@@ -57,7 +61,6 @@ external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
 
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
-let opengl_has_pbo = ref false;;
 let layouth = ref ~-1;;
 let checkerstexid = ref None;;
 
@@ -2657,7 +2660,7 @@ let enterinfomode =
       src#paxmark "pax mark method"
         (fun () -> MTE.to_string conf.paxmark)
         (fun v -> conf.paxmark <- MTE.of_int v);
-      if bousable () && !opengl_has_pbo
+      if bousable ()
       then
         src#bool "use PBO"
           (fun () -> conf.usepbo)
@@ -5084,9 +5087,6 @@ let () =
   in
 
   setcheckers conf.checkers;
-
-  opengl_has_pbo := GlMisc.check_extension "GL_ARB_pixel_buffer_object";
-
   begin match !csspath with
   | None -> ()
   | Some "" -> conf.css <- E.s
@@ -5101,7 +5101,7 @@ let () =
   init cs (
       conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
       conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-      !Config.fontpath, !trimcachepath, !opengl_has_pbo
+      !Config.fontpath, !trimcachepath
     );
   List.iter GlArray.enable [`texture_coord; `vertex];
   state.ss <- ss;
