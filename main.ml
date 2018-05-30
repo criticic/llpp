@@ -1476,7 +1476,7 @@ let intentry text key =
 
 let linknact f s =
   if nonemptystr s
-  then (
+  then
     let n =
       let l = String.length s in
       let rec loop pos n =
@@ -1502,7 +1502,6 @@ let linknact f s =
             else loop (n-m) rest
     in
     loop n state.layout;
-  )
 ;;
 
 let linknentry text key = match [@warning "-4"] key with
@@ -1533,9 +1532,8 @@ let reqlayout angle fitmodel =
   );
   conf.fitmodel <- fitmodel;
   invalidate "reqlayout"
-    (fun () ->
-      wcmd "reqlayout %d %d %d"
-        conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh)
+    (fun () -> wcmd "reqlayout %d %d %d"
+                 conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh)
     );
 ;;
 
@@ -1654,9 +1652,8 @@ let enterbirdseye () =
     | None -> Csingle E.a
   );
   if conf.verbose
-  then
-    state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
-                    (100.0*.zoom)
+  then state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
+                       (100.0*.zoom)
   else state.text <- E.s;
   reshape state.winw state.winh;
 ;;
@@ -1810,10 +1807,9 @@ class outlinelistview ~zebra ~source =
     if autonarrow
     then
       let ss = source#statestr in
-      state.text <-
-        if emptystr ss
-        then "[" ^ s ^ "]"
-        else "{" ^ ss ^ "} [" ^ s ^ "]"
+      state.text <- if emptystr ss
+                    then "[" ^ s ^ "]"
+                    else "{" ^ ss ^ "} [" ^ s ^ "]"
     else state.text <- s
   in
   object (self)
