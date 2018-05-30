@@ -215,7 +215,8 @@ class type lvsource =
     method getminfo : (int * int) array
   end;;
 
-class virtual lvsourcebase = object
+class virtual lvsourcebase =
+        object
           val mutable m_active = 0
           val mutable m_first = 0
           val mutable m_pan = 0
