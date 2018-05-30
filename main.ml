@@ -4976,13 +4976,6 @@ let () =
               ; "GL_NV_texture_rectangle" ]
   then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
 
-  if substratis (GlMisc.get_string `renderer) 0 "Mesa DRI Intel("
-  then (
-    defconf.sliceheight <- 1024;
-    defconf.texcount <- 32;
-    defconf.usepbo <- true;
-  );
-
   let cs, ss =
     match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
     | exception exn ->
