@@ -53,3 +53,8 @@ external isexternallink : string -> bool = "ml_isexternallink";;
 
 (* copysel _will_ close the supplied descriptor *)
 external copysel : Unix.file_descr -> opaque -> unit = "ml_copysel";;
+
+external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
+
+external fz_version : unit -> string = "ml_fz_version";;
+external llpp_version : unit -> string = "ml_llpp_version";;

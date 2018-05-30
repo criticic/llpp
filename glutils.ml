@@ -1,5 +1,3 @@
-external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
-
 let traw = Raw.create_static `float ~len:8;;
 let vraw = Raw.create_static `float ~len:8;;
 
@@ -29,13 +27,13 @@ let drawstring size x y s =
   Gl.enable `blend;
   Gl.enable `texture_2d;
   GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
-  ignore (drawstr size x y s);
+  ignore (Ffi.drawstr size x y s);
   Gl.disable `blend;
   Gl.disable `texture_2d;
 ;;
 
 let drawstring1 size x y s =
-  drawstr size x y s;
+  Ffi.drawstr size x y s;
 ;;
 
 let drawstring2 size x y fmt =

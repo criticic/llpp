@@ -175,9 +175,6 @@ o Text searching is very naive|};;
 
 open Utils;;
 
-external fz_version : unit -> string = "ml_fz_version";;
-external llpp_version : unit -> string = "ml_llpp_version";;
-
 let gotourl launcher url =
   let command = Str.global_replace Utils.Re.percent url launcher in
   try ignore @@ spawn command []
@@ -195,7 +192,7 @@ let gotouri launcher uri =
 
 let version () =
   Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
-    (llpp_version ()) (fz_version ()) Sys.ocaml_version Sys.word_size
+    (Ffi.llpp_version ()) (Ffi.fz_version ()) Sys.ocaml_version Sys.word_size
 ;;
 
 let fixup = let open Str in let gr = global_replace in
