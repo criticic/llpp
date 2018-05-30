@@ -6,8 +6,6 @@
   file names? exif?
 * TODO build.sh
 ** TODO Parallel builds
-** TODO Avoid infinite recursion
 ** TODO Make isfresh work (properly) with multiple targets
-** TODO Move wsi specific stuff out of link.c and into wsi/../xxx.[cm]
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though

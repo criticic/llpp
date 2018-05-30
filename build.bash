@@ -162,11 +162,13 @@ bocaml2() {
     } && vecho "fresh '$o'"
 }
 
+cycle=
 bocaml() (
     local o="$1"
     local n="$2"
     local wocmi="${o%.cmi}"
     local s
+    local cycle1=$cycle
     case ${wocmi#$outd/} in
         confstruct.cmo)
             s=$outd/confstruct.ml
@@ -175,6 +177,8 @@ bocaml() (
             test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
             o=$outd/$o;;
     esac
+    expr >/dev/null "$cycle" : ".*$o" && die cycle $o
+    cycle="$cycle$o"
     bocaml1 $n "$s" "$o"
     case $wocmi in
         wsi) s="$srcd/$wsid/wsi.ml";;
@@ -186,6 +190,7 @@ bocaml() (
         local s1=${s#$srcd/}
         bocaml1 $n "$s" "$outd/${s1%.ml}.cmo" "${o#$outd/}"
     } || true
+    cycle=$cycle1
 )
 
 bocamlc() {
