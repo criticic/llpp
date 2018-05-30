@@ -2,7 +2,7 @@ open Utils;;
 open Config;;
 open Glutils;;
 open Listview;;
-open Link;;
+open Ffi;;
 
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
