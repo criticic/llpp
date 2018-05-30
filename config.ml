@@ -18,9 +18,7 @@ let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
 ;;
 
-let irect_to_string (x0,y0,x1,y1) =
-  Printf.sprintf "%d/%d/%d/%d" x0 y0 x1 y1
-;;
+let irect_to_string (x0,y0,x1,y1) = Printf.sprintf "%d/%d/%d/%d" x0 y0 x1 y1;;
 
 let multicolumns_to_string (n, a, b) =
   if a = 0 && b = 0
@@ -109,46 +107,51 @@ class type uioh =
     method zoom : float -> int -> int -> unit
   end;;
 
-module type TextEnumType = sig
-  type t
-  val name : string
-  val names : string array
-end;;
+module type TextEnumType =
+  sig
+    type t
+    val name : string
+    val names : string array
+  end;;
 
-module TextEnumMake (Ten : TextEnumType) = struct
-  let names = Ten.names;;
-  let to_int (t : Ten.t)  = Obj.magic t;;
-  let to_string t = names.(to_int t);;
-  let of_int n : Ten.t = Obj.magic n;;
-  let of_string s =
-    let rec find i =
-      if i = Array.length names
-      then error "invalid %s: %s" Ten.name s
-      else (
-        if Ten.names.(i) = s
-        then of_int i
-        else find (i+1)
-      )
-    in find 0;;
-end;;
+module TextEnumMake (Ten : TextEnumType) =
+  struct
+    let names = Ten.names;;
+    let to_int (t : Ten.t)  = Obj.magic t;;
+    let to_string t = names.(to_int t);;
+    let of_int n : Ten.t = Obj.magic n;;
+    let of_string s =
+      let rec find i =
+        if i = Array.length names
+        then error "invalid %s: %s" Ten.name s
+        else (
+          if Ten.names.(i) = s
+          then of_int i
+          else find (i+1)
+        )
+      in find 0;;
+  end;;
 
-module CSTE = TextEnumMake (struct
-                  type t = colorspace;;
-                  let name = "colorspace";;
-                  let names = [|"rgb"; "gray"|];;
-                end);;
+module CSTE = TextEnumMake (
+                  struct
+                    type t = colorspace;;
+                    let name = "colorspace";;
+                    let names = [|"rgb"; "gray"|];;
+                  end);;
 
-module MTE = TextEnumMake (struct
-                 type t = mark;;
-                 let name = "mark";;
-                 let names = [|"page"; "block"; "line"; "word"|];;
-               end);;
+module MTE = TextEnumMake (
+                 struct
+                   type t = mark;;
+                   let name = "mark";;
+                   let names = [|"page"; "block"; "line"; "word"|];;
+                 end);;
 
-module FMTE = TextEnumMake (struct
-                  type t = fitmodel;;
-                  let name = "fitmodel";;
-                  let names = [|"width"; "proportional"; "page"|];;
-                end);;
+module FMTE = TextEnumMake (
+                  struct
+                    type t = fitmodel;;
+                    let name = "fitmodel";;
+                    let names = [|"width"; "proportional"; "page"|];;
+                  end);;
 
 type outlinekind =
   | Onone
@@ -186,9 +189,8 @@ and col = int
 and currently =
   | Idle
   | Loading of (page * gen)
-  | Tiling of (
-    page * opaque * colorspace * angle * gen * col * row * width * height
-  )
+  | Tiling
+    of (page * opaque * colorspace * angle * gen * col * row * width * height)
   | Outlining of outline list
 ;;
 
@@ -591,7 +593,6 @@ let getpagedim pageno =
        if n >= pageno
        then (if n = pageno then pdim else ppdim)
        else f pdim rest
-
     | [] -> ppdim
   in
   f (-1, -1, -1, -1) state.pdims
@@ -605,7 +606,6 @@ let getpdimno pageno =
        if n >= pageno
        then (if n = pageno then np else p)
        else f np rest
-
     | [] -> p
   in
   f ~-1 state.pdims
@@ -645,8 +645,7 @@ let getanchor () =
          then
            let ips = calcips h in
            float (dy + ips) /. float ips
-         else
-           float dy /. float conf.interpagespace
+         else float dy /. float conf.interpagespace
        in
        (n, 0.0, dtop)
 ;;
@@ -924,9 +923,7 @@ let get s =
        then (Hashtbl.add h path (c, [], pan, anchor, origin); v)
        else { v with f = doc path origin pan anchor c [] }
 
-    | Vopen _ ->
-       parse_error "unexpected subelement in llppconfig" s spos
-
+    | Vopen _ -> parse_error "unexpected subelement in llppconfig" s spos
     | Vclose "llppconfig" ->  { v with f = toplevel }
     | Vclose _ -> parse_error "unexpected close in llppconfig" s spos
 
@@ -961,8 +958,7 @@ let get s =
     | Vdata | Vcdata ->
        Buffer.add_substring b s spos (epos - spos);
        v
-    | Vopen (_, _, _) ->
-       parse_error "unexpected subelement in ui-font" s spos
+    | Vopen (_, _, _) -> parse_error "unexpected subelement in ui-font" s spos
     | Vclose "ui-font" ->
        if emptystr !fontpath
        then fontpath := Buffer.contents b;
@@ -1039,12 +1035,9 @@ let get s =
          let f () = v in
          { v with f = skip "map" f }
 
-    | Vopen _ ->
-       parse_error "unexpected subelement in keymap" s spos
-
+    | Vopen _ -> parse_error "unexpected subelement in keymap" s spos
     | Vclose "keymap" ->
        { v with f = ret keymap }
-
     | Vclose _ -> parse_error "unexpected close in keymap" s spos
 
   and pbookmarks path origin pan anchor c bookmarks v t spos _ =
@@ -1065,12 +1058,9 @@ let get s =
          let f () = v in
          { v with f = skip "item" f }
 
-    | Vopen _ ->
-       parse_error "unexpected subelement in bookmarks" s spos
-
+    | Vopen _ -> parse_error "unexpected subelement in bookmarks" s spos
     | Vclose "bookmarks" ->
        { v with f = doc path origin pan anchor c bookmarks }
-
     | Vclose _ -> parse_error "unexpected close in bookmarks" s spos
 
   and skip tag f v t spos _ =
@@ -1089,7 +1079,6 @@ let get s =
        then f ()
        else parse_error ("unexpected close in skipped " ^ tag) s spos
   in
-
   parse { f = toplevel; accu = () } s;
   h, dc;
 ;;
@@ -1378,12 +1367,8 @@ let keystostrlist c =
                addkm i;
                Buffer.add_char bb '\t';
                begin match o with
-               | KMinsrt km ->
-                  addkm km
-
-               | KMinsrl kms ->
-                  addkms kms
-
+               | KMinsrt km -> addkm km
+               | KMinsrl kms -> addkms kms
                | KMmulti (ins, kms) ->
                   Buffer.add_char bb ' ';
                   addkms ins;
@@ -1466,10 +1451,11 @@ let save1 bb leavebirdseye x h dc =
            Buffer.add_buffer bb kb;
            Buffer.add_string bb "\n</doc>\n";
          )
-         else
+         else (
            if nonemptystr c.css
            then Buffer.add_string bb "\n</doc>\n"
            else Buffer.add_string bb "/>\n"
+         )
       | _ ->
          Buffer.add_string bb ">\n<bookmarks>\n";
          List.iter (fun (title, _, kind) ->
@@ -1481,9 +1467,9 @@ let save1 bb leavebirdseye x h dc =
                   page;
                 if rely > 1e-6
                 then Printf.bprintf bb " rely='%f'" rely;
-
                 if abs_float visy > 1e-6
                 then Printf.bprintf bb " visy='%f'" visy;
+
              | Ohistory _ | Onone | Ouri _ | Oremote _
              | Oremotedest _ | Olaunch _ -> error "unexpected link in bookmarks"
              end;
@@ -1567,9 +1553,7 @@ let save leavebirdseye =
   conf.cwinw <- w;
   conf.cwinh <- h;
   let bb = Buffer.create 32768 in
-  let save2 (h, dc) =
-    save1 bb leavebirdseye x h dc
-  in
+  let save2 (h, dc) = save1 bb leavebirdseye x h dc in
   if load1 save2 && Buffer.length bb > 0
   then
     try
@@ -1578,8 +1562,7 @@ let save leavebirdseye =
       Buffer.output_buffer oc bb;
       close_out oc;
       Unix.rename tmp !confpath;
-    with exn ->
-      dolog "error saving configuration: %s" @@ exntos exn
+    with exn -> dolog "error saving configuration: %s" @@ exntos exn
 ;;
 
 let gc () =
@@ -1606,8 +1589,7 @@ let gc () =
       Buffer.output_buffer oc bb;
       close_out oc;
       Unix.rename tmp !confpath;
-    with exn ->
-      dolog "error saving configuration: %s" @@ exntos exn
+    with exn -> dolog "error saving configuration: %s" @@ exntos exn
   );
 ;;
 

@@ -33,11 +33,7 @@ let setfontsize n =
   fstate.maxrows <- (state.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
-let vlog fmt =
-  if conf.verbose
-  then dolog fmt
-  else Printf.kprintf ignore fmt
-;;
+let vlog fmt = if conf.verbose then dolog fmt else Printf.kprintf ignore fmt;;
 
 let launchpath () =
   if emptystr conf.pathlauncher
@@ -665,9 +661,7 @@ let gotoxy x y =
                     let ld =
                       if dir = 0
                       then LDfirstvisible (l.pagex, l.pagey, dir)
-                      else (
-                        if dir > 0 then LDfirst else LDlast
-                      )
+                      else if dir > 0 then LDfirst else LDlast
                     in
                     findlink opaque ld
                   in
@@ -816,11 +810,7 @@ let reload () =
   opendoc state.path state.password;
 ;;
 
-let scalecolor c =
-  let c = c *. conf.colorscale in
-  (c, c, c);
-;;
-
+let scalecolor c = let c = c *. conf.colorscale in (c, c, c);;
 let scalecolor2 (r, g, b) =
   (r *. conf.colorscale, g *. conf.colorscale, b *. conf.colorscale);
 ;;
@@ -1103,8 +1093,7 @@ let getpassword () =
   let passcmd = getenvwithdef "LLPP_ASKPASS" conf.passcmd in
   if emptystr passcmd
   then E.s
-  else getcmdoutput
-         (fun s ->
+  else getcmdoutput (fun s ->
            impmsg "error getting password: %s" s;
            dolog "%s" s) passcmd;
 ;;
@@ -1152,8 +1141,7 @@ let act cmds =
      end;
 
      let cur, cmds = state.geomcmds in
-     if emptystr cur
-     then error "empty geomcmd";
+     if emptystr cur then error "empty geomcmd";
 
      begin match List.rev cmds with
      | [] ->
@@ -1169,8 +1157,7 @@ let act cmds =
      showtext ' ' args
 
   | "vmsg", args ->
-     if conf.verbose
-     then showtext ' ' args
+     if conf.verbose then showtext ' ' args
 
   | "emsg", args ->
      Buffer.add_string state.errmsgs args;
@@ -1180,8 +1167,7 @@ let act cmds =
   | "progress", args ->
      let progress, text =
        scan args "%f %n"
-         (fun f pos ->
-           f, String.sub args pos (String.length args - pos))
+         (fun f pos -> f, String.sub args pos (String.length args - pos))
      in
      state.text <- text;
      state.progress <- progress;
@@ -1260,9 +1246,7 @@ let act cmds =
                    let ld =
                      if dir = 0
                      then LDfirstvisible (l.pagex, l.pagey, dir)
-                     else (
-                       if dir > 0 then LDfirst else LDlast
-                     )
+                     else if dir > 0 then LDfirst else LDlast
                    in
                    findlink pageopaque ld
                  in
@@ -1280,9 +1264,7 @@ let act cmds =
           );
 
           if visible && layoutready state.layout
-          then (
-            postRedisplay "page";
-          )
+          then postRedisplay "page";
         )
 
      | Idle | Tiling _ | Outlining _ ->
@@ -1293,8 +1275,7 @@ let act cmds =
 
   | "tile" , args ->
      let (x, y, opaques, size, t) =
-       scan args "%u %u %s %u %f"
-         (fun x y p size t -> (x, y, p, size, t))
+       scan args "%u %u %s %u %f" (fun x y p size t -> (x, y, p, size, t))
      in
      let opaque = ~< opaques in
      begin match state.currently with
@@ -1384,8 +1365,7 @@ let act cmds =
          if c = "Title"
          then (
            conf.title <- v;
-           if not !ignoredoctitlte
-           then Wsi.settitle v;
+           if not !ignoredoctitlte then Wsi.settitle v;
            args
          )
          else
@@ -1495,10 +1475,9 @@ let linknact f s =
          | Some opaque ->
             let m = getlinkcount opaque in
             if n < m
-            then (
+            then
               let under = getlink opaque n in
               f under
-            )
             else loop (n-m) rest
     in
     loop n state.layout;
@@ -1533,8 +1512,7 @@ let reqlayout angle fitmodel =
   conf.fitmodel <- fitmodel;
   invalidate "reqlayout"
     (fun () -> wcmd "reqlayout %d %d %d"
-                 conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh)
-    );
+                 conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh));
 ;;
 
 let settrim trimmargins trimfuzz =
@@ -1678,9 +1656,8 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
     | Csplit (c, _) -> Csplit (c, E.a)
   );
   if conf.verbose
-  then
-    state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-                    (100.0*.conf.zoom);
+  then state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
+                       (100.0*.conf.zoom);
   reshape state.winw state.winh;
   state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
   state.x <- leftx;
@@ -2644,8 +2621,7 @@ let enterinfomode =
     sep ();
     src#caption "Document" 0;
     List.iter (fun (_, s) -> src#caption s 1) state.docinfo;
-    src#caption2 "Pages"
-      (fun () ->  string_of_int state.pagecount) 1;
+    src#caption2 "Pages" (fun () ->  string_of_int state.pagecount) 1;
     src#caption2 "Dimensions"
       (fun () -> string_of_int (List.length state.pdims)) 1;
     if nonemptystr conf.css
@@ -2671,39 +2647,40 @@ let enterinfomode =
 
     src#reset prevmode prevuioh;
   in
-  fun () ->
-  state.text <- E.s;
-  resetmstate ();
-  let prevmode = state.mode
-  and prevuioh = state.uioh in
-  fillsrc prevmode prevuioh;
-  let source = (src :> lvsource) in
-  let modehash = findkeyhash conf "info" in
-  state.uioh <-
-    coe (object (self)
-           inherit listview ~zebra:false ~helpmode:false
-                     ~source ~trusted:true ~modehash as super
-           val mutable m_prevmemused = 0
-           method! infochanged = function
-             | Memused ->
-                if m_prevmemused != state.memused
-                then (
-                  m_prevmemused <- state.memused;
-                  postRedisplay "memusedchanged";
-                )
-             | Pdim -> postRedisplay "pdimchanged"
-             | Docinfo -> fillsrc prevmode prevuioh
+  fun () -> (
+    state.text <- E.s;
+    resetmstate ();
+    let prevmode = state.mode
+    and prevuioh = state.uioh in
+    fillsrc prevmode prevuioh;
+    let source = (src :> lvsource) in
+    let modehash = findkeyhash conf "info" in
+    state.uioh <-
+      coe (object (self)
+             inherit listview ~zebra:false ~helpmode:false
+                       ~source ~trusted:true ~modehash as super
+             val mutable m_prevmemused = 0
+             method! infochanged = function
+               | Memused ->
+                  if m_prevmemused != state.memused
+                  then (
+                    m_prevmemused <- state.memused;
+                    postRedisplay "memusedchanged";
+                  )
+               | Pdim -> postRedisplay "pdimchanged"
+               | Docinfo -> fillsrc prevmode prevuioh
 
-           method! key key mask =
-             if not (Wsi.withctrl mask)
-             then
-               match [@warning "-4"] Wsi.kc2kt key with
-               | Keys.Left  -> coe (self#updownlevel ~-1)
-               | Keys.Right -> coe (self#updownlevel 1)
-               | _ -> super#key key mask
-             else super#key key mask
-         end);
-  postRedisplay "info";
+             method! key key mask =
+               if not (Wsi.withctrl mask)
+               then
+                 match [@warning "-4"] Wsi.kc2kt key with
+                 | Keys.Left  -> coe (self#updownlevel ~-1)
+                 | Keys.Right -> coe (self#updownlevel 1)
+                 | _ -> super#key key mask
+               else super#key key mask
+           end);
+    postRedisplay "info";
+  );
 ;;
 
 let enterhelpmode =
@@ -2738,13 +2715,14 @@ let enterhelpmode =
        initializer
          m_active <- -1
      end)
-  in fun () ->
-     let modehash = findkeyhash conf "help" in
-     resetmstate ();
-     state.uioh <- coe (new listview
-                          ~zebra:false ~helpmode:true
-                          ~source ~trusted:true ~modehash);
-     postRedisplay "help";
+  in
+  fun () ->
+  let modehash = findkeyhash conf "help" in
+  resetmstate ();
+  state.uioh <- coe (new listview
+                       ~zebra:false ~helpmode:true
+                       ~source ~trusted:true ~modehash);
+  postRedisplay "help";
 ;;
 
 let entermsgsmode =
@@ -3304,16 +3282,14 @@ let prevpage () =
      match conf.columns with
      | Csingle _ ->
         if conf.presentation && l.pagey != 0
-        then
-          gotoxy state.x (clamp (pgscale ~-(state.winh)))
+        then gotoxy state.x (clamp (pgscale ~-(state.winh)))
         else
           let pageno = max 0 (l.pageno-1) in
           gotoxy state.x (getpagey pageno)
      | Cmulti ((c, _, coverB) as cl, _) ->
         if conf.presentation &&
              (existsinrow l.pageno cl (fun l -> l.pagey != 0))
-        then
-          gotoxy state.x (clamp (pgscale ~-(state.winh)))
+        then gotoxy state.x (clamp (pgscale ~-(state.winh)))
         else
           let decr =
             if l.pageno = state.pagecount - coverB
@@ -3423,11 +3399,8 @@ let viewkeyboard key mask =
      addnavnorc ();
      gotoxy state.x (getnav ~-1)
 
-  | Ascii 'o' ->
-     enteroutlinemode ()
-
-  | Ascii 'H' ->
-     enterhistmode ()
+  | Ascii 'o' -> enteroutlinemode ()
+  | Ascii 'H' -> enterhistmode ()
 
   | Ascii 'u' ->
      state.rects <- [];
@@ -3601,11 +3574,8 @@ let viewkeyboard key mask =
      then Wsi.reshape conf.cwinw conf.cwinh
      else Wsi.fullscreen ()
 
-  | Ascii ('p'|'N') ->
-     search state.searchpattern false
-
-  | Ascii 'n' | Fn 3 ->
-     search state.searchpattern true
+  | Ascii ('p'|'N') -> search state.searchpattern false
+  | Ascii 'n' | Fn 3 -> search state.searchpattern true
 
   | Ascii 't' ->
      begin match state.layout with
@@ -4129,7 +4099,7 @@ let showrects = function
        (fun (pageno, c, (x0, y0, x1, y1, x2, y2, x3, y3)) ->
          List.iter (fun l ->
              if l.pageno = pageno
-             then (
+             then
                let dx = float (l.pagedispx - l.pagex) in
                let dy = float (l.pagedispy - l.pagey) in
                let r, g, b, alpha = c in
@@ -4139,7 +4109,6 @@ let showrects = function
                  (x1+.dx) (y1+.dy)
                  (x3+.dx) (y3+.dy)
                  (x2+.dx) (y2+.dy);
-             )
            ) state.layout
        ) rects;
      Gl.disable `blend;
@@ -4505,9 +4474,8 @@ let birdseyemouse button down x y mask
        | l :: rest ->
           if y > l.pagedispy && y < l.pagedispy + l.pagevh
              && x > l.pagedispx && x < l.pagedispx + l.pagevw
-          then (
-            leavebirdseye (conf, leftx, l.pageno, hooverpageno, anchor) false;
-          )
+          then
+            leavebirdseye (conf, leftx, l.pageno, hooverpageno, anchor) false
           else loop rest
      in
      loop state.layout

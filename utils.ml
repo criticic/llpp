@@ -34,8 +34,7 @@ let dolog fmt = Format.ksprintf prerr_endline fmt;;
 
 let exntos = function
   | Unix.Unix_error (e, s, a) ->
-     Printf.sprintf "%s(%s) : %s (%d)"
-       s a (Unix.error_message e) (Obj.magic e)
+     Printf.sprintf "%s(%s) : %s (%d)" s a (Unix.error_message e) (Obj.magic e)
   | exn -> Printexc.to_string exn
 ;;
 

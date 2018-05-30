@@ -14,9 +14,7 @@ let isname = function
 
 exception Parse_error of string * string * int;;
 
-let parse_error msg s pos =
-  raise (Parse_error (msg, s, pos))
-;;
+let parse_error msg s pos = raise (Parse_error (msg, s, pos));;
 
 let enent s pos len =
   let b = Buffer.create len in
@@ -192,8 +190,7 @@ let parse v s =
            trailsbywhite 0
        in
        if ltpos = -1
-       then
-         v.f v Vend pos slen, slen
+       then v.f v Vend pos slen, slen
        else
          let start_of_text_pos = find_non_white pos in
          let end_of_text_pos =
@@ -315,12 +312,10 @@ let parse v s =
 
       let pos = find_non_white pos in
       if s.[pos] = '>'
-      then
-        accu, pos+1, false
+      then accu, pos+1, false
       else (
         if slen - pos > 2 && s.[pos] = '/' && s.[pos+1] = '>'
-        then
-          accu, pos+2, true
+        then accu, pos+2, true
         else (
           if isname s.[pos]
           then (

@@ -131,10 +131,10 @@ let textentrykeyboard
     match opthist with
     | None -> ()
     | Some (action, _) ->
-       state.mode <-
-         Textentry (
-             (c, action cmd, opthist, onkey, ondone, cancelonempty), onleave
-           );
+       state.mode <- Textentry (
+                         (c, action cmd, opthist,
+                          onkey, ondone, cancelonempty),
+                         onleave);
        postRedisplay "textentry histaction"
   in
   let open Keys in
@@ -694,8 +694,7 @@ object (self)
          let len = source#getitemcount in
          let first =
            if n = 5 && m_first + fstate.maxrows >= len
-           then
-             m_first
+           then m_first
            else
              let first = m_first + (if n == 4 then -1 else 1) in
              bound first 0 (len - 1)
@@ -770,8 +769,7 @@ object (self)
         let len = source#getitemcount in
         let first =
           if dy > 0 && m_first + fstate.maxrows >= len
-          then
-            m_first
+          then m_first
           else
             let first = m_first + dy / 10 in
             bound first 0 (len - 1)
