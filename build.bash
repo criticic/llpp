@@ -177,8 +177,7 @@ bocaml() (
             test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
             o=$outd/$o;;
     esac
-    expr >/dev/null "$cycle" : ".*$o" && die cycle $o
-    cycle="$cycle$o"
+    expr >/dev/null "$cycle" : ".*$o" && die cycle $o || cycle="$cycle$o"
     bocaml1 $n "$s" "$o"
     case $wocmi in
         wsi) s="$srcd/$wsid/wsi.ml";;
