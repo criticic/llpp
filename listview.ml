@@ -592,10 +592,9 @@ object (self)
              let mx, my = state.mpos in
              updateunder mx my;
           *)
-         match source#exit ~uioh:(coe self) ~cancel:true ~active:m_active
-                           ~first:m_first ~pan:m_pan with
-         | None -> m_prev_uioh
-         | Some uioh -> uioh
+         getoptdef m_prev_uioh @@
+           source#exit ~uioh:(coe self) ~cancel:true ~active:m_active
+             ~first:m_first ~pan:m_pan
        )
        else (
          postRedisplay "list view kill qsearch";
@@ -611,10 +610,7 @@ object (self)
          source#exit ~uioh:(coe self) ~cancel
                      ~active:m_active ~first:m_first ~pan:m_pan;
        in
-       begin match opt with
-       | None -> m_prev_uioh
-       | Some uioh -> uioh
-       end
+       getoptdef m_prev_uioh opt
 
     | Delete -> coe self
     | Up    -> navigate ~-1
@@ -700,9 +696,7 @@ object (self)
          Some (coe {< m_pan = m_pan + inc >})
       | _ -> Some (coe self)
     in
-    match opt with
-    | None -> m_prev_uioh
-    | Some uioh -> uioh
+    getoptdef m_prev_uioh opt
 
   method multiclick _ x y = self#button 1 true x y
 

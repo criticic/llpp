@@ -151,6 +151,11 @@ module Ne = struct
   ;;
 end;;
 
+let getoptdef def = function
+  | Some a -> a
+  | None -> def
+;;
+
 let getenvwithdef name def =
   match Sys.getenv name with
   | env -> env
