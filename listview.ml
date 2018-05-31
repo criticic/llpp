@@ -171,9 +171,7 @@ let textentrykeyboard
        state.text <- E.s;
        postRedisplay "textentrykeyboard after cancel2"
      )
-     else (
-       enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
-     )
+     else enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
 
   | Delete -> ()
 
@@ -189,7 +187,7 @@ let textentrykeyboard
 
      | TEstop ->
         onleave Cancel;
-        postRedisplay "textentrykeyboard after cancel3"
+        postRedisplay "textentrykeyboard after cancel3";
 
      | TEswitch te ->
         state.mode <- Textentry (te, onleave);
@@ -342,10 +340,8 @@ object (self)
                                          (truncate (x -. ww)) (y+nfs) s in
                   GlDraw.color (1., 1., 1.);
                   vinc +. (float fs *. 0.8)
-                else
-                  drawstr x s
-            else
-              drawstr x s
+                else drawstr x s
+            else drawstr x s
           in
           ignore (drawtabularstring s);
           loop (row+1)
@@ -359,7 +355,7 @@ object (self)
       if (row - m_first) <= fstate.maxrows
       then
         if row >= 0 && row < itemcount
-        then (
+        then
           let (s, level) = source#getitem row in
           let pos0 = Ne.index s '\000' in
           let y = (row - m_first) * nfs in
@@ -381,7 +377,6 @@ object (self)
           and y1 = float (y+fs+3) in
           filledrect x0 y0 x1 y1;
           loop (row+1)
-        )
     in
     Gl.disable `texture_2d;
     if Array.length minfo > 0 then loop m_first;
@@ -621,9 +616,7 @@ object (self)
        | Some uioh -> uioh
        end
 
-    | Delete ->
-       coe self
-
+    | Delete -> coe self
     | Up    -> navigate ~-1
     | Down  -> navigate 1
     | Prior -> navigate ~-(fstate.maxrows)
@@ -705,8 +698,7 @@ object (self)
          let inc = if n = 7 then -1 else 1 in
          postRedisplay "listview hwheel";
          Some (coe {< m_pan = m_pan + inc >})
-      | _ ->
-         Some (coe self)
+      | _ -> Some (coe self)
     in
     match opt with
     | None -> m_prev_uioh
