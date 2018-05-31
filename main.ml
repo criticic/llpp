@@ -2850,12 +2850,12 @@ let enterannotmode opaque slinkindex =
          let rec split accu b i =
            let p = b+i in
            if p = String.length s
-           then (String.sub s b (p-b), unit) :: accu
+           then (String.sub s b (p-b), fun () -> ()) :: accu
            else
              if (i > 70 && s.[p] = ' ') || s.[p] = '\r' || s.[p] = '\n'
              then
                let ss = if i = 0 then E.s else String.sub s b i in
-               split ((ss, unit)::accu) (p+1) 0
+               split ((ss, fun () -> ())::accu) (p+1) 0
              else split accu b (i+1)
          in
          let cleanup () =
@@ -2901,7 +2901,7 @@ let enterannotmode opaque slinkindex =
            (   "[Copy]", fun () -> selstring conf.selcmd m_text)
            :: ("[Delete]", dele)
            :: ("[Edit]", edit conf.annotinline)
-           :: (E.s, unit)
+           :: (E.s, fun () -> ())
            :: split [] 0 0 |> List.rev |> Array.of_list
 
        initializer

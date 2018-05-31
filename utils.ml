@@ -168,8 +168,6 @@ module Re = struct
   let whitespace = Str.regexp "[ \t]";;
 end;;
 
-let unit () = ();;
-
 let addchar s c =
   let b = Buffer.create (String.length s + 1) in
   Buffer.add_string b s;
