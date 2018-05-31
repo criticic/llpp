@@ -2988,13 +2988,10 @@ let gotounder = function
 let gotooutline (_, _, kind) =
   match kind with
   | Onone -> ()
-  | Oanchor anchor ->
-     let (pageno, y, _) = anchor in
-     let y = getanchory
-               (if conf.presentation then (pageno, y, 1.0) else anchor)
-     in
+  | Oanchor ((pageno, y, _) as anchor) ->
      addnav ();
-     gotoxy state.x y
+     gotoxy state.x @@
+       getanchory (if conf.presentation then (pageno, y, 1.0) else anchor)
   | Ouri uri -> gotounder (Ulinkuri uri)
   | Olaunch cmd -> error "gotounder (Ulaunch %S)" cmd
   | Oremote (remote, pageno) ->
