@@ -97,7 +97,7 @@ i tileh 2048
 g mustoresize memsize "256 lsl 20"
 b checkers true
 i aalevel 8
-s urilauncher E.s '(match platform with |Plinux|Pbsd -> {|xdg-open "%s"|}|Pmacos -> {|open "%s"|}|Punknown -> {|echo "%s"|})'
+s urilauncher '(match[@warning "-4"] platform with |Pmacos -> {|open "%s"|}|_ -> {|echo "%s"|})'
 s pathlauncher '{|lp "%s"|}'
 g colorspace colorspace Rgb
 b invert false
