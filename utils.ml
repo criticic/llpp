@@ -156,7 +156,7 @@ let getoptdef def = function
   | None -> def
 ;;
 
-let getenvwithdef name def =
+let getenvdef name def =
   match Sys.getenv name with
   | env -> env
   | exception Not_found -> def

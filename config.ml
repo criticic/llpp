@@ -1095,7 +1095,7 @@ let do_load f contents =
 
 let defconfpath =
   let dir =
-    let xdgconfdir = Utils.getenvwithdef "XDG_CONFIG_HOME" E.s in
+    let xdgconfdir = Utils.getenvdef "XDG_CONFIG_HOME" E.s in
     if emptystr xdgconfdir
     then
       try

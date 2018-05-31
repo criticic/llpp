@@ -1090,7 +1090,7 @@ let gotopagexy pageno x y =
 ;;
 
 let getpassword () =
-  let passcmd = getenvwithdef "LLPP_ASKPASS" conf.passcmd in
+  let passcmd = getenvdef "LLPP_ASKPASS" conf.passcmd in
   if emptystr passcmd
   then E.s
   else getcmdoutput (fun s ->
@@ -2780,7 +2780,7 @@ let entermsgsmode =
 ;;
 
 let getusertext s =
-  let editor = getenvwithdef "EDITOR" E.s in
+  let editor = getenvdef "EDITOR" E.s in
   if emptystr editor
   then E.s
   else
