@@ -25,7 +25,7 @@ text() {
 === $1 ===
 EOF
     test -n "$2" && cat $2 || cat <<EOF
-S9 З3 Il1
+S9 З3Ӡʒ Il1
 ~
 ЁЖЗ
 
@@ -43,7 +43,7 @@ ABCDEFGHIJKLMNOPQRSTWXYZ
 S in S9 59 S9 is like 5
 final fjord flair ft
 3ЗЭэзээз3ЗqgO0o ijklI1| bgqpykvwlliliiijil1 lLLl
-01234567890 3ДС ЗДС
+01234567890 3ДС ЗДС ӠДС ʒДС
 rnrmnnmrrrnmmr
 Apay Арау
 örök
