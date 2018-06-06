@@ -41,7 +41,9 @@ test $(expr substr "$(uname -m)" 1 3) = x86 || {
     mupdfbuildtype=release
 }
 
-mulibs="$mudir/build/$mupdfbuildtype/libmupdf.a" # $mudir/build/$mupdfbuildtype/libmupdf-third.a
+mulibs="$mudir/build/$mupdfbuildtype/libmupdf.a"
+# $mudir/build/$mupdfbuildtype/libmupdf-third.a
+
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
 isfresh "$mulibs" "$(eval $keycmd)" || (
     make -C "$mudir" build=$mupdfbuildtype -j $mjobs libs
