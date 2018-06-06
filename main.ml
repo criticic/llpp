@@ -21,8 +21,8 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
 let pgscale h = truncate (float h *. conf.pgscale);;
 
 let hscrollh () =
-  if state.uioh#alwaysscrolly || ((conf.scrollb land scrollbhv != 0)
-                                  && (state.w > state.winw))
+  if ((conf.scrollb land scrollbhv != 0) && (state.w > state.winw))
+     || state.uioh#alwaysscrolly
   then conf.scrollbw
   else 0
 ;;
