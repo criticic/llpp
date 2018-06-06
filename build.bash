@@ -36,11 +36,16 @@ mkdir -p $outd/{$wsid,lablGL}
 
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
 
-mulibs="$mudir/build/native/libmupdf.a" # $mudir/build/native/libmupdf-third.a
+mupdfbuildtype=native
+test $(expr substr "$(uname -m)" 1 3) = x86 || {
+    mupdfbuildtype=release
+}
+
+mulibs="$mudir/build/$mupdfbuildtype/libmupdf.a" # $mudir/build/$mupdfbuildtype/libmupdf-third.a
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
 isfresh "$mulibs" "$(eval $keycmd)" || (
-    make -C "$mudir" build=native -j $mjobs libs
-    echo "k='$(eval $keycmd)'" >$mudir/build/native/libmupdf.a.past
+    make -C "$mudir" build=$mupdfbuildtype -j $mjobs libs
+    echo "k='$(eval $keycmd)'" >$mudir/build/$mupdfbuildtype/libmupdf.a.past
 ) && vecho "fresh mupdf"
 
 oincs() {
@@ -274,7 +279,7 @@ for m in ml_gl ml_glarray ml_raw; do
 done
 
 libs="str.cma unix.cma"
-clibs="-L$mudir/build/native -lmupdf -lmupdf-third -lpthread"
+clibs="-L$mudir/build/$mupdfbuildtype -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
