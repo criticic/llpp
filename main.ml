@@ -236,21 +236,18 @@ let layoutN ((columns, coverA, coverB), b) x y sw sh =
             let pagevh = min (h - pagey) (sh - pagedispy) in
             if pagevw > 0 && pagevh > 0
             then
-              let e =
-                { pageno = n
-                ; pagedimno = pdimno
-                ; pagew = w
-                ; pageh = h
-                ; pagex = pagex
-                ; pagey = pagey
-                ; pagevw = pagevw
-                ; pagevh = pagevh
-                ; pagedispx = pagedispx
-                ; pagedispy = pagedispy
-                ; pagecol = 0
-                }
-              in
-              e :: accu
+              { pageno = n
+              ; pagedimno = pdimno
+              ; pagew = w
+              ; pageh = h
+              ; pagex = pagex
+              ; pagey = pagey
+              ; pagevw = pagevw
+              ; pagevh = pagevh
+              ; pagedispx = pagedispx
+              ; pagedispy = pagedispy
+              ; pagecol = 0
+              } :: accu
             else accu
           else accu
         in
@@ -305,21 +302,18 @@ let layoutS (columns, b) x y sw sh =
             let pagevh = min (pageh - pagey) (sh - pagedispy) in
             if pagevw > 0 && pagevh > 0
             then
-              let e =
-                { pageno = n/columns
-                ; pagedimno = pdimno
-                ; pagew = pagew
-                ; pageh = pageh
-                ; pagex = pagex
-                ; pagey = pagey
-                ; pagevw = pagevw
-                ; pagevh = pagevh
-                ; pagedispx = pagedispx
-                ; pagedispy = pagedispy
-                ; pagecol = n mod columns
-                }
-              in
-              e :: accu
+              { pageno = n/columns
+              ; pagedimno = pdimno
+              ; pagew = pagew
+              ; pageh = pageh
+              ; pagex = pagex
+              ; pagey = pagey
+              ; pagevw = pagevw
+              ; pagevh = pagevh
+              ; pagedispx = pagedispx
+              ; pagedispy = pagedispy
+              ; pagecol = n mod columns
+              } :: accu
             else accu
           else accu
         in
