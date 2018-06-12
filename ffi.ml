@@ -7,15 +7,15 @@ external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;
-external whatsunder : opaque -> int -> int -> under = "ml_whatsunder";;
-external markunder : opaque -> int -> int -> mark -> bool = "ml_markunder";;
+external whatsunder : opaque -> x -> y -> under = "ml_whatsunder";;
+external markunder : opaque -> x -> y -> mark -> bool = "ml_markunder";;
 external clearmark : opaque -> unit = "ml_clearmark";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external getmaxw : unit -> float = "ml_getmaxw";;
 external postprocess :
   opaque -> int -> int -> int -> (int * string * int) -> int
   = "ml_postprocess";;
-external pagebbox : opaque -> (int * int * int * int) = "ml_getpagebox";;
+external pagebbox : opaque -> bbox = "ml_getpagebox";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external realloctexts : int -> bool = "ml_realloctexts";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;
