@@ -36,8 +36,7 @@ mkdir -p $outd/{$wsid,lablGL}
 
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
 
-test $(expr substr "$(uname -m)" 1 3) = x86 || mbt=release && mbt=native
-
+mbt=native
 mulibs="$mudir/build/$mbt/libmupdf.a" # $mudir/build/$mbt/libmupdf-third.a
 
 keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
