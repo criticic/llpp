@@ -3340,6 +3340,13 @@ let viewkeyboard key mask =
 
   | Ascii 'Q' -> exit 0
 
+  | Ascii 'z' ->
+     begin match List.rev state.rects with
+     | (pageno, _, (_, y0, _, _, _, _, _, _)) :: _ ->
+        gotopage1 pageno (truncate y0 - state.winh/2)
+     | [] -> ()
+     end
+
   | Ascii 'W' ->
      if hasunsavedchanges ()
      then save ()

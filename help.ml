@@ -77,6 +77,7 @@ e                       - view error log
 /,?                     - enter text to search for (/ - forward, ? - backward)
 n                       - repeat last search (forward)
 p, N                    - repeat last search (backward)
+z                       - vertically center the view on the first search result
 Ctrl-g                  - interrupt search
 
 -----Settings / Modes-----
