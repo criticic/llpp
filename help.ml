@@ -8,7 +8,7 @@ W         - save changes
 up/down arrow     - scroll up/down
 j/k               - scroll up/down
 left/right arrow  - pan left/right (when zoomed in)
-Ctrl-arrows       - scroll up/down, pan left/right (by half a screen width/height)
+Ctrl-arrows       - half a screen width/height scoll/pan
 space             - go to the next page
 delete            - go to the previous page
 pageup/pagedown   - go forward/backward one screen-full
