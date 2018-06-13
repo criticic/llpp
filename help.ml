@@ -191,7 +191,7 @@ let gotouri launcher uri =
 ;;
 
 let version () =
-  Printf.sprintf "llpp version %s, fitz %s, ocaml %s/%d bit"
+  Printf.sprintf "llpp %s, fitz %s, ocaml %s/%d bit"
     (Ffi.llpp_version ()) (Ffi.fz_version ()) Sys.ocaml_version Sys.word_size
 ;;
 
