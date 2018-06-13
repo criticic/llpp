@@ -3341,11 +3341,44 @@ let viewkeyboard key mask =
   | Ascii 'Q' -> exit 0
 
   | Ascii 'z' ->
-     begin match List.rev state.rects with
-     | (pageno, _, (_, y0, _, _, _, _, _, _)) :: _ ->
-        gotopage1 pageno (truncate y0 - state.winh/2)
-     | [] -> ()
-     end
+     let yloc f =
+       match List.rev state.rects with
+       | [] -> ()
+       | (pageno, _, (_, y0, _, y1, _, y2, _, y3)) :: _ ->
+          f pageno (y0, y1, y2, y3)
+     and yminmax (y0, y1, y2, y3) =
+       let ym = min y0 y1 |> min y2 |> min y3 |> truncate in
+       let yM = max y0 y1 |> max y2 |> max y3 |> truncate in
+       ym, yM
+     in
+     let ondone msg = state.text <- msg
+     and zmod _ _ k =
+       match [@warning "-4"] k with
+       | Keys.Ascii 'z' ->
+          let f pageno ys =
+            let ym, yM = yminmax ys in
+            let hh = (yM - ym)/2 in
+            gotopage1 pageno (ym + hh - state.winh/2)
+          in
+          yloc f;
+          TEdone "center"
+       | Keys.Ascii 't' ->
+          let f pageno ys =
+            let ym, _ = yminmax ys in
+            gotopage1 pageno ym
+          in
+          yloc f;
+          TEdone "top"
+       | Keys.Ascii 'b' ->
+          let f pageno ys =
+            let _, yM = yminmax ys in
+            gotopage1 pageno (yM - state.winh)
+          in
+          yloc f;
+          TEdone "bottom"
+       | _ -> TEstop
+     in
+     enttext (": ", E.s, None, zmod state.mode, ondone, true)
 
   | Ascii 'W' ->
      if hasunsavedchanges ()
