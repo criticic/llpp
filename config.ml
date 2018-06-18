@@ -706,32 +706,30 @@ let keys_of_string s =
 ;;
 
 let config_of c attrs =
+  let maxv ?(f=int_of_string) u s = max u @@ f s in
   let apply c k v =
     try
       match k with
-      | "scroll-bar-width" -> { c with scrollbw = max 0 (int_of_string v) }
-      | "scroll-handle-height" -> { c with scrollh = max 0 (int_of_string v) }
+      | "scroll-bar-width" -> { c with scrollbw = maxv 0 v }
+      | "scroll-handle-height" -> { c with scrollh = maxv 0 v }
       | "case-insensitive-search" -> { c with icase = bool_of_string v }
       | "preload" -> { c with preload = bool_of_string v }
       | "page-bias" -> { c with pagebias = int_of_string v }
-      | "scroll-step" -> { c with scrollstep = max 1 (int_of_string v) }
-      | "horizontal-scroll-step" ->
-         { c with hscrollstep = max (int_of_string v) 1 }
-      | "auto-scroll-step" ->
-         { c with autoscrollstep = max 0 (int_of_string v) }
+      | "scroll-step" -> { c with scrollstep = maxv 1 v }
+      | "horizontal-scroll-step" -> { c with hscrollstep = maxv 1 v }
+      | "auto-scroll-step" -> { c with autoscrollstep = maxv 0 v }
       | "max-height-fit" -> { c with maxhfit = bool_of_string v }
       | "highlight-links" -> { c with hlinks = bool_of_string v }
       | "under-cursor-info" -> { c with underinfo = bool_of_string v }
-      | "vertical-margin" ->
-         { c with interpagespace = max 0 (int_of_string v) }
+      | "vertical-margin" -> { c with interpagespace = maxv 0 v }
       | "zoom" ->
          let zoom = float_of_string v /. 100. in
          let zoom = max zoom 0.0 in
          { c with zoom = zoom }
       | "presentation" -> { c with presentation = bool_of_string v }
       | "rotation-angle" -> { c with angle = int_of_string v }
-      | "width" -> { c with cwinw = max 20 (int_of_string v) }
-      | "height" -> { c with cwinh = max 20 (int_of_string v) }
+      | "width" -> { c with cwinw = maxv 20 v }
+      | "height" -> { c with cwinh = maxv 20 v }
       | "proportional-display" ->
          let fm =
            if bool_of_string v
@@ -741,19 +739,18 @@ let config_of c attrs =
          { c with fitmodel = fm }
       | "fit-model" -> { c with fitmodel = FMTE.of_string v }
       | "pixmap-cache-size" ->
-         { c with memlimit = max 2 (int_of_string_with_suffix v) }
-      | "tex-count" -> { c with texcount = max 1 (int_of_string v) }
-      | "slice-height" -> { c with sliceheight = max 2 (int_of_string v) }
-      | "thumbnail-width" -> { c with thumbw = max 2 (int_of_string v) }
+         { c with memlimit = maxv ~f:int_of_string_with_suffix 2 v }
+      | "tex-count" -> { c with texcount = maxv 1 v }
+      | "slice-height" -> { c with sliceheight = maxv 2 v }
+      | "thumbnail-width" -> { c with thumbw = maxv 2 v }
       | "background-color" -> { c with bgcolor = color_of_string v }
       | "scrollbar-color" -> { c with sbarcolor = rgba_of_string v }
       | "scrollbar-handle-color" -> { c with sbarhndlcolor = rgba_of_string v }
-      | "tile-width" -> { c with tilew = max 2 (int_of_string v) }
-      | "tile-height" -> { c with tileh = max 2 (int_of_string v) }
-      | "mupdf-store-size" ->
-         { c with mustoresize = max 1024 (int_of_string_with_suffix v) }
+      | "tile-width" -> { c with tilew = maxv 2 v }
+      | "tile-height" -> { c with tileh = maxv 2 v }
+      | "mupdf-store-size" -> { c with mustoresize = maxv 1024 v }
       | "checkers" -> { c with checkers = bool_of_string v }
-      | "aalevel" -> { c with aalevel = max 0 (int_of_string v) }
+      | "aalevel" -> { c with aalevel = maxv 0 v }
       | "trim-margins" -> { c with trimmargins = bool_of_string v }
       | "trim-fuzz" -> { c with trimfuzz = irect_of_string v }
       | "uri-launcher" -> { c with urilauncher = unentS v }
@@ -766,8 +763,7 @@ let config_of c attrs =
          if n < 0
          then { c with columns = Csplit (-n, E.a) }
          else { c with columns = Cmulti (nab, E.a) }
-      | "birds-eye-columns" ->
-         { c with beyecolumns = Some (max (int_of_string v) 2) }
+      | "birds-eye-columns" -> { c with beyecolumns = Some (maxv 2 v) }
       | "selection-command" -> { c with selcmd = unentS v }
       | "synctex-command" -> { c with stcmd = unentS v }
       | "pax-command" -> { c with paxcmd = unentS v }
@@ -779,25 +775,18 @@ let config_of c attrs =
       | "use-pbo" -> { c with usepbo = bool_of_string v }
       | "wheel-scrolls-pages" -> { c with wheelbypage = bool_of_string v }
       | "horizontal-scrollbar-visible" ->
-         let b =
-           if bool_of_string v
-           then c.scrollb lor scrollbhv
-           else c.scrollb land (lnot scrollbhv)
-         in
-         { c with scrollb = b }
+         { c with scrollb = if bool_of_string v
+                            then c.scrollb lor scrollbhv
+                            else c.scrollb land (lnot scrollbhv)
+         }
       | "vertical-scrollbar-visible" ->
-         let b =
-           if bool_of_string v
-           then c.scrollb lor scrollbvv
-           else c.scrollb land (lnot scrollbvv)
-         in
-         { c with scrollb = b }
+         { c with scrollb = if bool_of_string v
+                            then c.scrollb lor scrollbvv
+                            else c.scrollb land (lnot scrollbvv)
+         }
       | "remote-in-a-new-instance" -> { c with riani = bool_of_string v }
       | "point-and-x" ->
-         { c with pax =
-                    if bool_of_string v
-                    then Some 0.0
-                    else None }
+         { c with pax = if bool_of_string v then Some 0.0 else None }
       | "point-and-x-mark" -> { c with paxmark = MTE.of_string v }
       | "scroll-bar-on-the-left" -> { c with leftscroll = bool_of_string v }
       | "title" -> { c with title = unentS v }
