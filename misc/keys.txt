@@ -1,3 +1,9 @@
+<!--
+ informal in format:
+ modifier-[keyname|keynumericvalue]
+ modifier-modifier-[keyname|keynumericvalue]
+ https://github.com/nojb/llpp/issues/10
+-->
 <defaults>
   <keymap mode='view'>
     <!-- menu to follow links -->
