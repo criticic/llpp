@@ -748,7 +748,8 @@ let config_of c attrs =
       | "scrollbar-handle-color" -> { c with sbarhndlcolor = rgba_of_string v }
       | "tile-width" -> { c with tilew = maxv 2 v }
       | "tile-height" -> { c with tileh = maxv 2 v }
-      | "mupdf-store-size" -> { c with mustoresize = maxv 1024 v }
+      | "mupdf-store-size" ->
+         { c with mustoresize = maxv ~f:int_of_string_with_suffix 1024 v }
       | "checkers" -> { c with checkers = bool_of_string v }
       | "aalevel" -> { c with aalevel = maxv 0 v }
       | "trim-margins" -> { c with trimmargins = bool_of_string v }
