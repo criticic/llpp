@@ -1187,15 +1187,14 @@ static int matchline (regex_t *re, fz_stext_line *line,
         return 0;
     }
     else {
-        fz_point p1, p2, p3, p4;
-        fz_rect s = {0,0,0,0}, e;
+        fz_quad s, e;
         fz_stext_char *ch;
         int o = 0;
 
         for (ch = line->first_char; ch; ch = ch->next) {
             o += fz_runelen (ch->c);
             if (o > rm.rm_so) {
-                s = ch->bbox;
+                s = ch->quad;
                 break;
             }
         }
@@ -1203,24 +1202,15 @@ static int matchline (regex_t *re, fz_stext_line *line,
             o += fz_runelen (ch->c);
             if (o > rm.rm_eo) break;
         }
-        e = ch->bbox;
-
-        p1.x = s.x0;
-        p1.y = s.y0;
-        p2.x = e.x1;
-        p2.y = s.y0;
-        p3.x = e.x1;
-        p3.y = e.y1;
-        p4.x = s.x0;
-        p4.y = e.y1;
+        e = ch->quad;
 
         if (!stop) {
             printd ("firstmatch %d %d %f %f %f %f %f %f %f %f",
                     pageno, 1,
-                    p1.x, p1.y,
-                    p2.x, p2.y,
-                    p3.x, p3.y,
-                    p4.x, p4.y);
+                    s.ul.x, s.ul.y,
+                    e.ur.x, s.ul.y,
+                    e.lr.x, e.lr.y,
+                    s.ul.x, e.lr.y);
 
             printd ("progress 1 found at %d `%.*s' in %f sec",
                     pageno + 1, (int) (rm.rm_eo - rm.rm_so), &p[rm.rm_so],
@@ -1229,10 +1219,10 @@ static int matchline (regex_t *re, fz_stext_line *line,
         else {
             printd ("match %d %d %f %f %f %f %f %f %f %f",
                     pageno, 2,
-                    p1.x, p1.y,
-                    p2.x, p2.y,
-                    p3.x, p3.y,
-                    p4.x, p4.y);
+                    s.ul.x, s.ul.y,
+                    e.ur.x, s.ul.y,
+                    e.lr.x, e.lr.y,
+                    s.ul.x, e.lr.y);
         }
         free (p);
         return 1;
@@ -1840,8 +1830,10 @@ static void showsel (struct page *page, int ox, int oy)
 
             rect = fz_empty_rect;
             for (ch = line->first_char; ch; ch = ch->next) {
+                fz_rect r;
                 if (ch == page->fmark) seen = 1;
-                if (seen) fz_union_rect (&rect, &ch->bbox);
+                r = fz_rect_from_quad (ch->quad);
+                if (seen) fz_union_rect (&rect, &r);
                 if (ch == page->lmark) {
                     fz_round_rect (&bbox, &rect);
                     recti (bbox.x0 + ox, bbox.y0 + oy,
@@ -2692,7 +2684,7 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
     CAMLparam2 (ptr_v, n_v);
     CAMLlocal1 (ret_v);
     pdf_document *pdf;
-    char *contents = NULL;
+    const char *contents = NULL;
 
     lock (__func__);
     pdf = pdf_specifics (state.ctx, state.doc);
@@ -2703,13 +2695,12 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        contents = pdf_copy_annot_contents (state.ctx,
-                                            (pdf_annot *) slink->u.annot);
+        contents = pdf_get_annot_contents (state.ctx,
+                                           (pdf_annot *) slink->u.annot);
     }
     unlock (__func__);
     if (contents) {
         ret_v = caml_copy_string (contents);
-        fz_free (state.ctx, contents);
     }
     else  {
         ret_v = caml_copy_string ("");
@@ -2820,9 +2811,9 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                     continue;
 
                 for (ch = line->first_char; ch; ch = ch->next) {
-                    b = &ch->bbox;
+                    fz_quad *q = &ch->quad;
 
-                    if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                    if (x >= q->ul.x && x <= b->x1 && y >= b->y0 && y <= b->y1) {
                         const char *n2 = fz_font_name (state.ctx, ch->font);
                         FT_FaceRec *face = fz_font_ft_face (state.ctx,
                                                             ch->font);
@@ -2953,8 +2944,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
 
             for (ch = line->first_char; ch; ch = ch->next) {
                 fz_stext_char *ch2, *first = NULL, *last = NULL;
-                b = &ch->bbox;
-                if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                fz_quad *q = &ch->quad;
+                if (x >= q->ul.x && x <= b->x1 && y >= b->y0 && y <= b->y1) {
                     for (ch2 = line->first_char; ch2 != ch; ch2 = ch2->next) {
                         if (uninteresting (ch2->c)) first = NULL;
                         else if (!first) first = ch2;
@@ -3042,7 +3033,6 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
 CAMLprim void ml_seltext (value ptr_v, value rect_v)
 {
     CAMLparam2 (ptr_v, rect_v);
-    fz_rect b;
     struct page *page;
     struct pagedim *pdim;
     char *s = String_val (ptr_v);
@@ -3080,11 +3070,13 @@ CAMLprim void ml_seltext (value ptr_v, value rect_v)
         if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
         for (line = block->u.t.first_line; line; line = line->next) {
             for (ch = line->first_char; ch; ch = ch->next) {
-                b = ch->bbox;
-                if (x0 >= b.x0 && x0 <= b.x1 && y0 >= b.y0 && y0 <= b.y1) {
+                fz_quad q = ch->quad;
+                if (x0 >= q.ul.x && x0 <= q.ur.x
+                    && y0 >= q.ul.y && y0 <= q.ll.y) {
                     fc = ch;
                 }
-                if (x1 >= b.x0 && x1 <= b.x1 && y1 >= b.y0 && y1 <= b.y1) {
+                if (x1 >= q.ul.x && x1 <= q.ur.x
+                    && y1 >= q.ul.y && y1 <= q.ll.y) {
                     lc = ch;
                 }
             }
