@@ -1,5 +1,5 @@
 <!--
- informal in format:
+ informal in/out format:
  modifier-[keyname|keynumericvalue]
  modifier-modifier-[keyname|keynumericvalue]
  https://github.com/nojb/llpp/issues/10
