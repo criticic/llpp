@@ -2813,7 +2813,8 @@ CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
                 for (ch = line->first_char; ch; ch = ch->next) {
                     fz_quad *q = &ch->quad;
 
-                    if (x >= q->ul.x && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                    if (x >= q->ul.x && x <= q->ur.x
+                        && y >= q->ul.y && y <= q->ll.y) {
                         const char *n2 = fz_font_name (state.ctx, ch->font);
                         FT_FaceRec *face = fz_font_ft_face (state.ctx,
                                                             ch->font);
@@ -2945,7 +2946,8 @@ CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
             for (ch = line->first_char; ch; ch = ch->next) {
                 fz_stext_char *ch2, *first = NULL, *last = NULL;
                 fz_quad *q = &ch->quad;
-                if (x >= q->ul.x && x <= b->x1 && y >= b->y0 && y <= b->y1) {
+                if (x >= q->ul.x && x <= q->ur.x
+                    && y >= q->ul.y && y <= q->ll.y) {
                     for (ch2 = line->first_char; ch2 != ch; ch2 = ch2->next) {
                         if (uninteresting (ch2->c)) first = NULL;
                         else if (!first) first = ch2;
