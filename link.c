@@ -2879,8 +2879,7 @@ CAMLprim void ml_clearmark (value ptr_v)
 
 static int uninteresting (int c)
 {
-    return c == ' ' || c == '\n' || c == '\t' || c == '\n' || c == '\r'
-        || ispunct (c);
+    return isspace (c) || ispunct (c);
 }
 
 CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
