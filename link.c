@@ -2684,7 +2684,7 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
     CAMLparam2 (ptr_v, n_v);
     CAMLlocal1 (ret_v);
     pdf_document *pdf;
-    const char *contents = NULL;
+    const char *contents = "";
 
     lock (__func__);
     pdf = pdf_specifics (state.ctx, state.doc);
@@ -2699,12 +2699,7 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
                                            (pdf_annot *) slink->u.annot);
     }
     unlock (__func__);
-    if (contents) {
-        ret_v = caml_copy_string (contents);
-    }
-    else  {
-        ret_v = caml_copy_string ("");
-    }
+    ret_v = caml_copy_string (contents);
     CAMLreturn (ret_v);
 }
 
