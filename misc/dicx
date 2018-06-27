@@ -15,4 +15,9 @@ pag() {                                                 \
 }
 
 phrase="$($src | eval $rofi -markup -p 'Lookup: ')"
-sdcv -n --utf8-input --utf8-output "$phrase" | pag
+{
+    sdcv -n --utf8-input --utf8-output "$phrase"
+    printf "Urban\n"
+    links -dump "https://www.urbandictionary.com/define.php?term=$phrase" \
+        | sed -n '1,/Top def/d;/Get the mug/q;p'
+} | pag
