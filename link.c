@@ -513,36 +513,31 @@ static void trimctm (pdf_page *page, int pindex)
     if (!page) return;
     if (!pdim->tctmready) {
         fz_rect realbox, mediabox;
-        fz_matrix rm, sm, tm, im, ctm1, page_ctm;
+        fz_matrix page_ctm;
 
-        fz_rotate (&rm, -pdim->rotate);
-        fz_scale (&sm, 1, -1);
-        fz_concat (&ctm, &rm, &sm);
-        realbox = pdim->mediabox;
-        fz_transform_rect (&realbox, &ctm);
-        fz_translate (&tm, -realbox.x0, -realbox.y0);
-        fz_concat (&ctm1, &ctm, &tm);
+        ctm = fz_concat (fz_rotate (-pdim->rotate), fz_scale (1, -1));
+        realbox = fz_transform_rect (pdim->mediabox, ctm);
         pdf_page_transform (state.ctx, page, &mediabox, &page_ctm);
-        fz_invert_matrix (&im, &page_ctm);
-        fz_concat (&ctm, &im, &ctm1);
-        pdim->tctm = ctm;
+        pdim->tctm = fz_concat (
+            fz_invert_matrix (page_ctm),
+            fz_concat (ctm, fz_translate (-realbox.x0, -realbox.y0)));
         pdim->tctmready = 1;
     }
 }
 
 static fz_matrix pagectm1 (fz_page *fzpage, struct pagedim *pdim)
 {
-    fz_matrix ctm, tm;
+    fz_matrix ctm;
     ptrdiff_t pdimno = pdim - state.pagedims;
 
     ARSERT (pdim - state.pagedims < INT_MAX);
     if (pdf_specifics (state.ctx, state.doc)) {
         trimctm (pdf_page_from_fz_page (state.ctx, fzpage), (int) pdimno);
-        fz_concat (&ctm, &pdim->tctm, &pdim->ctm);
+        ctm = fz_concat (pdim->tctm, pdim->ctm);
     }
     else {
-        fz_translate (&tm, -pdim->mediabox.x0, -pdim->mediabox.y0);
-        fz_concat (&ctm, &tm, &pdim->ctm);
+        ctm = fz_concat (fz_translate (-pdim->mediabox.x0, -pdim->mediabox.y0),
+                         pdim->ctm);
     }
     return ctm;
 }
@@ -562,12 +557,11 @@ static void *loadpage (int pageno, int pindex)
         err (1, "calloc page %d", pageno);
     }
 
-    page->dlist = fz_new_display_list (state.ctx, NULL);
+    page->dlist = fz_new_display_list (state.ctx, fz_infinite_rect);
     dev = fz_new_list_device (state.ctx, page->dlist);
     fz_try (state.ctx) {
         page->fzpage = fz_load_page (state.ctx, state.doc, pageno);
-        fz_run_page (state.ctx, page->fzpage, dev,
-                     &fz_identity, NULL);
+        fz_run_page (state.ctx, page->fzpage, dev, fz_identity, NULL);
     }
     fz_catch (state.ctx) {
         page->fzpage = NULL;
@@ -609,7 +603,6 @@ static struct tile *alloctile (int h)
 static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
                                 struct bo *pbo)
 {
-    fz_rect rect;
     fz_irect bbox;
     fz_matrix ctm;
     fz_device *dev;
@@ -642,12 +635,12 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
         if (pbo) {
             tile->pixmap =
                 fz_new_pixmap_with_bbox_and_data (state.ctx, state.colorspace,
-                                                  &bbox, NULL, 1, pbo->ptr);
+                                                  bbox, NULL, 1, pbo->ptr);
             tile->pbo = pbo;
         }
         else {
             tile->pixmap =
-                fz_new_pixmap_with_bbox (state.ctx, state.colorspace, &bbox,
+                fz_new_pixmap_with_bbox (state.ctx, state.colorspace, bbox,
                                          NULL, 1);
         }
     }
@@ -656,10 +649,10 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     tile->h = h;
     fz_clear_pixmap_with_value (state.ctx, tile->pixmap, 0xff);
 
-    dev = fz_new_draw_device (state.ctx, NULL, tile->pixmap);
+    dev = fz_new_draw_device (state.ctx, fz_identity, tile->pixmap);
     ctm = pagectm (page);
-    fz_rect_from_irect (&rect, &bbox);
-    fz_run_display_list (state.ctx, page->dlist, dev, &ctm, &rect, NULL);
+    fz_run_display_list (state.ctx, page->dlist, dev, ctm,
+                         fz_rect_from_irect (bbox), NULL);
     fz_close_device (state.ctx, dev);
     fz_drop_device (state.ctx, dev);
 
@@ -753,7 +746,7 @@ static void initpdims (void)
         pdf_obj *obj;
         obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
                              "Root/Pages/MediaBox");
-        pdf_to_rect (ctx, obj, &rootmediabox);
+        rootmediabox = pdf_to_rect (ctx, obj);
     }
 
 #ifdef CACHE_PAGEREFS
@@ -802,8 +795,8 @@ static void initpdims (void)
 
                         dev = fz_new_bbox_device (ctx, &rect);
                         pdf_page_transform (ctx, page, &mediabox, &page_ctm);
-                        fz_invert_matrix (&ctm, &page_ctm);
-                        pdf_run_page (ctx, page, dev, &fz_identity, NULL);
+                        ctm = fz_invert_matrix (page_ctm);
+                        pdf_run_page (ctx, page, dev, fz_identity, NULL);
                         fz_close_device (ctx, dev);
                         fz_drop_device (ctx, dev);
 
@@ -811,10 +804,10 @@ static void initpdims (void)
                         rect.x1 += state.trimfuzz.x1;
                         rect.y0 += state.trimfuzz.y0;
                         rect.y1 += state.trimfuzz.y1;
-                        fz_transform_rect (&rect, &ctm);
-                        fz_intersect_rect (&rect, &mediabox);
+                        rect = fz_transform_rect (rect, ctm);
+                        rect = fz_intersect_rect (rect, mediabox);
 
-                        if (!fz_is_empty_rect (&rect)) {
+                        if (!fz_is_empty_rect (rect)) {
                             mediabox = rect;
                         }
 
@@ -856,10 +849,9 @@ static void initpdims (void)
                 int empty = 0;
                 fz_rect cropbox;
 
-                pdf_to_rect (ctx,
-                             pdf_dict_gets (ctx, pageobj, "MediaBox"),
-                             &mediabox);
-                if (fz_is_empty_rect (&mediabox)) {
+                mediabox =
+                    pdf_to_rect (ctx, pdf_dict_gets (ctx, pageobj, "MediaBox"));
+                if (fz_is_empty_rect (mediabox)) {
                     mediabox.x0 = 0;
                     mediabox.y0 = 0;
                     mediabox.x1 = 612;
@@ -867,20 +859,19 @@ static void initpdims (void)
                     empty = 1;
                 }
 
-                pdf_to_rect (ctx,
-                             pdf_dict_gets (ctx, pageobj, "CropBox"),
-                             &cropbox);
-                if (!fz_is_empty_rect (&cropbox)) {
+                cropbox =
+                    pdf_to_rect (ctx, pdf_dict_gets (ctx, pageobj, "CropBox"));
+                if (!fz_is_empty_rect (cropbox)) {
                     if (empty) {
                         mediabox = cropbox;
                     }
                     else {
-                        fz_intersect_rect (&mediabox, &cropbox);
+                        mediabox = fz_intersect_rect (mediabox, cropbox);
                     }
                 }
                 else {
                     if (empty) {
-                        if (fz_is_empty_rect (&rootmediabox)) {
+                        if (fz_is_empty_rect (rootmediabox)) {
                             printd ("emsg cannot find page size for page %d",
                                     pageno);
                         }
@@ -897,13 +888,13 @@ static void initpdims (void)
 
                 fz_try (ctx) {
                     page = fz_load_page (ctx, state.doc, pageno);
-                    fz_bound_page (ctx, page, &mediabox);
+                    mediabox = fz_bound_page (ctx, page);
                     if (state.trimmargins) {
                         fz_rect rect;
                         fz_device *dev;
 
                         dev = fz_new_bbox_device (ctx, &rect);
-                        fz_run_page (ctx, page, dev, &fz_identity, NULL);
+                        fz_run_page (ctx, page, dev, fz_identity, NULL);
                         fz_close_device (ctx, dev);
                         fz_drop_device (ctx, dev);
 
@@ -911,9 +902,9 @@ static void initpdims (void)
                         rect.x1 += state.trimfuzz.x1;
                         rect.y0 += state.trimfuzz.y0;
                         rect.y1 += state.trimfuzz.y1;
-                        fz_intersect_rect (&rect, &mediabox);
+                        rect = fz_intersect_rect (rect, mediabox);
 
-                        if (!fz_is_empty_rect (&rect)) {
+                        if (!fz_is_empty_rect (rect)) {
                             mediabox = rect;
                         }
                     }
@@ -939,7 +930,7 @@ static void initpdims (void)
                     fz_page *page;
                     fz_try (ctx) {
                         page = fz_load_page (ctx, state.doc, pageno);
-                        fz_bound_page (ctx, page, &mediabox);
+                        mediabox = fz_bound_page (ctx, page);
                         fz_drop_page (ctx, page);
 
                         show = !state.trimmargins && pageno % 20 == 0;
@@ -1003,9 +994,8 @@ static void layout (void)
             float x0, x1;
 
             p = &state.pagedims[pindex];
-            fz_rotate (&rm, p->rotate + state.rotate);
-            box = p->mediabox;
-            fz_transform_rect (&box, &rm);
+            box = fz_transform_rect (p->mediabox,
+                                     fz_rotate (p->rotate + state.rotate));
 
             x0 = fz_min (box.x0, box.x1);
             x1 = fz_max (box.x0, box.x1);
@@ -1028,14 +1018,12 @@ static void layout (void)
     }
 
     for (pindex = 0; pindex < state.pagedimcount; ++pindex) {
-        fz_rect rect;
         fz_matrix tm, sm;
 
         p = &state.pagedims[pindex];
-        fz_rotate (&ctm, state.rotate);
-        fz_rotate (&rm, p->rotate + state.rotate);
-        box = p->mediabox;
-        fz_transform_rect (&box, &rm);
+        ctm = fz_rotate (state.rotate);
+        box = fz_transform_rect (p->mediabox,
+                                 fz_rotate (p->rotate + state.rotate));
         w = box.x1 - box.x0;
         switch (state.fitmodel) {
         case FitProportional:
@@ -1057,24 +1045,22 @@ static void layout (void)
             break;
         }
 
-        fz_scale (&p->zoomctm, zoom, zoom);
-        fz_concat (&ctm, &p->zoomctm, &ctm);
+        p->zoomctm = fz_scale (zoom, zoom);
+        ctm = fz_concat (p->zoomctm, ctm);
 
-        fz_rotate (&rm, p->rotate);
+        rm = fz_rotate (p->rotate);
         p->pagebox = p->mediabox;
-        fz_transform_rect (&p->pagebox, &rm);
+        p->pagebox = fz_transform_rect (p->pagebox, rm);
         p->pagebox.x1 -= p->pagebox.x0;
         p->pagebox.y1 -= p->pagebox.y0;
         p->pagebox.x0 = 0;
         p->pagebox.y0 = 0;
-        rect = p->pagebox;
-        fz_transform_rect (&rect, &ctm);
-        fz_round_rect (&p->bounds, &rect);
+        p->bounds = fz_round_rect (fz_transform_rect (p->pagebox, ctm));
         p->ctm = ctm;
 
-        fz_translate (&tm, 0, -p->mediabox.y1);
-        fz_scale (&sm, zoom, -zoom);
-        fz_concat (&ctm, &tm, &sm);
+        tm = fz_translate (0, -p->mediabox.y1);
+        sm = fz_scale (zoom, -zoom);
+        ctm = fz_concat (tm, sm);
 
         p->tctmready = 0;
     }
@@ -1110,7 +1096,7 @@ static void recurse_outline (fz_outline *outline, int level)
             fz_point p = {.x = outline->x, .y = outline->y};
             struct pagedim *pdim = pdimofpageno (outline->page);
             int h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
-            fz_transform_point (&p, &pdim->ctm);
+            p = fz_transform_point (p, pdim->ctm);
             printd ("o %d %d %d %d %s",
                     level, outline->page, (int) p.y, h, outline->title);
         }
@@ -1256,13 +1242,13 @@ static void search (regex_t *re, int pageno, int y, int forward)
             }
         }
         pdim = pdimofpageno (pageno);
-        text = fz_new_stext_page (state.ctx, &pdim->mediabox);
+        text = fz_new_stext_page (state.ctx, pdim->mediabox);
         tdev = fz_new_stext_device (state.ctx, text, 0);
 
         page = fz_load_page (state.ctx, state.doc, pageno);
         {
             fz_matrix ctm = pagectm1 (page, pdim);
-            fz_run_page (state.ctx, page, tdev, &ctm, NULL);
+            fz_run_page (state.ctx, page, tdev, ctm, NULL);
         }
 
         fz_close_device (state.ctx, tdev);
@@ -1629,7 +1615,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest,
                                                 &xy.x, &xy.y);
                 pdim = pdimofpageno (pageno);
-                fz_transform_point (&xy, &pdim->ctm);
+                xy = fz_transform_point (xy, pdim->ctm);
                 printd ("a %d %d %d", pageno, (int) xy.x, (int) xy.y);
             }
 
@@ -1767,7 +1753,7 @@ CAMLprim value ml_uritolocation (value uri_v)
     pageno = fz_resolve_link (state.ctx, state.doc, String_val (uri_v),
                               &xy.x, &xy.y);
     pdim = pdimofpageno (pageno);
-    fz_transform_point (&xy, &pdim->ctm);
+    xy = fz_transform_point (xy, pdim->ctm);
     ret_v = caml_alloc_tuple (3);
     Field (ret_v, 0) = Val_int (pageno);
     Field (ret_v, 1) = caml_copy_double ((double) xy.x);
@@ -1833,15 +1819,15 @@ static void showsel (struct page *page, int ox, int oy)
                 fz_rect r;
                 if (ch == page->fmark) seen = 1;
                 r = fz_rect_from_quad (ch->quad);
-                if (seen) fz_union_rect (&rect, &r);
+                if (seen) rect = fz_union_rect (rect, r);
                 if (ch == page->lmark) {
-                    fz_round_rect (&bbox, &rect);
+                    bbox = fz_round_rect (rect);
                     recti (bbox.x0 + ox, bbox.y0 + oy,
                            bbox.x1 + ox, bbox.y1 + oy);
                     goto done;
                 }
             }
-            fz_round_rect (&bbox, &rect);
+            bbox = fz_round_rect (rect);
             recti (bbox.x0 + ox, bbox.y0 + oy,
                    bbox.x1 + ox, bbox.y1 + oy);
         }
@@ -1855,60 +1841,60 @@ done:
 #include "glfont.c"
 #pragma GCC diagnostic pop
 
-static void stipplerect (fz_matrix *m,
-                         fz_point *p1,
-                         fz_point *p2,
-                         fz_point *p3,
-                         fz_point *p4,
+static void stipplerect (fz_matrix m,
+                         fz_point p1,
+                         fz_point p2,
+                         fz_point p3,
+                         fz_point p4,
                          GLfloat *texcoords,
                          GLfloat *vertices)
 {
-    fz_transform_point (p1, m);
-    fz_transform_point (p2, m);
-    fz_transform_point (p3, m);
-    fz_transform_point (p4, m);
+    p1 = fz_transform_point (p1, m);
+    p2 = fz_transform_point (p2, m);
+    p3 = fz_transform_point (p3, m);
+    p4 = fz_transform_point (p4, m);
     {
         float w, h, s, t;
 
-        w = p2->x - p1->x;
-        h = p2->y - p1->y;
+        w = p2.x - p1.x;
+        h = p2.y - p1.y;
         t = hypotf (w, h) * .25f;
 
-        w = p3->x - p2->x;
-        h = p3->y - p2->y;
+        w = p3.x - p2.x;
+        h = p3.y - p2.y;
         s = hypotf (w, h) * .25f;
 
-        texcoords[0] = 0; vertices[0] = p1->x; vertices[1] = p1->y;
-        texcoords[1] = t; vertices[2] = p2->x; vertices[3] = p2->y;
+        texcoords[0] = 0; vertices[0] = p1.x; vertices[1] = p1.y;
+        texcoords[1] = t; vertices[2] = p2.x; vertices[3] = p2.y;
 
-        texcoords[2] = 0; vertices[4] = p2->x; vertices[5] = p2->y;
-        texcoords[3] = s; vertices[6] = p3->x; vertices[7] = p3->y;
+        texcoords[2] = 0; vertices[4] = p2.x; vertices[5] = p2.y;
+        texcoords[3] = s; vertices[6] = p3.x; vertices[7] = p3.y;
 
-        texcoords[4] = 0; vertices[8] = p3->x; vertices[9] = p3->y;
-        texcoords[5] = t; vertices[10] = p4->x; vertices[11] = p4->y;
+        texcoords[4] = 0; vertices[8] = p3.x; vertices[9] = p3.y;
+        texcoords[5] = t; vertices[10] = p4.x; vertices[11] = p4.y;
 
-        texcoords[6] = 0; vertices[12] = p4->x; vertices[13] = p4->y;
-        texcoords[7] = s; vertices[14] = p1->x; vertices[15] = p1->y;
+        texcoords[6] = 0; vertices[12] = p4.x; vertices[13] = p4.y;
+        texcoords[7] = s; vertices[14] = p1.x; vertices[15] = p1.y;
     }
     glDrawArrays (GL_LINES, 0, 8);
 }
 
-static void solidrect (fz_matrix *m,
-                       fz_point *p1,
-                       fz_point *p2,
-                       fz_point *p3,
-                       fz_point *p4,
+static void solidrect (fz_matrix m,
+                       fz_point p1,
+                       fz_point p2,
+                       fz_point p3,
+                       fz_point p4,
                        GLfloat *vertices)
 {
-    fz_transform_point (p1, m);
-    fz_transform_point (p2, m);
-    fz_transform_point (p3, m);
-    fz_transform_point (p4, m);
-    vertices[0] = p1->x; vertices[1] = p1->y;
-    vertices[2] = p2->x; vertices[3] = p2->y;
+    p1 = fz_transform_point (p1, m);
+    p2 = fz_transform_point (p2, m);
+    p3 = fz_transform_point (p3, m);
+    p4 = fz_transform_point (p4, m);
+    vertices[0] = p1.x; vertices[1] = p1.y;
+    vertices[2] = p2.x; vertices[3] = p2.y;
 
-    vertices[4] = p3->x; vertices[5] = p3->y;
-    vertices[6] = p4->x; vertices[7] = p4->y;
+    vertices[4] = p3.x; vertices[5] = p3.y;
+    vertices[6] = p4.x; vertices[7] = p4.y;
     glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
 }
 
@@ -1934,9 +1920,9 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
 
     xoff -= state.pagedims[page->pdimno].bounds.x0;
     yoff -= state.pagedims[page->pdimno].bounds.y0;
-    fz_translate (&tm, xoff, yoff);
+    tm = fz_translate (xoff, yoff);
     pm = pagectm (page);
-    fz_concat (&ctm, &pm, &tm);
+    ctm = fz_concat (pm, tm);
 
     glTexCoordPointer (1, GL_FLOAT, 0, texcoords);
     glVertexPointer (2, GL_FLOAT, 0, vertices);
@@ -1960,7 +1946,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         if (fz_is_external_link (state.ctx, link->uri)) glColor3ub (0, 0, 255);
         else glColor3ub (255, 0, 0);
 
-        stipplerect (&ctm, &p1, &p2, &p3, &p4, texcoords, vertices);
+        stipplerect (ctm, p1, p2, p3, p4, texcoords, vertices);
     }
 
     for (int i = 0; i < page->annotcount; ++i) {
@@ -1980,7 +1966,7 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         p4.y = annot->bbox.y1;
 
         glColor3ub (0, 0, 128);
-        stipplerect (&ctm, &p1, &p2, &p3, &p4, texcoords, vertices);
+        stipplerect (ctm, p1, p2, p3, p4, texcoords, vertices);
     }
 
     glDisable (GL_BLEND);
@@ -2046,9 +2032,9 @@ static void ensureannots (struct page *page)
              annot = fz_next_annot (state.ctx, annot), i++) {
             fz_rect rect;
 
-            fz_bound_annot (state.ctx, annot, &rect);
+            rect = fz_bound_annot (state.ctx, annot);
             page->annots[i].annot = annot;
-            fz_round_rect (&page->annots[i].bbox, &rect);
+            page->annots[i].bbox = fz_round_rect (rect);
         }
     }
 }
@@ -2100,16 +2086,16 @@ static void ensureslinks (struct page *page)
             fz_rect rect;
 
             rect = link->rect;
-            fz_transform_rect (&rect, &ctm);
+            rect = fz_transform_rect (rect, ctm);
             page->slinks[i].tag = SLINK;
             page->slinks[i].u.link = link;
-            fz_round_rect (&page->slinks[i].bbox, &rect);
+            page->slinks[i].bbox = fz_round_rect (rect);
         }
         for (j = 0; j < page->annotcount; ++j, ++i) {
             fz_rect rect;
-            fz_bound_annot (state.ctx, page->annots[j].annot, &rect);
-            fz_transform_rect (&rect, &ctm);
-            fz_round_rect (&page->slinks[i].bbox, &rect);
+            rect = fz_bound_annot (state.ctx, page->annots[j].annot);
+            rect = fz_transform_rect (rect, ctm);
+            page->slinks[i].bbox = fz_round_rect (rect);
 
             page->slinks[i].tag = SANNOT;
             page->slinks[i].u.annot = page->annots[j].annot;
@@ -2311,9 +2297,9 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
 
     xoff -= state.pagedims[page->pdimno].bounds.x0;
     yoff -= state.pagedims[page->pdimno].bounds.y0;
-    fz_translate (&tm, xoff, yoff);
+    tm = fz_translate (xoff, yoff);
     pm = pagectm (page);
-    fz_concat (&ctm, &pm, &tm);
+    ctm = fz_concat (pm, tm);
 
     glEnable (GL_BLEND);
     glVertexPointer (2, GL_FLOAT, 0, vertices);
@@ -2330,7 +2316,7 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
 
     p4.x = (float) v[4];
     p4.y = (float) v[7];
-    solidrect (&ctm, &p1, &p2, &p3, &p4, vertices);
+    solidrect (ctm, p1, p2, p3, p4, vertices);
     glDisable (GL_BLEND);
 }
 
@@ -2407,16 +2393,16 @@ static struct annot *getannot (struct page *page, int x, int y)
     p.x = x;
     p.y = y;
 
-    fz_concat (&ctm, tctm, &state.pagedims[page->pdimno].ctm);
-    fz_invert_matrix (&ctm, &ctm);
-    fz_transform_point (&p, &ctm);
+    ctm = fz_concat (*tctm, state.pagedims[page->pdimno].ctm);
+    ctm = fz_invert_matrix (ctm);
+    p = fz_transform_point (p, ctm);
 
     if (pdf) {
         for (int i = 0; i < page->annotcount; ++i) {
             struct annot *a = &page->annots[i];
             fz_rect rect;
 
-            fz_bound_annot (state.ctx, a->annot, &rect);
+            rect = fz_bound_annot (state.ctx, a->annot);
             if (p.x >= rect.x0 && p.x <= rect.x1) {
                 if (p.y >= rect.y0 && p.y <= rect.y1)
                     return a;
@@ -2429,7 +2415,6 @@ static struct annot *getannot (struct page *page, int x, int y)
 static fz_link *getlink (struct page *page, int x, int y)
 {
     fz_point p;
-    fz_matrix ctm;
     fz_link *link;
 
     ensureslinks (page);
@@ -2437,9 +2422,7 @@ static fz_link *getlink (struct page *page, int x, int y)
     p.x = x;
     p.y = y;
 
-    ctm = pagectm (page);
-    fz_invert_matrix (&ctm, &ctm);
-    fz_transform_point (&p, &ctm);
+    p = fz_transform_point (p, fz_invert_matrix (pagectm (page)));
 
     for (link = page->links; link; link = link->next) {
         if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
@@ -2462,11 +2445,11 @@ static void ensuretext (struct page *page)
         fz_device *tdev;
 
         page->text = fz_new_stext_page (state.ctx,
-                                        &state.pagedims[page->pdimno].mediabox);
+                                        state.pagedims[page->pdimno].mediabox);
         tdev = fz_new_stext_device (state.ctx, page->text, 0);
         ctm = pagectm (page);
         fz_run_display_list (state.ctx, page->dlist,
-                             tdev, &ctm, &fz_infinite_rect, NULL);
+                             tdev, ctm, fz_infinite_rect, NULL);
         fz_close_device (state.ctx, tdev);
         fz_drop_device (state.ctx, tdev);
     }
@@ -2695,8 +2678,7 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
-        contents = pdf_get_annot_contents (state.ctx,
-                                           (pdf_annot *) slink->u.annot);
+        contents = pdf_annot_contents (state.ctx, (pdf_annot *) slink->u.annot);
     }
     unlock (__func__);
     ret_v = caml_copy_string (contents);
@@ -3399,11 +3381,11 @@ CAMLprim value ml_getpagebox (value opaque_v)
     dev = fz_new_bbox_device (state.ctx, &rect);
 
     ctm = pagectm (page);
-    fz_run_page (state.ctx, page->fzpage, dev, &ctm, NULL);
+    fz_run_page (state.ctx, page->fzpage, dev, ctm, NULL);
 
     fz_close_device (state.ctx, dev);
     fz_drop_device (state.ctx, dev);
-    fz_round_rect (&bbox, &rect);
+    bbox = fz_round_rect (rect);
     Field (ret_v, 0) = Val_int (bbox.x0);
     Field (ret_v, 1) = Val_int (bbox.y0);
     Field (ret_v, 2) = Val_int (bbox.x1);
@@ -3629,7 +3611,6 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     int x = Int_val (x_v), y = Int_val (y_v);
     struct pagedim *pdim;
     fz_point p;
-    fz_matrix ctm;
 
     page = parse_pointer (__func__, s);
     pdim = &state.pagedims[page->pdimno];
@@ -3639,6 +3620,7 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
         goto done;
     }
 
+#if 0
     if (pdf_specifics (state.ctx, state.doc)) {
         trimctm (pdf_page_from_fz_page (state.ctx, page->fzpage), page->pdimno);
         ctm = state.pagedims[page->pdimno].tctm;
@@ -3646,12 +3628,12 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     else {
         ctm = fz_identity;
     }
+#endif
     p.x = x + pdim->bounds.x0;
     p.y = y + pdim->bounds.y0;
 
-    fz_concat (&ctm, &pdim->tctm, &pdim->ctm);
-    fz_invert_matrix (&ctm, &ctm);
-    fz_transform_point (&p, &ctm);
+    p = fz_transform_point (p, fz_invert_matrix (fz_concat (pdim->tctm,
+                                                            pdim->ctm)));
 
     tup_v = caml_alloc_tuple (2);
     ret_v = caml_alloc_small (1, 1);
@@ -3699,8 +3681,8 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     p.x = x + pdim->bounds.x0;
     p.y = y + pdim->bounds.y0;
 
-    fz_concat (&ctm, &pdim->tctm, &pdim->ctm);
-    fz_transform_point (&p, &ctm);
+    ctm = fz_concat (pdim->tctm, pdim->ctm);
+    p = fz_transform_point (p, ctm);
 
     ret_v = caml_alloc_tuple (2);
     Field (ret_v, 0) = caml_copy_double ((double) p.x);
