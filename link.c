@@ -3603,15 +3603,6 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
         goto done;
     }
 
-#if 0
-    if (pdf_specifics (state.ctx, state.doc)) {
-        trimctm (pdf_page_from_fz_page (state.ctx, page->fzpage), page->pdimno);
-        ctm = state.pagedims[page->pdimno].tctm;
-    }
-    else {
-        ctm = fz_identity;
-    }
-#endif
     p.x = x + pdim->bounds.x0;
     p.y = y + pdim->bounds.y0;
 
