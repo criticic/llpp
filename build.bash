@@ -89,7 +89,7 @@ mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror -O2"; }
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
 test "$overs" = "4.07.0" || {
-    url=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0+rc1.tar.xz
+    url=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.0.tar.xz
     txz=$outd/$(basename $url)
     isfresh $txz $url || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
