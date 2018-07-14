@@ -1,16 +1,14 @@
 Prerequisites for building from sources:
-        bash          [https://en.wikipedia.org/wiki/Bash_(Unix_shell)]
-        mupdf         [http://mupdf.com/]
-        opengl        [http://en.wikipedia.org/wiki/OpenGL]
-        git           [https://git-scm.com/]
-        ocaml (4.06+) [http://ocaml.org/]
-           If not present will be downloaded from the network and
-           built/used locally without system-wide installation.
+    bash          [https://en.wikipedia.org/wiki/Bash_(Unix_shell)]
+    mupdf         [http://mupdf.com/]
+    opengl        [http://en.wikipedia.org/wiki/OpenGL]
+    git           [https://git-scm.com/]
+    ocaml (4.07+) [http://ocaml.org/]
+        If not present will be downloaded from the network and
+        built/used locally without system-wide installation.
 
-  To download mupdf+prerequisites that llpp is known to work with:
-     llpp% mkdir build && sh misc/getmupdf.sh build/mupdf
+To download mupdf+prerequisites that llpp is known to work with:
+    llpp% mkdir build && sh misc/getmupdf.sh build/mupdf
 
-  llpp% bash build.bash build
-
-Binary should now be in build/llpp.
-(macOS: Bundle should now be in build/llpp.app/)
+To build llpp (binary will be in build/llpp):
+    llpp% bash build.bash build
