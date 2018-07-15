@@ -902,7 +902,7 @@ void (*wsigladdr (const char *name)) (void)
 
   char *bytes;
   CFStringRef str;
-  bytes = CFAllocatorAllocate (CFAllocatorGetDefault(), 6, 0);
+  bytes = CFAllocatorAllocate (CFAllocatorGetDefault(), strlen (name) + 1, 0);
   strcpy (bytes, name);
   str = CFStringCreateWithCStringNoCopy (NULL, bytes,
                                          kCFStringEncodingMacRoman, NULL);
