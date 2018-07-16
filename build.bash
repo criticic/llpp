@@ -51,7 +51,6 @@ oincs() {
     local incs=
     case "${1#$outd/}" in
         lablGL/*) incs1="$incs1 lablGL";;
-        wsi/$wsid/*) incs1="$incs1 $wsid";;
         main.cmo) incs1="$incs1 $wsid lablGL";;
         glutils.cmo|listview.cmo) incs1="$incs1 lablGL";;
         *) ;;
