@@ -902,8 +902,9 @@ void (*wsigladdr (const char *name)) (void)
 
   char *bytes;
   CFStringRef str;
-  bytes = CFAllocatorAllocate (CFAllocatorGetDefault(), strlen (name) + 1, 0);
-  strcpy (bytes, name);
+  size_t namelenp1 = strlen (name) + 1;
+  bytes = CFAllocatorAllocate (CFAllocatorGetDefault(), namelenp1, 0);
+  memcpy (bytes, name, namelenp1);
   str = CFStringCreateWithCStringNoCopy (NULL, bytes,
                                          kCFStringEncodingMacRoman, NULL);
   void (*ret) (void) = CFBundleGetFunctionPointerForName (framework, str);
