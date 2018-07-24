@@ -33,8 +33,6 @@ let setfontsize n =
   fstate.maxrows <- (state.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
-let vlog fmt = if conf.verbose then dolog fmt else Printf.kprintf ignore fmt;;
-
 let launchpath () =
   if emptystr conf.pathlauncher
   then dolog "%s" state.path
@@ -4808,6 +4806,7 @@ let remoteopen path =
 ;;
 
 let () =
+  Utils.vlogf := (fun s -> if conf.verbose then prerr_endline s else ignore s);
   let gcconfig = ref false in
   let trimcachepath = ref E.s in
   let rcmdpath = ref E.s in

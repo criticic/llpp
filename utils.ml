@@ -340,7 +340,8 @@ let r32s =
   else fun _ _ -> error "r32s: not implemented for word_size <= 32"
 ;;
 
-let vlog fmt = Format.ksprintf ignore fmt;;
+let vlogf = ref ignore;;
+let vlog fmt = Printf.kprintf !vlogf fmt;;
 
 let pipef ?(closew=true) cap f cmd =
   match Unix.pipe () with
