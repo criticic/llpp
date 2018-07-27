@@ -1472,11 +1472,11 @@ let linknact f s =
               f under
             else loop (n-m) rest
     in
-    if n >= 0 then loop n state.layout;
+    loop n state.layout;
 ;;
 
 let linknentry text key = match [@warning "-4"] key with
-  | Keys.Ascii c ->
+  | Keys.Ascii ('a' .. 'z' as c)  ->
      let text = addchar text c in
      linknact (fun under -> state.text <- undertext under) text;
      TEcont text
