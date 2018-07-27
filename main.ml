@@ -1472,7 +1472,7 @@ let linknact f s =
               f under
             else loop (n-m) rest
     in
-    loop n state.layout;
+    if n >= 0 then loop n state.layout;
 ;;
 
 let linknentry text key = match [@warning "-4"] key with
