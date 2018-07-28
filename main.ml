@@ -1481,7 +1481,7 @@ let linknentry text key = match [@warning "-4"] key with
      linknact (fun under -> state.text <- undertext under) text;
      TEcont text
   | _ ->
-     state.text <- Printf.sprintf "invalid key";
+     state.text <- "invalid key";
      TEcont text
 ;;
 
