@@ -222,22 +222,6 @@ struct bo {
     size_t size;
 };
 
-static void UNUSED_ATTR debug_rect (const char *cap, fz_rect r)
-{
-    printf ("%s(rect) %.2f,%.2f,%.2f,%.2f\n", cap, r.x0, r.y0, r.x1, r.y1);
-}
-
-static void UNUSED_ATTR debug_bbox (const char *cap, fz_irect r)
-{
-    printf ("%s(bbox) %d,%d,%d,%d\n", cap, r.x0, r.y0, r.x1, r.y1);
-}
-
-static void UNUSED_ATTR debug_matrix (const char *cap, fz_matrix m)
-{
-    printf ("%s(matrix) %.2f,%.2f,%.2f,%.2f %.2f %.2f\n", cap,
-            m.a, m.b, m.c, m.d, m.e, m.f);
-}
-
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void lock (const char *cap)
