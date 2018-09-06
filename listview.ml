@@ -120,7 +120,7 @@ let enttext () =
 ;;
 
 let textentrykeyboard
-      key _mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
+      key mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
   state.text <- E.s;
   let enttext te =
     state.mode <- Textentry (te, onleave);
@@ -174,6 +174,11 @@ let textentrykeyboard
      else enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
 
   | Delete -> ()
+
+  | Insert when Wsi.withshift mask ->
+     let s = getcmdoutput (fun s ->
+                 prerr_endline ("error pasting: " ^ s)) "xclip -o" in
+     enttext (c, s, opthist, onkey, ondone, cancelonempty)
 
   | Code _ | Ascii _ ->
      begin match onkey text kt with
