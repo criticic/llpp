@@ -10,3 +10,4 @@
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though
 * TODO [maybe] inside rect/quad (_Generic)
+* TODO Shift-insert for searches
