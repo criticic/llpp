@@ -106,6 +106,7 @@ f colorscale 1.
 g columns columns "Csingle [||]"
 g beyecolumns "columncount option" None
 s selcmd '(match platform with |Plinux|Pbsd -> "LC_CTYPE=UTF-8 xclip -i"|Pmacos -> "LC_CTYPE=UTF-8 pbcopy"|Punknown -> "cat")'
+s pastecmd '(match platform with |Plinux|Pbsd -> "LC_CTYPE=UTF-8 xclip -o"|Pmacos -> "LC_CTYPE=UTF-8 pbpaste"|Punknown -> "echo")'
 s paxcmd '"cat"'
 s passcmd E.s
 s savecmd E.s

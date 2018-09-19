@@ -766,6 +766,7 @@ let config_of c attrs =
          else { c with columns = Cmulti (nab, E.a) }
       | "birds-eye-columns" -> { c with beyecolumns = Some (maxv 2 v) }
       | "selection-command" -> { c with selcmd = unentS v }
+      | "paste-command" -> { c with pastecmd = unentS v }
       | "synctex-command" -> { c with stcmd = unentS v }
       | "pax-command" -> { c with paxcmd = unentS v }
       | "askpass-command" -> { c with passcmd = unentS v }
@@ -1251,6 +1252,7 @@ let add_attrs bb always dc c time =
   oco "columns" c.columns dc.columns;
   obeco "birds-eye-columns" c.beyecolumns dc.beyecolumns;
   os "selection-command" c.selcmd dc.selcmd;
+  os "paste-command" c.pastecmd dc.pastecmd;
   os "synctex-command" c.stcmd dc.stcmd;
   os "pax-command" c.paxcmd dc.paxcmd;
   os "askpass-command" c.passcmd dc.passcmd;

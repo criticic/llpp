@@ -177,7 +177,7 @@ let textentrykeyboard
 
   | Insert when Wsi.withshift mask ->
      let s = getcmdoutput (fun s ->
-                 prerr_endline ("error pasting: " ^ s)) "xclip -o" in
+                 prerr_endline ("error pasting: " ^ s)) conf.pastecmd in
      enttext (c, s, opthist, onkey, ondone, cancelonempty)
 
   | Code _ | Ascii _ ->
