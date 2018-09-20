@@ -7,7 +7,6 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
 #pragma GCC diagnostic ignored "-Wdocumentation"
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
@@ -257,7 +256,9 @@ static int hasdata (void)
     return avail > 0;
 }
 
-CAMLprim value ml_hasdata (value fd_v)
+#define WithProto(...) extern __VA_ARGS__; __VA_ARGS__
+
+WithProto (value ml_hasdata (value fd_v))
 {
     CAMLparam1 (fd_v);
     int ret, avail;
@@ -305,14 +306,14 @@ static int readlen (int fd)
     return u;
 }
 
-CAMLprim void ml_wcmd (value fd_v, value bytes_v, value len_v)
+WithProto (void ml_wcmd (value fd_v, value bytes_v, value len_v))
 {
     CAMLparam3 (fd_v, bytes_v, len_v);
     writedata (Int_val (fd_v), &Byte (bytes_v, 0), Int_val (len_v));
     CAMLreturn0;
 }
 
-CAMLprim value ml_rcmd (value fd_v)
+WithProto (value ml_rcmd (value fd_v))
 {
     CAMLparam1 (fd_v);
     CAMLlocal1 (strdata_v);
@@ -1055,7 +1056,7 @@ static void layout (void)
     } while (p-- != state.pagedims);
 }
 
-struct pagedim *pdimofpageno (int pageno)
+static struct pagedim *pdimofpageno (int pageno)
 {
     struct pagedim *pdim = state.pagedims;
 
@@ -1383,7 +1384,7 @@ static char *mbtoutf8 (char *s)
     return r;
 }
 
-CAMLprim value ml_mbtoutf8 (value s_v)
+WithProto (value ml_mbtoutf8 (value s_v))
 {
     CAMLparam1 (s_v);
     CAMLlocal1 (ret_v);
@@ -1710,14 +1711,14 @@ static void * mainloop (void UNUSED_ATTR *unused)
     return 0;
 }
 
-CAMLprim value ml_isexternallink (value uri_v)
+WithProto (value ml_isexternallink (value uri_v))
 {
     CAMLparam1 (uri_v);
     int ext = fz_is_external_link (state.ctx, String_val (uri_v));
     CAMLreturn (Val_bool (ext));
 }
 
-CAMLprim value ml_uritolocation (value uri_v)
+WithProto (value ml_uritolocation (value uri_v))
 {
     CAMLparam1 (uri_v);
     CAMLlocal1 (ret_v);
@@ -1736,7 +1737,7 @@ CAMLprim value ml_uritolocation (value uri_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_realloctexts (value texcount_v)
+WithProto (value ml_realloctexts (value texcount_v))
 {
     CAMLparam1 (texcount_v);
     int ok;
@@ -2196,19 +2197,19 @@ static void uploadslice (struct tile *tile, struct slice *slice)
     }
 }
 
-CAMLprim void ml_begintiles (void)
+WithProto (void ml_begintiles (void))
 {
     glEnable (TEXT_TYPE);
     glTexCoordPointer (2, GL_FLOAT, 0, state.texcoords);
     glVertexPointer (2, GL_FLOAT, 0, state.vertices);
 }
 
-CAMLprim void ml_endtiles (void)
+WithProto (void ml_endtiles (void))
 {
     glDisable (TEXT_TYPE);
 }
 
-CAMLprim void ml_drawtile (value args_v, value ptr_v)
+WithProto (void ml_drawtile (value args_v, value ptr_v))
 {
     CAMLparam2 (args_v, ptr_v);
     int dispx = Int_val (Field (args_v, 0));
@@ -2291,9 +2292,9 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
     glDisable (GL_BLEND);
 }
 
-CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
+WithProto (value ml_postprocess (value ptr_v, value hlinks_v,
                                value xoff_v, value yoff_v,
-                               value li_v)
+                               value li_v))
 {
     CAMLparam5 (ptr_v, hlinks_v, xoff_v, yoff_v, li_v);
     int xoff = Int_val (xoff_v);
@@ -2331,8 +2332,8 @@ CAMLprim value ml_postprocess (value ptr_v, value hlinks_v,
     CAMLreturn (Val_int (noff));
 }
 
-CAMLprim void ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
-                            value rects_v)
+WithProto (void ml_drawprect (value ptr_v, value xoff_v, value yoff_v,
+                            value rects_v))
 {
     CAMLparam4 (ptr_v, xoff_v, yoff_v, rects_v);
     int xoff = Int_val (xoff_v);
@@ -2424,7 +2425,7 @@ static void ensuretext (struct page *page)
     }
 }
 
-CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
+WithProto (value ml_find_page_with_links (value start_page_v, value dir_v))
 {
     CAMLparam2 (start_page_v, dir_v);
     CAMLlocal1 (ret_v);
@@ -2478,7 +2479,7 @@ CAMLprim value ml_find_page_with_links (value start_page_v, value dir_v)
 enum { dir_first, dir_last };
 enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
 
-CAMLprim value ml_findlink (value ptr_v, value dir_v)
+WithProto (value ml_findlink (value ptr_v, value dir_v))
 {
     CAMLparam2 (ptr_v, dir_v);
     CAMLlocal2 (ret_v, pos_v);
@@ -2598,7 +2599,7 @@ CAMLprim value ml_findlink (value ptr_v, value dir_v)
 
 enum { uuri, utext, uannot };
 
-CAMLprim value ml_getlink (value ptr_v, value n_v)
+WithProto (value ml_getlink (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
@@ -2631,7 +2632,7 @@ CAMLprim value ml_getlink (value ptr_v, value n_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
+WithProto (value ml_getannotcontents (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
     CAMLlocal1 (ret_v);
@@ -2654,7 +2655,7 @@ CAMLprim value ml_getannotcontents (value ptr_v, value n_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_getlinkcount (value ptr_v)
+WithProto (value ml_getlinkcount (value ptr_v))
 {
     CAMLparam1 (ptr_v);
     struct page *page;
@@ -2664,7 +2665,7 @@ CAMLprim value ml_getlinkcount (value ptr_v)
     CAMLreturn (Val_int (page->slinkcount));
 }
 
-CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
+WithProto (value ml_getlinkrect (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
     CAMLlocal1 (ret_v);
@@ -2686,7 +2687,7 @@ CAMLprim value ml_getlinkrect (value ptr_v, value n_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_whatsunder (value ptr_v, value x_v, value y_v)
+WithProto (value ml_whatsunder (value ptr_v, value x_v, value y_v))
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
@@ -2804,7 +2805,7 @@ done:
 
 enum { mark_page, mark_block, mark_line, mark_word };
 
-CAMLprim void ml_clearmark (value ptr_v)
+WithProto (void ml_clearmark (value ptr_v))
 {
     CAMLparam1 (ptr_v);
     char *s = String_val (ptr_v);
@@ -2828,7 +2829,7 @@ static int uninteresting (int c)
     return isspace (c) || ispunct (c);
 }
 
-CAMLprim value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v)
+WithProto (value ml_markunder (value ptr_v, value x_v, value y_v, value mark_v))
 {
     CAMLparam4 (ptr_v, x_v, y_v, mark_v);
     CAMLlocal1 (ret_v);
@@ -2921,7 +2922,7 @@ done:
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
+WithProto (value ml_rectofblock (value ptr_v, value x_v, value y_v))
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal2 (ret_v, res_v);
@@ -2977,7 +2978,7 @@ CAMLprim value ml_rectofblock (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim void ml_seltext (value ptr_v, value rect_v)
+WithProto (void ml_seltext (value ptr_v, value rect_v))
 {
     CAMLparam2 (ptr_v, rect_v);
     struct page *page;
@@ -3062,7 +3063,7 @@ static int pipechar (FILE *f, fz_stext_char *ch)
     return 0;
 }
 
-CAMLprim value ml_spawn (value command_v, value fds_v)
+WithProto (value ml_spawn (value command_v, value fds_v))
 {
     CAMLparam2 (command_v, fds_v);
     CAMLlocal2 (l_v, tup_v);
@@ -3136,7 +3137,7 @@ CAMLprim value ml_spawn (value command_v, value fds_v)
     CAMLreturn (Val_int (pid));
 }
 
-CAMLprim value ml_hassel (value ptr_v)
+WithProto (value ml_hassel (value ptr_v))
 {
     CAMLparam1 (ptr_v);
     CAMLlocal1 (ret_v);
@@ -3155,7 +3156,7 @@ CAMLprim value ml_hassel (value ptr_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim void ml_copysel (value fd_v, value ptr_v)
+WithProto (void ml_copysel (value fd_v, value ptr_v))
 {
     CAMLparam2 (fd_v, ptr_v);
     FILE *f;
@@ -3225,7 +3226,7 @@ done:
     CAMLreturn0;
 }
 
-CAMLprim value ml_getpdimrect (value pagedimno_v)
+WithProto (value ml_getpdimrect (value pagedimno_v))
 {
     CAMLparam1 (pagedimno_v);
     CAMLlocal1 (ret_v);
@@ -3249,8 +3250,8 @@ CAMLprim value ml_getpdimrect (value pagedimno_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
-                                   value dw_v, value cols_v)
+WithProto (value ml_zoom_for_height (value winw_v, value winh_v,
+                                   value dw_v, value cols_v))
 {
     CAMLparam4 (winw_v, winh_v, dw_v, cols_v);
     CAMLlocal1 (ret_v);
@@ -3286,7 +3287,7 @@ CAMLprim value ml_zoom_for_height (value winw_v, value winh_v,
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_getmaxw (value unit_v)
+WithProto (value ml_getmaxw (value unit_v))
 {
     CAMLparam1 (unit_v);
     CAMLlocal1 (ret_v);
@@ -3309,7 +3310,7 @@ CAMLprim value ml_getmaxw (value unit_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
+WithProto (value ml_draw_string (value pt_v, value x_v, value y_v, value string_v))
 {
     CAMLparam4 (pt_v, x_v, y_v, string_v);
     CAMLlocal1 (ret_v);
@@ -3323,7 +3324,7 @@ CAMLprim value ml_draw_string (value pt_v, value x_v, value y_v, value string_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_measure_string (value pt_v, value string_v)
+WithProto (value ml_measure_string (value pt_v, value string_v))
 {
     CAMLparam2 (pt_v, string_v);
     CAMLlocal1 (ret_v);
@@ -3335,7 +3336,7 @@ CAMLprim value ml_measure_string (value pt_v, value string_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_getpagebox (value opaque_v)
+WithProto (value ml_getpagebox (value opaque_v))
 {
     CAMLparam1 (opaque_v);
     CAMLlocal1 (ret_v);
@@ -3361,7 +3362,7 @@ CAMLprim value ml_getpagebox (value opaque_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim void ml_setaalevel (value level_v)
+WithProto (void ml_setaalevel (value level_v))
 {
     CAMLparam1 (level_v);
 
@@ -3370,7 +3371,7 @@ CAMLprim void ml_setaalevel (value level_v)
 }
 
 #ifndef CIDER
-CAMLprim value ml_keysymtoutf8 (value keysym_v)
+WithProto (value ml_keysymtoutf8 (value keysym_v))
 {
     CAMLparam1 (keysym_v);
     CAMLlocal1 (str_v);
@@ -3387,7 +3388,7 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
     CAMLreturn (str_v);
 }
 #else
-CAMLprim value ml_keysymtoutf8 (value keysym_v)
+WithProto (value ml_keysymtoutf8 (value keysym_v))
 {
     CAMLparam1 (keysym_v);
     CAMLlocal1 (str_v);
@@ -3404,7 +3405,7 @@ CAMLprim value ml_keysymtoutf8 (value keysym_v)
 
 enum { piunknown, pilinux, pimacos, pibsd };
 
-CAMLprim value ml_platform (value unit_v)
+WithProto (value ml_platform (value unit_v))
 {
     CAMLparam1 (unit_v);
     CAMLlocal2 (tup_v, arr_v);
@@ -3437,7 +3438,7 @@ CAMLprim value ml_platform (value unit_v)
     CAMLreturn (tup_v);
 }
 
-CAMLprim void ml_cloexec (value fd_v)
+WithProto (void ml_cloexec (value fd_v))
 {
     CAMLparam1 (fd_v);
     int fd = Int_val (fd_v);
@@ -3448,7 +3449,7 @@ CAMLprim void ml_cloexec (value fd_v)
     CAMLreturn0;
 }
 
-CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
+WithProto (value ml_getpbo (value w_v, value h_v, value cs_v))
 {
     CAMLparam2 (w_v, h_v);
     CAMLlocal1 (ret_v);
@@ -3514,7 +3515,7 @@ CAMLprim value ml_getpbo (value w_v, value h_v, value cs_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim void ml_freepbo (value s_v)
+WithProto (void ml_freepbo (value s_v))
 {
     CAMLparam1 (s_v);
     char *s = String_val (s_v);
@@ -3529,7 +3530,7 @@ CAMLprim void ml_freepbo (value s_v)
     CAMLreturn0;
 }
 
-CAMLprim void ml_unmappbo (value s_v)
+WithProto (void ml_unmappbo (value s_v))
 {
     CAMLparam1 (s_v);
     char *s = String_val (s_v);
@@ -3564,12 +3565,12 @@ static void setuppbo (void)
 #pragma GCC diagnostic pop
 }
 
-CAMLprim value ml_bo_usable (void)
+WithProto (value ml_bo_usable (void))
 {
     return Val_bool (state.bo_usable);
 }
 
-CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
+WithProto (value ml_unproject (value ptr_v, value x_v, value y_v))
 {
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal2 (ret_v, tup_v);
@@ -3604,8 +3605,8 @@ CAMLprim value ml_unproject (value ptr_v, value x_v, value y_v)
     CAMLreturn (ret_v);
 }
 
-CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
-                           value x_v, value y_v)
+WithProto (value ml_project (value ptr_v, value pageno_v, value pdimno_v,
+                           value x_v, value y_v))
 {
     CAMLparam5 (ptr_v, pageno_v, pdimno_v, x_v, y_v);
     CAMLlocal1 (ret_v);
@@ -3653,8 +3654,8 @@ CAMLprim value ml_project (value ptr_v, value pageno_v, value pdimno_v,
     CAMLreturn (ret_v);
 }
 
-CAMLprim void ml_addannot (value ptr_v, value x_v, value y_v,
-                           value contents_v)
+WithProto (void ml_addannot (value ptr_v, value x_v, value y_v,
+                           value contents_v))
 {
     CAMLparam4 (ptr_v, x_v, y_v, contents_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -3679,7 +3680,7 @@ CAMLprim void ml_addannot (value ptr_v, value x_v, value y_v,
     CAMLreturn0;
 }
 
-CAMLprim void ml_delannot (value ptr_v, value n_v)
+WithProto (void ml_delannot (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -3699,7 +3700,7 @@ CAMLprim void ml_delannot (value ptr_v, value n_v)
     CAMLreturn0;
 }
 
-CAMLprim void ml_modannot (value ptr_v, value n_v, value str_v)
+WithProto (void ml_modannot (value ptr_v, value n_v, value str_v))
 {
     CAMLparam3 (ptr_v, n_v, str_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -3718,12 +3719,12 @@ CAMLprim void ml_modannot (value ptr_v, value n_v, value str_v)
     CAMLreturn0;
 }
 
-CAMLprim value ml_hasunsavedchanges (void)
+WithProto (value ml_hasunsavedchanges (void))
 {
     return Val_bool (state.dirty);
 }
 
-CAMLprim void ml_savedoc (value path_v)
+WithProto (void ml_savedoc (value path_v))
 {
     CAMLparam1 (path_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
@@ -3753,18 +3754,18 @@ static void makestippletex (void)
         );
 }
 
-CAMLprim value ml_fz_version (void)
+WithProto (value ml_fz_version (void))
 {
     return caml_copy_string (FZ_VERSION);
 }
 
-CAMLprim value ml_llpp_version (void)
+WithProto (value ml_llpp_version (void))
 {
     extern char llpp_version[];
     return caml_copy_string (llpp_version);
 }
 
-CAMLprim void ml_init (value csock_v, value params_v)
+WithProto (void ml_init (value csock_v, value params_v))
 {
     CAMLparam2 (csock_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
