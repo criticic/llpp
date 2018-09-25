@@ -81,6 +81,7 @@ cflags() {
         */ml_*.o) f="-g -Wno-pointer-sign -O2";;
         *) f="-g -O2";;
     esac
+    test ! $darwin || f="$f -DGL_SILENCE_DEPRECATION"
     echo $f
 }
 
