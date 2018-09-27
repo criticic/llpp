@@ -3310,16 +3310,17 @@ WithProto (value ml_getmaxw (value unit_v))
     CAMLreturn (ret_v);
 }
 
-WithProto (value ml_draw_string (value pt_v, value x_v, value y_v, value string_v))
+WithProto (value ml_draw_string (value pt_v, value x_v,
+                                 value y_v, value string_v))
 {
     CAMLparam4 (pt_v, x_v, y_v, string_v);
     CAMLlocal1 (ret_v);
     int pt = Int_val(pt_v);
     int x = Int_val (x_v);
     int y = Int_val (y_v);
-    double w;
+    float w;
 
-    w = (double) draw_string (state.face, pt, x, y, String_val (string_v));
+    w = draw_string (state.face, pt, x, y, String_val (string_v));
     ret_v = caml_copy_double (w);
     CAMLreturn (ret_v);
 }
