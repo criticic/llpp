@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wdeprecated"
 #include <Cocoa/Cocoa.h>
 #include <OpenGL/gl.h>
 
