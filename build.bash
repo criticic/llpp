@@ -211,7 +211,7 @@ bocamlc() {
 bobjc() {
     local o=$outd/$1
     local s=$srcd/${1%.o}.m
-    local cmd="$mcomp $(mflags $o) -MMD -MF $o.dep -MT_ -c -o $o $s"
+    local cmd="$mcomp $(mflags $o) -MD -MF $o.dep -MT_ -c -o $o $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
