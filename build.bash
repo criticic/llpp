@@ -85,7 +85,9 @@ cflags() {
     echo $f
 }
 
-mflags() { echo "-I $(ocamlc -where) -g -Wall -Werror -O2"; }
+mflags() {
+    echo "-I $(ocamlc -where) -g -Wall -Werror -O2 -DGL_SILENCE_DEPRECATION"
+}
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
 test "$overs" = "4.07.0" || {

@@ -1,4 +1,3 @@
-#pragma GCC diagnostic ignored "-Wdeprecated"
 #include <Cocoa/Cocoa.h>
 #include <OpenGL/gl.h>
 
@@ -347,7 +346,7 @@ NSCursor *GetCursor (int idx)
 
 @end
 
-@interface MyView : NSView
+@interface MyView : NSOpenGLView
 {
   Connector *connector;
   NSCursor *cursor;
@@ -362,12 +361,23 @@ NSCursor *GetCursor (int idx)
 
 - (instancetype)initWithFrame:(NSRect)frame connector:(Connector *)aConnector
 {
-  self = [super initWithFrame:frame];
+  NSOpenGLPixelFormatAttribute attrs[] =
+    {
+      NSOpenGLPFAAccelerated,
+      NSOpenGLPFADoubleBuffer,
+      NSOpenGLPFAColorSize, 24,
+      NSOpenGLPFAAlphaSize, 8,
+      NSOpenGLPFADepthSize, 24,
+      0
+    };
+  NSOpenGLPixelFormat *pixFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
+  self = [super initWithFrame:frame pixelFormat:pixFormat];
 
   if (self != NULL) {
     connector = aConnector;
     cursor = [NSCursor arrowCursor];
     self.allowedTouchTypes = NSTouchTypeMaskDirect | NSTouchTypeMaskIndirect;
+    [self setWantsBestResolutionOpenGLSurface:YES];
   }
 
   return self;
@@ -651,22 +661,9 @@ NSCursor *GetCursor (int idx)
   [window setContentView:myView];
   [window makeFirstResponder:myView];
 
-  [myView setWantsBestResolutionOpenGLSurface:YES];
-
-  NSOpenGLPixelFormatAttribute attrs[] =
-    {
-      NSOpenGLPFAAccelerated,
-      NSOpenGLPFADoubleBuffer,
-      NSOpenGLPFAColorSize, 24,
-      NSOpenGLPFAAlphaSize, 8,
-      NSOpenGLPFADepthSize, 24,
-      0
-    };
-  NSOpenGLPixelFormat *pixFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
-  glContext = [[NSOpenGLContext alloc] initWithFormat:pixFormat shareContext:nil];
+  glContext = [myView openGLContext];
   GLint swapInt = 1;
-  [glContext setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
-  [glContext setView:myView];
+  [glContext setValues:&swapInt forParameter:NSOpenGLContextParameterSwapInterval];
 
   backing_scale_factor = [window backingScaleFactor];
 }
@@ -720,14 +717,8 @@ NSCursor *GetCursor (int idx)
 
 - (void)windowDidResize:(NSNotification *)notification
 {
-  [glContext update];
   NSRect frame = [[window contentView] convertFrameToBacking];
   [connector notifyReshapeWidth:frame.size.width height:frame.size.height];
-}
-
-- (void)windowDidMove:(NSNotification *)notification
-{
-  [glContext update];
 }
 
 - (void)applicationWillTerminate:(NSDictionary *)userInfo
