@@ -33,7 +33,7 @@ Set path to the user interface font
 Collect config garbage
 
 -help, --help::
-Display this list of options
+Display list of options
 
 -last::
 Open last visited document
