@@ -71,7 +71,7 @@ oflags() {
 
 cflags() {
     case "${1#$outd/}" in
-        version.o) f='-DLLPP_VERSION="'$ver'"';;
+        version.o) f=-DLLPP_VERSION=$ver;;
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
             f="$f -DCACHE_PAGEREFS -DKeySym=uint32_t"
