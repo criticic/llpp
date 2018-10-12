@@ -987,7 +987,10 @@ static void layout (void)
 
             w = x1 - x0;
             maxw = fz_max (w, maxw);
-            zoom = state.w / maxw;
+            /* XXX: page[dim] count seems to be 1 for "empty"
+               documents (zero sizes images for isntance) leading to
+               infinities and nans */
+            zoom = maxw > 0 ? state.w / maxw : 1.0;
         }
         break;
 
