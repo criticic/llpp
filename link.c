@@ -722,11 +722,7 @@ static void initpdims (void)
         }
     }
 
-    if (state.trimmargins || pdf)
-        cxcount = state.pagecount;
-    else
-        cxcount = fz_mini (state.pagecount, 1);
-
+    cxcount = state.pagecount;
     if (pdf) {
         pdf_obj *obj;
         obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
@@ -987,10 +983,7 @@ static void layout (void)
 
             w = x1 - x0;
             maxw = fz_max (w, maxw);
-            /* XXX: page[dim] count seems to be 1 for "empty"
-               documents (zero sizes images for isntance) leading to
-               infinities and nans */
-            zoom = maxw > 0 ? state.w / maxw : 1.0;
+            zoom = state.w / maxw;
         }
         break;
 
