@@ -3424,11 +3424,11 @@ value ml_keysymtoutf8 (value keysym_v)
 {
     CAMLparam1 (keysym_v);
     CAMLlocal1 (str_v);
-    long ucs_v = Long_val (keysym_v);
+    long ucs = Long_val (keysym_v);
     int len;
     char buf[5];
 
-    len = fz_runetochar (buf, (int) ucs_v);
+    len = fz_runetochar (buf, (int) ucs);
     buf[len] = 0;
     str_v = caml_copy_string (buf);
     CAMLreturn (str_v);
