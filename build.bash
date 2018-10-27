@@ -39,7 +39,7 @@ isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
 mbt=native
 mulibs="$mudir/build/$mbt/libmupdf.a" # $mudir/build/$mbt/libmupdf-third.a
 
-keycmd="(cd $mudir && git describe --tags --dirty); digest $mulibs"
+keycmd="(cd $mudir && make -q libs); digest $mulibs"
 isfresh "$mulibs" "$(eval $keycmd)" || (
     make -C "$mudir" build=$mbt -j $mjobs libs
     echo "k='$(eval $keycmd)'" >$mudir/build/$mbt/libmupdf.a.past
