@@ -309,8 +309,14 @@ case $type in
             unset filt
             conv='inkscape -z -A "$casp" "$1"'
         else
-            missing rsvg-convert "rsvg-convert"
-            conv='rsvg-convert -f pdf -o "$casp"'
+            if executable_p rsvg-convert; then
+                conv='rsvg-convert -f pdf -o "$casp"'
+            else
+                test -n "$dc" && die "cannot convert compressed '$mime'"
+                unset filt
+                missing unoconv "unoconv(http://dag.wiee.rs/home-made/unoconv/)"
+                conv='unoconv -o "$casp" "$1"'
+            fi
         fi
     };;
     font) {
