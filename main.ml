@@ -2610,7 +2610,7 @@ let enterinfomode =
         rgba "   texture color"
           (fun () -> conf.texturecolor)
           (fun v ->
-            GlTex.env (`color conf.texturecolor);
+            GlTex.env (`color v);
             conf.texturecolor <- v;
           )
       );
