@@ -92,6 +92,7 @@ g thumbw width 76
 g bgcolor rgb "(0.5, 0.5, 0.5)"
 g sbarcolor rgba "(0.64, 0.64, 0.64, 0.7)"
 g sbarhndlcolor rgba "(0.0, 0.0, 0.0, 0.7)"
+g texturecolor rgba "(0.0, 0.0, 0.0, 0.0)"
 b bedefault false
 i tilew 2048
 i tileh 2048

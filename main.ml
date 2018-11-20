@@ -2607,6 +2607,12 @@ let enterinfomode =
         rgba "   scrollbar handle"
           (fun () -> conf.sbarhndlcolor)
           (fun v -> conf.sbarhndlcolor <- v);
+        rgba "   texture color"
+          (fun () -> conf.texturecolor)
+          (fun v ->
+            GlTex.env (`color conf.texturecolor);
+            conf.texturecolor <- v;
+          )
       );
     );
 
@@ -5035,6 +5041,7 @@ let () =
       !Config.fontpath, !trimcachepath
     );
   List.iter GlArray.enable [`texture_coord; `vertex];
+  GlTex.env (`color conf.texturecolor);
   state.ss <- ss;
   reshape ~firsttime:true winw winh;
   state.uioh <- uioh;

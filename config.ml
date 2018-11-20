@@ -746,6 +746,7 @@ let config_of c attrs =
       | "background-color" -> { c with bgcolor = color_of_string v }
       | "scrollbar-color" -> { c with sbarcolor = rgba_of_string v }
       | "scrollbar-handle-color" -> { c with sbarhndlcolor = rgba_of_string v }
+      | "texture-color" -> { c with texturecolor = rgba_of_string v }
       | "tile-width" -> { c with tilew = maxv 2 v }
       | "tile-height" -> { c with tileh = maxv 2 v }
       | "mupdf-store-size" ->
@@ -1237,6 +1238,7 @@ let add_attrs bb always dc c time =
   oc "background-color" c.bgcolor dc.bgcolor;
   oA "scrollbar-color" c.sbarcolor dc.sbarcolor;
   oA "scrollbar-handle-color" c.sbarhndlcolor dc.sbarhndlcolor;
+  oA "texture-color" c.texturecolor dc.texturecolor;
   oi "tile-width" c.tilew dc.tilew;
   oi "tile-height" c.tileh dc.tileh;
   oI "mupdf-store-size" c.mustoresize dc.mustoresize;
