@@ -6,7 +6,6 @@ W         - save changes
 
 -----Movement-----
 up/down arrow     - scroll up/down
-j/k               - scroll up/down
 left/right arrow  - pan left/right (when zoomed in)
 Ctrl-arrows       - half a screen width/height scoll/pan
 space             - go to the next page
