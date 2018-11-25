@@ -3687,7 +3687,7 @@ let viewkeyboard key mask =
      setzoom zoom;
      state.x <- x;
 
-  | Ascii 'k' | Up ->
+  | Up ->
      begin match state.autoscroll with
      | None ->
         begin match state.mode with
@@ -3704,7 +3704,7 @@ let viewkeyboard key mask =
      | Some n -> setautoscrollspeed n false
      end
 
-  | Ascii 'j' | Down ->
+  | Down ->
      begin match state.autoscroll with
      | None ->
         begin match state.mode with
