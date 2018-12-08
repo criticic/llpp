@@ -1,6 +1,6 @@
 open Config;;
 
-type initparams = (  angle * fitmodel * trimparams * texcount * sliceheight *
+type initparams = (angle * fitmodel * trimparams * texcount * sliceheight *
                      memsize * colorspace * fontpath * trimcachepath);;
 
 external init : Unix.file_descr -> initparams -> unit = "ml_init";;
