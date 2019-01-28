@@ -799,6 +799,7 @@ let opendoc path password =
 
 let reload () =
   state.anchor <- getanchor ();
+  state.reload <- Some (state.x, state.y, now ());
   opendoc state.path state.password;
 ;;
 
@@ -4200,6 +4201,18 @@ let display () =
   enttext ();
   scrollindicator ();
   Wsi.swapb ();
+;;
+
+let display () =
+  match state.reload with
+  | Some (x, y, t) ->
+     if x != state.x || y != state.y || abs_float @@ now () -. t > 0.5
+        || (state.layout != [] && layoutready state.layout)
+     then (
+       state.reload <- None;
+       display ()
+     )
+  | None -> display ()
 ;;
 
 let zoomrect x y x1 y1 =

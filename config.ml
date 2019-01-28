@@ -298,6 +298,7 @@ type state =
   ; mutable bzoom         : bool
   ; mutable lnava         : (pageno * linkno) option
   ; mutable slideshow     : int
+  ; mutable reload        : (x * y * float) option
   }
 and hists =
   { pat : string circbuf
@@ -446,6 +447,7 @@ let state =
   ; bzoom         = false
   ; lnava         = None
   ; slideshow     = 0
+  ; reload        = None
   }
 ;;
 
