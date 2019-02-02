@@ -563,7 +563,7 @@ let readresp sock =
      state.t#visible vis;
      vlog "visibility %d" v;
 
-  | 34 ->                               (* mapping *)
+  | 11 ->                               (* keymapnotify *)
      state.keymap <- E.a;
      let s = getkeymapreq state.mink (state.maxk-state.mink-1) in
      sendwithrep sock s (updkmap sock);
@@ -835,7 +835,7 @@ let setup disp sock rootwid screennum w h =
                 (* + 0x00000800 *)              (* Button4Motion *)
                 (* + 0x00001000 *)              (* Button5Motion *)
                 + 0x00002000                    (* ButtonMotion *)
-                (* + 0x00004000 *)              (* KeymapState *)
+                + 0x00004000                    (* KeymapState *)
                 + 0x00008000                    (* Exposure *)
                 + 0x00010000                    (* VisibilityChange *)
                 + 0x00020000                    (* StructureNotify *)
@@ -844,8 +844,8 @@ let setup disp sock rootwid screennum w h =
                 (* + 0x00100000 *)              (* SubstructureRedirect *)
                 (* + 0x00200000 *)              (* FocusChange *)
                 + 0x00400000                    (* PropertyChange *)
-                    (* + 0x00800000 *)              (* ColormapChange *)
-                    (* + 0x01000000 *)              (* OwnerGrabButton *)
+                (* + 0x00800000 *)              (* ColormapChange *)
+                (* + 0x01000000 *)              (* OwnerGrabButton *)
      in
 
      let s = createwindowreq wid root 0 0 w h 0 mask vid depth mid in
