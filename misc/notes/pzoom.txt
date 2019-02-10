@@ -1,0 +1,10 @@
+https://github.com/moosotc/llpp/issues/75
+
+Looks like it's possible to make "progressive zoom" "nicer" by taking
+already rendered tiles from the cache and scale them via GL in place
+of not-yet-fully-rendered(by mupdf) ones, thus avoiding place holders
+and providing more visually pleasant experience.
+
+There was some proof of concept code to do that, but the
+implementation got lost, then build system took precedence, and
+finally - "writers block".

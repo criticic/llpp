@@ -1,0 +1,50 @@
+There is some unclaimed parallelism inside the build process:
+
+ a) all C compilation can be done in parallel
+
+ b) ditto all _independent_ OCaml compilation (i.e. things having the
+    same indentation (and growing from the same "root") in the
+    following build.bash output)
+
+The "neat" solution of how to get there is elusive though. Currently:
+
+  - bash build.bash build
+    utils.ml -> utils.cmo
+    keys.ml -> keys.cmo
+   wsi.mli -> wsi.cmi
+   utf8syms.ml -> utf8syms.cmo
+   lablGL/raw.ml -> lablGL/raw.cmo
+       lablGL/gl.ml -> lablGL/gl.cmo
+      lablGL/glPix.ml -> lablGL/glPix.cmo
+      lablGL/glMisc.ml -> lablGL/glMisc.cmo
+     lablGL/glTex.ml -> lablGL/glTex.cmo
+     lablGL/glFunc.ml -> lablGL/glFunc.cmo
+      lablGL/glDraw.ml -> lablGL/glDraw.cmo
+     lablGL/glArray.ml -> lablGL/glArray.cmo
+       parser.ml -> parser.cmo
+       build/confstruct.ml -> confstruct.cmo
+      config.ml -> config.cmo
+     ffi.ml -> ffi.cmo
+    glutils.ml -> glutils.cmo
+    lablGL/glMat.ml -> lablGL/glMat.cmo
+   listview.ml -> listview.cmo
+   help.mli -> help.cmi
+   help.ml -> help.cmo
+   lablGL/glClear.ml -> lablGL/glClear.cmo
+  main.ml -> main.cmo
+  link.c -> link.o
+  cutils.c -> cutils.o
+  version.c -> version.o
+  lablGL/ml_gl.c -> lablGL/ml_gl.o
+  lablGL/ml_glarray.c -> lablGL/ml_glarray.o
+  lablGL/ml_raw.c -> lablGL/ml_raw.o
+  9 sec
+
+IOW - whole build (including lablGL, but excluding mupdf/ocaml and its
+dependencies) takes less than 10 seconds even on this circa 2014
+MacMini.
+
+Making things parallel ought to bring some benefits to the build on
+the Raspberry Pi3 and it might even benefit single core PPC MacMini
+due to interleaving IO/CPU bound parts (but this is just that -
+baseless speculation)
