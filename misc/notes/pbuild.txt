@@ -48,3 +48,65 @@ Making things parallel ought to bring some benefits to the build on
 the Raspberry Pi3 and it might even benefit single core PPC MacMini
 due to interleaving IO/CPU bound parts (but this is just that -
 baseless speculation)
+
+=============================================================
+
+With following applied, build.bash will produce a Makefile that builds
+llpp. Building things via this Makefile (i.e. `\time -pv make -jN')
+seems to suggest that there is some (a lot) parallelism that can be
+harvested even for OCaml code (parallelism for interface deprived
+OCaml code (as is the case with llpp) is limited)
+
+diff --git a/build.bash b/build.bash
+index e9a2919..37382df 100755
+--- a/build.bash
++++ b/build.bash
+@@ -1,6 +1,8 @@
+ #!/bin/bash
+ set -eu
+ 
++:>Makefile
++
+ now() { date +%s; }
+ S=$(now)
+ vecho() { ${vecho-:} "$*"; }
+@@ -159,6 +161,7 @@ bocaml2() {
+ 
+     cmd="ocamlc $(oflags $o) -c -o $o $s"
+     keycmd="digest $o $s $(< $o.depl)"
++    printf "$o: $s $(< $o.depl)\n\t$cmd\n" >>Makefile
+     isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
+         printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
+         eval "$cmd || die '$cmd failed'"
+@@ -191,6 +194,7 @@ bocaml() (
+         *) false;;
+     esac && {
+         local s1=${s#$srcd/}
++        echo "$outd/${s1%.ml}.cmo: $o" >>Makefile
+         bocaml1 $n "$s" "$outd/${s1%.ml}.cmo" "${o#$outd/}"
+     } || true
+     cycle=$cycle1
+@@ -203,6 +207,7 @@ bocamlc() {
+     local cmd="ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
+     test -r $o.dep && read _ d <$o.dep || d=
+     local keycmd='digest $o $d'
++    printf "$o: $s $d\n\t$cmd\n" >>Makefile
+     isfresh "$o" "$cmd$(eval $keycmd)" || {
+         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
+         eval "$cmd || die '$cmd failed'"
+@@ -229,6 +234,7 @@ ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
+ 
+ cmd="(. $srcd/genconfstr.sh >$outd/confstruct.ml)"
+ keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
++printf "$outd/confstruct.ml: $srcd/genconfstr.sh\n\t$cmd\n" >>Makefile
+ isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
+     echo "generating $outd/confstruct.ml"
+     eval "$cmd || die genconfstr.sh failed"
+@@ -295,6 +301,7 @@ fi
+ ord=$(grep -v \.cmi $outd/ordered)
+ cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $(echo $ord) -cclib \"$clibs\""
+ keycmd="digest $outd/llpp $cobjs $ord $mulibs"
++printf "$outd/llpp: $cobjs $(echo $ord)\n\t$cmd\n" >>Makefile
+ isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
+     echo linking $outd/llpp
+     eval "$cmd || die '$cmd failed'"
