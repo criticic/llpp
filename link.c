@@ -3704,7 +3704,7 @@ void ml_addannot (value ptr_v, value x_v, value y_v, value contents_v)
     if (pdf) {
         pdf_annot *annot;
         struct page *page;
-        fz_point p;
+        fz_rect r;
         char *s = String_val (ptr_v);
 
         page = parse_pointer (__func__, s);
@@ -3712,10 +3712,13 @@ void ml_addannot (value ptr_v, value x_v, value y_v, value contents_v)
                                   pdf_page_from_fz_page (state.ctx,
                                                          page->fzpage),
                                   PDF_ANNOT_TEXT);
-        p.x = Int_val (x_v);
-        p.y = Int_val (y_v);
+        r.x0 = Int_val (x_v) - 10;
+        r.y0 = Int_val (y_v) - 10;
+        r.x1 = r.x0 + 20;
+        r.y1 = r.y0 + 20;
         pdf_set_annot_contents (state.ctx, annot, String_val (contents_v));
-        pdf_set_text_annot_position (state.ctx, annot, p);
+        pdf_set_annot_rect (state.ctx, annot, r);
+
         state.dirty = 1;
     }
     CAMLreturn0;
