@@ -119,13 +119,13 @@ struct slink {
     fz_irect bbox;
     union {
         fz_link *link;
-        fz_annot *annot;
+        pdf_annot *annot;
     } u;
 };
 
 struct annot {
     fz_irect bbox;
-    fz_annot *annot;
+    pdf_annot *annot;
 };
 
 struct page {
@@ -1981,17 +1981,23 @@ static void ensureannots (struct page *page)
 {
     int i, count = 0;
     size_t annotsize = sizeof (*page->annots);
-    fz_annot *annot;
+    pdf_annot *annot;
+    pdf_document *pdf;
+    pdf_page *pdfpage;
 
+    pdf = pdf_specifics (state.ctx, state.doc);
+    if (!pdf) return;
+
+    pdfpage = pdf_page_from_fz_page (state.ctx, page->fzpage);
     if (state.gen != page->agen) {
         dropannots (page);
         page->agen = state.gen;
     }
     if (page->annots) return;
 
-    for (annot = fz_first_annot (state.ctx, page->fzpage);
+    for (annot = pdf_first_annot (state.ctx, pdfpage);
          annot;
-         annot = fz_next_annot (state.ctx, annot)) {
+         annot = pdf_next_annot (state.ctx, annot)) {
         count++;
     }
 
@@ -2002,12 +2008,12 @@ static void ensureannots (struct page *page)
             err (1, "calloc annots %d", count);
         }
 
-        for (annot = fz_first_annot (state.ctx, page->fzpage), i = 0;
+        for (annot = pdf_first_annot (state.ctx, pdfpage), i = 0;
              annot;
-             annot = fz_next_annot (state.ctx, annot), i++) {
+             annot = pdf_next_annot (state.ctx, annot), i++) {
             fz_rect rect;
 
-            rect = fz_bound_annot (state.ctx, annot);
+            rect = pdf_bound_annot (state.ctx, annot);
             page->annots[i].annot = annot;
             page->annots[i].bbox = fz_round_rect (rect);
         }
@@ -2068,7 +2074,7 @@ static void ensureslinks (struct page *page)
         }
         for (j = 0; j < page->annotcount; ++j, ++i) {
             fz_rect rect;
-            rect = fz_bound_annot (state.ctx, page->annots[j].annot);
+            rect = pdf_bound_annot (state.ctx, page->annots[j].annot);
             rect = fz_transform_rect (rect, ctm);
             page->slinks[i].bbox = fz_round_rect (rect);
 
@@ -2381,7 +2387,7 @@ static struct annot *getannot (struct page *page, int x, int y)
             struct annot *a = &page->annots[i];
             fz_rect rect;
 
-            rect = fz_bound_annot (state.ctx, a->annot);
+            rect = pdf_bound_annot (state.ctx, a->annot);
             if (p.x >= rect.x0 && p.x <= rect.x1) {
                 if (p.y >= rect.y0 && p.y <= rect.y1)
                     return a;
