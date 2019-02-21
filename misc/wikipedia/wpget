@@ -4,7 +4,7 @@ set -e
 url="$1"
 test -z "$2" && {
     u=$(python3 -c "import urllib.parse; print (urllib.parse.unquote ('$url'))")
-    out="${u##*wiki/}.pdf"
+    out=$(echo "${u##*wiki/}.pdf" | tr / _)
 } || out=$2
 
 td=$(dirname $(readlink -f "$0"))
