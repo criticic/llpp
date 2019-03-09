@@ -3562,7 +3562,7 @@ let viewkeyboard key mask =
        let mode = state.mode in
        state.mode <-
          Textentry (
-             (":", E.s, None, linknentry, linknact gotounder, false),
+             ("goto: ", E.s, None, linknentry, linknact gotounder, false),
              (fun _ ->
                state.glinks <- false;
                state.mode <- mode)
@@ -3577,7 +3577,7 @@ let viewkeyboard key mask =
      let mode = state.mode in
      state.mode <-
        Textentry (
-           (":", E.s, None, linknentry,
+           ("copy: ", E.s, None, linknentry,
             linknact (fun under ->
                 selstring conf.selcmd (undertext under)), false),
            (fun _ ->
