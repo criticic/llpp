@@ -8,3 +8,15 @@ and providing more visually pleasant experience.
 There was some proof of concept code to do that, but the
 implementation got lost, then build system took precedence, and
 finally - "writers block".
+
+As a first step following algorithm should work:
+
+ If tile isn't ready find all suitable tiles (same color-space etc etc)
+ and if "scaled" version has non-empty intersection with a tile that
+ is missing draw (scaled by GL version of) that instead.
+
+ This, in my mind, potentially implies quite a bit of overdraw,
+ simplest solution appears to be to just use the dimensional
+ "closeness" as a Z value and enable and use depth testing when
+ rendering the cached and scaled tiles during this pass (instead of
+ some form of "painters algorithm" or something more elaborate)
