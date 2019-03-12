@@ -170,10 +170,6 @@ selection command otherwise
 o Text selection is limited to a single page
 o Text searching is very naive|};;
 
------Flashcards-----
-To remember the shortcuts, an Anki deck has been made available:
-    https://ankiweb.net/shared/info/1547122548
-
 open Utils;;
 
 let gotourl launcher url =
