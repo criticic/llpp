@@ -39,7 +39,8 @@
 
 /* basic style settings*/
 body {
-    font: 14pt/1.3 "pt astra serif", "alegreya", "El Messiri",  "unifont";
+    font: 14pt/1.3 "pt astra serif", "alegreya", "El Messiri", "symbola",
+          "unifont";
     prince-linebreak-magic: auto;
     hyphens: auto;
     text-align: justify;
