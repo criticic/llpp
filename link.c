@@ -1530,7 +1530,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 printd ("msg regcomp failed `%.*s'", (int) size, errbuf);
             }
             else {
+                lock ("search");
                 search (&re, pageno, y, forward);
+                unlock ("search");
                 regfree (&re);
             }
         }
