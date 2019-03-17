@@ -206,7 +206,7 @@ bocamlc() {
     } && vecho "fresh $o"
 }
 
-bobjc() {
+bocamlobjc() {
     local o=$outd/$1
     local s=$srcd/${1%.o}.m
     local cmd="$mcomp $(mflags $o) -MD -MF $o.dep -MT_ -c -o $o $s"
@@ -279,7 +279,7 @@ if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
     cobjs="$cobjs $outd/wsi/cocoa/cocoa.o"
-    bobjc wsi/cocoa/cocoa.o
+    bocamlobjc wsi/cocoa/cocoa.o
 else
     clibs="$clibs -lGL -lX11"
     cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/xlib.o"
