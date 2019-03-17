@@ -203,11 +203,11 @@ bocamlc() {
     local cmd="ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
-    isfresh "$o" "$cmd$(eval $keycmd)" || {
+    isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
-        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
+        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
 }
 
@@ -217,11 +217,11 @@ bobjc() {
     local cmd="$mcomp $(mflags $o) -MD -MF $o.dep -MT_ -c -o $o $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
-    isfresh "$o" "$cmd$(eval $keycmd)" || {
+    isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
-        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
+        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
 }
 
