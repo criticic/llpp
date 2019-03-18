@@ -2279,7 +2279,6 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
     fz_matrix ctm;
     fz_point p1, p2, p3, p4;
     GLfloat *vertices = state.vertices;
-    double *v = (double *) rects_v;
 
     xoff -= state.pagedims[page->pdimno].bounds.x0;
     yoff -= state.pagedims[page->pdimno].bounds.y0;
@@ -2289,22 +2288,22 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
     glVertexPointer (2, GL_FLOAT, 0, vertices);
 
     glColor4d (
-        Double_array_field (v, 0),
-        Double_array_field (v, 1),
-        Double_array_field (v, 2),
-        Double_array_field (v, 3)
+        Double_array_field (rects_v, 0),
+        Double_array_field (rects_v, 1),
+        Double_array_field (rects_v, 2),
+        Double_array_field (rects_v, 3)
         );
-    p1.x = (float) Double_array_field (v, 4);
-    p1.y = (float) Double_array_field (v, 5);
+    p1.x = (float) Double_array_field (rects_v, 4);
+    p1.y = (float) Double_array_field (rects_v, 5);
 
-    p2.x = (float) Double_array_field (v, 6);
-    p2.y = (float) Double_array_field (v, 5);
+    p2.x = (float) Double_array_field (rects_v, 6);
+    p2.y = (float) Double_array_field (rects_v, 5);
 
-    p3.x = (float) Double_array_field (v, 6);
-    p3.y = (float) Double_array_field (v, 7);
+    p3.x = (float) Double_array_field (rects_v, 6);
+    p3.y = (float) Double_array_field (rects_v, 7);
 
-    p4.x = (float) Double_array_field (v, 4);
-    p4.y = (float) Double_array_field (v, 7);
+    p4.x = (float) Double_array_field (rects_v, 4);
+    p4.y = (float) Double_array_field (rects_v, 7);
     solidrect (ctm, p1, p2, p3, p4, vertices);
     glDisable (GL_BLEND);
 }
