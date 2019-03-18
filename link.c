@@ -2297,13 +2297,13 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
     p1.y = (float) Double_array_field (rects_v, 5);
 
     p2.x = (float) Double_array_field (rects_v, 6);
-    p2.y = (float) Double_array_field (rects_v, 5);
+    p2.y = p1.y;
 
-    p3.x = (float) Double_array_field (rects_v, 6);
+    p3.x = p2.x;
     p3.y = (float) Double_array_field (rects_v, 7);
 
-    p4.x = (float) Double_array_field (rects_v, 4);
-    p4.y = (float) Double_array_field (rects_v, 7);
+    p4.x = p1.x;
+    p4.y = p3.y;
     solidrect (ctm, p1, p2, p3, p4, vertices);
     glDisable (GL_BLEND);
 }
