@@ -128,7 +128,7 @@ bocaml2() {
 
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
     local keycmd="digest $o.depl $s"
-    isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
+    test -r $o.depl && isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         eval "$cmd || die '$cmd' failed" | {
             read _ _ depl
             :>"$o.depl"
