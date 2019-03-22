@@ -194,7 +194,7 @@ bocaml() (
 bocamlc() {
     local o=$outd/$1
     local s=$srcd/${1%.o}.c
-    local cc=${LLPP_CC:+-cc $LLPP_CC }
+    local cc=${LLPP_CC:+-cc \"$LLPP_CC\" }
     local cmd="ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
