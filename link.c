@@ -204,14 +204,6 @@ static struct {
     GLfloat texcoords[8];
     GLfloat vertices[16];
 
-#ifdef CACHE_PAGEREFS
-    struct {
-        int idx;
-        int count;
-        pdf_obj **objs;
-        pdf_document *pdf;
-    } pdflut;
-#endif
     int utf8cs;
 } state;
 
@@ -355,16 +347,6 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
 
 static void closedoc (void)
 {
-#ifdef CACHE_PAGEREFS
-    if (state.pdflut.objs) {
-        for (int i = 0; i < state.pdflut.count; ++i) {
-            pdf_drop_obj (state.ctx, state.pdflut.objs[i]);
-        }
-        free (state.pdflut.objs);
-        state.pdflut.objs = NULL;
-        state.pdflut.idx = 0;
-    }
-#endif
     if (state.doc) {
         fz_drop_document (state.ctx, state.doc);
         state.doc = NULL;
@@ -644,61 +626,6 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     return tile;
 }
 
-#ifdef CACHE_PAGEREFS
-/* modified mupdf/source/pdf/pdf-page.c:pdf_lookup_page_loc_imp
-   thanks to Robin Watts */
-static void
-pdf_collect_pages(pdf_document *doc, pdf_obj *node)
-{
-    fz_context *ctx = state.ctx; /* doc->ctx; */
-    pdf_obj *kids;
-    int len;
-
-    if (state.pdflut.idx == state.pagecount) return;
-
-    kids = pdf_dict_gets (ctx, node, "Kids");
-    len = pdf_array_len (ctx, kids);
-
-    if (len == 0)
-        fz_throw (ctx, FZ_ERROR_GENERIC, "malformed pages tree");
-
-    if (pdf_mark_obj (ctx, node))
-        fz_throw (ctx, FZ_ERROR_GENERIC, "cycle in page tree");
-    for (int i = 0; i < len; i++) {
-        pdf_obj *kid = pdf_array_get (ctx, kids, i);
-        const char *type = pdf_to_name (ctx, pdf_dict_gets (ctx, kid, "Type"));
-        if (*type
-            ? !strcmp (type, "Pages")
-            : pdf_dict_gets (ctx, kid, "Kids")
-            && !pdf_dict_gets (ctx, kid, "MediaBox")) {
-            pdf_collect_pages (doc, kid);
-        }
-        else {
-            if (*type
-                ? strcmp (type, "Page") != 0
-                : !pdf_dict_gets (ctx, kid, "MediaBox"))
-                fz_warn (ctx, "non-page object in page tree (%s)", type);
-            state.pdflut.objs[state.pdflut.idx++] = pdf_keep_obj (ctx, kid);
-        }
-    }
-    pdf_unmark_obj (ctx, node);
-}
-
-static void
-pdf_load_page_objs (pdf_document *doc)
-{
-    pdf_obj *root = pdf_dict_gets (state.ctx,
-                                   pdf_trailer (state.ctx, doc), "Root");
-    pdf_obj *node = pdf_dict_gets (state.ctx, root, "Pages");
-
-    if (!node)
-        fz_throw (state.ctx, FZ_ERROR_GENERIC, "cannot find page tree");
-
-    state.pdflut.idx = 0;
-    pdf_collect_pages (doc, node);
-}
-#endif
-
 static void initpdims (void)
 {
     double start, end;
@@ -728,21 +655,8 @@ static void initpdims (void)
         obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
                              "Root/Pages/MediaBox");
         rootmediabox = pdf_to_rect (ctx, obj);
+        pdf_load_page_tree (state.ctx, pdf);
     }
-
-#ifdef CACHE_PAGEREFS
-    if (pdf && (!state.pdflut.objs || state.pdflut.pdf != pdf)) {
-        state.pdflut.objs = calloc (sizeof (*state.pdflut.objs), cxcount);
-        if (!state.pdflut.objs) {
-            err (1, "malloc pageobjs %zu %d %zu failed",
-                 sizeof (*state.pdflut.objs), cxcount,
-                 sizeof (*state.pdflut.objs) * cxcount);
-        }
-        state.pdflut.count = cxcount;
-        pdf_load_page_objs (pdf);
-        state.pdflut.pdf = pdf;
-    }
-#endif
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
         int rotate = 0;
@@ -751,14 +665,10 @@ static void initpdims (void)
 
         fz_var (rotate);
         if (pdf) {
-            pdf_obj *pageref, *pageobj;
+            pdf_obj *pageobj =  pdf_get_xref_entry (
+                state.ctx, pdf, pdf->rev_page_map[pageno].object
+                )->obj;
 
-#ifdef CACHE_PAGEREFS
-            pageref = state.pdflut.objs[pageno];
-#else
-            pageref = pdf_lookup_page_obj (ctx, pdf, pageno);
-#endif
-            pageobj = pdf_resolve_indirect (ctx, pageref);
             rotate = pdf_to_int (ctx, pdf_dict_gets (ctx, pageobj, "Rotate"));
 
             if (state.trimmargins) {
