@@ -655,7 +655,7 @@ static void initpdims (void)
         obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
                              "Root/Pages/MediaBox");
         rootmediabox = pdf_to_rect (ctx, obj);
-        pdf_load_page_tree (state.ctx, pdf);
+        pdf_load_page_tree (ctx, pdf);
     }
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
@@ -670,8 +670,7 @@ static void initpdims (void)
             fz_var (pageobj);
             if (pdf->rev_page_map)
                 pageobj = pdf_get_xref_entry (
-                    state.ctx, pdf,
-                    pdf->rev_page_map[pageno].object
+                    ctx, pdf, pdf->rev_page_map[pageno].object
                     )->obj;
             else
                 pageobj = pdf_lookup_page_obj (ctx, pdf, pageno);
