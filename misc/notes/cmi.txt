@@ -1,0 +1,14 @@
+On why wsi.mli is symlinked from the root to wsi/_platform_/wsi.mli
+
+    $ touch {a.ml,d/a.mli}
+    $ (cd d; ocamlc -c a.mli)
+    $ ls
+    a.ml  d
+    $ ls d
+    a.cmi  a.mli
+    $ ocamlc -c -I d a.ml
+    $ ls
+    a.cmi  a.cmo  a.ml  d
+
+In other words - (it appears) ocamlc only expects mli to be in the
+same directory as the module being compiled.
