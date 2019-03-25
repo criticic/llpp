@@ -628,7 +628,6 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 
 static void initpdims (void)
 {
-    double start, end;
     FILE *trimf = NULL;
     fz_rect rootmediabox = fz_empty_rect;
     int pageno, trim, show;
@@ -639,7 +638,6 @@ static void initpdims (void)
     fz_var (trimw);
     fz_var (trimf);
     fz_var (cxcount);
-    start = now ();
 
     if (state.trimmargins && state.trimcachepath) {
         trimf = fopen (state.trimcachepath, "rb");
@@ -870,10 +868,6 @@ static void initpdims (void)
             p->pageno = pageno;
         }
     }
-    end = now ();
-    printd ("progress 1 %s %d pages in %f seconds",
-            state.trimmargins ? "Trimmed" : "Processed",
-            state.pagecount, end - start);
     state.trimanew = 0;
     if (trimf) {
         if (fclose (trimf)) {
@@ -1384,15 +1378,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 initpdims ();
             }
             unlock ("open");
-
-            if (ok) {
-                utf8filename = mbtoutf8 (filename);
-                printd ("msg Opened %s (press h/F1 to get help)", utf8filename);
-                if (utf8filename != filename) {
-                    free (utf8filename);
-                }
-                state.needoutline = 1;
-            }
+            state.needoutline = ok;
         }
         else if (!strncmp ("cs", p, 2)) {
             int i, colorspace;
