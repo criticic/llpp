@@ -699,7 +699,6 @@ let getanchory (n, top, dtop) =
   else y + truncate (top*.float h -. dtop*.float conf.interpagespace)
 ;;
 
-let gotoanchor anchor = gotoxy state.x (getanchory anchor);;
 let addnav () = getanchor () |> cbput state.hists.nav;;
 let addnavnorc () = getanchor () |> cbput_dont_update_rc state.hists.nav;;
 
