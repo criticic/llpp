@@ -3150,20 +3150,18 @@ let outlinesource fetchoutlines =
 ;;
 
 let enteroutlinemode, enterbookmarkmode, enterhistmode =
-  let mkselector sourcetype =
-    let fetchoutlines () =
-      match sourcetype with
-      | `bookmarks -> Array.of_list state.bookmarks
-      | `outlines -> state.outlines
-      | `history -> genhistoutlines () |> Array.of_list
-    in
-    let source =
-      if sourcetype = `history
-      then new outlinesoucebase fetchoutlines
-      else outlinesource fetchoutlines
-    in
+  let fetchoutlines sourcetype () =
+    match sourcetype with
+    | `bookmarks -> Array.of_list state.bookmarks
+    | `outlines -> state.outlines
+    | `history -> genhistoutlines () |> Array.of_list
+  in
+  let so = outlinesource (fetchoutlines `outlines) in
+  let sb = outlinesource (fetchoutlines `bookmarks) in
+  let sh = outlinesource (fetchoutlines `history) in
+  let mkselector sourcetype source =
     (fun errmsg ->
-      let outlines = fetchoutlines () in
+      let outlines = fetchoutlines sourcetype () in
       if Array.length outlines = 0
       then showtext ' ' errmsg
       else (
@@ -3178,10 +3176,10 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
       )
     )
   in
-  let mkenter sourcetype errmsg = fun () -> mkselector sourcetype errmsg in
-  ( mkenter `outlines "document has no outline"
-  , mkenter `bookmarks "document has no bookmarks (yet)"
-  , mkenter `history "history is empty" )
+  let mkenter sourcetype errmsg s = fun () -> mkselector sourcetype s errmsg in
+  ( mkenter `outlines "document has no outline" so
+  , mkenter `bookmarks "document has no bookmarks (yet)" sb
+  , mkenter `history "history is empty" sh )
 ;;
 
 let quickbookmark ?title () =
