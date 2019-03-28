@@ -51,7 +51,6 @@ and trimcachepath  = string
 and aalevel        = int
 and trimmargins    = bool
 and trimparams     = (trimmargins * irect)
-and usefontconfig  = bool
 and usedoccss      = bool
 and uri            = string
 and caption        = string
