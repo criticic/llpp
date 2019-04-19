@@ -1066,12 +1066,16 @@ let getauth haddr dnum =
       let addr = rs () in
       let nums = rs () in
       let optnum =
-        try Some (int_of_string nums)
-        with exn ->
-          dolog
-            "display number(%S) is not an integer (corrupt %S?): %s"
-            nums path @@ exntos exn;
-          None
+        match int_of_string nums with
+        | n -> Some n
+        | exception exn ->
+           if nonemptystr nums
+           then
+             dolog
+               "display number(%S) is not an integer (corrupt %S?): %s"
+               nums path @@ exntos exn
+           ;
+           None
       in
       let name = rs () in
       let data = rs () in
