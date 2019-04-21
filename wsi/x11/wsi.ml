@@ -1045,11 +1045,11 @@ let getauth haddr dnum =
         haddr
     else haddr
   in
-  let path =
-    try Sys.getenv "XAUTHORITY"
+  let path, warn =
+    try Sys.getenv "XAUTHORITY", true
     with Not_found ->
-      try Filename.concat (Sys.getenv "HOME") ".Xauthority"
-      with Not_found -> E.s
+      try Filename.concat (Sys.getenv "HOME") ".Xauthority", false
+      with Not_found -> E.s, false
   in
   let readauth ic =
     let r16be s =
@@ -1105,7 +1105,10 @@ let getauth haddr dnum =
     match open_in_bin path with
     | ic -> readauth ic
     | exception exn ->
-       dolog "failed to open X authority file `%S' : %s" path @@ exntos exn;
+       if warn
+       then
+         dolog "failed to open X authority file `%S' : %s" path @@ exntos exn
+       ;
        E.s, E.s
 ;;
 
