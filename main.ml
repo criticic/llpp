@@ -778,6 +778,7 @@ let opendoc path password =
 
   flushpages ();
   setaalevel conf.aalevel;
+  setpapercolor conf.papercolor;
   let titlepath =
     if emptystr state.origin
     then path
@@ -2601,6 +2602,14 @@ let enterinfomode =
         colorp "   background"
           (fun () -> conf.bgcolor)
           (fun v -> conf.bgcolor <- v);
+
+        rgba "   paper color"
+          (fun () -> conf.papercolor)
+          (fun v ->
+            conf.papercolor <- v;
+            setpapercolor conf.papercolor;
+            flushtiles ();
+          );
         rgba "   scrollbar"
           (fun () -> conf.sbarcolor)
           (fun v -> conf.sbarcolor <- v);
