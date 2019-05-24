@@ -87,7 +87,7 @@ extern char **environ;
         errx (1, "%s:%d " #cond, __FILE__, __LINE__);   \
     }                                                   \
     break;                                              \
-}
+} (void) 0
 
 struct slice {
     int h;
