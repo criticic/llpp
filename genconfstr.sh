@@ -13,7 +13,7 @@ type keymap =
   | KMinsrt of key | KMinsrl of key list | KMmulti of key list * key list
 and key = int * int
 and keyhash = (key, keymap) Hashtbl.t
-and keystate = |KSnone |KSinto of (key list * key list)
+and keystate = | KSnone | KSinto of (key list * key list)
 and css = string
 type columns =
   | Csingle of singlecolumn
