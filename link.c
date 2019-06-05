@@ -616,9 +616,9 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     tile->w = w;
     tile->h = h;
     fz_fill_pixmap_with_color (state.ctx, tile->pixmap,
-                               fz_device_rgb(state.ctx),
+                               fz_device_rgb (state.ctx),
                                state.papercolor,
-                               fz_default_color_params(state.ctx));
+                               fz_default_color_params);
 
     dev = fz_new_draw_device (state.ctx, fz_identity, tile->pixmap);
     ctm = pagectm (page);
