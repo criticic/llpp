@@ -36,7 +36,7 @@ mkdir -p $outd/{$wsid,lablGL}
 
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
 
-mbt=native
+mbt=${mbt:-native}
 mulibs="$mudir/build/$mbt/libmupdf.a" # $mudir/build/$mbt/libmupdf-third.a
 
 keycmd="(cd $mudir && make -q build=$mbt libs && echo); digest $mulibs"
