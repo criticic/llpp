@@ -37,8 +37,13 @@ mkdir -p $outd/{$wsid,lablGL}
 isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
 
 mbt=native
-mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
-make -s -C "$mudir" build=$mbt -j $mjobs libs
+mulibs="$mudir/build/$mbt/libmupdf.a" # $mudir/build/$mbt/libmupdf-third.a
+
+keycmd="(cd $mudir && make -q build=$mbt libs && echo); digest $mulibs"
+isfresh "$mulibs" "$(eval $keycmd)" || (
+    make -C "$mudir" build=$mbt -j $mjobs libs
+    echo "k='$(eval $keycmd)'" >$mudir/build/$mbt/libmupdf.a.past
+) && vecho "fresh mupdf"
 
 oincs() {
     local i=
@@ -69,7 +74,7 @@ cflags() {
         version.o) f=-DLLPP_VERSION=$ver;;
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
-            f="$f -DKeySym=uint32_t"
+            f="$f -DCACHE_PAGEREFS -DKeySym=uint32_t"
             $darwin && f="$f -DCIDER -D_GNU_SOURCE" \
                     || f="$f -D_POSIX_C_SOURCE";;
         */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
@@ -85,8 +90,8 @@ mflags() {
 }
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
-test "$overs" = "4.07.1" || {
-    url=https://caml.inria.fr/pub/distrib/ocaml-4.07/ocaml-4.07.1.tar.xz
+test "$overs" = "4.08" || {
+    url=https://caml.inria.fr/pub/distrib/ocaml-4.08/ocaml-4.08.0+rc2.tar.xz
     txz=$outd/$(basename $url)
     isfresh $txz $url || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
@@ -103,8 +108,10 @@ test "$overs" = "4.07.1" || {
         tar xf $txz -C $outd
         bn=$(basename $url)
         cd $outd/${bn%.tar.xz}
-        ./configure -prefix $absprefix                                      \
-                    -no-graph -no-debugger -no-ocamldoc -no-native-compiler
+        ./configure --disable-vmthreads --disable-graph-lib \
+                    --disable-ocamldoc --enable-debugger=no \
+                    --disable-flat-float-array              \
+                    --prefix=$absprefix
         make -j $mjobs world
         make install
         echo "k='$url'" >$absprefix/bin/ocamlc.past
@@ -127,8 +134,8 @@ bocaml2() {
     local dd
 
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
-    local keycmd="digest $o.depl $s"
-    test -r $o.depl && isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
+    local keycmd="digest $o $s"
+    isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         eval "$cmd || die '$cmd' failed" | {
             read _ _ depl
             :>"$o.depl"
@@ -194,29 +201,29 @@ bocaml() (
 bocamlc() {
     local o=$outd/$1
     local s=$srcd/${1%.o}.c
-    local cc=${LLPP_CC:+-cc \"$LLPP_CC\" }
+    local cc=${LLPP_CC:+-cc $LLPP_CC }
     local cmd="ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
-    isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
+    isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
-        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
+        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
 }
 
-bocamlobjc() {
+bobjc() {
     local o=$outd/$1
     local s=$srcd/${1%.o}.m
     local cmd="$mcomp $(mflags $o) -MD -MF $o.dep -MT_ -c -o $o $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
-    isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
+    isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
-        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
+        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
     } && vecho "fresh $o"
 }
 
@@ -279,7 +286,7 @@ if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs="$clibs -framework Cocoa -framework OpenGL"
     cobjs="$cobjs $outd/wsi/cocoa/cocoa.o"
-    bocamlobjc wsi/cocoa/cocoa.o
+    bobjc wsi/cocoa/cocoa.o
 else
     clibs="$clibs -lGL -lX11"
     cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/xlib.o"
