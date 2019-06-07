@@ -3332,10 +3332,10 @@ void ml_setpapercolor (value rgba_v)
 {
     CAMLparam1 (rgba_v);
 
-    state.papercolor[0] = Double_val (Field (rgba_v, 0));
-    state.papercolor[1] = Double_val (Field (rgba_v, 1));
-    state.papercolor[2] = Double_val (Field (rgba_v, 2));
-    state.papercolor[3] = Double_val (Field (rgba_v, 3));
+    state.papercolor[0] = (float) Double_val (Field (rgba_v, 0));
+    state.papercolor[1] = (float) Double_val (Field (rgba_v, 1));
+    state.papercolor[2] = (float) Double_val (Field (rgba_v, 2));
+    state.papercolor[3] = (float) Double_val (Field (rgba_v, 3));
     CAMLreturn0;
 }
 
