@@ -3753,16 +3753,9 @@ value ml_llpp_version (void)
     return caml_copy_string (llpp_version);
 }
 
-static void error_callback (void *user, const char *message)
+static void diag_callback (void *user, const char *message)
 {
-    (void) user;
-    printd ("emsg [e] %s", message);
-}
-
-static void warning_callback (void *user, const char *message)
-{
-    (void) user;
-    printd ("emsg [w] %s", message);
+    printd ("emsg %s %s", (char *) user, message);
 }
 
 void ml_init (value csock_v, value params_v);
@@ -3810,8 +3803,8 @@ void ml_init (value csock_v, value params_v)
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);
-    fz_set_error_callback (state.ctx, error_callback, &state);
-    fz_set_warning_callback (state.ctx, warning_callback, &state);
+    fz_set_error_callback (state.ctx, diag_callback, "[e]");
+    fz_set_warning_callback (state.ctx, diag_callback, "[w]");
 
     state.trimmargins = Bool_val (Field (trim_v, 0));
     fuzz_v            = Field (trim_v, 1);
