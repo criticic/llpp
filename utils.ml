@@ -81,28 +81,14 @@ let int_of_string_with_suffix s =
 ;;
 
 let string_with_suffix_of_int n =
-  if n = 0
-  then "0"
-  else
-    let units = [(30, "G"); (20, "M"); (10, "K")] in
-    let prettyint n =
-      let rec loop s n =
-        let h = n mod 1000 in
-        let n = n / 1000 in
-        if n = 0
-        then string_of_int h ^ s
-        else loop (Printf.sprintf "_%03d%s" h s) n
-      in
-      loop E.s n
-    in
-    let rec find = function
-      | [] -> prettyint n
-      | (shift, suffix) :: rest ->
-         if (n land ((1 lsl shift) - 1)) = 0
-         then prettyint (n lsr shift) ^ suffix
-         else find rest
-    in
-    find units
+  let rec find = function
+    | [] -> Printf.sprintf "%#d" n
+    | (shift, suffix) :: rest ->
+       if (n land ((1 lsl shift) - 1)) = 0
+       then Printf.sprintf "%#d%c" (n lsr shift) suffix
+       else find rest
+  in
+  if n = 0 then "0" else find [(30, 'G'); (20, 'M'); (10, 'K')]
 ;;
 
 let color_of_string s =
