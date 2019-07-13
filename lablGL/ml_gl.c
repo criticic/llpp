@@ -31,7 +31,7 @@
 
 void ml_raise_gl(const char *errmsg)
 {
-  static value * gl_exn = NULL;
+  static const value * gl_exn = NULL;
   if (gl_exn == NULL)
       gl_exn = caml_named_value("glerror");
   raise_with_string(*gl_exn, (char*)errmsg);
