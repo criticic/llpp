@@ -389,6 +389,23 @@ object (self)
     if conf.leftscroll
     then GlMat.pop ()
 
+  method nextcurlevel incr =
+    let len = source#getitemcount in
+    let curlevel =
+      if m_active >= 0 && m_active < len
+      then snd (source#getitem m_active)
+      else -1
+    in
+    let rec flow i =
+      if i = len then i-1 else if i = 1 then 0 else
+         let _, l = source#getitem i in
+         if l <= curlevel then i else flow (i+incr)
+    in
+    let active = flow (m_active+incr) in
+    let first = calcfirst m_first active in
+    postRedisplay "outline nextcurlevel";
+    {< m_active = active; m_first = first >}
+
   method updownlevel incr =
     let len = source#getitemcount in
     let curlevel =

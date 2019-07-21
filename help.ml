@@ -132,13 +132,14 @@ Ctrl-up/down     - scroll view up/down
 Ctrl-insert      - copy active item's text to clipboard
 
 -----Outline/history mode-----
-left/right  - go up/down a level
-Ctrl-a      - toggle auto narrowing
-/           - enter auto narrowing
-tab         - begin nested narrowing
-Ctrl-n      - narrow to search pattern
-Ctrl-u      - undo narrowing
-Ctrl-S      - synchronize
+left/right       - go up/down a level
+Shift-left/right - go to prev/next item of same or higher level
+Ctrl-a           - toggle auto narrowing
+/                - enter auto narrowing
+tab              - begin nested narrowing
+Ctrl-n           - narrow to search pattern
+Ctrl-u           - undo narrowing
+Ctrl-S           - synchronize
 
 -----Info mode-----
 enter - toggle/enter new value for selected parameter
