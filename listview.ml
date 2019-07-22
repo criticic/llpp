@@ -397,9 +397,15 @@ object (self)
       else -1
     in
     let rec flow i =
-      if i = len then i-1 else if i = -1 then 0 else
-         let _, l = source#getitem i in
-         if l <= curlevel then i else flow (i+incr)
+      if i = len
+      then i-1
+      else (
+        if i = -1
+        then 0
+        else
+          let _, l = source#getitem i in
+          if l <= curlevel then i else flow (i+incr)
+      )
     in
     let active = flow (m_active+incr) in
     let first = calcfirst m_first active in
@@ -414,9 +420,13 @@ object (self)
       else -1
     in
     let rec flow i =
-      if i = len then i-1 else if i = -1 then 0 else
-        let _, l = source#getitem i in
-        if l != curlevel then i else flow (i+incr)
+      if i = len
+      then i-1
+      else (
+        if i = -1 then 0 else
+          let _, l = source#getitem i in
+          if l != curlevel then i else flow (i+incr)
+      )
     in
     let active = flow m_active in
     let first = calcfirst m_first active in
