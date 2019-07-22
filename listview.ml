@@ -397,7 +397,7 @@ object (self)
       else -1
     in
     let rec flow i =
-      if i = len then i-1 else if i = 1 then 0 else
+      if i = len then i-1 else if i = -1 then 0 else
          let _, l = source#getitem i in
          if l <= curlevel then i else flow (i+incr)
     in

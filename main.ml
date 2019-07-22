@@ -1942,7 +1942,10 @@ class outlinelistview ~zebra ~source =
              postRedisplay "outline ctrl right";
              {< m_pan = m_pan + 1 >}
            )
-           else if Wsi.withshift mask then self#nextcurlevel 1
+           else if Wsi.withshift mask
+           then (
+                 self#nextcurlevel 1
+           )
            else self#updownlevel 1
          in
          coe o
@@ -1954,7 +1957,10 @@ class outlinelistview ~zebra ~source =
              postRedisplay "outline ctrl left";
              {< m_pan = m_pan - 1 >}
            )
-           else if Wsi.withshift mask then self#nextcurlevel ~-1
+           else if Wsi.withshift mask
+           then (
+              self#nextcurlevel ~-1
+           )
            else self#updownlevel ~-1
          in
          coe o
