@@ -1154,6 +1154,7 @@ let act cmds =
 
   | "emsg", args ->
      Buffer.add_string state.errmsgs args;
+     Buffer.add_char state.errmsgs '\n';
      state.newerrmsgs <- true;
      postRedisplay "error message"
 
