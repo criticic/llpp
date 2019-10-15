@@ -756,7 +756,12 @@ static void initpdims (void)
                 fz_rect cropbox;
 
                 mediabox =
-                    pdf_to_rect (ctx, pdf_dict_gets (ctx, pageobj, "MediaBox"));
+                    pdf_to_rect (ctx, pdf_dict_get_inheritable (
+                                     ctx,
+                                     pageobj,
+                                     PDF_NAME (MediaBox)
+                                     )
+                        );
                 if (fz_is_empty_rect (mediabox)) {
                     mediabox.x0 = 0;
                     mediabox.y0 = 0;
