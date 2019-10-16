@@ -1648,7 +1648,7 @@ value ml_uritolocation (value uri_v)
     struct pagedim *pdim;
 
     pageno = fz_resolve_link (state.ctx, state.doc, String_val (uri_v),
-                              &xy.x, &xy.y);
+                              &xy.x, &xy.y).page;
     pdim = pdimofpageno (pageno);
     xy = fz_transform_point (xy, pdim->ctm);
     ret_v = caml_alloc_tuple (3);
