@@ -90,7 +90,7 @@ mflags() {
 }
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
-test "$overs" = "4.09" || {
+test "$overs" = "4.09.0" || {
     url=https://caml.inria.fr/pub/distrib/ocaml-4.09/ocaml-4.09.0.tar.xz
     txz=$outd/$(basename $url)
     isfresh $txz $url || {
