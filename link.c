@@ -633,12 +633,14 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 static void initpdims (void)
 {
     FILE *trimf = NULL;
-    fz_rect rootmediabox = fz_empty_rect;
     int pageno, trim, show;
     int trimw = 0, cxcount;
+    struct pagedim *p = NULL;
     fz_context *ctx = state.ctx;
+    fz_rect rootmediabox = fz_empty_rect;
     pdf_document *pdf = pdf_specifics (ctx, state.doc);
 
+    fz_var (p);
     fz_var (trimw);
     fz_var (trimf);
     fz_var (cxcount);
@@ -662,7 +664,6 @@ static void initpdims (void)
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
         int rotate = 0;
-        struct pagedim *p;
         fz_rect mediabox = fz_empty_rect;
 
         fz_var (rotate);
@@ -858,9 +859,7 @@ static void initpdims (void)
             }
         }
 
-        if (state.pagedimcount == 0
-            || ((void) (p = &state.pagedims[state.pagedimcount-1])
-                , p->rotate != rotate)
+        if (!p || p->rotate != rotate
             || memcmp (&p->mediabox, &mediabox, sizeof (mediabox))) {
             size_t size;
 
