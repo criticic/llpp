@@ -1869,7 +1869,7 @@ static int compareslinks (const void *l, const void *r)
     struct slink const *ls = l;
     struct slink const *rs = r;
     if (ls->bbox.y0 == rs->bbox.y0) {
-        return rs->bbox.x0 - rs->bbox.x0;
+        return ls->bbox.x0 - rs->bbox.x0;
     }
     return ls->bbox.y0 - rs->bbox.y0;
 }
