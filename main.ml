@@ -2,7 +2,6 @@ open Utils;;
 open Config;;
 open Glutils;;
 open Listview;;
-open Ffi;;
 
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
@@ -85,7 +84,7 @@ let getunder x y =
   let g opaque l px py =
     if state.bzoom
     then (
-      match rectofblock opaque px py with
+      match Ffi.rectofblock opaque px py with
       | Some [|x0;x1;y0;y1|] ->
          let rect = (x0, y0, x1, y0, x1, y1, x0, y1) in
          let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
@@ -93,7 +92,7 @@ let getunder x y =
          postRedisplay "getunder";
       | _ -> ()
     );
-    let under = whatsunder opaque px py in
+    let under = Ffi.whatsunder opaque px py in
     if under = Unone then None else Some under
   in
   onppundermouse g x y Unone
@@ -101,7 +100,7 @@ let getunder x y =
 
 let unproject x y =
   let g opaque l x y =
-    match unproject opaque x y with
+    match Ffi.unproject opaque x y with
     | Some (x, y) -> Some (Some (opaque, l.pageno, x, y))
     | None -> None
   in
@@ -116,17 +115,17 @@ let showtext c s =
 let impmsg fmt = Format.ksprintf (fun s -> showtext '!' s) fmt;;
 
 let pipesel opaque cmd =
-  if hassel opaque
+  if Ffi.hassel opaque
   then pipef ~closew:false "pipesel"
          (fun w ->
-           copysel w opaque;
+           Ffi.copysel w opaque;
            postRedisplay "pipesel"
          ) cmd
 ;;
 
 let paxunder x y =
   let g opaque l px py =
-    if markunder opaque px py conf.paxmark
+    if Ffi.markunder opaque px py conf.paxmark
     then
       Some (fun () ->
           match getopaque l.pageno with
@@ -141,7 +140,7 @@ let paxunder x y =
     List.iter (fun l ->
         match getopaque l.pageno with
         | None -> ()
-        | Some opaque -> clearmark opaque) state.layout;
+        | Some opaque -> Ffi.clearmark opaque) state.layout;
   state.roam <- onppundermouse g x y (fun () -> impmsg "whoopsie daisy");
 ;;
 
@@ -150,7 +149,7 @@ let undertext = function
   | Ulinkuri s -> s
   | Utext s -> "font: " ^ s
   | Uannotation (opaque, slinkindex) ->
-     "annotation: " ^ getannotcontents opaque slinkindex
+     "annotation: " ^ Ffi.getannotcontents opaque slinkindex
 ;;
 
 let updateunder x y =
@@ -190,7 +189,7 @@ let wcmd fmt =
   Printf.kbprintf
     (fun b ->
       let b = Buffer.to_bytes b in
-      wcmd state.ss b @@ Bytes.length b
+      Ffi.wcmd state.ss b @@ Bytes.length b
     ) b fmt
 ;;
 
@@ -374,19 +373,19 @@ let puttileopaque l col row gen colorspace angle opaque size elapsed =
 
 let drawtiles l color =
   GlDraw.color color;
-  begintiles ();
+  Ffi.begintiles ();
   let f col row x y tilex tiley w h =
     match gettileopaque l col row with
     | Some (opaque, _, t) ->
        let params = x, y, w, h, tilex, tiley in
        if conf.invert
        then GlTex.env (`mode `blend);
-       drawtile params opaque;
+       Ffi.drawtile params opaque;
        if conf.invert
        then GlTex.env (`mode `modulate);
        if conf.debug
        then (
-         endtiles ();
+         Ffi.endtiles ();
          let s = Printf.sprintf "%d[%d,%d] %f sec" l.pageno col row t in
          let w = measurestr fstate.fontsize s in
          GlDraw.color (0.0, 0.0, 0.0);
@@ -397,11 +396,11 @@ let drawtiles l color =
            (float (y + fstate.fontsize + 2));
          GlDraw.color color;
          drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
-         begintiles ();
+         Ffi.begintiles ();
        );
 
     | None ->
-       endtiles ();
+       Ffi.endtiles ();
        let w = let lw = state.winw - x in min lw w
        and h = let lh = state.winh - y in min lh h
        in
@@ -449,10 +448,10 @@ let drawtiles l color =
          drawstring2 fstate.fontsize x y "Loading %d [%d,%d]" l.pageno c r;
        );
        GlDraw.color color;
-       begintiles ();
+       Ffi.begintiles ();
   in
   itertiles l f;
-  endtiles ();
+  Ffi.endtiles ();
 ;;
 
 let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
@@ -519,7 +518,7 @@ let tilepage n p layout =
                 in
                 let pbo =
                   if conf.usepbo
-                  then getpbo w h conf.colorspace
+                  then Ffi.getpbo w h conf.colorspace
                   else ~< "0"
                 in
                 wcmd "tile %s %d %d %d %d %s" (~> p) x y w h (~> pbo);
@@ -617,7 +616,7 @@ let gotoxy x y =
              begin match getopaque pageno with
              | None -> state.mode <- LinkNav (Ltnotready (pageno, 0))
              | Some opaque ->
-                let x0, y0, x1, y1 = getlinkrect opaque linkno in
+                let x0, y0, x1, y1 = Ffi.getlinkrect opaque linkno in
                 if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
                         && y0 >= l.pagey && y1 <= l.pagey + l.pagevh)
                 then state.mode <- LinkNav (Ltgendir 0)
@@ -655,12 +654,12 @@ let gotoxy x y =
                       then LDfirstvisible (l.pagex, l.pagey, dir)
                       else if dir > 0 then LDfirst else LDlast
                     in
-                    findlink opaque ld
+                    Ffi.findlink opaque ld
                   in
                   match link with
                   | Lnotfound -> loop rest
                   | Lfound n ->
-                     showlinktype (getlink opaque n);
+                     showlinktype (Ffi.getlink opaque n);
                      Ltexact (l.pageno, n)
           in
           loop state.layout
@@ -777,8 +776,8 @@ let opendoc path password =
   state.outlines <- [||];
 
   flushpages ();
-  setaalevel conf.aalevel;
-  setpapercolor conf.papercolor;
+  Ffi.setaalevel conf.aalevel;
+  Ffi.setpapercolor conf.papercolor;
   let titlepath =
     if emptystr state.origin
     then path
@@ -1018,7 +1017,7 @@ let gctiles () =
              )
         then Queue.push lruitem state.tilelru
         else (
-          freepbo p;
+          Ffi.freepbo p;
           wcmd "freetile %s" (~> p);
           state.memused <- state.memused - s;
           state.uioh#infochanged Memused;
@@ -1093,7 +1092,7 @@ let getpassword () =
 
 let pgoto opaque pageno x y =
   let pdimno = getpdimno pageno in
-  let x, y = project opaque pageno pdimno x y in
+  let x, y = Ffi.project opaque pageno pdimno x y in
   gotopagexy pageno x y;
 ;;
 
@@ -1242,12 +1241,12 @@ let act cmds =
                      then LDfirstvisible (l.pagex, l.pagey, dir)
                      else if dir > 0 then LDfirst else LDlast
                    in
-                   findlink pageopaque ld
+                   Ffi.findlink pageopaque ld
                  in
                  match link with
                  | Lnotfound -> ()
                  | Lfound n ->
-                    showlinktype (getlink pageopaque n);
+                    showlinktype (Ffi.getlink pageopaque n);
                     state.mode <- LinkNav (Ltexact (l.pageno, n))
                )
             | LinkNav (Ltgendir _)
@@ -1276,7 +1275,7 @@ let act cmds =
      | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
         vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
 
-        unmappbo opaque;
+        Ffi.unmappbo opaque;
         if tilew != conf.tilew || tileh != conf.tileh
         then (
           wcmd "freetile %s" (~> opaque);
@@ -1465,10 +1464,10 @@ let linknact f s =
          match getopaque l.pageno with
          | None -> loop n rest
          | Some opaque ->
-            let m = getlinkcount opaque in
+            let m = Ffi.getlinkcount opaque in
             if n < m
             then
-              let under = getlink opaque n in
+              let under = Ffi.getlink opaque n in
               f under
             else loop (n-m) rest
     in
@@ -2509,7 +2508,7 @@ let enterinfomode =
       src#int "texture count"
         (fun () -> conf.texcount)
         (fun v ->
-          if realloctexts v
+          if Ffi.realloctexts v
           then conf.texcount <- v
           else impmsg "failed to set texture count please retry later"
         );
@@ -2577,7 +2576,7 @@ let enterinfomode =
       src#paxmark "pax mark method"
         (fun () -> MTE.to_string conf.paxmark)
         (fun v -> conf.paxmark <- MTE.of_int v);
-      if bousable ()
+      if Ffi.bousable ()
       then
         src#bool "use PBO"
           (fun () -> conf.usepbo)
@@ -2614,7 +2613,7 @@ let enterinfomode =
           (fun () -> conf.papercolor)
           (fun v ->
             conf.papercolor <- v;
-            setpapercolor conf.papercolor;
+            Ffi.setpapercolor conf.papercolor;
             flushtiles ();
           );
         rgba "   scrollbar"
@@ -2884,7 +2883,7 @@ let enterannotmode opaque slinkindex =
            gotoxy state.x state.y
          in
          let dele () =
-           delannot opaque slinkindex;
+           Ffi.delannot opaque slinkindex;
            cleanup ();
          in
          let edit inline () =
@@ -2892,7 +2891,7 @@ let enterannotmode opaque slinkindex =
              if emptystr s
              then dele ()
              else (
-               modannot opaque slinkindex s;
+               Ffi.modannot opaque slinkindex s;
                cleanup ();
              )
            in
@@ -2923,7 +2922,7 @@ let enterannotmode opaque slinkindex =
      end)
   in
   state.text <- E.s;
-  let s = getannotcontents opaque slinkindex in
+  let s = Ffi.getannotcontents opaque slinkindex in
   resetmstate ();
   msgsource#reset s;
   let source = (msgsource :> lvsource) in
@@ -2987,12 +2986,12 @@ let gotoremote spec =
 ;;
 
 let gotounder = function
-  | Ulinkuri s when isexternallink s ->
+  | Ulinkuri s when Ffi.isexternallink s ->
      if substratis s 0 "file://"
      then gotoremote @@ String.sub s 7 (String.length s - 7)
      else Help.gotouri conf.urilauncher s
   | Ulinkuri s ->
-     let pageno, x, y = uritolocation s in
+     let pageno, x, y = Ffi.uritolocation s in
      addnav ();
      gotopagexy pageno x y
   | Utext _ | Unone -> ()
@@ -3339,7 +3338,7 @@ let save () =
     if nonemptystr path
     then
       let tmp = path ^ ".tmp" in
-      savedoc tmp;
+      Ffi.savedoc tmp;
       Unix.rename tmp path;
 ;;
 
@@ -3399,7 +3398,7 @@ let viewkeyboard key mask =
      enttext (": ", E.s, None, zmod state.mode, ondone, true)
 
   | Ascii 'W' ->
-     if hasunsavedchanges ()
+     if Ffi.hasunsavedchanges ()
      then save ()
 
   | Insert ->
@@ -3455,7 +3454,7 @@ let viewkeyboard key mask =
      state.rects <- [];
      state.text <- E.s;
      Hashtbl.iter (fun _ opaque ->
-         clearmark opaque;
+         Ffi.clearmark opaque;
          Hashtbl.clear state.prects) state.pagemap;
      postRedisplay "dehighlight";
 
@@ -3512,7 +3511,7 @@ let viewkeyboard key mask =
      let h = state.winh -
                conf.interpagespace lsl (if conf.presentation then 1 else 0)
      in
-     let zoom = zoomforh state.winw h 0 cols in
+     let zoom = Ffi.zoomforh state.winw h 0 cols in
      if zoom > 0.0 && (c = '2' || zoom < 1.0)
      then setzoom zoom
 
@@ -3527,7 +3526,7 @@ let viewkeyboard key mask =
      reqlayout conf.angle fm
 
   | Ascii '4' when ctrl ->
-     let zoom = getmaxw () /. float state.winw in
+     let zoom = Ffi.getmaxw () /. float state.winw in
      if zoom > 0.0 then setzoom zoom
 
   | Fn 9 | Ascii '9' when ctrl -> togglebirdseye ()
@@ -3798,7 +3797,7 @@ let viewkeyboard key mask =
          match getopaque l.pageno with
          | None -> ()
          | Some opaque ->
-            let x0, y0, x1, y1 = pagebbox opaque in
+            let x0, y0, x1, y1 = Ffi.pagebbox opaque in
             let rect = (float x0, float y0,
                         float x1, float y0,
                         float x1, float y1,
@@ -3849,7 +3848,7 @@ let linknavkeyboard key mask linknav =
     | Some opaque, Some l ->
        if pv = Keys.Enter
        then
-         let under = getlink opaque n in
+         let under = Ffi.getlink opaque n in
          postRedisplay "link gotounder";
          gotounder under;
          state.mode <- View;
@@ -3857,17 +3856,17 @@ let linknavkeyboard key mask linknav =
          let opt, dir =
            let open Keys in
            match pv with
-           | Home -> Some (findlink opaque LDfirst), -1
-           | End -> Some (findlink opaque LDlast), 1
-           | Left -> Some (findlink opaque (LDleft n)), -1
-           | Right -> Some (findlink opaque (LDright n)), 1
-           | Up -> Some (findlink opaque (LDup n)), -1
-           | Down -> Some (findlink opaque (LDdown n)), 1
+           | Home -> Some (Ffi.findlink opaque LDfirst), -1
+           | End -> Some (Ffi.findlink opaque LDlast), 1
+           | Left -> Some (Ffi.findlink opaque (LDleft n)), -1
+           | Right -> Some (Ffi.findlink opaque (LDright n)), 1
+           | Up -> Some (Ffi.findlink opaque (LDup n)), -1
+           | Down -> Some (Ffi.findlink opaque (LDdown n)), 1
            | Delete|Escape|Insert|Enter|Next|Prior|Ascii _
            | Code _|Fn _|Ctrl _|Backspace -> None, 0
          in
          let pwl l dir =
-           begin match findpwl l.pageno dir with
+           begin match Ffi.findpwl l.pageno dir with
            | Pwlnotfound -> ()
            | Pwl pageno ->
               let notfound dir =
@@ -3884,11 +3883,11 @@ let linknavkeyboard key mask linknav =
               | Some opaque, Some _ ->
                  let link =
                    let ld = if dir > 0 then LDfirst else LDlast in
-                   findlink opaque ld
+                   Ffi.findlink opaque ld
                  in
                  begin match link with
                  | Lfound m ->
-                    showlinktype (getlink opaque m);
+                    showlinktype (Ffi.getlink opaque m);
                     state.mode <- LinkNav (Ltexact (pageno, m));
                     postRedisplay "linknav jpage";
                  | Lnotfound -> notfound dir
@@ -3903,7 +3902,7 @@ let linknavkeyboard key mask linknav =
             if m = n
             then pwl l dir
             else (
-              let _, y0, _, y1 = getlinkrect opaque m in
+              let _, y0, _, y1 = Ffi.getlinkrect opaque m in
               if y0 < l.pagey
               then gotopage1 l.pageno y0
               else (
@@ -3912,7 +3911,7 @@ let linknavkeyboard key mask linknav =
                 then gotopage1 l.pageno (y1 - state.winh + d)
                 else postRedisplay "linknav";
               );
-              showlinktype (getlink opaque m);
+              showlinktype (Ffi.getlink opaque m);
               state.mode <- LinkNav (Ltexact (l.pageno, m));
             )
 
@@ -4092,8 +4091,9 @@ let postdrawpage l linkindexbase =
          | LinkNav _ -> E.s
        in
        Hashtbl.find_all state.prects l.pageno |>
-         List.iter (fun vals -> drawprect opaque x y vals);
-       let n = postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize) in
+         List.iter (fun vals -> Ffi.drawprect opaque x y vals);
+       let n =
+         Ffi.postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize) in
        if n < 0
        then (Glutils.redisplay := true; 0)
        else n
@@ -4135,7 +4135,7 @@ let showsel () =
      let identify opaque l px py = Some (opaque, l.pageno, px, py) in
      let o0,n0,px0,py0 = onppundermouse identify x0 y0 (~< E.s, -1, 0, 0) in
      let _o1,n1,px1,py1 = onppundermouse identify x1 y1 (~< E.s, -1, 0, 0) in
-     if n0 != -1 && n0 = n1 then seltext o0 (px0, py0, px1, py1);
+     if n0 != -1 && n0 = n1 then Ffi.seltext o0 (px0, py0, px1, py1);
 ;;
 
 let showrects = function
@@ -4173,7 +4173,7 @@ let display () =
     | LinkNav (Ltexact (pageno, linkno)) ->
        begin match getopaque pageno with
        | Some opaque ->
-          let x0, y0, x1, y1 = getlinkrect opaque linkno in
+          let x0, y0, x1, y1 = Ffi.getlinkrect opaque linkno in
           let color = (0.0, 0.0, 0.5, 0.5) in
           (pageno, color,
            (float x0, float y0,
@@ -4257,7 +4257,7 @@ let annot inline x y =
   match unproject x y with
   | Some (opaque, n, ux, uy) ->
      let add text =
-       addannot opaque ux uy text;
+       Ffi.addannot opaque ux uy text;
        wcmd "freepage %s" (~> opaque);
        Hashtbl.remove state.pagemap (n, state.gen);
        flushtiles ();
@@ -4279,7 +4279,7 @@ let annot inline x y =
 
 let zoomblock x y =
   let g opaque l px py =
-    match rectofblock opaque px py with
+    match Ffi.rectofblock opaque px py with
     | Some a ->
        let x0 = a.(0) -. 20. in
        let x1 = a.(1) +. 20. in
@@ -4324,7 +4324,7 @@ let viewmulticlick clicks x y mask =
       | 4 -> Mark_block
       | _ -> Mark_page
     in
-    if markunder opaque px py mark
+    if Ffi.markunder opaque px py mark
     then (
       Some (fun () ->
           let dopipe cmd =
@@ -4511,7 +4511,7 @@ let viewmouse button down x y mask =
                        let dosel cmd () =
                          pipef ~closew:false "Msel"
                            (fun w ->
-                             copysel w opaque;
+                             Ffi.copysel w opaque;
                              postRedisplay "Msel") cmd
                        in
                        dosel conf.selcmd ();
@@ -4928,7 +4928,7 @@ let () =
 
       method private cleanup =
         state.roam <- noroam;
-        Hashtbl.iter (fun _ opaque -> clearmark opaque) state.pagemap
+        Hashtbl.iter (fun _ opaque -> Ffi.clearmark opaque) state.pagemap
       method expose = postRedisplay "expose"
       method visible v =
         let name =
@@ -5061,7 +5061,7 @@ let () =
        then String.sub css 0 (l-2)
        else (if css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
   end;
-  init cs (
+  Ffi.init cs (
       conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
       conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
       !Config.fontpath, !trimcachepath
@@ -5159,7 +5159,7 @@ let () =
        let rec checkfds = function
          | [] -> ()
          | fd :: rest when fd = state.ss ->
-            let cmd = rcmd state.ss in
+            let cmd = Ffi.rcmd state.ss in
             act cmd;
             checkfds rest
 
@@ -5195,7 +5195,7 @@ let () =
   match loop infinity with
   | exception Quit ->
      Config.save leavebirdseye;
-     if hasunsavedchanges ()
+     if Ffi.hasunsavedchanges ()
      then save ()
   | _ -> error "umpossible - infinity reached"
 ;;
