@@ -76,7 +76,7 @@ cflags() {
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
             f="$f -DCACHE_PAGEREFS -DKeySym=uint32_t"
             $darwin && f="$f -DCIDER -D_GNU_SOURCE" \
-                    || f="$f -D_POSIX_C_SOURCE1";; # needed for fdopen
+                    || f="$f -D_POSIX_C_SOURCE";; # needed for fdopen
         */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) f="-g -Wno-pointer-sign -O2";;
         *) f="-g -O2";;
