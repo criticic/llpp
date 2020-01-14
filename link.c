@@ -719,25 +719,17 @@ static void initpdims (void)
                         }
 
                         obj = pdf_new_array (ctx, pdf, 4);
-                        pdf_array_push (ctx, obj,
-                                        pdf_new_real (ctx, mediabox.x0));
-                        pdf_array_push (ctx, obj,
-                                        pdf_new_real (ctx, mediabox.y0));
-                        pdf_array_push (ctx, obj,
-                                        pdf_new_real (ctx, mediabox.x1));
-                        pdf_array_push (ctx, obj,
-                                        pdf_new_real (ctx, mediabox.y1));
+                        pdf_array_push_real (ctx, obj, mediabox.x0);
+                        pdf_array_push_real (ctx, obj, mediabox.y0);
+                        pdf_array_push_real (ctx, obj, mediabox.x1);
+                        pdf_array_push_real (ctx, obj, mediabox.y1);
                         pdf_dict_puts (ctx, pageobj, "llpp.TrimBox", obj);
                     }
                     else {
-                        mediabox.x0 = pdf_to_real (ctx,
-                                                   pdf_array_get (ctx, obj, 0));
-                        mediabox.y0 = pdf_to_real (ctx,
-                                                   pdf_array_get (ctx, obj, 1));
-                        mediabox.x1 = pdf_to_real (ctx,
-                                                   pdf_array_get (ctx, obj, 2));
-                        mediabox.y1 = pdf_to_real (ctx,
-                                                   pdf_array_get (ctx, obj, 3));
+                        mediabox.x0 = pdf_array_get_real (ctx, obj, 0);
+                        mediabox.y0 = pdf_array_get_real (ctx, obj, 1);
+                        mediabox.x1 = pdf_array_get_real (ctx, obj, 2);
+                        mediabox.y1 = pdf_array_get_real (ctx, obj, 3);
                     }
 
                     fz_drop_page (ctx, &page->super);
