@@ -91,6 +91,7 @@ extern char **environ;
 
 #define ML(d) extern value ml_##d; value ml_##d
 #define ML0(d) extern void ml_##d; void ml_##d
+#define FUSV(v) ((void *) String_val (v))
 
 struct slice {
     int h;
@@ -314,7 +315,7 @@ ML (rcmd (value fd_v))
     int fd = Int_val (fd_v);
     int len = readlen (fd);
     strdata_v = caml_alloc_string (len);
-    readdata (fd, String_val (strdata_v), len);
+    readdata (fd, FUSV (strdata_v), len);
     CAMLreturn (strdata_v);
 }
 
@@ -1304,7 +1305,7 @@ ML (mbtoutf8 (value s_v))
     CAMLlocal1 (ret_v);
     char *s, *r;
 
-    s = String_val (s_v);
+    s = FUSV (s_v);
     r = mbtoutf8 (s);
     if (r == s) {
         ret_v = s_v;
@@ -1623,7 +1624,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
 ML (isexternallink (value uri_v))
 {
     CAMLparam1 (uri_v);
-    int ext = fz_is_external_link (state.ctx, String_val (uri_v));
+    int ext = fz_is_external_link (state.ctx, FUSV (uri_v));
     CAMLreturn (Val_bool (ext));
 }
 
@@ -1635,7 +1636,7 @@ ML (uritolocation (value uri_v))
     fz_point xy;
     struct pagedim *pdim;
 
-    pageno = fz_resolve_link (state.ctx, state.doc, String_val (uri_v),
+    pageno = fz_resolve_link (state.ctx, state.doc, FUSV (uri_v),
                               &xy.x, &xy.y).page;
     pdim = pdimofpageno (pageno);
     xy = fz_transform_point (xy, pdim->ctm);
@@ -2133,7 +2134,7 @@ ML0 (drawtile (value args_v, value ptr_v))
     int disph = Int_val (Field (args_v, 3));
     int tilex = Int_val (Field (args_v, 4));
     int tiley = Int_val (Field (args_v, 5));
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     struct tile *tile = parse_pointer (__func__, s);
     int slicey, firstslice;
     struct slice *slice;
@@ -2219,10 +2220,10 @@ ML (postprocess (value ptr_v, value hlinks_v,
     int xoff = Int_val (xoff_v);
     int yoff = Int_val (yoff_v);
     int noff = Int_val (Field (li_v, 0));
-    char *targ = String_val (Field (li_v, 1));
+    char *targ = FUSV (Field (li_v, 1));
     mlsize_t tlen = caml_string_length (Field (li_v, 1));
     int hfsize = Int_val (Field (li_v, 2));
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     int hlmask = Int_val (hlinks_v);
     struct page *page = parse_pointer (__func__, s);
 
@@ -2256,7 +2257,7 @@ ML0 (drawprect (value ptr_v, value xoff_v, value yoff_v, value rects_v))
     CAMLparam4 (ptr_v, xoff_v, yoff_v, rects_v);
     int xoff = Int_val (xoff_v);
     int yoff = Int_val (yoff_v);
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     struct page *page = parse_pointer (__func__, s);
 
     drawprect (page, xoff, yoff, rects_v);
@@ -2404,7 +2405,7 @@ ML (findlink (value ptr_v, value dir_v))
     struct page *page;
     int dirtag, i, slinkindex;
     struct slink *found = NULL ,*slink;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
 
     page = parse_pointer (__func__, s);
     ret_v = Val_int (0);
@@ -2523,7 +2524,7 @@ ML (getlink (value ptr_v, value n_v))
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
     fz_link *link;
     struct page *page;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     struct slink *slink;
 
     ret_v = Val_int (0);
@@ -2560,7 +2561,7 @@ ML (getannotcontents (value ptr_v, value n_v))
     lock (__func__);
     pdf = pdf_specifics (state.ctx, state.doc);
     if (pdf) {
-        char *s = String_val (ptr_v);
+        char *s = FUSV (ptr_v);
         struct page *page;
         struct slink *slink;
 
@@ -2577,7 +2578,7 @@ ML (getlinkcount (value ptr_v))
 {
     CAMLparam1 (ptr_v);
     struct page *page;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
 
     page = parse_pointer (__func__, s);
     CAMLreturn (Val_int (page->slinkcount));
@@ -2589,7 +2590,7 @@ ML (getlinkrect (value ptr_v, value n_v))
     CAMLlocal1 (ret_v);
     struct page *page;
     struct slink *slink;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
 
     page = parse_pointer (__func__, s);
     ret_v = caml_alloc_tuple (4);
@@ -2612,7 +2613,7 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
     fz_link *link;
     struct annot *annot;
     struct page *page;
-    char *ptr = String_val (ptr_v);
+    char *ptr = FUSV (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
     struct pagedim *pdim;
 
@@ -2726,7 +2727,7 @@ enum { mark_page, mark_block, mark_line, mark_word };
 ML0 (clearmark (value ptr_v))
 {
     CAMLparam1 (ptr_v);
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     struct page *page;
 
     if (trylock (__func__)) {
@@ -2757,7 +2758,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
     fz_stext_block *block;
     struct pagedim *pdim;
     int mark = Int_val (mark_v);
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
 
     ret_v = Val_bool (0);
@@ -2848,7 +2849,7 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
     struct page *page;
     struct pagedim *pdim;
     fz_stext_block *block;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
 
     ret_v = Val_int (0);
@@ -2901,7 +2902,7 @@ ML0 (seltext (value ptr_v, value rect_v))
     CAMLparam2 (ptr_v, rect_v);
     struct page *page;
     struct pagedim *pdim;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     int x0, x1, y0, y1;
     fz_stext_char *ch;
     fz_stext_line *line;
@@ -2993,7 +2994,7 @@ ML (spawn (value command_v, value fds_v))
     posix_spawn_file_actions_t fa;
     char *argv[] = { "/bin/sh", "-c", NULL, NULL };
 
-    argv[2] = String_val (command_v);
+    argv[2] = FUSV (command_v);
 
     if ((ret = posix_spawn_file_actions_init (&fa)) != 0) {
         unix_error (ret, "posix_spawn_file_actions_init", Nothing);
@@ -3060,7 +3061,7 @@ ML (hassel (value ptr_v))
     CAMLparam1 (ptr_v);
     CAMLlocal1 (ret_v);
     struct page *page;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
 
     ret_v = Val_bool (0);
     if (trylock (__func__)) {
@@ -3083,7 +3084,7 @@ ML0 (copysel (value fd_v, value ptr_v))
     fz_stext_line *line;
     fz_stext_block *block;
     int fd = Int_val (fd_v);
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
 
     if (trylock (__func__)) {
         goto done;
@@ -3236,7 +3237,7 @@ ML (draw_string (value pt_v, value x_v, value y_v, value string_v))
     int y = Int_val (y_v);
     float w;
 
-    w = draw_string (state.face, pt, x, y, String_val (string_v));
+    w = draw_string (state.face, pt, x, y, FUSV (string_v));
     ret_v = caml_copy_double (w);
     CAMLreturn (ret_v);
 }
@@ -3248,7 +3249,7 @@ ML (measure_string (value pt_v, value string_v))
     int pt = Int_val (pt_v);
     double w;
 
-    w = (double) measure_string (state.face, pt, String_val (string_v));
+    w = (double) measure_string (state.face, pt, FUSV (string_v));
     ret_v = caml_copy_double (w);
     CAMLreturn (ret_v);
 }
@@ -3260,7 +3261,7 @@ ML (getpagebox (value opaque_v))
     fz_rect rect;
     fz_irect bbox;
     fz_device *dev;
-    char *s = String_val (opaque_v);
+    char *s = FUSV (opaque_v);
     struct page *page = parse_pointer (__func__, s);
 
     ret_v = caml_alloc_tuple (4);
@@ -3447,7 +3448,7 @@ ML (getpbo (value w_v, value h_v, value cs_v))
 ML0 (freepbo (value s_v))
 {
     CAMLparam1 (s_v);
-    char *s = String_val (s_v);
+    char *s = FUSV (s_v);
     struct tile *tile = parse_pointer (__func__, s);
 
     if (tile->pbo) {
@@ -3462,7 +3463,7 @@ ML0 (freepbo (value s_v))
 ML0 (unmappbo (value s_v))
 {
     CAMLparam1 (s_v);
-    char *s = String_val (s_v);
+    char *s = FUSV (s_v);
     struct tile *tile = parse_pointer (__func__, s);
 
     if (tile->pbo) {
@@ -3504,7 +3505,7 @@ ML (unproject (value ptr_v, value x_v, value y_v))
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal2 (ret_v, tup_v);
     struct page *page;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
     struct pagedim *pdim;
     fz_point p;
@@ -3539,7 +3540,7 @@ ML (project (value ptr_v, value pageno_v, value pdimno_v, value x_v, value y_v))
     CAMLparam5 (ptr_v, pageno_v, pdimno_v, x_v, y_v);
     CAMLlocal1 (ret_v);
     struct page *page;
-    char *s = String_val (ptr_v);
+    char *s = FUSV (ptr_v);
     int pageno = Int_val (pageno_v);
     int pdimno = Int_val (pdimno_v);
     float x = (float) Double_val (x_v), y = (float) Double_val (y_v);
@@ -3591,7 +3592,7 @@ ML0 (addannot (value ptr_v, value x_v, value y_v, value contents_v))
         pdf_annot *annot;
         struct page *page;
         fz_rect r;
-        char *s = String_val (ptr_v);
+        char *s = FUSV (ptr_v);
 
         page = parse_pointer (__func__, s);
         annot = pdf_create_annot (state.ctx,
@@ -3602,7 +3603,7 @@ ML0 (addannot (value ptr_v, value x_v, value y_v, value contents_v))
         r.y0 = Int_val (y_v) - 10;
         r.x1 = r.x0 + 20;
         r.y1 = r.y0 + 20;
-        pdf_set_annot_contents (state.ctx, annot, String_val (contents_v));
+        pdf_set_annot_contents (state.ctx, annot, FUSV (contents_v));
         pdf_set_annot_rect (state.ctx, annot, r);
 
         state.dirty = 1;
@@ -3617,7 +3618,7 @@ ML0 (delannot (value ptr_v, value n_v))
 
     if (pdf) {
         struct page *page;
-        char *s = String_val (ptr_v);
+        char *s = FUSV (ptr_v);
         struct slink *slink;
 
         page = parse_pointer (__func__, s);
@@ -3637,13 +3638,13 @@ ML0 (modannot (value ptr_v, value n_v, value str_v))
 
     if (pdf) {
         struct page *page;
-        char *s = String_val (ptr_v);
+        char *s = FUSV (ptr_v);
         struct slink *slink;
 
         page = parse_pointer (__func__, s);
         slink = &page->slinks[Int_val (n_v)];
         pdf_set_annot_contents (state.ctx, (pdf_annot *) slink->u.annot,
-                                String_val (str_v));
+                                FUSV (str_v));
         state.dirty = 1;
     }
     CAMLreturn0;
@@ -3660,7 +3661,7 @@ ML0 (savedoc (value path_v))
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
 
     if (pdf) {
-        pdf_save_document (state.ctx, pdf, String_val (path_v), NULL);
+        pdf_save_document (state.ctx, pdf, FUSV (path_v), NULL);
     }
     CAMLreturn0;
 }
@@ -3718,7 +3719,7 @@ ML0 (init (value csock_v, value params_v))
     state.sliceheight   = Int_val (Field (params_v, 4));
     mustoresize         = Int_val (Field (params_v, 5));
     colorspace          = Int_val (Field (params_v, 6));
-    fontpath            = String_val (Field (params_v, 7));
+    fontpath            = FUSV (Field (params_v, 7));
 
 #ifdef CIDER
     state.utf8cs = 1;
@@ -3734,7 +3735,7 @@ ML0 (init (value csock_v, value params_v))
 #endif
 
     if (caml_string_length (Field (params_v, 8)) > 0) {
-        state.trimcachepath = ystrdup (String_val (Field (params_v, 8)));
+        state.trimcachepath = ystrdup (FUSV (Field (params_v, 8)));
 
         if (!state.trimcachepath) {
             printd ("emsg failed to strdup trimcachepath: %d:%s",

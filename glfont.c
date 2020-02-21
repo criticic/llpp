@@ -99,7 +99,7 @@ static void clear_font_cache(void)
         g_cache_row_h = 0;
 }
 
-static void *filecontents (char *path, int *len)
+static void *filecontents (const char *path, int *len)
 {
         int ret, fd;
         void *res;
@@ -125,7 +125,7 @@ static void *filecontents (char *path, int *len)
         return res;
 }
 
-static FT_Face load_font(char *fontname)
+static FT_Face load_font(const char *fontname)
 {
         FT_Face face;
         int code, len;
