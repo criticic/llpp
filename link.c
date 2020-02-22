@@ -8,7 +8,6 @@
 #pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
-#pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
 
 extern char **environ;
@@ -92,7 +91,6 @@ extern char **environ;
 
 #define ML(d) extern value ml_##d; value ml_##d
 #define ML0(d) extern void ml_##d; void ml_##d
-#define FUSV(v) ((void *) String_val (v))
 
 struct slice {
     int h;
@@ -316,7 +314,7 @@ ML (rcmd (value fd_v))
     int fd = Int_val (fd_v);
     int len = readlen (fd);
     strdata_v = caml_alloc_string (len);
-    readdata (fd, FUSV (strdata_v), len);
+    readdata (fd, Bytes_val (strdata_v), len);
     CAMLreturn (strdata_v);
 }
 
@@ -1306,7 +1304,7 @@ ML (mbtoutf8 (value s_v))
     CAMLlocal1 (ret_v);
     char *s, *r;
 
-    s = FUSV (s_v);
+    s = (char *) Bytes_val (s_v);
     r = mbtoutf8 (s);
     if (r == s) {
         ret_v = s_v;
@@ -2996,8 +2994,7 @@ ML (spawn (value command_v, value fds_v))
     posix_spawn_file_actions_t fa;
     char *argv[] = { "/bin/sh", "-c", NULL, NULL };
 
-    argv[2] = FUSV (command_v);
-
+    argv[2] = (char *) Bytes_val (command_v);
     if ((ret = posix_spawn_file_actions_init (&fa)) != 0) {
         unix_error (ret, "posix_spawn_file_actions_init", Nothing);
     }
