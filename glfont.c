@@ -344,7 +344,7 @@ static float draw_glyph(FT_Face face, int size, int gid, float x, float y)
         return glyph->advance;
 }
 
-static float measure_string(FT_Face face, float fsize, char *str)
+static float measure_string(FT_Face face, float fsize, const char *str)
 {
         int size = fsize * 64;
         FT_Fixed advance;
@@ -372,7 +372,8 @@ static float measure_string(FT_Face face, float fsize, char *str)
         return w;
 }
 
-static float draw_string(FT_Face face, float fsize, float x, float y, char *str)
+static float draw_string(FT_Face face, float fsize, float x, float y,
+                         const char *str)
 {
         int size = fsize * 64;
         Rune ucs, gid;
