@@ -1304,7 +1304,7 @@ ML (mbtoutf8 (value s_v))
     CAMLlocal1 (ret_v);
     char *s, *r;
 
-    s = (char *) Bytes_val (s_v);
+    s = &Byte (s_v, 0);
     r = mbtoutf8 (s);
     if (r == s) {
         ret_v = s_v;
@@ -2994,7 +2994,7 @@ ML (spawn (value command_v, value fds_v))
     posix_spawn_file_actions_t fa;
     char *argv[] = { "/bin/sh", "-c", NULL, NULL };
 
-    argv[2] = (char *) Bytes_val (command_v);
+    argv[2] = &Byte (command_v, 0);
     if ((ret = posix_spawn_file_actions_init (&fa)) != 0) {
         unix_error (ret, "posix_spawn_file_actions_init", Nothing);
     }
