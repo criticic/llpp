@@ -34,7 +34,7 @@ test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
 mkdir -p $outd/{$wsid,lablGL}
 :>$outd/ordered
 
-isfresh() { test -r "$1.past" && . "$1.past" && test "$k" = "$2"; }
+isfresh() { test -r $1.past && test "$(cat $1.past)" = "$2"; }
 
 mbt=${mbt:-native}
 mulibs="$mudir/build/$mbt/libmupdf.a" # $mudir/build/$mbt/libmupdf-third.a
@@ -42,7 +42,7 @@ mulibs="$mudir/build/$mbt/libmupdf.a" # $mudir/build/$mbt/libmupdf-third.a
 keycmd="(cd $mudir && make -q build=$mbt libs && echo); digest $mulibs"
 isfresh "$mulibs" "$(eval $keycmd)" || (
     make -C "$mudir" build=$mbt -j $mjobs libs
-    echo "k='$(eval $keycmd)'" >$mudir/build/$mbt/libmupdf.a.past
+    eval $keycmd >$mudir/build/$mbt/libmupdf.a.past
 ) && vecho "fresh mupdf"
 
 oincs() {
@@ -100,7 +100,7 @@ test "$overs" = "4.10.0" || {
         else die "no program to fetch remote urls found"
         fi
         dl $url $txz
-        echo "k=$url" >$txz.past
+        echo "$url" >$txz.past
     } && vecho "fresh $txz"
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
@@ -111,7 +111,7 @@ test "$overs" = "4.10.0" || {
         ./configure --disable-ocamldoc --enable-debugger=no --prefix=$absprefix
         make -j $mjobs world
         make install
-        echo "k='$url'" >$absprefix/bin/ocamlc.past
+        echo "$url" >$absprefix/bin/ocamlc.past
     ) && vecho "fresh ocamlc"
     overs=$(ocamlc -vnum 2>/dev/null)
 }
@@ -148,7 +148,7 @@ bocaml2() {
                 }
             done
         } || die "$cmd failed"
-        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.depl.past"
+        echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && {
         vecho "fresh $o.depl"
         for d in $(< $o.depl); do
@@ -161,7 +161,7 @@ bocaml2() {
     isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
         printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
-        echo "k='$overs$cmd$(eval $keycmd)'" >"$o.past"
+        echo "$overs$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh '$o'"
 }
 
@@ -206,7 +206,7 @@ bocamlc() {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
-        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
+        echo "$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
 }
 
@@ -220,7 +220,7 @@ bobjc() {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
-        echo "k='$cmd$(eval $keycmd)'" >"$o.past"
+        echo "$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
 }
 
@@ -231,7 +231,7 @@ keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"
     eval "$cmd || die genconfstr.sh failed"
-    echo "k='$cmd$(eval $keycmd)'" > "$outd/confstruct.ml.past"
+    echo "$cmd$(eval $keycmd)" > "$outd/confstruct.ml.past"
 } && vecho "fresh $outd/confstruct.ml"
 
 shift 1
@@ -255,7 +255,7 @@ for target; do
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     echo "$src -> $out"
                     eval "$cmd || die '$cmd failed'"
-                    echo "k='$cmd$(eval $keycmd)'" >"$out.past"
+                    echo "$cmd$(eval $keycmd)" >"$out.past"
                 } && vecho "fresh $out"
             done;;
 
@@ -297,7 +297,7 @@ keycmd="digest $outd/llpp $cobjs $ord $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
     eval "$cmd || die '$cmd failed'"
-    echo "k='$cmd$(eval $keycmd)'" >"$outd/llpp.past"
+    echo "$cmd$(eval $keycmd)" >"$outd/llpp.past"
 } && vecho "fresh llpp"
 
 if $darwin; then
@@ -308,7 +308,7 @@ if $darwin; then
         mkdir -p "$d"
         echo "generating $out"
         (. $srcd/wsi/cocoa/genplist.sh) >"$out"
-        echo "k='$(eval $keycmd)'" >"$out.past"
+        eval $keycmd>"$out.past"
     } && vecho "fresh plist"
 
     out=$outd/llpp.app/Contents/MacOS/llpp
@@ -317,6 +317,6 @@ if $darwin; then
         echo "bundling $out"
         mkdir -p "$(dirname $out)"
         cp $outd/llpp $out
-        echo "k='$(eval $keycmd)'" >"$out.past"
+        eval $keycmd>"$out.past"
     } && vecho "fresh bundle"
 fi
