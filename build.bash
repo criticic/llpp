@@ -93,14 +93,15 @@ overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
 test "$overs" = "4.10.0" || {
     url=https://caml.inria.fr/pub/distrib/ocaml-4.10/ocaml-4.10.0.tar.xz
     txz=$outd/$(basename $url)
-    isfresh $txz $url || {
+    keycmd="echo $url; digest $txz;"
+    isfresh $txz "$(eval $keycmd)" || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
         if executable_p wget; then dl() { wget -q "$1" -O "$2"; }
         elif executable_p curl; then dl() { curl -L "$1" -o "$2"; }
         else die "no program to fetch remote urls found"
         fi
         dl $url $txz
-        echo "$url" >$txz.past
+        eval $keycmd >$txz.past
     } && vecho "fresh $txz"
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
