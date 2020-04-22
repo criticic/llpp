@@ -104,14 +104,16 @@ test "$overs" = "4.10.0" || {
     } && vecho "fresh $txz"
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
-    isfresh $absprefix/bin/ocamlc "$url" || (
+    ocamlc=$absprefix/bin/ocamlc
+    keycmd="echo $url; digest $ocamlc;"
+    isfresh $ocamlc "$(eval $keycmd)" || (
         tar xf $txz -C $outd
         bn=$(basename $url)
         cd $outd/${bn%.tar.xz}
         ./configure --disable-ocamldoc --enable-debugger=no --prefix=$absprefix
         make -j $mjobs world
         make install
-        echo "$url" >$absprefix/bin/ocamlc.past
+        eval $keycmd >$absprefix/bin/ocamlc.past
     ) && vecho "fresh ocamlc"
     overs=$(ocamlc -vnum 2>/dev/null)
 }
