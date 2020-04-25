@@ -92,7 +92,7 @@ overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
 test "$overs" = "4.10.0" || {
     url=https://caml.inria.fr/pub/distrib/ocaml-4.10/ocaml-4.10.0.tar.xz
     txz=$outd/$(basename $url)
-    keycmd="echo $url; digest $txz;"
+    keycmd="printf $url; digest $txz;"
     isfresh $txz "$(eval $keycmd)" || {
         executable_p() { command -v "$1" >/dev/null 2>&1; }
         if executable_p wget; then dl() { wget -q "$1" -O "$2"; }
