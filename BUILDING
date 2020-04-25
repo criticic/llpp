@@ -3,9 +3,12 @@ Prerequisites for building from sources:
     mupdf         [http://mupdf.com/]
     opengl        [http://en.wikipedia.org/wiki/OpenGL]
     git           [https://git-scm.com/]
-    ocaml (4.08+) [http://ocaml.org/]
+    ocaml (4.10)  [http://ocaml.org/]
         If not present will be downloaded from the network and
         built/used locally without system-wide installation.
+        Downloading will try to use:
+            wget    [https://www.gnu.org/software/wget/]
+            or curl [https://curl.haxx.se/]
 
 To download mupdf+prerequisites that llpp is known to work with:
     llpp% mkdir build && sh misc/getmupdf.sh build/mupdf
