@@ -4,7 +4,7 @@ set -eu
 now() { date +%s; }
 S=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { cat $* | cksum; } 2>/dev/null
+digest() { cksum $*; } 2>/dev/null
 die() { echo "$*" >&2; exit 111; }
 partmsg() { echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"; }
 
