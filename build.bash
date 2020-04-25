@@ -74,10 +74,9 @@ cflags() {
         version.o) f=-DLLPP_VERSION=$ver;;
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
-            f="$f -DCACHE_PAGEREFS -DKeySym=uint32_t"
+            f="$f -DCACHE_PAGEREFS"
             $darwin && f="$f -DCIDER -D_GNU_SOURCE" \
                     || f="$f -D_POSIX_C_SOURCE";; # needed for fdopen
-        */keysym2ucs.o) f="-O2 -include inttypes.h -DKeySym=uint32_t";;
         */ml_*.o) f="-g -Wno-pointer-sign -O2";;
         *) f="-g -O2";;
     esac
