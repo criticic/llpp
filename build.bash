@@ -4,7 +4,7 @@ set -eu
 now() { date +%s; }
 S=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { cksum $*; } 2>/dev/null
+digest() { cksum $* | while read d _; do printf $d; done; } 2>/dev/null
 die() { echo "$*" >&2; exit 111; }
 partmsg() { echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"; }
 
@@ -105,7 +105,7 @@ test "$overs" = "4.10.0" || {
     absprefix=$(cd $outd &>/dev/null; pwd -P)
     export PATH=$absprefix/bin:$PATH
     ocamlc=$absprefix/bin/ocamlc
-    keycmd="echo $url; digest $ocamlc;"
+    keycmd="printf $url; digest $ocamlc;"
     isfresh $ocamlc "$(eval $keycmd)" || (
         tar xf $txz -C $outd
         bn=$(basename $url)
