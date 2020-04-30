@@ -8,6 +8,7 @@
 #pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
 #endif
 
 extern char **environ;
@@ -3304,7 +3305,7 @@ value ml_keysymtoutf8 (value keysym_v)
 {
     CAMLparam1 (keysym_v);
     CAMLlocal1 (str_v);
-    unsigned short keysym = Int_val (keysym_v);
+    unsigned short keysym = (unsigned short) Int_val (keysym_v);
     Rune rune;
     extern long keysym2ucs (unsigned short);
     int len;
