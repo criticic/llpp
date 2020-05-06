@@ -65,10 +65,6 @@ Print version and exit
 == KEY BINDINGS
 Open a document with llpp, then press `F1` or `h` to switch to help mode.
 
-To remember all key bindings, an Anki deck has been made available:
-
-    https://ankiweb.net/shared/info/1547122548
-
 == FILES
 
 === ~/.config/llpp.conf
