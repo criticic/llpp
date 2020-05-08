@@ -1,0 +1,6 @@
+mupdf git repository is enormous. mostly due to submodules and
+attempts to use shallow clones of those were unsuccessful, so if one
+has an existing mupdf checkout bandwidth can be saved by doing a clone
+with a reference like so:
+
+$ cloneargs="--reference $X/git/mupdf' sh misc/getmupdf.sh build/mupdf
