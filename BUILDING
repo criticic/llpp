@@ -9,6 +9,7 @@ Prerequisites for building from sources:
         This requires either:
             wget    [https://www.gnu.org/software/wget/]
             or curl [https://curl.haxx.se/]
+
 To download mupdf+prerequisites that llpp is known to work with:
     llpp% mkdir build && sh misc/getmupdf.sh build/mupdf
 
