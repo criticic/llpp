@@ -118,11 +118,8 @@ test "$overs" = "4.10.0" || {
     overs=$(ocamlc -vnum 2>/dev/null)
 }
 
-test -z "${LLPP_CC-}" && {
-    ccomp=$(ocamlc -config | grep "^c_compiler: " | { read _ c; echo $c; })
-} || {
-    ccomp=$LLPP_CC
-}
+ccomp=${LLPP_CC-$(ocamlc -config | grep "^c_compiler: " | \
+                      { read _ c; echo $c; })}
 cvers="$($ccomp --version | { read a; echo $a; } )"
 
 bocaml1() {
