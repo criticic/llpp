@@ -118,6 +118,8 @@ test "$overs" = "4.10.0" || {
     overs=$(ocamlc -vnum 2>/dev/null)
 }
 
+ccomp=$(ocamlc -config | grep "^c_compiler: " | { read _ c; echo $c; })
+cvers="$($ccomp --version | { read a; echo $a; } )"
 bocaml1() {
     grep -q "$3" $outd/ordered || {
         bocaml2 $*
@@ -204,11 +206,11 @@ bocamlc() {
     local cmd="ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
-    isfresh "$o" "$cmd$(eval $keycmd)" || {
+    isfresh "$o" "$cvers$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
         eval "$cmd || die '$cmd failed'"
         read _ d <$o.dep
-        echo "$cmd$(eval $keycmd)" >"$o.past"
+        echo "$cvers$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
 }
 
