@@ -25,7 +25,7 @@ text() {
 === $1 ===
 EOF
     test -n "$2" && cat $2 || cat <<EOF
-S9 З3Ӡʒ Il1
+S9 З3Ӡʒ Il1 O0 0O o0 0o
 ~
 ЁЖЗ
 
@@ -38,6 +38,7 @@ ABCDEFGHIJKLMNOPQRSTWXYZ
 телегаммааппарат фельдъегерь четырёхсотпятидесятисемимиллиметровое
 превысокомногорассмотрительствующий вскользь забулдыжничество
 цецецница
+',.ფyfგcრლაოეუიდჰთნსყჯქxბმwვზ
 Σομε πσθδο γρεεκ
 \`1234567890-=\\
 ~!@#\$$%^&*()_+|
@@ -54,6 +55,7 @@ Apay Арау
 - - (~-) ~ ~ (-~)
 curly vs plain braces {} () {} →
 Bjarne Stroustrup (/ˈbjɑːrnə ˈstraʊstrʊp/; Danish: [ˈbjɑːnə ˈsdʁʌwˀsdʁɔb]
+○●
 
 kerning
     echo \${@:5}
@@ -116,6 +118,7 @@ kerning
     Yokozuna       [Y okozuna]
     подтверждение  [под тверждение]
     Xwayland       [X wayland]
+    callable       [ca l l ab le]
 
 almost kerning
     hope doesn't
