@@ -3701,6 +3701,21 @@ static void diag_callback (void *user, const char *message)
     printd ("emsg %s %s", (char *) user, message);
 }
 
+static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
+                      int UNUSED_ATTR language, int UNUSED_ATTR serif,
+                      int UNUSED_ATTR bold, int UNUSED_ATTR italic)
+{
+    static fz_font *font;
+    static int done;
+
+    if (!done) {
+        char *path = getenv ("LLPP_FALLBACK_FONT");
+        if (path) font = fz_new_font_from_file (ctx, NULL, path, 0, 1);
+        done = 1;
+    }
+    return font;
+}
+
 ML0 (init (value csock_v, value params_v))
 {
     CAMLparam2 (csock_v, params_v);
@@ -3747,6 +3762,7 @@ ML0 (init (value csock_v, value params_v))
     fz_register_document_handlers (state.ctx);
     fz_set_error_callback (state.ctx, diag_callback, "[e]");
     fz_set_warning_callback (state.ctx, diag_callback, "[w]");
+    fz_install_load_system_font_funcs (state.ctx, NULL, NULL, lsff);
 
     state.trimmargins = Bool_val (Field (trim_v, 0));
     fuzz_v            = Field (trim_v, 1);
