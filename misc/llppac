@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+font=$HOME/x/fnt/LastResort.ttf
+! test -r $font || export LLPP_FALLBACK_FONT=$font
+echo $font
+
 die() {
     echo "$1" >&2
     exit 1
@@ -30,7 +34,7 @@ S9 З3Ӡʒ I|l1 O0 0O o0 0o
 ЁЖЗ
 
 abcdefghijklmnopqrstuvwxyz
-ABCDEFGHIJKLMNOPQRSTUZWXYZ
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
 абвгдеёжзийклмнопрстуфхцчшщэюя
 АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
 инпипнишпнипшнипнпншпнпинпипнпипщнпипипин
