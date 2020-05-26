@@ -3,7 +3,6 @@ set -e
 
 font=$HOME/x/fnt/LastResort.ttf
 ! test -r $font || export LLPP_FALLBACK_FONT=$font
-echo $font
 
 die() {
     echo "$1" >&2
@@ -61,7 +60,7 @@ Apay Арау
 - - (~-) ~ ~ (-~)
 curly vs plain braces {} () {} →
 Bjarne Stroustrup (/ˈbjɑːrnə ˈstraʊstrʊp/; Danish: [ˈbjɑːnə ˈsdʁʌwˀsdʁɔb]
-○●
+○●🅼
 
 kerning
     echo \${@:5}
