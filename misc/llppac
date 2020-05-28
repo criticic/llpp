@@ -25,7 +25,7 @@ missing() {
 text() {
     cat <<EOF
 <pre style="font-size: ${1}pt;">
-=== $1 ===
+$1 <hr>
 EOF
     test -n "$2" && cat $2 || cat <<EOF
 S9 З3Ӡʒ I|l1 O0 0O o0 0o
