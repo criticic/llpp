@@ -12,7 +12,7 @@
 
 /* malc */
 @font-face { font-family: sans-serif; src: local("pt sans"); }
-@font-face { font-family: serif; src: local("gentium plus"); }
+@font-face { font-family: serif; src: local("pt astra serif"); }
 @font-face { font-family: monospace; src: local("monofur"); }
 
 /* set headers and footers */
@@ -39,7 +39,7 @@
 
 /* basic style settings*/
 body {
-    font: 14pt/1.3 "gentium plus", "symbola", "serif";
+    font: 14pt/1.3 "pt astra serif", "symbola", "serif";
     prince-linebreak-magic: auto;
     hyphens: auto;
     text-align: justify;
