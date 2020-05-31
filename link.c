@@ -734,7 +734,8 @@ static void initpdims (void)
                     }
 
                     fz_drop_page (ctx, &page->super);
-                    show = trim ? pageno % 5 == 0 : pageno % 20 == 0;
+                    show = (pageno + 1 == state.pagecount)
+                        || (trim ? pageno % 5 == 0 : pageno % 20 == 0);
                     if (show) {
                         printd ("progress %f Trimming %d",
                                 (double) (pageno + 1) / state.pagecount,
