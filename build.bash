@@ -299,7 +299,6 @@ fi
 
 ord=$(grep -v \.cmi $outd/ordered)
 cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $(echo $ord) -cclib \"$clibs\""
-cmd="$cmd -ccopt -Wl,-z,noexecstack"
 keycmd="digest $outd/llpp $cobjs $ord $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
