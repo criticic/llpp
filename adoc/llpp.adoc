@@ -129,7 +129,7 @@ llppac(1), llpphtml(1)
 Command to inquire user about the password (dmenu/rofi like)
 
 == REPORTING BUGS
-https://github.com/moosotc/llpp/issues or mailto://moosotc@gmail.com
+https://github.com/moosotc/llpp/issues or mailto:moosotc@gmail.com
 
 == macOS
 Nicolás Ojeda Bär contributed macOS port.
