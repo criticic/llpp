@@ -4177,7 +4177,11 @@ let display () =
        begin match getopaque pageno with
        | Some opaque ->
           let x0, y0, x1, y1 = Ffi.getlinkrect opaque linkno in
-          let color = (0.0, 0.0, 0.5, 0.5) in
+          let color =
+            if conf.invert
+            then (1.0, 1.0, 1.0, 0.5)
+            else (0.0, 0.0, 0.5, 0.5)
+          in
           (pageno, color,
            (float x0, float y0,
             float x1, float y0,
