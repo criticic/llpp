@@ -1,5 +1,5 @@
 llppac(1)
-=======
+=========
 
 == NAME
 llppac - an auto converter that will try to show anything via llpp

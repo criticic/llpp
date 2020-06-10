@@ -244,20 +244,14 @@ shift 1
 for target; do
     case "$target" in
         doc)
-            doct=${doct-manpage}
             md=$outd/doc
             mkdir -p $md
-            case $doct in
-                epub) suf=.epub;;
-                manpage) suf=.1;;
-                *) die "unknown doc type";;
-            esac
             for m in llpp llppac llpphtml; do
                 src=$srcd/adoc/$m.adoc
-                out=$md/$m$suf
+                out=$md/$m.1
                 conf="$srcd/man/asciidoc.conf"
                 keycmd="digest $out $src $conf"
-                cmd="a2x -D $md -d manpage -f $doct $src"
+                cmd="asciidoctor -b manpage -o $out $src"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     echo "$src -> $out"
                     eval "$cmd || die '$cmd failed'"
