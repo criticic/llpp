@@ -28,7 +28,7 @@ text() {
 $1 <hr>
 EOF
     test -n "$2" && cat $2 || cat <<EOF
-S9 З3Ӡʒ I|l1 O0 0O o0 0o
+S9 З3Ӡʒ I|l1 O0 0O o0 0o OD DO Oo Do m rn m -~ ~-
 ~
 ЁЖЗ
 
