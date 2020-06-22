@@ -1,5 +1,8 @@
 (* $Id: glArray.ml,v 1.6 2008-10-30 07:51:33 garrigue Exp $ *)
 
+open Gl
+open Raw
+
 type kind = [`edge_flag | `texture_coord | `color | `index | `normal | `vertex ]
 
 let check_static func f raw =

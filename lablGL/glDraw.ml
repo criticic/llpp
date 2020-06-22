@@ -15,6 +15,21 @@ external edge_flag : bool -> unit = "ml_glEdgeFlag"
 external front_face : [`cw|`ccw] -> unit = "ml_glFrontFace"
 
 external line_width : float -> unit = "ml_glLineWidth"
+external line_stipple : factor:int -> pattern:short -> unit
+    = "ml_glLineStipple"
+let line_stipple ?(factor=1) pattern =
+  line_stipple ~factor ~pattern
+external point_size : float -> unit = "ml_glPointSize"
+
+external polygon_offset : factor:float -> units:float -> unit
+    = "ml_glPolygonOffset"
+external polygon_mode : face:face -> [`point|`line|`fill] -> unit
+    = "ml_glPolygonMode"
+external polygon_stipple : [`bitmap] Raw.t -> unit = "ml_glPolygonStipple"
+let polygon_stipple (img : GlPix.bitmap) =
+  if GlPix.height img <> 32 || GlPix.width img <> 32
+  then invalid_arg "GlDraw.polygon_stipple";
+  polygon_stipple (GlPix.to_raw img)
 
 external shade_model : [`flat|`smooth] -> unit = "ml_glShadeModel"
 
