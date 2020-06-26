@@ -29,8 +29,6 @@ $1 <hr>
 EOF
     test -n "$2" && cat $2 || cat <<EOF
 S9 З3Ӡʒ I|l1 O0 0O o0 0o OD DO Oo Do m rn m -~ ~-  8B B8 BB 88B8 88B8
-~
-ЁЖЗ
 
 abcdefghijklmnopqrstuvwxyz
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -74,7 +72,7 @@ Cyrillic
 - - (~-) ~ ~ (-~) -- ~~ ~&mdash; &mdash;~ ''"''""., 1.65Mb
 curly vs plain braces {} () {} ({ {( }) )} →
 Bjarne Stroustrup (/ˈbjɑːrnə ˈstraʊstrʊp/; Danish: [ˈbjɑːnə ˈsdʁʌwˀsdʁɔb]
-○●🅼
+○●🅼🐫🐧﷽🙋
 😁 😂 😃 😅 😆 😇 😈 😉 😊 😋 😌 😍 😎 😏 😐 😑
 😒 😓 😕 😗 😘 😙 😚 😛 😜 😞 😠 😡 😢 😥 😧 😨
 😩 😪 😫 😬 😭 😮 😯 😰 😱 😲 😳 😵 😶 😸 😹 😻
@@ -151,6 +149,7 @@ kerning
     CAPTCHA        [CA PTCHA]
     KIZER          [KI ZER]
     Kavanugh       [K avaunaugh]
+    DejaVu         [D e ja V u]
 
 almost kerning
     hope doesn't
