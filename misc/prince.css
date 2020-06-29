@@ -6,9 +6,9 @@ body { margin-left: 10%; margin-right: 10%;
 }
 @font-face {
     font-family: serif;
-    src: local("pt astra serif");
+    src: local("alegreya");
 }
 @font-face {
     font-family: monospace;
-    src: local("iosevka malc");
+    src: local("iosevka clam");
 }
