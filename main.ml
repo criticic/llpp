@@ -3200,6 +3200,11 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
   , mkenter `history "history is empty" sh )
 ;;
 
+
+let addbookmark title a =
+  let b = List.filter (fun (title', _, _) -> title <> title') state.bookmarks in
+  state.bookmarks <- (title, 0, Oanchor a) :: b;;
+
 let quickbookmark ?title () =
   match state.layout with
   | [] -> ()
@@ -3216,7 +3221,7 @@ let quickbookmark ?title () =
           )
        | Some title -> title
      in
-     state.bookmarks <- (title, 0, Oanchor (getanchor1 l)) :: state.bookmarks
+     addbookmark title (getanchor1 l)
 ;;
 
 let setautoscrollspeed step goingdown =
@@ -3654,8 +3659,7 @@ let viewkeyboard key mask =
   | Ascii 'm' ->
      let ondone s =
        match state.layout with
-       | l :: _ when nonemptystr s ->
-          state.bookmarks <- (s, 0, Oanchor (getanchor1 l)) :: state.bookmarks
+       | l :: _ when nonemptystr s -> addbookmark s @@ getanchor1 l
        | _ -> ()
      in
      enttext ("bookmark: ", E.s, None, textentry, ondone, true)
