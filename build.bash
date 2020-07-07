@@ -76,8 +76,17 @@ cflags() {
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
             f="$f -DCACHE_PAGEREFS"
             $darwin && f="$f -DCIDER -D_GNU_SOURCE" \
-                    || f="$f -D_POSIX_C_SOURCE";; # needed for fdopen
-        */ml_*.o) f="-g -Wno-pointer-sign -O2";;
+                    || f="$f -D_POSIX_C_SOURCE" # needed for fdopen
+            ;;
+
+        */ml_*.o)
+            f="-g -Wno-pointer-sign -O2"
+            expr &>/dev/null "${LLPP_CC-}" : "clang" && {
+                f+=" -fno-strict-aliasing"
+                f+=" -Wno-incompatible-pointer-types-discards-qualifiers"
+            } || f+=" -Wno-discarded-qualifiers"
+            ;;
+
         *) f="-g -O2";;
     esac
     ! $darwin || f="$f -DGL_SILENCE_DEPRECATION"
