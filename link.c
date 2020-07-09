@@ -399,8 +399,8 @@ static void docinfo (void)
         { FZ_META_INFO_AUTHOR, "Author" },
         { FZ_META_FORMAT, "Format" },
         { FZ_META_ENCRYPTION, "Encryption" },
-        { "info:Creator", "Creator" },
-        { "info:Producer", "Producer" },
+        { FZ_META_INFO_CREATOR, "Creator" },
+        { FZ_META_INFO_PRODUCER, "Producer" },
         { "info:CreationDate", "Creation date" },
     };
     int len = 0;
