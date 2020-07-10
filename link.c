@@ -403,8 +403,9 @@ static void docinfo (void)
         { FZ_META_INFO_PRODUCER, "Producer" },
         { "info:CreationDate", "Creation date" },
     };
-    int len = 0;
-    char *buf = NULL;
+    int len = 1024;
+    char *buf = malloc (len);
+    len &= !buf-1;
 
     for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
         int need;
