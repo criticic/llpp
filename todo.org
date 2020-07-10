@@ -16,4 +16,3 @@
   just 2 threads (event loop, display/mupdf rendering) is not fast
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
-
