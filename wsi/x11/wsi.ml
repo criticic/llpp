@@ -978,7 +978,7 @@ let setup disp sock rootwid screennum w h =
                state.maxhatom <- r32 resp 8;
              );
            sendintern
-             sock (~> "_NET_WM_STATE_FULLSCREEN") true (fun resp ->
+             sock (~> "_NET_WM_STATE_FULLSCREEN") false (fun resp ->
                state.fulsatom <- r32 resp 8;
                if state.fulsatom != 0
                then
