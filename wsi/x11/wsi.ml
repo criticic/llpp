@@ -944,28 +944,6 @@ let setup disp sock rootwid screennum w h =
          );
        );
 
-     state.fullscreen <- (fun wid ->
-       let s = Bytes.create 16 in
-       match state.fs with
-       | NoFs ->
-          w32 s 0 0;
-          w32 s 4 0;
-          w32 s 8 rootw;
-          w32 s 12 rooth;
-          let s = configurewindowreq wid 0x000f s in
-          sendstr s state.sock;
-          state.fs <- Fs (state.x, state.y, state.w, state.h);
-
-       | Fs (x, y, w, h) ->
-          w32 s 0 x;
-          w32 s 4 y;
-          w32 s 8 w;
-          w32 s 12 h;
-          let s = configurewindowreq wid 0x000f s in
-          sendstr s state.sock;
-          state.fs <- NoFs;
-     );
-
      sendintern
        sock (~> "_NET_WM_STATE") true (fun resp ->
          state.nwmsatom <- r32 resp 8;
