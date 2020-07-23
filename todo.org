@@ -17,3 +17,5 @@
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO trimcache file in history (?)
+  make it work with -last
+* TODO DRY digesting
