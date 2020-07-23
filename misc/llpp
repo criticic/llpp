@@ -4,4 +4,4 @@ eval 2>/dev/null $(! expr >/dev/null "$(xdriinfo)" : ".*\(iris\|intel\)$" \
                        || echo vblank_mode=0)
 tcf="$1.tcf"
 test -e "$tcf" && tcf="-tcf $tcf" || tcf=
-exec llpp.bin "$@" $tcf
+exec llpp.bin "$@" "$tcf"
