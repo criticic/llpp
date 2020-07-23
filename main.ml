@@ -4851,7 +4851,6 @@ let remoteopen path =
 let () =
   Utils.vlogf := (fun s -> if conf.verbose then prerr_endline s else ignore s);
   let gcconfig = ref false in
-  let trimcachepath = ref E.s in
   let rcmdpath = ref E.s in
   let pageno = ref None in
   let openlast = ref false in
@@ -4881,7 +4880,7 @@ let () =
         ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
          "<page-number> Jump to page");
 
-        ("-tcf", Arg.String (fun s -> trimcachepath := s),
+        ("-tcf", Arg.String (fun s -> defconf.trimcachepath <- s),
          "<path> Set path to the trim cache file");
 
         ("-dest", Arg.String (fun s -> state.nameddest <- s),
@@ -5075,7 +5074,7 @@ let () =
   Ffi.init cs (
       conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
       conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-      !Config.fontpath, !trimcachepath
+      !Config.fontpath, conf.trimcachepath
     );
   List.iter GlArray.enable [`texture_coord; `vertex];
   GlTex.env (`color conf.texturecolor);

@@ -27,6 +27,7 @@ and mark =
 and multicolumns = multicol * pagegeom
 and singlecolumn = pagegeom
 and splitcolumns = columncount * pagegeom
+and trimcachepath = string
 and pagegeom = (pdimno * x * y * (pageno * width * height * leftx)) array
 and multicol = columncount * covercount * covercount
 and columncount = int
@@ -85,6 +86,7 @@ i cwinh 1000
 g fitmodel fitmodel FitProportional
 b trimmargins false
 g trimfuzz irect "(0,0,0,0)"
+g trimcachepath trimcachepath E.s
 g memlimit memsize "32 lsl 20"
 g texcount texcount 256
 g sliceheight sliceheight 24
