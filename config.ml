@@ -1249,6 +1249,7 @@ let add_attrs bb always dc c time =
   oi "aalevel" c.aalevel dc.aalevel;
   ob "trim-margins" c.trimmargins dc.trimmargins;
   oR "trim-fuzz" c.trimfuzz dc.trimfuzz;
+  os "trim-cache-path" c.trimcachepath dc.trimcachepath;
   os "uri-launcher" c.urilauncher dc.urilauncher;
   os "path-launcher" c.pathlauncher dc.pathlauncher;
   oC "color-space" c.colorspace dc.colorspace;
