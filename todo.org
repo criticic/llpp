@@ -16,6 +16,8 @@
   just 2 threads (event loop, display/mupdf rendering) is not fast
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
-* TODO trimcache file in history (?)
-  make it work with -last
-* TODO DRY digesting
+* DONE trimcache file in history (?)
+  CLOSED: [2020-07-23 Thu 12:02]
+* TODO digest caching
+* TODO thin about restoring the geometry and other paremters when
+  visiting the document via history
