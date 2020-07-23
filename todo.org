@@ -19,5 +19,7 @@
 * DONE trimcache file in history (?)
   CLOSED: [2020-07-23 Thu 12:02]
 * TODO digest caching
-* TODO thin about restoring the geometry and other paremters when
+* DONE thin about restoring the geometry and other paremters when
+  CLOSED: [2020-07-23 Thu 16:50]
   visiting the document via history
+* TODO should the trimcachepath be made absolute?
