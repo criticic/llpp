@@ -3718,6 +3718,27 @@ static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
     return font;
 }
 
+ML0 (settrimcachepath (value path_v))
+{
+    CAMLparam1 (path_v);
+    const char *path = String_val (path_v);
+
+    if (!path || !strlen (path))  {
+        free (state.trimcachepath);
+        state.trimcachepath = NULL;
+    }
+    else {
+        free (state.trimcachepath);
+        state.trimcachepath = ystrdup (path);
+
+        if (!state.trimcachepath) {
+            printd ("emsg failed to strdup trimcachepath: %d:%s",
+                    errno, strerror (errno));
+        }
+    }
+    CAMLreturn0;
+}
+
 ML0 (init (value csock_v, value params_v))
 {
     CAMLparam2 (csock_v, params_v);
@@ -3750,15 +3771,6 @@ ML0 (init (value csock_v, value params_v))
         printd ("emsg setlocale: %d:%s", errno, strerror (errno));
     }
 #endif
-
-    if (caml_string_length (Field (params_v, 8)) > 0) {
-        state.trimcachepath = ystrdup (String_val (Field (params_v, 8)));
-
-        if (!state.trimcachepath) {
-            printd ("emsg failed to strdup trimcachepath: %d:%s",
-                    errno, strerror (errno));
-        }
-    }
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);

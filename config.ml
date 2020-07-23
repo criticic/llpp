@@ -651,6 +651,7 @@ let getanchor () =
 ;;
 
 let fontpath = ref E.s;;
+let tcfpath = ref E.s;;
 
 type historder = [ `lastvisit | `title | `path | `file ];;
 
@@ -834,18 +835,20 @@ let bookmark_of attrs =
 ;;
 
 let doc_of attrs =
-  let rec fold path key page rely pan visy origin = function
-    | ("path", v) :: rest -> fold v key page rely pan visy origin rest
-    | ("key", v) :: rest -> fold path v page rely pan visy origin rest
-    | ("page", v) :: rest -> fold path key v rely pan visy origin rest
-    | ("rely", v) :: rest -> fold path key page v pan visy origin rest
-    | ("pan", v) :: rest -> fold path key page rely v visy origin rest
-    | ("visy", v) :: rest -> fold path key page rely pan v origin rest
-    | ("origin", v) :: rest -> fold path key page rely pan visy v rest
-    | _ :: rest -> fold path key page rely pan visy origin rest
-    | [] -> path, key, page, rely, pan, visy, origin
+  let rec fold path key page rely pan visy origin tcf = function
+    | ("path", v) :: rest -> fold v key page rely pan visy origin tcf rest
+    | ("key", v) :: rest -> fold path v page rely pan visy origin tcf rest
+    | ("page", v) :: rest -> fold path key v rely pan visy origin tcf rest
+    | ("rely", v) :: rest -> fold path key page v pan visy origin tcf rest
+    | ("pan", v) :: rest -> fold path key page rely v visy origin tcf rest
+    | ("visy", v) :: rest -> fold path key page rely pan v origin tcf rest
+    | ("origin", v) :: rest -> fold path key page rely pan visy v tcf rest
+    | ("trim-cache-path", v) :: rest ->
+       fold path key page rely pan visy origin v rest
+    | _ :: rest -> fold path key page rely pan visy origin tcf rest
+    | [] -> path, key, page, rely, pan, visy, origin, tcf
   in
-  fold E.s E.s "0" "0" "0" "0" E.s attrs
+  fold E.s E.s "0" "0" "0" "0" E.s E.s attrs
 ;;
 
 let map_of attrs =
@@ -903,15 +906,18 @@ let get s =
        else { v with f = uifont (Buffer.create 10) }
 
     | Vopen ("doc", attrs, closed) ->
-       let pathent, key, spage, srely, span, svisy, origin = doc_of attrs in
+       let pathent, key, spage, srely, span, svisy, origin, tcfE
+         = doc_of attrs in
        let path = unentS pathent
        and origin = unentS origin
        and pageno = fromstring int_of_string spos "page" spage 0
        and rely = fromstring float_of_string spos "rely" srely 0.0
        and pan = fromstring int_of_string spos "pan" span 0
+       and tcfS = unentS tcfE
        and visy = fromstring float_of_string spos "visy" svisy 0.0 in
        let c = config_of dc attrs in
        c.key <- key;
+       c.trimcachepath <- tcfS;
        let anchor = (pageno, rely, visy) in
        if closed
        then (Hashtbl.add h path (c, [], pan, anchor, origin); v)

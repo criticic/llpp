@@ -1,7 +1,7 @@
 open Config;;
 
 type initparams = (angle * fitmodel * trimparams * texcount * sliceheight *
-                     memsize * colorspace * fontpath * trimcachepath);;
+                     memsize * colorspace * fontpath);;
 
 external init : Unix.file_descr -> initparams -> unit = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
@@ -17,6 +17,7 @@ external postprocess :
   = "ml_postprocess";;
 external pagebbox : opaque -> bbox = "ml_getpagebox";;
 external setaalevel : int -> unit = "ml_setaalevel";;
+external settrimcachepath : string -> unit = "ml_settrimcachepath";;
 external setpapercolor : rgba -> unit = "ml_setpapercolor";;
 external realloctexts : int -> bool = "ml_realloctexts";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;

@@ -4880,7 +4880,7 @@ let () =
         ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
          "<page-number> Jump to page");
 
-        ("-tcf", Arg.String (fun s -> defconf.trimcachepath <- s),
+        ("-tcf", Arg.String (fun s -> Config.tcfpath := s),
          "<path> Set path to the trim cache file");
 
         ("-dest", Arg.String (fun s -> state.nameddest <- s),
@@ -5039,6 +5039,8 @@ let () =
         opendoc path state.password
     end
   in
+  if !Config.tcfpath == E.s
+  then Config.tcfpath := conf.trimcachepath;
   let wsfd, winw, winh = Wsi.init mu conf.cwinw conf.cwinh platform in
   state.wsfd <- wsfd;
 
@@ -5071,10 +5073,12 @@ let () =
        then String.sub css 0 (l-2)
        else (if css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
   end;
+  Ffi.settrimcachepath !Config.tcfpath;
+  conf.trimcachepath <- !Config.tcfpath;
   Ffi.init cs (
       conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
-      conf.texcount, conf.sliceheight, conf.mustoresize, conf.colorspace,
-      !Config.fontpath, conf.trimcachepath
+      conf.texcount, conf.sliceheight, conf.mustoresize,
+      conf.colorspace, !Config.fontpath
     );
   List.iter GlArray.enable [`texture_coord; `vertex];
   GlTex.env (`color conf.texturecolor);
