@@ -2003,7 +2003,7 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   Ffi.settrimcachepath conf.trimcachepath;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
-  reshape ~firsttime:true state.winw state.winh;
+  Wsi.reshape c.cwinw c.cwinh;
   opendoc path origin;
   setzoom c.zoom;
 ;;
