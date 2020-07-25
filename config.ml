@@ -242,6 +242,12 @@ type 'a circbuf =
   }
 ;;
 
+type 'a nav =
+  { past   : 'a list
+  ; future : 'a list
+  }
+;;
+
 type state =
   { mutable ss            : Unix.file_descr
   ; mutable wsfd          : Unix.file_descr
@@ -301,7 +307,7 @@ type state =
 and hists =
   { pat : string circbuf
   ; pag : string circbuf
-  ; nav : anchor circbuf
+  ; mutable nav : anchor nav
   ; sel : string circbuf
   }
 ;;
@@ -420,7 +426,10 @@ let state =
   ; nameddest     = E.s
   ; geomcmds      = E.s, []
   ; hists         =
-      { nav       = cbnew 10 emptyanchor
+      { nav       =
+          { past    = []
+          ; future  = []
+          }
       ; pat       = cbnew 10 E.s
       ; pag       = cbnew 10 E.s
       ; sel       = cbnew 10 E.s
@@ -1168,7 +1177,6 @@ let load openlast =
     state.x <- px;
     state.origin <- po;
     state.anchor <- pa;
-    cbput state.hists.nav pa;
     true
   in
   load1 f
