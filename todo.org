@@ -23,3 +23,4 @@
   CLOSED: [2020-07-23 Thu 16:50]
   visiting the document via history
 * TODO should the trimcachepath be made absolute?
+* TODO BLOCK_001-480_Березин.pdf page 45 bounds
