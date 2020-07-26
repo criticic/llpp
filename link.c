@@ -639,9 +639,10 @@ static void initpdims (void)
     struct pagedim *p = NULL;
     fz_context *ctx = state.ctx;
     fz_rect rootmediabox = fz_empty_rect;
-    pdf_document *pdf = NULL;
+    pdf_document *pdf;
 
     fz_var (p);
+    fz_var (pdf);
     fz_var (trimw);
     fz_var (trimf);
     fz_var (cxcount);
@@ -652,6 +653,7 @@ static void initpdims (void)
             trimf = fopen (state.trimcachepath, "wb");
             trimw = 1;
         }
+        pdf = NULL;
     }
     else {
         pdf = pdf_specifics (ctx, state.doc);
