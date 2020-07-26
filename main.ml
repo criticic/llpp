@@ -699,10 +699,7 @@ let getanchory (n, top, dtop) =
 ;;
 
 let addnav () =
-  state.hists.nav <-
-    { past = getanchor () :: state.hists.nav.past
-    ; future = []
-    }
+  state.nav <- { past = getanchor () :: state.nav.past; future = []; }
 ;;
 
 let gotopage n top =
@@ -3357,6 +3354,13 @@ let viewkeyboard key mask =
     state.text <- E.s;
     enttext ();
     postRedisplay "view:enttext"
+  and histback () =
+    match state.nav.past with
+    | [] -> ()
+    | prev :: prest ->
+       state.nav <- { past = prest
+                    ; future = getanchor () :: state.nav.future; };
+       gotoxy state.x (getanchory prev)
   in
   let ctrl = Wsi.withctrl mask in
   let open Keys in
@@ -3785,27 +3789,14 @@ let viewkeyboard key mask =
      gotoxy 0 (clamp state.maxy)
 
   | Right when Wsi.withalt mask ->
-     let nav = state.hists.nav in
-     (match nav.future with
+     (match state.nav.future with
      | [] -> ()
      | next :: frest ->
-        state.hists.nav <-
-          { past = getanchor () :: nav.past
-          ; future = frest
-          };
+        state.nav <- { past = getanchor () :: state.nav.past; future = frest; };
         gotoxy state.x (getanchory next)
      )
-  | Backspace | Left when Wsi.withalt mask ->
-     let nav = state.hists.nav in
-     (match nav.past with
-     | [] -> ()
-     | prev :: prest ->
-        state.hists.nav <-
-          { past = prest
-          ; future = getanchor () :: nav.future
-          };
-        gotoxy state.x (getanchory prev)
-     )
+  | Left when Wsi.withalt mask -> histback ()
+  | Backspace -> histback ()
 
   | Ascii 'r' ->
      reload ()

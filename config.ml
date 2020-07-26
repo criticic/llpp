@@ -303,11 +303,11 @@ type state =
   ; mutable lnava         : (pageno * linkno) option
   ; mutable slideshow     : int
   ; mutable reload        : (x * y * float) option
+  ; mutable nav           : anchor nav
   }
 and hists =
   { pat : string circbuf
   ; pag : string circbuf
-  ; mutable nav : anchor nav
   ; sel : string circbuf
   }
 ;;
@@ -426,14 +426,7 @@ let state =
   ; nameddest     = E.s
   ; geomcmds      = E.s, []
   ; hists         =
-      { nav       =
-          { past    = []
-          ; future  = []
-          }
-      ; pat       = cbnew 10 E.s
-      ; pag       = cbnew 10 E.s
-      ; sel       = cbnew 10 E.s
-      }
+      { pat = cbnew 10 E.s; pag = cbnew 10 E.s; sel = cbnew 10 E.s; }
   ; memused       = 0
   ; gen           = 0
   ; autoscroll    = None
@@ -455,6 +448,7 @@ let state =
   ; lnava         = None
   ; slideshow     = 0
   ; reload        = None
+  ; nav           = { past = []; future  = []; }
   }
 ;;
 
