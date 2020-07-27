@@ -1396,11 +1396,9 @@ let save1 bb leavebirdseye x h dc =
   let uifontsize = fstate.fontsize in
   let dc = if !bedefault then conf else dc in
   Buffer.add_string bb "<llppconfig>\n";
-
   if nonemptystr !fontpath
   then Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
-         uifontsize
-         !fontpath
+         uifontsize !fontpath
   else
     if uifontsize <> 14
     then Printf.bprintf bb "<ui-font size='%d'/>\n" uifontsize
