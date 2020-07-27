@@ -2453,8 +2453,8 @@ let enterinfomode =
     sep ();
     src#bool ~offset:0 ~btos:(fun v -> if v then "(on)" else "(off)")
       "Save these parameters as global defaults at exit"
-      (fun () -> conf.bedefault)
-      (fun v -> conf.bedefault <- v);
+      (fun () -> !Config.bedefault)
+      (fun v -> Config.bedefault := v);
 
     sep ();
     let btos b = Utf8syms.(if b then lguillemet else rguillemet) in

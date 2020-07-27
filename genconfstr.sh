@@ -96,7 +96,6 @@ g papercolor rgba "(1.0, 1.0, 1.0, 0.0)"
 g sbarcolor rgba "(0.64, 0.64, 0.64, 0.7)"
 g sbarhndlcolor rgba "(0.0, 0.0, 0.0, 0.7)"
 g texturecolor rgba "(0.0, 0.0, 0.0, 0.0)"
-b bedefault false
 i tilew 2048
 i tileh 2048
 g mustoresize memsize "256 lsl 20"

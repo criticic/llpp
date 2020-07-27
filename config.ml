@@ -655,6 +655,7 @@ let getanchor () =
 
 let fontpath = ref E.s;;
 let tcfpath = ref E.s;;
+let bedefault = ref false;;
 
 type historder = [ `lastvisit | `title | `path | `file ];;
 
@@ -1393,7 +1394,7 @@ let keystostrlist c =
 
 let save1 bb leavebirdseye x h dc =
   let uifontsize = fstate.fontsize in
-  let dc = if conf.bedefault then conf else dc in
+  let dc = if !bedefault then conf else dc in
   Buffer.add_string bb "<llppconfig>\n";
 
   if nonemptystr !fontpath
