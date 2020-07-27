@@ -647,6 +647,7 @@ static void initpdims (void)
     fz_var (trimf);
     fz_var (cxcount);
 
+    cxcount = state.pagecount;
     if (state.trimmargins && state.trimcachepath) {
         trimf = fopen (state.trimcachepath, "rb");
         if (!trimf) {
@@ -657,13 +658,8 @@ static void initpdims (void)
     }
     else {
         pdf = pdf_specifics (ctx, state.doc);
-    }
-
-    cxcount = state.pagecount;
-    if (pdf) {
-        pdf_obj *obj;
-        obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
-                             "Root/Pages/MediaBox");
+        pdf_obj *obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
+                                      "Root/Pages/MediaBox");
         rootmediabox = pdf_to_rect (ctx, obj);
         pdf_load_page_tree (ctx, pdf);
     }
