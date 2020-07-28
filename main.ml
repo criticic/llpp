@@ -4904,6 +4904,7 @@ let () =
          "<origin> <undocumented>");
 
         ("-no-title", Arg.Set ignoredoctitlte, " ignore document title");
+        ("-dcf", Arg.String (fun s -> Ffi.setdimpath s), " <undocumented>");
         ("-layout-height", Arg.Set_int layouth,
          "<height> layout height html/epub/etc (-1, 0, N)");
        ]

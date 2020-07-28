@@ -15,6 +15,7 @@ external getmaxw : unit -> float = "ml_getmaxw";;
 external postprocess :
   opaque -> int -> int -> int -> (int * string * int) -> int
   = "ml_postprocess";;
+external setdimpath : string -> unit = "ml_setdimpath";;
 external pagebbox : opaque -> bbox = "ml_getpagebox";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external setpapercolor : rgba -> unit = "ml_setpapercolor";;

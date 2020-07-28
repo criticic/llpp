@@ -159,6 +159,7 @@ static struct {
     fz_document *doc;
     fz_context *ctx;
     int w, h;
+    char *dimpath;
 
     struct {
         int index, count;
@@ -172,7 +173,6 @@ static struct {
 
     fz_colorspace *colorspace;
     float papercolor[4];
-
 
     FT_Face face;
     fz_pixmap *pig;
@@ -830,8 +830,7 @@ static void initpdims1 (void)
 
 static void initpdims (void)
 {
-    const char *p = getenv ("LLPP_DIM_CACHE");
-    FILE *f = fopen (p, "rb");
+    FILE *f = state.dimpath ? fopen (state.dimpath, "rb") : NULL;
     if (f) {
         size_t nread;
 
@@ -857,8 +856,8 @@ static void initpdims (void)
     }
     if (!state.pagedims) {
         initpdims1 ();
-        if (p) {
-            f = fopen (p, "wb");
+        if (state.dimpath) {
+            f = fopen (state.dimpath, "wb");
             if (fwrite (&state.pagedimcount,
                         sizeof (state.pagedimcount), 1, f) - 1) {
                 err (1, "fwrite pagedimcunt %zu", sizeof (state.pagedimcount));
@@ -3711,6 +3710,19 @@ static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
         done = 1;
     }
     return font;
+}
+
+ML0 (setdimpath (value path_v))
+{
+    free (state.dimpath);
+    state.dimpath = NULL;
+    const char *p = String_val (path_v);
+    size_t len = strlen (p);
+    state.dimpath = malloc (len + 1);
+    if (!state.dimpath) {
+        err (1, "malloc dimpath %zu", len + 1);
+    }
+    memcpy (state.dimpath, p, len + 1);
 }
 
 ML0 (init (value csock_v, value params_v))
