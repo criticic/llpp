@@ -160,21 +160,19 @@ static struct {
     fz_context *ctx;
     int w, h;
 
-    int texindex;
-    int texcount;
-    GLuint *texids;
-
-    GLenum texiform;
-    GLenum texform;
-    GLenum texty;
+    struct {
+        int index, count;
+        GLuint *ids;
+        GLenum iform, form, ty;
+        struct {
+            int w, h;
+            struct slice *slice;
+        } *owners;
+    } tex;
 
     fz_colorspace *colorspace;
     float papercolor[4];
 
-    struct {
-        int w, h;
-        struct slice *slice;
-    } *texowners;
 
     FT_Face face;
     fz_pixmap *pig;
@@ -339,9 +337,9 @@ static void closedoc (void)
 
 static int openxref (char *filename, char *password, int layouth)
 {
-    for (int i = 0; i < state.texcount; ++i) {
-        state.texowners[i].w = -1;
-        state.texowners[i].slice = NULL;
+    for (int i = 0; i < state.tex.count; ++i) {
+        state.tex.owners[i].w = -1;
+        state.tex.owners[i].slice = NULL;
     }
 
     closedoc ();
@@ -416,8 +414,8 @@ static void unlinktile (struct tile *tile)
         struct slice *s = &tile->slices[i];
 
         if (s->texindex != -1) {
-            if (state.texowners[s->texindex].slice == s) {
-                state.texowners[s->texindex].slice = NULL;
+            if (state.tex.owners[s->texindex].slice == s) {
+                state.tex.owners[s->texindex].slice = NULL;
             }
         }
     }
@@ -1154,15 +1152,15 @@ static void set_tex_params (int colorspace)
 {
     switch (colorspace) {
     case 0:
-        state.texiform = GL_RGBA8;
-        state.texform = GL_RGBA;
-        state.texty = GL_UNSIGNED_BYTE;
+        state.tex.iform = GL_RGBA8;
+        state.tex.form = GL_RGBA;
+        state.tex.ty = GL_UNSIGNED_BYTE;
         state.colorspace = fz_device_rgb (state.ctx);
         break;
     case 1:
-        state.texiform = GL_LUMINANCE_ALPHA;
-        state.texform = GL_LUMINANCE_ALPHA;
-        state.texty = GL_UNSIGNED_BYTE;
+        state.tex.iform = GL_LUMINANCE_ALPHA;
+        state.tex.form = GL_LUMINANCE_ALPHA;
+        state.tex.ty = GL_UNSIGNED_BYTE;
         state.colorspace = fz_device_gray (state.ctx);
         break;
     default:
@@ -1174,30 +1172,30 @@ static void realloctexts (int texcount)
 {
     size_t size;
 
-    if (texcount == state.texcount) return;
+    if (texcount == state.tex.count) return;
 
-    if (texcount < state.texcount) {
-        glDeleteTextures (state.texcount - texcount,
-                          state.texids + texcount);
+    if (texcount < state.tex.count) {
+        glDeleteTextures (state.tex.count - texcount,
+                          state.tex.ids + texcount);
     }
 
-    size = texcount * (sizeof (*state.texids) + sizeof (*state.texowners));
-    state.texids = realloc (state.texids, size);
-    if (!state.texids) {
+    size = texcount * (sizeof (*state.tex.ids) + sizeof (*state.tex.owners));
+    state.tex.ids = realloc (state.tex.ids, size);
+    if (!state.tex.ids) {
         err (1, "realloc texs %zu", size);
     }
 
-    state.texowners = (void *) (state.texids + texcount);
-    if (texcount > state.texcount) {
-        glGenTextures (texcount - state.texcount,
-                       state.texids + state.texcount);
-        for (int i = state.texcount; i < texcount; ++i) {
-            state.texowners[i].w = -1;
-            state.texowners[i].slice = NULL;
+    state.tex.owners = (void *) (state.tex.ids + texcount);
+    if (texcount > state.tex.count) {
+        glGenTextures (texcount - state.tex.count,
+                       state.tex.ids + state.tex.count);
+        for (int i = state.tex.count; i < texcount; ++i) {
+            state.tex.owners[i].w = -1;
+            state.tex.owners[i].slice = NULL;
         }
     }
-    state.texcount = texcount;
-    state.texindex = 0;
+    state.tex.count = texcount;
+    state.tex.index = 0;
 }
 
 static char *mbtoutf8 (char *s)
@@ -1343,9 +1341,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             lock ("cs");
             set_tex_params (colorspace);
-            for (i = 0; i < state.texcount; ++i) {
-                state.texowners[i].w = -1;
-                state.texowners[i].slice = NULL;
+            for (i = 0; i < state.tex.count; ++i) {
+                state.tex.owners[i].w = -1;
+                state.tex.owners[i].slice = NULL;
             }
             unlock ("cs");
         }
@@ -1412,8 +1410,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
             state.h = h;
             if (w != state.w) {
                 state.w = w;
-                for (int i = 0; i < state.texcount; ++i) {
-                    state.texowners[i].slice = NULL;
+                for (int i = 0; i < state.tex.count; ++i) {
+                    state.tex.owners[i].slice = NULL;
                 }
             }
             state.fitmodel = fitmodel;
@@ -1557,10 +1555,10 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             if (h != state.sliceheight) {
                 state.sliceheight = h;
-                for (int i = 0; i < state.texcount; ++i) {
-                    state.texowners[i].w = -1;
-                    state.texowners[i].h = -1;
-                    state.texowners[i].slice = NULL;
+                for (int i = 0; i < state.tex.count; ++i) {
+                    state.tex.owners[i].w = -1;
+                    state.tex.owners[i].h = -1;
+                    state.tex.owners[i].slice = NULL;
                 }
             }
         }
@@ -1999,31 +1997,31 @@ static void uploadslice (struct tile *tile, struct slice *slice)
     for (slice1 = tile->slices; slice != slice1; slice1++) {
         offset += slice1->h * tile->w * tile->pixmap->n;
     }
-    if (slice->texindex != -1 && slice->texindex < state.texcount
-        && state.texowners[slice->texindex].slice == slice) {
-        glBindTexture (TEXT_TYPE, state.texids[slice->texindex]);
+    if (slice->texindex != -1 && slice->texindex < state.tex.count
+        && state.tex.owners[slice->texindex].slice == slice) {
+        glBindTexture (TEXT_TYPE, state.tex.ids[slice->texindex]);
     }
     else {
         int subimage = 0;
-        int texindex = state.texindex++ % state.texcount;
+        int texindex = state.tex.index++ % state.tex.count;
 
-        if (state.texowners[texindex].w == tile->w) {
-            if (state.texowners[texindex].h >= slice->h) {
+        if (state.tex.owners[texindex].w == tile->w) {
+            if (state.tex.owners[texindex].h >= slice->h) {
                 subimage = 1;
             }
             else {
-                state.texowners[texindex].h = slice->h;
+                state.tex.owners[texindex].h = slice->h;
             }
         }
         else {
-            state.texowners[texindex].h = slice->h;
+            state.tex.owners[texindex].h = slice->h;
         }
 
-        state.texowners[texindex].w = tile->w;
-        state.texowners[texindex].slice = slice;
+        state.tex.owners[texindex].w = tile->w;
+        state.tex.owners[texindex].slice = slice;
         slice->texindex = texindex;
 
-        glBindTexture (TEXT_TYPE, state.texids[texindex]);
+        glBindTexture (TEXT_TYPE, state.tex.ids[texindex]);
 #if TEXT_TYPE == GL_TEXTURE_2D
         glTexParameteri (TEXT_TYPE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri (TEXT_TYPE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -2044,20 +2042,20 @@ static void uploadslice (struct tile *tile, struct slice *slice)
                              0,
                              tile->w,
                              slice->h,
-                             state.texform,
-                             state.texty,
+                             state.tex.form,
+                             state.tex.ty,
                              texdata+offset
                 );
         }
         else {
             glTexImage2D (TEXT_TYPE,
                           0,
-                          state.texiform,
+                          state.tex.iform,
                           tile->w,
                           slice->h,
                           0,
-                          state.texform,
-                          state.texty,
+                          state.tex.form,
+                          state.tex.ty,
                           texdata+offset
                 );
         }
