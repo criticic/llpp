@@ -639,7 +639,7 @@ static void initpdims (void)
     struct pagedim *p = NULL;
     fz_context *ctx = state.ctx;
     fz_rect rootmediabox = fz_empty_rect;
-    pdf_document *pdf;
+    pdf_document *pdf = NULL;
 
     fz_var (p);
     fz_var (pdf);
@@ -654,14 +654,14 @@ static void initpdims (void)
             trimf = fopen (state.trimcachepath, "wb");
             trimw = 1;
         }
-        pdf = NULL;
     }
     else {
-        pdf = pdf_specifics (ctx, state.doc);
-        pdf_obj *obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
-                                      "Root/Pages/MediaBox");
-        rootmediabox = pdf_to_rect (ctx, obj);
-        pdf_load_page_tree (ctx, pdf);
+        if ((pdf = pdf_specifics (ctx, state.doc))) {
+            pdf_obj *obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
+                                          "Root/Pages/MediaBox");
+            rootmediabox = pdf_to_rect (ctx, obj);
+            pdf_load_page_tree (ctx, pdf);
+        }
     }
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
