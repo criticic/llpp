@@ -611,7 +611,7 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
     return tile;
 }
 
-static void initpdims (void)
+static void initpdims1 (void)
 {
     struct pagedim *p;
     pdf_document *pdf;
@@ -826,6 +826,52 @@ static void initpdims (void)
         }
     }
     state.trimanew = 0;
+}
+
+static void initpdims (void)
+{
+    const char *p = getenv ("LLPP_DIM_CACHE");
+    FILE *f = fopen (p, "rb");
+    if (f) {
+        size_t nread;
+
+        nread = fread (&state.pagedimcount, sizeof (state.pagedimcount),
+                       1, f);
+        if (nread - 1) {
+            err (1, "fread pagedim %zu", sizeof (state.pagedimcount));
+        }
+        size_t size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
+        state.pagedims = realloc (state.pagedims, size);
+        if (!state.pagedims) {
+            err (1, "realloc pagedims to %zu (%d elems)",
+                 size, state.pagedimcount + 1);
+        }
+        if (fread (state.pagedims,
+                   sizeof (*state.pagedims),
+                   state.pagedimcount+1,
+                   f) - (state.pagedimcount+1)) {
+            err (1, "fread pagedim data %zu %d",
+                 sizeof (*state.pagedims), state.pagedimcount+1);
+        }
+        fclose (f);
+    }
+    if (!state.pagedims) {
+        initpdims1 ();
+        if (p) {
+            f = fopen (p, "wb");
+            if (fwrite (&state.pagedimcount,
+                        sizeof (state.pagedimcount), 1, f) - 1) {
+                err (1, "fwrite pagedimcunt %zu", sizeof (state.pagedimcount));
+            }
+            if (fwrite (state.pagedims, sizeof (*state.pagedims),
+                        state.pagedimcount + 1, f)
+                - (state.pagedimcount + 1)) {
+                err (1, "fwrite pagedim data %zu %u",
+                     sizeof (*state.pagedims), state.pagedimcount+1);
+            }
+            fclose (f);
+        }
+    }
 }
 
 static void layout (void)
