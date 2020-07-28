@@ -176,27 +176,13 @@ static struct {
         struct slice *slice;
     } *texowners;
 
-    int rotate;
-    int fitmodel;
-    int trimmargins;
-    int needoutline;
-    int gen;
-    int aalevel;
-
-    int trimanew;
-    fz_irect trimfuzz;
-    fz_pixmap *pig;
-
-    pthread_t thread;
-    int csock;
     FT_Face face;
-
-    int dirty;
-
-    GLuint stid;
-
-    int bo_usable;
-    GLuint boid;
+    fz_pixmap *pig;
+    pthread_t thread;
+    fz_irect trimfuzz;
+    GLuint stid, boid;
+    int trimmargins, needoutline, gen, rotate, aalevel,
+        fitmodel, trimanew, csock, dirty, bo_usable, utf8cs;
 
     void (*glBindBufferARB) (GLenum, GLuint);
     GLboolean (*glUnmapBufferARB) (GLenum);
@@ -205,10 +191,7 @@ static struct {
     void (*glGenBuffersARB) (GLsizei, GLuint *);
     void (*glDeleteBuffersARB) (GLsizei, GLuint *);
 
-    GLfloat texcoords[8];
-    GLfloat vertices[16];
-
-    int utf8cs;
+    GLfloat texcoords[8], vertices[16];
 } state;
 
 struct bo {
@@ -632,18 +615,14 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 
 static void initpdims (void)
 {
-    FILE *trimf = NULL;
-    int pageno, trim, show;
-    int trimw = 0, cxcount;
     struct pagedim *p = NULL;
-    fz_context *ctx = state.ctx;
-    fz_rect rootmediabox = fz_empty_rect;
     pdf_document *pdf = NULL;
+    fz_context *ctx = state.ctx;
+    int pageno, trim, show, cxcount;
+    fz_rect rootmediabox = fz_empty_rect;
 
     fz_var (p);
     fz_var (pdf);
-    fz_var (trimw);
-    fz_var (trimf);
     fz_var (cxcount);
 
     cxcount = state.pagecount;
@@ -781,7 +760,7 @@ static void initpdims (void)
             }
         }
         else {
-            if (state.trimmargins && trimw) {
+            if (state.trimmargins) {
                 fz_page *page;
 
                 fz_try (ctx) {
@@ -810,37 +789,23 @@ static void initpdims (void)
                 }
                 fz_catch (ctx) {
                 }
-                if (trimf) {
-                    size_t n = fwrite (&mediabox, sizeof (mediabox), 1, trimf);
-                    if (n - 1) {
-                        err (1, "fwrite trim mediabox");
-                    }
-                }
             }
             else {
-                if (trimf) {
-                    size_t n = fread (&mediabox, sizeof (mediabox), 1, trimf);
-                    if (n - 1) {
-                        err (1, "fread trim mediabox %d", pageno);
+                fz_page *page;
+                fz_try (ctx) {
+                    page = fz_load_page (ctx, state.doc, pageno);
+                    mediabox = fz_bound_page (ctx, page);
+                    fz_drop_page (ctx, page);
+
+                    show = !state.trimmargins && pageno % 20 == 0;
+                    if (show) {
+                        printd ("progress %f Gathering dimensions %d",
+                                (double) (pageno) / state.pagecount,
+                                pageno);
                     }
                 }
-                else {
-                    fz_page *page;
-                    fz_try (ctx) {
-                        page = fz_load_page (ctx, state.doc, pageno);
-                        mediabox = fz_bound_page (ctx, page);
-                        fz_drop_page (ctx, page);
-
-                        show = !state.trimmargins && pageno % 20 == 0;
-                        if (show) {
-                            printd ("progress %f Gathering dimensions %d",
-                                    (double) (pageno) / state.pagecount,
-                                    pageno);
-                        }
-                    }
-                    fz_catch (ctx) {
-                        printd ("emsg failed to load page %d", pageno);
-                    }
+                fz_catch (ctx) {
+                    printd ("emsg failed to load page %d", pageno);
                 }
             }
         }
@@ -863,11 +828,6 @@ static void initpdims (void)
         }
     }
     state.trimanew = 0;
-    if (trimf) {
-        if (fclose (trimf)) {
-            err (1, "fclose");
-        }
-    }
 }
 
 static void layout (void)
