@@ -613,8 +613,8 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
 
 static void initpdims (void)
 {
-    struct pagedim *p = NULL;
-    pdf_document *pdf = NULL;
+    struct pagedim *p;
+    pdf_document *pdf;
     fz_context *ctx = state.ctx;
     int pageno, trim, show, cxcount;
     fz_rect rootmediabox = fz_empty_rect;
