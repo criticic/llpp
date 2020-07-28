@@ -1996,7 +1996,6 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   state.origin <- origin;
   state.x <- x;
   setconf conf c;
-  Ffi.settrimcachepath conf.trimcachepath;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Wsi.reshape c.cwinw c.cwinh;
@@ -4883,9 +4882,6 @@ let () =
         ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
          "<page-number> Jump to page");
 
-        ("-tcf", Arg.String (fun s -> Config.tcfpath := s),
-         "<path> Set path to the trim cache file");
-
         ("-dest", Arg.String (fun s -> state.nameddest <- s),
          "<named-destination> Set named destination");
 
@@ -5042,8 +5038,6 @@ let () =
         opendoc path state.password
     end
   in
-  if !Config.tcfpath == E.s
-  then Config.tcfpath := conf.trimcachepath;
   let wsfd, winw, winh = Wsi.init mu conf.cwinw conf.cwinh platform in
   state.wsfd <- wsfd;
 
@@ -5076,8 +5070,6 @@ let () =
        then String.sub css 0 (l-2)
        else (if css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
   end;
-  Ffi.settrimcachepath !Config.tcfpath;
-  conf.trimcachepath <- !Config.tcfpath;
   Ffi.init cs (
       conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
       conf.texcount, conf.sliceheight, conf.mustoresize,

@@ -191,7 +191,6 @@ static struct {
     int csock;
     FT_Face face;
 
-    char *trimcachepath;
     int dirty;
 
     GLuint stid;
@@ -648,20 +647,11 @@ static void initpdims (void)
     fz_var (cxcount);
 
     cxcount = state.pagecount;
-    if (state.trimmargins && state.trimcachepath) {
-        trimf = fopen (state.trimcachepath, "rb");
-        if (!trimf) {
-            trimf = fopen (state.trimcachepath, "wb");
-            trimw = 1;
-        }
-    }
-    else {
-        if ((pdf = pdf_specifics (ctx, state.doc))) {
-            pdf_obj *obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
-                                          "Root/Pages/MediaBox");
-            rootmediabox = pdf_to_rect (ctx, obj);
-            pdf_load_page_tree (ctx, pdf);
-        }
+    if ((pdf = pdf_specifics (ctx, state.doc))) {
+        pdf_obj *obj = pdf_dict_getp (ctx, pdf_trailer (ctx, pdf),
+                                      "Root/Pages/MediaBox");
+        rootmediabox = pdf_to_rect (ctx, obj);
+        pdf_load_page_tree (ctx, pdf);
     }
 
     for (pageno = 0; pageno < cxcount; ++pageno) {
@@ -752,7 +742,8 @@ static void initpdims (void)
                 fz_rect cropbox;
 
                 mediabox =
-                    pdf_to_rect (ctx, pdf_dict_get_inheritable (
+                    pdf_to_rect (ctx,
+                                 pdf_dict_get_inheritable (
                                      ctx,
                                      pageobj,
                                      PDF_NAME (MediaBox)
@@ -3716,27 +3707,6 @@ static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
         done = 1;
     }
     return font;
-}
-
-ML0 (settrimcachepath (value path_v))
-{
-    CAMLparam1 (path_v);
-    const char *path = String_val (path_v);
-
-    if (!path || !strlen (path))  {
-        free (state.trimcachepath);
-        state.trimcachepath = NULL;
-    }
-    else {
-        free (state.trimcachepath);
-        state.trimcachepath = ystrdup (path);
-
-        if (!state.trimcachepath) {
-            printd ("emsg failed to strdup trimcachepath: %d:%s",
-                    errno, strerror (errno));
-        }
-    }
-    CAMLreturn0;
 }
 
 ML0 (init (value csock_v, value params_v))

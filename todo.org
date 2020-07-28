@@ -24,3 +24,4 @@
   visiting the document via history
 * TODO should the trimcachepath be made absolute?
 * TODO BLOCK_001-480_Березин.pdf page 45 bounds
+* TODO turn trim taching in dim taching and make trim caching a special case of that
