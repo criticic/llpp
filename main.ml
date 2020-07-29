@@ -2659,6 +2659,8 @@ let enterinfomode =
     if nonemptystr state.origin
     then src#caption ("Orign\t" ^ mbtoutf8 state.origin) 1;
     src#caption ("Path\t" ^ mbtoutf8 state.path) 1;
+    if nonemptystr conf.dcf
+    then src#caption ("DCF\t" ^ mbtoutf8 conf.dcf) 1;
 
     src#reset prevmode prevuioh;
   in
