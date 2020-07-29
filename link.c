@@ -808,8 +808,8 @@ static void initpdims1 (void)
             }
         }
 
-        if (!p || p->rotate != rotate
-            || memcmp (&p->mediabox, &mediabox, sizeof (mediabox))) {
+        if (p && (p->rotate != rotate
+                  || memcmp (&p->mediabox, &mediabox, sizeof (mediabox)))) {
             size_t size;
 
             size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
