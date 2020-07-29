@@ -837,18 +837,19 @@ let bookmark_of attrs =
 ;;
 
 let doc_of attrs =
-  let rec fold path key page rely pan visy origin = function
-    | ("path", v) :: rest -> fold v key page rely pan visy origin rest
-    | ("key", v) :: rest -> fold path v page rely pan visy origin rest
-    | ("page", v) :: rest -> fold path key v rely pan visy origin rest
-    | ("rely", v) :: rest -> fold path key page v pan visy origin rest
-    | ("pan", v) :: rest -> fold path key page rely v visy origin rest
-    | ("visy", v) :: rest -> fold path key page rely pan v origin rest
-    | ("origin", v) :: rest -> fold path key page rely pan visy v rest
-    | _ :: rest -> fold path key page rely pan visy origin rest
-    | [] -> path, key, page, rely, pan, visy, origin
+  let rec fold path key page rely pan visy origin dcf = function
+    | ("path", v) :: rest -> fold v key page rely pan visy origin dcf rest
+    | ("key", v) :: rest -> fold path v page rely pan visy origin dcf rest
+    | ("page", v) :: rest -> fold path key v rely pan visy origin dcf rest
+    | ("rely", v) :: rest -> fold path key page v pan visy origin dcf rest
+    | ("pan", v) :: rest -> fold path key page rely v visy origin dcf rest
+    | ("visy", v) :: rest -> fold path key page rely pan v origin dcf rest
+    | ("origin", v) :: rest -> fold path key page rely pan visy v dcf rest
+    | ("dcf", v) :: rest -> fold path key page rely pan visy origin v rest
+    | _ :: rest -> fold path key page rely pan visy origin dcf rest
+    | [] -> path, key, page, rely, pan, visy, origin, dcf
   in
-  fold E.s E.s "0" "0" "0" "0" E.s attrs
+  fold E.s E.s "0" "0" "0" "0" E.s E.s attrs
 ;;
 
 let map_of attrs =
@@ -906,7 +907,7 @@ let get s =
        else { v with f = uifont (Buffer.create 10) }
 
     | Vopen ("doc", attrs, closed) ->
-       let pathent, key, spage, srely, span, svisy, origin
+       let pathent, key, spage, srely, span, svisy, origin, dcf
          = doc_of attrs in
        let path = unentS pathent
        and origin = unentS origin
@@ -916,6 +917,7 @@ let get s =
        and visy = fromstring float_of_string spos "visy" svisy 0.0 in
        let c = config_of dc attrs in
        c.key <- key;
+       c.dcf <- dcf;
        let anchor = (pageno, rely, visy) in
        if closed
        then (Hashtbl.add h path (c, [], pan, anchor, origin); v)
@@ -1281,6 +1283,7 @@ let add_attrs bb always dc c time =
   ob "edit-annotations-inline" c.annotinline dc.annotinline;
   ob "coarse-presentation-positioning" c.coarseprespos dc.coarseprespos;
   ob "use-document-css" c.usedoccss dc.usedoccss;
+  os "dcf" c.dcf dc.dcf;
 ;;
 
 let keymapsbuf always dc c =

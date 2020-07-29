@@ -15,6 +15,7 @@ and key = int * int
 and keyhash = (key, keymap) Hashtbl.t
 and keystate = | KSnone | KSinto of (key list * key list)
 and css = string
+and dcf = string
 type columns =
   | Csingle of singlecolumn
   | Cmulti of multicolumns
@@ -132,6 +133,7 @@ g css css E.s
 b usedoccss true
 s key E.s
 P pax
+g dcf dcf E.s
 
 cat <<EOF
 };;

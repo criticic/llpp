@@ -159,7 +159,7 @@ static struct {
     fz_document *doc;
     fz_context *ctx;
     int w, h;
-    char *dimpath;
+    char *dcf;
 
     struct {
         int index, count;
@@ -830,7 +830,7 @@ static void initpdims1 (void)
 
 static void initpdims (void)
 {
-    FILE *f = state.dimpath ? fopen (state.dimpath, "rb") : NULL;
+    FILE *f = state.dcf ? fopen (state.dcf, "rb") : NULL;
     if (f) {
         size_t nread;
 
@@ -856,8 +856,8 @@ static void initpdims (void)
     }
     if (!state.pagedims) {
         initpdims1 ();
-        if (state.dimpath) {
-            f = fopen (state.dimpath, "wb");
+        if (state.dcf) {
+            f = fopen (state.dcf, "wb");
             if (fwrite (&state.pagedimcount,
                         sizeof (state.pagedimcount), 1, f) - 1) {
                 err (1, "fwrite pagedimcunt %zu", sizeof (state.pagedimcount));
@@ -867,8 +867,7 @@ static void initpdims (void)
                 - (state.pagedimcount + 1)) {
                 err (1, "fwrite pagedim data %zu %u",
                      sizeof (*state.pagedims), state.pagedimcount+1);
-            }
-            fclose (f);
+            }           fclose (f);
         }
     }
 }
@@ -3712,17 +3711,19 @@ static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
     return font;
 }
 
-ML0 (setdimpath (value path_v))
+ML0 (setdcf (value path_v))
 {
-    free (state.dimpath);
-    state.dimpath = NULL;
+    free (state.dcf);
+    state.dcf = NULL;
     const char *p = String_val (path_v);
     size_t len = strlen (p);
-    state.dimpath = malloc (len + 1);
-    if (!state.dimpath) {
-        err (1, "malloc dimpath %zu", len + 1);
+    if (*p) {
+        state.dcf = malloc (len + 1);
+        if (!state.dcf) {
+            err (1, "malloc dimpath %zu", len + 1);
+        }
+        memcpy (state.dcf, p, len + 1);
     }
-    memcpy (state.dimpath, p, len + 1);
 }
 
 ML0 (init (value csock_v, value params_v))

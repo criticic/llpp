@@ -774,6 +774,8 @@ let opendoc path password =
   flushpages ();
   Ffi.setaalevel conf.aalevel;
   Ffi.setpapercolor conf.papercolor;
+  Ffi.setdcf conf.dcf;
+
   let titlepath =
     if emptystr state.origin
     then path
@@ -1996,6 +1998,7 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   state.origin <- origin;
   state.x <- x;
   setconf conf c;
+  Ffi.setdcf conf.dcf;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Wsi.reshape c.cwinw c.cwinh;
@@ -4854,6 +4857,7 @@ let () =
   Utils.vlogf := (fun s -> if conf.verbose then prerr_endline s else ignore s);
   let gcconfig = ref false in
   let rcmdpath = ref E.s in
+  let dcfpath = ref None in
   let pageno = ref None in
   let openlast = ref false in
   let doreap = ref false in
@@ -4904,7 +4908,9 @@ let () =
          "<origin> <undocumented>");
 
         ("-no-title", Arg.Set ignoredoctitlte, " ignore document title");
-        ("-dcf", Arg.String (fun s -> Ffi.setdimpath s), " <undocumented>");
+
+        ("-dcf", Arg.String (fun s -> dcfpath := Some s), " <undocumented>");
+
         ("-layout-height", Arg.Set_int layouth,
          "<height> layout height html/epub/etc (-1, 0, N)");
        ]
@@ -4916,6 +4922,11 @@ let () =
 
   if not (Config.load !openlast)
   then dolog "failed to load configuration";
+
+  begin match !dcfpath with
+  | Some path -> conf.dcf <- path
+  | None -> ()
+  end;
 
   begin match !pageno with
   | Some pageno -> state.anchor <- (pageno, 0.0, 0.0)
