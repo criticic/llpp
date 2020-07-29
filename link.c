@@ -854,10 +854,14 @@ static void initpdims (void)
         }
         fclose (f);
     }
+
     if (!state.pagedims) {
         initpdims1 ();
         if (state.dcf) {
             f = fopen (state.dcf, "wb");
+            if (!f) {
+                err (1, "fopen %s for writing", state.dcf);
+            }
             if (fwrite (&state.pagedimcount,
                         sizeof (state.pagedimcount), 1, f) - 1) {
                 err (1, "fwrite pagedimcunt %zu", sizeof (state.pagedimcount));
