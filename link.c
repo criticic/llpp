@@ -386,7 +386,7 @@ static void docinfo (void)
     int len = 0, need;
     char *buf = NULL;
 
-    for (size_t i = 0; i < sizeof (tab) / sizeof (tab[1]); ++i) {
+    for (size_t i = 0; i < sizeof (tab) / sizeof (*tab); ++i) {
     again:
         need = fz_lookup_metadata (state.ctx, state.doc, tab[i].tag, buf, len);
         if (need > 0) {
