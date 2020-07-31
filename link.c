@@ -374,7 +374,7 @@ static int openxref (char *filename, char *password, int layouth)
 
 static void docinfo (void)
 {
-    struct { char *tag; char *name; } metatbl[] = {
+    struct { char *tag; char *name; } tab[] = {
         { FZ_META_INFO_TITLE, "Title" },
         { FZ_META_INFO_AUTHOR, "Author" },
         { FZ_META_FORMAT, "Format" },
@@ -383,17 +383,15 @@ static void docinfo (void)
         { FZ_META_INFO_PRODUCER, "Producer" },
         { "info:CreationDate", "Creation date" },
     };
-    int len = 0;
+    int len = 0, need;
     char *buf = NULL;
 
-    for (size_t i = 0; i < sizeof (metatbl) / sizeof (metatbl[1]); ++i) {
-        int need;
+    for (size_t i = 0; i < sizeof (tab) / sizeof (tab[1]); ++i) {
     again:
-        need = fz_lookup_metadata (state.ctx, state.doc,
-                                   metatbl[i].tag, buf, len);
+        need = fz_lookup_metadata (state.ctx, state.doc, tab[i].tag, buf, len);
         if (need > 0) {
             if (need <= len) {
-                printd ("info %s\t%s", metatbl[i].name, buf);
+                printd ("info %s\t%s", tab[i].name, buf);
             }
             else {
                 buf = realloc (buf, need + 1);
