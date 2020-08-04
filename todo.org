@@ -9,6 +9,7 @@
 ** TODO Make isfresh work (properly) with multiple targets
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though
+** TODO errors in config.ml
 * TODO [maybe] inside rect/quad (_Generic)
 * TODO Shift-insert for searches
 * TODO Threaded rendering
@@ -16,12 +17,4 @@
   just 2 threads (event loop, display/mupdf rendering) is not fast
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
-* DONE trimcache file in history (?)
-  CLOSED: [2020-07-23 Thu 12:02]
 * TODO digest caching
-* DONE thin about restoring the geometry and other paremters when
-  CLOSED: [2020-07-23 Thu 16:50]
-  visiting the document via history
-* TODO should the trimcachepath be made absolute?
-* TODO BLOCK_001-480_Березин.pdf page 45 bounds
-* TODO turn trim taching in dim taching and make trim caching a special case of that
