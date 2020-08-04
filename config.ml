@@ -1522,9 +1522,11 @@ let save1 bb leavebirdseye x h dc =
         | View
         | LinkNav _ -> ()
         end;
-        let key = try Digest.file docpath |> Digest.to_hex
-                  with _ -> E.s in
-        { conf with autoscrollstep; key }
+        let key =
+          if emptystr conf.key
+          then (try Digest.file docpath |> Digest.to_hex with _ -> E.s)
+          else conf.key
+        in { conf with autoscrollstep; key }
       )
       state.bookmarks
       (now ())
