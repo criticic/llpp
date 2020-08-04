@@ -3719,13 +3719,14 @@ ML0 (setdcf (value path_v))
     free (state.dcf);
     state.dcf = NULL;
     const char *p = String_val (path_v);
-    size_t len = strlen (p);
+    size_t len = caml_string_length (path_v);
     if (*p) {
         state.dcf = malloc (len + 1);
         if (!state.dcf) {
             err (1, "malloc dimpath %zu", len + 1);
         }
-        memcpy (state.dcf, p, len + 1);
+        memcpy (state.dcf, p, len);
+        state.dcf[len] = 0;
     }
 }
 

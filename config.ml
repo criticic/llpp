@@ -917,7 +917,7 @@ let get s =
        and visy = fromstring float_of_string spos "visy" svisy 0.0 in
        let c = config_of dc attrs in
        c.key <- key;
-       c.dcf <- dcf;
+       c.dcf <- unentS dcf;
        let anchor = (pageno, rely, visy) in
        if closed
        then (Hashtbl.add h path (c, [], pan, anchor, origin); v)
