@@ -9,7 +9,11 @@
 ** TODO Make isfresh work (properly) with multiple targets
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though
-** TODO errors in config.ml
+** DONE errors in config.ml (!)
+   CLOSED: [2020-08-09 Sun 08:53]
+   they do not lead to aborted compilation
+*** recipe: making a fresh error and compiling
+    (so that both config.ml and stuff that depends on it is being rebuilt by build.bash)
 * TODO [maybe] inside rect/quad (_Generic)
 * TODO Shift-insert for searches
 * TODO Threaded rendering

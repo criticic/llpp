@@ -149,7 +149,7 @@ bocaml2() {
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
     local keycmd="digest $o $s $o.depl"
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
-        eval "$cmd || die '$cmd' failed" | {
+        eval "$cmd" | {
             read _ _ depl
             :>"$o.depl"
             for d in $depl; do
@@ -176,7 +176,7 @@ bocaml2() {
     keycmd="digest $o $s $(< $o.depl)"
     isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
         printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
-        eval "$cmd || die '$cmd failed'"
+        eval "$cmd" || die "$cmd failed"
         echo "$overs$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh '$o'"
 }
@@ -220,7 +220,7 @@ bocamlc() {
     local keycmd='digest $o $d'
     isfresh "$o" "$cvers$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
-        eval "$cmd || die '$cmd failed'"
+        eval "$cmd" || die "$cmd failed"
         read _ d <$o.dep
         echo "$cvers$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
@@ -234,7 +234,7 @@ bobjc() {
     local keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
         printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
-        eval "$cmd || die '$cmd failed'"
+        eval "$cmd" || die "$cmd failed"
         read _ d <$o.dep
         echo "$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
@@ -246,7 +246,7 @@ cmd="(. $srcd/genconfstr.sh >$outd/confstruct.ml)"
 keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"
-    eval "$cmd || die genconfstr.sh failed"
+    eval "$cmd" || die genconfstr.sh failed
     echo "$cmd$(eval $keycmd)" > "$outd/confstruct.ml.past"
 } && vecho "fresh $outd/confstruct.ml"
 
@@ -264,7 +264,7 @@ for target; do
                 cmd="asciidoctor -b manpage -o $out $src"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
                     echo "$src -> $out"
-                    eval "$cmd || die '$cmd failed'"
+                    eval "$cmd" || die "$cmd failed"
                     echo "$cmd$(eval $keycmd)" >"$out.past"
                 } && vecho "fresh $out"
             done;;
@@ -306,7 +306,7 @@ cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $(echo $ord) -cclib \"$clibs\""
 keycmd="digest $outd/llpp $cobjs $ord $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
-    eval "$cmd || die '$cmd failed'"
+    eval "$cmd" || die "$cmd failed"
     echo "$cmd$(eval $keycmd)" >"$outd/llpp.past"
 } && vecho "fresh llpp"
 
