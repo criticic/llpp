@@ -139,33 +139,32 @@ bocaml1() {
     }
 }
 
-ocamldeppp() {
-    read _ _ depl
-    :>"$o.depl"
-    for d in $depl; do
-        local D=${d#$srcd/}
-        test "$O" = "$D" || {
-            bocaml "$D" $((n+1))
-            case $d in
-                $outd/*) dd=$d;;
-                *) dd=$outd/${d#$srcd/};;
-            esac
-            printf "$dd " >>"$o.depl"
-        }
-    done
-}
-
 bocaml2() {
     local n=$1
     local s="$2"
     local o="$3"
     local O=${4-}
+    local d
     local dd
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
     local keycmd="digest $o $s $o.depl"
 
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
-        { eval "$cmd" || die "$cmd failed"; } | ocamldeppp
+        { eval "$cmd" || die "$cmd failed"; } | {
+            read _ _ depl
+            :>"$o.depl"
+            for d in $depl; do
+                local D=${d#$srcd/}
+                test "$O" = "$D" || {
+                    bocaml "$D" $((n+1))
+                    case $d in
+                        $outd/*) dd=$d;;
+                        *) dd=$outd/${d#$srcd/};;
+                    esac
+                    printf "$dd " >>"$o.depl"
+                }
+            done
+        }
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && {
         vecho "fresh $o.depl"
