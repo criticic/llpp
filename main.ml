@@ -2961,32 +2961,36 @@ let gotoremote spec =
     else E.s
   in
   let path = getpath filename in
-  let dospawn lcmd =
-    if conf.riani
+  if emptystr path
+  then adderrfmt "gotoremote/getpath" "failed getpath for %S\n" filename
+  else
+    let dospawn lcmd =
+      if conf.riani
+      then
+        let cmd = Lazy.force_val lcmd in
+        match spawn cmd with
+        | _pid -> ()
+        | exception exn -> dolog "failed to execute `%s': %s" cmd @@ exntos exn
+      else
+        let anchor = getanchor () in
+        let ranchor = state.path, state.password, anchor, state.origin in
+        state.origin <- E.s;
+        state.ranchors <- ranchor :: state.ranchors;
+        opendoc path E.s;
+    in
+    if substratis spec 0 "page="
     then
-      let cmd = Lazy.force_val lcmd in
-      match spawn cmd with
-      | _pid -> ()
-      | exception exn -> dolog "failed to execute `%s': %s" cmd @@ exntos exn
-    else
-      let anchor = getanchor () in
-      let ranchor = state.path, state.password, anchor, state.origin in
-      state.origin <- E.s;
-      state.ranchors <- ranchor :: state.ranchors;
-      opendoc path E.s;
-  in
-  if substratis spec 0 "page="
-  then
-    match Scanf.sscanf spec "page=%d" (fun n -> n) with
-    | pageno ->
-       state.anchor <- (pageno, 0.0, 0.0);
-       dospawn @@ lazy (Printf.sprintf "%s -page %d %S" !selfexec pageno path);
-    | exception exn ->
-       adderrfmt "error parsing remote destination" "page: %s" @@ exntos exn
-  else (
-    state.nameddest <- dest;
-    dospawn @@ lazy (!selfexec ^ " " ^ path ^ " -dest " ^ dest)
-  )
+      match Scanf.sscanf spec "page=%d" (fun n -> n) with
+      | pageno ->
+         state.anchor <- (pageno, 0.0, 0.0);
+         dospawn @@ lazy (Printf.sprintf "%s -page %d %S"
+                            !selfexec pageno path);
+      | exception exn ->
+         adderrfmt "error parsing remote destination" "page: %s" @@ exntos exn
+    else (
+      state.nameddest <- dest;
+      dospawn @@ lazy (!selfexec ^ " " ^ path ^ " -dest " ^ dest)
+    )
 ;;
 
 let gotounder = function
