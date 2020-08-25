@@ -394,9 +394,9 @@ static void docinfo (void)
                 printd ("info %s\t%s", tab[i].name, buf);
             }
             else {
-                buf = realloc (buf, need + 1);
-                if (!buf) err (1, "docinfo realloc %d", need + 1);
-                len = need + 1;
+                buf = realloc (buf, need);
+                if (!buf) err (1, "docinfo realloc %d", need);
+                len = need;
                 goto again;
             }
         }
