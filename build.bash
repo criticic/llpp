@@ -120,7 +120,8 @@ test "$overs" = "4.10.0" || {
         tar xf $txz -C $outd
         bn=$(basename $url)
         cd $outd/${bn%.tar.xz}
-        ./configure --disable-ocamldoc --enable-debugger=no --prefix=$absprefix
+        ./configure --disable-ocamldoc --disable-ocamltest      \
+                    --enable-debugger=no --prefix=$absprefix
         make -j $mjobs world
         make install
         eval $keycmd >$absprefix/bin/ocamlc.past
