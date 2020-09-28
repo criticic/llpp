@@ -6,7 +6,6 @@
   file names? exif?
 * TODO build.bash
 ** TODO Parallel builds
-** TODO Make isfresh work (properly) with multiple targets
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though
 ** DONE errors in config.ml (!)

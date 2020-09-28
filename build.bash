@@ -38,12 +38,13 @@ mkdir -p $outd/{$wsid,lablGL}
 isfresh() { test -r $1.past && test "$(<$1.past)" = "$2"; }
 
 mbt=${mbt:-native}
-mulibs="$mudir/build/$mbt/libmupdf.a" # $mudir/build/$mbt/libmupdf-third.a
+mulibst="$mudir/build/$mbt/libs"
+mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
 
 keycmd="(cd $mudir && make -q build=$mbt libs && echo); digest $mulibs"
-isfresh "$mulibs" "$(eval $keycmd)" || (
+isfresh "$mulibst" "$(eval $keycmd)" || (
     make -C "$mudir" build=$mbt -j $mjobs libs
-    eval $keycmd >$mudir/build/$mbt/libmupdf.a.past
+    eval $keycmd >${mulibst}.past
 ) && vecho "fresh mupdf"
 
 oincs() {
