@@ -2,8 +2,7 @@
 
 open Gl
 
-external color :
-    red:float -> green:float -> blue:float -> alpha:float -> unit
+external color : red:float -> green:float -> blue:float -> alpha:float -> unit
     = "ml_glColor4d"
 let color ?(alpha=1.) (red, green, blue : rgb) =
   color ~red ~green ~blue ~alpha
