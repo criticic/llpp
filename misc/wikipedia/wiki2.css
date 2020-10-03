@@ -39,7 +39,7 @@
 
 /* basic style settings*/
 body {
-    font: 16pt/1.3 "alegreya", "code2003", "serif";
+    font: 16pt/1.3 "pt astra serif", "code2003", "serif";
     prince-linebreak-magic: auto;
     hyphens: auto;
     text-align: justify;
