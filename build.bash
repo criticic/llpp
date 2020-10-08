@@ -100,7 +100,7 @@ mflags() {
 }
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
-test "$overs" = "4.10.0" || {
+test "$overs" = "4.11.1" || {
     url=https://caml.inria.fr/pub/distrib/ocaml-4.11/ocaml-4.11.1.tar.xz
     txz=$outd/$(basename $url)
     keycmd="printf $url; digest $txz;"
