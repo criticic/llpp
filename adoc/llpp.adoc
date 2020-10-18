@@ -96,7 +96,7 @@ You can specify a custom path using the -c option.
 - To change the user interface font:
 -------------------------------------------------------------
 <llppconfig>
-  <ui-font size='16'>
+  <ui-font size='32'>
     <![CDATA[/path/to/fonts/Code2003-egdm.ttf]]>
   </ui-font>
   <defaults ... />
