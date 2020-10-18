@@ -65,9 +65,9 @@ Open a document with llpp, then press `F1` or `h` to switch to help mode.
 == FILES
 
 === ~/.config/llpp.conf
-This is the user specific configuration file. If $XDG_CONFIG_HOME is
-set $XDG_CONFIG_HOME/llpp.conf is used instead. It has an XML
-structure.
+This is the user specific configuration file. If $HOME/.config
+directory does not exist $HOME/llpp.conf is used instead. It has an
+XML structure.
 
 You can specify a custom path using the -c option.
 

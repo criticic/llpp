@@ -9,7 +9,7 @@ die() {
     exit 1
 }
 
-cachedir="${XDG_CACHE_HOME:-$HOME/.cache}/llpp"
+cachedir="$HOME/.cache/llpp"
 test -d "$cachedir" || die "cache directory '$cachedir' does not exist"
 
 caspsuf=
