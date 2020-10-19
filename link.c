@@ -965,7 +965,7 @@ static void layout (void)
         int boundw = x1 - x0;
         int boundh = y1 - y0;
 
-        printd ("pdim %d %d %d %d", p->pageno, boundw, boundh, p->left);
+        printd ("pdim %u %d %d %d", p->pageno, boundw, boundh, p->left);
     } while (p-- != state.pagedims);
 }
 

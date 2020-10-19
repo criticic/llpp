@@ -1315,7 +1315,7 @@ let act cmds =
 
   | "pdim", args ->
      let (n, w, h, _) as pdim =
-       scan args "%u %u %u %u" (fun n w h x -> n, w, h, x)
+       scan args "%u %d %d %d" (fun n w h x -> n, w, h, x)
      in
      let pdim =
        match conf.fitmodel with
