@@ -3205,10 +3205,10 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
   , mkenter `history "history is empty" sh )
 ;;
 
-
 let addbookmark title a =
   let b = List.filter (fun (title', _, _) -> title <> title') state.bookmarks in
-  state.bookmarks <- (title, 0, Oanchor a) :: b;;
+  state.bookmarks <- (title, 0, Oanchor a) :: b
+;;
 
 let quickbookmark ?title () =
   match state.layout with
