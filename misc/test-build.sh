@@ -1,8 +1,11 @@
 #!/bin/sh
+set -eu
 
-cloneargs='--reference /home/malc/x/rcs/git/mupdf'
+bdir=build/test
+cloneargs="--reference-if-able $HOME/x/rcs/git/mupdf"
 CC='ccache gcc'
 CXX='ccache g++'
 export cloneargs CC CXX
-sh misc/getmupdf.sh build-test/mupdf
-exec bash build.bash build-test
+mkdir -p $bdir
+sh misc/getmupdf.sh $bdir/mupdf
+exec bash build.bash $bdir
