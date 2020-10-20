@@ -64,7 +64,7 @@ Open a document with llpp, then press `F1` or `h` to switch to help mode.
 
 == FILES
 
-=== ~/.config/llpp.conf
+=== $HOME/.config/llpp.conf
 This is the user specific configuration file. If $HOME/.config
 directory does not exist $HOME/llpp.conf is used instead. It has an
 XML structure.
