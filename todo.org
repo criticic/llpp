@@ -21,4 +21,7 @@
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO bindcode
-* TODO reject empty and duplicate containing hint chars strings
+* TODO fix build system
+  failure scenario:
+** error in utils.ml will try to rebuild all dependent modules
+   those will in turn try to build utils
