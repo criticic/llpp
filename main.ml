@@ -1449,17 +1449,19 @@ let intentry text key =
 let linknact f s =
   if nonemptystr s
   then
-    let rec loop = function
+    let rec loop off = function
       | [] -> ()
       | l :: rest ->
-         match getopaque l.pageno with
-         | None -> loop rest
+         begin match getopaque l.pageno with
+         | None -> loop off rest
          | Some opaque ->
-            match Ffi.getlinkn opaque conf.hcs s with
-            | -1 -> loop rest
-            | n ->  Ffi.getlink opaque n |> f
+            let n = Ffi.getlinkn opaque conf.hcs s off in
+            if n < 0
+            then loop n rest
+            else Ffi.getlink opaque n |> f
+         end
     in
-    loop state.layout;
+    loop 0 state.layout;
 ;;
 
 let linknentry text = function [@warning "-4"]

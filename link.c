@@ -2555,9 +2555,9 @@ ML (getlink (value ptr_v, value n_v))
     CAMLreturn (ret_v);
 }
 
-ML (getlinkn (value ptr_v, value c_v, value n_v))
+ML (getlinkn (value ptr_v, value c_v, value n_v, value noff_v))
 {
-    CAMLparam3 (ptr_v, c_v, n_v);
+    CAMLparam4 (ptr_v, c_v, n_v, noff_v);
     CAMLlocal1 (ret_v);
     char buf[40];
     struct page *page;
@@ -2570,9 +2570,9 @@ ML (getlinkn (value ptr_v, value c_v, value n_v))
     lock (__func__);
     ensureslinks (page);
 
-    ret_v = Val_int (-1);
+    ret_v = Val_int (-page->slinkcount);
     for (int i = 0; i < page->slinkcount; ++i) {
-        fmt_linkn (buf, c, STTI (clen), i);
+        fmt_linkn (buf, c, STTI (clen), i - Int_val (noff_v));
         if (!strncmp (buf, n, clen)) {
             ret_v = Val_int (i);
             break;

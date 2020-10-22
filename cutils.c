@@ -56,10 +56,17 @@ double now (void)
 
 void fmt_linkn (char *s, const char *c, unsigned int l, int n)
 {
+    div_t d;
+    int sl = 0;
     int nn = n;
-    do { div_t d = div (nn, l); s++; nn -= l; } while (nn > 0);
-    *s = 0;
-    do { div_t d = div (n, l); *--s = c[d.rem]; n -= l; } while (n > 0);
+
+    do { d = div (n, l); sl++; n = d.quot; } while (d.quot);
+    for (int i = 0, n = nn; i < sl; ++i) {
+        d = div (n, l);
+        s[sl-1-i] = c[d.rem];
+        n = d.quot;
+    }
+    s[sl] = 0;
 }
 
 char *ystrdup (const char *s)
