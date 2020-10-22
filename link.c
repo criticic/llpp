@@ -2135,8 +2135,7 @@ ML0 (drawtile (value args_v, value ptr_v))
     int disph = Int_val (Field (args_v, 3));
     int tilex = Int_val (Field (args_v, 4));
     int tiley = Int_val (Field (args_v, 5));
-    const char *s = String_val (ptr_v);
-    struct tile *tile = parse_pointer (__func__, s);
+    struct tile *tile = parse_pointer (__func__, String_val (ptr_v));
     int slicey, firstslice;
     struct slice *slice;
     GLfloat *texcoords = state.texcoords;
@@ -2224,11 +2223,10 @@ ML (postprocess (value ptr_v, value hlinks_v,
     const char *targ = String_val (Field (li_v, 1));
     mlsize_t tlen = caml_string_length (Field (li_v, 1));
     int hfsize = Int_val (Field (li_v, 2));
-    const char *s = String_val (ptr_v);
     const char *chars = String_val (Field (li_v, 3));
     mlsize_t clen = caml_string_length (Field (li_v, 3));
     int hlmask = Int_val (hlinks_v);
-    struct page *page = parse_pointer (__func__, s);
+    struct page *page = parse_pointer (__func__, String_val (ptr_v));
 
     if (!page->fzpage) {
         /* deal with loadpage failed pages */
@@ -2261,8 +2259,7 @@ ML0 (drawprect (value ptr_v, value xoff_v, value yoff_v, value rects_v))
     CAMLparam4 (ptr_v, xoff_v, yoff_v, rects_v);
     int xoff = Int_val (xoff_v);
     int yoff = Int_val (yoff_v);
-    const char *s = String_val (ptr_v);
-    struct page *page = parse_pointer (__func__, s);
+    struct page *page = parse_pointer (__func__, String_val (ptr_v));
 
     drawprect (page, xoff, yoff, rects_v);
     CAMLreturn0;
@@ -2409,9 +2406,8 @@ ML (findlink (value ptr_v, value dir_v))
     struct page *page;
     int dirtag, i, slinkindex;
     struct slink *found = NULL ,*slink;
-    const char *s = String_val (ptr_v);
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     ret_v = Val_int (0);
     lock (__func__);
     ensureslinks (page);
@@ -2528,11 +2524,10 @@ ML (getlink (value ptr_v, value n_v))
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
     fz_link *link;
     struct page *page;
-    const char *s = String_val (ptr_v);
     struct slink *slink;
 
     ret_v = Val_int (0);
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
 
     lock (__func__);
     ensureslinks (page);
@@ -2561,11 +2556,10 @@ ML (getlinkn (value ptr_v, value c_v, value n_v, value noff_v))
     CAMLlocal1 (ret_v);
     char buf[40];
     struct page *page;
-    const char *s = String_val (ptr_v);
     const char *c = String_val (c_v);
     const char *n = String_val (n_v);
     mlsize_t clen = caml_string_length (c_v);
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
 
     lock (__func__);
     ensureslinks (page);
@@ -2593,11 +2587,10 @@ ML (getannotcontents (value ptr_v, value n_v))
     lock (__func__);
     pdf = pdf_specifics (state.ctx, state.doc);
     if (pdf) {
-        const char *s = String_val (ptr_v);
         struct page *page;
         struct slink *slink;
 
-        page = parse_pointer (__func__, s);
+        page = parse_pointer (__func__, String_val (ptr_v));
         slink = &page->slinks[Int_val (n_v)];
         contents = pdf_annot_contents (state.ctx, (pdf_annot *) slink->u.annot);
     }
@@ -2612,9 +2605,8 @@ ML (getlinkrect (value ptr_v, value n_v))
     CAMLlocal1 (ret_v);
     struct page *page;
     struct slink *slink;
-    const char *s = String_val (ptr_v);
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     ret_v = caml_alloc_tuple (4);
     lock (__func__);
     ensureslinks (page);
@@ -2749,14 +2741,13 @@ enum { mark_page, mark_block, mark_line, mark_word };
 ML0 (clearmark (value ptr_v))
 {
     CAMLparam1 (ptr_v);
-    const char *s = String_val (ptr_v);
     struct page *page;
 
     if (trylock (__func__)) {
         goto done;
     }
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     page->fmark = NULL;
     page->lmark = NULL;
 
@@ -2780,7 +2771,6 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
     fz_stext_block *block;
     struct pagedim *pdim;
     int mark = Int_val (mark_v);
-    const char *s = String_val (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
 
     ret_v = Val_bool (0);
@@ -2788,7 +2778,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
         goto done;
     }
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     pdim = &state.pagedims[page->pdimno];
 
     ensuretext (page);
@@ -2871,7 +2861,6 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
     struct page *page;
     struct pagedim *pdim;
     fz_stext_block *block;
-    const char *s = String_val (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
 
     ret_v = Val_int (0);
@@ -2879,7 +2868,7 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
         goto done;
     }
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     pdim = &state.pagedims[page->pdimno];
     x += pdim->bounds.x0;
     y += pdim->bounds.y0;
@@ -2924,7 +2913,6 @@ ML0 (seltext (value ptr_v, value rect_v))
     CAMLparam2 (ptr_v, rect_v);
     struct page *page;
     struct pagedim *pdim;
-    const char *s = String_val (ptr_v);
     int x0, x1, y0, y1;
     fz_stext_char *ch;
     fz_stext_line *line;
@@ -2935,7 +2923,7 @@ ML0 (seltext (value ptr_v, value rect_v))
         goto done;
     }
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     ensuretext (page);
 
     pdim = &state.pagedims[page->pdimno];
@@ -3082,14 +3070,13 @@ ML (hassel (value ptr_v))
     CAMLparam1 (ptr_v);
     CAMLlocal1 (ret_v);
     struct page *page;
-    const char *s = String_val (ptr_v);
 
     ret_v = Val_bool (0);
     if (trylock (__func__)) {
         goto done;
     }
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     ret_v = Val_bool (page->fmark && page->lmark);
     unlock (__func__);
  done:
@@ -3105,13 +3092,12 @@ ML0 (copysel (value fd_v, value ptr_v))
     fz_stext_line *line;
     fz_stext_block *block;
     int fd = Int_val (fd_v);
-    const char *s = String_val (ptr_v);
 
     if (trylock (__func__)) {
         goto done;
     }
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
 
     if (!page->fmark || !page->lmark) {
         printd ("emsg nothing to copy on page %d", page->pageno);
@@ -3275,15 +3261,14 @@ ML (measure_string (value pt_v, value string_v))
     CAMLreturn (ret_v);
 }
 
-ML (getpagebox (value opaque_v))
+ML (getpagebox (value ptr_v))
 {
-    CAMLparam1 (opaque_v);
+    CAMLparam1 (ptr_v);
     CAMLlocal1 (ret_v);
     fz_rect rect;
     fz_irect bbox;
     fz_device *dev;
-    const char *s = String_val (opaque_v);
-    struct page *page = parse_pointer (__func__, s);
+    struct page *page = parse_pointer (__func__, String_val (ptr_v));
 
     ret_v = caml_alloc_tuple (4);
     dev = fz_new_bbox_device (state.ctx, &rect);
@@ -3466,11 +3451,10 @@ ML (getpbo (value w_v, value h_v, value cs_v))
     CAMLreturn (ret_v);
 }
 
-ML0 (freepbo (value s_v))
+ML0 (freepbo (value ptr_v))
 {
-    CAMLparam1 (s_v);
-    const char *s = String_val (s_v);
-    struct tile *tile = parse_pointer (__func__, s);
+    CAMLparam1 (ptr_v);
+    struct tile *tile = parse_pointer (__func__, String_val (ptr_v));
 
     if (tile->pbo) {
         state.glDeleteBuffersARB (1, &tile->pbo->id);
@@ -3481,11 +3465,10 @@ ML0 (freepbo (value s_v))
     CAMLreturn0;
 }
 
-ML0 (unmappbo (value s_v))
+ML0 (unmappbo (value ptr_v))
 {
-    CAMLparam1 (s_v);
-    const char *s = String_val (s_v);
-    struct tile *tile = parse_pointer (__func__, s);
+    CAMLparam1 (ptr_v);
+    struct tile *tile = parse_pointer (__func__, String_val (ptr_v));
 
     if (tile->pbo) {
         state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
@@ -3526,12 +3509,11 @@ ML (unproject (value ptr_v, value x_v, value y_v))
     CAMLparam3 (ptr_v, x_v, y_v);
     CAMLlocal2 (ret_v, tup_v);
     struct page *page;
-    const char *s = String_val (ptr_v);
     int x = Int_val (x_v), y = Int_val (y_v);
     struct pagedim *pdim;
     fz_point p;
 
-    page = parse_pointer (__func__, s);
+    page = parse_pointer (__func__, String_val (ptr_v));
     pdim = &state.pagedims[page->pdimno];
 
     ret_v = Val_int (0);
@@ -3576,7 +3558,7 @@ ML (project (value ptr_v, value pageno_v, value pdimno_v, value x_v, value y_v))
         page = loadpage (pageno, pdimno);
     }
     else {
-        page = parse_pointer (__func__, s);
+        page = parse_pointer (__func__, String_val (ptr_v));
     }
     pdim = &state.pagedims[pdimno];
 
@@ -3613,9 +3595,8 @@ ML0 (addannot (value ptr_v, value x_v, value y_v, value contents_v))
         pdf_annot *annot;
         struct page *page;
         fz_rect r;
-        const char *s = String_val (ptr_v);
 
-        page = parse_pointer (__func__, s);
+        page = parse_pointer (__func__, String_val (ptr_v));
         annot = pdf_create_annot (state.ctx,
                                   pdf_page_from_fz_page (state.ctx,
                                                          page->fzpage),
@@ -3639,10 +3620,9 @@ ML0 (delannot (value ptr_v, value n_v))
 
     if (pdf) {
         struct page *page;
-        const char *s = String_val (ptr_v);
         struct slink *slink;
 
-        page = parse_pointer (__func__, s);
+        page = parse_pointer (__func__, String_val (ptr_v));
         slink = &page->slinks[Int_val (n_v)];
         pdf_delete_annot (state.ctx,
                           pdf_page_from_fz_page (state.ctx, page->fzpage),
@@ -3659,10 +3639,9 @@ ML0 (modannot (value ptr_v, value n_v, value str_v))
 
     if (pdf) {
         struct page *page;
-        const char *s = String_val (ptr_v);
         struct slink *slink;
 
-        page = parse_pointer (__func__, s);
+        page = parse_pointer (__func__, String_val (ptr_v));
         slink = &page->slinks[Int_val (n_v)];
         pdf_set_annot_contents (state.ctx, (pdf_annot *) slink->u.annot,
                                 String_val (str_v));

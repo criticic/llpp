@@ -21,5 +21,4 @@
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO bindcode
-* TODO parse_pointer from _v
 * TODO reject empty and duplicate containing hint chars strings
