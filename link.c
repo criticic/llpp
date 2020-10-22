@@ -1993,8 +1993,8 @@ static void ensureslinks (struct page *page)
 }
 
 static void highlightslinks (struct page *page, int xoff, int yoff,
-                             int noff, const char *targ,
-                             mlsize_t tlen, int hfsize)
+                             int noff, const char *targ, mlsize_t tlen,
+                             const char *chars, mlsize_t clen, int hfsize)
 {
     char buf[40];
     struct slink *slink;
@@ -2003,7 +2003,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
     ensureslinks (page);
     glColor3ub (0xc3, 0xb0, 0x91);
     for (int i = 0; i < page->slinkcount; ++i) {
-        fmt_linkn (buf, i + noff);
+        fmt_linkn (buf, chars, clen, i + noff);
         if (!tlen || !strncmp (targ, buf, tlen)) {
             slink = &page->slinks[i];
 
@@ -2021,7 +2021,7 @@ static void highlightslinks (struct page *page, int xoff, int yoff,
     glEnable (GL_TEXTURE_2D);
     glColor3ub (0, 0, 0);
     for (int i = 0; i < page->slinkcount; ++i) {
-        fmt_linkn (buf, i + noff);
+        fmt_linkn (buf, chars, clen, i + noff);
         if (!tlen || !strncmp (targ, buf, tlen)) {
             slink = &page->slinks[i];
 
@@ -2223,6 +2223,8 @@ ML (postprocess (value ptr_v, value hlinks_v,
     mlsize_t tlen = caml_string_length (Field (li_v, 1));
     int hfsize = Int_val (Field (li_v, 2));
     const char *s = String_val (ptr_v);
+    const char *chars = String_val (Field (li_v, 3));
+    mlsize_t clen = caml_string_length (Field (li_v, 3));
     int hlmask = Int_val (hlinks_v);
     struct page *page = parse_pointer (__func__, s);
 
@@ -2239,7 +2241,8 @@ ML (postprocess (value ptr_v, value hlinks_v,
     ensureannots (page);
     if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (hlmask & 2) {
-        highlightslinks (page, xoff, yoff, noff, targ, tlen, hfsize);
+        highlightslinks (page, xoff, yoff, noff, targ, tlen,
+                         chars, clen, hfsize);
         noff = page->slinkcount;
     }
     if (page->tgen == state.gen) {
@@ -2515,7 +2518,7 @@ ML (findlink (value ptr_v, value dir_v))
     CAMLreturn (ret_v);
 }
 
-enum { uuri, utext, uannot };
+enum { uuri, utext, uannot, unone };
 
 ML (getlink (value ptr_v, value n_v))
 {
@@ -2550,6 +2553,34 @@ ML (getlink (value ptr_v, value n_v))
     CAMLreturn (ret_v);
 }
 
+ML (getlinkn (value ptr_v, value c_v, value n_v))
+{
+    CAMLparam3 (ptr_v, c_v, n_v);
+    CAMLlocal1 (ret_v);
+    char buf[40];
+    struct page *page;
+    const char *s = String_val (ptr_v);
+    const char *c = String_val (c_v);
+    const char *n = String_val (n_v);
+    mlsize_t clen = caml_string_length (c_v);
+    page = parse_pointer (__func__, s);
+
+    lock (__func__);
+    ensureslinks (page);
+
+    ret_v = Val_int (-1);
+    for (int i = 0; i < page->slinkcount; ++i) {
+        fmt_linkn (buf, c, clen, i);
+        if (!strncmp (buf, n, clen)) {
+            ret_v = Val_int (i);
+            break;
+        }
+    }
+
+    unlock (__func__);
+    CAMLreturn (ret_v);
+}
+
 ML (getannotcontents (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
@@ -2571,16 +2602,6 @@ ML (getannotcontents (value ptr_v, value n_v))
     unlock (__func__);
     ret_v = caml_copy_string (contents);
     CAMLreturn (ret_v);
-}
-
-ML (getlinkcount (value ptr_v))
-{
-    CAMLparam1 (ptr_v);
-    struct page *page;
-    const char *s = String_val (ptr_v);
-
-    page = parse_pointer (__func__, s);
-    CAMLreturn (Val_int (page->slinkcount));
 }
 
 ML (getlinkrect (value ptr_v, value n_v))

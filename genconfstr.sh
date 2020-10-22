@@ -16,6 +16,7 @@ and keyhash = (key, keymap) Hashtbl.t
 and keystate = | KSnone | KSinto of (key list * key list)
 and css = string
 and dcf = string
+and hcs = string
 type columns =
   | Csingle of singlecolumn
   | Cmulti of multicolumns
@@ -134,6 +135,7 @@ b usedoccss true
 s key E.s
 P pax
 g dcf dcf E.s
+s hcs "{|aoeuidhtns|}"
 
 cat <<EOF
 };;

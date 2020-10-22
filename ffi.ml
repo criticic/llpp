@@ -13,7 +13,7 @@ external clearmark : opaque -> unit = "ml_clearmark";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external getmaxw : unit -> float = "ml_getmaxw";;
 external postprocess :
-  opaque -> int -> int -> int -> (int * string * int) -> int
+  opaque -> int -> int -> int -> (int * string * int * string) -> int
   = "ml_postprocess";;
 external setdcf : string -> unit = "ml_setdcf";;
 external pagebbox : opaque -> bbox = "ml_getpagebox";;
@@ -22,8 +22,8 @@ external setpapercolor : rgba -> unit = "ml_setpapercolor";;
 external realloctexts : int -> bool = "ml_realloctexts";;
 external findlink : opaque -> linkdir -> link = "ml_findlink";;
 external getlink : opaque -> int -> under = "ml_getlink";;
+external getlinkn : opaque -> string -> string -> int = "ml_getlinkn";;
 external getlinkrect : opaque -> int -> irect = "ml_getlinkrect";;
-external getlinkcount : opaque -> int = "ml_getlinkcount";;
 external findpwl : int -> int -> pagewithlinks = "ml_find_page_with_links";;
 external getpbo : width -> height -> colorspace -> opaque = "ml_getpbo";;
 external freepbo : opaque -> unit = "ml_freepbo";;

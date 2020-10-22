@@ -21,4 +21,3 @@
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO bindcode
-* TODO hints from a set of symbols

@@ -54,19 +54,12 @@ double now (void)
     return tv.tv_sec + tv.tv_usec*1e-6;
 }
 
-/* slightly tweaked fmt_ulong by D.J. Bernstein */
-void fmt_linkn (char *s, unsigned int u)
+void fmt_linkn (char *s, const char *c, unsigned int l, int n)
 {
-  unsigned int len; unsigned int q;
-  unsigned int zma = 'z' - 'a' + 1;
-  len = 1; q = u;
-  while (q > zma - 1) { ++len; q /= zma; }
-  if (s) {
-    s += len;
-    do { *--s = (char)('a' + (u % zma) - (u < zma && len > 1));
-        u /= zma; } while(u); /* handles u == 0 */
-  }
-  s[len] = 0;
+    int nn = n;
+    do { div_t d = div (nn, l); s++; nn -= l; } while (nn > 0);
+    *s = 0;
+    do { div_t d = div (n, l); *--s = c[d.rem]; n -= l; } while (n > 0);
 }
 
 char *ystrdup (const char *s)

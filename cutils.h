@@ -20,7 +20,7 @@ extern void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
     errx (int exitcode, const char *fmt, ...);
 extern void *parse_pointer (const char *cap, const char *s);
 extern double now (void);
-extern void fmt_linkn (char *s, unsigned int u);
+extern void fmt_linkn (char *s, const char *c, unsigned int l, int n);
 extern char *ystrdup (const char *s);
 
 #endif

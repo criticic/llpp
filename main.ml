@@ -1449,30 +1449,17 @@ let intentry text key =
 let linknact f s =
   if nonemptystr s
   then
-    let n =
-      let l = String.length s in
-      let rec loop pos n =
-        if pos = l
-        then n
-        else
-          let m = Char.code s.[pos] - (if pos = 0 && l > 1 then 96 else 97) in
-          loop (pos+1) (n*26 + m)
-      in loop 0 0
-    in
-    let rec loop n = function
+    let rec loop = function
       | [] -> ()
       | l :: rest ->
          match getopaque l.pageno with
-         | None -> loop n rest
+         | None -> loop rest
          | Some opaque ->
-            let m = Ffi.getlinkcount opaque in
-            if n < m
-            then
-              let under = Ffi.getlink opaque n in
-              f under
-            else loop (n-m) rest
+            match Ffi.getlinkn opaque conf.hcs s with
+            | -1 -> loop rest
+            | n ->  Ffi.getlink opaque n |> f
     in
-    loop n state.layout;
+    loop state.layout;
 ;;
 
 let linknentry text key = match [@warning "-4"] key with
@@ -4111,7 +4098,8 @@ let postdrawpage l linkindexbase =
        Hashtbl.find_all state.prects l.pageno |>
          List.iter (fun vals -> Ffi.drawprect opaque x y vals);
        let n =
-         Ffi.postprocess opaque hlmask x y (linkindexbase, s, conf.hfsize) in
+         Ffi.postprocess opaque hlmask x y
+           (linkindexbase, s, conf.hfsize, conf.hcs) in
        if n < 0
        then (Glutils.redisplay := true; 0)
        else n
