@@ -1462,12 +1462,12 @@ let linknact f s =
     loop state.layout;
 ;;
 
-let linknentry text key = match [@warning "-4"] key with
-  | Keys.Ascii ('a' .. 'z' as c)  ->
+let linknentry text = function [@warning "-4"]
+  | Keys.Ascii c  ->
      let text = addchar text c in
      linknact (fun under -> state.text <- undertext under) text;
      TEcont text
-  | _ ->
+  | key ->
      state.text <- Printf.sprintf "invalid key %s" @@ Keys.to_string key;
      TEcont text
 ;;
