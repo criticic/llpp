@@ -1,5 +1,8 @@
 On why wsi.mli is symlinked from the root to wsi/_platform_/wsi.mli
 
+    $ cd /tmp/
+    $ mkdir -p cmi/d
+    $ cd cmi
     $ touch {a.ml,d/a.mli}
     $ (cd d; ocamlc -c a.mli)
     $ ls
