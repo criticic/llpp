@@ -93,6 +93,8 @@ extern char **environ;
 #define ML(d) extern value ml_##d; value ml_##d
 #define ML0(d) extern void ml_##d; void ml_##d
 
+#define STTI(st) ((unsigned int) st)
+
 struct slice {
     int h;
     int texindex;
@@ -1993,8 +1995,8 @@ static void ensureslinks (struct page *page)
 }
 
 static void highlightslinks (struct page *page, int xoff, int yoff,
-                             int noff, const char *targ, mlsize_t tlen,
-                             const char *chars, mlsize_t clen, int hfsize)
+                             int noff, const char *targ, unsigned int tlen,
+                             const char *chars, unsigned int clen, int hfsize)
 {
     char buf[40];
     struct slink *slink;
@@ -2241,8 +2243,8 @@ ML (postprocess (value ptr_v, value hlinks_v,
     ensureannots (page);
     if (hlmask & 1) highlightlinks (page, xoff, yoff);
     if (hlmask & 2) {
-        highlightslinks (page, xoff, yoff, noff, targ, tlen,
-                         chars, clen, hfsize);
+        highlightslinks (page, xoff, yoff, noff, targ, STTI (tlen),
+                         chars, STTI (clen), hfsize);
         noff = page->slinkcount;
     }
     if (page->tgen == state.gen) {
@@ -2570,7 +2572,7 @@ ML (getlinkn (value ptr_v, value c_v, value n_v))
 
     ret_v = Val_int (-1);
     for (int i = 0; i < page->slinkcount; ++i) {
-        fmt_linkn (buf, c, clen, i);
+        fmt_linkn (buf, c, STTI (clen), i);
         if (!strncmp (buf, n, clen)) {
             ret_v = Val_int (i);
             break;
