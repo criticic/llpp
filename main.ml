@@ -2531,6 +2531,9 @@ let enterinfomode =
       src#int "hint font size"
         (fun () -> conf.hfsize)
         (fun v -> conf.hfsize <- bound v 5 100);
+      src#string "hint chars"
+        (fun () -> conf.hcs)
+        (fun v -> conf.hcs <- v);
       src#string "trim fuzz"
         (fun () -> irect_to_string conf.trimfuzz)
         (fun v ->
