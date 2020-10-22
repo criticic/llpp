@@ -1,17 +1,12 @@
 On why wsi.mli is symlinked from the root to wsi/_platform_/wsi.mli
 
-    $ cd /tmp/
-    $ mkdir -p cmi/d
-    $ cd cmi
-    $ touch {a.ml,d/a.mli}
-    $ (cd d; ocamlc -c a.mli)
-    $ ls
-    a.ml  d
-    $ ls d
-    a.cmi  a.mli
-    $ ocamlc -c -I d a.ml
-    $ ls
-    a.cmi  a.cmo  a.ml  d
+    #!/bin/sh
+    set -eu
 
-In other words - (it appears) ocamlc only expects mli to be in the
-same directory as the module being compiled.
+    mkdir -p /tmp/cmi/{d,b/d}
+    cd /tmp/cmi
+    touch a.mli d/a.ml
+    ocamlc -c -I b/ -o b/a.cmi a.mli
+    ocamlc -c -I b/ -o b/d/a.cmo d/a.ml
+
+after running the above script a.cmi will be in b/ and in b/d
