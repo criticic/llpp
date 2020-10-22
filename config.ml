@@ -803,6 +803,7 @@ let config_of c attrs =
       | "coarse-presentation-positioning" ->
          { c with coarseprespos = bool_of_string v }
       | "use-document-css" -> { c with usedoccss = bool_of_string v }
+      | "hint-charset" -> { c with hcs = v }
       | _ -> c
     with exn ->
       dolog "error processing attribute (`%S' = `%S'): %s" k v @@ exntos exn;
@@ -1278,6 +1279,7 @@ let add_attrs bb always dc c time =
   ob "coarse-presentation-positioning" c.coarseprespos dc.coarseprespos;
   ob "use-document-css" c.usedoccss dc.usedoccss;
   os "dcf" c.dcf dc.dcf;
+  os "hint-charset" c.hcs dc.hcs;
 ;;
 
 let keymapsbuf always dc c =
