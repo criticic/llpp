@@ -2534,7 +2534,23 @@ let enterinfomode =
       src#string "hint chars"
         (fun () -> conf.hcs)
         (fun v ->
-          if String.length v > 1 && Utils.strnodupes v then conf.hcs <- v);
+          if String.length v > 1 &&
+               let module S =
+                 Set.Make (struct type t = char
+                                  let compare a b = Char.code a - Char.code b
+                           end) in
+               let l = String.length v in
+               let rec fold s i =
+                 if i = l
+                 then true
+                 else
+                   let e = String.get v i in
+                   if S.mem e s
+                   then false
+                   else fold (S.add e s) (i+1)
+               in
+               fold (S.singleton (String.get v 0)) 1
+          then conf.hcs <- v);
       src#string "trim fuzz"
         (fun () -> irect_to_string conf.trimfuzz)
         (fun v ->

@@ -41,9 +41,6 @@ let exntos = function
 let error fmt = Printf.kprintf (fun s -> failwith s) fmt;;
 
 module IntSet = Set.Make (struct type t = int let compare = (-) end);;
-module ChrSet = Set.Make (struct type t = char
-                                 let compare a b = Char.code a - Char.code b
-                          end);;
 
 let emptystr s = String.length s = 0;;
 let nonemptystr s = String.length s > 0;;
@@ -354,17 +351,4 @@ let selstring selcmd s =
         then dolog "failed to write %d characters to sel pipe, wrote %d" l n;
       with exn -> dolog "failed to write to sel pipe: %s" @@ exntos exn
     ) selcmd
-;;
-
-let strnodupes v =
-  let l = String.length v in
-  let rec loop s i =
-    if i = l
-    then true
-    else
-      let e = String.get v i in
-      if ChrSet.mem e s
-      then false
-      else loop (ChrSet.add e s) (i+1)
-  in loop (ChrSet.singleton (String.get v 0)) 1
 ;;
