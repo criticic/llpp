@@ -1,1 +1,13 @@
-body { margin-left: 10%; margin-right: 10%; }
+body { margin-left: 10%; margin-right: 10%; src: prince-lookup("Code2003");}
+@font-face {
+    font-family: monospace;
+    src: prince-lookup("Iosevka Clam"), local("monospace");
+}
+@font-face {
+    font-family: serif;
+    src: prince-lookup("PT Astra Serif"), local("serif");
+}
+@font-face {
+    font-family: sans-serif;
+    src: prince-lookup("Raleway-v4020"), local("sans-serif");
+}
