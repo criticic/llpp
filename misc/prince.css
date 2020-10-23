@@ -1,14 +1,1 @@
-body { margin-left: 10%; margin-right: 10%;
-       font-family: serif, code2003; }
-@font-face {
-    font-family: sans-serif;
-    src: local("pt sans");
-}
-@font-face {
-    font-family: serif;
-    src: local("serif");
-}
-@font-face {
-    font-family: monospace;
-    src: local("iosevka clam");
-}
+body { margin-left: 10%; margin-right: 10%; }
