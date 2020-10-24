@@ -1621,19 +1621,3 @@ let logcurrently = function
        conf.tilew conf.tileh
   | Outlining _ -> dolog "outlining"
 ;;
-
-let logpage l =
-  dolog {|l %d dim=%d {
-         WxH     %dx%d
-         vWxH    %dx%d
-         pagex,y %d,%d
-         dispx,y %d,%d
-         column  %d
-         }|}
-    l.pageno l.pagedimno
-    l.pagew l.pageh
-    l.pagevw l.pagevh
-    l.pagex l.pagey
-    l.pagedispx l.pagedispy
-    l.pagecol
-;;
