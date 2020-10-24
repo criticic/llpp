@@ -21,7 +21,17 @@
   enough.
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO bindcode
-* TODO fix build system
+* DONE fix build system
+  CLOSED+: [2020-10-24 Sat 22:04]
   failure scenario:
-  make utils.ml dirty rebuild
-  rename vlog to vlog1 rebuild
+  at the end of the utils add:
+    let u = ();;
+  rebuild
+  change u to
+    let u = fail;;
+  build would not stop at the first compilation failure
+
+  issue is manifold:
+    a) die doesn't really
+    b) especially in bocaml where subshell was used ("(" instead of "{")
+       why? i don't remember :(

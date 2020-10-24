@@ -166,7 +166,7 @@ bocaml2() {
                     printf "$dd " >>"$o.depl"
                 }
             done
-        }
+        } || die "escaped $?"
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && {
         vecho "fresh $o.depl"
@@ -185,7 +185,7 @@ bocaml2() {
 }
 
 cycle=
-bocaml() (
+bocaml() {
     local o="$1"
     local n="$2"
     local wocmi="${o%.cmi}"
@@ -212,7 +212,7 @@ bocaml() (
         bocaml1 $n "$s" "$outd/${s1%.ml}.cmo" "${o#$outd/}"
     } || true
     cycle=$cycle1
-)
+}
 
 bocamlc() {
     local o=$outd/$1
