@@ -176,7 +176,7 @@ let intentry_with_suffix text key =
     match [@warning "-4"] key with
     | Keys.Ascii ('0'..'9' as c) -> addchar text c
     | Keys.Ascii ('k' | 'm' | 'g' | 'K' | 'M' | 'G' as c) ->
-       addchar text @@ asciilower c
+       addchar text @@ Char.lowercase_ascii c
     | _ ->
        state.text <- "invalid key";
        text

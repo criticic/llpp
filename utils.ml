@@ -8,12 +8,6 @@ end;;
 
 type platform = | Punknown | Plinux | Pmacos | Pbsd;;
 
-let asciilower = let auld = Char.code 'A' - Char.code 'a' in
-                 function
-                 | ('A'..'Z') as c -> Char.code c - auld |> Char.chr
-                 | c -> c
-;;
-
 let tempfailureretry f a =
   let rec g () =
     try f a with Unix.Unix_error (Unix.EINTR, _, _) -> g ()
