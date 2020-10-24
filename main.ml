@@ -2533,7 +2533,13 @@ let enterinfomode =
         (fun v -> conf.hfsize <- bound v 5 100);
       src#string "hint chars"
         (fun () -> conf.hcs)
-        (fun v -> conf.hcs <- Config.validatehcs conf.hcs v);
+        (fun v ->
+          try
+            validatehcs v;
+            conf.hcs <- v
+          with exn ->
+            state.text <- Printf.sprintf
+                            "invalid hint charset %S: %s\n" v (exntos exn));
       src#string "trim fuzz"
         (fun () -> irect_to_string conf.trimfuzz)
         (fun v ->

@@ -709,26 +709,19 @@ let keys_of_string s =
   List.map (key_of_string (Str.regexp "-")) elems
 ;;
 
-let validatehcs d v =
-  if String.length v > 1 &&
-       let module S = Set.Make (
-                          struct type t = char
-                                 let compare a b = Char.code a - Char.code b
-                          end)
-       in
-       let l = String.length v in
-       let rec fold s i =
-         if i = l
-         then true
-         else
-           let e = String.get v i in
-           if S.mem e s
-           then false
-           else fold (S.add e s) (i+1)
-       in
-       fold (S.singleton (String.get v 0)) 1
-  then v
-  else (Format.eprintf "invalid hint charset %S@." v; d)
+let validatehcs v =
+  let l = String.length v in
+  if l < 2 then failwith "set is too small, must be greater than one char";
+  let module S = Set.Make (struct type t = char let compare = compare end) in
+  let rec check s i =
+    if i < l
+    then
+      let e = String.get v i in
+      if S.mem e s
+      then failwith "has duplicates"
+      else check (S.add e s) (i+1)
+  in
+  check (S.singleton (String.get v 0)) 1
 ;;
 
 let config_of c attrs =
@@ -825,7 +818,7 @@ let config_of c attrs =
       | "coarse-presentation-positioning" ->
          { c with coarseprespos = bool_of_string v }
       | "use-document-css" -> { c with usedoccss = bool_of_string v }
-      | "hint-charset" -> { c with hcs = validatehcs c.hcs v }
+      | "hint-charset" -> validatehcs v; { c with hcs = v }
       | _ -> c
     with exn ->
       dolog "error processing attribute (`%S' = `%S'): %s" k v @@ exntos exn;

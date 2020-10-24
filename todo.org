@@ -28,4 +28,4 @@
 
    it takes an error in utils making deps dirty and then another...
    (IOW i need to get some sleep before trying to wrap my head around it)
-* TODO hintchars validation should report errors differently (how?)
+* TODO audit dologs, where possible turn them into adderr... and suchlike
