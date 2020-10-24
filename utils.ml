@@ -30,7 +30,8 @@ external platform : unit -> (platform * string array) = "ml_platform";;
 
 let now = Unix.gettimeofday;;
 let platform, uname = platform ();;
-let dolog fmt = Format.ksprintf prerr_endline fmt;;
+let dologf = ref prerr_endline;;
+let dolog fmt = Format.ksprintf !dologf fmt;;
 
 let exntos = function
   | Unix.Unix_error (e, s, a) ->

@@ -23,9 +23,5 @@
 * TODO bindcode
 * TODO fix build system
   failure scenario:
-** error in utils.ml will try to rebuild all dependent modules
-   those will in turn try to build utils
-
-   it takes an error in utils making deps dirty and then another...
-   (IOW i need to get some sleep before trying to wrap my head around it)
-* TODO audit dologs, where possible turn them into adderr... and suchlike
+  make utils.ml dirty rebuild
+  rename vlog to vlog1 rebuild
