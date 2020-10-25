@@ -5125,7 +5125,7 @@ let () =
   let optrfd =
     ref (if nonemptystr !rcmdpath then remoteopen !rcmdpath else None)
   in
-  Utils.dologf := (adderrmsg "");
+  Utils.dologf := (adderrmsg "stderr");
 
   let rec loop deadline =
     if !doreap
