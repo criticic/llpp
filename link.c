@@ -3736,7 +3736,7 @@ ML0 (setdcf (value path_v))
 ML (init (value csock_v, value params_v))
 {
     CAMLparam2 (csock_v, params_v);
-    CAMLlocal3 (trim_v, fuzz_v, ret_v);
+    CAMLlocal2 (trim_v, fuzz_v);
     int ret, texcount, colorspace, mustoresize;
     const char *fontpath;
 
@@ -3808,8 +3808,7 @@ ML (init (value csock_v, value params_v))
         errx (1, "pthread_create: %s", strerror (ret));
     }
 
-    ret_v = Val_int (state.pfds[0]);
-    CAMLreturn (ret_v);
+    CAMLreturn (Val_int (state.pfds[0]));
 }
 
 #if FIXME || !FIXME
