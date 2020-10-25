@@ -48,17 +48,15 @@ isfresh "$mulibst" "$(eval $keycmd)" || (
 ) && vecho "fresh mupdf"
 
 oincs() {
-    local i=
-    local incs1=
-    local incs=
+    local i incs1= incs=
     case "${1#$outd/}" in
-        lablGL/*) incs1="$incs1 lablGL";;
-        main.cmo) incs1="$incs1 $wsid lablGL";;
-        glutils.cmo|listview.cmo) incs1="$incs1 lablGL";;
+        lablGL/*) incs1="lablGL";;
+        main.cmo) incs1="$wsid lablGL";;
+        glutils.cmo|listview.cmo) incs1="lablGL";;
         *) ;;
     esac
     for i in $incs1; do
-        incs="$incs -I $srcd/$i -I $outd/$i"
+        incs+=" -I $srcd/$i -I $outd/$i"
     done
     echo "-I $srcd -I $outd $incs"
 }
@@ -76,9 +74,9 @@ cflags() {
         version.o) f=-DLLPP_VERSION=$ver;;
         link.o)
             f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
-            f="$f -DCACHE_PAGEREFS"
-            $darwin && f="$f -DCIDER -D_GNU_SOURCE" \
-                    || f="$f -D_POSIX_C_SOURCE" # needed for fdopen
+            f+=" -DCACHE_PAGEREFS"
+            $darwin && f+=" -DCIDER -D_GNU_SOURCE" \
+                    || f+=" -D_POSIX_C_SOURCE" # needed for fdopen
             ;;
 
         */ml_*.o)
@@ -91,7 +89,7 @@ cflags() {
 
         *) f="-g -O2";;
     esac
-    ! $darwin || f="$f -DGL_SILENCE_DEPRECATION"
+    ! $darwin || f+=" -DGL_SILENCE_DEPRECATION"
     echo $f
 }
 
@@ -142,12 +140,8 @@ bocaml1() {
 }
 
 bocaml2() {
-    local n=$1
-    local s="$2"
-    local o="$3"
-    local O=${4-}
-    local d
-    local dd
+    local n=$1 s="$2" o="$3" O=${4-}
+    local d dd
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
     local keycmd="digest $o $s $o.depl"
 
@@ -186,11 +180,8 @@ bocaml2() {
 
 cycle=
 bocaml() {
-    local o="$1"
-    local n="$2"
+    local s o="$1" n="$2" cycle1="$cycle"
     local wocmi="${o%.cmi}"
-    local s
-    local cycle1=$cycle
     case ${wocmi#$outd/} in
         confstruct.cmo)
             s=$outd/confstruct.ml
@@ -283,23 +274,23 @@ bocaml main.cmo 0
 cobjs=
 for m in link cutils version; do
     bocamlc $m.o
-    cobjs="$cobjs $outd/$m.o"
+    cobjs+=" $outd/$m.o"
 done
 for m in ml_gl ml_glarray ml_raw; do
     bocamlc lablGL/$m.o
-    cobjs="$cobjs $outd/lablGL/$m.o"
+    cobjs+=" $outd/lablGL/$m.o"
 done
 
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/$mbt -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
-    clibs="$clibs -framework Cocoa -framework OpenGL"
-    cobjs="$cobjs $outd/wsi/cocoa/cocoa.o"
+    clibs+=" -framework Cocoa -framework OpenGL"
+    cobjs+="  $outd/wsi/cocoa/cocoa.o"
     bobjc wsi/cocoa/cocoa.o
 else
-    clibs="$clibs -lGL -lX11"
-    cobjs="$cobjs $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/xlib.o"
+    clibs+=" -lGL -lX11"
+    cobjs+=" $outd/wsi/x11/keysym2ucs.o $outd/wsi/x11/xlib.o"
     bocamlc wsi/x11/keysym2ucs.o
     bocamlc wsi/x11/xlib.o
 fi
