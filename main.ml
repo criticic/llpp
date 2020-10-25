@@ -4859,7 +4859,7 @@ let remoteopen path =
 ;;
 
 let () =
-  Utils.vlogf := (fun s -> if conf.verbose then prerr_endline s else ignore s);
+  Utils.vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
   let gcconfig = ref false in
   let rcmdpath = ref E.s in
   let dcfpath = ref None in
