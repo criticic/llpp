@@ -41,7 +41,7 @@ mbt=${mbt:-native}
 mulibst="$mudir/build/$mbt/libs"
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
 
-keycmd="(cd $mudir && make -q build=$mbt libs && echo); digest $mulibs"
+keycmd="make -C $mudir -q build=$mbt libs && digest $mulibs"
 isfresh "$mulibst" "$(eval $keycmd)" || (
     make -C "$mudir" build=$mbt -j $mjobs libs
     eval $keycmd >${mulibst}.past
