@@ -3,7 +3,7 @@ open Config;;
 type initparams = (angle * fitmodel * trimparams * texcount * sliceheight *
                      memsize * colorspace * fontpath);;
 
-external init : Unix.file_descr -> initparams -> unit = "ml_init";;
+external init : Unix.file_descr -> initparams -> Unix.file_descr = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
 external hassel : opaque -> bool = "ml_hassel";;
 external getpdimrect : int -> float array = "ml_getpdimrect";;

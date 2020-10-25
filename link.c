@@ -162,6 +162,7 @@ static struct {
     fz_context *ctx;
     int w, h;
     char *dcf;
+    int pfds[2];
 
     struct {
         int index, count;
@@ -3732,15 +3733,24 @@ ML0 (setdcf (value path_v))
     }
 }
 
-ML0 (init (value csock_v, value params_v))
+ML (init (value csock_v, value params_v))
 {
     CAMLparam2 (csock_v, params_v);
-    CAMLlocal2 (trim_v, fuzz_v);
+    CAMLlocal3 (trim_v, fuzz_v, ret_v);
     int ret;
     int texcount;
     const char *fontpath;
     int colorspace;
     int mustoresize;
+
+    if (pipe (state.pfds)) err (1, "pipe");
+    for (int ntries = 0; ntries < 1737; ++ntries) {
+        if (-1 == dup2 (state.pfds[1], 2)) {
+            if (EINTR == errno) continue;
+            err (1, "dup2");
+        }
+        break;
+    }
 
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
@@ -3801,7 +3811,8 @@ ML0 (init (value csock_v, value params_v))
         errx (1, "pthread_create: %s", strerror (ret));
     }
 
-    CAMLreturn0;
+    ret_v = Val_int (state.pfds[0]);
+    CAMLreturn (ret_v);
 }
 
 #if FIXME || !FIXME
