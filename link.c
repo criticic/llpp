@@ -3737,11 +3737,8 @@ ML (init (value csock_v, value params_v))
 {
     CAMLparam2 (csock_v, params_v);
     CAMLlocal3 (trim_v, fuzz_v, ret_v);
-    int ret;
-    int texcount;
+    int ret, texcount, colorspace, mustoresize;
     const char *fontpath;
-    int colorspace;
-    int mustoresize;
 
     if (pipe (state.pfds)) err (1, "pipe");
     for (int ntries = 0; ntries < 1737; ++ntries) {
