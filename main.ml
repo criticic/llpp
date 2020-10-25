@@ -5237,12 +5237,11 @@ let () =
   in
   match loop infinity with
   | exception Quit ->
-     (try
-        let s = Buffer.contents state.errmsgs in
-        match String.length s with
-        | 0 -> ()
-        | n -> ignore @@ Unix.write efd (Bytes.of_string s) 0 n
-      with _ -> ());
+     (match Buffer.length state.errmsgs with
+      | 0 -> ()
+      | n ->
+         match Unix.write efd (Buffer.to_bytes state.errmsgs) 0 n with
+         | exception _ | _ -> ());
      Config.save leavebirdseye;
      if Ffi.hasunsavedchanges ()
      then save ()
