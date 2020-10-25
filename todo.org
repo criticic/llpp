@@ -35,9 +35,10 @@
     a) die doesn't really
     b) especially in bocaml where subshell was used ("(" instead of "{")
        why? i don't remember :(
-* DONE stderr
-  CLOSED: [2020-10-25 Sun 05:41]
+* DONE ? stderr
+  CLOSED: [2020-10-25 Sun 10:48]
   cf. 89c908a345f2b6a0f0e15ba2009c87c880b95cb8
   ml_spawn uses posix_spawn (/bin/sh -c ...)
   /bin/sh reparts errors via stderr, thus making them
   completely hidden from the UI
+  maybe it makes sense to pipe leftover errmsgs to some congiurable sink

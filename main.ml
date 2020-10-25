@@ -5087,6 +5087,7 @@ let () =
        then String.sub css 0 (l-2)
        else (if css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
   end;
+  let efd = try Unix.dup Unix.stderr with _ -> Unix.stdout in
   state.stderr <-
     Ffi.init cs (
         conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
@@ -5236,6 +5237,12 @@ let () =
   in
   match loop infinity with
   | exception Quit ->
+     (try
+        let s = Buffer.contents state.errmsgs in
+        match String.length s with
+        | 0 -> ()
+        | n -> ignore @@ Unix.write efd (Bytes.of_string s) 0 n
+      with _ -> ());
      Config.save leavebirdseye;
      if Ffi.hasunsavedchanges ()
      then save ()
