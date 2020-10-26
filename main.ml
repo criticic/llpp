@@ -3984,9 +3984,8 @@ let birdseyekeyboard key mask
      | l :: _ ->
         if l.pagey != 0
         then (
-          state.mode <- Birdseye (
-                            oconf, leftx, l.pageno, hooverpageno, anchor
-                          );
+          state.mode <-
+            Birdseye (oconf, leftx, l.pageno, hooverpageno, anchor);
           gotopage1 l.pageno 0;
         )
         else (
@@ -3996,9 +3995,8 @@ let birdseyekeyboard key mask
           match layout with
           | [] -> gotoxy state.x (clamp (-state.winh))
           | l :: _ ->
-             state.mode <- Birdseye (
-                               oconf, leftx, l.pageno, hooverpageno, anchor
-                             );
+             state.mode <-
+               Birdseye (oconf, leftx, l.pageno, hooverpageno, anchor);
              gotopage1 l.pageno 0
         );
 
