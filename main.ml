@@ -1382,7 +1382,8 @@ let act cmds =
               Printf.bprintf b "[%s]" v;
               Buffer.contents b
             else args
-          ) else args
+          )
+          else args
      in
      state.docinfo <- (1, s) :: state.docinfo
 
