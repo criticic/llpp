@@ -1,4 +1,4 @@
-body { margin-left: 10%; margin-right: 10%; src: prince-lookup("Code2003");}
+body { margin-left: 10%; margin-right: 10%; }
 @font-face {
     font-family: monospace;
     src: prince-lookup("Iosevka Clam"), local("monospace");
