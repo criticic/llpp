@@ -1352,42 +1352,37 @@ let act cmds =
      state.reprf <- (fun () -> gotopagexy n (float l) (float t))
 
   | "info", args ->
-     let c, v = splitatchar args '\t' in
      let s =
-       if nonemptystr v
-       then
-         if c = "Title"
-         then (
-           conf.title <- v;
-           if not !ignoredoctitlte then Wsi.settitle v;
-           args
-         )
-         else
-           if let len = String.length c in
-              len > 6 && ((String.sub c (len-4) 4) = "date")
-           then (
-             if String.length v >= 7 && v.[0] = 'D' && v.[1] = ':'
-             then
-               let b = Buffer.create 10 in
-               Printf.bprintf b "%s\t" c;
-               let sub p l c =
-                 try
-                   Buffer.add_substring b v p l;
-                   Buffer.add_char b c;
-                 with exn -> Buffer.add_string b @@ exntos exn
-               in
-               sub 2 4 '/';
-               sub 6 2 '/';
-               sub 8 2 ' ';
-               sub 10 2 ':';
-               sub 12 2 ':';
-               sub 14 2 ' ';
-               Printf.bprintf b  "[%s]" v;
-               Buffer.contents b
-             else args
-           )
-           else args
-       else args
+       match splitatchar args '\t' with
+       | "Title", v ->
+          conf.title <- v;
+          if not !ignoredoctitlte then Wsi.settitle v;
+          args
+       | _, "" -> args
+       | c, v ->
+          if let len = String.length c in
+             len > 6 && ((String.sub c (len-4) 4) = "date")
+          then (
+            if String.length v >= 7 && v.[0] = 'D' && v.[1] = ':'
+            then
+              let b = Buffer.create 10 in
+              Printf.bprintf b "%s\t" c;
+              let sub p l c =
+                try
+                  Buffer.add_substring b v p l;
+                  Buffer.add_char b c;
+                with exn -> Buffer.add_string b @@ exntos exn
+              in
+              sub 2 4 '/';
+              sub 6 2 '/';
+              sub 8 2 ' ';
+              sub 10 2 ':';
+              sub 12 2 ':';
+              sub 14 2 ' ';
+              Printf.bprintf b  "[%s]" v;
+              Buffer.contents b
+            else args
+          ) else args
      in
      state.docinfo <- (1, s) :: state.docinfo
 
