@@ -1817,7 +1817,7 @@ class outlinelistview ~zebra ~source =
       in
       let ctrl = Wsi.withctrl mask in
       let open Keys in
-      match Wsi.kc2kt key with
+      match Wsi.ks2kt key with
       | Ascii 'a' when ctrl ->
          let text =
            if m_autonarrow
@@ -2688,7 +2688,7 @@ let enterinfomode =
              method! key key mask =
                if not (Wsi.withctrl mask)
                then
-                 match [@warning "-4"] Wsi.kc2kt key with
+                 match [@warning "-4"] Wsi.ks2kt key with
                  | Keys.Left  -> coe (self#updownlevel ~-1)
                  | Keys.Right -> coe (self#updownlevel 1)
                  | _ -> super#key key mask
@@ -3370,7 +3370,7 @@ let viewkeyboard key mask =
   in
   let ctrl = Wsi.withctrl mask in
   let open Keys in
-  match Wsi.kc2kt key with
+  match Wsi.ks2kt key with
   | Ascii 'S' -> state.slideshow <- state.slideshow lxor 1
 
   | Ascii 'Q' -> exit 0
@@ -3756,7 +3756,7 @@ let viewkeyboard key mask =
          else conf.hscrollstep
        in
        let dx =
-         let pv = Wsi.kc2kt key in
+         let pv = Wsi.ks2kt key in
          if pv = Keys.Left then dx else -dx
        in
        gotoxy (panbound (state.x + dx)) state.y
@@ -3851,7 +3851,7 @@ let viewkeyboard key mask =
 ;;
 
 let linknavkeyboard key mask linknav =
-  let pv = Wsi.kc2kt key in
+  let pv = Wsi.ks2kt key in
   let getpage pageno =
     let rec loop = function
       | [] -> None
@@ -3967,7 +3967,7 @@ let birdseyekeyboard key mask
   let pgh layout = List.fold_left
                      (fun m l -> max l.pageh m) state.winh layout in
   let open Keys in
-  match Wsi.kc2kt key with
+  match Wsi.ks2kt key with
   | Ascii 'l' when Wsi.withctrl mask ->
      let y, h = getpageyh pageno in
      let top = (state.winh - h) / 2 in

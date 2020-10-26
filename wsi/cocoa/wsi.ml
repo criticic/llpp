@@ -286,7 +286,7 @@ let namekey name =
     then Char.code name.[0]
     else int_of_string name
 
-let kc2kt =
+let ks2kt =
   let open Keys in
   function
   | 8 -> Backspace

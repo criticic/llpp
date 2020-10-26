@@ -59,4 +59,4 @@ val ctrlmask : int;;
 val keyname : int -> string;;
 val namekey : string -> int;;
 val fontsizefactor : unit -> int;;
-val kc2kt : int -> Keys.t;;
+val ks2kt : int -> Keys.t;;

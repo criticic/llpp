@@ -1260,7 +1260,7 @@ let namekey name =
     else int_of_string name;
 ;;
 
-let kc2kt =
+let ks2kt =
   let open Keys in
   function
   | 0xff08 -> Backspace
