@@ -37,7 +37,7 @@ let launchpath () =
   then dolog "%s" state.path
   else (
     let command =
-      Str.global_replace Utils.Re.percent state.path conf.pathlauncher in
+      Str.global_replace Re.percent state.path conf.pathlauncher in
     match spawn command [] with
     | _pid -> ()
     | exception exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
@@ -2766,7 +2766,7 @@ let entermsgsmode =
 
        method reset =
          state.newerrmsgs <- false;
-         let l = Str.split Utils.Re.crlf (Buffer.contents state.errmsgs) in
+         let l = Str.split Re.crlf (Buffer.contents state.errmsgs) in
          m_items <- Array.of_list l
 
        initializer
@@ -3335,7 +3335,7 @@ let save () =
   then adderrmsg "savepath-command is empty"
          "don't know where to save modified document"
   else
-    let savecmd = Str.global_replace Utils.Re.percent state.path conf.savecmd in
+    let savecmd = Str.global_replace Re.percent state.path conf.savecmd in
     let path =
       getcmdoutput
         (fun exn ->
@@ -4853,7 +4853,7 @@ let remoteopen path =
 ;;
 
 let () =
-  Utils.vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
+  vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
   let gcconfig = ref false in
   let rcmdpath = ref E.s in
   let dcfpath = ref None in
@@ -5119,7 +5119,7 @@ let () =
   let optrfd =
     ref (if nonemptystr !rcmdpath then remoteopen !rcmdpath else None)
   in
-  Utils.dologf := (adderrfmt "stderr" "%s\n");
+  dologf := (adderrfmt "stderr" "%s\n");
 
   let rec loop deadline =
     if !doreap
