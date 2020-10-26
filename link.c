@@ -11,8 +11,6 @@
 #pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
 #endif
 
-extern char **environ;
-
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -3044,6 +3042,7 @@ ML (spawn (value command_v, value fds_v))
         }
     }
 
+    extern char **environ;
     if ((ret = posix_spawn (&pid, "/bin/sh", &fa, &attr, argv, environ))) {
         msg = "posix_spawn";
         goto fail;
