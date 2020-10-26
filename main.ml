@@ -1379,7 +1379,7 @@ let act cmds =
               sub 10 2 ':';
               sub 12 2 ':';
               sub 14 2 ' ';
-              Printf.bprintf b  "[%s]" v;
+              Printf.bprintf b "[%s]" v;
               Buffer.contents b
             else args
           ) else args
