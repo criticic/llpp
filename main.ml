@@ -5190,17 +5190,14 @@ let () =
             checkfds rest
 
          | fd :: rest when fd = state.stderr ->
+            Format.printf "err@.";
             let b = Bytes.create 80 in
-            let rec loop () =
-              match Unix.read fd b 0 80 with
-              | 0 -> ()
-              | n ->
-                 adderrmsg "stderr" @@ Bytes.sub_string b 0 n;
-                 loop ()
-              | exception Unix.Unix_error (Unix.EINTR, _, _) -> ()
-              | exception exn -> adderrmsg "Unix.read exn" @@ exntos exn
-            in
-            loop ();
+            begin match Unix.read fd b 0 80 with
+            | 0 -> ()
+            | n -> adderrmsg "stderr" @@ Bytes.sub_string b 0 n
+            | exception Unix.Unix_error (Unix.EINTR, _, _) -> ()
+            | exception exn -> adderrmsg "Unix.read exn" @@ exntos exn
+            end;
             checkfds rest
 
          | fd :: rest when Some fd = !optrfd ->
