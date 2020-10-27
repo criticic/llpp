@@ -37,3 +37,4 @@
        why? i don't remember :(
 * TODO unseen diagnostic messages
   maybe it makes sense to pipe leftover errmsgs to some congiurable sink
+* TODO font scaling factor on X11
