@@ -100,6 +100,7 @@ type state =
   ; mutable levl3mask  : int
   ; mutable levl5mask  : int
   ; mutable xkb        : bool
+  ; mutable fscale     : float
   }
 and fs =
   | NoFs
@@ -138,6 +139,7 @@ let state =
   ; levl3mask  = 0
   ; levl5mask  = 0
   ; xkb        = false
+  ; fscale     = 1.0
   }
 ;;
 
@@ -778,6 +780,7 @@ let setup disp sock rootwid screennum w h =
      and rooth = r16 data (pos+22)
      and rootdepth = r8 data (pos+38)in
 
+     state.fscale <- float rooth /. 1440.0;
      state.mink <- minkk;
      state.maxk <- maxkk;
      state.idbase <- idbase;
@@ -1296,4 +1299,4 @@ let ks2kt =
   | code -> Code code
 ;;
 
-let fontsizescale n = float n *. 1.6 |> truncate;;
+let fontsizescale n = float n *. state.fscale |> truncate;;

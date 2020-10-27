@@ -37,4 +37,6 @@
        why? i don't remember :(
 * TODO unseen diagnostic messages
   maybe it makes sense to pipe leftover errmsgs to some congiurable sink
-* TODO font scaling factor on X11
+* DONE font scaling factor on X11
+  CLOSED: [2020-10-27 Tue 10:43]
+  Current font sizes were (last) hard coded on a 2560x1440
