@@ -1296,4 +1296,4 @@ let ks2kt =
   | code -> Code code
 ;;
 
-let fontsizefactor () = 1;;
+let fontsizescale n = float n *. 1.6 |> truncate;;

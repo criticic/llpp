@@ -118,7 +118,7 @@ K keyhashes '(string * keyhash) list' \
 '(let mk n = (n, Hashtbl.create 1) in
       [ mk "global"; mk "info" ; mk "help"; mk "outline"; mk "listview"
       ; mk "birdseye"; mk "textentry"; mk "links"; mk "view" ])'
-i hfsize '12 * Wsi.fontsizefactor ()'
+i hfsize 'Wsi.fontsizescale 12'
 f pgscale 1.
 b usepbo false
 b wheelbypage false

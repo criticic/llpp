@@ -58,5 +58,5 @@ val shiftmask : int;;
 val ctrlmask : int;;
 val keyname : int -> string;;
 val namekey : string -> int;;
-val fontsizefactor : unit -> int;;
+val fontsizescale : int -> int;;
 val ks2kt : int -> Keys.t;;

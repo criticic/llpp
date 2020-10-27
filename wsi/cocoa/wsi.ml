@@ -206,8 +206,8 @@ let readresp sock =
   in
   loop 0
 
-let fontsizefactor () =
-  get_backing_scale_factor ()
+let fontsizescale n =
+  n * get_backing_scale_factor ()
 
 let init t w h _platform =
   let fd = get_server_fd () in
