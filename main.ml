@@ -5235,8 +5235,8 @@ let () =
       | n ->
          let fdref = ref Unix.stdout in
          (match conf.femcmd with
-         | "" -> fdref := Unix.stdout
-         | cmd -> pipef ~closew:false "errmsgs" (fun w -> fdref := w) cmd);
+          | "" -> ()
+          | cmd -> pipef ~closew:false "errmsgs" (fun w -> fdref := w) cmd);
          match Unix.write !fdref (Buffer.to_bytes state.errmsgs) 0 n with
          | exception _ | _ -> ());
      Config.save leavebirdseye;
