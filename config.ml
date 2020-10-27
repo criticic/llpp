@@ -1277,6 +1277,7 @@ let add_attrs bb always dc c time =
   os "pax-command" c.paxcmd dc.paxcmd;
   os "askpass-command" c.passcmd dc.passcmd;
   os "savepath-command" c.savecmd dc.savecmd;
+  os "fem-command" c.femcmd dc.femcmd;
   ob "update-cursor" c.updatecurs dc.updatecurs;
   oi "hint-font-size" c.hfsize dc.hfsize;
   oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;

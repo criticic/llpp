@@ -5081,7 +5081,6 @@ let () =
        then String.sub css 0 (l-2)
        else (if css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
   end;
-  let efd = try Unix.dup Unix.stderr with _ -> Unix.stdout in
   state.stderr <-
     Ffi.init cs (
         conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
@@ -5234,8 +5233,10 @@ let () =
      (match Buffer.length state.errmsgs with
       | 0 -> ()
       | n ->
-         match Unix.write efd (Buffer.to_bytes state.errmsgs) 0 n with
-         | exception _ | _ -> ());
+         pipef ~closew:false "eflush"
+           (fun w ->
+             match Unix.write w (Buffer.to_bytes state.errmsgs) 0 n with
+             | exception _ | _ -> ()) conf.femcmd);
      Config.save leavebirdseye;
      if Ffi.hasunsavedchanges ()
      then save ()
