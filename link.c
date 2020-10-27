@@ -2291,13 +2291,9 @@ static struct annot *getannot (struct page *page, int x, int y)
     if (pdf) {
         for (int i = 0; i < page->annotcount; ++i) {
             struct annot *a = &page->annots[i];
-            fz_rect rect;
-
-            rect = pdf_bound_annot (state.ctx, a->annot);
-            if (p.x >= rect.x0 && p.x <= rect.x1) {
-                if (p.y >= rect.y0 && p.y <= rect.y1)
-                    return a;
-            }
+            if (fz_is_point_inside_rect (p, pdf_bound_annot (state.ctx,
+                                                             a->annot)))
+                return a;
         }
     }
     return NULL;
@@ -2316,11 +2312,8 @@ static fz_link *getlink (struct page *page, int x, int y)
     p = fz_transform_point (p, fz_invert_matrix (pagectm (page)));
 
     for (link = page->links; link; link = link->next) {
-        if (p.x >= link->rect.x0 && p.x <= link->rect.x1) {
-            if (p.y >= link->rect.y0 && p.y <= link->rect.y1) {
-                return link;
-            }
-        }
+        if (fz_is_point_inside_rect (p, link->rect))
+            return link;
     }
     return NULL;
 }
@@ -2669,7 +2662,7 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
         Field (ret_v, 0) = str_v;
     }
     else {
-        fz_rect *b;
+        fz_point p = { .x = x, .y = y };
         fz_stext_block *block;
 
         ensuretext (page);
@@ -2678,22 +2671,15 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
             fz_stext_line *line;
 
             if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
-            b = &block->bbox;
-            if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
-                continue;
+            if (!fz_is_point_inside_rect (p, block->bbox)) continue;
 
             for (line = block->u.t.first_line; line; line = line->next) {
                 fz_stext_char *ch;
 
-                b = &line->bbox;
-                if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
-                    continue;
+                if (!fz_is_point_inside_rect (p, line->bbox)) continue;
 
                 for (ch = line->first_char; ch; ch = ch->next) {
-                    fz_quad *q = &ch->quad;
-
-                    if (x >= q->ul.x && x <= q->ur.x
-                        && y >= q->ul.y && y <= q->ll.y) {
+                    if (!fz_is_point_inside_quad (p, ch->quad)) {
                         const char *n2 = fz_font_name (state.ctx, ch->font);
                         FT_FaceRec *face = fz_font_ft_face (state.ctx,
                                                             ch->font);
@@ -2764,13 +2750,12 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
 {
     CAMLparam4 (ptr_v, x_v, y_v, mark_v);
     CAMLlocal1 (ret_v);
-    fz_rect *b;
     struct page *page;
     fz_stext_line *line;
     fz_stext_block *block;
     struct pagedim *pdim;
     int mark = Int_val (mark_v);
-    int x = Int_val (x_v), y = Int_val (y_v);
+    fz_point p = { .x = Int_val (x_v), .y = Int_val (y_v) };
 
     ret_v = Val_bool (0);
     if (trylock (__func__)) {
@@ -2789,13 +2774,12 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
         goto unlock;
     }
 
-    x += pdim->bounds.x0;
-    y += pdim->bounds.y0;
+    p.x += pdim->bounds.x0;
+    p.y += pdim->bounds.y0;
 
     for (block = page->text->first_block; block; block = block->next) {
         if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
-        b = &block->bbox;
-        if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
+        if (!fz_is_point_inside_rect (p, block->bbox))
             continue;
 
         if (mark == mark_block) {
@@ -2808,8 +2792,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
         for (line = block->u.t.first_line; line; line = line->next) {
             fz_stext_char *ch;
 
-            b = &line->bbox;
-            if (!(x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1))
+            if (!fz_is_point_inside_rect (p, line->bbox))
                 continue;
 
             if (mark == mark_line) {
@@ -2821,9 +2804,8 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
 
             for (ch = line->first_char; ch; ch = ch->next) {
                 fz_stext_char *ch2, *first = NULL, *last = NULL;
-                fz_quad *q = &ch->quad;
-                if (x >= q->ul.x && x <= q->ur.x
-                    && y >= q->ul.y && y <= q->ll.y) {
+
+                if (fz_is_point_inside_quad (p, ch->quad)) {
                     for (ch2 = line->first_char; ch2 != ch; ch2 = ch2->next) {
                         if (uninteresting (ch2->c)) first = NULL;
                         else if (!first) first = ch2;
@@ -2860,7 +2842,7 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
     struct page *page;
     struct pagedim *pdim;
     fz_stext_block *block;
-    int x = Int_val (x_v), y = Int_val (y_v);
+    fz_point p = { .x = Int_val (x_v), .y = Int_val (y_v) };
 
     ret_v = Val_int (0);
     if (trylock (__func__)) {
@@ -2869,8 +2851,8 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
 
     page = parse_pointer (__func__, String_val (ptr_v));
     pdim = &state.pagedims[page->pdimno];
-    x += pdim->bounds.x0;
-    y += pdim->bounds.y0;
+    p.x += pdim->bounds.x0;
+    p.y += pdim->bounds.y0;
 
     ensuretext (page);
 
@@ -2888,7 +2870,7 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
             continue;
         }
 
-        if (x >= b->x0 && x <= b->x1 && y >= b->y0 && y <= b->y1)
+        if (fz_is_point_inside_rect (p, *b))
             break;
         b = NULL;
     }
@@ -2946,13 +2928,11 @@ ML0 (seltext (value ptr_v, value rect_v))
         if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
         for (line = block->u.t.first_line; line; line = line->next) {
             for (ch = line->first_char; ch; ch = ch->next) {
-                fz_quad q = ch->quad;
-                if (x0 >= q.ul.x && x0 <= q.ur.x
-                    && y0 >= q.ul.y && y0 <= q.ll.y) {
+                fz_point p0 = { .x = x0, .y = y0 }, p1 = { .x = x1, .y = y1 };
+                if (fz_is_point_inside_quad (p0, ch->quad)) {
                     fc = ch;
                 }
-                if (x1 >= q.ul.x && x1 <= q.ur.x
-                    && y1 >= q.ul.y && y1 <= q.ll.y) {
+                if (fz_is_point_inside_quad (p1, ch->quad)) {
                     lc = ch;
                 }
             }
