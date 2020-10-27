@@ -5233,12 +5233,12 @@ let () =
      (match Buffer.length state.errmsgs with
       | 0 -> ()
       | n ->
-         if nonemptystr conf.femcmd
-         then pipef ~closew:false "eflush"
-                (fun w ->
-                  match Unix.write w (Buffer.to_bytes state.errmsgs) 0 n with
-                  | exception _ | _ -> ()) conf.femcmd
-         else print_endline @@ Buffer.contents state.errmsgs);
+         let fdref = ref Unix.stdout in
+         (match conf.femcmd with
+         | "" -> fdref := Unix.stdout
+         | cmd -> pipef ~closew:false "errmsgs" (fun w -> fdref := w) cmd);
+         match Unix.write !fdref (Buffer.to_bytes state.errmsgs) 0 n with
+         | exception _ | _ -> ());
      Config.save leavebirdseye;
      if Ffi.hasunsavedchanges ()
      then save ()
