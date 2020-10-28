@@ -73,7 +73,8 @@ cflags() {
     case "${1#$outd/}" in
         version.o) f=-DLLPP_VERSION=$ver;;
         link.o)
-            f="-g -std=c99 -O2 $muinc -Wall -Werror -Wextra -pedantic"
+            f="-g -std=c99 $muinc -Wall -Werror -Wextra -pedantic"
+            test "${mbt-}" = "debug" || f+=" -O2"
             f+=" -DCACHE_PAGEREFS"
             $darwin && f+=" -DCIDER -D_GNU_SOURCE" \
                     || f+=" -D_POSIX_C_SOURCE" # needed for fdopen
