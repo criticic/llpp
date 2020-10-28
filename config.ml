@@ -961,8 +961,7 @@ let get s =
          in
          { v with f = pkeymap ret KeyMap.empty }
 
-    | Vopen (_, _, _) ->
-       parse_error "unexpected subelement in defaults" s spos
+    | Vopen (_, _, _) -> parse_error "unexpected subelement in defaults" s spos
 
     | Vclose "defaults" ->
        { v with f = llppconfig }
@@ -1082,8 +1081,7 @@ let get s =
   and skip tag f v t spos _ =
     match t with
     | Vdata | Vcdata -> v
-    | Vend ->
-       parse_error ("unexpected end of input in skipped " ^ tag) s spos
+    | Vend -> parse_error ("unexpected end of input in skipped " ^ tag) s spos
     | Vopen (tag', _, closed) ->
        if closed
        then v
