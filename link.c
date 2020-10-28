@@ -230,7 +230,9 @@ static int hasdata (void)
 {
     int ret, avail;
     ret = ioctl (state.csock, FIONREAD, &avail);
-    if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
+    if (ret) {
+        err (1, "hasdata: FIONREAD error ret=%d", ret);
+    }
     return avail > 0;
 }
 
@@ -240,7 +242,9 @@ ML (hasdata (value fd_v))
     int ret, avail;
 
     ret = ioctl (Int_val (fd_v), FIONREAD, &avail);
-    if (ret) uerror ("ioctl (FIONREAD)", Nothing);
+    if (ret) {
+        uerror ("ioctl (FIONREAD)", Nothing);
+    }
     CAMLreturn (Val_bool (avail > 0));
 }
 
@@ -251,8 +255,12 @@ static void readdata (int fd, void *p, int size)
 again:
     n = read (fd, p, size);
     if (n - size) {
-        if (n < 0 && errno == EINTR) goto again;
-        if (!n) errx (1, "EOF while reading");
+        if (n < 0 && errno == EINTR) {
+            goto again;
+        }
+        if (!n) {
+            errx (1, "EOF while reading");
+        }
         errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
 }
@@ -268,9 +276,13 @@ static void writedata (int fd, char *p, int size)
 
 again:
     n = writev (fd, iov, 2);
-    if (n < 0 && errno == EINTR) goto again;
+    if (n < 0 && errno == EINTR) {
+        goto again;
+    }
     if (n - size - 4) {
-        if (!n) errx (1, "EOF while writing data");
+        if (!n) {
+            errx (1, "EOF while writing data");
+        }
         err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
@@ -317,15 +329,21 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
                 writedata (state.csock, buf, len);
                 break;
             }
-            else size = len + 5;
+            else {
+                size = len + 5;
+            }
         }
         else {
             err (1, "vsnprintf for `%s' failed", fmt);
         }
         buf = realloc (buf == fbuf ? NULL : buf, size);
-        if (!buf) err (1, "realloc for temp buf (%d bytes) failed", size);
+        if (!buf) {
+            err (1, "realloc for temp buf (%d bytes) failed", size);
+        }
     }
-    if (buf != fbuf) free (buf);
+    if (buf != fbuf) {
+        free (buf);
+    }
 }
 
 static void closedoc (void)
@@ -396,7 +414,9 @@ static void docinfo (void)
             }
             else {
                 buf = realloc (buf, need);
-                if (!buf) err (1, "docinfo realloc %d", need);
+                if (!buf) {
+                    err (1, "docinfo realloc %d", need);
+                }
                 len = need;
                 goto again;
             }
@@ -422,7 +442,9 @@ static void unlinktile (struct tile *tile)
 
 static void freepage (struct page *page)
 {
-    if (!page) return;
+    if (!page) {
+        return;
+    }
     if (page->text) {
         fz_drop_stext_page (state.ctx, page->text);
     }
@@ -458,7 +480,9 @@ static void trimctm (pdf_page *page, int pindex)
 {
     struct pagedim *pdim = &state.pagedims[pindex];
 
-    if (!page) return;
+    if (!page) {
+        return;
+    }
     if (!pdim->tctmready) {
         fz_rect realbox, mediabox;
         fz_matrix page_ctm, ctm;
@@ -884,7 +908,9 @@ static void layout (void)
     struct pagedim *p = NULL;
     float zw, w, maxw = 0.0, zoom = 1.0;
 
-    if (state.pagedimcount == 0) return;
+    if (state.pagedimcount == 0) {
+        return;
+    }
 
     switch (state.fitmodel) {
     case FitProportional:
@@ -1007,7 +1033,9 @@ static void process_outline (void)
 {
     fz_outline *outline;
 
-    if (!state.needoutline || !state.pagedimcount) return;
+    if (!state.needoutline || !state.pagedimcount) {
+        return;
+    }
 
     state.needoutline = 0;
     outline = fz_load_outline (state.ctx, state.doc);
@@ -1025,14 +1053,18 @@ static char *strofline (fz_stext_line *line)
     size_t size = 0, cap = 80;
 
     p = malloc (cap + 1);
-    if (!p) return NULL;
+    if (!p) {
+        return NULL;
+    }
 
     for (ch = line->first_char; ch; ch = ch->next) {
         int n = fz_runetochar (utf8, ch->c);
         if (size + n > cap) {
             cap *= 2;
             p = realloc (p, cap + 1);
-            if (!p) return NULL;
+            if (!p) {
+                return NULL;
+            }
         }
 
         memcpy (p + size, utf8, n);
@@ -1050,7 +1082,9 @@ static int matchline (regex_t *re, fz_stext_line *line,
     regmatch_t rm;
 
     p = strofline (line);
-    if (!p) return -1;
+    if (!p) {
+        return -1;
+    }
 
     ret = regexec (re, p, 1, &rm, 0);
     if (ret) {
@@ -1079,7 +1113,9 @@ static int matchline (regex_t *re, fz_stext_line *line,
         }
         for (;ch; ch = ch->next) {
             o += fz_runelen (ch->c);
-            if (o > rm.rm_eo) break;
+            if (o > rm.rm_eo) {
+                break;
+            }
         }
         e = ch->quad;
 
@@ -1148,9 +1184,13 @@ static void search (regex_t *re, int pageno, int y, int forward)
             for (block = text->first_block; block; block = block->next) {
                 fz_stext_line *line;
 
-                if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+                if (block->type != FZ_STEXT_BLOCK_TEXT) {
+                    continue;
+                }
                 for (line = block->u.t.first_line; line; line = line->next) {
-                    if (line->bbox.y0 < y + 1) continue;
+                    if (line->bbox.y0 < y + 1) {
+                        continue;
+                    }
 
                     switch (matchline (re, line, stop, pageno, start)) {
                     case 0: break;
@@ -1164,9 +1204,13 @@ static void search (regex_t *re, int pageno, int y, int forward)
             for (block = text->last_block; block; block = block->prev) {
                 fz_stext_line *line;
 
-                if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+                if (block->type != FZ_STEXT_BLOCK_TEXT) {
+                    continue;
+                }
                 for (line = block->u.t.last_line; line; line = line->prev) {
-                    if (line->bbox.y0 < y + 1) continue;
+                    if (line->bbox.y0 < y + 1) {
+                        continue;
+                    }
 
                     switch (matchline (re, line, stop, pageno, start)) {
                     case 0: break;
@@ -1220,7 +1264,9 @@ static void realloctexts (int texcount)
 {
     size_t size;
 
-    if (texcount == state.tex.count) return;
+    if (texcount == state.tex.count) {
+        return;
+    }
 
     if (texcount < state.tex.count) {
         glDeleteTextures (state.tex.count - texcount,
@@ -1683,7 +1729,9 @@ static void showsel (struct page *page, int ox, int oy)
     int seen = 0;
     unsigned char selcolor[] = {15,15,15,140};
 
-    if (!page->fmark || !page->lmark) return;
+    if (!page->fmark || !page->lmark) {
+        return;
+    }
 
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
@@ -1695,16 +1743,22 @@ static void showsel (struct page *page, int ox, int oy)
     for (block = page->text->first_block; block; block = block->next) {
         fz_stext_line *line;
 
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        if (block->type != FZ_STEXT_BLOCK_TEXT) {
+            continue;
+        }
         for (line = block->u.t.first_line; line; line = line->next) {
             fz_stext_char *ch;
 
             rect = fz_empty_rect;
             for (ch = line->first_char; ch; ch = ch->next) {
                 fz_rect r;
-                if (ch == page->fmark) seen = 1;
+                if (ch == page->fmark) {
+                    seen = 1;
+                }
                 r = fz_rect_from_quad (ch->quad);
-                if (seen) rect = fz_union_rect (rect, r);
+                if (seen) {
+                    rect = fz_union_rect (rect, r);
+                }
                 if (ch == page->lmark) {
                     bbox = fz_round_rect (rect);
                     recti (bbox.x0 + ox, bbox.y0 + oy,
@@ -1828,8 +1882,12 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         p4.y = link->rect.y1;
 
         /* TODO: different colours for different schemes */
-        if (fz_is_external_link (state.ctx, link->uri)) glColor3ub (0, 0, 255);
-        else glColor3ub (255, 0, 0);
+        if (fz_is_external_link (state.ctx, link->uri)) {
+            glColor3ub (0, 0, 255);
+        }
+        else {
+            glColor3ub (255, 0, 0);
+        }
 
         stipplerect (ctm, p1, p2, p3, p4, texcoords, vertices);
     }
@@ -1896,14 +1954,18 @@ static void ensureannots (struct page *page)
     pdf_page *pdfpage;
 
     pdf = pdf_specifics (state.ctx, state.doc);
-    if (!pdf) return;
+    if (!pdf) {
+        return;
+    }
 
     pdfpage = pdf_page_from_fz_page (state.ctx, page->fzpage);
     if (state.gen != page->agen) {
         dropannots (page);
         page->agen = state.gen;
     }
-    if (page->annots) return;
+    if (page->annots) {
+        return;
+    }
 
     for (annot = pdf_first_annot (state.ctx, pdfpage);
          annot;
@@ -1955,7 +2017,9 @@ static void ensureslinks (struct page *page)
         dropslinks (page);
         page->sgen = state.gen;
     }
-    if (page->slinks) return;
+    if (page->slinks) {
+        return;
+    }
 
     ensurelinks (page);
     ctm = pagectm (page);
@@ -2240,7 +2304,9 @@ ML (postprocess (value ptr_v, value hlinks_v,
     }
 
     ensureannots (page);
-    if (hlmask & 1) highlightlinks (page, xoff, yoff);
+    if (hlmask & 1) {
+        highlightlinks (page, xoff, yoff);
+    }
     if (hlmask & 2) {
         highlightslinks (page, xoff, yoff, noff, targ, STTI (tlen),
                          chars, STTI (clen), hfsize);
@@ -2273,7 +2339,9 @@ static struct annot *getannot (struct page *page, int x, int y)
     const fz_matrix *tctm;
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
 
-    if (!page->annots) return NULL;
+    if (!page->annots) {
+        return NULL;
+    }
 
     if (pdf) {
         trimctm (pdf_page_from_fz_page (state.ctx, page->fzpage), page->pdimno);
@@ -2672,13 +2740,19 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
         for (block = page->text->first_block; block; block = block->next) {
             fz_stext_line *line;
 
-            if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
-            if (!fz_is_point_inside_rect (p, block->bbox)) continue;
+            if (block->type != FZ_STEXT_BLOCK_TEXT) {
+                continue;
+            }
+            if (!fz_is_point_inside_rect (p, block->bbox)) {
+                continue;
+            }
 
             for (line = block->u.t.first_line; line; line = line->next) {
                 fz_stext_char *ch;
 
-                if (!fz_is_point_inside_rect (p, line->bbox)) continue;
+                if (!fz_is_point_inside_rect (p, line->bbox)) {
+                    continue;
+                }
 
                 for (ch = line->first_char; ch; ch = ch->next) {
                     if (!fz_is_point_inside_quad (p, ch->quad)) {
@@ -2686,7 +2760,9 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
                         FT_FaceRec *face = fz_font_ft_face (state.ctx,
                                                             ch->font);
 
-                        if (!n2) n2 = "<unknown font>";
+                        if (!n2) {
+                            n2 = "<unknown font>";
+                        }
 
                         if (face && face->family_name) {
                             char *s;
@@ -2780,10 +2856,13 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
     p.y += pdim->bounds.y0;
 
     for (block = page->text->first_block; block; block = block->next) {
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
-        if (!fz_is_point_inside_rect (p, block->bbox))
+        if (block->type != FZ_STEXT_BLOCK_TEXT) {
             continue;
-
+        }
+        if (!fz_is_point_inside_rect (p, block->bbox)) {
+            continue;
+        }
+        
         if (mark == mark_block) {
             page->fmark = block->u.t.first_line->first_char;
             page->lmark = block->u.t.last_line->last_char;
@@ -2809,11 +2888,19 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
 
                 if (fz_is_point_inside_quad (p, ch->quad)) {
                     for (ch2 = line->first_char; ch2 != ch; ch2 = ch2->next) {
-                        if (uninteresting (ch2->c)) first = NULL;
-                        else if (!first) first = ch2;
+                        if (uninteresting (ch2->c)) {
+                            first = NULL;
+                        }
+                        else {
+                            if (!first) {
+                                first = ch2;
+                            }
+                        }
                     }
                     for (ch2 = ch; ch2; ch2 = ch2->next) {
-                        if (uninteresting (ch2->c)) break;
+                        if (uninteresting (ch2->c)) {
+                            break;
+                        }
                         last = ch2;
                     }
 
@@ -2927,7 +3014,9 @@ ML0 (seltext (value ptr_v, value rect_v))
     lc = page->lmark;
 
     for (block = page->text->first_block; block; block = block->next) {
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        if (block->type != FZ_STEXT_BLOCK_TEXT) {
+            continue;
+        }
         for (line = block->u.t.first_line; line; line = line->next) {
             for (ch = line->first_char; ch; ch = ch->next) {
                 fz_point p0 = { .x = x0, .y = y0 }, p1 = { .x = x1, .y = y1 };
@@ -3094,20 +3183,26 @@ ML0 (copysel (value fd_v, value ptr_v))
     }
 
     for (block = page->text->first_block; block; block = block->next) {
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        if (block->type != FZ_STEXT_BLOCK_TEXT) {
+            continue;
+        }
         for (line = block->u.t.first_line; line; line = line->next) {
             fz_stext_char *ch;
             for (ch = line->first_char; ch; ch = ch->next) {
                 if (seen || ch == page->fmark) {
                     do {
                         pipechar (f, ch);
-                        if (ch == page->lmark) goto close;
+                        if (ch == page->lmark) {
+                            goto close;
+                        }
                     } while ((ch = ch->next));
                     seen = 1;
                     break;
                 }
             }
-            if (seen) fputc ('\n', f);
+            if (seen) {
+                fputc ('\n', f);
+            }
         }
     }
 close:
@@ -3182,9 +3277,13 @@ ML (zoom_for_height (value winw_v, value winh_v, value dw_v, value cols_v))
         if (h > maxh) {
             maxh = h;
             ph = h;
-            if (state.fitmodel != FitProportional) pw = w;
+            if (state.fitmodel != FitProportional) {
+                pw = w;
+            }
         }
-        if ((state.fitmodel == FitProportional) && w > pw) pw = w;
+        if ((state.fitmodel == FitProportional) && w > pw) {
+            pw = w;
+        }
     }
 
     zoom = (((winh / ph) * pw) + dw) / winw;
@@ -3338,7 +3437,9 @@ ML (platform (value unit_v))
 #elif defined __APPLE__
     platid = pimacos;
 #endif
-    if (uname (&buf)) err (1, "uname");
+    if (uname (&buf)) {
+        err (1, "uname");
+    }
 
     tup_v = caml_alloc_tuple (2);
     {
@@ -3692,7 +3793,9 @@ static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
 
     if (!done) {
         char *path = getenv ("LLPP_FALLBACK_FONT");
-        if (path) font = fz_new_font_from_file (ctx, NULL, path, 0, 1);
+        if (path) {
+            font = fz_new_font_from_file (ctx, NULL, path, 0, 1);
+        }
         done = 1;
     }
     return font;
@@ -3721,10 +3824,14 @@ ML (init (value csock_v, value params_v))
     int ret, texcount, colorspace, mustoresize;
     const char *fontpath;
 
-    if (pipe (state.pfds)) err (1, "pipe");
+    if (pipe (state.pfds)) {
+        err (1, "pipe");
+    }
     for (int ntries = 0; ntries < 1737; ++ntries) {
         if (-1 == dup2 (state.pfds[1], 2)) {
-            if (EINTR == errno) continue;
+            if (EINTR == errno) {
+                continue;
+            }
             err (1, "dup2");
         }
         break;
@@ -3778,7 +3885,9 @@ ML (init (value csock_v, value params_v))
         data = pdf_lookup_substitute_font (state.ctx, 0, 0, 0, 0, &len);
         state.face = load_builtin_font (data, len);
     }
-    if (!state.face) _exit (1);
+    if (!state.face) {
+        _exit (1);
+    }
 
     realloctexts (texcount);
     setuppbo ();
