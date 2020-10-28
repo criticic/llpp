@@ -2862,7 +2862,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
         if (!fz_is_point_inside_rect (p, block->bbox)) {
             continue;
         }
-        
+
         if (mark == mark_block) {
             page->fmark = block->u.t.first_line->first_char;
             page->lmark = block->u.t.last_line->last_char;
