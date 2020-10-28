@@ -202,13 +202,15 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static void lock (const char *cap)
 {
     int ret = pthread_mutex_lock (&mutex);
-    if (ret) errx (1, "%s: pthread_mutex_lock: %s", cap, strerror (ret));
+    if (ret)
+        errx (1, "%s: pthread_mutex_lock: %s", cap, strerror (ret));
 }
 
 static void unlock (const char *cap)
 {
     int ret = pthread_mutex_unlock (&mutex);
-    if (ret) errx (1, "%s: pthread_mutex_unlock: %s", cap, strerror (ret));
+    if (ret)
+        errx (1, "%s: pthread_mutex_unlock: %s", cap, strerror (ret));
 }
 
 static int trylock (const char *cap)
@@ -223,7 +225,8 @@ static int hasdata (void)
 {
     int ret, avail;
     ret = ioctl (state.csock, FIONREAD, &avail);
-    if (ret) err (1, "hasdata: FIONREAD error ret=%d", ret);
+    if (ret)
+        err (1, "hasdata: FIONREAD error ret=%d", ret);
     return avail > 0;
 }
 
@@ -233,7 +236,8 @@ ML (hasdata (value fd_v))
     int ret, avail;
 
     ret = ioctl (Int_val (fd_v), FIONREAD, &avail);
-    if (ret) uerror ("ioctl (FIONREAD)", Nothing);
+    if (ret)
+        uerror ("ioctl (FIONREAD)", Nothing);
     CAMLreturn (Val_bool (avail > 0));
 }
 
@@ -244,8 +248,10 @@ static void readdata (int fd, void *p, int size)
 again:
     n = read (fd, p, size);
     if (n - size) {
-        if (n < 0 && errno == EINTR) goto again;
-        if (!n) errx (1, "EOF while reading");
+        if (n < 0 && errno == EINTR)
+            goto again;
+        if (!n)
+            errx (1, "EOF while reading");
         errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
 }
@@ -261,11 +267,11 @@ static void writedata (int fd, char *p, int size)
 
 again:
     n = writev (fd, iov, 2);
-    if (n < 0 && errno == EINTR) {
+    if (n < 0 && errno == EINTR)
         goto again;
-    }
     if (n - size - 4) {
-        if (!n) errx (1, "EOF while writing data");
+        if (!n)
+            errx (1, "EOF while writing data");
         err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
@@ -312,13 +318,16 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
                 writedata (state.csock, buf, len);
                 break;
             }
-            else size = len + 5;
+            else
+                size = len + 5;
         }
         else err (1, "vsnprintf for `%s' failed", fmt);
         buf = realloc (buf == fbuf ? NULL : buf, size);
-        if (!buf) err (1, "realloc for temp buf (%d bytes) failed", size);
+        if (!buf)
+            err (1, "realloc for temp buf (%d bytes) failed", size);
     }
-    if (buf != fbuf) free (buf);
+    if (buf != fbuf)
+        free (buf);
 }
 
 static void closedoc (void)
@@ -384,10 +393,12 @@ static void docinfo (void)
     again:
         need = fz_lookup_metadata (state.ctx, state.doc, tab[i].tag, buf, len);
         if (need > 0) {
-            if (need <= len) printd ("info %s\t%s", tab[i].name, buf);
+            if (need <= len)
+                printd ("info %s\t%s", tab[i].name, buf);
             else {
                 buf = realloc (buf, need);
-                if (!buf) err (1, "docinfo realloc %d", need);
+                if (!buf)
+                    err (1, "docinfo realloc %d", need);
                 len = need;
                 goto again;
             }
@@ -413,9 +424,12 @@ static void unlinktile (struct tile *tile)
 
 static void freepage (struct page *page)
 {
-    if (!page) return;
-    if (page->text) fz_drop_stext_page (state.ctx, page->text);
-    if (page->slinks) free (page->slinks);
+    if (!page)
+        return;
+    if (page->text)
+        fz_drop_stext_page (state.ctx, page->text);
+    if (page->slinks)
+        free (page->slinks);
     fz_drop_display_list (state.ctx, page->dlist);
     fz_drop_page (state.ctx, page->fzpage);
     free (page);
@@ -428,7 +442,8 @@ static void freetile (struct tile *tile)
 #if 0
         fz_drop_pixmap (state.ctx, tile->pixmap);
 #else  /* piggyback */
-        if (state.pig) fz_drop_pixmap (state.ctx, state.pig);
+        if (state.pig)
+            fz_drop_pixmap (state.ctx, state.pig);
         state.pig = tile->pixmap;
 #endif
     }
@@ -443,7 +458,8 @@ static void trimctm (pdf_page *page, int pindex)
 {
     struct pagedim *pdim = &state.pagedims[pindex];
 
-    if (!page) return;
+    if (!page)
+        return;
     if (!pdim->tctmready) {
         fz_rect realbox, mediabox;
         fz_matrix page_ctm, ctm;
@@ -484,7 +500,8 @@ static void *loadpage (int pageno, int pindex)
     struct page *page;
 
     page = calloc (sizeof (struct page), 1);
-    if (!page) err (1, "calloc page %d", pageno);
+    if (!page)
+        err (1, "calloc page %d", pageno);
 
     page->dlist = fz_new_display_list (state.ctx, fz_infinite_rect);
     dev = fz_new_list_device (state.ctx, page->dlist);
@@ -515,7 +532,8 @@ static struct tile *alloctile (int h)
     slicecount = (h + state.sliceheight - 1) / state.sliceheight;
     tilesize = sizeof (*tile) + ((slicecount - 1) * sizeof (struct slice));
     tile = calloc (tilesize, 1);
-    if (!tile) err (1, "cannot allocate tile (%zu bytes)", tilesize);
+    if (!tile)
+        err (1, "cannot allocate tile (%zu bytes)", tilesize);
     for (int i = 0; i < slicecount; ++i) {
         int sh = fz_mini (h, state.sliceheight);
         tile->slices[i].h = sh;
@@ -623,7 +641,8 @@ static void initpdims1 (void)
                     }
                 }
             }
-            if (!pageobj) pageobj = pdf_lookup_page_obj (ctx, pdf, pageno);
+            if (!pageobj)
+                pageobj = pdf_lookup_page_obj (ctx, pdf, pageno);
 
             rotate = pdf_to_int (ctx, pdf_dict_gets (ctx, pageobj, "Rotate"));
 
@@ -654,7 +673,8 @@ static void initpdims1 (void)
                         rect = fz_transform_rect (rect, ctm);
                         rect = fz_intersect_rect (rect, mediabox);
 
-                        if (!fz_is_empty_rect (rect)) mediabox = rect;
+                        if (!fz_is_empty_rect (rect))
+                            mediabox = rect;
 
                         obj = pdf_new_array (ctx, pdf, 4);
                         pdf_array_push_real (ctx, obj, mediabox.x0);
@@ -705,8 +725,10 @@ static void initpdims1 (void)
                 cropbox =
                     pdf_to_rect (ctx, pdf_dict_gets (ctx, pageobj, "CropBox"));
                 if (!fz_is_empty_rect (cropbox)) {
-                    if (empty) mediabox = cropbox;
-                    else mediabox = fz_intersect_rect (mediabox, cropbox);
+                    if (empty)
+                        mediabox = cropbox;
+                    else
+                        mediabox = fz_intersect_rect (mediabox, cropbox);
                 }
                 else {
                     if (empty) {
@@ -739,7 +761,8 @@ static void initpdims1 (void)
                         rect.y1 += state.trimfuzz.y1;
                         rect = fz_intersect_rect (rect, mediabox);
 
-                        if (!fz_is_empty_rect (rect)) mediabox = rect;
+                        if (!fz_is_empty_rect (rect))
+                            mediabox = rect;
                     }
                     fz_drop_page (ctx, page);
                 }
@@ -754,9 +777,9 @@ static void initpdims1 (void)
                     fz_drop_page (ctx, page);
 
                     show = !state.trimmargins && pageno % 20 == 0;
-                    if (show) printd ("progress %f Gathering dimensions %d",
-                                      (double) (pageno) / state.pagecount,
-                                      pageno);
+                    if (show)
+                        printd ("progress %f Gathering dimensions %d",
+                                (double) (pageno) / state.pagecount, pageno);
                 }
                 fz_catch (ctx) {
                     printd ("emsg failed to load page %d", pageno);
@@ -771,8 +794,9 @@ static void initpdims1 (void)
 
             size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
             state.pagedims = realloc (state.pagedims, size);
-            if (!state.pagedims) err (1, "realloc pagedims to %zu (%d elems)",
-                                      size, state.pagedimcount + 1);
+            if (!state.pagedims)
+                err (1, "realloc pagedims to %zu (%d elems)",
+                     size, state.pagedimcount + 1);
 
             p = &state.pagedims[state.pagedimcount++];
             p->rotate = rotate;
@@ -812,7 +836,8 @@ static void initpdims (void)
         initpdims1 ();
         if (state.dcf) {
             f = fopen (state.dcf, "wb");
-            if (!f) err (1, "fopen %s for writing", state.dcf);
+            if (!f)
+                err (1, "fopen %s for writing", state.dcf);
             if (fwrite (&state.pagedimcount,
                         sizeof (state.pagedimcount), 1, f) - 1)
                 err (1, "fwrite pagedimcunt %zu", sizeof (state.pagedimcount));
@@ -834,7 +859,8 @@ static void layout (void)
     struct pagedim *p = NULL;
     float zw, w, maxw = 0.0, zoom = 1.0;
 
-    if (state.pagedimcount == 0) return;
+    if (state.pagedimcount == 0)
+        return;
 
     switch (state.fitmodel) {
     case FitProportional:
@@ -944,7 +970,8 @@ static void recurse_outline (fz_outline *outline, int level)
                     level, outline->page, (int) p.y, h, outline->title);
         }
         else printd ("on %d %s", level, outline->title);
-        if (outline->down) recurse_outline (outline->down, level + 1);
+        if (outline->down)
+            recurse_outline (outline->down, level + 1);
         outline = outline->next;
     }
 }
@@ -953,7 +980,8 @@ static void process_outline (void)
 {
     fz_outline *outline;
 
-    if (!state.needoutline || !state.pagedimcount) return;
+    if (!state.needoutline || !state.pagedimcount)
+        return;
 
     state.needoutline = 0;
     outline = fz_load_outline (state.ctx, state.doc);
@@ -971,14 +999,16 @@ static char *strofline (fz_stext_line *line)
     size_t size = 0, cap = 80;
 
     p = malloc (cap + 1);
-    if (!p) return NULL;
+    if (!p)
+        return NULL;
 
     for (ch = line->first_char; ch; ch = ch->next) {
         int n = fz_runetochar (utf8, ch->c);
         if (size + n > cap) {
             cap *= 2;
             p = realloc (p, cap + 1);
-            if (!p) return NULL;
+            if (!p)
+                return NULL;
         }
 
         memcpy (p + size, utf8, n);
@@ -996,7 +1026,8 @@ static int matchline (regex_t *re, fz_stext_line *line,
     regmatch_t rm;
 
     p = strofline (line);
-    if (!p) return -1;
+    if (!p)
+        return -1;
 
     ret = regexec (re, p, 1, &rm, 0);
     if (ret) {
@@ -1025,7 +1056,8 @@ static int matchline (regex_t *re, fz_stext_line *line,
         }
         for (;ch; ch = ch->next) {
             o += fz_runelen (ch->c);
-            if (o > rm.rm_eo) break;
+            if (o > rm.rm_eo)
+                break;
         }
         e = ch->quad;
 
@@ -1090,10 +1122,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
             for (block = text->first_block; block; block = block->next) {
                 fz_stext_line *line;
 
-                if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+                if (block->type != FZ_STEXT_BLOCK_TEXT)
+                    continue;
 
                 for (line = block->u.t.first_line; line; line = line->next) {
-                    if (line->bbox.y0 < y + 1) continue;
+                    if (line->bbox.y0 < y + 1)
+                        continue;
 
                     switch (matchline (re, line, stop, pageno, start)) {
                     case 0: break;
@@ -1107,10 +1141,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
             for (block = text->last_block; block; block = block->prev) {
                 fz_stext_line *line;
 
-                if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+                if (block->type != FZ_STEXT_BLOCK_TEXT)
+                    continue;
 
                 for (line = block->u.t.last_line; line; line = line->prev) {
-                    if (line->bbox.y0 < y + 1) continue;
+                    if (line->bbox.y0 < y + 1)
+                        continue;
 
                     switch (matchline (re, line, stop, pageno, start)) {
                     case 0: break;
@@ -1134,7 +1170,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
         fz_drop_page (state.ctx, page);
     }
     end = now ();
-    if (!stop) printd ("progress 1 no matches %f sec", end - start);
+    if (!stop)
+        printd ("progress 1 no matches %f sec", end - start);
     printd ("clearrects");
 }
 
@@ -1162,7 +1199,8 @@ static void realloctexts (int texcount)
 {
     size_t size;
 
-    if (texcount == state.tex.count) return;
+    if (texcount == state.tex.count)
+        return;
 
     if (texcount < state.tex.count)
         glDeleteTextures (state.tex.count - texcount,
@@ -1170,7 +1208,8 @@ static void realloctexts (int texcount)
 
     size = texcount * (sizeof (*state.tex.ids) + sizeof (*state.tex.owners));
     state.tex.ids = realloc (state.tex.ids, size);
-    if (!state.tex.ids) err (1, "realloc texs %zu", size);
+    if (!state.tex.ids)
+        err (1, "realloc texs %zu", size);
 
     state.tex.owners = (void *) (state.tex.ids + texcount);
     if (texcount > state.tex.count) {
@@ -1191,7 +1230,8 @@ static char *mbtoutf8 (char *s)
     wchar_t *tmp;
     size_t i, ret, len;
 
-    if (state.utf8cs) return s;
+    if (state.utf8cs)
+        return s;
 
     len = mbstowcs (NULL, s, strlen (s));
     if (len == 0 || len == (size_t) -1) {
@@ -1262,11 +1302,13 @@ static void * mainloop (void UNUSED_ATTR *unused)
     fz_var (oldlen);
     for (;;) {
         len = readlen (state.csock);
-        if (len == 0) errx (1, "readlen returned 0");
+        if (len == 0)
+            errx (1, "readlen returned 0");
 
         if (oldlen < len + 1) {
             p = realloc (p, len + 1);
-            if (!p) err (1, "realloc %d failed", len + 1);
+            if (!p)
+                err (1, "realloc %d failed", len + 1);
             oldlen = len + 1;
         }
         readdata (state.csock, p, len);
@@ -1281,7 +1323,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             fz_var (ok);
             ret = sscanf (p + 5, " %d %d %n", &usedoccss, &layouth, &off);
-            if (ret != 2) errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
+            if (ret != 2)
+                errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
 
             filename = p + 5 + off;
             filenamelen = strlen (filename);
@@ -1299,7 +1342,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 utf8filename = mbtoutf8 (filename);
                 printd ("emsg Error loading %s: %s",
                         utf8filename, fz_caught_message (state.ctx));
-                if (utf8filename != filename) free (utf8filename);
+                if (utf8filename != filename)
+                    free (utf8filename);
             }
             if (ok) {
                 docinfo ();
@@ -1312,7 +1356,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
             int i, colorspace;
 
             ret = sscanf (p + 2, " %d", &colorspace);
-            if (ret != 1) errx (1, "malformed cs `%.*s' ret=%d", len, p, ret);
+            if (ret != 1)
+                errx (1, "malformed cs `%.*s' ret=%d", len, p, ret);
             lock ("cs");
             set_tex_params (colorspace);
             for (i = 0; i < state.tex.count; ++i) {
@@ -1348,7 +1393,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             ret = sscanf (p + 6, " %d %d %d %d,%n",
                           &icase, &pageno, &y, &forward, &len2);
-            if (ret != 4) errx (1, "malformed search `%s' ret=%d", p, ret);
+            if (ret != 4)
+                errx (1, "malformed search `%s' ret=%d", p, ret);
 
             pattern = p + 6 + len2;
             ret = regcomp (&re, pattern,
@@ -1454,7 +1500,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
             ret = sscanf (p + 4, " %" SCNxPTR " %d %d %d %d %" SCNxPTR,
                           (uintptr_t *) &page, &x, &y, &w, &h,
                           (uintptr_t *) &data);
-            if (ret != 6) errx (1, "bad tile line `%.*s' ret=%d", len, p, ret);
+            if (ret != 6)
+                errx (1, "bad tile line `%.*s' ret=%d", len, p, ret);
 
             lock ("tile");
             a = now ();
@@ -1596,7 +1643,8 @@ static void showsel (struct page *page, int ox, int oy)
     int seen = 0;
     unsigned char selcolor[] = {15,15,15,140};
 
-    if (!page->fmark || !page->lmark) return;
+    if (!page->fmark || !page->lmark)
+        return;
 
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_SRC_ALPHA);
@@ -1608,16 +1656,19 @@ static void showsel (struct page *page, int ox, int oy)
     for (block = page->text->first_block; block; block = block->next) {
         fz_stext_line *line;
 
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        if (block->type != FZ_STEXT_BLOCK_TEXT)
+            continue;
         for (line = block->u.t.first_line; line; line = line->next) {
             fz_stext_char *ch;
 
             rect = fz_empty_rect;
             for (ch = line->first_char; ch; ch = ch->next) {
                 fz_rect r;
-                if (ch == page->fmark) seen = 1;
+                if (ch == page->fmark)
+                    seen = 1;
                 r = fz_rect_from_quad (ch->quad);
-                if (seen) rect = fz_union_rect (rect, r);
+                if (seen)
+                    rect = fz_union_rect (rect, r);
                 if (ch == page->lmark) {
                     bbox = fz_round_rect (rect);
                     recti (bbox.x0 + ox, bbox.y0 + oy,
@@ -1741,7 +1792,8 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
         p4.y = link->rect.y1;
 
         /* TODO: different colours for different schemes */
-        if (fz_is_external_link (state.ctx, link->uri)) glColor3ub (0, 0, 255);
+        if (fz_is_external_link (state.ctx, link->uri))
+            glColor3ub (0, 0, 255);
         else glColor3ub (255, 0, 0);
 
         stipplerect (ctm, p1, p2, p3, p4, texcoords, vertices);
@@ -1775,7 +1827,8 @@ static int compareslinks (const void *l, const void *r)
 {
     struct slink const *ls = l;
     struct slink const *rs = r;
-    if (ls->bbox.y0 == rs->bbox.y0) return ls->bbox.x0 - rs->bbox.x0;
+    if (ls->bbox.y0 == rs->bbox.y0)
+        return ls->bbox.x0 - rs->bbox.x0;
     return ls->bbox.y0 - rs->bbox.y0;
 }
 
@@ -1807,14 +1860,16 @@ static void ensureannots (struct page *page)
     pdf_page *pdfpage;
 
     pdf = pdf_specifics (state.ctx, state.doc);
-    if (!pdf) return;
+    if (!pdf)
+        return;
 
     pdfpage = pdf_page_from_fz_page (state.ctx, page->fzpage);
     if (state.gen != page->agen) {
         dropannots (page);
         page->agen = state.gen;
     }
-    if (page->annots) return;
+    if (page->annots)
+        return;
 
     for (annot = pdf_first_annot (state.ctx, pdfpage);
          annot;
@@ -1825,7 +1880,8 @@ static void ensureannots (struct page *page)
     if (count > 0) {
         page->annotcount = count;
         page->annots = calloc (count, annotsize);
-        if (!page->annots) err (1, "calloc annots %d", count);
+        if (!page->annots)
+            err (1, "calloc annots %d", count);
 
         for (annot = pdf_first_annot (state.ctx, pdfpage), i = 0;
              annot;
@@ -1864,7 +1920,8 @@ static void ensureslinks (struct page *page)
         dropslinks (page);
         page->sgen = state.gen;
     }
-    if (page->slinks) return;
+    if (page->slinks)
+        return;
 
     ensurelinks (page);
     ctm = pagectm (page);
@@ -1878,7 +1935,8 @@ static void ensureslinks (struct page *page)
 
         page->slinkcount = count;
         page->slinks = calloc (count, slinksize);
-        if (!page->slinks) err (1, "calloc slinks %d", count);
+        if (!page->slinks)
+            err (1, "calloc slinks %d", count);
 
         for (i = 0, link = page->links; link; ++i, link = link->next) {
             fz_rect rect;
@@ -1962,8 +2020,10 @@ static void uploadslice (struct tile *tile, struct slice *slice)
         int texindex = state.tex.index++ % state.tex.count;
 
         if (state.tex.owners[texindex].w == tile->w) {
-            if (state.tex.owners[texindex].h >= slice->h) subimage = 1;
-            else state.tex.owners[texindex].h = slice->h;
+            if (state.tex.owners[texindex].h >= slice->h)
+                subimage = 1;
+            else
+                state.tex.owners[texindex].h = slice->h;
         }
         else state.tex.owners[texindex].h = slice->h;
 
@@ -1983,29 +2043,15 @@ static void uploadslice (struct tile *tile, struct slice *slice)
             texdata = 0;
         }
         else texdata = tile->pixmap->samples;
-        if (subimage) glTexSubImage2D (TEXT_TYPE,
-                                       0,
-                                       0,
-                                       0,
-                                       tile->w,
-                                       slice->h,
-                                       state.tex.form,
-                                       state.tex.ty,
-                                       texdata+offset
-            );
-        else {
-            glTexImage2D (TEXT_TYPE,
-                          0,
-                          state.tex.iform,
-                          tile->w,
-                          slice->h,
-                          0,
-                          state.tex.form,
-                          state.tex.ty,
-                          texdata+offset
-                );
-        }
-        if (tile->pbo) state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+        if (subimage)
+            glTexSubImage2D (TEXT_TYPE, 0, 0, 0, tile->w, slice->h,
+                             state.tex.form, state.tex.ty, texdata+offset );
+        else
+            glTexImage2D (TEXT_TYPE, 0, state.tex.iform, tile->w, slice->h,
+                          0, state.tex.form, state.tex.ty, texdata+offset);
+
+        if (tile->pbo)
+            state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
 }
 
@@ -2134,13 +2180,15 @@ ML (postprocess (value ptr_v, value hlinks_v,
     }
 
     ensureannots (page);
-    if (hlmask & 1) highlightlinks (page, xoff, yoff);
+    if (hlmask & 1)
+        highlightlinks (page, xoff, yoff);
     if (hlmask & 2) {
         highlightslinks (page, xoff, yoff, noff, targ, STTI (tlen),
                          chars, STTI (clen), hfsize);
         noff = page->slinkcount;
     }
-    if (page->tgen == state.gen) showsel (page, xoff, yoff);
+    if (page->tgen == state.gen)
+        showsel (page, xoff, yoff);
     unlock (__func__);
 
  done:
@@ -2165,7 +2213,8 @@ static struct annot *getannot (struct page *page, int x, int y)
     const fz_matrix *tctm;
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
 
-    if (!page->annots) return NULL;
+    if (!page->annots)
+        return NULL;
 
     if (pdf) {
         trimctm (pdf_page_from_fz_page (state.ctx, page->fzpage), page->pdimno);
@@ -2257,7 +2306,8 @@ ML (find_page_with_links (value start_page_v, value dir_v))
             fz_catch (state.ctx) {
                 found = 0;
             }
-            if (page) fz_drop_page (state.ctx, &page->super);
+            if (page)
+                fz_drop_page (state.ctx, &page->super);
         }
         else {
             fz_page *page = fz_load_page (state.ctx, state.doc, i);
@@ -2383,7 +2433,8 @@ ML (findlink (value ptr_v, value dir_v))
             break;
 
         case dir_last:
-            if (page->slinks) found = page->slinks + (page->slinkcount - 1);
+            if (page->slinks)
+                found = page->slinks + (page->slinkcount - 1);
             break;
         }
     }
@@ -2512,7 +2563,8 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
     struct pagedim *pdim;
 
     ret_v = Val_int (0);
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     page = parse_pointer (__func__, ptr);
     pdim = &state.pagedims[page->pdimno];
@@ -2556,13 +2608,16 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
         for (block = page->text->first_block; block; block = block->next) {
             fz_stext_line *line;
 
-            if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
-            if (!fz_is_point_inside_rect (p, block->bbox)) continue;
+            if (block->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+            if (!fz_is_point_inside_rect (p, block->bbox))
+                continue;
 
             for (line = block->u.t.first_line; line; line = line->next) {
                 fz_stext_char *ch;
 
-                if (!fz_is_point_inside_rect (p, line->bbox)) continue;
+                if (!fz_is_point_inside_rect (p, line->bbox))
+                    continue;
 
                 for (ch = line->first_char; ch; ch = ch->next) {
                     if (!fz_is_point_inside_quad (p, ch->quad)) {
@@ -2570,7 +2625,8 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
                         FT_FaceRec *face = fz_font_ft_face (state.ctx,
                                                             ch->font);
 
-                        if (!n2) n2 = "<unknown font>";
+                        if (!n2)
+                            n2 = "<unknown font>";
 
                         if (face && face->family_name) {
                             char *s;
@@ -2589,7 +2645,8 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
                                 }
                             }
                         }
-                        if (str_v == Val_unit) str_v = caml_copy_string (n2);
+                        if (str_v == Val_unit)
+                            str_v = caml_copy_string (n2);
                         ret_v = caml_alloc_small (1, utext);
                         Field (ret_v, 0) = str_v;
                         goto unlock;
@@ -2642,7 +2699,8 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
     fz_point p = { .x = Int_val (x_v), .y = Int_val (y_v) };
 
     ret_v = Val_bool (0);
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     page = parse_pointer (__func__, String_val (ptr_v));
     pdim = &state.pagedims[page->pdimno];
@@ -2660,8 +2718,10 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
     p.y += pdim->bounds.y0;
 
     for (block = page->text->first_block; block; block = block->next) {
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
-        if (!fz_is_point_inside_rect (p, block->bbox)) continue;
+        if (block->type != FZ_STEXT_BLOCK_TEXT)
+            continue;
+        if (!fz_is_point_inside_rect (p, block->bbox))
+            continue;
 
         if (mark == mark_block) {
             page->fmark = block->u.t.first_line->first_char;
@@ -2692,11 +2752,13 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
                             first = NULL;
                         }
                         else {
-                            if (!first) first = ch2;
+                            if (!first)
+                                first = ch2;
                         }
                     }
                     for (ch2 = ch; ch2; ch2 = ch2->next) {
-                        if (uninteresting (ch2->c)) break;
+                        if (uninteresting (ch2->c))
+                            break;
                         last = ch2;
                     }
 
@@ -2730,7 +2792,8 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
     fz_point p = { .x = Int_val (x_v), .y = Int_val (y_v) };
 
     ret_v = Val_int (0);
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     page = parse_pointer (__func__, String_val (ptr_v));
     pdim = &state.pagedims[page->pdimno];
@@ -2753,7 +2816,8 @@ ML (rectofblock (value ptr_v, value x_v, value y_v))
             continue;
         }
 
-        if (fz_is_point_inside_rect (p, *b)) break;
+        if (fz_is_point_inside_rect (p, *b))
+            break;
         b = NULL;
     }
     if (b) {
@@ -2782,7 +2846,8 @@ ML0 (seltext (value ptr_v, value rect_v))
     fz_stext_block *block;
     fz_stext_char *fc, *lc;
 
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     page = parse_pointer (__func__, String_val (ptr_v));
     ensuretext (page);
@@ -2805,13 +2870,16 @@ ML0 (seltext (value ptr_v, value rect_v))
     lc = page->lmark;
 
     for (block = page->text->first_block; block; block = block->next) {
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        if (block->type != FZ_STEXT_BLOCK_TEXT)
+            continue;
 
         for (line = block->u.t.first_line; line; line = line->next) {
             for (ch = line->first_char; ch; ch = ch->next) {
                 fz_point p0 = { .x = x0, .y = y0 }, p1 = { .x = x1, .y = y1 };
-                if (fz_is_point_inside_quad (p0, ch->quad)) fc = ch;
-                if (fz_is_point_inside_quad (p1, ch->quad)) lc = ch;
+                if (fz_is_point_inside_quad (p0, ch->quad))
+                    fc = ch;
+                if (fz_is_point_inside_quad (p1, ch->quad))
+                    lc = ch;
             }
         }
     }
@@ -2905,15 +2973,13 @@ ML (spawn (value command_v, value fds_v))
     }
 
  fail:
-    if ((ret1 = posix_spawnattr_destroy (&attr)) != 0) {
+    if ((ret1 = posix_spawnattr_destroy (&attr)) != 0)
         printd ("emsg posix_spawnattr_destroy: %d:%s", ret1, strerror (ret1));
-    }
 
  fail1:
-    if ((ret1 = posix_spawn_file_actions_destroy (&fa)) != 0) {
+    if ((ret1 = posix_spawn_file_actions_destroy (&fa)) != 0)
         printd ("emsg posix_spawn_file_actions_destroy: %d:%s",
                 ret1, strerror (ret1));
-    }
 
     if (msg)
         unix_error (ret, msg, earg_v);
@@ -2949,7 +3015,8 @@ ML0 (copysel (value fd_v, value ptr_v))
     fz_stext_block *block;
     int fd = Int_val (fd_v);
 
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     page = parse_pointer (__func__, String_val (ptr_v));
 
@@ -2966,7 +3033,8 @@ ML0 (copysel (value fd_v, value ptr_v))
     }
 
     for (block = page->text->first_block; block; block = block->next) {
-        if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+        if (block->type != FZ_STEXT_BLOCK_TEXT)
+            continue;
 
         for (line = block->u.t.first_line; line; line = line->next) {
             fz_stext_char *ch;
@@ -2974,13 +3042,15 @@ ML0 (copysel (value fd_v, value ptr_v))
                 if (seen || ch == page->fmark) {
                     do {
                         pipechar (f, ch);
-                        if (ch == page->lmark) goto close;
+                        if (ch == page->lmark)
+                            goto close;
                     } while ((ch = ch->next));
                     seen = 1;
                     break;
                 }
             }
-            if (seen) fputc ('\n', f);
+            if (seen)
+                fputc ('\n', f);
         }
     }
 close:
@@ -3013,7 +3083,8 @@ ML (getpdimrect (value pagedimno_v))
     fz_rect box;
 
     ret_v = caml_alloc_small (4 * Double_wosize, Double_array_tag);
-    if (trylock (__func__)) box = fz_empty_rect;
+    if (trylock (__func__))
+        box = fz_empty_rect;
     else {
         box = state.pagedims[pagedimno].mediabox;
         unlock (__func__);
@@ -3041,7 +3112,8 @@ ML (zoom_for_height (value winw_v, value winh_v, value dw_v, value cols_v))
     float cols = Int_val (cols_v);
     float pw = 1.0, ph = 1.0;
 
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
         float w = p->pagebox.x1 / cols;
@@ -3049,9 +3121,11 @@ ML (zoom_for_height (value winw_v, value winh_v, value dw_v, value cols_v))
         if (h > maxh) {
             maxh = h;
             ph = h;
-            if (state.fitmodel != FitProportional) pw = w;
+            if (state.fitmodel != FitProportional)
+                pw = w;
         }
-        if ((state.fitmodel == FitProportional) && w > pw) pw = w;
+        if ((state.fitmodel == FitProportional) && w > pw)
+            pw = w;
     }
 
     zoom = (((winh / ph) * pw) + dw) / winw;
@@ -3069,7 +3143,8 @@ ML (getmaxw (value unit_v))
     float maxw = -1.;
     struct pagedim *p;
 
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
         float w = p->pagebox.x1;
@@ -3203,7 +3278,8 @@ ML (platform (value unit_v))
 #elif defined __APPLE__
     platid = pimacos;
 #endif
-    if (uname (&buf)) err (1, "uname");
+    if (uname (&buf))
+        err (1, "uname");
 
     tup_v = caml_alloc_tuple (2);
     {
@@ -3226,7 +3302,8 @@ ML0 (cloexec (value fd_v))
     CAMLparam1 (fd_v);
     int fd = Int_val (fd_v);
 
-    if (fcntl (fd, F_SETFD, FD_CLOEXEC, 1)) uerror ("fcntl", Nothing);
+    if (fcntl (fd, F_SETFD, FD_CLOEXEC, 1))
+        uerror ("fcntl", Nothing);
     CAMLreturn0;
 }
 
@@ -3241,7 +3318,8 @@ ML (getpbo (value w_v, value h_v, value cs_v))
 
     if (state.bo_usable) {
         pbo = calloc (sizeof (*pbo), 1);
-        if (!pbo) err (1, "calloc pbo");
+        if (!pbo)
+            err (1, "calloc pbo");
 
         switch (cs) {
         case 0:
@@ -3276,7 +3354,8 @@ ML (getpbo (value w_v, value h_v, value cs_v))
             if (res < 0)
                 err (1, "snprintf %" PRIxPTR " failed", (uintptr_t) pbo);
             s = malloc (res+1);
-            if (!s) err (1, "malloc %d bytes failed", res+1);
+            if (!s)
+                err (1, "malloc %d bytes failed", res+1);
             res = sprintf (s, "%" PRIxPTR, (uintptr_t) pbo);
             if (res < 0)
                 err (1, "sprintf %" PRIxPTR " failed", (uintptr_t) pbo);
@@ -3353,7 +3432,8 @@ ML (unproject (value ptr_v, value x_v, value y_v))
     pdim = &state.pagedims[page->pdimno];
 
     ret_v = Val_int (0);
-    if (trylock (__func__)) goto done;
+    if (trylock (__func__))
+        goto done;
 
     p.x = x + pdim->bounds.x0;
     p.y = y + pdim->bounds.y0;
@@ -3388,8 +3468,10 @@ ML (project (value ptr_v, value pageno_v, value pdimno_v, value x_v, value y_v))
     ret_v = Val_int (0);
     lock (__func__);
 
-    if (!*s) page = loadpage (pageno, pdimno);
-    else page = parse_pointer (__func__, String_val (ptr_v));
+    if (!*s)
+        page = loadpage (pageno, pdimno);
+    else
+        page = parse_pointer (__func__, String_val (ptr_v));
     pdim = &state.pagedims[pdimno];
 
     if (pdf_specifics (state.ctx, state.doc)) {
@@ -3408,7 +3490,8 @@ ML (project (value ptr_v, value pageno_v, value pdimno_v, value x_v, value y_v))
     Field (ret_v, 0) = caml_copy_double ((double) p.x);
     Field (ret_v, 1) = caml_copy_double ((double) p.y);
 
-    if (!*s) freepage (page);
+    if (!*s)
+        freepage (page);
     unlock (__func__);
     CAMLreturn (ret_v);
 }
@@ -3487,7 +3570,8 @@ ML0 (savedoc (value path_v))
     CAMLparam1 (path_v);
     pdf_document *pdf = pdf_specifics (state.ctx, state.doc);
 
-    if (pdf) pdf_save_document (state.ctx, pdf, String_val (path_v), NULL);
+    if (pdf)
+        pdf_save_document (state.ctx, pdf, String_val (path_v), NULL);
     CAMLreturn0;
 }
 
@@ -3550,7 +3634,8 @@ ML0 (setdcf (value path_v))
     size_t len = caml_string_length (path_v);
     if (*p) {
         state.dcf = malloc (len + 1);
-        if (!state.dcf) err (1, "malloc dimpath %zu", len + 1);
+        if (!state.dcf)
+            err (1, "malloc dimpath %zu", len + 1);
         memcpy (state.dcf, p, len);
         state.dcf[len] = 0;
     }
@@ -3563,10 +3648,12 @@ ML (init (value csock_v, value params_v))
     int ret, texcount, colorspace, mustoresize;
     const char *fontpath;
 
-    if (pipe (state.pfds)) err (1, "pipe");
+    if (pipe (state.pfds))
+        err (1, "pipe");
     for (int ntries = 0; ntries < 1737; ++ntries) {
         if (-1 == dup2 (state.pfds[1], 2)) {
-            if (EINTR == errno) continue;
+            if (EINTR == errno)
+                continue;
             err (1, "dup2");
         }
         break;
@@ -3608,7 +3695,8 @@ ML (init (value csock_v, value params_v))
 
     set_tex_params (colorspace);
 
-    if (*fontpath) state.face = load_font (fontpath);
+    if (*fontpath)
+        state.face = load_font (fontpath);
     else {
         int len;
         const unsigned char *data;
@@ -3616,14 +3704,16 @@ ML (init (value csock_v, value params_v))
         data = pdf_lookup_substitute_font (state.ctx, 0, 0, 0, 0, &len);
         state.face = load_builtin_font (data, len);
     }
-    if (!state.face) _exit (1);
+    if (!state.face)
+        _exit (1);
 
     realloctexts (texcount);
     setuppbo ();
     makestippletex ();
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
-    if (ret) errx (1, "pthread_create: %s", strerror (ret));
+    if (ret)
+        errx (1, "pthread_create: %s", strerror (ret));
 
     CAMLreturn (Val_int (state.pfds[0]));
 }
