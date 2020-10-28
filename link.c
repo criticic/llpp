@@ -1712,9 +1712,11 @@ static void showsel (struct page *page, int ox, int oy)
                     goto done;
                 }
             }
-            bbox = fz_round_rect (rect);
-            recti (bbox.x0 + ox, bbox.y0 + oy,
-                   bbox.x1 + ox, bbox.y1 + oy);
+            if (!fz_is_empty_rect (rect)) {
+                bbox = fz_round_rect (rect);
+                recti (bbox.x0 + ox, bbox.y0 + oy,
+                       bbox.x1 + ox, bbox.y1 + oy);
+            }
         }
     }
 done:
