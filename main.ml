@@ -184,10 +184,27 @@ let intentry_with_suffix text key =
   TEcont text
 ;;
 
-let wcmd fmt =
+module C = struct
+  let dopen     = '\000';;
+  let cs        = '\001';;
+  let freepage  = '\002';;
+  let freetile  = '\003';;
+  let search    = '\004';;
+  let geometry  = '\005';;
+  let reqlayout = '\006';;
+  let page      = '\007';;
+  let tile      = '\008';;
+  let trimset   = '\009';;
+  let settrim   = '\010';;
+  let sliceh    = '\011';;
+  let interrupt = '\012';;
+end;;
+
+let wcmd cmd fmt =
   let b = Buffer.create 16 in
   Printf.kbprintf
     (fun b ->
+      Buffer.add_char b cmd;
       let b = Buffer.to_bytes b in
       Ffi.wcmd state.ss b @@ Bytes.length b
     ) b fmt
@@ -521,7 +538,7 @@ let tilepage n p layout =
                   then Ffi.getpbo w h conf.colorspace
                   else ~< "0"
                 in
-                wcmd "tile %s %d %d %d %d %s" (~> p) x y w h (~> pbo);
+                wcmd C.tile "%s %d %d %d %d %s" (~> p) x y w h (~> pbo);
                 state.currently <-
                   Tiling (
                       l, p, conf.colorspace, conf.angle,
@@ -554,7 +571,7 @@ let load pages =
       | l :: rest ->
          begin match getopaque l.pageno with
          | None ->
-            wcmd "page %d %d" l.pageno l.pagedimno;
+            wcmd C.page "%d %d" l.pageno l.pagedimno;
             state.currently <- Loading (l, state.gen);
          | Some opaque ->
             tilepage l.pageno opaque pages;
@@ -730,7 +747,7 @@ let invalidate s f =
 ;;
 
 let flushpages () =
-  Hashtbl.iter (fun _ opaque -> wcmd "freepage %s" (~> opaque)) state.pagemap;
+  Hashtbl.iter (fun _ opaque -> wcmd C.freepage "%s" (~> opaque)) state.pagemap;
   Hashtbl.clear state.pagemap;
 ;;
 
@@ -738,7 +755,7 @@ let flushtiles () =
   if not (Queue.is_empty state.tilelru)
   then (
     Queue.iter (fun (k, p, s) ->
-        wcmd "freetile %s" (~> p);
+        wcmd C.freetile "%s" (~> p);
         state.memused <- state.memused - s;
         Hashtbl.remove state.tilemap k;
       ) state.tilelru;
@@ -782,12 +799,12 @@ let opendoc path password =
     else state.origin
   in
   Wsi.settitle ("llpp " ^ mbtoutf8 (Filename.basename titlepath));
-  wcmd "open %d %d %s\000%s\000%s\000"
+  wcmd C.dopen "%d %d %s\000%s\000%s\000"
     (btod conf.usedoccss) !layouth
     path password conf.css;
   invalidate "reqlayout"
     (fun () ->
-      wcmd "reqlayout %d %d %d %s\000"
+      wcmd C.reqlayout " %d %d %d %s\000"
         conf.angle (FMTE.to_int conf.fitmodel)
         (stateh state.winh) state.nameddest
     );
@@ -987,7 +1004,7 @@ let reshape ?(firsttime=false) w h =
         | Cmulti ((c, _, _), _) -> (w - (c-1)*conf.interpagespace) / c
         | Csplit (c, _) -> w * c
       in
-      wcmd "geometry %d %d %d" w (stateh h) (FMTE.to_int conf.fitmodel)
+      wcmd C.geometry "%d %d %d" w (stateh h) (FMTE.to_int conf.fitmodel)
     );
 ;;
 
@@ -1016,7 +1033,7 @@ let gctiles () =
         then Queue.push lruitem state.tilelru
         else (
           Ffi.freepbo p;
-          wcmd "freetile %s" (~> p);
+          wcmd C.freetile "%s" (~> p);
           state.memused <- state.memused - s;
           state.uioh#infochanged Memused;
           Hashtbl.remove state.tilemap k;
@@ -1214,7 +1231,7 @@ let act cmds =
             Hashtbl.fold (fun ((pageno, _) as key) opaque accu ->
                 if not (IntSet.mem pageno set)
                 then (
-                  wcmd "freepage %s" (~> opaque);
+                  wcmd C.freepage "%s" (~> opaque);
                   key :: accu
                 )
                 else accu
@@ -1279,7 +1296,7 @@ let act cmds =
         Ffi.unmappbo opaque;
         if tilew != conf.tilew || tileh != conf.tileh
         then (
-          wcmd "freetile %s" (~> opaque);
+          wcmd C.freetile "%s" (~> opaque);
           state.currently <- Idle;
           load state.layout;
         )
@@ -1424,7 +1441,7 @@ let search pattern forward =
          | [] -> 0, 0
          | l :: _ -> l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
        in
-       wcmd "search %d %d %d %d,%s\000"
+       wcmd C.search "%d %d %d %d,%s\000"
          (btod conf.icase) pn py (btod forward) pattern;
 ;;
 
@@ -1488,7 +1505,7 @@ let reqlayout angle fitmodel =
   );
   conf.fitmodel <- fitmodel;
   invalidate "reqlayout"
-    (fun () -> wcmd "reqlayout %d %d %d"
+    (fun () -> wcmd C.reqlayout "%d %d %d"
                  conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh));
 ;;
 
@@ -1499,7 +1516,7 @@ let settrim trimmargins trimfuzz =
   conf.trimfuzz <- trimfuzz;
   let x0, y0, x1, y1 = trimfuzz in
   invalidate "settrim"
-    (fun () -> wcmd "settrim %d %d %d %d %d"
+    (fun () -> wcmd C.settrim "%d %d %d %d %d"
                  (btod conf.trimmargins) x0 y0 x1 y1);
   flushpages ();
 ;;
@@ -1985,7 +2002,7 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   setconf conf c;
   Ffi.setdcf conf.dcf;
   let x0, y0, x1, y1 = conf.trimfuzz in
-  wcmd "trimset %d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
+  wcmd C.trimset "%d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Wsi.reshape c.cwinw c.cwinh;
   opendoc path origin;
   setzoom c.zoom;
@@ -2503,7 +2520,7 @@ let enterinfomode =
         (fun () -> conf.sliceheight)
         (fun v ->
           conf.sliceheight <- v;
-          wcmd "sliceh %d" conf.sliceheight;
+          wcmd C.sliceh "%d" conf.sliceheight;
         );
       src#int "anti-aliasing level"
         (fun () -> conf.aalevel)
@@ -2566,7 +2583,7 @@ let enterinfomode =
         (fun () -> CSTE.to_string conf.colorspace)
         (fun v ->
           conf.colorspace <- CSTE.of_int v;
-          wcmd "cs %d" v;
+          wcmd C.cs "%d" v;
           load state.layout;
         );
       src#paxmark "pax mark method"
@@ -2870,7 +2887,7 @@ let enterannotmode opaque slinkindex =
              else split accu b (i+1)
          in
          let cleanup () =
-           wcmd "freepage %s" (~> opaque);
+           wcmd C.freepage "%s" (~> opaque);
            let keys =
              Hashtbl.fold (fun key opaque' accu ->
                  if opaque' = opaque'
@@ -3948,7 +3965,7 @@ let linknavkeyboard key mask linknav =
 
 let keyboard key mask =
   if (key = Char.code 'g' && Wsi.withctrl mask) && not (istextentry state.mode)
-  then wcmd "interrupt"
+  then wcmd C.interrupt ""
   else state.uioh <- state.uioh#key key mask
 ;;
 
@@ -4273,7 +4290,7 @@ let annot inline x y =
   | Some (opaque, n, ux, uy) ->
      let add text =
        Ffi.addannot opaque ux uy text;
-       wcmd "freepage %s" (~> opaque);
+       wcmd C.freepage "%s" (~> opaque);
        Hashtbl.remove state.pagemap (n, state.gen);
        flushtiles ();
        gotoxy state.x state.y

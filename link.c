@@ -1366,7 +1366,12 @@ ML (mbtoutf8 (value s_v))
     CAMLreturn (ret_v);
 }
 
-static void * mainloop (void UNUSED_ATTR *unused)
+enum {
+    Copen, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
+    Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt
+};
+
+static void *mainloop (void UNUSED_ATTR *unused)
 {
     char *p = NULL;
     int len, ret, oldlen = 0;
@@ -1389,9 +1394,8 @@ static void * mainloop (void UNUSED_ATTR *unused)
         readdata (state.csock, p, len);
         p[len] = 0;
 
-#define CASE(n) else if (!strncmp (#n, p, sizeof (#n) - 1))
-        if (0) ;
-        CASE (open) {
+        switch (p[len-1]) {
+        case Copen: {
             int off, usedoccss, ok = 0, layouth;
             char *password;
             char *filename;
@@ -1399,12 +1403,12 @@ static void * mainloop (void UNUSED_ATTR *unused)
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p + 5, " %d %d %n", &usedoccss, &layouth, &off);
+            ret = sscanf (p, " %d %d %n", &usedoccss, &layouth, &off);
             if (ret != 2) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
 
-            filename = p + 5 + off;
+            filename = p + off;
             filenamelen = strlen (filename);
             password = filename + filenamelen + 1;
 
@@ -1431,11 +1435,12 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             unlock ("open");
             state.needoutline = ok;
+            break;
         }
-        CASE (cs) {
+        case Ccs: {
             int i, colorspace;
 
-            ret = sscanf (p + 2, " %d", &colorspace);
+            ret = sscanf (p, " %d", &colorspace);
             if (ret != 1) {
                 errx (1, "malformed cs `%.*s' ret=%d", len, p, ret);
             }
@@ -1446,41 +1451,44 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 state.tex.owners[i].slice = NULL;
             }
             unlock ("cs");
+            break;
         }
-        CASE (freepage) {
+        case Cfreepage: {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" SCNxPTR, (uintptr_t *) &ptr);
+            ret = sscanf (p, " %" SCNxPTR, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freepage `%.*s' ret=%d", len, p, ret);
             }
             lock ("freepage");
             freepage (ptr);
             unlock ("freepage");
+            break;
         }
-        CASE (freetile) {
+        case Cfreetile: {
             void *ptr;
 
-            ret = sscanf (p + 8, " %" SCNxPTR, (uintptr_t *) &ptr);
+            ret = sscanf (p, " %" SCNxPTR, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freetile `%.*s' ret=%d", len, p, ret);
             }
             lock ("freetile");
             freetile (ptr);
             unlock ("freetile");
+            break;
         }
-        CASE (search) {
+        case Csearch: {
             int icase, pageno, y, len2, forward;
             char *pattern;
             regex_t re;
 
-            ret = sscanf (p + 6, " %d %d %d %d,%n",
+            ret = sscanf (p, " %d %d %d %d,%n",
                           &icase, &pageno, &y, &forward, &len2);
             if (ret != 4) {
                 errx (1, "malformed search `%s' ret=%d", p, ret);
             }
 
-            pattern = p + 6 + len2;
+            pattern = p + len2;
             ret = regcomp (&re, pattern,
                            REG_EXTENDED | (icase ? REG_ICASE : 0));
             if (ret) {
@@ -1496,12 +1504,13 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 unlock ("search");
                 regfree (&re);
             }
+            break;
         }
-        CASE (geometry) {
+        case Cgeometry: {
             int w, h, fitmodel;
 
             printd ("clear");
-            ret = sscanf (p + 8, " %d %d %d", &w, &h, &fitmodel);
+            ret = sscanf (p, " %d %d %d", &w, &h, &fitmodel);
             if (ret != 3) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
             }
@@ -1521,16 +1530,16 @@ static void * mainloop (void UNUSED_ATTR *unused)
             state.gen++;
             unlock ("geometry");
             printd ("continue %d", state.pagecount);
+            break;
         }
-        CASE (reqlayout) {
+        case Creqlayout: {
             char *nameddest;
             int rotate, off, h;
             int fitmodel;
             pdf_document *pdf;
 
             printd ("clear");
-            ret = sscanf (p + 9, " %d %d %d %n",
-                          &rotate, &fitmodel, &h, &off);
+            ret = sscanf (p, " %d %d %d %n", &rotate, &fitmodel, &h, &off);
             if (ret != 3) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
@@ -1545,7 +1554,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             layout ();
             process_outline ();
 
-            nameddest = p + 9 + off;
+            nameddest = p + off;
             if (pdf && nameddest && *nameddest) {
                 fz_point xy;
                 struct pagedim *pdim;
@@ -1559,13 +1568,14 @@ static void * mainloop (void UNUSED_ATTR *unused)
             state.gen++;
             unlock ("reqlayout");
             printd ("continue %d", state.pagecount);
+            break;
         }
-        CASE (page) {
+        case Cpage: {
             double a, b;
             struct page *page;
             int pageno, pindex;
 
-            ret = sscanf (p + 4, " %d %d", &pageno, &pindex);
+            ret = sscanf (p, " %d %d", &pageno, &pindex);
             if (ret != 2) {
                 errx (1, "bad page line `%.*s' ret=%d", len, p, ret);
             }
@@ -1577,15 +1587,16 @@ static void * mainloop (void UNUSED_ATTR *unused)
             unlock ("page");
 
             printd ("page %" PRIxPTR " %f", (uintptr_t) page, b - a);
+            break;
         }
-        CASE (tile) {
+        case Ctile: {
             int x, y, w, h;
             struct page *page;
             struct tile *tile;
             double a, b;
             void *data;
 
-            ret = sscanf (p + 4, " %" SCNxPTR " %d %d %d %d %" SCNxPTR,
+            ret = sscanf (p, " %" SCNxPTR " %d %d %d %d %" SCNxPTR,
                           (uintptr_t *) &page, &x, &y, &w, &h,
                           (uintptr_t *) &data);
             if (ret != 6) {
@@ -1602,12 +1613,13 @@ static void * mainloop (void UNUSED_ATTR *unused)
                     x, y, (uintptr_t) (tile),
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
+            break;
         }
-        CASE (trimset) {
+        case Ctrimset: {
             fz_irect fuzz;
             int trimmargins;
 
-            ret = sscanf (p + 7, " %d %d %d %d %d",
+            ret = sscanf (p, " %d %d %d %d %d",
                           &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
             if (ret != 5) {
                 errx (1, "malformed trimset `%.*s' ret=%d", len, p, ret);
@@ -1620,12 +1632,13 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 state.trimfuzz = fuzz;
             }
             unlock ("trimset");
+            break;
         }
-        CASE (settrim) {
+        case Csettrim: {
             fz_irect fuzz;
             int trimmargins;
 
-            ret = sscanf (p + 7, " %d %d %d %d %d",
+            ret = sscanf (p, " %d %d %d %d %d",
                           &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
             if (ret != 5) {
                 errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
@@ -1646,11 +1659,12 @@ static void * mainloop (void UNUSED_ATTR *unused)
             process_outline ();
             unlock ("settrim");
             printd ("continue %d", state.pagecount);
+            break;
         }
-        CASE (sliceh) {
+        case Csliceh: {
             int h;
 
-            ret = sscanf (p + 6, " %d", &h);
+            ret = sscanf (p, " %d", &h);
             if (ret != 1) {
                 errx (1, "malformed sliceh `%.*s' ret=%d", len, p, ret);
             }
@@ -1662,12 +1676,12 @@ static void * mainloop (void UNUSED_ATTR *unused)
                     state.tex.owners[i].slice = NULL;
                 }
             }
+            break;
         }
-        CASE (interrupt) {
+        case Cinterrupt:
             printd ("vmsg interrupted");
-        }
-#undef CASE
-        else {
+            break;
+        default:
             errx (1, "unknown command %.*s", len, p);
         }
     }
