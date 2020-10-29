@@ -846,8 +846,8 @@ static void initpdims (void)
                 - (state.pagedimcount + 1))
                 err (1, "fwrite pagedim data %zu %u",
                      sizeof (*state.pagedims), state.pagedimcount+1);
+            fclose (f);
         }
-        fclose (f);
     }
 }
 
