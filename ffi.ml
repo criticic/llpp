@@ -1,7 +1,7 @@
 open Config;;
 
 type initparams = (angle * fitmodel * trimparams * texcount * sliceheight *
-                     memsize * colorspace * fontpath);;
+                     memsize * colorspace * fontpath * dupstderr);;
 
 external init : Unix.file_descr -> initparams -> Unix.file_descr = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;

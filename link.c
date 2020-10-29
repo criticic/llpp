@@ -3841,19 +3841,6 @@ ML (init (value csock_v, value params_v))
     int ret, texcount, colorspace, mustoresize;
     const char *fontpath;
 
-    if (pipe (state.pfds)) {
-        err (1, "pipe");
-    }
-    for (int ntries = 0; ntries < 1737; ++ntries) {
-        if (-1 == dup2 (state.pfds[1], 2)) {
-            if (EINTR == errno) {
-                continue;
-            }
-            err (1, "dup2");
-        }
-        break;
-    }
-
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
     state.fitmodel      = Int_val (Field (params_v, 1));
@@ -3863,6 +3850,21 @@ ML (init (value csock_v, value params_v))
     mustoresize         = Int_val (Field (params_v, 5));
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
+
+    if (Int_val (Field (params_v, 8))) {
+        if (pipe (state.pfds)) {
+            err (1, "pipe");
+        }
+        for (int ntries = 0; ntries < 1737; ++ntries) {
+            if (-1 == dup2 (state.pfds[1], 2)) {
+                if (EINTR == errno) {
+                    continue;
+                }
+                err (1, "dup2");
+            }
+            break;
+        }
+    }
 
 #ifdef CIDER
     state.utf8cs = 1;

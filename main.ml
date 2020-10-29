@@ -4869,6 +4869,7 @@ let remoteopen path =
 let () =
   vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
   let gcconfig = ref false in
+  let redirstderr = ref true in
   let rcmdpath = ref E.s in
   let dcfpath = ref None in
   let pageno = ref None in
@@ -4926,6 +4927,8 @@ let () =
 
         ("-layout-height", Arg.Set_int layouth,
          "<height> layout height html/epub/etc (-1, 0, N)");
+
+        ("-no-redir-stderr", Arg.Clear redirstderr, " do not redirect stderr");
        ]
     )
     (fun s -> state.path <- s)
@@ -5099,7 +5102,7 @@ let () =
     Ffi.init cs (
         conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
         conf.texcount, conf.sliceheight, conf.mustoresize,
-        conf.colorspace, !Config.fontpath
+        conf.colorspace, !Config.fontpath, !redirstderr
       );
   List.iter GlArray.enable [`texture_coord; `vertex];
   GlTex.env (`color conf.texturecolor);
