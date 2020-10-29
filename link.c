@@ -1389,7 +1389,9 @@ static void * mainloop (void UNUSED_ATTR *unused)
         readdata (state.csock, p, len);
         p[len] = 0;
 
-        if (!strncmp ("open", p, 4)) {
+#define CASE(n) else if (!strncmp (#n, p, sizeof (#n) - 1))
+        if (0) ;
+        CASE (open) {
             int off, usedoccss, ok = 0, layouth;
             char *password;
             char *filename;
@@ -1430,7 +1432,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             unlock ("open");
             state.needoutline = ok;
         }
-        else if (!strncmp ("cs", p, 2)) {
+        CASE (cs) {
             int i, colorspace;
 
             ret = sscanf (p + 2, " %d", &colorspace);
@@ -1445,7 +1447,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             unlock ("cs");
         }
-        else if (!strncmp ("freepage", p, 8)) {
+        CASE (freepage) {
             void *ptr;
 
             ret = sscanf (p + 8, " %" SCNxPTR, (uintptr_t *) &ptr);
@@ -1456,7 +1458,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             freepage (ptr);
             unlock ("freepage");
         }
-        else if (!strncmp ("freetile", p, 8)) {
+        CASE (freetile) {
             void *ptr;
 
             ret = sscanf (p + 8, " %" SCNxPTR, (uintptr_t *) &ptr);
@@ -1467,7 +1469,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             freetile (ptr);
             unlock ("freetile");
         }
-        else if (!strncmp ("search", p, 6)) {
+        CASE (search) {
             int icase, pageno, y, len2, forward;
             char *pattern;
             regex_t re;
@@ -1495,7 +1497,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 regfree (&re);
             }
         }
-        else if (!strncmp ("geometry", p, 8)) {
+        CASE (geometry) {
             int w, h, fitmodel;
 
             printd ("clear");
@@ -1520,7 +1522,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             unlock ("geometry");
             printd ("continue %d", state.pagecount);
         }
-        else if (!strncmp ("reqlayout", p, 9)) {
+        CASE (reqlayout) {
             char *nameddest;
             int rotate, off, h;
             int fitmodel;
@@ -1558,7 +1560,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             unlock ("reqlayout");
             printd ("continue %d", state.pagecount);
         }
-        else if (!strncmp ("page", p, 4)) {
+        CASE (page) {
             double a, b;
             struct page *page;
             int pageno, pindex;
@@ -1576,7 +1578,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
 
             printd ("page %" PRIxPTR " %f", (uintptr_t) page, b - a);
         }
-        else if (!strncmp ("tile", p, 4)) {
+        CASE (tile) {
             int x, y, w, h;
             struct page *page;
             struct tile *tile;
@@ -1601,7 +1603,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
         }
-        else if (!strncmp ("trimset", p, 7)) {
+        CASE (trimset) {
             fz_irect fuzz;
             int trimmargins;
 
@@ -1619,7 +1621,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             }
             unlock ("trimset");
         }
-        else if (!strncmp ("settrim", p, 7)) {
+        CASE (settrim) {
             fz_irect fuzz;
             int trimmargins;
 
@@ -1645,7 +1647,7 @@ static void * mainloop (void UNUSED_ATTR *unused)
             unlock ("settrim");
             printd ("continue %d", state.pagecount);
         }
-        else if (!strncmp ("sliceh", p, 6)) {
+        CASE (sliceh) {
             int h;
 
             ret = sscanf (p + 6, " %d", &h);
@@ -1661,9 +1663,10 @@ static void * mainloop (void UNUSED_ATTR *unused)
                 }
             }
         }
-        else if (!strncmp ("interrupt", p, 9)) {
+        CASE (interrupt) {
             printd ("vmsg interrupted");
         }
+#undef CASE
         else {
             errx (1, "unknown command %.*s", len, p);
         }
