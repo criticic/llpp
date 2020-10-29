@@ -185,19 +185,19 @@ let intentry_with_suffix text key =
 ;;
 
 module C = struct
-  let dopen     = '\000';;
-  let cs        = '\001';;
-  let freepage  = '\002';;
-  let freetile  = '\003';;
-  let search    = '\004';;
-  let geometry  = '\005';;
-  let reqlayout = '\006';;
-  let page      = '\007';;
-  let tile      = '\008';;
-  let trimset   = '\009';;
-  let settrim   = '\010';;
-  let sliceh    = '\011';;
-  let interrupt = '\012';;
+  let dopen     = '\023';;
+  let cs        = '\024';;
+  let freepage  = '\025';;
+  let freetile  = '\026';;
+  let search    = '\027';;
+  let geometry  = '\028';;
+  let reqlayout = '\029';;
+  let page      = '\030';;
+  let tile      = '\031';;
+  let trimset   = '\032';;
+  let settrim   = '\033';;
+  let sliceh    = '\034';;
+  let interrupt = '\035';;
 end;;
 
 let wcmd cmd fmt =

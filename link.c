@@ -1367,13 +1367,13 @@ ML (mbtoutf8 (value s_v))
 }
 
 enum {
-    Copen, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
-    Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt
+    Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry,
+    Creqlayout, Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt
 };
 
 static void *mainloop (void UNUSED_ATTR *unused)
 {
-    char *p = NULL;
+    char *p = NULL, c;
     int len, ret, oldlen = 0;
 
     fz_var (p);
@@ -1384,17 +1384,18 @@ static void *mainloop (void UNUSED_ATTR *unused)
             errx (1, "readlen returned 0");
         }
 
-        if (oldlen < len + 1) {
-            p = realloc (p, len + 1);
+        if (oldlen < len) {
+            p = realloc (p, len);
             if (!p) {
-                err (1, "realloc %d failed", len + 1);
+                err (1, "realloc %d failed", len);
             }
-            oldlen = len + 1;
+            oldlen = len;
         }
         readdata (state.csock, p, len);
-        p[len] = 0;
+        c = p[len-1];
+        p[len-1] = 0;
 
-        switch (p[len-1]) {
+        switch (c) {
         case Copen: {
             int off, usedoccss, ok = 0, layouth;
             char *password;
@@ -1403,7 +1404,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p, " %d %d %n", &usedoccss, &layouth, &off);
+            ret = sscanf (p, "%d %d %n", &usedoccss, &layouth, &off);
             if (ret != 2) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
@@ -1440,7 +1441,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
         case Ccs: {
             int i, colorspace;
 
-            ret = sscanf (p, " %d", &colorspace);
+            ret = sscanf (p, "%d", &colorspace);
             if (ret != 1) {
                 errx (1, "malformed cs `%.*s' ret=%d", len, p, ret);
             }
@@ -1456,7 +1457,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
         case Cfreepage: {
             void *ptr;
 
-            ret = sscanf (p, " %" SCNxPTR, (uintptr_t *) &ptr);
+            ret = sscanf (p, "%" SCNxPTR, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freepage `%.*s' ret=%d", len, p, ret);
             }
@@ -1468,7 +1469,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
         case Cfreetile: {
             void *ptr;
 
-            ret = sscanf (p, " %" SCNxPTR, (uintptr_t *) &ptr);
+            ret = sscanf (p, "%" SCNxPTR, (uintptr_t *) &ptr);
             if (ret != 1) {
                 errx (1, "malformed freetile `%.*s' ret=%d", len, p, ret);
             }
@@ -1482,7 +1483,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             char *pattern;
             regex_t re;
 
-            ret = sscanf (p, " %d %d %d %d,%n",
+            ret = sscanf (p, "%d %d %d %d,%n",
                           &icase, &pageno, &y, &forward, &len2);
             if (ret != 4) {
                 errx (1, "malformed search `%s' ret=%d", p, ret);
@@ -1510,7 +1511,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             int w, h, fitmodel;
 
             printd ("clear");
-            ret = sscanf (p, " %d %d %d", &w, &h, &fitmodel);
+            ret = sscanf (p, "%d %d %d", &w, &h, &fitmodel);
             if (ret != 3) {
                 errx (1, "malformed geometry `%.*s' ret=%d", len, p, ret);
             }
@@ -1539,7 +1540,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             pdf_document *pdf;
 
             printd ("clear");
-            ret = sscanf (p, " %d %d %d %n", &rotate, &fitmodel, &h, &off);
+            ret = sscanf (p, "%d %d %d %n", &rotate, &fitmodel, &h, &off);
             if (ret != 3) {
                 errx (1, "bad reqlayout line `%.*s' ret=%d", len, p, ret);
             }
@@ -1575,7 +1576,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             struct page *page;
             int pageno, pindex;
 
-            ret = sscanf (p, " %d %d", &pageno, &pindex);
+            ret = sscanf (p, "%d %d", &pageno, &pindex);
             if (ret != 2) {
                 errx (1, "bad page line `%.*s' ret=%d", len, p, ret);
             }
@@ -1596,7 +1597,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             double a, b;
             void *data;
 
-            ret = sscanf (p, " %" SCNxPTR " %d %d %d %d %" SCNxPTR,
+            ret = sscanf (p, "%" SCNxPTR " %d %d %d %d %" SCNxPTR,
                           (uintptr_t *) &page, &x, &y, &w, &h,
                           (uintptr_t *) &data);
             if (ret != 6) {
@@ -1619,7 +1620,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             fz_irect fuzz;
             int trimmargins;
 
-            ret = sscanf (p, " %d %d %d %d %d",
+            ret = sscanf (p, "%d %d %d %d %d",
                           &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
             if (ret != 5) {
                 errx (1, "malformed trimset `%.*s' ret=%d", len, p, ret);
@@ -1638,7 +1639,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             fz_irect fuzz;
             int trimmargins;
 
-            ret = sscanf (p, " %d %d %d %d %d",
+            ret = sscanf (p, "%d %d %d %d %d",
                           &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
             if (ret != 5) {
                 errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
@@ -1664,7 +1665,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
         case Csliceh: {
             int h;
 
-            ret = sscanf (p, " %d", &h);
+            ret = sscanf (p, "%d", &h);
             if (ret != 1) {
                 errx (1, "malformed sliceh `%.*s' ret=%d", len, p, ret);
             }
@@ -1682,7 +1683,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             printd ("vmsg interrupted");
             break;
         default:
-            errx (1, "unknown command %.*s", len, p);
+            errx (1, "unknown command - %d [%.*s]", c, len, p);
         }
     }
     return 0;

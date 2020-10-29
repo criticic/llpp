@@ -43,3 +43,4 @@
   when omitting diag callbacks
   (in one case it was first 3 characters of a much longer (jbig related
    message that began with error ...)
+* TODO err/warn in C code when standard error was redirected
