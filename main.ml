@@ -3,6 +3,7 @@ open Config;;
 open Glutils;;
 open Listview;;
 
+module C = Ffi.C;;
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
 let layouth = ref ~-1;;
@@ -183,22 +184,6 @@ let intentry_with_suffix text key =
   in
   TEcont text
 ;;
-
-module C = struct
-  let dopen     = '\023';;
-  let cs        = '\024';;
-  let freepage  = '\025';;
-  let freetile  = '\026';;
-  let search    = '\027';;
-  let geometry  = '\028';;
-  let reqlayout = '\029';;
-  let page      = '\030';;
-  let tile      = '\031';;
-  let trimset   = '\032';;
-  let settrim   = '\033';;
-  let sliceh    = '\034';;
-  let interrupt = '\035';;
-end;;
 
 let wcmd cmd fmt =
   let b = Buffer.create 16 in
