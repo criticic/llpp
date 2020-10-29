@@ -210,10 +210,7 @@ let wcmd cmd fmt =
     ) b fmt
 ;;
 
-let nogeomcmds = function
-  | s, [] -> emptystr s
-  | _ -> false
-;;
+let nogeomcmds = function | s, [] -> emptystr s | _ -> false;;
 
 let layoutN ((columns, coverA, coverB), b) x y sw sh =
   let rec fold accu n =
@@ -221,10 +218,10 @@ let layoutN ((columns, coverA, coverB), b) x y sw sh =
     then accu
     else
       let pdimno, dx, vy, (_, w, h, xoff) = b.(n) in
-      if (vy - y) > sh &&
-           (n = coverA - 1
-            || n = state.pagecount - coverB
-            || (n - coverA) mod columns = columns - 1)
+      if (vy - y) > sh
+         && (n = coverA - 1
+             || n = state.pagecount - coverB
+             || (n - coverA) mod columns = columns - 1)
       then accu
       else
         let accu =
