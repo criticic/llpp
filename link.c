@@ -3864,6 +3864,9 @@ ML (init (value csock_v, value params_v))
             }
             break;
         }
+    } else {
+        state.pfds[0] = 0;
+        state.pfds[1] = 0;
     }
 
 #ifdef CIDER
