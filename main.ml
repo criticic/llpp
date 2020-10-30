@@ -4908,12 +4908,13 @@ let () =
 
         ("-no-title", Arg.Set ignoredoctitlte, " ignore document title");
 
-        ("-dcf", Arg.String (fun s -> dcfpath := Some s), " <undocumented>");
+        ("-dcf", Arg.String (fun s -> dcfpath := Some s),
+         "<path> <undocumented>");
 
         ("-layout-height", Arg.Set_int layouth,
          "<height> layout height html/epub/etc (-1, 0, N)");
 
-        ("-no-redir-stderr", Arg.Clear redirstderr, " do not redirect stderr");
+        ("-no-redir-stderr", Arg.Clear redirstderr, "<undocumented>");
        ]
     )
     (fun s -> state.path <- s)

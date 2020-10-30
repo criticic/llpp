@@ -9,7 +9,7 @@ less
 llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc]
  [-help|--help] [-last] [-no-title] [-origin origin] [-p password]
  [-page page-number] [-remote path] [-layout-height height]
- [-v] some.pdf
+ [-no-redir-stderr] [-v] some.pdf
 
 == DESCRIPTION
 *llpp* is a graphical document pager utilizing MuPDF
@@ -55,6 +55,12 @@ Set path to the source of remote commands
 
 -layout-height height::
 Set page height for reflowable documents (-1 == default, 0 == unlimited)
+
+-dcf path::
+<undocumented>
+
+-no-redir-stderr::
+<undocumented>
 
 -v::
 Print version and exit
