@@ -33,7 +33,7 @@ let exntos = function
   | exn -> Printexc.to_string exn
 ;;
 
-let error fmt = Printf.kprintf (fun s -> failwith s) fmt;;
+let error fmt = Printf.kprintf failwith fmt;;
 
 module IntSet = Set.Make (struct type t = int let compare = (-) end);;
 
