@@ -1101,7 +1101,7 @@ static int matchline (regex_t *re, fz_stext_line *line,
                 trail = "...";
             }
             else {
-                isize = size;
+                isize = (int) size;
                 trail = "";
             }
             printd ("msg regexec error '%*s%s'", isize, errbuf, trail);
