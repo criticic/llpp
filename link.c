@@ -1091,11 +1091,20 @@ static int matchline (regex_t *re, fz_stext_line *line,
     if (ret) {
         free (p);
         if (ret != REG_NOMATCH) {
+            int isize;
             size_t size;
-            char errbuf[80];
+            char errbuf[80], *trail;
+
             size = regerror (ret, re, errbuf, sizeof (errbuf));
-            printd ("msg regexec error `%.*s'",
-                    (int) size, errbuf);
+            if (size > 23) {
+                isize = 23;
+                trail = "...";
+            }
+            else {
+                isize = size;
+                trail = "";
+            }
+            printd ("msg regexec error '%*s%s'", isize, errbuf, trail);
             return -1;
         }
         return 0;
