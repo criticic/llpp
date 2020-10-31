@@ -2604,7 +2604,7 @@ let enterinfomode =
           (fun () -> conf.bgcolor)
           (fun v -> conf.bgcolor <- v);
 
-        rgba "   paper color"
+        rgba "   paper"
           (fun () -> conf.papercolor)
           (fun v ->
             conf.papercolor <- v;
@@ -2617,7 +2617,7 @@ let enterinfomode =
         rgba "   scrollbar handle"
           (fun () -> conf.sbarhndlcolor)
           (fun v -> conf.sbarhndlcolor <- v);
-        rgba "   texture color"
+        rgba "   texture"
           (fun () -> conf.texturecolor)
           (fun v ->
             GlTex.env (`color v);
