@@ -189,8 +189,8 @@ let gotouri launcher uri =
 ;;
 
 let version () =
-  Printf.sprintf "llpp %s, fitz %s, ocaml %s/%d bit"
-    (Ffi.llpp_version ()) (Ffi.fz_version ()) Sys.ocaml_version Sys.word_size
+  Printf.sprintf "llpp %s, ocaml %s - %d bit, fitz %s"
+    (Ffi.llpp_version ()) Sys.ocaml_version Sys.word_size (Ffi.fz_version ())
 ;;
 
 let fixup = let open Str in let gr = global_replace in
