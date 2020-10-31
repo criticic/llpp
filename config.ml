@@ -712,14 +712,15 @@ let keys_of_string s =
 
 let validatehcs v =
   let l = String.length v in
-  if l < 2 then failwith "set is too small, must be greater than one char";
+  if l < 2
+  then error "set must contain more than one char, but has %d" l;
   let module S = Set.Make (struct type t = char let compare = compare end) in
   let rec check s i =
     if i < l
     then
       let e = String.get v i in
       if S.mem e s
-      then failwith "has duplicates"
+      then error "set has duplicates (at least '%c')" e
       else check (S.add e s) (i+1)
   in
   check (S.singleton (String.get v 0)) 1
