@@ -9,7 +9,7 @@ less
 llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc]
  [-help|--help] [-last] [-no-title] [-origin origin] [-p password]
  [-page page-number] [-remote path] [-layout-height height]
- [-no-redir-stderr] [-v] some.pdf
+ [-no-redir-stderr] [-v] path-to-the-document
 
 == DESCRIPTION
 *llpp* is a graphical document pager utilizing MuPDF
