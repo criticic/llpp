@@ -14,10 +14,10 @@ Prerequisites for building from sources:
                   Is needed to build man pages
 
 To download mupdf+prerequisites that llpp is known to work with:
-    llpp% mkdir build && sh misc/getmupdf.sh build/mupdf
+   - mkdir build && sh misc/getmupdf.sh build/mupdf
 
 To build llpp (binary will be in build/llpp):
-   llpp% bash build.bash build
+   - bash build.bash build
 
 To build man pages (will be in build/doc/[name].1)
-   llpp% bash build.bash build doc
+   - bash build.bash build doc
