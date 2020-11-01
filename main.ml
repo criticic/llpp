@@ -4,6 +4,7 @@ open Glutils;;
 open Listview;;
 
 module C = Ffi.C;;
+
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
 let layouth = ref ~-1;;
@@ -800,9 +801,6 @@ let reload () =
 ;;
 
 let scalecolor c = let c = c *. conf.colorscale in (c, c, c);;
-let scalecolor2 (r, g, b) =
-  (r *. conf.colorscale, g *. conf.colorscale, b *. conf.colorscale);
-;;
 
 let docolumns columns =
   match columns with
@@ -4174,8 +4172,9 @@ let showrects = function
 ;;
 
 let display () =
-  GlDraw.color (scalecolor2 conf.bgcolor);
-  GlClear.color (scalecolor2 conf.bgcolor);
+  let sc (r, g, b) = let s = conf.colorscale in (r *. s, g *. s, b *. s) in
+  GlDraw.color (sc conf.bgcolor);
+  GlClear.color (sc conf.bgcolor);
   GlClear.clear [`color];
   List.iter drawpage state.layout;
   let rects =
