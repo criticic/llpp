@@ -60,19 +60,3 @@ external drawstr : int -> int -> int -> string -> float = "ml_draw_string";;
 
 external fz_version : unit -> string = "ml_fz_version";;
 external llpp_version : unit -> string = "ml_llpp_version";;
-
-module C = struct
-  let dopen     = '\023';;
-  let cs        = '\024';;
-  let freepage  = '\025';;
-  let freetile  = '\026';;
-  let search    = '\027';;
-  let geometry  = '\028';;
-  let reqlayout = '\029';;
-  let page      = '\030';;
-  let tile      = '\031';;
-  let trimset   = '\032';;
-  let settrim   = '\033';;
-  let sliceh    = '\034';;
-  let interrupt = '\035';;
-end;;
