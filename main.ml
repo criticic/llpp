@@ -197,7 +197,7 @@ let showlinktype under =
 
 let intentry_with_suffix text key =
   let text =
-    match [@warning "-4"] key with
+    match [@warning "-fragile-match"] key with
     | Keys.Ascii ('0'..'9' as c) -> addchar text c
     | Keys.Ascii ('k' | 'm' | 'g' | 'K' | 'M' | 'G' as c) ->
        addchar text @@ Char.lowercase_ascii c
@@ -1443,7 +1443,7 @@ let intentry text key =
     if emptystr text && key = Keys.Ascii '-'
     then addchar text '-'
     else
-      match [@warning "-4"] key with
+      match [@warning "-fragile-match"] key with
       | Keys.Ascii ('0'..'9' as c) -> addchar text c
       | _ ->
          state.text <- "invalid key";
@@ -1470,7 +1470,7 @@ let linknact f s =
     loop 0 state.layout;
 ;;
 
-let linknentry text = function [@warning "-4"]
+let linknentry text = function [@warning "-fragile-match"]
   | Keys.Ascii c  ->
      let text = addchar text c in
      linknact (fun under -> state.text <- undertext under) text;
@@ -1480,7 +1480,7 @@ let linknentry text = function [@warning "-4"]
      TEcont text
 ;;
 
-let textentry text key = match [@warning "-4"] key with
+let textentry text key = match [@warning "-fragile-match"] key with
   | Keys.Ascii c -> TEcont (addchar text c)
   | Keys.Code c -> TEcont (text ^ toutf8 c)
   | _ -> TEcont text
@@ -1692,7 +1692,7 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
 
 let optentry mode _ key =
   let btos b = if b then "on" else "off" in
-  match [@warning "-4"] key with
+  match [@warning "-fragile-match"] key with
   | Keys.Ascii 'C' ->
      let ondone s =
        try
@@ -2696,7 +2696,7 @@ let enterinfomode =
              method! key key mask =
                if not (Wsi.withctrl mask)
                then
-                 match [@warning "-4"] Wsi.ks2kt key with
+                 match [@warning "-fragile-match"] Wsi.ks2kt key with
                  | Keys.Left  -> coe (self#updownlevel ~-1)
                  | Keys.Right -> coe (self#updownlevel 1)
                  | _ -> super#key key mask
@@ -3394,7 +3394,7 @@ let viewkeyboard key mask =
      in
      let ondone msg = state.text <- msg
      and zmod _ _ k =
-       match [@warning "-4"] k with
+       match [@warning "-fragile-match"] k with
        | Keys.Ascii 'z' ->
           let f pageno ys =
             let ym, yM = yminmax ys in
@@ -3565,7 +3565,7 @@ let viewkeyboard key mask =
          gotopage1 (n + conf.pagebias - 1) 0;
        )
      in
-     let pageentry text = function [@warning "-4"]
+     let pageentry text = function [@warning "-fragile-match"]
                                  | Keys.Ascii 'g' -> TEdone text
                                  | key -> intentry text key
      in

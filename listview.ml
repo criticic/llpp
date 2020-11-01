@@ -139,7 +139,7 @@ let textentrykeyboard
   in
   let open Keys in
   let kt = Wsi.ks2kt key in
-  match [@warning "-4"] kt with
+  match [@warning "-fragile-match"] kt with
   | Backspace ->
      if emptystr text && cancelonempty
      then (
@@ -548,7 +548,7 @@ object (self)
     in
     let open Keys in
     let kt = Wsi.ks2kt key in
-    match [@warning "-4"] kt with
+    match [@warning "-fragile-match"] kt with
     | Ascii (('r'|'s') as c) when Wsi.withctrl mask ->
        let incr = if c = 'r' then -1 else 1 in
        let active, first =
@@ -598,7 +598,7 @@ object (self)
 
     | Ascii _ | Code _ ->
        let utf8 =
-         match [@warning "-8"] kt with
+         match [@warning "-partial-match"] kt with
          | Ascii c -> String.make 1 c
          | Code code -> toutf8 code
        in
