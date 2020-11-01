@@ -1,9 +1,9 @@
 Prerequisites for building from sources:
     bash          [https://en.wikipedia.org/wiki/Bash_(Unix_shell)]
-    mupdf         [http://mupdf.com/]
-    opengl        [http://en.wikipedia.org/wiki/OpenGL]
+    mupdf         [https://mupdf.com/]
+    opengl        [https://en.wikipedia.org/wiki/OpenGL]
     git           [https://git-scm.com/]
-    ocaml (4.11)  [http://ocaml.org/]
+    ocaml (4.11)  [https://ocaml.org/]
         If not present will be downloaded from the network and
         built/used locally without system-wide installation.
         This requires either:
