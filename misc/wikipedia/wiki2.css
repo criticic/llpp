@@ -12,7 +12,7 @@
 
 /* malc */
 @font-face { font-family: sans-serif; src: local("pt sans"); }
-@font-face { font-family: serif; src: local("pt astra serif"); }
+@font-face { font-family: serif; src: local("pt serif"); }
 @font-face { font-family: monospace; src: local("fantasque sans mono"); }
 
 /* set headers and footers */
