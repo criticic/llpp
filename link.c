@@ -857,8 +857,7 @@ static void initpdims (void)
     if (f) {
         size_t nread;
 
-        nread = fread (&state.pagedimcount, sizeof (state.pagedimcount),
-                       1, f);
+        nread = fread (&state.pagedimcount, sizeof (state.pagedimcount), 1, f);
         if (nread - 1) {
             err (1, "fread pagedim %zu", sizeof (state.pagedimcount));
         }
