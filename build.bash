@@ -247,7 +247,7 @@ cmd="(export paste clip uriop; . $srcd/genconfstruct.sh >$outd/confstruct.ml)"
 keycmd="digest $srcd/genconfstruct.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"
-    eval "$cmd" || die genconfstr.sh failed
+    eval "$cmd" || die genconfstruct.sh failed
     echo "$cmd$(eval $keycmd)" > "$outd/confstruct.ml.past"
 } && vecho "fresh $outd/confstruct.ml"
 
