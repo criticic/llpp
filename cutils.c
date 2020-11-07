@@ -50,7 +50,7 @@ void *parse_pointer (const char *cap, const char *s)
 double now (void)
 {
     struct timeval tv;
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, NULL);   /* gettimeofday shall always return zero */
     return tv.tv_sec + tv.tv_usec*1e-6;
 }
 
@@ -74,7 +74,9 @@ char *ystrdup (const char *s)
     size_t len = strlen (s);
     if (len > 0) {
         char *r = malloc (len+1);
-        if (!r) errx (1, "malloc %zu", len+1);
+        if (!r) {
+            errx (1, "malloc %zu", len+1);
+        }
         memcpy (r, s, len+1);
         return r;
     }
