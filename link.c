@@ -31,7 +31,6 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/utsname.h>
 
 #include <spawn.h>
 
