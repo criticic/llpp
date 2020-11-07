@@ -12,11 +12,17 @@ trap 'partmsg' EXIT
 
 darwin=false
 wsid="wsi/x11"
+clip="LC_CTYPE=UTF-8 xclip -i"
+paste="LC_CTYPE=UTF-8 xclip -o"
+uriop="cat >&2"
 case "$(uname)" in
     Darwin)
         darwin=true
         wsid="wsi/cocoa"
         mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
+        clip="LC_CTYPE=UTF-8 pbcopy"
+        paste="LC_CTYPE=UTF-8 pbaste"
+        uriop='open "%s"'
         mbt=${mbt:-release};;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     OpenBSD) mjobs=$(getconf NPROCESSORS_ONLN || echo 1);;
@@ -237,7 +243,7 @@ bobjc() {
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 
-cmd="(. $srcd/genconfstr.sh >$outd/confstruct.ml)"
+cmd="(export paste clip uriop; . $srcd/genconfstr.sh >$outd/confstruct.ml)"
 keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"

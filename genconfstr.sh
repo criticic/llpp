@@ -101,16 +101,16 @@ i tileh 2048
 g mustoresize memsize "256 lsl 20"
 b checkers true
 i aalevel 8
-s urilauncher '(match[@warning "-fragile-match"] platform with |Pmacos -> {|open "%s"|}|_ -> {|echo "%s"|})'
-s pathlauncher '{|lp "%s"|}'
+s urilauncher "{|$uriop|}"
+s pathlauncher '{|echo PATH "%s">&2|}'
 g colorspace colorspace Rgb
 b invert false
 f colorscale 1.
 g columns columns "Csingle [||]"
 g beyecolumns "columncount option" None
-s selcmd '(match platform with |Plinux|Pbsd -> "LC_CTYPE=UTF-8 xclip -i"|Pmacos -> "LC_CTYPE=UTF-8 pbcopy"|Punknown -> "cat")'
-s pastecmd '(match platform with |Plinux|Pbsd -> "LC_CTYPE=UTF-8 xclip -o"|Pmacos -> "LC_CTYPE=UTF-8 pbpaste"|Punknown -> "echo")'
-s paxcmd '"cat"'
+s selcmd "{|$clip|}"
+s pastecmd "{|$paste|}"
+s paxcmd '{|echo PAX "%s">&2|}'
 s femcmd E.s
 s passcmd E.s
 s savecmd E.s
