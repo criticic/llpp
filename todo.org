@@ -37,9 +37,10 @@
     b) especially in bocaml where subshell was used ("(" instead of "{")
        why? i don't remember :(
 * DONE font scaling factor on X11
-  CLOSED: [2020-10-27 Tue 10:43]
+  CLOSED: [2020-11-07 Sat 11:46]
   Current font sizes were (last) hard coded on a 2560x1440
-* TODO figure out why "err" ends up in the fd 2
+* DONE figure out why "err" ends up in the fd 2
+  CLOSED: [2020-11-07 Sat 11:46] It was Barzini, or me leaving behind debugging
   when omitting diag callbacks
   (in one case it was first 3 characters of a much longer (jbig related
    message that began with error ...)
