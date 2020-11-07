@@ -243,8 +243,8 @@ bobjc() {
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 
-cmd="(export paste clip uriop; . $srcd/genconfstr.sh >$outd/confstruct.ml)"
-keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
+cmd="(export paste clip uriop; . $srcd/genconfstruct.sh >$outd/confstruct.ml)"
+keycmd="digest $srcd/genconfstruct.sh $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"
     eval "$cmd" || die genconfstr.sh failed
