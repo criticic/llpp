@@ -1093,7 +1093,7 @@ let getauth haddr dnum =
        E.s, E.s
 ;;
 
-let init t w h platform =
+let init t w h =
   let d =
     try Sys.getenv "DISPLAY"
     with exn ->
@@ -1146,15 +1146,8 @@ let init t w h platform =
     let fd, addr =
       if emptystr host || host.[0] = '/' || host = "unix"
       then
-        let addr =
-          match platform with
-          | Utils.Pmacos -> Unix.ADDR_UNIX d
-          | Utils.Plinux ->
-             Unix.ADDR_UNIX ("\000/tmp/.X11-unix/X" ^ string_of_int dispnum)
-          | Utils.Punknown | Utils.Pbsd ->
-             Unix.ADDR_UNIX ("/tmp/.X11-unix/X" ^ string_of_int dispnum)
-        in
-        Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0, addr
+        Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0,
+        Unix.ADDR_UNIX ("\000/tmp/.X11-unix/X" ^ string_of_int dispnum)
       else
         let h =
           try Unix.gethostbyname host

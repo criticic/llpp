@@ -3444,43 +3444,6 @@ value ml_keysymtoutf8 (value keysym_v)
 }
 #endif
 
-enum { piunknown, pilinux, pimacos, pibsd };
-
-ML (platform (value unit_v))
-{
-    CAMLparam1 (unit_v);
-    CAMLlocal2 (tup_v, arr_v);
-    int platid = piunknown;
-    struct utsname buf;
-
-#if defined __linux__
-    platid = pilinux;
-#elif defined __DragonFly__ || defined __FreeBSD__
-    || defined __OpenBSD__ || defined __NetBSD__
-    platid = pibsd;
-#elif defined __APPLE__
-    platid = pimacos;
-#endif
-    if (uname (&buf)) {
-        err (1, "uname");
-    }
-
-    tup_v = caml_alloc_tuple (2);
-    {
-        char const *sar[] = {
-            buf.sysname,
-            buf.release,
-            buf.version,
-            buf.machine,
-            NULL
-        };
-        arr_v = caml_copy_string_array (sar);
-    }
-    Field (tup_v, 0) = Val_int (platid);
-    Field (tup_v, 1) = arr_v;
-    CAMLreturn (tup_v);
-}
-
 ML0 (cloexec (value fd_v))
 {
     CAMLparam1 (fd_v);

@@ -209,7 +209,7 @@ let readresp sock =
 let fontsizescale n =
   n * get_backing_scale_factor ()
 
-let init t w h _platform =
+let init t w h =
   let fd = get_server_fd () in
   state.t <- t;
   state.fd <- fd;

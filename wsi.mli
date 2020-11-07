@@ -42,7 +42,7 @@ val setcursor : cursor -> unit;;
 val settitle : string -> unit;;
 val swapb : unit -> unit;;
 val readresp : Unix.file_descr -> unit;;
-val init : t -> int -> int -> Utils.platform -> Unix.file_descr * int * int;;
+val init : t -> int -> int -> Unix.file_descr * int * int;;
 val fullscreen : unit -> unit;;
 val reshape : int -> int -> unit;;
 val activatewin : unit -> unit;;

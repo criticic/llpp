@@ -5064,7 +5064,7 @@ let () =
         opendoc path state.password
     end
   in
-  let wsfd, winw, winh = Wsi.init mu conf.cwinw conf.cwinh platform in
+  let wsfd, winw, winh = Wsi.init mu conf.cwinw conf.cwinh in
   state.wsfd <- wsfd;
 
   if not @@ List.exists GlMisc.check_extension
