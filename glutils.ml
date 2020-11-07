@@ -32,10 +32,7 @@ let drawstring size x y s =
   Gl.disable `texture_2d;
 ;;
 
-let drawstring1 size x y s = Ffi.drawstr size x y s;;
-let drawstring2 size x y fmt =
-  Printf.kprintf (drawstring size (x+1) (y+size+1)) fmt
-;;
+let drawstringf size x y = Printf.kprintf (drawstring size (x+1) (y+size+1));;
 
 let makecheckers () =
   (* Based on lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had

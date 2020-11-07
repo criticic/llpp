@@ -462,7 +462,7 @@ let drawtiles l color =
            then (col*conf.tilew, row*conf.tileh)
            else col, row
          in
-         drawstring2 fstate.fontsize x y "Loading %d [%d,%d]" l.pageno c r;
+         drawstringf fstate.fontsize x y "Loading %d [%d,%d]" l.pageno c r;
        );
        GlDraw.color color;
        Ffi.begintiles ();

@@ -303,7 +303,7 @@ object (self)
               let x' = truncate (x0 +. x) in
               let s1, s2 = splitatchar s '\000' in
               if emptystr s2
-              then drawstring1 fs x' (y+nfs) s
+              then Ffi.drawstr fs x' (y+nfs) s
               else
                 let rec e s =
                   if emptystr s
@@ -321,8 +321,8 @@ object (self)
                   then e s1
                   else s1
                 in
-                ignore (drawstring1 fs x' (y+nfs) s1);
-                drawstring1 fs (hw + x') (y+nfs) s2
+                ignore (Ffi.drawstr fs x' (y+nfs) s1);
+                Ffi.drawstr fs (hw + x') (y+nfs) s2
             in
             if trusted
             then
@@ -341,7 +341,7 @@ object (self)
                   let s = String.sub s 2 len in
                   let x = if not helpmode then x +. ww else x in
                   GlDraw.color (1.2, 1.2, 1.2);
-                  let vinc = drawstring1 (fs+fs/4)
+                  let vinc = Ffi.drawstr (fs+fs/4)
                                          (truncate (x -. ww)) (y+nfs) s in
                   GlDraw.color (1., 1., 1.);
                   vinc +. (float fs *. 0.8)
