@@ -5205,7 +5205,6 @@ let () =
             checkfds rest
 
          | fd :: rest when fd = state.stderr ->
-            Format.printf "err@.";
             let b = Bytes.create 80 in
             begin match Unix.read fd b 0 80 with
             | 0 -> ()
