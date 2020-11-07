@@ -102,7 +102,7 @@ g mustoresize memsize "256 lsl 20"
 b checkers true
 i aalevel 8
 s urilauncher "{|$uriop|}"
-s pathlauncher '{|echo PATH "%s">&2|}'
+s pathlauncher '{|$print|}'
 g colorspace colorspace Rgb
 b invert false
 f colorscale 1.

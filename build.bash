@@ -14,7 +14,8 @@ darwin=false
 wsid="wsi/x11"
 clip="LC_CTYPE=UTF-8 xclip -i"
 paste="LC_CTYPE=UTF-8 xclip -o"
-uriop="cat >&2"
+uriop="echo '%s' >&2"
+print="Print '%s' >&2"
 case "$(uname)" in
     Darwin)
         darwin=true
