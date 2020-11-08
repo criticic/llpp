@@ -82,9 +82,9 @@ cflags() {
         link.o)
             f="-g -std=c99 $muinc -Wall -Werror -Wextra -pedantic"
             test "${mbt-}" = "debug" || f+=" -O2"
-            f+=" -DCACHE_PAGEREFS"
-            $darwin && f+=" -DCIDER -D_GNU_SOURCE" \
-                    || f+=" -D_POSIX_C_SOURCE" # needed for fdopen
+            f+=" -DCACHE_PAGEREFS "
+            $darwin && f+="-DCIDER -D_GNU_SOURCE -DGLH='<OpenGL/gl.h>'" \
+                    || f+="-D_POSIX_C_SOURCE -DGLH='<GL/gl.h>'"
             ;;
 
         */ml_*.o)

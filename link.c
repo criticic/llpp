@@ -39,11 +39,7 @@
 #include <limits.h>
 #include <inttypes.h>
 
-#ifdef CIDER
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
+#include GLH
 
 #pragma GCC diagnostic push
 #ifdef __clang__
