@@ -410,7 +410,7 @@ static void docinfo (void)
             }
             else {
                 buf = realloc (buf, need);
-                if (!buf){
+                if (!buf) {
                     err (1, "docinfo realloc %d", need);
                 }
                 len = need;
