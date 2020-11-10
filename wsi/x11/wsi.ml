@@ -273,19 +273,18 @@ let sendwithrep sock s f =
   sendstr1 s 0 (Bytes.length s) sock;
 ;;
 
-let padcatl =
-  let pad = "123" in
-  fun ss ->
-  let b = Buffer.create 16 in
-  List.iter (Buffer.add_bytes b) ss;
-  let bl = Buffer.length b in
-  let pl = bl land 3 in
-  if pl != 0
-  then Buffer.add_substring b pad 0 (4 - pl);
-  Buffer.to_bytes b;
+let padcat =
+  let pad = Bytes.create 3 in fun b1 b2 ->
+  let l1 = Bytes.length b1 and l2 = Bytes.length b2 in
+  let l = (l1 + l2) land 3 in
+  let pl = if l > 0 then 4 - l else 0 in
+  let b = Bytes.create (l1 + l2 + pl) in
+  Bytes.blit b1 0 b 0 l1;
+  Bytes.blit b2 0 b l1 l2;
+  if pl > 0
+  then Bytes.blit pad 0 b (l1 + l2) pl;
+  b;
 ;;
-
-let padcat s1 s2 = padcatl [s1; s2];;
 
 let internreq name onlyifexists =
   let s = makereq 16 8 8 in
