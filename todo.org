@@ -33,3 +33,4 @@
   wsi translates codes to syms plug config int it
 * TODO err/warn in C code when standard error was redirected
   workaround in place
+* TODO consider using Byte.[gs]et_uint*
