@@ -2,6 +2,7 @@
 #define FIXME 0
 
 #ifdef __clang__
+#if __clang_major__ >= 10
 #pragma GCC diagnostic error "-Weverything"
 #pragma GCC diagnostic ignored "-Wpadded"
 #pragma GCC diagnostic ignored "-Wsign-conversion"
@@ -9,6 +10,7 @@
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
+#endif
 #endif
 
 #include <errno.h>
