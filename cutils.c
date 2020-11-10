@@ -68,17 +68,3 @@ void fmt_linkn (char *s, const char *c, unsigned int l, int n)
     }
     s[sl] = 0;
 }
-
-char *ystrdup (const char *s)
-{
-    size_t len = strlen (s);
-    if (len > 0) {
-        char *r = malloc (len+1);
-        if (!r) {
-            errx (1, "malloc %zu", len+1);
-        }
-        memcpy (r, s, len+1);
-        return r;
-    }
-    return NULL;
-}
