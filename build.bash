@@ -95,7 +95,7 @@ cflags() {
             } || f+=" -Wno-discarded-qualifiers"
             ;;
 
-        *) f="-g -O2";;
+        *) f="-g -O2 -Wall -Werror";;
     esac
     ! $darwin || f+=" -DGL_SILENCE_DEPRECATION"
     echo $f
