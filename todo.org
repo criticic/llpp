@@ -8,21 +8,7 @@
 ** TODO Parallel builds
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though
-** DONE errors in config.ml (!)
-   CLOSED: [2020-08-09 Sun 08:53]
-   they do not lead to aborted compilation
-*** recipe: making a fresh error and compiling
-    (so that both config.ml and stuff that depends on it is being rebuilt by build.bash)
-* TODO [maybe] inside rect/quad (_Generic)
-* TODO Shift-insert for searches
-* TODO Threaded rendering
-  Scrolling documents with pgdown on a 3840x2160 monitor utilizing
-  just 2 threads (event loop, display/mupdf rendering) is not fast
-  enough.
-* TODO wikit - https://github.com/moosotc/llpp/issues/128
-* TODO bindcode
-  wsi translates codes to syms plug config int it
-* DONE fix build system
+** DONE fix build system
   CLOSED+: [2020-10-24 Sat 22:04]
   failure scenario:
   at the end of the utils add:
@@ -36,13 +22,14 @@
     a) die doesn't really
     b) especially in bocaml where subshell was used ("(" instead of "{")
        why? i don't remember :(
-* DONE font scaling factor on X11
-  CLOSED: [2020-11-07 Sat 11:46]
-  Current font sizes were (last) hard coded on a 2560x1440
-* DONE figure out why "err" ends up in the fd 2
-  CLOSED: [2020-11-07 Sat 11:46] It was Barzini, or me leaving behind debugging
-  when omitting diag callbacks
-  (in one case it was first 3 characters of a much longer (jbig related
-   message that began with error ...)
+* TODO [maybe] inside rect/quad (_Generic)
+* TODO Shift-insert for searches
+* TODO Threaded rendering
+  Scrolling documents with pgdown on a 3840x2160 monitor utilizing
+  just 2 threads (event loop, display/mupdf rendering) is not fast
+  enough.
+* TODO wikit - https://github.com/moosotc/llpp/issues/128
+* TODO bindcode
+  wsi translates codes to syms plug config int it
 * TODO err/warn in C code when standard error was redirected
   workaround in place
