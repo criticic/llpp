@@ -12,9 +12,8 @@
 void NORETURN_ATTR GCC_FMT_ATTR (2, 3) err (int exitcode, const char *fmt, ...)
 {
     va_list ap;
-    int savederrno;
+    int savederrno = errno;
 
-    savederrno = errno;
     va_start (ap, fmt);
     vfprintf (stderr, fmt, ap);
     va_end (ap);
@@ -37,10 +36,8 @@ void NORETURN_ATTR GCC_FMT_ATTR (2, 3) errx (int exitcode, const char *fmt, ...)
 
 void *parse_pointer (const char *cap, const char *s)
 {
-    int ret;
     void *ptr;
-
-    ret = sscanf (s, "%" SCNxPTR, (uintptr_t *) &ptr);
+    int ret = sscanf (s, "%" SCNxPTR, (uintptr_t *) &ptr);
     if (ret != 1) {
         errx (1, "%s: cannot parse pointer in `%s'", cap, s);
     }
@@ -57,8 +54,7 @@ double now (void)
 void fmt_linkn (char *s, const char *c, unsigned int l, int n)
 {
     div_t d;
-    int sl = 0;
-    int nn = n;
+    int sl = 0, nn = n;
 
     do { d = div (n, l); sl++; n = d.quot; } while (d.quot);
     for (int i = 0, n = nn; i < sl; ++i) {
