@@ -1,19 +1,5 @@
 open Utils;;
 
-type fontstate =
-  { mutable fontsize : int
-  ; mutable wwidth : float
-  ; mutable maxrows : int
-  }
-;;
-
-let fstate =
-  { fontsize = Wsi.fontsizescale 20
-  ; wwidth = nan
-  ; maxrows = -1
-  }
-;;
-
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
 ;;
@@ -86,6 +72,18 @@ and anchor = pageno * top * dtop
 and rect = float * float * float * float * float * float * float * float
 and infochange = | Memused | Docinfo | Pdim
 and dupstderr = bool
+and fontstate =
+  { mutable fontsize : int
+  ; mutable wwidth : float
+  ; mutable maxrows : int
+  }
+;;
+
+let fstate =
+  { fontsize = Wsi.fontsizescale 20
+  ; wwidth = nan
+  ; maxrows = -1
+  }
 ;;
 
 class type uioh =
@@ -180,9 +178,9 @@ type page =
 ;;
 
 type tile = opaque * pixmapsize * elapsed
-and elapsed = float;;
-type pagemapkey = pageno * gen;;
-type tilemapkey = pageno * gen * colorspace * angle * width * height * col * row
+and elapsed = float
+and pagemapkey = pageno * gen
+and tilemapkey = pageno * gen * colorspace * angle * width * height * col * row
 and row = int
 and col = int
 and currently =
@@ -191,9 +189,7 @@ and currently =
   | Tiling
     of (page * opaque * colorspace * angle * gen * col * row * width * height)
   | Outlining of outline list
-;;
-
-type mpos = int * int
+and mpos = int * int
 and mstate =
   | Msel of (mpos * mpos)
   | Mpan of mpos
@@ -203,9 +199,7 @@ and mstate =
   | Mnone
 and buttonno = int
 and step = int
-;;
-
-type mode =
+and mode =
   | Birdseye of (conf * leftx * pageno * pageno * anchor)
   | Textentry of (textentry * onleave)
   | View
@@ -233,17 +227,13 @@ and te =
   | TEdone of string
   | TEcont of string
   | TEswitch of textentry
-;;
-
-type 'a circbuf =
+and 'a circbuf =
   { store : 'a array
   ; mutable rc : int
   ; mutable wc : int
   ; mutable len : int
   }
-;;
-
-type 'a nav =
+and 'a nav =
   { past   : 'a list
   ; future : 'a list
   }
