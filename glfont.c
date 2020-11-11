@@ -251,7 +251,6 @@ static struct glyph * lookup_glyph(FT_Face face, int size, int gid, int subx, in
 
         if (g_table_load == (MAXGLYPHS * 3) / 4)
         {
-                lprintf("font cache table full, clearing cache");
                 clear_font_cache();
                 pos = lookup_table(&key);
         }
@@ -267,7 +266,6 @@ static struct glyph * lookup_glyph(FT_Face face, int size, int gid, int subx, in
         }
         if (g_cache_row_y + h + PADDING > g_cache_h)
         {
-                lprintf("font cache texture full, clearing cache");
                 clear_font_cache();
                 pos = lookup_table(&key);
         }

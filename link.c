@@ -72,22 +72,9 @@
 #define TEXT_TYPE GL_TEXTURE_RECTANGLE_ARB
 #endif
 
-#if 0
-#define lprintf printf
-#else
-#define lprintf(...)
-#endif
-
-#define ARSERT(cond) for (;;) {                         \
-    if (!(cond)) {                                      \
-        errx (1, "%s:%d " #cond, __FILE__, __LINE__);   \
-    }                                                   \
-    break;                                              \
-} (void) 0
-
+#define ARSERT(c) !(c) ? errx (1, "%s:%d " #c, __FILE__, __LINE__) : (void) 0
 #define ML(d) extern value ml_##d; value ml_##d
 #define ML0(d) extern void ml_##d; void ml_##d
-
 #define STTI(st) ((unsigned int) st)
 
 struct slice {
