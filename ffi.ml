@@ -16,7 +16,7 @@ external postprocess :
   opaque -> int -> int -> int -> (int * string * int * string) -> int
   = "ml_postprocess";;
 external setdcf : string -> unit = "ml_setdcf";;
-external pagebbox : opaque -> bbox = "ml_getpagebox";;
+external pagebbox : opaque -> irect = "ml_getpagebox";;
 external setaalevel : int -> unit = "ml_setaalevel";;
 external setpapercolor : rgba -> unit = "ml_setpapercolor";;
 external realloctexts : int -> bool = "ml_realloctexts";;
