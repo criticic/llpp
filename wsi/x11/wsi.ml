@@ -273,16 +273,13 @@ let sendwithrep sock s f =
   sendstr1 s 0 (Bytes.length s) sock;
 ;;
 
-let padcat =
-  let pad = Bytes.create 3 in fun b1 b2 ->
+let padcat b1 b2 =
   let l1 = Bytes.length b1 and l2 = Bytes.length b2 in
   let l = (l1 + l2) land 3 in
   let pl = if l > 0 then 4 - l else 0 in
   let b = Bytes.create (l1 + l2 + pl) in
   Bytes.blit b1 0 b 0 l1;
   Bytes.blit b2 0 b l1 l2;
-  if pl > 0
-  then Bytes.blit pad 0 b (l1 + l2) pl;
   b;
 ;;
 
