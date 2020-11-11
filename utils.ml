@@ -6,8 +6,6 @@ module E = struct
   let a = [||];;
 end;;
 
-type platform = | Punknown | Plinux | Pmacos | Pbsd;;
-
 let tempfailureretry f a =
   let rec g () =
     try f a with Unix.Unix_error (Unix.EINTR, _, _) -> g ()

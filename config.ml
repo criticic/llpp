@@ -326,13 +326,6 @@ let nouioh : uioh =
     method zoom _ _ _ = ()
   end;;
 
-let platform_to_string = function
-  | Punknown      -> "unknown"
-  | Plinux        -> "Linux"
-  | Pmacos        -> "macOS"
-  | Pbsd          -> "BSD"
-;;
-
 let conf = { defconf with keyhashes = copykeyhashes defconf };;
 
 let cbnew n v =
