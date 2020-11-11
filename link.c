@@ -968,14 +968,9 @@ static void layout (void)
     }
 
     do {
-        int x0 = fz_mini (p->bounds.x0, p->bounds.x1);
-        int y0 = fz_mini (p->bounds.y0, p->bounds.y1);
-        int x1 = fz_maxi (p->bounds.x0, p->bounds.x1);
-        int y1 = fz_maxi (p->bounds.y0, p->bounds.y1);
-        int boundw = x1 - x0;
-        int boundh = y1 - y0;
-
-        printd ("pdim %u %d %d %d", p->pageno, boundw, boundh, p->left);
+        printd ("pdim %u %d %d %d", p->pageno, p->left,
+                abs (p->bounds.x0 - p->bounds.x1),
+                abs (p->bounds.y0 - p->bounds.y1));
     } while (p-- != state.pagedims);
 }
 
