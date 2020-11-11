@@ -2278,11 +2278,10 @@ static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
     glDisable (GL_BLEND);
 }
 
-ML (postprocess (value ptr_v, value hlinks_v,
-                 value xoff_v, value yoff_v,
-                 value li_v))
+ML (postprocess (value ptr_v, value hlmask_v,
+                 value xoff_v, value yoff_v, value li_v))
 {
-    CAMLparam5 (ptr_v, hlinks_v, xoff_v, yoff_v, li_v);
+    CAMLparam5 (ptr_v, hlmask_v, xoff_v, yoff_v, li_v);
     int xoff = Int_val (xoff_v);
     int yoff = Int_val (yoff_v);
     int noff = Int_val (Field (li_v, 0));
@@ -2291,7 +2290,7 @@ ML (postprocess (value ptr_v, value hlinks_v,
     int hfsize = Int_val (Field (li_v, 2));
     const char *chars = String_val (Field (li_v, 3));
     mlsize_t clen = caml_string_length (Field (li_v, 3));
-    int hlmask = Int_val (hlinks_v);
+    int hlmask = Int_val (hlmask_v);
     struct page *page = parse_pointer (__func__, String_val (ptr_v));
 
     if (!page->fzpage) {

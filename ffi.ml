@@ -1,7 +1,10 @@
 open Config;;
 
 type initparams = (angle * fitmodel * trimparams * texcount * sliceheight *
-                     memsize * colorspace * fontpath * dupstderr);;
+                     memsize * colorspace * fontpath * dupstderr)
+and xoff = int and yoff = int and noff = int
+and li = (noff * string * hintfontsize * hintchars)
+and hlmask = int and hintchars = string and hintfontsize = int;;
 
 external init : Unix.file_descr -> initparams -> Unix.file_descr = "ml_init";;
 external seltext : opaque -> (int * int * int * int) -> unit = "ml_seltext";;
@@ -12,8 +15,7 @@ external markunder : opaque -> x -> y -> mark -> bool = "ml_markunder";;
 external clearmark : opaque -> unit = "ml_clearmark";;
 external zoomforh : int -> int -> int -> int -> float = "ml_zoom_for_height";;
 external getmaxw : unit -> float = "ml_getmaxw";;
-external postprocess :
-  opaque -> int -> int -> int -> (int * string * int * string) -> int
+external postprocess :  opaque -> hlmask -> xoff -> yoff -> li -> noff
   = "ml_postprocess";;
 external setdcf : string -> unit = "ml_setdcf";;
 external pagebbox : opaque -> irect = "ml_getpagebox";;
