@@ -2,14 +2,13 @@
 set -eu
 
 cat<<EOF
-open Utils;;
 type rgb = float * float * float
-type rgba = float * float * float * float
-type fitmodel = | FitWidth | FitProportional | FitPage
-type irect = (int * int * int * int)
+and rgba = float * float * float * float
+and fitmodel = | FitWidth | FitProportional | FitPage
+and irect = (int * int * int * int)
 and bbox = irect
-type colorspace = | Rgb | Gray
-type keymap =
+and  colorspace = | Rgb | Gray
+and keymap =
   | KMinsrt of key | KMinsrl of key list | KMmulti of key list * key list
 and key = int * int
 and keyhash = (key, keymap) Hashtbl.t
@@ -17,7 +16,7 @@ and keystate = | KSnone | KSinto of (key list * key list)
 and css = string
 and dcf = string
 and hcs = string
-type columns =
+and  columns =
   | Csingle of singlecolumn
   | Cmulti of multicolumns
   | Csplit of splitcolumns
@@ -111,9 +110,9 @@ g beyecolumns "columncount option" None
 s selcmd "{|$clip|}"
 s pastecmd "{|$paste|}"
 s paxcmd '{|echo PAX "%s">&2|}'
-s femcmd E.s
-s passcmd E.s
-s savecmd E.s
+s femcmd Utils.E.s
+s passcmd Utils.E.s
+s savecmd Utils.E.s
 b updatecurs true
 K keyhashes '(string * keyhash) list' \
 '(let mk n = (n, Hashtbl.create 1) in
@@ -127,15 +126,15 @@ s stcmd "{|echo SyncTex|}"
 b riani false
 g paxmark mark Mark_word
 b leftscroll false
-s title E.s
+s title Utils.E.s
 f lastvisit 0.0
 b annotinline true
 b coarseprespos false
-g css css E.s
+g css css Utils.E.s
 b usedoccss true
-s key E.s
+s key Utils.E.s
 P pax
-g dcf dcf E.s
+g dcf dcf Utils.E.s
 s hcs "{|aoeuidhtns|}"
 
 cat <<EOF
