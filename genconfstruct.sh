@@ -7,7 +7,7 @@ and rgba = float * float * float * float
 and fitmodel = | FitWidth | FitProportional | FitPage
 and irect = (int * int * int * int)
 and bbox = irect
-and  colorspace = | Rgb | Gray
+and colorspace = | Rgb | Gray
 and keymap =
   | KMinsrt of key | KMinsrl of key list | KMmulti of key list * key list
 and key = int * int
@@ -16,7 +16,7 @@ and keystate = | KSnone | KSinto of (key list * key list)
 and css = string
 and dcf = string
 and hcs = string
-and  columns =
+and columns =
   | Csingle of singlecolumn
   | Cmulti of multicolumns
   | Csplit of splitcolumns
