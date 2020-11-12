@@ -3385,34 +3385,24 @@ let viewkeyboard key mask =
        | [] -> ()
        | (pageno, _, (_, y0, _, y1, _, y2, _, y3)) :: _ ->
           f pageno (y0, y1, y2, y3)
-     and yminmax (y0, y1, y2, y3) =
-       let ym = min y0 y1 |> min y2 |> min y3 |> truncate in
-       let yM = max y0 y1 |> max y2 |> max y3 |> truncate in
-       ym, yM
-     in
+     and ymin (y0, y1, y2, y3) = min y0 y1 |> min y2 |> min y3 |> truncate
+     and ymax (y0, y1, y2, y3) = max y0 y1 |> max y2 |> max y3 |> truncate in
      let ondone msg = state.text <- msg
      and zmod _ _ k =
        match [@warning "-fragile-match"] k with
        | Keys.Ascii 'z' ->
           let f pageno ys =
-            let ym, yM = yminmax ys in
-            let hh = (yM - ym)/2 in
-            gotopage1 pageno (ym + hh - state.winh/2)
+            let hh = (ymax ys - ymin ys)/2 in
+            gotopage1 pageno (ymin ys + hh - state.winh/2)
           in
           yloc f;
           TEdone "center"
        | Keys.Ascii 't' ->
-          let f pageno ys =
-            let ym, _ = yminmax ys in
-            gotopage1 pageno ym
-          in
+          let f pageno ys = gotopage1 pageno @@ ymin ys in
           yloc f;
           TEdone "top"
        | Keys.Ascii 'b' ->
-          let f pageno ys =
-            let _, yM = yminmax ys in
-            gotopage1 pageno (yM - state.winh)
-          in
+          let f pageno ys = gotopage1 pageno (ymax ys - state.winh) in
           yloc f;
           TEdone "bottom"
        | _ -> TEstop
