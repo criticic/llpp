@@ -3392,8 +3392,9 @@ let viewkeyboard key mask =
        match [@warning "-fragile-match"] k with
        | Keys.Ascii 'z' ->
           let f pageno ys =
-            let hh = (ymax ys - ymin ys)/2 in
-            gotopage1 pageno (ymin ys + hh - state.winh/2)
+            let miny = ymin ys in
+            let hh = (ymax ys - miny)/2 in
+            gotopage1 pageno (miny + hh - state.winh/2)
           in
           yloc f;
           TEdone "center"
