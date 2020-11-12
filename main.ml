@@ -3385,25 +3385,24 @@ let viewkeyboard key mask =
        | [] -> ()
        | (pageno, _, (_, y0, _, y1, _, y2, _, y3)) :: _ ->
           f pageno (y0, y1, y2, y3)
-     and ymin (y0, y1, y2, y3) = min y0 y1 |> min y2 |> min y3 |> truncate
-     and ymax (y0, y1, y2, y3) = max y0 y1 |> max y2 |> max y3 |> truncate in
+     and fsel f (y0, y1, y2, y3) = f y0 y1 |> f y2 |> f y3 |> truncate in
      let ondone msg = state.text <- msg
      and zmod _ _ k =
        match [@warning "-fragile-match"] k with
        | Keys.Ascii 'z' ->
           let f pageno ys =
-            let miny = ymin ys in
-            let hh = (ymax ys - miny)/2 in
+            let miny = fsel min ys in
+            let hh = (fsel max ys - miny)/2 in
             gotopage1 pageno (miny + hh - state.winh/2)
           in
           yloc f;
           TEdone "center"
        | Keys.Ascii 't' ->
-          let f pageno ys = gotopage1 pageno @@ ymin ys in
+          let f pageno ys = gotopage1 pageno @@ fsel min ys in
           yloc f;
           TEdone "top"
        | Keys.Ascii 'b' ->
-          let f pageno ys = gotopage1 pageno (ymax ys - state.winh) in
+          let f pageno ys = gotopage1 pageno (fsel max ys - state.winh) in
           yloc f;
           TEdone "bottom"
        | _ -> TEstop
