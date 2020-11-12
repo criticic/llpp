@@ -544,8 +544,7 @@ let tilepage n p layout =
                     );
          in
          itertiles l f;
-       else
-         loop rest
+       else loop rest
 
     | [] -> ()
   in
@@ -845,7 +844,9 @@ let docolumns columns =
      let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
      let rec loop pageno pdimno pdim x y rowh pdims =
        let rec fixrow m =
-         if m = pageno then () else
+         if m = pageno
+         then ()
+         else
            let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
            if h < rowh
            then (
@@ -880,8 +881,7 @@ let docolumns columns =
                  then
                    let ips = calcips h in
                    y + (if pageno = 0 then 0 else calcips rowh + ips)
-                 else
-                   y + (if pageno = 0 then 0 else conf.interpagespace)
+                 else y + (if pageno = 0 then 0 else conf.interpagespace)
                in
                x, y + rowh, h
              )
@@ -2915,9 +2915,7 @@ let enterannotmode opaque slinkindex =
                  );
              state.text <- E.s;
              enttext ();
-           else
-             let s = getusertext m_text in
-             update s
+           else getusertext m_text |> update
          in
          m_text <- s;
          m_items <-
