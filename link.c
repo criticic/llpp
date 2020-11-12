@@ -1108,14 +1108,13 @@ static int matchline (regex_t *re, fz_stext_line *line,
         e = ch->quad;
 
         if (!stop) {
-            printd ("firstmatch %d %d %f %f %f %f %f %f %f %f",
+            printd ("firstmatch %d %d %f %f %f %f %f %f %f %f\n"
+                    "progress 1 found at %d `%.*s' in %f sec",
                     pageno, 1,
                     s.ul.x, s.ul.y,
                     e.ur.x, s.ul.y,
                     e.lr.x, e.lr.y,
-                    s.ul.x, e.lr.y);
-
-            printd ("progress 1 found at %d `%.*s' in %f sec",
+                    s.ul.x, e.lr.y,
                     pageno + 1, (int) (rm.rm_eo - rm.rm_so), &p[rm.rm_so],
                     now () - start);
         }
