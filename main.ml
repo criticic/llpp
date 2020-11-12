@@ -5173,7 +5173,10 @@ let () =
             then (
               if state.slideshow land 2 = 0
               then state.slideshow <- state.slideshow lor 2
-              else if step < 0 then prevpage () else nextpage ();
+              else
+                if step < 0
+                then prevpage ()
+                else nextpage ();
               deadline +. (float (abs step))
             )
             else
@@ -5182,7 +5185,10 @@ let () =
               let y =
                 if y < 0
                 then state.maxy - fy
-                else if y >= state.maxy - fy then 0 else y
+                else
+                  if y >= state.maxy - fy
+                  then 0
+                  else y
               in
               gotoxy state.x y;
               deadline +. 0.01
