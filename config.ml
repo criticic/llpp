@@ -191,18 +191,18 @@ and currently =
   | Outlining of outline list
 and mpos = int * int
 and mstate =
+  | Mnone
   | Msel of (mpos * mpos)
   | Mpan of mpos
   | Mscrolly | Mscrollx
   | Mzoom of (buttonno * step * mpos)
   | Mzoomrect of (mpos * mpos)
-  | Mnone
 and buttonno = int
 and step = int
 and mode =
+  | View
   | Birdseye of (conf * leftx * pageno * pageno * anchor)
   | Textentry of (textentry * onleave)
-  | View
   | LinkNav of linktarget
 and onleave = leavetextentrystatus -> unit
 and leavetextentrystatus = | Cancel | Confirm
