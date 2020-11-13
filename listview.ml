@@ -187,8 +187,7 @@ let textentrykeyboard
         onleave Confirm;
         postRedisplay "textentrykeyboard after confirm2";
 
-     | TEcont text ->
-        enttext (c, text, opthist, onkey, ondone, cancelonempty);
+     | TEcont text -> enttext (c, text, opthist, onkey, ondone, cancelonempty);
 
      | TEstop ->
         onleave Cancel;
@@ -708,8 +707,7 @@ object (self)
             postRedisplay "listview click";
             source#exit ~uioh:(coe {< m_active = n >})
                         ~cancel:false ~active:n ~first:m_first ~pan:m_pan
-         | _ ->
-            Some (coe self)
+         | _ -> Some (coe self)
          end
       | n when (n == 4 || n == 5) && not down ->
          let len = source#getitemcount in
@@ -783,7 +781,8 @@ object (self)
   method alwaysscrolly = true
   method scroll _ dy =
     let self =
-      if dy != 0 then begin
+      if dy != 0
+      then (
         let len = source#getitemcount in
         let first =
           if dy > 0 && m_first + fstate.maxrows >= len
@@ -794,8 +793,8 @@ object (self)
         in
         postRedisplay "listview wheel";
         {< m_first = first >}
-      end else
-        self
+      )
+      else self
     in
     coe self
 
