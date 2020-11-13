@@ -210,10 +210,10 @@ static int trylock (const char *cap)
     return ret == EBUSY;
 }
 
-static int hasdata (void)
+static int hasdata (int fd)
 {
     int ret, avail;
-    ret = ioctl (state.csock, FIONREAD, &avail);
+    ret = ioctl (fd, FIONREAD, &avail);
     if (ret) {
         err (1, "hasdata: FIONREAD error ret=%d", ret);
     }
@@ -223,13 +223,7 @@ static int hasdata (void)
 ML (hasdata (value fd_v))
 {
     CAMLparam1 (fd_v);
-    int ret, avail;
-
-    ret = ioctl (Int_val (fd_v), FIONREAD, &avail);
-    if (ret) {
-        uerror ("ioctl (FIONREAD)", Nothing);
-    }
-    CAMLreturn (Val_bool (avail > 0));
+    CAMLreturn (Val_bool (hasdata (Int_val (fd_v))));
 }
 
 static void readdata (int fd, void *p, int size)
@@ -1146,7 +1140,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     while (pageno >= 0 && pageno < state.pagecount && !stop) {
         if (niters++ == 5) {
             niters = 0;
-            if (hasdata ()) {
+            if (hasdata (state.csock)) {
                 printd ("progress 1 attention requested aborting search at %d",
                         pageno);
                 stop = 1;
