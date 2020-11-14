@@ -12,9 +12,7 @@ and keymap =
 and key = (int * int)
 and keyhash = (key, keymap) Hashtbl.t
 and keystate = | KSnone | KSinto of (key list * key list)
-and css = string
-and dcf = string
-and hcs = string
+and css = string and dcf = string and hcs = string
 and columns =
   | Csingle of singlecolumn
   | Cmulti of multicolumns
@@ -30,8 +28,7 @@ and splitcolumns = (columncount * pagegeom)
 and pagegeom = (pdimno * x * y * (pageno * width * height * leftx)) array
 and multicol = (columncount * covercount * covercount)
 and columncount = int
-and pdimno = int
-and pageno = int
+and pdimno = int and pageno = int
 and x = int and y = int and leftx = int
 and covercount = int
 and width = int and height = int
