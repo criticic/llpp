@@ -8,20 +8,6 @@
 ** TODO Parallel builds
 ** TODO Removing .mlis leads to build errors
    Nuking everything (or just deleting .deps?) solves it though
-** DONE fix build system
-  CLOSED+: [2020-10-24 Sat 22:04]
-  failure scenario:
-  at the end of the utils add:
-    let u = ();;
-  rebuild
-  change u to
-    let u = fail;;
-  build would not stop at the first compilation failure
-
-  issue is manifold:
-    a) die doesn't really
-    b) especially in bocaml where subshell was used ("(" instead of "{")
-       why? i don't remember :(
 * TODO [maybe] inside rect/quad (_Generic)
 * TODO Shift-insert for searches
 * TODO Threaded rendering
