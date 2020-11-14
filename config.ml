@@ -735,12 +735,10 @@ let config_of c attrs =
       | "width" -> { c with cwinw = maxv 20 v }
       | "height" -> { c with cwinh = maxv 20 v }
       | "proportional-display" ->
-         let fm =
-           if bool_of_string v
-           then FitProportional
-           else FitWidth
-         in
-         { c with fitmodel = fm }
+         { c with fitmodel = if bool_of_string v
+                             then FitProportional
+                             else FitWidth
+         }
       | "fit-model" -> { c with fitmodel = FMTE.of_string v }
       | "pixmap-cache-size" ->
          { c with memlimit = maxv ~f:int_of_string_with_suffix 2 v }
