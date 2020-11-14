@@ -85,7 +85,7 @@ i cwinh 1000
 g fitmodel fitmodel FitProportional
 b trimmargins false
 g trimfuzz irect "(0,0,0,0)"
-g memlimit memsize "32 lsl 20"
+g memlimit memsize "128 lsl 20"
 g texcount texcount 256
 g sliceheight sliceheight 24
 g thumbw width 76
