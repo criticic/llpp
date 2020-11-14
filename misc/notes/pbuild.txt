@@ -64,14 +64,14 @@ index e9a2919..37382df 100755
 @@ -1,6 +1,8 @@
  #!/bin/bash
  set -eu
- 
+
 +:>Makefile
 +
  now() { date +%s; }
  S=$(now)
  vecho() { ${vecho-:} "$*"; }
 @@ -159,6 +161,7 @@ bocaml2() {
- 
+
      cmd="ocamlc $(oflags $o) -c -o $o $s"
      keycmd="digest $o $s $(< $o.depl)"
 +    printf "$o: $s $(< $o.depl)\n\t$cmd\n" >>Makefile
@@ -95,7 +95,7 @@ index e9a2919..37382df 100755
          printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
          eval "$cmd || die '$cmd failed'"
 @@ -229,6 +234,7 @@ ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
- 
+
  cmd="(. $srcd/genconfstr.sh >$outd/confstruct.ml)"
  keycmd="digest $srcd/genconfstr.sh $outd/confstruct.ml"
 +printf "$outd/confstruct.ml: $srcd/genconfstr.sh\n\t$cmd\n" >>Makefile
@@ -111,15 +111,11 @@ index e9a2919..37382df 100755
      echo linking $outd/llpp
      eval "$cmd || die '$cmd failed'"
 
-
-
-
-
 ========================================
 ~/xsrc/llpp
 - rm build/*.cm* build/lablGL/*.cm* build/wsi/x11/*.cm* build/*.o build/lablGL/*.o build/wsi/x11/*.o
 ~/xsrc/llpp
-- \time -pv bash build.bash build 
+- \time -pv bash build.bash build
   utils.ml -> utils.cmo
   keys.ml -> keys.cmo
  wsi.mli -> wsi.cmi
@@ -205,7 +201,7 @@ wsi/x11/xlib.c -> wsi/x11/xlib.o
 	Page size (bytes): 4096
 	Exit status: 0
 ~/xsrc/llpp
-- \time -pv make -j1 build/llpp -s 
+- \time -pv make -j1 build/llpp -s
 	Command being timed: "make -j1 build/llpp -s"
 	User time (seconds): 3.62
 	System time (seconds): 0.43
