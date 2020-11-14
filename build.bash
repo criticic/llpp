@@ -71,7 +71,7 @@ oincs() {
 oflags() {
     case "${1#$outd/}" in
         lablGL/*) f="-g";;
-        *) f="-g -strict-sequence -strict-formats -warn-error @A";;
+        *) f="-g -strict-sequence -strict-formats -alert @all -warn-error @A";;
     esac
     echo "$(oincs $1) $f"
 }
