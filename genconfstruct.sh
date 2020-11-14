@@ -2,14 +2,14 @@
 set -eu
 
 cat<<EOF
-type rgb = float * float * float
-and rgba = float * float * float * float
+type rgb = (float * float * float)
+and rgba = (float * float * float * float)
 and fitmodel = | FitWidth | FitProportional | FitPage
 and irect = (int * int * int * int)
 and colorspace = | Rgb | Gray
 and keymap =
-  | KMinsrt of key | KMinsrl of key list | KMmulti of key list * key list
-and key = int * int
+  | KMinsrt of key | KMinsrl of key list | KMmulti of (key list * key list)
+and key = (int * int)
 and keyhash = (key, keymap) Hashtbl.t
 and keystate = | KSnone | KSinto of (key list * key list)
 and css = string
@@ -24,11 +24,11 @@ and mark =
   | Mark_block
   | Mark_line
   | Mark_word
-and multicolumns = multicol * pagegeom
+and multicolumns = (multicol * pagegeom)
 and singlecolumn = pagegeom
-and splitcolumns = columncount * pagegeom
+and splitcolumns = (columncount * pagegeom)
 and pagegeom = (pdimno * x * y * (pageno * width * height * leftx)) array
-and multicol = columncount * covercount * covercount
+and multicol = (columncount * covercount * covercount)
 and columncount = int
 and pdimno = int
 and pageno = int
