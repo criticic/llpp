@@ -13,7 +13,6 @@ let tempfailureretry f a =
 ;;
 
 external measurestr : int -> string -> float = "ml_measure_string";;
-external cloexec : Unix.file_descr -> unit = "ml_cloexec";;
 external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
 external toutf8 : int -> string = "ml_keysymtoutf8";;
 external mbtoutf8 : string -> string = "ml_mbtoutf8";;
@@ -343,3 +342,5 @@ let selstring selcmd s =
       with exn -> dolog "failed to write to sel pipe: %s" @@ exntos exn
     ) selcmd
 ;;
+
+let cloexec = Unix.set_close_on_exec;;

@@ -3399,17 +3399,6 @@ value ml_keysymtoutf8 (value keysym_v)
 }
 #endif
 
-ML0 (cloexec (value fd_v))
-{
-    CAMLparam1 (fd_v);
-    int fd = Int_val (fd_v);
-
-    if (fcntl (fd, F_SETFD, FD_CLOEXEC, 1)) {
-        uerror ("fcntl", Nothing);
-    }
-    CAMLreturn0;
-}
-
 ML (getpbo (value w_v, value h_v, value cs_v))
 {
     CAMLparam2 (w_v, h_v);
