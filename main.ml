@@ -2100,13 +2100,8 @@ let enterinfomode =
            )) :: m_l
 
        method bool ?(offset=1) ?(btos=btos) name get set =
-         m_l <-
-           (name, `bool (btos, get), offset, Action (
-                                                 fun u ->
-                                                 let v = get () in
-                                                 set (not v);
-                                                 u
-           )) :: m_l
+         m_l <- (name, `bool (btos, get), offset,
+                 Action (fun u -> set (not (get ())); u)) :: m_l
 
        method color name get set =
          m_l <-
@@ -2280,14 +2275,15 @@ let enterinfomode =
   in
   let rec fillsrc prevmode prevuioh =
     let sep () = src#caption E.s 0 in
+    let bad v exn =
+      state.text <- Printf.sprintf "bad color `%s': %s" v @@ exntos exn
+    in
     let colorp name get set =
       src#string name
         (fun () -> color_to_string (get ()))
         (fun v ->
           try set @@ color_of_string v
-          with exn ->
-            state.text <-
-              Printf.sprintf "bad color `%s': %s" v @@ exntos exn
+          with exn -> bad v exn
         )
     in
     let rgba name get set =
@@ -2295,9 +2291,7 @@ let enterinfomode =
         (fun () -> get () |> rgba_to_string)
         (fun v ->
           try set @@ rgba_of_string v
-          with exn ->
-            state.text <-
-              Printf.sprintf "bad color `%s': %s" v @@ exntos exn
+          with exn -> bad v exn
         )
     in
     let oldmode = state.mode in
@@ -2345,8 +2339,7 @@ let enterinfomode =
           | l :: _ -> l.pageno, l.pagey
         in
         state.maxy <- calcheight ();
-        let y = getpagey pageno in
-        gotoxy state.x (y + py)
+        gotoxy state.x (py + getpagey pageno)
       );
 
     src#int "page bias"
@@ -2399,9 +2392,7 @@ let enterinfomode =
         | Birdseye beye ->
            leavebirdseye beye false;
            enterbirdseye ()
-        | Textentry _
-        | View
-        | LinkNav _ -> ()
+        | Textentry _ | View | LinkNav _ -> ()
       );
 
     let mode = state.mode in
@@ -2538,8 +2529,8 @@ let enterinfomode =
             validatehcs v;
             conf.hcs <- v
           with exn ->
-            state.text <- Printf.sprintf
-                            "invalid hint charset %S: %s\n" v (exntos exn));
+            state.text <-
+              Printf.sprintf "invalid hint chars %S: %s" v (exntos exn));
       src#string "trim fuzz"
         (fun () -> irect_to_string conf.trimfuzz)
         (fun v ->
@@ -2548,8 +2539,7 @@ let enterinfomode =
             if conf.trimmargins
             then settrim true conf.trimfuzz;
           with exn ->
-            state.text <- Printf.sprintf "bad irect `%s': %s" v
-                          @@ exntos exn
+            state.text <- Printf.sprintf "bad irect `%s': %s" v @@ exntos exn
         );
       src#string "selection command"
         (fun () -> conf.selcmd)
