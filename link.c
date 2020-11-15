@@ -1004,17 +1004,13 @@ static void recurse_outline (fz_outline *outline, int level)
 
 static void process_outline (void)
 {
-    fz_outline *outline;
-
-    if (!state.needoutline || !state.pagedimcount) {
-        return;
-    }
-
-    state.needoutline = 0;
-    outline = fz_load_outline (state.ctx, state.doc);
-    if (outline) {
-        recurse_outline (outline, 0);
-        fz_drop_outline (state.ctx, outline);
+    if (state.needoutline && state.pagedimcount) {
+        fz_outline *outline = fz_load_outline (state.ctx, state.doc);
+        state.needoutline = 0;
+        if (outline) {
+            recurse_outline (outline, 0);
+            fz_drop_outline (state.ctx, outline);
+        }
     }
 }
 
@@ -1952,7 +1948,6 @@ static void dropannots (struct page *page)
 static void ensureannots (struct page *page)
 {
     int i, count = 0;
-    size_t annotsize = sizeof (*page->annots);
     pdf_annot *annot;
     pdf_document *pdf;
     pdf_page *pdfpage;
@@ -1979,7 +1974,7 @@ static void ensureannots (struct page *page)
 
     if (count > 0) {
         page->annotcount = count;
-        page->annots = calloc (count, annotsize);
+        page->annots = calloc (count, sizeof (*page->annots));
         if (!page->annots) {
             err (1, "calloc annots %d", count);
         }
@@ -2360,14 +2355,10 @@ static struct annot *getannot (struct page *page, int x, int y)
 
 static fz_link *getlink (struct page *page, int x, int y)
 {
-    fz_point p;
     fz_link *link;
+    fz_point p = { .x = x, .y = y };
 
     ensureslinks (page);
-
-    p.x = x;
-    p.y = y;
-
     p = fz_transform_point (p, fz_invert_matrix (pagectm (page)));
 
     for (link = page->links; link; link = link->next) {
@@ -2693,26 +2684,24 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
     x += pdim->bounds.x0;
     y += pdim->bounds.y0;
 
-    {
-        annot = getannot (page, x, y);
-        if (annot) {
-            int i, n = -1;
+    annot = getannot (page, x, y);
+    if (annot) {
+        int i, n = -1;
 
-            ensureslinks (page);
-            for (i = 0; i < page->slinkcount; ++i) {
-                if (page->slinks[i].tag == SANNOT
-                    && page->slinks[i].u.annot == annot->annot) {
-                    n = i;
-                    break;
-                }
+        ensureslinks (page);
+        for (i = 0; i < page->slinkcount; ++i) {
+            if (page->slinks[i].tag == SANNOT
+                && page->slinks[i].u.annot == annot->annot) {
+                n = i;
+                break;
             }
-            ret_v = caml_alloc_small (1, uannot);
-            tup_v = caml_alloc_tuple (2);
-            Field (ret_v, 0) = tup_v;
-            Field (tup_v, 0) = ptr_v;
-            Field (tup_v, 1) = Val_int (n);
-            goto unlock;
         }
+        ret_v = caml_alloc_small (1, uannot);
+        tup_v = caml_alloc_tuple (2);
+        Field (ret_v, 0) = tup_v;
+        Field (tup_v, 0) = ptr_v;
+        Field (tup_v, 1) = Val_int (n);
+        goto unlock;
     }
 
     link = getlink (page, x, y);
@@ -2722,8 +2711,8 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
         Field (ret_v, 0) = str_v;
     }
     else {
-        fz_point p = { .x = x, .y = y };
         fz_stext_block *block;
+        fz_point p = { .x = x, .y = y };
 
         ensuretext (page);
 
@@ -3048,7 +3037,7 @@ static int pipechar (FILE *f, fz_stext_char *ch)
     len = fz_runetochar (buf, ch->c);
     ret = fwrite (buf, len, 1, f);
     if (ret != 1) {
-        printd ("emsg failed to write %d bytes ret=%zu: %d:%s",
+        printd ("emsg failed to fwrite %d bytes ret=%zu: %d:%s",
                 len, ret, errno, strerror (errno));
         return -1;
     }
@@ -3301,8 +3290,7 @@ ML (getmaxw (value unit_v))
     }
 
     for (i = 0, p = state.pagedims; i < state.pagedimcount; ++i, ++p) {
-        float w = p->pagebox.x1;
-        maxw = fz_max (maxw, w);
+        maxw = fz_max (maxw, p->pagebox.x1);
     }
 
     unlock (__func__);
@@ -3315,12 +3303,9 @@ ML (draw_string (value pt_v, value x_v, value y_v, value string_v))
 {
     CAMLparam4 (pt_v, x_v, y_v, string_v);
     CAMLlocal1 (ret_v);
-    int pt = Int_val(pt_v);
-    int x = Int_val (x_v);
-    int y = Int_val (y_v);
-    float w;
-
-    w = draw_string (state.face, pt, x, y, String_val (string_v));
+    float w = draw_string (state.face,
+                           Int_val (pt_v), Int_val (x_v), Int_val (y_v),
+                           String_val (string_v));
     ret_v = caml_copy_double (w);
     CAMLreturn (ret_v);
 }
@@ -3329,11 +3314,10 @@ ML (measure_string (value pt_v, value string_v))
 {
     CAMLparam2 (pt_v, string_v);
     CAMLlocal1 (ret_v);
-    int pt = Int_val (pt_v);
-    double w;
 
-    w = (double) measure_string (state.face, pt, String_val (string_v));
-    ret_v = caml_copy_double (w);
+    ret_v = caml_copy_double (
+        measure_string (state.face, Int_val (pt_v), String_val (string_v))
+        );
     CAMLreturn (ret_v);
 }
 
