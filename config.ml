@@ -451,12 +451,16 @@ let rowyh (c, coverA, coverB) b n =
     let d = n' mod c in
     let s = n - d in
     let e = min state.pagecount (s + c) in
-    let rec find m miny maxh = if m = e then miny, maxh else
-                                 let _, _, y, (_, _, h, _) = b.(m) in
-                                 let miny = min miny y in
-                                 let maxh = max maxh h in
-                                 find (m+1) miny maxh
-    in find s max_int 0
+    let rec findminmax m miny maxh =
+      if m = e
+      then miny, maxh
+      else
+        let _, _, y, (_, _, h, _) = b.(m) in
+        let miny = min miny y in
+        let maxh = max maxh h in
+        findminmax (m+1) miny maxh
+    in
+    findminmax s max_int 0
 ;;
 
 let page_of_y y =
