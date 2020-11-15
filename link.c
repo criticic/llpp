@@ -86,7 +86,6 @@ struct tile {
     int w, h;
     int slicecount;
     int sliceheight;
-    struct bo *pbo;
     fz_pixmap *pixmap;
     struct slice slices[1];
 };
@@ -176,12 +175,6 @@ static struct {
 
     GLfloat texcoords[8], vertices[16];
 } state;
-
-struct bo {
-    GLuint id;
-    void *ptr;
-    size_t size;
-};
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -438,20 +431,10 @@ static void freepage (struct page *page)
 static void freetile (struct tile *tile)
 {
     unlinktile (tile);
-    if (!tile->pbo) {
-#if 0
-        fz_drop_pixmap (state.ctx, tile->pixmap);
-#else  /* piggyback */
-        if (state.pig) {
-            fz_drop_pixmap (state.ctx, state.pig);
-        }
-        state.pig = tile->pixmap;
-#endif
+    if (state.pig) {
+        fz_drop_pixmap (state.ctx, state.pig);
     }
-    else {
-        free (tile->pbo);
-        fz_drop_pixmap (state.ctx, tile->pixmap);
-    }
+    state.pig = tile->pixmap;
     free (tile);
 }
 
@@ -551,8 +534,7 @@ static struct tile *alloctile (int h)
     return tile;
 }
 
-static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
-                                struct bo *pbo)
+static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
 {
     fz_irect bbox;
     fz_matrix ctm;
@@ -583,17 +565,9 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h,
         state.pig = NULL;
     }
     if (!tile->pixmap) {
-        if (pbo) {
-            tile->pixmap =
-                fz_new_pixmap_with_bbox_and_data (state.ctx, state.colorspace,
-                                                  bbox, NULL, 1, pbo->ptr);
-            tile->pbo = pbo;
-        }
-        else {
-            tile->pixmap = fz_new_pixmap_with_bbox (state.ctx,
-                                                    state.colorspace,
-                                                    bbox, NULL, 1);
-        }
+        tile->pixmap = fz_new_pixmap_with_bbox (state.ctx,
+                                                state.colorspace,
+                                                bbox, NULL, 1);
     }
 
     tile->w = w;
@@ -1571,18 +1545,16 @@ static void *mainloop (void UNUSED_ATTR *unused)
             struct page *page;
             struct tile *tile;
             double a, b;
-            void *data;
 
-            ret = sscanf (p, "%" SCNxPTR " %d %d %d %d %" SCNxPTR,
-                          (uintptr_t *) &page, &x, &y, &w, &h,
-                          (uintptr_t *) &data);
-            if (ret != 6) {
+            ret = sscanf (p, "%" SCNxPTR " %d %d %d %d",
+                          (uintptr_t *) &page, &x, &y, &w, &h);
+            if (ret != 5) {
                 errx (1, "bad tile line `%.*s' ret=%d", len, p, ret);
             }
 
             lock ("tile");
             a = now ();
-            tile = rendertile (page, x, y, w, h, data);
+            tile = rendertile (page, x, y, w, h);
             b = now ();
             unlock ("tile");
 
@@ -2141,13 +2113,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
         glTexParameteri (TEXT_TYPE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri (TEXT_TYPE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 #endif
-        if (tile->pbo) {
-            state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
-            texdata = 0;
-        }
-        else {
-            texdata = tile->pixmap->samples;
-        }
+        texdata = tile->pixmap->samples;
         if (subimage) {
             glTexSubImage2D (TEXT_TYPE, 0, 0, 0, tile->w, slice->h,
                              state.tex.form, state.tex.ty, texdata+offset );
@@ -2155,10 +2121,6 @@ static void uploadslice (struct tile *tile, struct slice *slice)
         else {
             glTexImage2D (TEXT_TYPE, 0, state.tex.iform, tile->w, slice->h,
                           0, state.tex.form, state.tex.ty, texdata+offset);
-        }
-
-        if (tile->pbo) {
-            state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
         }
     }
 }
