@@ -4901,7 +4901,7 @@ let () =
         ("-layout-height", Arg.Set_int layouth,
          "<height> layout height html/epub/etc (-1, 0, N)");
 
-        ("-no-redir-stderr", Arg.Clear redirstderr, "<undocumented>");
+        ("-no-redir-stderr", Arg.Clear redirstderr, " <undocumented>");
        ]
     )
     (fun s -> state.path <- s)
