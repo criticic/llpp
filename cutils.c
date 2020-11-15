@@ -15,10 +15,10 @@ void NORETURN_ATTR GCC_FMT_ATTR (2, 3) err (int exitcode, const char *fmt, ...)
     int savederrno = errno;
 
     va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
+    vfprintf (stdout, fmt, ap);
     va_end (ap);
-    fprintf (stderr, ": %s\n", strerror (savederrno));
-    fflush (stderr);
+    fprintf (stdout, ": %s\n", strerror (savederrno));
+    fflush (stdout);
     _exit (exitcode);
 }
 
@@ -27,10 +27,10 @@ void NORETURN_ATTR GCC_FMT_ATTR (2, 3) errx (int exitcode, const char *fmt, ...)
     va_list ap;
 
     va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
+    vfprintf (stdout, fmt, ap);
     va_end (ap);
-    fputc ('\n', stderr);
-    fflush (stderr);
+    fputc ('\n', stdout);
+    fflush (stdout);
     _exit (exitcode);
 }
 
