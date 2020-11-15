@@ -5042,12 +5042,6 @@ let () =
   let wsfd, winw, winh = Wsi.init mu conf.cwinw conf.cwinh in
   state.wsfd <- wsfd;
 
-  if not @@ List.exists GlMisc.check_extension
-              [ "GL_ARB_texture_rectangle"
-              ; "GL_EXT_texture_recangle"
-              ; "GL_NV_texture_rectangle" ]
-  then (dolog "OpenGL does not suppport rectangular textures"; exit 1);
-
   let cs, ss =
     match Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 with
     | exception exn ->

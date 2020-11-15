@@ -3599,6 +3599,11 @@ ML (init (value csock_v, value params_v))
     int ret, texcount, colorspace, mustoresize;
     const char *fontpath;
 
+#ifndef USE_NPOT
+    if (!strstr ((char *) glGetString (GL_EXTENSIONS), "texture_rectangle")) {
+        errx (1, "OpenGL does not support rectangular texture extension");
+    }
+#endif
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
     state.fitmodel      = Int_val (Field (params_v, 1));
