@@ -27,10 +27,6 @@ external getlink : opaque -> int -> under = "ml_getlink";;
 external getlinkn : opaque -> string -> string -> int -> int = "ml_getlinkn";;
 external getlinkrect : opaque -> int -> irect = "ml_getlinkrect";;
 external findpwl : int -> int -> pagewithlinks = "ml_find_page_with_links";;
-external getpbo : width -> height -> colorspace -> opaque = "ml_getpbo";;
-external freepbo : opaque -> unit = "ml_freepbo";;
-external unmappbo : opaque -> unit = "ml_unmappbo";;
-external bousable : unit -> bool = "ml_bo_usable";;
 external unproject : opaque -> int -> int -> (int * int) option
   = "ml_unproject";;
 external project : opaque -> int -> int -> float -> float -> (float * float)

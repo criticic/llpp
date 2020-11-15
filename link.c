@@ -3399,125 +3399,6 @@ value ml_keysymtoutf8 (value keysym_v)
 }
 #endif
 
-ML (getpbo (value w_v, value h_v, value cs_v))
-{
-    CAMLparam2 (w_v, h_v);
-    CAMLlocal1 (ret_v);
-    struct bo *pbo;
-    int w = Int_val (w_v);
-    int h = Int_val (h_v);
-    int cs = Int_val (cs_v);
-
-    if (state.bo_usable) {
-        pbo = calloc (sizeof (*pbo), 1);
-        if (!pbo) {
-            err (1, "calloc pbo");
-        }
-
-        switch (cs) {
-        case 0:
-        case 1:
-            pbo->size = w*h*4;
-            break;
-        case 2:
-            pbo->size = w*h*2;
-            break;
-        default:
-            errx (1, "%s: invalid colorspace %d", __func__, cs);
-        }
-
-        state.glGenBuffersARB (1, &pbo->id);
-        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, pbo->id);
-        state.glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, (GLsizei) pbo->size,
-                               NULL, GL_STREAM_DRAW);
-        pbo->ptr = state.glMapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB,
-                                         GL_READ_WRITE);
-        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-        if (!pbo->ptr) {
-            printd ("emsg glMapBufferARB failed: %#x", glGetError ());
-            state.glDeleteBuffersARB (1, &pbo->id);
-            free (pbo);
-            ret_v = caml_copy_string ("0");
-        }
-        else {
-            int res;
-            char *s;
-
-            res = snprintf (NULL, 0, "%" PRIxPTR, (uintptr_t) pbo);
-            if (res < 0) {
-                err (1, "snprintf %" PRIxPTR " failed", (uintptr_t) pbo);
-            }
-            s = malloc (res+1);
-            if (!s) {
-                err (1, "malloc %d bytes failed", res+1);
-            }
-            res = sprintf (s, "%" PRIxPTR, (uintptr_t) pbo);
-            if (res < 0) {
-                err (1, "sprintf %" PRIxPTR " failed", (uintptr_t) pbo);
-            }
-            ret_v = caml_copy_string (s);
-            free (s);
-        }
-    }
-    else {
-        ret_v = caml_copy_string ("0");
-    }
-    CAMLreturn (ret_v);
-}
-
-ML0 (freepbo (value ptr_v))
-{
-    CAMLparam1 (ptr_v);
-    struct tile *tile = parse_pointer (__func__, String_val (ptr_v));
-
-    if (tile->pbo) {
-        state.glDeleteBuffersARB (1, &tile->pbo->id);
-        tile->pbo->id = -1;
-        tile->pbo->ptr = NULL;
-        tile->pbo->size = -1;
-    }
-    CAMLreturn0;
-}
-
-ML0 (unmappbo (value ptr_v))
-{
-    CAMLparam1 (ptr_v);
-    struct tile *tile = parse_pointer (__func__, String_val (ptr_v));
-
-    if (tile->pbo) {
-        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, tile->pbo->id);
-        if (state.glUnmapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB) == GL_FALSE) {
-            errx (1, "glUnmapBufferARB failed: %#x\n", glGetError ());
-        }
-        tile->pbo->ptr = NULL;
-        state.glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-    }
-    CAMLreturn0;
-}
-
-static void setuppbo (void)
-{
-    extern void (*wsigladdr (const char *name)) (void);
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Wbad-function-cast"
-#endif
-#define GPA(n) (*(uintptr_t *) &state.n = (uintptr_t) wsigladdr (#n))
-    state.bo_usable = GPA (glBindBufferARB)
-        && GPA (glUnmapBufferARB)
-        && GPA (glMapBufferARB)
-        && GPA (glBufferDataARB)
-        && GPA (glGenBuffersARB)
-        && GPA (glDeleteBuffersARB);
-#undef GPA
-#pragma GCC diagnostic pop
-}
-
-ML (bo_usable (void))
-{
-    return Val_bool (state.bo_usable);
-}
-
 ML (unproject (value ptr_v, value x_v, value y_v))
 {
     CAMLparam3 (ptr_v, x_v, y_v);
@@ -3827,7 +3708,6 @@ ML (init (value csock_v, value params_v))
     }
 
     realloctexts (texcount);
-    setuppbo ();
     makestippletex ();
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);

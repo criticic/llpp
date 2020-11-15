@@ -778,7 +778,6 @@ let config_of c attrs =
       | "update-cursor" -> { c with updatecurs = bool_of_string v }
       | "hint-font-size" -> { c with hfsize = bound (int_of_string v) 5 100 }
       | "page-scroll-scale" -> { c with pgscale = float_of_string v }
-      | "use-pbo" -> { c with usepbo = bool_of_string v }
       | "wheel-scrolls-pages" -> { c with wheelbypage = bool_of_string v }
       | "horizontal-scrollbar-visible" ->
          { c with scrollb = if bool_of_string v
@@ -1263,7 +1262,6 @@ let add_attrs bb always dc c time =
   oi "hint-font-size" c.hfsize dc.hfsize;
   oi "horizontal-scroll-step" c.hscrollstep dc.hscrollstep;
   oF "page-scroll-scale" c.pgscale dc.pgscale;
-  ob "use-pbo" c.usepbo dc.usepbo;
   ob "wheel-scrolls-pages" c.wheelbypage dc.wheelbypage;
   ob "remote-in-a-new-instance" c.riani dc.riani;
   op "point-and-x" c.pax dc.pax;
