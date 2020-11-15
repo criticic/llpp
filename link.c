@@ -11,6 +11,8 @@
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
 #endif
+#else
+#pragma GCC diagnostic error "-Wcast-qual"
 #endif
 
 #include <errno.h>
@@ -3600,7 +3602,8 @@ ML (init (value csock_v, value params_v))
     const char *fontpath;
 
 #ifndef USE_NPOT
-    if (!strstr ((char *) glGetString (GL_EXTENSIONS), "texture_rectangle")) {
+    if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
+                 "texture_rectangle")) {
         errx (1, "OpenGL does not support rectangular texture extension");
     }
 #endif
