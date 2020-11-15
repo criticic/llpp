@@ -1559,7 +1559,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             unlock ("tile");
 
             printd ("tile %d %d %" PRIxPTR " %u %f",
-                    x, y, (uintptr_t) (tile),
+                    x, y, (uintptr_t) tile,
                     tile->w * tile->h * tile->pixmap->n,
                     b - a);
             break;
