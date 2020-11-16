@@ -134,6 +134,10 @@ let showtext c s =
   postRedisplay "showtext";
 ;;
 
+let settextfmt fmt =
+  Printf.kprintf (fun s -> state.text <- s) fmt;
+;;
+
 let impmsg fmt =
   Format.ksprintf (fun s -> showtext '!' s) fmt
 ;;
@@ -839,7 +843,7 @@ let docolumns columns =
      let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
      let rec loop pageno pdimno pdim x y rowh pdims =
        let rec fixrow m =
-         if m = pageno
+         if m < pageno
          then ()
          else
            let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
@@ -1468,7 +1472,7 @@ let linknentry text = function [@warning "-fragile-match"]
      linknact (fun under -> state.text <- undertext under) text;
      TEcont text
   | key ->
-     state.text <- Printf.sprintf "invalid key %s" @@ Keys.to_string key;
+     settextfmt "invalid key %s" @@ Keys.to_string key;
      TEcont text
 ;;
 
@@ -1513,7 +1517,7 @@ let setzoom zoom =
     state.prevzoom <- (conf.zoom, state.x);
     conf.zoom <- zoom;
     reshape state.winw state.winh;
-    state.text <- Printf.sprintf "zoom is now %-5.2f" (zoom *. 100.0);
+    settextfmt "zoom is now %-5.2f" (zoom *. 100.0);
   )
 ;;
 
@@ -1609,9 +1613,7 @@ let enterbirdseye () =
     | None -> Csingle E.a
   );
   if conf.verbose
-  then state.text <- Printf.sprintf "birds eye mode on (zoom %3.1f%%)"
-                       (100.0*.zoom)
-  else state.text <- E.s;
+  then settextfmt "birds eye on (zoom %3.1f%%)" (100.0*.zoom);
   reshape state.winw state.winh;
 ;;
 
@@ -1635,8 +1637,7 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
     | Csplit (c, _) -> Csplit (c, E.a)
   );
   if conf.verbose
-  then state.text <- Printf.sprintf "birds eye mode off (zoom %3.1f%%)"
-                       (100.0*.conf.zoom);
+  then settextfmt "bird's eye off (zoom %3.1f%%)" (100.0*.conf.zoom);
   reshape state.winw state.winh;
   state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
   state.x <- leftx;
@@ -1690,8 +1691,7 @@ let optentry mode _ key =
        try
          let n, a, b = multicolumns_of_string s in
          setcolumns mode n a b;
-       with exn ->
-         state.text <- Printf.sprintf "bad columns `%s': %s" s @@ exntos exn
+       with exn -> settextfmt "bad columns `%s': %s" s @@ exntos exn
      in
      TEswitch ("columns: ", E.s, None, textentry, ondone, true)
 
@@ -1700,8 +1700,7 @@ let optentry mode _ key =
        try
          let zoom = float (int_of_string s) /. 100.0 in
          pivotzoom zoom
-       with exn ->
-         state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn
+       with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
      in
      TEswitch ("zoom: ", E.s, None, intentry, ondone, true)
 
@@ -1744,7 +1743,7 @@ let optentry mode _ key =
      TEdone ("PAX " ^ btos (conf.pax != None))
 
   | (Keys.Ascii c) ->
-     state.text <- Printf.sprintf "bad option %d `%c'" (Char.code c) c;
+     settextfmt "bad option %d `%c'" (Char.code c) c;
      TEstop
 
   | _ -> TEcont state.text
@@ -2070,9 +2069,7 @@ let enterinfomode =
                 fun u ->
                 let ondone s =
                   try set (int_of_string s)
-                  with exn ->
-                    state.text <- Printf.sprintf "bad integer `%s': %s"
-                                    s @@ exntos exn
+                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
                 in
                 state.text <- E.s;
                 let te = name ^ ": ", E.s, None, intentry, ondone, true in
@@ -2087,9 +2084,7 @@ let enterinfomode =
                 fun u ->
                 let ondone s =
                   try set (int_of_string_with_suffix s)
-                  with exn ->
-                    state.text <- Printf.sprintf "bad integer `%s': %s"
-                                    s @@ exntos exn
+                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
                 in
                 state.text <- E.s;
                 let te =
@@ -2112,9 +2107,7 @@ let enterinfomode =
                 let ondone s =
                   let c =
                     try color_of_string s
-                    with exn ->
-                      state.text <- Printf.sprintf "bad color `%s': %s"
-                                      s @@ exntos exn;
+                    with exn -> settextfmt "bad color `%s': %s" s @@ exntos exn;
                       invalid
                   in
                   if c <> invalid
@@ -2275,9 +2268,7 @@ let enterinfomode =
   in
   let rec fillsrc prevmode prevuioh =
     let sep () = src#caption E.s 0 in
-    let bad v exn =
-      state.text <- Printf.sprintf "bad color `%s': %s" v @@ exntos exn
-    in
+    let bad v exn = settextfmt "bad color `%s': %s" v @@ exntos exn in
     let colorp name get set =
       src#string name
         (fun () -> color_to_string (get ()))
@@ -2483,9 +2474,7 @@ let enterinfomode =
             conf.tilew <- max 64 w;
             conf.tileh <- max 64 h;
             flushtiles ();
-          with exn ->
-            state.text <- Printf.sprintf "bad tile size `%s': %s"
-                            v @@ exntos exn
+          with exn -> settextfmt  "bad tile size `%s': %s" v @@ exntos exn
         );
       src#int "texture count"
         (fun () -> conf.texcount)
@@ -2538,8 +2527,7 @@ let enterinfomode =
             conf.trimfuzz <- irect_of_string v;
             if conf.trimmargins
             then settrim true conf.trimfuzz;
-          with exn ->
-            state.text <- Printf.sprintf "bad irect `%s': %s" v @@ exntos exn
+          with exn -> settextfmt "bad irect `%s': %s" v @@ exntos exn
         );
       src#string "selection command"
         (fun () -> conf.selcmd)
@@ -3520,7 +3508,7 @@ let viewkeyboard key mask =
      let ondone s =
        let n =
          try int_of_string s with exn ->
-           state.text <- Printf.sprintf "bad integer `%s': %s" s @@ exntos exn;
+           settextfmt "bad integer `%s': %s" s @@ exntos exn;
            -1
        in
        if n >= 0
