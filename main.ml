@@ -222,6 +222,14 @@ let wcmd cmd fmt =
     ) b fmt
 ;;
 
+let wcmd1 cmd opaque = let s = ~> opaque in
+  let l = String.length s in
+  let b = Bytes.create (l+1) in
+  Bytes.set b 0 cmd;
+  Bytes.blit_string s 0 b 1 l;
+  Ffi.wcmd state.ss b @@ l + 1;
+;;
+
 let layoutN ((columns, coverA, coverB), b) x y sw sh =
   let rec fold accu n =
     if n = Array.length b
@@ -743,7 +751,7 @@ let invalidate s f =
 ;;
 
 let flushpages () =
-  Hashtbl.iter (fun _ opaque -> wcmd U.freepage "%s" (~> opaque)) state.pagemap;
+  Hashtbl.iter (fun _ opaque -> wcmd1 U.freepage opaque) state.pagemap;
   Hashtbl.clear state.pagemap;
 ;;
 
@@ -751,7 +759,7 @@ let flushtiles () =
   if not (Queue.is_empty state.tilelru)
   then (
     Queue.iter (fun (k, p, s) ->
-        wcmd U.freetile "%s" (~> p);
+        wcmd1 U.freetile p;
         state.memused <- state.memused - s;
         Hashtbl.remove state.tilemap k;
       ) state.tilelru;
@@ -1024,7 +1032,7 @@ let gctiles () =
              )
         then Queue.push lruitem state.tilelru
         else (
-          wcmd U.freetile "%s" (~> p);
+          wcmd1 U.freetile p;
           state.memused <- state.memused - s;
           state.uioh#infochanged Memused;
           Hashtbl.remove state.tilemap k;
@@ -1222,7 +1230,7 @@ let act cmds =
             Hashtbl.fold (fun ((pageno, _) as key) opaque accu ->
                 if not (IntSet.mem pageno set)
                 then (
-                  wcmd U.freepage "%s" (~> opaque);
+                  wcmd1 U.freepage opaque;
                   key :: accu
                 )
                 else accu
@@ -1285,7 +1293,7 @@ let act cmds =
         vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
         if tilew != conf.tilew || tileh != conf.tileh
         then (
-          wcmd U.freetile "%s" (~> opaque);
+          wcmd1 U.freetile opaque;
           state.currently <- Idle;
           load state.layout;
         )
@@ -2840,7 +2848,7 @@ let enterannotmode opaque slinkindex =
              else split accu b (i+1)
          in
          let cleanup () =
-           wcmd U.freepage "%s" (~> opaque);
+           wcmd1 U.freepage opaque;
            let keys =
              Hashtbl.fold (fun key opaque' accu ->
                  if opaque' = opaque'
@@ -4228,7 +4236,7 @@ let annot inline x y =
   | Some (opaque, n, ux, uy) ->
      let add text =
        Ffi.addannot opaque ux uy text;
-       wcmd U.freepage "%s" (~> opaque);
+       wcmd1 U.freepage opaque;
        Hashtbl.remove state.pagemap (n, state.gen);
        flushtiles ();
        gotoxy state.x state.y
