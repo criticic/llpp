@@ -2065,8 +2065,7 @@ let enterinfomode =
        method int name get set =
          m_l <-
            (name, `int get, 1,
-            Action (
-                fun u ->
+            Action (fun u ->
                 let ondone s =
                   try set (int_of_string s)
                   with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
@@ -2080,8 +2079,7 @@ let enterinfomode =
        method int_with_suffix name get set =
          m_l <-
            (name, `intws get, 1,
-            Action (
-                fun u ->
+            Action (fun u ->
                 let ondone s =
                   try set (int_of_string_with_suffix s)
                   with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
@@ -2101,8 +2099,7 @@ let enterinfomode =
        method color name get set =
          m_l <-
            (name, `color get, 1,
-            Action (
-                fun u ->
+            Action (fun u ->
                 let invalid = (nan, nan, nan) in
                 let ondone s =
                   let c =
@@ -2122,8 +2119,7 @@ let enterinfomode =
        method string name get set =
          m_l <-
            (name, `string get, 1,
-            Action (
-                fun u ->
+            Action (fun u ->
                 let ondone s = set s in
                 let te = name ^ ": ", E.s, None, textentry, ondone, true in
                 state.mode <- Textentry (te, leave m_prev_mode);
@@ -2133,8 +2129,7 @@ let enterinfomode =
        method colorspace name get set =
          m_l <-
            (name, `string get, 1,
-            Action (
-                fun _ ->
+            Action (fun _ ->
                 let source =
                   (object
                      inherit lvsourcebase
@@ -2163,8 +2158,7 @@ let enterinfomode =
        method paxmark name get set =
          m_l <-
            (name, `string get, 1,
-            Action (
-                fun _ ->
+            Action (fun _ ->
                 let source =
                   (object
                      inherit lvsourcebase
@@ -2191,8 +2185,7 @@ let enterinfomode =
        method fitmodel name get set =
          m_l <-
            (name, `string get, 1,
-            Action (
-                fun _ ->
+            Action (fun _ ->
                 let source =
                   (object
                      inherit lvsourcebase
