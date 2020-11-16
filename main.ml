@@ -222,11 +222,12 @@ let wcmd cmd fmt =
     ) b fmt
 ;;
 
-let wcmd1 cmd opaque = let s = ~> opaque in
+let wcmd1 cmd opaque =
+  let s = ~> opaque in
   let l = String.length s in
   let b = Bytes.create (l+1) in
-  Bytes.set b 0 cmd;
-  Bytes.blit_string s 0 b 1 l;
+  Bytes.set b l cmd;
+  Bytes.blit_string s 0 b 0 l;
   Ffi.wcmd state.ss b @@ l + 1;
 ;;
 
