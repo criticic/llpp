@@ -3437,8 +3437,7 @@ let viewkeyboard key mask =
        state.searchpattern <- s;
        search s isforw
      in
-     let s = String.make 1 c in
-     enttext (s, E.s, Some (onhist state.hists.pat),
+     enttext (String.make 1 c, E.s, Some (onhist state.hists.pat),
               textentry, ondone (c = '/'), true)
 
   | Ascii '+' | Ascii '=' when ctrl ->
@@ -3522,8 +3521,7 @@ let viewkeyboard key mask =
                                  | Keys.Ascii 'g' -> TEdone text
                                  | key -> intentry text key
      in
-     let text = String.make 1 c in
-     enttext (":", text, Some (onhist state.hists.pag),
+     enttext (":", String.make 1 c, Some (onhist state.hists.pag),
               pageentry, ondone, true)
 
   | Ascii 'b' ->
