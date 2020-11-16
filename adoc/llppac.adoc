@@ -19,8 +19,7 @@ Path to CSS file
 Disregard the cache
 
 -m type::
-Set the mime type manually. This overwrites the automatic detection
-using file(1)
+Set the mime type manually. Set by file(1) --mime-type otherwise.
 
 -t type::
 Set the type of the the document, totally skipping the mime type
