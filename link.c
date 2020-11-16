@@ -1633,7 +1633,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             printd ("vmsg interrupted");
             break;
         default:
-            errx (1, "unknown command - %d [%.*s]", c, len, p);
+            errx (1, "unknown llpp ffi  command - %d [%.*s]", c, len, p);
         }
     }
     return 0;
