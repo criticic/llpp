@@ -1642,8 +1642,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
 ML (isexternallink (value uri_v))
 {
     CAMLparam1 (uri_v);
-    int ext = fz_is_external_link (state.ctx, String_val (uri_v));
-    CAMLreturn (Val_bool (ext));
+    CAMLreturn (Val_bool (fz_is_external_link (state.ctx, String_val (uri_v))));
 }
 
 ML (uritolocation (value uri_v))
