@@ -24,7 +24,7 @@ Set the mime type manually. Set by file(1) --mime-type otherwise.
 -t type::
 Set the type of the the document, totally skipping the mime type
 check.  The type is llppac internal, possible values include, but are
-not limited to _ps_, _texi_, _djvu_, _html_, ...
+not limited to _ps_, _texi_, _djvu_, _html_
 
 == SEE ALSO
 llpp(1)
