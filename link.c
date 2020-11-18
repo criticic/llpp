@@ -1181,9 +1181,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         fz_drop_page (state.ctx, page);
     }
     end = now ();
-    if (!stop) {
-        printd ("progress 1 no matches %f sec", end - start);
-    }
+    printd ("progress 1 %s%f sec", stop ? "" : "no matches ", end - start);
     printd ("clearrects");
 }
 
