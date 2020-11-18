@@ -294,7 +294,7 @@ clibs="-L$mudir/build/$mbt -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
     mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
     clibs+=" -framework Cocoa -framework OpenGL"
-    cobjs+="  $outd/wsi/cocoa/cocoa.o"
+    cobjs+=" $outd/wsi/cocoa/cocoa.o"
     bobjc wsi/cocoa/cocoa.o
 else
     clibs+=" -lGL -lX11"
