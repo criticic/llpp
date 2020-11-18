@@ -1,6 +1,14 @@
 /* lots of code c&p-ed directly from mupdf */
 #define FIXME 0
 
+enum { Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
+    Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt };
+enum { FitWidth, FitProportional, FitPage };
+enum { dir_first, dir_last };
+enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
+enum { uuri, utext, uannot, unone };
+enum { mark_page, mark_block, mark_line, mark_word };
+
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -119,8 +127,6 @@ struct page {
     struct annot *annots;
     fz_stext_char *fmark, *lmark;
 };
-
-enum { FitWidth, FitProportional, FitPage };
 
 static struct {
     int sliceheight;
@@ -1304,11 +1310,6 @@ ML (mbtoutf8 (value s_v))
     CAMLreturn (ret_v);
 }
 
-enum {
-    Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry,
-    Creqlayout, Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt
-};
-
 static void *mainloop (void UNUSED_ATTR *unused)
 {
     char *p = NULL, c;
@@ -2388,9 +2389,6 @@ ML (find_page_with_links (value start_page_v, value dir_v))
     CAMLreturn (ret_v);
 }
 
-enum { dir_first, dir_last };
-enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
-
 ML (findlink (value ptr_v, value dir_v))
 {
     CAMLparam2 (ptr_v, dir_v);
@@ -2507,8 +2505,6 @@ ML (findlink (value ptr_v, value dir_v))
     unlock (__func__);
     CAMLreturn (ret_v);
 }
-
-enum { uuri, utext, uannot, unone };
 
 ML (getlink (value ptr_v, value n_v))
 {
@@ -2726,8 +2722,6 @@ unlock:
 done:
     CAMLreturn (ret_v);
 }
-
-enum { mark_page, mark_block, mark_line, mark_word };
 
 ML0 (clearmark (value ptr_v))
 {
