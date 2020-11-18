@@ -84,6 +84,7 @@ cflags() {
             test "${mbt-}" = "debug" || f+="-O2 "
             $darwin && f+="-DCIDER -D_GNU_SOURCE -DGLH='<OpenGL/gl.h>'" \
                     || f+="-D_POSIX_C_SOURCE -DGLH='<GL/gl.h>'"
+            f+=" -include $srcd/diag.h"
             ;;
 
         */ml_*.o)
