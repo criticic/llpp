@@ -292,7 +292,12 @@ done
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/$mbt -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
-    mcomp=$(ocamlc -config | grep bytecomp_c_co | { read _ c; echo $c; })
+    mcomp=$(ocamlc -config | while read k v; do
+                case "$k" in
+                    bytecomp_c_co*) echo "$v";;
+                    word_size:) test $v -lt 64 && die not enough bits;;
+                esac
+            done)
     clibs+=" -framework Cocoa -framework OpenGL"
     cobjs+=" $outd/wsi/cocoa/cocoa.o"
     bobjc wsi/cocoa/cocoa.o

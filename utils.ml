@@ -275,29 +275,13 @@ let substratis s pos subs =
 ;;
 
 let w8 = Bytes.set_uint8;;
-let r8 = Bytes.get_uint8;;
+let r8 = Bytes.get_uint8;;1
 let w16 = Bytes.set_uint16_le;;
 let r16 = Bytes.get_uint16_le;;
 let r16s = Bytes.get_int16_le;;
-
-let w32 s pos i =
-  w16 s pos i;
-  w16 s (pos+2) (i lsr 16)
-;;
-
+let w32 s pos i = w16 s pos i; w16 s (pos+2) (i lsr 16);;
 let r32 s pos = ((r16 s (pos+2)) lsl 16) lor (r16 s pos);;
-
-let r32s =
-  if Sys.word_size > 32
-  then fun s pos ->
-       let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
-       let v0 = rb 0 and v1 = rb 1 and v2 = rb 2 and v3 = rb 3 in
-       let v = v0 lor (v1 lsl 8) lor (v2 lsl 16) lor (v3 lsl 24) in
-       if v3 land 0x80 = 0
-       then v
-       else (v - (1 lsl 32))
-  else fun _ _ -> error "r32s: not implemented for word_size <= 32"
-;;
+let r32s s pos = Bytes.get_int32_le s pos |> Int32.to_int;;
 
 let vlogf = ref ignore;;
 let vlog fmt = Printf.kprintf !vlogf fmt;;
