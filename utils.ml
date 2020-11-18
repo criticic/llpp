@@ -285,12 +285,7 @@ let w32 s pos i =
   w16 s (pos+2) (i lsr 16)
 ;;
 
-let r32 s pos =
-  let rb pos1 = Char.code (Bytes.get s (pos + pos1)) in
-  let l = (rb 0) lor ((rb 1) lsl 8)
-  and u = (rb 2) lor ((rb 3) lsl 8) in
-  (u lsl 16) lor l
-;;
+let r32 s pos = ((r16 s (pos+2)) lsl 16) lor (r16 s pos);;
 
 let r32s =
   if Sys.word_size > 32
