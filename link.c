@@ -1092,7 +1092,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     fz_stext_page *text;
     struct pagedim *pdim;
     int stop = 0, niters = 0;
-    double start, end;
+    double start;
     fz_page *page;
     fz_stext_block *block;
 
@@ -1176,8 +1176,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         fz_drop_stext_page (state.ctx, text);
         fz_drop_page (state.ctx, page);
     }
-    end = now ();
-    printd ("progress 1 %sfound in %f sec", stop ? "" : "not ", end - start);
+    printd ("progress 1 %sfound in %f sec", stop ? "" : "not ", now () - start);
     printd ("clearrects");
 }
 
