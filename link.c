@@ -1040,7 +1040,7 @@ static int matchline (regex_t *re, fz_stext_line *line,
                 isize = (int) size;
                 trail = "";
             }
-            printd ("msg regexec error '%*s%s'", isize, errbuf, trail);
+            printd ("emsg regexec error '%*s%s'", isize, errbuf, trail);
             return -1;
         }
         return 0;

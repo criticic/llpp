@@ -1160,9 +1160,6 @@ let act cmds =
      end;
      postRedisplay "continue";
 
-  | "msg", args ->
-     showtext ' ' args
-
   | "vmsg", args ->
      if conf.verbose then showtext ' ' args
 
