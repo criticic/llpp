@@ -852,15 +852,11 @@ let docolumns columns =
      let a = Array.make state.pagecount (-1, -1, -1, (-1, -1, -1, -1)) in
      let rec loop pageno pdimno pdim x y rowh pdims =
        let rec fixrow m =
-         if m < pageno
-         then ()
-         else
+         if m >= pageno
+         then
            let (pdimno, x, y, ((_, _, h, _) as pdim)) = a.(m) in
            if h < rowh
-           then (
-             let y = y + (rowh - h) / 2 in
-             a.(m) <- (pdimno, x, y, pdim);
-           );
+           then a.(m) <- (pdimno, x, y + (rowh - h) / 2, pdim);
            fixrow (m+1)
        in
        if pageno = state.pagecount
