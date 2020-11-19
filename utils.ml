@@ -12,11 +12,8 @@ let tempfailureretry f a =
   in g ()
 ;;
 
-external measurestr : int -> string -> float = "ml_measure_string";;
-external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
-external toutf8 : int -> string = "ml_keysymtoutf8";;
-external mbtoutf8 : string -> string = "ml_mbtoutf8";;
 external spawn : string -> (Unix.file_descr * int) list -> int = "ml_spawn";;
+external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
 
 let now = Unix.gettimeofday;;
 let dologf = ref prerr_endline;;

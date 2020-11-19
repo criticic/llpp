@@ -310,13 +310,13 @@ object (self)
                   else
                     let s' = withoutlastutf8 s in
                     let s = s' ^ Utf8syms.ellipsis in
-                    let w = measurestr fs s in
+                    let w = Ffi.measurestr fs s in
                     if float x' +. w +. ww < float (hw + x')
                     then s
                     else e s'
                 in
                 let s1 =
-                  if float x' +. ww +. measurestr fs s1 > float (hw + x')
+                  if float x' +. ww +. Ffi.measurestr fs s1 > float (hw + x')
                   then e s1
                   else s1
                 in
@@ -371,8 +371,8 @@ object (self)
             else String.sub s 0 first
           in
           let suffix = String.sub s first (last - first) in
-          let w1 = measurestr fstate.fontsize prefix in
-          let w2 = measurestr fstate.fontsize suffix in
+          let w1 = Ffi.measurestr fstate.fontsize prefix in
+          let w2 = Ffi.measurestr fstate.fontsize suffix in
           let x = x +. if conf.leftscroll then xadj else 5.0 in
           let x = if pos0 > 0 && first > pos0 then x +. float hw else x in
           let x0 = x +. w1
@@ -599,7 +599,7 @@ object (self)
        let utf8 =
          match [@warning "-partial-match"] kt with
          | Ascii c -> String.make 1 c
-         | Code code -> toutf8 code
+         | Code code -> Ffi.toutf8 code
        in
        let pattern = m_qsearch ^ utf8 in
        let active, first =

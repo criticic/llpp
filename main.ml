@@ -50,7 +50,7 @@ let hscrollh () =
 
 let setfontsize n =
   fstate.fontsize <- n;
-  fstate.wwidth <- measurestr fstate.fontsize "w";
+  fstate.wwidth <- Ffi.measurestr fstate.fontsize "w";
   fstate.maxrows <- (state.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
@@ -417,7 +417,7 @@ let drawtiles l color =
        then (
          Ffi.endtiles ();
          let s = Printf.sprintf "%d[%d,%d] %f sec" l.pageno col row t in
-         let w = measurestr fstate.fontsize s in
+         let w = Ffi.measurestr fstate.fontsize s in
          GlDraw.color (0.0, 0.0, 0.0);
          filledrect
            (float (x-2))
@@ -803,7 +803,7 @@ let opendoc path password =
     then path
     else state.origin
   in
-  Wsi.settitle ("llpp " ^ mbtoutf8 (Filename.basename titlepath));
+  Wsi.settitle ("llpp " ^ Ffi.mbtoutf8 (Filename.basename titlepath));
   wcmd U.dopen "%d %d %s\000%s\000%s\000"
     (btod conf.usedoccss) !layouth
     path password conf.css;
@@ -1484,7 +1484,7 @@ let linknentry text = function [@warning "-fragile-match"]
 
 let textentry text key = match [@warning "-fragile-match"] key with
   | Keys.Ascii c -> TEcont (addchar text c)
-  | Keys.Code c -> TEcont (text ^ toutf8 c)
+  | Keys.Code c -> TEcont (text ^ Ffi.toutf8 c)
   | _ -> TEcont text
 ;;
 
@@ -1903,7 +1903,7 @@ class outlinelistview ~zebra ~source =
          super#key key mask
 
       | (Ascii _ | Code _) when m_autonarrow ->
-         let pattern = m_qsearch ^ toutf8 key in
+         let pattern = m_qsearch ^ Ffi.toutf8 key in
          postRedisplay "outlinelistview autonarrow add";
          source#narrow pattern;
          settext true pattern;
@@ -1980,7 +1980,7 @@ let genhistoutlines () =
          compare c2.lastvisit c1.lastvisit)
   |> List.map (fun ((path, c, _, _, _, origin) as hist) ->
          let path = if nonemptystr origin then origin else path in
-         let base = mbtoutf8 @@ Filename.basename path in
+         let base = Ffi.mbtoutf8 @@ Filename.basename path in
          (base ^ "\000" ^ c.title, 1, Ohistory hist)
        )
 ;;
@@ -2627,10 +2627,10 @@ let enterinfomode =
     sep ();
     src#caption "Location" 0;
     if nonemptystr state.origin
-    then src#caption ("Orign\t" ^ mbtoutf8 state.origin) 1;
-    src#caption ("Path\t" ^ mbtoutf8 state.path) 1;
+    then src#caption ("Orign\t" ^ Ffi.mbtoutf8 state.origin) 1;
+    src#caption ("Path\t" ^ Ffi.mbtoutf8 state.path) 1;
     if nonemptystr conf.dcf
-    then src#caption ("DCF\t" ^ mbtoutf8 conf.dcf) 1;
+    then src#caption ("DCF\t" ^ Ffi.mbtoutf8 conf.dcf) 1;
 
     src#reset prevmode prevuioh;
   in
@@ -5057,7 +5057,7 @@ let () =
     enterhistmode ();
   )
   else (
-    state.text <- "Opening " ^ (mbtoutf8 state.path);
+    state.text <- "Opening " ^ (Ffi.mbtoutf8 state.path);
     opendoc state.path state.password;
   );
   display ();
