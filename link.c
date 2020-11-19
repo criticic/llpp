@@ -1092,7 +1092,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
     fz_stext_page *text;
     struct pagedim *pdim;
     int stop = 0, niters = 0;
-    double start;
+    double dur, start;
     fz_page *page;
     fz_stext_block *block;
 
@@ -1101,9 +1101,9 @@ static void search (regex_t *re, int pageno, int y, int forward)
         if (niters++ == 5) {
             niters = 0;
             if (hasdata (state.csock)) {
-                printd ("progress 1 attention requested aborting search at %d",
+                printd ("emsg attention requested aborting search at %d",
                         pageno);
-                stop = 1;
+                stop = 2;
             }
             else {
                 printd ("progress %f searching in page %d",
@@ -1176,7 +1176,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
         fz_drop_stext_page (state.ctx, text);
         fz_drop_page (state.ctx, page);
     }
-    printd ("progress 1 %sfound in %f sec", stop ? "" : "not ", now () - start);
+    dur = now () - start;
+    switch (stop) {
+    case 0: printd ("progress 1 not found in %f sec", dur); break;
+    case 1: printd ("progress 1 found in %f sec", dur); break;
+    case 2: printd ("progress 1 interrupted after %f sec", dur); break;
+    }
     printd ("clearrects");
 }
 
