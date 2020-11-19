@@ -1011,8 +1011,7 @@ static char *strofline (fz_stext_line *line)
     return p;
 }
 
-static int matchline (regex_t *re, fz_stext_line *line,
-                      int stop, int pageno, double start)
+static int matchline (regex_t *re, fz_stext_line *line, int stop, int pageno)
 {
     int ret;
     char *p;
@@ -1066,15 +1065,12 @@ static int matchline (regex_t *re, fz_stext_line *line,
         e = ch->quad;
 
         if (!stop) {
-            printd ("firstmatch %d %d %f %f %f %f %f %f %f %f\n"
-                    "progress 1 found at %d `%.*s' in %f sec",
-                    pageno, 1,
+            printd ("firstmatch %d 1 %f %f %f %f %f %f %f %f",
+                    pageno,
                     s.ul.x, s.ul.y,
                     e.ur.x, s.ul.y,
                     e.lr.x, e.lr.y,
-                    s.ul.x, e.lr.y,
-                    pageno + 1, (int) (rm.rm_eo - rm.rm_so), &p[rm.rm_so],
-                    now () - start);
+                    s.ul.x, e.lr.y);
         }
         else {
             printd ("match %d %d %f %f %f %f %f %f %f %f",
@@ -1138,7 +1134,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                         continue;
                     }
 
-                    switch (matchline (re, line, stop, pageno, start)) {
+                    switch (matchline (re, line, stop, pageno)) {
                     case 0: break;
                     case 1: stop = 1; break;
                     case -1: stop = 1; goto endloop;
@@ -1159,7 +1155,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
                         continue;
                     }
 
-                    switch (matchline (re, line, stop, pageno, start)) {
+                    switch (matchline (re, line, stop, pageno)) {
                     case 0: break;
                     case 1: stop = 1; break;
                     case -1: stop = 1; goto endloop;
@@ -1181,7 +1177,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
         fz_drop_page (state.ctx, page);
     }
     end = now ();
-    printd ("progress 1 %s%f sec", stop ? "" : "no matches ", end - start);
+    printd ("progress 1 %sfound in %f sec", stop ? "" : "not ", end - start);
     printd ("clearrects");
 }
 
