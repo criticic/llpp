@@ -3578,7 +3578,7 @@ ML (init (value csock_v, value params_v))
 #else
     if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
                  "texture_rectangle")) {
-        errx (1, "OpenGL does not support rectangularar textures");
+        errx (1, "OpenGL does not support rectangular textures");
     }
 #endif
     state.csock         = Int_val (csock_v);
