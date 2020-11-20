@@ -30,7 +30,7 @@ enum { mark_page, mark_block, mark_line, mark_word };
 #include <unistd.h>
 #include <wchar.h>
 
-#include GLH
+#include GL_H
 
 #pragma GCC diagnostic push
 #ifdef __clang__

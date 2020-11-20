@@ -82,8 +82,8 @@ cflags() {
         link.o)
             f="-g -std=c99 $muinc -Wall -Werror -Wextra -pedantic "
             test "${mbt-}" = "debug" || f+="-O2 "
-            $darwin && f+="-DCIDER -D_GNU_SOURCE -DGLH='<OpenGL/gl.h>'" \
-                    || f+="-D_POSIX_C_SOURCE -DGLH='<GL/gl.h>'"
+            $darwin && f+="-DCIDER -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
+                    || f+="-D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>'"
             f+=" -include $srcd/diag.h"
             ;;
 
