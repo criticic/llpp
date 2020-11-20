@@ -1,14 +1,6 @@
 /* lots of code c&p-ed directly from mupdf */
 #define FIXME 0
 
-enum { Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
-    Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt };
-enum { FitWidth, FitProportional, FitPage };
-enum { dir_first, dir_last };
-enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
-enum { uuri, utext, uannot, unone };
-enum { mark_page, mark_block, mark_line, mark_word };
-
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -67,6 +59,14 @@ enum { mark_page, mark_block, mark_line, mark_word };
 #define ML0(d) extern void ml_##d; void ml_##d
 #define STTI(st) ((unsigned int) st)
 
+enum { Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
+    Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt };
+enum { FitWidth, FitProportional, FitPage };
+enum { dir_first, dir_last };
+enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
+enum { uuri, utext, uannot, unone };
+enum { mark_page, mark_block, mark_line, mark_word };
+
 struct slice {
     int h;
     int texindex;
@@ -123,6 +123,7 @@ struct page {
 };
 
 static struct {
+    pthread_mutex_t mutex;
     int sliceheight;
     struct pagedim *pagedims;
     int pagecount;
@@ -162,13 +163,11 @@ static struct {
     void (*glDeleteBuffersARB) (GLsizei, GLuint *);
 
     GLfloat texcoords[8], vertices[16];
-} state;
-
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+} state = { .mutex = PTHREAD_MUTEX_INITIALIZER };
 
 static void lock (const char *cap)
 {
-    int ret = pthread_mutex_lock (&mutex);
+    int ret = pthread_mutex_lock (&state.mutex);
     if (ret) {
         errx (1, "%s: pthread_mutex_lock: %s", cap, strerror (ret));
     }
@@ -176,7 +175,7 @@ static void lock (const char *cap)
 
 static void unlock (const char *cap)
 {
-    int ret = pthread_mutex_unlock (&mutex);
+    int ret = pthread_mutex_unlock (&state.mutex);
     if (ret) {
         errx (1, "%s: pthread_mutex_unlock: %s", cap, strerror (ret));
     }
@@ -184,7 +183,7 @@ static void unlock (const char *cap)
 
 static int trylock (const char *cap)
 {
-    int ret = pthread_mutex_trylock (&mutex);
+    int ret = pthread_mutex_trylock (&state.mutex);
     if (ret && ret != EBUSY) {
         errx (1, "%s: pthread_mutex_trylock: %s", cap, strerror (ret));
     }
