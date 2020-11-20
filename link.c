@@ -9,33 +9,26 @@ enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
 enum { uuri, utext, uannot, unone };
 enum { mark_page, mark_block, mark_line, mark_word };
 
-#include <errno.h>
-#include <stdio.h>
 #include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#include <signal.h>
-
-#include <math.h>
-#include <wchar.h>
-#include <locale.h>
-#include <langinfo.h>
-
-#include <unistd.h>
-#include <pthread.h>
-#include <sys/uio.h>
-#include <sys/time.h>
-#include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-
-#include <spawn.h>
-
-#include <regex.h>
-#include <stdarg.h>
+#include <langinfo.h>
 #include <limits.h>
-#include <inttypes.h>
+#include <locale.h>
+#include <math.h>
+#include <pthread.h>
+#include <regex.h>
+#include <signal.h>
+#include <spawn.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+#include <unistd.h>
+#include <wchar.h>
 
 #include GLH
 
