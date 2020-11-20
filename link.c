@@ -12,6 +12,7 @@ enum { mark_page, mark_block, mark_line, mark_word };
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <langinfo.h>
 #include <limits.h>
 #include <locale.h>
