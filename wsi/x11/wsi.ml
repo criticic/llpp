@@ -38,7 +38,7 @@ let onot = object
     method mouse _ _ _ _ _ = ()
     method motion _ _      = ()
     method pmotion _ _     = ()
-    method key _ _         = ()
+    method keysym _ _      = ()
     method enter _ _       = ()
     method leave           = ()
     method winstate _      = ()
@@ -58,7 +58,7 @@ class type t =
     method mouse    : int -> bool -> int -> int -> int -> unit
     method motion   : int -> int -> unit
     method pmotion  : int -> int -> unit
-    method key      : int -> int -> unit
+    method keysym   : int -> int -> unit
     method enter    : int -> int -> unit
     method leave    : unit
     method winstate : winstate list -> unit
@@ -490,7 +490,7 @@ let readresp sock =
        vlog "keysym = %x %c mask %#x code %d"
          keysym (Char.unsafe_chr keysym) mask code;
        if keysym != 0
-       then state.t#key keysym mask
+       then state.t#keysym keysym mask
 
   | 3 ->                                (* key release *)
      if Array.length state.keymap > 0

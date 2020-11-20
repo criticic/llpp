@@ -26,7 +26,7 @@ let onot = object
   method mouse _ _ _ _ _ = ()
   method motion _ _      = ()
   method pmotion _ _     = ()
-  method key _ _         = ()
+  method keysym _ _      = ()
   method enter _ _       = ()
   method leave           = ()
   method winstate _      = ()
@@ -45,7 +45,7 @@ class type t = object
   method mouse    : int -> bool -> int -> int -> int -> unit
   method motion   : int -> int -> unit
   method pmotion  : int -> int -> unit
-  method key      : int -> int -> unit
+  method keysym   : int -> int -> unit
   method enter    : int -> int -> unit
   method leave    : unit
   method winstate : winstate list -> unit

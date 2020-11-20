@@ -28,7 +28,7 @@ class type t =
     method mouse    : int -> bool -> int -> int -> int -> unit
     method motion   : int -> int -> unit
     method pmotion  : int -> int -> unit
-    method key      : int -> int -> unit
+    method keysym   : int -> int -> unit
     method enter    : int -> int -> unit
     method leave    : unit
     method winstate : winstate list -> unit

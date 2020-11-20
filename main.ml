@@ -4957,7 +4957,7 @@ let () =
       method pmotion x y =
         state.mpos <- (x, y);
         state.uioh <- state.uioh#pmotion x y
-      method key k m =
+      method keysym k m =
         vlog "k=%#x m=%#x" k m;
         let mascm = m land (
             Wsi.altmask + Wsi.shiftmask + Wsi.ctrlmask + Wsi.metamask
