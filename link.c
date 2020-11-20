@@ -3569,7 +3569,7 @@ ML (init (value csock_v, value params_v))
     int ret, texcount, colorspace, mustoresize;
     const char *fontpath;
 
-#ifndef USE_NPOT
+#if TEXT_TYPE != GL_TEXTURE_2D
     if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
                  "texture_rectangle")) {
         errx (1, "OpenGL does not support rectangular texture extension");
