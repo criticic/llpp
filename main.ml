@@ -4988,7 +4988,6 @@ let () =
         | KSinto ((k', m') :: keys, insrt) when k'=k && m' land mascm = m' ->
            state.keystate <- KSinto (keys, insrt)
         | KSinto _ -> state.keystate <- KSnone
-
       method enter x y =
         state.mpos <- (x, y);
         state.uioh <- state.uioh#pmotion x y
