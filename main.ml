@@ -1177,30 +1177,24 @@ let act cmds =
      state.progress <- progress;
      postRedisplay "progress"
 
-  | "firstmatch", args ->
-     let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
-       scan args "%u %d %f %f %f %f %f %f %f %f"
-         (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
-           (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
-     in
-     let y = (getpagey pageno) + truncate y0 in
-     let x =
-       if (state.x < - truncate x0) || (state.x > state.winw - truncate x1)
-       then state.winw/2 - truncate (x0 /. 2. +. x1 /. 2.)
-       else state.x
-     in
-     addnav ();
-     gotoxy x y;
-     let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
-     state.rects1 <- [pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)]
-
   | "match", args ->
-     let pageno, c, x0, y0, x1, y1, x2, y2, x3, y3 =
+     let pageno, n, x0, y0, x1, y1, x2, y2, x3, y3 =
        scan args "%u %d %f %f %f %f %f %f %f %f"
-         (fun p c x0 y0 x1 y1 x2 y2 x3 y3 ->
-           (p, c, x0, y0, x1, y1, x2, y2, x3, y3))
+         (fun p n x0 y0 x1 y1 x2 y2 x3 y3 ->
+           (p, n, x0, y0, x1, y1, x2, y2, x3, y3))
      in
-     let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
+     if n = 0
+     then (
+       let y = (getpagey pageno) + truncate y0 in
+       let x =
+         if (state.x < - truncate x0) || (state.x > state.winw - truncate x1)
+         then state.winw/2 - truncate (x0 /. 2. +. x1 /. 2.)
+         else state.x
+       in
+       addnav ();
+       gotoxy x y;
+     );
+     let color = (0.0, 0.0, (if n = 0 then 1.0 else 0.5), 0.5) in
      state.rects1 <-
        (pageno, color, (x0, y0, x1, y1, x2, y2, x3, y3)) :: state.rects1
 

@@ -1067,22 +1067,12 @@ static enum a_searchresult matchline (regex_t *re, fz_stext_line *line,
         }
         e = ch->quad;
 
-        if (num_matches != 0) {
-            printd ("match %d %d %f %f %f %f %f %f %f %f",
-                    pageno, 2,
-                    s.ul.x, s.ul.y,
-                    e.ur.x, s.ul.y,
-                    e.lr.x, e.lr.y,
-                    s.ul.x, e.lr.y);
-        }
-        else {
-            printd ("firstmatch %d 1 %f %f %f %f %f %f %f %f",
-                    pageno,
-                    s.ul.x, s.ul.y,
-                    e.ur.x, s.ul.y,
-                    e.lr.x, e.lr.y,
-                    s.ul.x, e.lr.y);
-        }
+        printd ("match %d %d %f %f %f %f %f %f %f %f",
+                pageno, num_matches,
+                s.ul.x, s.ul.y,
+                e.ur.x, s.ul.y,
+                e.lr.x, e.lr.y,
+                s.ul.x, e.lr.y);
         free (p);
         return Found;
     }
