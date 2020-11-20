@@ -9,6 +9,8 @@ enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
 enum { uuri, utext, uannot, unone };
 enum { mark_page, mark_block, mark_line, mark_word };
 
+enum a_searchresult { Found, NotFound, Interrupted, Error };
+
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -1011,7 +1013,9 @@ static char *strofline (fz_stext_line *line)
     return p;
 }
 
-static int matchline (regex_t *re, fz_stext_line *line, int stop, int pageno)
+static enum a_searchresult matchline (regex_t *re, fz_stext_line *line,
+                                      enum a_searchresult the_searchresult,
+                                      int pageno)
 {
     int ret;
     char *p;
@@ -1019,7 +1023,7 @@ static int matchline (regex_t *re, fz_stext_line *line, int stop, int pageno)
 
     p = strofline (line);
     if (!p) {
-        return -1;
+        return Error;
     }
 
     ret = regexec (re, p, 1, &rm, 0);
@@ -1040,14 +1044,14 @@ static int matchline (regex_t *re, fz_stext_line *line, int stop, int pageno)
                 trail = "";
             }
             printd ("emsg regexec error '%*s%s'", isize, errbuf, trail);
-            return -1;
+            return Error;
         }
-        return 0;
+        return NotFound;
     }
     else {
+        int o = 0;
         fz_quad s, e;
         fz_stext_char *ch;
-        int o = 0;
 
         for (ch = line->first_char; ch; ch = ch->next) {
             o += fz_runelen (ch->c);
@@ -1064,7 +1068,7 @@ static int matchline (regex_t *re, fz_stext_line *line, int stop, int pageno)
         }
         e = ch->quad;
 
-        if (!stop) {
+        if (the_searchresult != Found) {
             printd ("firstmatch %d 1 %f %f %f %f %f %f %f %f",
                     pageno,
                     s.ul.x, s.ul.y,
@@ -1081,29 +1085,41 @@ static int matchline (regex_t *re, fz_stext_line *line, int stop, int pageno)
                     s.ul.x, e.lr.y);
         }
         free (p);
-        return 1;
+        return Found;
     }
 }
 
 /* wishful thinking function */
 static void search (regex_t *re, int pageno, int y, int forward)
 {
+    int niters = 0;
     fz_device *tdev;
-    fz_stext_page *text;
-    struct pagedim *pdim;
-    int stop = 0, niters = 0;
     double dur, start;
-    fz_page *page;
+    struct pagedim *pdim;
+    fz_page *page = NULL;
     fz_stext_block *block;
+    fz_stext_page *text = NULL;
+    enum a_searchresult the_searchresult = NotFound;
 
     start = now ();
-    while (pageno >= 0 && pageno < state.pagecount && !stop) {
+    while (pageno >= 0
+           && pageno < state.pagecount
+           && the_searchresult == NotFound) {
         if (niters++ == 5) {
             niters = 0;
             if (hasdata (state.csock)) {
-                printd ("emsg attention requested aborting search at %d",
-                        pageno);
-                stop = 2;
+                char c;
+                readdata (state.csock, &c, 1);
+                printd ("emsg attention requested aborting search at %d %d",
+                        pageno, c);
+                if (text) {
+                    fz_drop_stext_page (state.ctx, text);
+                }
+                if (page) {
+                    fz_drop_page (state.ctx, page);
+                }
+                the_searchresult = Interrupted;
+                break;
             }
             else {
                 printd ("progress %f searching in page %d",
@@ -1134,11 +1150,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
                         continue;
                     }
 
-                    switch (matchline (re, line, stop, pageno)) {
-                    case 0: break;
-                    case 1: stop = 1; break;
-                    case -1: stop = 1; goto endloop;
-                    }
+                    the_searchresult =
+                        matchline (re, line, the_searchresult, pageno);
                 }
             }
         }
@@ -1155,11 +1168,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
                         continue;
                     }
 
-                    switch (matchline (re, line, stop, pageno)) {
-                    case 0: break;
-                    case 1: stop = 1; break;
-                    case -1: stop = 1; goto endloop;
-                    }
+                    the_searchresult =
+                        matchline (re, line, the_searchresult, pageno);
                 }
             }
         }
@@ -1172,15 +1182,21 @@ static void search (regex_t *re, int pageno, int y, int forward)
             pageno -= 1;
             y = INT_MAX;
         }
-    endloop:
         fz_drop_stext_page (state.ctx, text);
+        text = NULL;
         fz_drop_page (state.ctx, page);
+        page = NULL;
     }
     dur = now () - start;
-    switch (stop) {
-    case 0: printd ("progress 1 not found in %f sec", dur); break;
-    case 1: printd ("progress 1 found in %f sec", dur); break;
-    case 2: printd ("progress 1 interrupted after %f sec", dur); break;
+    switch (the_searchresult) {
+    case NotFound: printd ("progress 1 not found in %f sec", dur); break;
+    case Found: printd ("progress 1 found in %f sec", dur); break;
+    case Error:
+        printd ("progress 1 error while searching in %f sec", dur);
+        break;
+    case Interrupted:
+        printd ("progress 1 interrupted after %f sec", dur);
+        break;
     }
     printd ("clearrects");
 }
