@@ -80,7 +80,7 @@ cflags() {
     case "${1#$outd/}" in
         version.o) f=-DLLPP_VERSION=$ver;;
         link.o)
-            f="-g -std=c99 $muinc -Wall -Werror -Wextra -pedantic "
+            f="-g -std=c11 $muinc -Wall -Werror -Wextra -pedantic "
             test "${mbt-}" = "debug" || f+="-O2 "
             $darwin && f+="-DCIDER -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
                     || f+="-D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>'"

@@ -9,7 +9,7 @@
 
 #include "cutils.h"
 
-void NORETURN_ATTR GCC_FMT_ATTR (2, 3) err (int exitcode, const char *fmt, ...)
+_Noreturn void GCC_FMT_ATTR (2, 3) err (int exitcode, const char *fmt, ...)
 {
     va_list ap;
     int savederrno = errno;
@@ -22,7 +22,7 @@ void NORETURN_ATTR GCC_FMT_ATTR (2, 3) err (int exitcode, const char *fmt, ...)
     _exit (exitcode);
 }
 
-void NORETURN_ATTR GCC_FMT_ATTR (2, 3) errx (int exitcode, const char *fmt, ...)
+_Noreturn void GCC_FMT_ATTR (2, 3) errx (int exitcode, const char *fmt, ...)
 {
     va_list ap;
 

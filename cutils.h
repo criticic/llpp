@@ -2,7 +2,6 @@
 #define CUTILS_H
 
 #if defined __GNUC__
-#define NORETURN_ATTR __attribute__ ((noreturn))
 #define UNUSED_ATTR __attribute__ ((unused))
 #if !defined __clang__
 #define NO_OPTIMIZE_ATTR __attribute__ ((optimize ("O0")))
@@ -14,9 +13,9 @@
 #error Stringent C compiler requirements not satisfied
 #endif
 
-extern void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
+extern _Noreturn void GCC_FMT_ATTR (2, 3)
     err (int exitcode, const char *fmt, ...);
-extern void NORETURN_ATTR GCC_FMT_ATTR (2, 3)
+extern _Noreturn void GCC_FMT_ATTR (2, 3)
     errx (int exitcode, const char *fmt, ...);
 extern void *parse_pointer (const char *cap, const char *s);
 extern double now (void);
