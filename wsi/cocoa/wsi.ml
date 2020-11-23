@@ -313,3 +313,4 @@ let ks2kt =
   | code -> Code code
 
 let setmapc = ignore
+type keycode = int
