@@ -455,14 +455,14 @@ let getkeysym pkpk code mask =
     if index land 1 = 1 && keysym = 0
     then state.keymap.(code-state.mink).(index - 1)
     else keysym
-  )
+  );
 ;;
 
 let getkeysym code mask =
   let pkpk = state.keymap.(code-state.mink).(0) in
   if state.xkb && pkpk lsr 8 = 0xfe (* XKB *)
   then 0
-  else getkeysym pkpk code mask
+  else getkeysym pkpk code mask;
 ;;
 
 let readresp sock =
@@ -492,7 +492,7 @@ let readresp sock =
        vlog "keysym = %x %c mask %#x code %d"
          keysym (Char.unsafe_chr keysym) mask code;
        if keysym != 0
-       then state.t#key keysym mask
+       then state.t#key keysym mask;
 
   | 3 ->                                (* key release *)
      if Array.length state.keymap > 0
@@ -501,7 +501,7 @@ let readresp sock =
        let mask = r16 resp 28 in
        let keysym = getkeysym code mask in
        vlog "release keysym = %x %c mask %#x code %d"
-         keysym (Char.unsafe_chr keysym) mask code
+         keysym (Char.unsafe_chr keysym) mask code;
 
   | 4 ->                                (* buttonpress *)
      let n = r8 resp 1
@@ -509,7 +509,7 @@ let readresp sock =
      and y = r16s resp 26
      and m = r16 resp 28 in
      state.t#mouse n true x y m;
-     vlog "press %d" n
+     vlog "press %d" n;
 
   | 5 ->                                (* buttonrelease *)
      let n = r8 resp 1
@@ -517,7 +517,7 @@ let readresp sock =
      and y = r16s resp 26
      and m = r16 resp 28 in
      state.t#mouse n false x y m;
-     vlog "release %d %d %d" n x y
+     vlog "release %d %d %d" n x y;
 
   | 6 ->                                (* motion *)
      let x = r16s resp 24 in
@@ -526,16 +526,16 @@ let readresp sock =
      if m land 0x1f00 = 0
      then state.t#pmotion x y
      else state.t#motion x y;
-     vlog "move %dx%d => %d" x y m
+     vlog "move %dx%d => %d" x y m;
 
   | 7 ->                                (* enter *)
      let x = r16s resp 24
      and y = r16s resp 26 in
      state.t#enter x y;
-     vlog "enter %d %d" x y
+     vlog "enter %d %d" x y;
 
   | 8 ->                                (* leave *)
-     state.t#leave
+     state.t#leave;
 
   | 18 ->                               (* unmap *)
      state.t#map false;
@@ -547,7 +547,7 @@ let readresp sock =
 
   | 12 ->                               (* exposure *)
      vlog "exposure";
-     state.t#expose
+     state.t#expose;
 
   | 15 ->                               (* visibility *)
      let v = r8 resp 8 in
@@ -581,10 +581,10 @@ let readresp sock =
        let atom = r32 resp 12 in
        if atom = state.deleatom
        then state.t#quit;
-     vlog "atom %#x" atom
+     vlog "atom %#x" atom;
 
   | 21 ->                               (* reparent *)
-     vlog "reparent"
+     vlog "reparent";
 
   | 22 ->                               (* configure *)
      let x = r16s resp 16
@@ -602,7 +602,7 @@ let readresp sock =
      state.y <- y;
 
   | 24 ->                       (* Gravity notify *)
-     ()
+     ();
 
   | 28 ->                       (* Property notify *)
      let atom = r32 resp 8 in
@@ -646,8 +646,7 @@ let readresp sock =
            state.t#winstate (List.sort compare wsl)
          );
 
-  | n ->
-     dolog "event %d %S" n (Bytes.unsafe_to_string resp)
+  | n -> dolog "event %d %S" n (Bytes.unsafe_to_string resp);
 ;;
 
 let readresp sock =
@@ -671,7 +670,7 @@ let reshape w h =
     w32 s 4 h;
     let s = configurewindowreq state.wid 0x000c s in
     sendstr s state.sock;
-  else state.fullscreen state.wid
+  else state.fullscreen state.wid;
 ;;
 
 let activatewin () =
@@ -696,7 +695,7 @@ let syncsendwithrep sock secstowait s f =
     | _ ->
        readresp sock;
        if not !completed
-       then readtillcompletion ()
+       then readtillcompletion ();
   in
   readtillcompletion ();
 ;;
@@ -727,7 +726,7 @@ let setup disp sock rootwid screennum w h =
      let data = readstr sock len in
      let reason = Bytes.sub data 0 reasonlen in
      error "X connection failed maj=%d min=%d reason=%S"
-       maj min (Bytes.unsafe_to_string reason)
+       maj min (Bytes.unsafe_to_string reason);
 
   | '\002' -> error "X connection setup failed: authentication required";
 
@@ -1010,8 +1009,7 @@ let setup disp sock rootwid screennum w h =
          state.h <- h;
        );
 
-  | c ->
-     error "unknown connection setup response %d" (Char.code c)
+  | c -> error "unknown connection setup response %d" (Char.code c);
 ;;
 
 let getauth haddr dnum =
@@ -1104,8 +1102,7 @@ let init t w h =
       let s = String.sub d b (e - b) in
       try int_of_string s
       with exn ->
-        error "invalid DISPLAY %S can not parse %s(%S): %s"
-          d w s @@ exntos exn
+        error "invalid DISPLAY %S can not parse %s(%S): %s" d w s @@ exntos exn
   in
   let rec phost pos =
     if pos = String.length d
@@ -1131,8 +1128,7 @@ let init t w h =
                in
                dispnum, pscreennum (pos1+1)
             | '0' .. '9' -> pdispnum (pos1+1)
-            | _ ->
-               error "invalid DISPLAY %S, cannot parse display number" d
+            | _ -> error "invalid DISPLAY %S, cannot parse display number" d
         in
         String.sub d 0 pos, pdispnum (pos+1)
       else phost (pos+1)
@@ -1144,8 +1140,8 @@ let init t w h =
     let fd, addr =
       if emptystr host || host.[0] = '/' || host = "unix"
       then
-        Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0,
-        Unix.ADDR_UNIX ("\000/tmp/.X11-unix/X" ^ string_of_int dispnum)
+        (Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0,
+         Unix.ADDR_UNIX ("\000/tmp/.X11-unix/X" ^ string_of_int dispnum))
       else
         let h =
           try Unix.gethostbyname host
@@ -1175,9 +1171,7 @@ let init t w h =
   fd, state.w, state.h;
 ;;
 
-let settitle s =
-  state.setwmname (~> s);
-;;
+let settitle s = state.setwmname (~> s);;
 
 let setcursor cursor =
   if cursor != state.curcurs
@@ -1187,9 +1181,7 @@ let setcursor cursor =
   )
 ;;
 
-let fullscreen () =
-  state.fullscreen state.wid;
-;;
+let fullscreen () = state.fullscreen state.wid;;
 
 let metamask = 0x40;;
 let altmask = 8;;
