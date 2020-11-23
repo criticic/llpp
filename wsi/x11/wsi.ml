@@ -145,6 +145,11 @@ let state =
   }
 ;;
 
+let settitle s = state.setwmname (~> s);;
+let fullscreen () = state.fullscreen state.wid;;
+let fontsizescale n = float n *. state.fscale |> truncate;;
+let setmapc f  = state.mapc <- f;;
+
 let ordermagic = 'l';;
 let metamask = 0x40;;
 let altmask = 8;;
@@ -1181,8 +1186,6 @@ let init t w h =
   fd, state.w, state.h;
 ;;
 
-let settitle s = state.setwmname (~> s);;
-
 let setcursor cursor =
   if cursor != state.curcurs
   then (
@@ -1190,8 +1193,6 @@ let setcursor cursor =
     state.curcurs <- cursor;
   )
 ;;
-
-let fullscreen () = state.fullscreen state.wid;;
 
 let xlatt, xlatf =
   let t = Hashtbl.create 20
@@ -1280,6 +1281,3 @@ let ks2kt =
   | code when code land 0xff00 = 0xff00 -> Ctrl code
   | code -> Code code
 ;;
-
-let fontsizescale n = float n *. state.fscale |> truncate;;
-let setmapc f  = state.mapc <- f;;
