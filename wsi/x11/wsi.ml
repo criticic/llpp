@@ -486,8 +486,8 @@ let readresp sock =
   | 2 ->                                (* key press *)
      if Array.length state.keymap > 0
      then
-       let code = r8 resp 1 |> state.mapc in
        let mask = r16 resp 28 in
+       let code = if mask = 0 then r8 resp 1 |> state.mapc else r8 resp 1 in
        let keysym = getkeysym code mask in
        vlog "keysym = %x %c mask %#x code %d"
          keysym (Char.unsafe_chr keysym) mask code;

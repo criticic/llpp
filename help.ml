@@ -90,7 +90,7 @@ insert              - toggle link navigation mode
 o                   - switch to outline/table of contents mode
 '                   - switch to bookmark mode
 H                   - switch to history mode
-h,F1                - switch to help mode
+F1                  - switch to help mode
 i                   - switch to info mode
 P                   - switch to "presentation" mode
 c                   - switch to previous column layout
