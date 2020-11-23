@@ -104,51 +104,46 @@ class type uioh =
     method zoom : float -> int -> int -> unit
   end;;
 
-module type TextEnumType =
-  sig
-    type t
-    val name : string
-    val names : string array
-  end;;
+module type TextEnumType = sig
+  type t
+  val name : string
+  val names : string array
+end;;
 
-module TextEnumMake (Ten : TextEnumType) =
-  struct
-    let names = Ten.names;;
-    let to_int (t : Ten.t)  = Obj.magic t;;
-    let to_string t = names.(to_int t);;
-    let of_int n : Ten.t = Obj.magic n;;
-    let of_string s =
-      let rec find i =
-        if i = Array.length names
-        then error "invalid %s: %s" Ten.name s
-        else (
-          if Ten.names.(i) = s
-          then of_int i
-          else find (i+1)
-        )
-      in find 0;;
-  end;;
+module TextEnumMake (Ten : TextEnumType) = struct
+  let names = Ten.names;;
+  let to_int (t : Ten.t)  = Obj.magic t;;
+  let to_string t = names.(to_int t);;
+  let of_int n : Ten.t = Obj.magic n;;
+  let of_string s =
+    let rec find i =
+      if i = Array.length names
+      then error "invalid %s: %s" Ten.name s
+      else (
+        if Ten.names.(i) = s
+        then of_int i
+        else find (i+1)
+      )
+    in find 0;;
+end;;
 
-module CSTE = TextEnumMake (
-                  struct
-                    type t = colorspace;;
-                    let name = "colorspace";;
-                    let names = [|"rgb"; "gray"|];;
-                  end);;
+module CSTE = TextEnumMake (struct
+                  type t = colorspace;;
+                  let name = "colorspace";;
+                  let names = [|"rgb"; "gray"|];;
+                end);;
 
-module MTE = TextEnumMake (
-                 struct
-                   type t = mark;;
-                   let name = "mark";;
-                   let names = [|"page"; "block"; "line"; "word"|];;
-                 end);;
+module MTE = TextEnumMake (struct
+                 type t = mark;;
+                 let name = "mark";;
+                 let names = [|"page"; "block"; "line"; "word"|];;
+               end);;
 
-module FMTE = TextEnumMake (
-                  struct
-                    type t = fitmodel;;
-                    let name = "fitmodel";;
-                    let names = [|"width"; "proportional"; "page"|];;
-                  end);;
+module FMTE = TextEnumMake (struct
+                  type t = fitmodel;;
+                  let name = "fitmodel";;
+                  let names = [|"width"; "proportional"; "page"|];;
+                end);;
 
 type outlinekind =
   | Onone

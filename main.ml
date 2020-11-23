@@ -3,29 +3,28 @@ open Config;;
 open Glutils;;
 open Listview;;
 
-module U =
-  struct
-    let dopen         = '\023';;
-    let cs            = '\024';;
-    let freepage      = '\025';;
-    let freetile      = '\026';;
-    let search        = '\027';;
-    let geometry      = '\028';;
-    let reqlayout     = '\029';;
-    let page          = '\030';;
-    let tile          = '\031';;
-    let trimset       = '\032';;
-    let settrim       = '\033';;
-    let sliceh        = '\034';;
-    let interrupt     = '\035';;
-    let pgscale h     = truncate (float h *. conf.pgscale);;
-    let nogeomcmds    = function | s, [] -> emptystr s | _ -> false;;
-    let maxy ()       = state.maxy - if conf.maxhfit then state.winh else 0;;
-    let clamp incr    = bound (state.y + incr) 0 @@ maxy ();;
-    let scalecolor c  = let c = c *. conf.colorscale in (c, c, c);;
-    let panbound x    = bound x (-state.w) state.winw;;
-    let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
-  end;;
+module U = struct
+  let dopen         = '\023';;
+  let cs            = '\024';;
+  let freepage      = '\025';;
+  let freetile      = '\026';;
+  let search        = '\027';;
+  let geometry      = '\028';;
+  let reqlayout     = '\029';;
+  let page          = '\030';;
+  let tile          = '\031';;
+  let trimset       = '\032';;
+  let settrim       = '\033';;
+  let sliceh        = '\034';;
+  let interrupt     = '\035';;
+  let pgscale h     = truncate (float h *. conf.pgscale);;
+  let nogeomcmds    = function | s, [] -> emptystr s | _ -> false;;
+  let maxy ()       = state.maxy - if conf.maxhfit then state.winh else 0;;
+  let clamp incr    = bound (state.y + incr) 0 @@ maxy ();;
+  let scalecolor c  = let c = c *. conf.colorscale in (c, c, c);;
+  let panbound x    = bound x (-state.w) state.winw;;
+  let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
+end;;
 
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
