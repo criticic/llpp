@@ -157,7 +157,6 @@ let withshift mask = mask land shiftmask != 0;;
 let withmeta mask = mask land metamask != 0;;
 let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0;;
 
-
 let makereq opcode len reqlen =
   let s = Bytes.create len in
   w8 s 0 opcode;
@@ -1060,8 +1059,7 @@ let getauth haddr dnum =
         | exception exn ->
            if nonemptystr nums
            then
-             dolog
-               "display number(%S) is not an integer (corrupt %S?): %s"
+             dolog "display number(%S) is not an integer (corrupt %S?): %s"
                nums path @@ exntos exn
            ;
            None
