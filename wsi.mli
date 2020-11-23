@@ -38,8 +38,10 @@ class type t =
     method opendoc  : string -> unit
   end;;
 
+type keycode = int;;
 val setcursor : cursor -> unit;;
 val settitle : string -> unit;;
+val setmapc : (keycode -> keycode) -> unit;;
 val swapb : unit -> unit;;
 val readresp : Unix.file_descr -> unit;;
 val init : t -> int -> int -> Unix.file_descr * int * int;;

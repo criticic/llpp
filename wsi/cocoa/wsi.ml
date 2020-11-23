@@ -312,3 +312,4 @@ let ks2kt =
   | code when code land 0xff00 = 0xff00 -> Ctrl code
   | code -> Code code
 
+let setmapc = ignore

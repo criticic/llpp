@@ -101,11 +101,12 @@ type state =
   ; mutable levl5mask  : int
   ; mutable xkb        : bool
   ; mutable fscale     : float
+  ; mutable mapc       : keycode -> keycode
   }
 and fs =
   | NoFs
   | Fs of (int * int * int * int)
-;;
+and keycode = int;;
 
 let state =
   { mink       = max_int
@@ -140,6 +141,7 @@ let state =
   ; levl5mask  = 0
   ; xkb        = false
   ; fscale     = 1.0
+  ; mapc       = Fun.id
   }
 ;;
 
@@ -484,7 +486,7 @@ let readresp sock =
   | 2 ->                                (* key press *)
      if Array.length state.keymap > 0
      then
-       let code = r8 resp 1 in
+       let code = r8 resp 1 |> state.mapc in
        let mask = r16 resp 28 in
        let keysym = getkeysym code mask in
        vlog "keysym = %x %c mask %#x code %d"
@@ -1289,3 +1291,4 @@ let ks2kt =
 ;;
 
 let fontsizescale n = float n *. state.fscale |> truncate;;
+let setmapc f  = state.mapc <- f;;

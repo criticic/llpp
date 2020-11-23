@@ -616,6 +616,20 @@ let layoutready layout =
   alltilesvisible;
 ;;
 
+let mapc code =
+  let viewmapcode = function
+    (* remap some key codes to arrows in view mode *)
+    | 44 -> 113
+    | 45 -> 116
+    | 46 -> 111
+    | 47 -> 114
+    | n -> n
+  in
+  match state.mode with
+  | View -> viewmapcode code
+  | LinkNav _ | Textentry _ | Birdseye _ -> code
+;;
+
 let gotoxy x y =
   let y = bound y 0 state.maxy in
   let y, layout =
@@ -5052,6 +5066,7 @@ let () =
   display ();
   Wsi.mapwin ();
   Wsi.setcursor Wsi.CURSOR_INHERIT;
+  Wsi.setmapc mapc;
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
 
   let rec reap () =
