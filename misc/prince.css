@@ -5,7 +5,7 @@ body { margin-left: 10%; margin-right: 10%; }
 }
 @font-face {
     font-family: serif;
-    src: prince-lookup("PT Astra Serif"), local("serif");
+    src: prince-lookup("PT Serif"), local("serif");
 }
 @font-face {
     font-family: sans-serif;
