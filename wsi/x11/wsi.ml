@@ -146,6 +146,17 @@ let state =
 ;;
 
 let ordermagic = 'l';;
+let metamask = 0x40;;
+let altmask = 8;;
+let shiftmask = 1;;
+let ctrlmask = 4;;
+
+let withalt mask = mask land altmask != 0;;
+let withctrl mask = mask land ctrlmask != 0;;
+let withshift mask = mask land shiftmask != 0;;
+let withmeta mask = mask land metamask != 0;;
+let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0;;
+
 
 let makereq opcode len reqlen =
   let s = Bytes.create len in
@@ -486,8 +497,9 @@ let readresp sock =
   | 2 ->                                (* key press *)
      if Array.length state.keymap > 0
      then
+       let code = r8 resp 1 in
        let mask = r16 resp 28 in
-       let code = if mask = 0 then r8 resp 1 |> state.mapc else r8 resp 1 in
+       let code = if not (withshift mask) then state.mapc code else code in
        let keysym = getkeysym code mask in
        vlog "keysym = %x %c mask %#x code %d"
          keysym (Char.unsafe_chr keysym) mask code;
@@ -1182,17 +1194,6 @@ let setcursor cursor =
 ;;
 
 let fullscreen () = state.fullscreen state.wid;;
-
-let metamask = 0x40;;
-let altmask = 8;;
-let shiftmask = 1;;
-let ctrlmask = 4;;
-
-let withalt mask = mask land altmask != 0;;
-let withctrl mask = mask land ctrlmask != 0;;
-let withshift mask = mask land shiftmask != 0;;
-let withmeta mask = mask land metamask != 0;;
-let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0;;
 
 let xlatt, xlatf =
   let t = Hashtbl.create 20
