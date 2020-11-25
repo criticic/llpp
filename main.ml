@@ -3343,9 +3343,7 @@ let viewkeyboard key mask =
   let open Keys in
   match Wsi.ks2kt key with
   | Ascii 'S' -> state.slideshow <- state.slideshow lxor 1
-
   | Ascii 'Q' -> exit 0
-
   | Ascii 'z' ->
      let yloc f =
        match List.rev state.rects with
@@ -3375,11 +3373,9 @@ let viewkeyboard key mask =
        | _ -> TEstop
      in
      enttext (": ", E.s, None, zmod state.mode, ondone, true)
-
   | Ascii 'W' ->
      if Ffi.hasunsavedchanges ()
      then save ()
-
   | Insert ->
      if conf.angle mod 360 = 0 && not (isbirdseye state.mode)
      then (
@@ -3391,7 +3387,6 @@ let viewkeyboard key mask =
        gotoxy state.x state.y;
      )
      else impmsg "keyboard link navigation does not work under rotation"
-
   | Escape | Ascii 'q' ->
      begin match state.mstate with
      | Mzoomrect _ ->
@@ -3421,9 +3416,7 @@ let viewkeyboard key mask =
               opendoc path password
         end;
      end;
-
   | Ascii 'o' -> enteroutlinemode ()
-
   | Ascii 'u' ->
      state.rects <- [];
      state.text <- E.s;
@@ -3431,7 +3424,6 @@ let viewkeyboard key mask =
          Ffi.clearmark opaque;
          Hashtbl.clear state.prects) state.pagemap;
      postRedisplay "dehighlight";
-
   | Ascii (('/' | '?') as c) ->
      let ondone isforw s =
        cbput state.hists.pat s;
@@ -3440,11 +3432,9 @@ let viewkeyboard key mask =
      in
      enttext (String.make 1 c, E.s, Some (onhist state.hists.pat),
               textentry, ondone (c = '/'), true)
-
   | Ascii '+' | Ascii '=' when ctrl ->
      let incr = if conf.zoom +. 0.01 > 0.1 then 0.1 else 0.01 in
      pivotzoom (conf.zoom +. incr)
-
   | Ascii '+' ->
      let ondone s =
        let n =
@@ -3460,21 +3450,17 @@ let viewkeyboard key mask =
        )
      in
      enttext ("page bias: ", E.s, None, intentry, ondone, true)
-
   | Ascii '-' when ctrl ->
      let decr = if conf.zoom -. 0.1 < 0.1 then 0.01 else 0.1 in
      pivotzoom (max 0.01 (conf.zoom -. decr))
-
   | Ascii '-' ->
      let ondone msg = state.text <- msg in
      enttext ("option: ", E.s, None,
               optentry state.mode, ondone, true)
-
   | Ascii '0' when ctrl ->
      if conf.zoom = 1.0
      then gotoxy 0 state.y
      else setzoom 1.0
-
   | Ascii ('1'|'2' as c) when ctrl && conf.fitmodel != FitPage ->
      let cols =
        match conf.columns with
@@ -3487,7 +3473,6 @@ let viewkeyboard key mask =
      let zoom = Ffi.zoomforh state.winw h 0 cols in
      if zoom > 0.0 && (c = '2' || zoom < 1.0)
      then setzoom zoom
-
   | Ascii '3' when ctrl ->
      let fm =
        match conf.fitmodel with
@@ -3497,13 +3482,10 @@ let viewkeyboard key mask =
      in
      state.text <- "fit model: " ^ FMTE.to_string fm;
      reqlayout conf.angle fm
-
   | Ascii '4' when ctrl ->
      let zoom = Ffi.getmaxw () /. float state.winw in
      if zoom > 0.0 then setzoom zoom
-
   | Fn 9 | Ascii '9' when ctrl -> togglebirdseye ()
-
   | Ascii ('0'..'9' as c) when not ctrl ->
      let ondone s =
        let n =
@@ -3524,21 +3506,17 @@ let viewkeyboard key mask =
      in
      enttext (":", String.make 1 c, Some (onhist state.hists.pag),
               pageentry, ondone, true)
-
   | Ascii 'b' ->
      conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
      postRedisplay "toggle scrollbar";
-
   | Ascii 'B' ->
      state.bzoom <- not state.bzoom;
      state.rects <- [];
      showtext ' ' ("block zoom " ^ if state.bzoom then "on" else "off")
-
   | Ascii 'l' ->
      conf.hlinks <- not conf.hlinks;
      state.text <- "highlightlinks " ^ if conf.hlinks then "on" else "off";
      postRedisplay "toggle highlightlinks";
-
   | Ascii 'F' ->
      if conf.angle mod 360 = 0
      then (
@@ -3555,7 +3533,6 @@ let viewkeyboard key mask =
        postRedisplay "view:linkent(F)"
      )
      else impmsg "hint mode does not work under rotation"
-
   | Ascii 'y' ->
      state.glinks <- true;
      let mode = state.mode in
@@ -3570,7 +3547,6 @@ let viewkeyboard key mask =
          );
      state.text <- E.s;
      postRedisplay "view:linkent"
-
   | Ascii 'a' ->
      begin match state.autoscroll with
      | Some step ->
@@ -3580,33 +3556,26 @@ let viewkeyboard key mask =
         state.autoscroll <- Some conf.autoscrollstep;
         state.slideshow <- state.slideshow land lnot 2
      end
-
   | Ascii 'p' when ctrl ->
      launchpath ()              (* XXX where do error messages go? *)
-
   | Ascii 'P' ->
      setpresentationmode (not conf.presentation);
      showtext ' ' ("presentation mode " ^
                      if conf.presentation then "on" else "off");
-
   | Ascii 'f' ->
      if List.mem Wsi.Fullscreen state.winstate
      then Wsi.reshape conf.cwinw conf.cwinh
      else Wsi.fullscreen ()
-
   | Ascii ('p'|'N') -> search state.searchpattern false
   | Ascii 'n' | Fn 3 -> search state.searchpattern true
-
   | Ascii 't' ->
      begin match state.layout with
      | [] -> ()
      | l :: _ -> gotoxy state.x (getpagey l.pageno)
      end
-
   | Ascii ' ' -> nextpage ()
   | Delete -> prevpage ()
   | Ascii '=' -> showtext ' ' (describe_layout state.layout);
-
   | Ascii 'w' ->
      begin match state.layout with
      | [] -> ()
@@ -3614,11 +3583,9 @@ let viewkeyboard key mask =
         Wsi.reshape l.pagew l.pageh;
         postRedisplay "w"
      end
-
   | Ascii '\'' -> enterbookmarkmode ()
   | Ascii 'i' -> enterinfomode ()
   | Ascii 'e' when Buffer.length state.errmsgs > 0 -> entermsgsmode ()
-
   | Ascii 'm' ->
      let ondone s =
        match state.layout with
@@ -3626,21 +3593,16 @@ let viewkeyboard key mask =
        | _ -> ()
      in
      enttext ("bookmark: ", E.s, None, textentry, ondone, true)
-
   | Ascii '~' ->
      quickbookmark ();
      showtext ' ' "Quick bookmark added";
-
   | Ascii 'x' -> state.roam ()
-
   | Ascii ('<'|'>' as c) ->
      reqlayout (conf.angle + (if c = '>' then 30 else -30)) conf.fitmodel
-
   | Ascii ('['|']' as c) ->
      conf.colorscale <-
        bound (conf.colorscale +. (if c = ']' then 0.1 else -0.1)) 0.0 1.0;
      postRedisplay "brightness";
-
   | Ascii 'c' when state.mode = View ->
      if Wsi.withalt mask
      then (
@@ -3664,12 +3626,10 @@ let viewkeyboard key mask =
        in
        setcolumns View c a b;
        setzoom z
-
   | Down | Up when ctrl && Wsi.withshift mask ->
      let zoom, x = state.prevzoom in
      setzoom zoom;
      state.x <- x;
-
   | Up ->
      begin match state.autoscroll with
      | None ->
@@ -3686,7 +3646,6 @@ let viewkeyboard key mask =
         end
      | Some n -> setautoscrollspeed n false
      end
-
   | Down ->
      begin match state.autoscroll with
      | None ->
@@ -3703,10 +3662,8 @@ let viewkeyboard key mask =
         end
      | Some n -> setautoscrollspeed n true
      end
-
   | Left when Wsi.withctrl mask -> enterhistmode ()
   | Fn 1 | Left when Wsi.withalt mask -> enterhelpmode ()
-
   | Left | Right when not (Wsi.withalt mask) ->
      if canpan ()
      then
@@ -3724,7 +3681,6 @@ let viewkeyboard key mask =
        state.text <- E.s;
        postRedisplay "left/right"
      )
-
   | Prior ->
      let y =
        if ctrl
@@ -3735,7 +3691,6 @@ let viewkeyboard key mask =
        else U.clamp (U.pgscale (-state.winh))
      in
      gotoxy state.x y
-
   | Next ->
      let y =
        if ctrl
@@ -3746,14 +3701,12 @@ let viewkeyboard key mask =
        else U.clamp (U.pgscale state.winh)
      in
      gotoxy state.x y
-
   | Ascii 'g' | Home ->
      addnav ();
      gotoxy 0 0
   | Ascii 'G' | End ->
      addnav ();
      gotoxy 0 (U.clamp state.maxy)
-
   | Right when Wsi.withalt mask ->
      (match state.nav.future with
      | [] -> ()
@@ -3763,10 +3716,7 @@ let viewkeyboard key mask =
      )
   | Left when Wsi.withalt mask -> histback ()
   | Backspace -> histback ()
-
-  | Ascii 'r' ->
-     reload ()
-
+  | Ascii 'r' -> reload ()
   | Ascii 'v' when conf.debug ->
      state.rects <- [];
      List.iter (fun l ->
@@ -3783,7 +3733,6 @@ let viewkeyboard key mask =
             state.rects <- (l.pageno, color, rect) :: state.rects;
        ) state.layout;
      postRedisplay "v";
-
   | Ascii '|' ->
      let mode = state.mode in
      let cmd = ref E.s in
@@ -3805,7 +3754,6 @@ let viewkeyboard key mask =
      in
      postRedisplay "|";
      state.mode <- Textentry (te, onleave);
-
   | (Ascii _|Fn _|Enter|Left|Right|Code _|Ctrl _) ->
      vlog "huh? %s" (Wsi.keyname key)
 ;;
