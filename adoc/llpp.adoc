@@ -66,7 +66,7 @@ Set page height for reflowable documents (-1 == default, 0 == unlimited)
 Print version and exit
 
 == KEY BINDINGS
-Open a document with llpp, then press `F1` or `h` to switch to help mode.
+Open a document with llpp, then press `F1` or `alt-h` to switch to help mode.
 
 == FILES
 
