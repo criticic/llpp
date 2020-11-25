@@ -3423,7 +3423,6 @@ let viewkeyboard key mask =
      end;
 
   | Ascii 'o' -> enteroutlinemode ()
-  | Ascii 'H' -> enterhistmode ()
 
   | Ascii 'u' ->
      state.rects <- [];
@@ -3617,7 +3616,6 @@ let viewkeyboard key mask =
      end
 
   | Ascii '\'' -> enterbookmarkmode ()
-  | Ascii 'h' | Fn 1 -> enterhelpmode ()
   | Ascii 'i' -> enterinfomode ()
   | Ascii 'e' when Buffer.length state.errmsgs > 0 -> entermsgsmode ()
 
@@ -3705,6 +3703,9 @@ let viewkeyboard key mask =
         end
      | Some n -> setautoscrollspeed n true
      end
+
+  | Left when Wsi.withctrl mask -> enterhistmode ()
+  | Fn 1 | Left when Wsi.withalt mask -> enterhelpmode ()
 
   | Left | Right when not (Wsi.withalt mask) ->
      if canpan ()
