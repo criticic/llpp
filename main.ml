@@ -1923,59 +1923,46 @@ class outlinelistview ~zebra ~source =
            settext true pattern;
            coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
 
-      | Up when ctrl -> navscroll (max 0 (m_first - 1))
-
-      | Down when ctrl ->
-         navscroll (min (source#getitemcount - 1) (m_first + 1))
-
+      | Up when ctrl -> navscroll (max 0 (m_first-1))
+      | Down when ctrl -> navscroll (min (source#getitemcount-1) (m_first+1))
       | Up    -> navigate ~-1
       | Down  -> navigate 1
       | Prior -> navigate ~-(fstate.maxrows)
       | Next  -> navigate fstate.maxrows
-
       | Right ->
-         let o =
-           if ctrl
-           then (
-             postRedisplay "outline ctrl right";
-             {< m_pan = m_pan + 1 >}
-           )
-           else (
-             if Wsi.withshift mask
-             then self#nextcurlevel 1
-             else self#updownlevel 1
-           )
-         in
-         coe o
-
+         (if ctrl
+          then (
+            postRedisplay "outline ctrl right";
+            {< m_pan = m_pan + 1 >}
+          )
+          else (
+            if Wsi.withshift mask
+            then self#nextcurlevel 1
+            else self#updownlevel 1
+         )) |> coe
       | Left ->
-         let o =
-           if ctrl
-           then (
-             postRedisplay "outline ctrl left";
-             {< m_pan = m_pan - 1 >}
-           )
-           else (
-             if Wsi.withshift mask
-             then self#nextcurlevel ~-1
-             else self#updownlevel ~-1
-           )
-         in
-         coe o
-
+         (if ctrl
+          then (
+            postRedisplay "outline ctrl left";
+            {< m_pan = m_pan - 1 >}
+          )
+          else (
+            if Wsi.withshift mask
+            then self#nextcurlevel ~-1
+            else self#updownlevel ~-1
+         )) |> coe
       | Home ->
          postRedisplay "outline home";
          coe {< m_first = 0; m_active = 0 >}
-
       | End ->
          let active = source#getitemcount - 1 in
          let first = max 0 (active - fstate.maxrows) in
          postRedisplay "outline end";
          coe {< m_active = active; m_first = first >}
-
       | Delete|Escape|Insert|Enter|Ascii _|Code _|Ctrl _|Backspace|Fn _ ->
          super#key key mask
-  end;;
+  end
+;;
 
 let genhistoutlines () =
   Config.gethist ()
