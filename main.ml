@@ -42,7 +42,8 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
 
 let setuioh uioh =
   state.uioh <- coe uioh;
-  Wsi.settitle @@ uioh#title ^ " - llpp";
+  let title = uioh#title in
+  Wsi.settitle @@ if emptystr title then "llpp" else title ^ " - llpp";
 ;;
 
 let hscrollh () =
@@ -2153,7 +2154,7 @@ let enterinfomode =
                 in
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
-                coe (new listview ~title:"colorspace selector"
+                coe (new listview ~title:"colorspace"
                        ~zebra:false ~helpmode:false
                        ~source ~trusted:true ~modehash)
            )) :: m_l
@@ -2181,7 +2182,7 @@ let enterinfomode =
                 in
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
-                coe (new listview ~title:"PAX selector"
+                coe (new listview ~title:"PAX"
                        ~zebra:false ~helpmode:false
                        ~source ~trusted:true ~modehash)
            )) :: m_l
@@ -2209,7 +2210,7 @@ let enterinfomode =
                 in
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
-                coe (new listview ~title:"fit model selector"
+                coe (new listview ~title:"fit model"
                        ~zebra:false ~helpmode:false
                        ~source ~trusted:true ~modehash)
            )) :: m_l
@@ -3146,7 +3147,6 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
   let sb = outlinesource (fetchoutlines `bookmarks) in
   let sh = outlinesource (fetchoutlines `history) in
   let mkselector title sourcetype source =
-    let title = title ^ " selector" in
     (fun errmsg ->
       let outlines = fetchoutlines sourcetype () in
       if Array.length outlines = 0
