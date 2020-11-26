@@ -1850,25 +1850,21 @@ class outlinelistview ~title ~zebra ~source =
          settext (not m_autonarrow) text;
          postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
-
       | Ascii '/' when emptystr m_qsearch && not m_autonarrow ->
          settext true E.s;
          postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = true >}
-
       | Ascii 'n' when ctrl ->
          source#narrow m_qsearch;
          if not m_autonarrow
          then source#add_narrow_pattern m_qsearch;
          postRedisplay "outline ctrl-n";
          coe {< m_first = 0; m_active = 0 >}
-
       | Ascii 'S' when ctrl ->
          let active = source#calcactive (getanchor ()) in
          let first = firstof m_first active in
          postRedisplay "outline ctrl-s";
          coe {< m_first = first; m_active = active >}
-
       | Ascii 'u' when ctrl ->
          postRedisplay "outline ctrl-u";
          if m_autonarrow && nonemptystr m_qsearch
@@ -1886,7 +1882,6 @@ class outlinelistview ~title ~zebra ~source =
            settext m_autonarrow text;
            coe {< m_first = 0; m_active = 0; m_qsearch = E.s >}
          )
-
       | Ascii 'l' when ctrl ->
          let first = max 0 (m_active - (fstate.maxrows / 2)) in
          postRedisplay "outline ctrl-l";
@@ -1901,24 +1896,20 @@ class outlinelistview ~title ~zebra ~source =
            coe {< m_qsearch = E.s >}
          )
          else coe self
-
       | Escape when m_autonarrow ->
          if nonemptystr m_qsearch
          then source#add_narrow_pattern m_qsearch;
          super#key key mask
-
       | Enter when m_autonarrow ->
          if nonemptystr m_qsearch
          then source#add_narrow_pattern m_qsearch;
          super#key key mask
-
       | (Ascii _ | Code _) when m_autonarrow ->
          let pattern = m_qsearch ^ Ffi.toutf8 key in
          postRedisplay "outlinelistview autonarrow add";
          source#narrow pattern;
          settext true pattern;
          coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
-
       | Backspace when m_autonarrow ->
          if emptystr m_qsearch
          then coe self
@@ -1929,7 +1920,6 @@ class outlinelistview ~title ~zebra ~source =
            source#narrow pattern;
            settext true pattern;
            coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
-
       | Up when ctrl -> navscroll (max 0 (m_first-1))
       | Down when ctrl -> navscroll (min (source#getitemcount-1) (m_first+1))
       | Up    -> navigate ~-1
