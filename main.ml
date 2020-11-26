@@ -146,6 +146,16 @@ let impmsg fmt =
   Format.ksprintf (fun s -> showtext '!' s) fmt
 ;;
 
+let adderrmsg src msg =
+  Buffer.add_string state.errmsgs msg;
+  state.newerrmsgs <- true;
+  postRedisplay src
+;;
+
+let adderrfmt src fmt =
+  Format.ksprintf (fun s -> adderrmsg src s) fmt
+;;
+
 let pipesel opaque cmd =
   if Ffi.hassel opaque
   then pipef ~closew:false "pipesel"
@@ -1421,7 +1431,7 @@ let act cmds =
 
   | "pass", args ->
      if args = "fail"
-     then Wsi.settitle "Wrong password";
+     then adderrmsg "pass" "Wrong password";
      let password = getpassword () in
      if emptystr password
      then error "document is password protected"
@@ -1769,16 +1779,6 @@ let optentry mode _ key =
      TEstop
 
   | _ -> TEcont state.text
-;;
-
-let adderrmsg src msg =
-  Buffer.add_string state.errmsgs msg;
-  state.newerrmsgs <- true;
-  postRedisplay src
-;;
-
-let adderrfmt src fmt =
-  Format.ksprintf (fun s -> adderrmsg src s) fmt
 ;;
 
 class outlinelistview ~title ~zebra ~source =
