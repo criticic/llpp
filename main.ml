@@ -40,6 +40,11 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
          }|} x0 y0 x1 y1 x2 y2 x3 y3;
 ;;
 
+let setuioh uioh =
+  state.uioh <- coe uioh;
+  Wsi.settitle @@ "llpp: " ^ uioh#title;
+;;
+
 let hscrollh () =
   if ((conf.scrollb land scrollbhv != 0) && (state.w > state.winw))
      || state.uioh#alwaysscrolly
@@ -816,7 +821,7 @@ let opendoc path password =
     then path
     else state.origin
   in
-  Wsi.settitle ("llpp " ^ Ffi.mbtoutf8 (Filename.basename titlepath));
+  Wsi.settitle ("llpp: " ^ Ffi.mbtoutf8 (Filename.basename titlepath));
   wcmd U.dopen "%d %d %s\000%s\000%s\000"
     (btod conf.usedoccss) !layouth
     path password conf.css;
@@ -1371,7 +1376,7 @@ let act cmds =
        match splitatchar args '\t' with
        | "Title", v ->
           conf.title <- v;
-          if not !ignoredoctitlte then Wsi.settitle v;
+          if not !ignoredoctitlte then Wsi.settitle @@ "llpp: " ^ v;
           args
        | _, "" -> args
        | c, v ->
@@ -1768,7 +1773,7 @@ let adderrfmt src fmt =
   Format.ksprintf (fun s -> adderrmsg src s) fmt
 ;;
 
-class outlinelistview ~zebra ~source =
+class outlinelistview ~title ~zebra ~source =
   let settext autonarrow s =
     if autonarrow
     then
@@ -1780,6 +1785,7 @@ class outlinelistview ~zebra ~source =
   in
   object (self)
     inherit listview
+              ~title
               ~zebra
               ~helpmode:false
               ~source:(source :> lvsource)
@@ -2101,7 +2107,7 @@ let enterinfomode =
                   let c =
                     try color_of_string s
                     with exn -> settextfmt "bad color `%s': %s" s @@ exntos exn;
-                      invalid
+                                invalid
                   in
                   if c <> invalid
                   then set c;
@@ -2147,7 +2153,8 @@ let enterinfomode =
                 in
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
-                coe (new listview ~zebra:false ~helpmode:false
+                coe (new listview ~title:"colorspace selector"
+                       ~zebra:false ~helpmode:false
                        ~source ~trusted:true ~modehash)
            )) :: m_l
 
@@ -2174,7 +2181,8 @@ let enterinfomode =
                 in
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
-                coe (new listview ~zebra:false ~helpmode:false
+                coe (new listview ~title:"PAX selector"
+                       ~zebra:false ~helpmode:false
                        ~source ~trusted:true ~modehash)
            )) :: m_l
 
@@ -2201,7 +2209,8 @@ let enterinfomode =
                 in
                 state.text <- E.s;
                 let modehash = findkeyhash conf "info" in
-                coe (new listview ~zebra:false ~helpmode:false
+                coe (new listview ~title:"fit model selector"
+                       ~zebra:false ~helpmode:false
                        ~source ~trusted:true ~modehash)
            )) :: m_l
 
@@ -2632,30 +2641,29 @@ let enterinfomode =
     fillsrc prevmode prevuioh;
     let source = (src :> lvsource) in
     let modehash = findkeyhash conf "info" in
-    state.uioh <-
-      coe (object (self)
-             inherit listview ~zebra:false ~helpmode:false
-                       ~source ~trusted:true ~modehash as super
-             val mutable m_prevmemused = 0
-             method! infochanged = function
-               | Memused ->
-                  if m_prevmemused != state.memused
-                  then (
-                    m_prevmemused <- state.memused;
-                    postRedisplay "memusedchanged";
-                  )
-               | Pdim -> postRedisplay "pdimchanged"
-               | Docinfo -> fillsrc prevmode prevuioh
+    object (self)
+      inherit listview ~title:"setup" ~zebra:false ~helpmode:false
+                ~source ~trusted:true ~modehash as super
+      val mutable m_prevmemused = 0
+      method! infochanged = function
+        | Memused ->
+           if m_prevmemused != state.memused
+           then (
+             m_prevmemused <- state.memused;
+             postRedisplay "memusedchanged";
+           )
+        | Pdim -> postRedisplay "pdimchanged"
+        | Docinfo -> fillsrc prevmode prevuioh
 
-             method! key key mask =
-               if not (Wsi.withctrl mask)
-               then
-                 match [@warning "-fragile-match"] Wsi.ks2kt key with
-                 | Keys.Left  -> coe (self#updownlevel ~-1)
-                 | Keys.Right -> coe (self#updownlevel 1)
-                 | _ -> super#key key mask
-               else super#key key mask
-           end);
+      method! key key mask =
+        if not (Wsi.withctrl mask)
+        then
+          match [@warning "-fragile-match"] Wsi.ks2kt key with
+          | Keys.Left  -> coe (self#updownlevel ~-1)
+          | Keys.Right -> coe (self#updownlevel 1)
+          | _ -> super#key key mask
+        else super#key key mask
+    end |> setuioh;
     postRedisplay "info";
   );
 ;;
@@ -2696,9 +2704,8 @@ let enterhelpmode =
   fun () ->
   let modehash = findkeyhash conf "help" in
   resetmstate ();
-  state.uioh <- coe (new listview
-                       ~zebra:false ~helpmode:true
-                       ~source ~trusted:true ~modehash);
+  coe (new listview ~title:"help" ~zebra:false ~helpmode:true
+         ~source ~trusted:true ~modehash) |> setuioh;
   postRedisplay "help";
 ;;
 
@@ -2744,15 +2751,14 @@ let entermsgsmode =
      msgsource#reset;
      let source = (msgsource :> lvsource) in
      let modehash = findkeyhash conf "listview" in
-     state.uioh <-
-       coe (object
-             inherit listview ~zebra:false ~helpmode:false
-                       ~source ~trusted:false ~modehash as super
-             method! display =
-               if state.newerrmsgs
-               then msgsource#reset;
-               super#display
-           end);
+     coe (object
+           inherit listview ~title:"messages" ~zebra:false ~helpmode:false
+                     ~source ~trusted:false ~modehash as super
+           method! display =
+             if state.newerrmsgs
+             then msgsource#reset;
+             super#display
+         end) |> setuioh;
      postRedisplay "msgs";
 ;;
 
@@ -2889,10 +2895,9 @@ let enterannotmode opaque slinkindex =
   msgsource#reset s;
   let source = (msgsource :> lvsource) in
   let modehash = findkeyhash conf "listview" in
-  state.uioh <- coe (object
-                      inherit listview ~zebra:false ~helpmode:false
-                                ~source ~trusted:false ~modehash
-                    end);
+  object inherit listview ~title:"annotations" ~zebra:false
+                   ~helpmode:false ~source ~trusted:false ~modehash
+  end |> setuioh;
   postRedisplay "enterannotmode";
 ;;
 
@@ -3140,7 +3145,8 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
   let so = outlinesource (fetchoutlines `outlines) in
   let sb = outlinesource (fetchoutlines `bookmarks) in
   let sh = outlinesource (fetchoutlines `history) in
-  let mkselector sourcetype source =
+  let mkselector title sourcetype source =
+    let title = title ^ " selector" in
     (fun errmsg ->
       let outlines = fetchoutlines sourcetype () in
       if Array.length outlines = 0
@@ -3151,16 +3157,16 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
         let anchor = getanchor () in
         source#reset anchor outlines;
         state.text <- source#greetmsg;
-        state.uioh <-
-          coe (new outlinelistview ~zebra:(sourcetype=`history) ~source);
+        new outlinelistview ~title ~zebra:(sourcetype=`history) ~source
+        |> setuioh;
         postRedisplay "enter selector";
       )
     )
   in
-  let mkenter sourcetype errmsg s = fun () -> mkselector sourcetype s errmsg in
-  ( mkenter `outlines "document has no outline" so
-  , mkenter `bookmarks "document has no bookmarks (yet)" sb
-  , mkenter `history "history is empty" sh )
+  let mkenter title src errmsg s = fun () -> mkselector title src s errmsg in
+  ( mkenter "outline" `outlines "document has no outline" so
+  , mkenter "bookmark" `bookmarks "document has no bookmarks (yet)" sb
+  , mkenter "history" `history "history is empty" sh )
 ;;
 
 let addbookmark title a =
@@ -3849,7 +3855,7 @@ let linknavkeyboard key mask linknav =
 let keyboard key mask =
   if (key = Char.code 'g' && Wsi.withctrl mask) && not (istextentry state.mode)
   then wcmd U.interrupt ""
-  else state.uioh <- state.uioh#key key mask
+  else state.uioh#key key mask |> setuioh
 ;;
 
 let birdseyekeyboard key mask
@@ -4463,6 +4469,9 @@ let birdseyemouse button down x y mask
 let uioh = object
     method display = ()
 
+    method title =
+      if emptystr conf.title then Ffi.mbtoutf8 state.path else conf.title
+
     method key key mask =
       begin match state.mode with
       | Textentry textentry -> textentrykeyboard key mask textentry
@@ -4869,7 +4878,7 @@ let () =
         self#cleanup;
         reshape w h
       method mouse b d x y m =
-        if d && canselect ()
+        setuioh @@ if d && canselect ()
         then (
           (*
            * http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx
@@ -4889,24 +4898,24 @@ let () =
             then (
               self#cleanup;
               postRedisplay "cleanup";
-              state.uioh <- state.uioh#button b d x y m;
+              state.uioh#button b d x y m
             )
-            else state.uioh <- state.uioh#multiclick m_clicks x y m
+            else state.uioh#multiclick m_clicks x y m
           )
           else (
             self#cleanup;
             m_clicks <- 0;
             m_lastclicktime <- infinity;
-            state.uioh <- state.uioh#button b d x y m
+            state.uioh#button b d x y m
           );
         )
-        else state.uioh <- state.uioh#button b d x y m
+        else state.uioh#button b d x y m
       method motion x y =
         state.mpos <- (x, y);
-        state.uioh <- state.uioh#motion x y
+        state.uioh#motion x y |> setuioh
       method pmotion x y =
         state.mpos <- (x, y);
-        state.uioh <- state.uioh#pmotion x y
+        state.uioh#pmotion x y |> setuioh
       method key k m =
         vlog "k=%#x m=%#x" k m;
         let mascm = m land (
@@ -4940,15 +4949,15 @@ let () =
         | KSinto _ -> state.keystate <- KSnone
       method enter x y =
         state.mpos <- (x, y);
-        state.uioh <- state.uioh#pmotion x y
+        state.uioh#pmotion x y |> setuioh
       method leave = state.mpos <- (-1, -1)
       method winstate wsl = state.winstate <- wsl
       method quit : 'a. 'a = raise Quit
-      method scroll dx dy = state.uioh <- state.uioh#scroll dx dy
+      method scroll dx dy = state.uioh#scroll dx dy |> setuioh
       method zoom z x y = state.uioh#zoom z x y
       method opendoc path =
         state.mode <- View;
-        state.uioh <- uioh;
+        setuioh uioh;
         postRedisplay "opendoc";
         opendoc path state.password
     end
@@ -4989,16 +4998,10 @@ let () =
   GlTex.env (`color conf.texturecolor);
   state.ss <- ss;
   reshape ~firsttime:true winw winh;
-  state.uioh <- uioh;
+  setuioh uioh;
   if histmode
-  then (
-    Wsi.settitle "llpp (history)";
-    enterhistmode ();
-  )
-  else (
-    state.text <- "Opening " ^ (Ffi.mbtoutf8 state.path);
-    opendoc state.path state.password;
-  );
+  then enterhistmode ()
+  else opendoc state.path state.password;
   display ();
   Wsi.mapwin ();
   Wsi.setcursor Wsi.CURSOR_INHERIT;

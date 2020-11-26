@@ -102,6 +102,7 @@ class type uioh =
     method alwaysscrolly : bool
     method scroll : int -> int -> uioh
     method zoom : float -> int -> int -> unit
+    method title : string
   end;;
 
 module type TextEnumType = sig
@@ -319,6 +320,7 @@ let nouioh : uioh =
     method alwaysscrolly = false
     method scroll _ _ = self
     method zoom _ _ _ = ()
+    method title = E.s
   end;;
 
 let conf = { defconf with keyhashes = copykeyhashes defconf };;

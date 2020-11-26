@@ -230,13 +230,15 @@ class virtual lvsourcebase =
 
 let coe s = (s :> uioh);;
 
-class listview ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
+class listview ~title ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
 object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
   val m_active = source#getactive
   val m_qsearch = E.s
   val m_prev_uioh = state.uioh
+
+  method title = title
 
   method private elemunder y =
     if y < 0
