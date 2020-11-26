@@ -58,16 +58,37 @@ let setfontsize n =
   fstate.maxrows <- (state.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
 ;;
 
+let showtext c s =
+  state.text <- Printf.sprintf "%c%s" c s;
+  postRedisplay "showtext";
+;;
+
+let settextfmt fmt =
+  Printf.kprintf (fun s -> state.text <- s) fmt;
+;;
+
+let impmsg fmt =
+  Format.ksprintf (fun s -> showtext '!' s) fmt
+;;
+
+let adderrmsg src msg =
+  Buffer.add_string state.errmsgs msg;
+  state.newerrmsgs <- true;
+  postRedisplay src
+;;
+
+let adderrfmt src fmt =
+  Format.ksprintf (fun s -> adderrmsg src s) fmt
+;;
+
 let launchpath () =
   if emptystr conf.pathlauncher
-  then dolog "%s" state.path
-  else (
-    let command =
-      Str.global_replace Re.percent state.path conf.pathlauncher in
-    match spawn command [] with
+  then adderrmsg "path launcher" "command set"
+  else
+    let cmd = Str.global_replace Re.percent state.path conf.pathlauncher in
+    match spawn cmd [] with
     | _pid -> ()
-    | exception exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
-  );
+    | exception exn -> dolog "failed to execute `%s': %s" cmd @@ exntos exn
 ;;
 
 let getopaque pageno =
@@ -131,29 +152,6 @@ let unproject x y =
     | None -> None
   in
   onppundermouse g x y None;
-;;
-
-let showtext c s =
-  state.text <- Printf.sprintf "%c%s" c s;
-  postRedisplay "showtext";
-;;
-
-let settextfmt fmt =
-  Printf.kprintf (fun s -> state.text <- s) fmt;
-;;
-
-let impmsg fmt =
-  Format.ksprintf (fun s -> showtext '!' s) fmt
-;;
-
-let adderrmsg src msg =
-  Buffer.add_string state.errmsgs msg;
-  state.newerrmsgs <- true;
-  postRedisplay src
-;;
-
-let adderrfmt src fmt =
-  Format.ksprintf (fun s -> adderrmsg src s) fmt
 ;;
 
 let pipesel opaque cmd =
