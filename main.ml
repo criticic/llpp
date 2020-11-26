@@ -1133,9 +1133,7 @@ let getpassword () =
   let passcmd = getenvdef "LLPP_ASKPASS" conf.passcmd in
   if emptystr passcmd
   then E.s
-  else getcmdoutput (fun s ->
-           impmsg "error getting password: %s" s;
-           dolog "%s" s) passcmd;
+  else getcmdoutput (adderrfmt passcmd "failed to obrain password: %s") passcmd;
 ;;
 
 let pgoto opaque pageno x y =
@@ -3314,8 +3312,7 @@ let save () =
     let savecmd = Str.global_replace Re.percent state.path conf.savecmd in
     let path =
       getcmdoutput
-        (fun exn ->
-          adderrfmt savecmd "failed to produce path to the saved copy: %s" exn)
+        (adderrfmt savecmd "failed to obtain path to the saved copy: %s")
         savecmd
     in
     if nonemptystr path
