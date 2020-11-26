@@ -42,7 +42,7 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
 
 let setuioh uioh =
   state.uioh <- coe uioh;
-  Wsi.settitle @@ "llpp: " ^ uioh#title;
+  Wsi.settitle @@ uioh#title ^ " - llpp";
 ;;
 
 let hscrollh () =
@@ -815,7 +815,7 @@ let titlify path =
 let settitle title =
   conf.title <- title;
   if not !ignoredoctitlte
-  then Wsi.settitle @@ "llpp: " ^ title;
+  then Wsi.settitle @@ title ^ " - llpp";
 ;;
 
 let opendoc path password =
