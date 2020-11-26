@@ -710,7 +710,7 @@ static void initpdims1 (void)
                 else {
                     if (empty) {
                         if (fz_is_empty_rect (rootmediabox)) {
-                            printd ("emsg cannot find page %d size", pageno);
+                            printd ("emsg cannot find size of page %d", pageno);
                         }
                         else {
                             mediabox = rootmediabox;
