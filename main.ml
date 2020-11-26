@@ -91,10 +91,7 @@ let launchpath () =
     | exception exn -> dolog "failed to execute `%s': %s" cmd @@ exntos exn
 ;;
 
-let getopaque pageno =
-  try Some (Hashtbl.find state.pagemap (pageno, state.gen))
-  with Not_found -> None
-;;
+let getopaque pageno = Hashtbl.find_opt state.pagemap (pageno, state.gen);;
 
 let pagetranslatepoint l x y =
   let dy = y - l.pagedispy in
@@ -404,8 +401,7 @@ let itertiles l f =
 let gettileopaque l col row =
   let key = l.pageno, state.gen, conf.colorspace,
             conf.angle, l.pagew, l.pageh, col, row in
-  try Some (Hashtbl.find state.tilemap key)
-  with Not_found -> None
+  Hashtbl.find_opt state.tilemap key
 ;;
 
 let puttileopaque l col row gen colorspace angle opaque size elapsed =
