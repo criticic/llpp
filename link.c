@@ -1,6 +1,4 @@
 /* lots of code c&p-ed directly from mupdf */
-#define FIXME 0
-
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
