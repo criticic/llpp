@@ -1567,7 +1567,7 @@ let gc () =
     let f path v =
       if Sys.file_exists path
       then Some v
-      else (dolog "removing entry for '%s'" path; None) in
+      else (dolog1 "removing entry for %S" path; None) in
     Hashtbl.filter_map_inplace f h;
     href := h;
     cref := dc;
