@@ -634,7 +634,7 @@ let mapc code =
     | n -> n
   in
   match state.mode with
-  | View -> viewmapcode code
+  | View -> if conf.remaphtns then viewmapcode code else code
   | LinkNav _ | Textentry _ | Birdseye _ -> code
 ;;
 
