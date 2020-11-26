@@ -1776,13 +1776,12 @@ let optentry mode _ key =
 
 class outlinelistview ~title ~zebra ~source =
   let settext autonarrow s =
-    if autonarrow
-    then
-      let ss = source#statestr in
-      state.text <- if emptystr ss
-                    then "[" ^ s ^ "]"
-                    else "{" ^ ss ^ "} [" ^ s ^ "]"
-    else state.text <- s
+    state.text <-
+      if autonarrow
+      then
+        let ss = source#statestr in
+        if emptystr ss then "[" ^ s ^ "]" else "{" ^ ss ^ "} [" ^ s ^ "]"
+      else s
   in
   object (self)
     inherit listview
