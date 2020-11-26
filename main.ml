@@ -2124,7 +2124,8 @@ let enterinfomode =
            (name, `string get, 1,
             Action (fun u ->
                 let ondone s = set s in
-                let te = name ^ ": ", E.s, None, textentry, ondone, true in
+                let te =
+                  String.trim name ^ ": ", E.s, None, textentry, ondone, true in
                 state.mode <- Textentry (te, leave m_prev_mode);
                 u
            )) :: m_l
