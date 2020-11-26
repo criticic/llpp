@@ -804,6 +804,20 @@ let fillhelp () =
        @ (("", 0, Noaction) :: loop [] sl) |> Array.of_list
 ;;
 
+let titlify path =
+  if emptystr path
+  then path
+  else
+    (if emptystr state.origin then path else state.origin)
+    |> Filename.basename |> Ffi.mbtoutf8;
+;;
+
+let settitle title =
+  conf.title <- title;
+  if not !ignoredoctitlte
+  then Wsi.settitle @@ "llpp: " ^ title;
+;;
+
 let opendoc path password =
   state.path <- path;
   state.password <- password;
@@ -816,12 +830,7 @@ let opendoc path password =
   Ffi.setpapercolor conf.papercolor;
   Ffi.setdcf conf.dcf;
 
-  let titlepath =
-    if emptystr state.origin
-    then path
-    else state.origin
-  in
-  Wsi.settitle ("llpp: " ^ Ffi.mbtoutf8 (Filename.basename titlepath));
+  Wsi.settitle @@ titlify path;
   wcmd U.dopen "%d %d %s\000%s\000%s\000"
     (btod conf.usedoccss) !layouth
     path password conf.css;
@@ -1375,8 +1384,7 @@ let act cmds =
      let s =
        match splitatchar args '\t' with
        | "Title", v ->
-          conf.title <- v;
-          if not !ignoredoctitlte then Wsi.settitle @@ "llpp: " ^ v;
+          settitle v;
           args
        | _, "" -> args
        | c, v ->
@@ -4470,7 +4478,9 @@ let uioh = object
     method display = ()
 
     method title =
-      if emptystr conf.title then Ffi.mbtoutf8 state.path else conf.title
+      if emptystr conf.title
+      then titlify state.path
+      else conf.title
 
     method key key mask =
       begin match state.mode with
