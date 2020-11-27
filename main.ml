@@ -4687,7 +4687,6 @@ let ract cmds =
        with exn -> adderrfmt "error processing keys" "`%S': %s\n"
                      cmds @@ exntos exn
      end
-  | "clearrects", "" -> postRedisplay "clearrects"
   | _ ->
      adderrfmt "remote command"
        "error processing remote command: %S\n" cmds;
