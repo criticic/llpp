@@ -258,7 +258,6 @@ type state =
   ; mutable searchpattern : string
   ; mutable rects         : (pageno * rectcolor * rect) list
   ; mutable rects1        : (pageno * rectcolor * rect) list
-  ; prects                : (pageno, float array) Hashtbl.t
   ; mutable text          : string
   ; mutable winstate      : Wsi.winstate list
   ; mutable mode          : mode
@@ -395,7 +394,6 @@ let state =
   ; mstate        = Mnone
   ; rects         = []
   ; rects1        = []
-  ; prects        = Hashtbl.create 1
   ; text          = E.s
   ; mode          = View
   ; winstate      = []

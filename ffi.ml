@@ -43,8 +43,6 @@ external hasunsavedchanges : unit -> bool = "ml_hasunsavedchanges";;
 external savedoc : string -> unit = "ml_savedoc";;
 external getannotcontents : opaque -> slinkindex -> string
   = "ml_getannotcontents";;
-external drawprect : opaque -> int -> int -> float array -> unit
-  = "ml_drawprect";;
 external wcmd : Unix.file_descr -> bytes -> int -> unit = "ml_wcmd";;
 external rcmd : Unix.file_descr -> string = "ml_rcmd";;
 external uritolocation : string -> (pageno * float * float)

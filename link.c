@@ -1760,25 +1760,6 @@ static void stipplerect (fz_matrix m,
     glDrawArrays (GL_LINES, 0, 8);
 }
 
-static void solidrect (fz_matrix m,
-                       fz_point p1,
-                       fz_point p2,
-                       fz_point p3,
-                       fz_point p4,
-                       GLfloat *vertices)
-{
-    p1 = fz_transform_point (p1, m);
-    p2 = fz_transform_point (p2, m);
-    p3 = fz_transform_point (p3, m);
-    p4 = fz_transform_point (p4, m);
-    vertices[0] = p1.x; vertices[1] = p1.y;
-    vertices[2] = p2.x; vertices[3] = p2.y;
-
-    vertices[4] = p3.x; vertices[5] = p3.y;
-    vertices[6] = p4.x; vertices[7] = p4.y;
-    glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
-}
-
 static void ensurelinks (struct page *page)
 {
     if (!page->links) {
@@ -2158,40 +2139,6 @@ ML0 (drawtile (value args_v, value ptr_v))
     CAMLreturn0;
 }
 
-static void drawprect (struct page *page, int xoff, int yoff, value rects_v)
-{
-    fz_matrix ctm;
-    fz_point p1, p2, p3, p4;
-    GLfloat *vertices = state.vertices;
-
-    xoff -= state.pagedims[page->pdimno].bounds.x0;
-    yoff -= state.pagedims[page->pdimno].bounds.y0;
-    ctm = fz_concat (pagectm (page), fz_translate (xoff, yoff));
-
-    glEnable (GL_BLEND);
-    glVertexPointer (2, GL_FLOAT, 0, vertices);
-
-    glColor4d (
-        Double_array_field (rects_v, 0),
-        Double_array_field (rects_v, 1),
-        Double_array_field (rects_v, 2),
-        Double_array_field (rects_v, 3)
-        );
-    p1.x = (float) Double_array_field (rects_v, 4);
-    p1.y = (float) Double_array_field (rects_v, 5);
-
-    p2.x = (float) Double_array_field (rects_v, 6);
-    p2.y = p1.y;
-
-    p3.x = p2.x;
-    p3.y = (float) Double_array_field (rects_v, 7);
-
-    p4.x = p1.x;
-    p4.y = p3.y;
-    solidrect (ctm, p1, p2, p3, p4, vertices);
-    glDisable (GL_BLEND);
-}
-
 ML (postprocess (value ptr_v, value hlmask_v,
                  value xoff_v, value yoff_v, value li_v))
 {
@@ -2233,17 +2180,6 @@ ML (postprocess (value ptr_v, value hlmask_v,
 
  done:
     CAMLreturn (Val_int (noff));
-}
-
-ML0 (drawprect (value ptr_v, value xoff_v, value yoff_v, value rects_v))
-{
-    CAMLparam4 (ptr_v, xoff_v, yoff_v, rects_v);
-    int xoff = Int_val (xoff_v);
-    int yoff = Int_val (yoff_v);
-    struct page *page = parse_pointer (__func__, String_val (ptr_v));
-
-    drawprect (page, xoff, yoff, rects_v);
-    CAMLreturn0;
 }
 
 static struct annot *getannot (struct page *page, int x, int y)

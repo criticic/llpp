@@ -3402,9 +3402,7 @@ let viewkeyboard key mask =
   | Ascii 'u' ->
      state.rects <- [];
      state.text <- E.s;
-     Hashtbl.iter (fun _ opaque ->
-         Ffi.clearmark opaque;
-         Hashtbl.clear state.prects) state.pagemap;
+     Hashtbl.iter (fun _ opaque -> Ffi.clearmark opaque) state.pagemap;
      postRedisplay "dehighlight";
   | Ascii (('/' | '?') as c) ->
      let ondone isforw s =
@@ -3995,8 +3993,6 @@ let postdrawpage l linkindexbase =
          | View
          | LinkNav _ -> E.s
        in
-       Hashtbl.find_all state.prects l.pageno |>
-         List.iter (fun vals -> Ffi.drawprect opaque x y vals);
        let n =
          Ffi.postprocess opaque hlmask x y
            (linkindexbase, s, conf.hfsize, conf.hcs) in
@@ -4606,10 +4602,6 @@ let uioh = object
       pivotzoom ~x ~y (conf.zoom *. exp z);
   end;;
 
-let addrect pageno r g b a x0 y0 x1 y1 =
-  Hashtbl.add state.prects pageno [|r; g; b; a; x0; y0; x1; y1|];
-;;
-
 let ract cmds =
   let cl = splitatchar cmds ' ' in
   let scan s fmt f =
@@ -4660,12 +4652,6 @@ let ract cmds =
          let color = (0.0, 0.0, 1.0 /. float c, 0.5) in
          rectx "rect" pageno color x0 y0 x1 y1;
        )
-  | "prect", args ->
-     scan args "%u %f %f %f %f %f %f %f %f"
-       (fun pageno r g b alpha x0 y0 x1 y1 ->
-         addrect pageno r g b alpha x0 y0 x1 y1;
-         postRedisplay "prect"
-       )
   | "pgoto", args ->
      scan args "%u %f %f"
        (fun pageno x y ->
@@ -4701,9 +4687,7 @@ let ract cmds =
        with exn -> adderrfmt "error processing keys" "`%S': %s\n"
                      cmds @@ exntos exn
      end
-  | "clearrects", "" ->
-     Hashtbl.clear state.prects;
-     postRedisplay "clearrects"
+  | "clearrects", "" -> postRedisplay "clearrects"
   | _ ->
      adderrfmt "remote command"
        "error processing remote command: %S\n" cmds;
