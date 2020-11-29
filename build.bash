@@ -18,7 +18,7 @@ wsid="wsi/x11"
 clip="LC_CTYPE=UTF-8 xclip -i"
 paste="LC_CTYPE=UTF-8 xclip -o"
 uriop="echo '%s' >&2"
-print="echo 'don't know how to print %s on this platform' >&2"
+print="echo 'Print %s' >&2"
 case "$(uname)" in
     Darwin)
         darwin=true
@@ -249,11 +249,12 @@ bobjc() {
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
 
-cmd="(export paste clip uriop; . $srcd/genconfstruct.sh >$outd/confstruct.ml)"
-keycmd="digest $srcd/genconfstruct.sh $outd/confstruct.ml"
+gen=$srcd/genconfstruct.sh
+cmd="(export print paste clip uriop; . $gen >$outd/confstruct.ml)"
+keycmd="digest $gen $outd/confstruct.ml"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"
-    eval "$cmd" || die genconfstruct.sh failed
+    eval "$cmd" || die $gen failed
     echo "$cmd$(eval $keycmd)" > "$outd/confstruct.ml.past"
 } && vecho "fresh $outd/confstruct.ml"
 
