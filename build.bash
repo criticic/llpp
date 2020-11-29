@@ -59,7 +59,7 @@ isfresh "$mulibst" "$(eval $keycmd)" || (
 ) && vecho "fresh mupdf"
 
 oincs() {
-    local i incs1= incs=
+    local i incs1= incs="-I $srcd -I $outd"
     case "${1#$outd/}" in
         lablGL/*) incs1="lablGL";;
         main.cmo) incs1="$wsid lablGL";;
@@ -69,7 +69,7 @@ oincs() {
     for i in $incs1; do
         incs+=" -I $srcd/$i -I $outd/$i"
     done
-    echo "-I $srcd -I $outd$incs"
+    echo $incs
 }
 
 oflags() {
