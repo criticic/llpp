@@ -401,7 +401,7 @@ object (self)
       if i = len
       then i-1
       else (
-        if i = -1
+        if i < 0
         then 0
         else
           let _, l = source#getitem i in
