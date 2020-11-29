@@ -40,10 +40,12 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
          }|} x0 y0 x1 y1 x2 y2 x3 y3;
 ;;
 
-let setuioh uioh =
+let setuioh ?(changetitle=false) uioh =
   state.uioh <- coe uioh;
-  let title = uioh#title in
-  Wsi.settitle @@ if emptystr title then "llpp" else title ^ " - llpp";
+  if changetitle
+  then
+    let title = uioh#title in
+    Wsi.settitle @@ if emptystr title then "llpp" else title ^ " - llpp";
 ;;
 
 let hscrollh () =
@@ -2654,7 +2656,7 @@ let enterinfomode =
           | Keys.Right -> coe (self#updownlevel 1)
           | _ -> super#key key mask
         else super#key key mask
-    end |> setuioh;
+    end |> setuioh ~changetitle:true;
     postRedisplay "info";
   );
 ;;
@@ -2695,8 +2697,8 @@ let enterhelpmode =
   fun () ->
   let modehash = findkeyhash conf "help" in
   resetmstate ();
-  coe (new listview ~title:"help" ~zebra:false ~helpmode:true
-         ~source ~trusted:true ~modehash) |> setuioh;
+  new listview ~title:"help" ~zebra:false ~helpmode:true
+    ~source ~trusted:true ~modehash |> setuioh ~changetitle:true;
   postRedisplay "help";
 ;;
 
@@ -2742,14 +2744,14 @@ let entermsgsmode =
      msgsource#reset;
      let source = (msgsource :> lvsource) in
      let modehash = findkeyhash conf "listview" in
-     coe (object
-           inherit listview ~title:"messages" ~zebra:false ~helpmode:false
-                     ~source ~trusted:false ~modehash as super
-           method! display =
-             if state.newerrmsgs
-             then msgsource#reset;
-             super#display
-         end) |> setuioh;
+     object
+       inherit listview ~title:"messages" ~zebra:false ~helpmode:false
+                 ~source ~trusted:false ~modehash as super
+       method! display =
+         if state.newerrmsgs
+         then msgsource#reset;
+         super#display
+     end |> setuioh ~changetitle:true;
      postRedisplay "msgs";
 ;;
 
@@ -2888,7 +2890,7 @@ let enterannotmode opaque slinkindex =
   let modehash = findkeyhash conf "listview" in
   object inherit listview ~title:"annotations" ~zebra:false
                    ~helpmode:false ~source ~trusted:false ~modehash
-  end |> setuioh;
+  end |> setuioh ~changetitle:true;
   postRedisplay "enterannotmode";
 ;;
 
@@ -3147,8 +3149,8 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
         let anchor = getanchor () in
         source#reset anchor outlines;
         state.text <- source#greetmsg;
-        new outlinelistview ~title ~zebra:(sourcetype=`history) ~source
-        |> setuioh;
+        new outlinelistview ~title
+          ~zebra:(sourcetype=`history) ~source |> setuioh ~changetitle:true;
         postRedisplay "enter selector";
       )
     )
@@ -3842,7 +3844,7 @@ let linknavkeyboard key mask linknav =
 let keyboard key mask =
   if (key = Char.code 'g' && Wsi.withctrl mask) && not (istextentry state.mode)
   then wcmd U.interrupt ""
-  else state.uioh#key key mask |> setuioh
+  else state.uioh#key key mask |> setuioh ~changetitle:false
 ;;
 
 let birdseyekeyboard key mask
@@ -4852,7 +4854,7 @@ let () =
         self#cleanup;
         reshape w h
       method mouse b d x y m =
-        setuioh @@ if d && canselect ()
+        setuioh ~changetitle:false @@ if d && canselect ()
         then (
           (*
            * http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx
@@ -4886,10 +4888,10 @@ let () =
         else state.uioh#button b d x y m
       method motion x y =
         state.mpos <- (x, y);
-        state.uioh#motion x y |> setuioh
+        state.uioh#motion x y |> setuioh ~changetitle:false
       method pmotion x y =
         state.mpos <- (x, y);
-        state.uioh#pmotion x y |> setuioh
+        state.uioh#pmotion x y |> setuioh ~changetitle:false
       method key k m =
         vlog "k=%#x m=%#x" k m;
         let mascm = m land (
@@ -4923,11 +4925,12 @@ let () =
         | KSinto _ -> state.keystate <- KSnone
       method enter x y =
         state.mpos <- (x, y);
-        state.uioh#pmotion x y |> setuioh
+        state.uioh#pmotion x y |> setuioh ~changetitle:false
       method leave = state.mpos <- (-1, -1)
       method winstate wsl = state.winstate <- wsl
       method quit : 'a. 'a = raise Quit
-      method scroll dx dy = state.uioh#scroll dx dy |> setuioh
+      method scroll dx dy =
+        state.uioh#scroll dx dy |> setuioh ~changetitle:false
       method zoom z x y = state.uioh#zoom z x y
       method opendoc path =
         state.mode <- View;
