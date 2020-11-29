@@ -393,26 +393,19 @@ static void unlinktile (struct tile *tile)
 
 static void freepage (struct page *page)
 {
-    if (!page) {
-        return;
-    }
-    if (page->text) {
+    if (page) {
         fz_drop_stext_page (state.ctx, page->text);
-    }
-    if (page->slinks) {
         free (page->slinks);
+        fz_drop_display_list (state.ctx, page->dlist);
+        fz_drop_page (state.ctx, page->fzpage);
+        free (page);
     }
-    fz_drop_display_list (state.ctx, page->dlist);
-    fz_drop_page (state.ctx, page->fzpage);
-    free (page);
 }
 
 static void freetile (struct tile *tile)
 {
     unlinktile (tile);
-    if (state.pig) {
-        fz_drop_pixmap (state.ctx, state.pig);
-    }
+    fz_drop_pixmap (state.ctx, state.pig);
     state.pig = tile->pixmap;
     free (tile);
 }
@@ -1081,12 +1074,8 @@ static void search (regex_t *re, int pageno, int y, int forward)
         if (niters++ == 5) {
             niters = 0;
             if (hasdata (state.csock)) {
-                if (text) {
-                    fz_drop_stext_page (state.ctx, text);
-                }
-                if (page) {
-                    fz_drop_page (state.ctx, page);
-                }
+                fz_drop_stext_page (state.ctx, text);
+                fz_drop_page (state.ctx, page);
                 the_searchresult = Interrupted;
                 break;
             }
@@ -2283,9 +2272,7 @@ ML (find_page_with_links (value start_page_v, value dir_v))
             fz_catch (state.ctx) {
                 found = 0;
             }
-            if (page) {
-                fz_drop_page (state.ctx, &page->super);
-            }
+            fz_drop_page (state.ctx, &page->super);
         }
         else {
             fz_page *page = fz_load_page (state.ctx, state.doc, i);
