@@ -410,7 +410,7 @@ object (self)
     in
     let active = flow (m_active+incr) in
     let first = calcfirst m_first active in
-    postRedisplay "outline nextcurlevel";
+    postRedisplay "listview nextcurlevel";
     {< m_active = active; m_first = first >}
 
   method updownlevel incr =
@@ -431,7 +431,7 @@ object (self)
     in
     let active = flow m_active in
     let first = calcfirst m_first active in
-    postRedisplay "outline updownlevel";
+    postRedisplay "listview updownlevel";
     {< m_active = active; m_first = first >}
 
   method private key1 key mask =
