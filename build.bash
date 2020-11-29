@@ -4,7 +4,10 @@ set -eu
 now() { date +%s; }
 S=$(now)
 vecho() { ${vecho-:} "$*"; }
-digest() { cksum $* | while read d _; do printf $d; done; } 2>/dev/null
+executable_p() { command -v "$1" >/dev/null 2>&1; }
+dgst='cksum $* | while read d _; do printf $d; done'
+! executable_p b3sum || dgst='b3sum -l8 --no-names $*'
+eval "digest() { $dgst; } 2>/dev/null"
 die() { echo "$*" >&2; exit 111; }
 partmsg() { echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"; }
 
@@ -113,7 +116,6 @@ test "$overs" = "4.12.0~alpha1" || {
     txz=$outd/$(basename $url)
     keycmd="printf $url; digest $txz;"
     isfresh $txz "$(eval $keycmd)" || {
-        executable_p() { command -v "$1" >/dev/null 2>&1; }
         if executable_p wget; then dl() { wget -q "$1" -O "$2"; }
         elif executable_p curl; then dl() { curl -L "$1" -o "$2"; }
         else die "no program to fetch remote urls found"
