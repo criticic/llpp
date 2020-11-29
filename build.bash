@@ -69,7 +69,7 @@ oincs() {
     for i in $incs1; do
         incs+=" -I $srcd/$i -I $outd/$i"
     done
-    echo "-I $srcd -I $outd $incs"
+    echo "-I $srcd -I $outd$incs"
 }
 
 oflags() {
