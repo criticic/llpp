@@ -18,7 +18,7 @@ wsid="wsi/x11"
 clip="LC_CTYPE=UTF-8 xclip -i"
 paste="LC_CTYPE=UTF-8 xclip -o"
 uriop="echo '%s' >&2"
-print="Print '%s' >&2"
+print="echo 'don't know how to print %s on this platform' >&2"
 case "$(uname)" in
     Darwin)
         darwin=true
@@ -27,6 +27,7 @@ case "$(uname)" in
         clip="LC_CTYPE=UTF-8 pbcopy"
         paste="LC_CTYPE=UTF-8 pbaste"
         uriop='open "%s"'
+        print="Print '%s' >&2"
         mbt=${mbt:-release};;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     OpenBSD) mjobs=$(getconf NPROCESSORS_ONLN || echo 1);;
