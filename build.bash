@@ -30,7 +30,6 @@ case "$(uname)" in
         print="Print '%s' >&2"
         mbt=${mbt:-release};;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
-    OpenBSD) mjobs=$(getconf NPROCESSORS_ONLN || echo 1);;
     *) die $(uname) is not supported;;
 esac
 
