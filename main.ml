@@ -3644,7 +3644,7 @@ let viewkeyboard key mask =
         end
      | Some n -> setautoscrollspeed n true
      end
-  | Left when Wsi.withctrl mask -> enterhistmode ()
+  | Left when Wsi.withshift mask -> enterhistmode ()
   | Fn 1 -> enterhelpmode ()
   | Left when Wsi.withalt mask -> enterhelpmode ()
   | Left | Right when not (Wsi.withalt mask) ->
