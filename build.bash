@@ -63,7 +63,7 @@ oincs() {
     case "${1#$outd/}" in
         lablGL/*) incs1="lablGL";;
         main.cmo) incs1="$wsid lablGL";;
-        glutils.cmo|listview.cmo) incs1="lablGL";;
+        glutils.cmo|uiutils.cmo) incs1="lablGL";;
         *) ;;
     esac
     for i in $incs1; do

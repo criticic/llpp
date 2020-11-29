@@ -1,7 +1,7 @@
 open Utils;;
 open Config;;
 open Glutils;;
-open Listview;;
+open Uiutils;;
 
 module U = struct
   let dopen         = '\023';;
