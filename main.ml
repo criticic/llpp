@@ -2029,6 +2029,13 @@ let setpresentationmode v =
   represent ();
 ;;
 
+let infomenu =
+  let modehash = lazy (findkeyhash conf "info") in (fun source ->
+      state.text <- E.s;
+      new listview ~zebra:false ~helpmode:false ~source
+        ~trusted:true ~modehash:(Lazy.force_val modehash) |> coe)
+;;
+
 let enterinfomode =
   let btos b = if b then Utf8syms.radical else E.s in
   let showextended = ref false in
@@ -2136,10 +2143,7 @@ let enterinfomode =
                     method hasaction _ = true
                   end)
                in
-               state.text <- E.s;
-               let modehash = findkeyhash conf "info" in
-               coe (new listview ~zebra:false ~helpmode:false
-                      ~source ~trusted:true ~modehash)
+               infomenu source
           )) :: m_l
 
       method paxmark name get set =
@@ -2163,10 +2167,7 @@ let enterinfomode =
                     method hasaction _ = true
                   end)
                in
-               state.text <- E.s;
-               let modehash = findkeyhash conf "info" in
-               coe (new listview ~zebra:false ~helpmode:false
-                      ~source ~trusted:true ~modehash)
+               infomenu source
           )) :: m_l
 
       method fitmodel name get set =
@@ -2190,10 +2191,7 @@ let enterinfomode =
                     method hasaction _ = true
                   end)
                in
-               state.text <- E.s;
-               let modehash = findkeyhash conf "info" in
-               coe (new listview ~zebra:false ~helpmode:false
-                      ~source ~trusted:true ~modehash)
+               infomenu source
           )) :: m_l
 
       method caption s offset =
@@ -2621,7 +2619,6 @@ let enterinfomode =
            )
         | Pdim -> postRedisplay "pdimchanged"
         | Docinfo -> fillsrc prevmode prevuioh
-
       method! key key mask =
         if not (Wsi.withctrl mask)
         then
