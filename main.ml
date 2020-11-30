@@ -1388,8 +1388,8 @@ let act cmds =
   | "info", args ->
      let s =
        match splitatchar args '\t' with
-       | "Title", v ->
-          settitle v;
+       | "Title", v  ->
+          settitle @@ if nonemptystr v then v else Filename.basename state.path;
           args
        | _, "" -> args
        | c, v ->
