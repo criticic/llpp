@@ -2050,7 +2050,7 @@ let enterinfomode =
                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
                in
                state.text <- E.s;
-               let te = name ^ ": ", E.s, None, intentry, ondone, true in
+               let te = (name ^ ": ", E.s, None, intentry, ondone, true) in
                state.mode <- Textentry (te, leave m_prev_mode);
                u
           )) :: m_l
@@ -2064,9 +2064,8 @@ let enterinfomode =
                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
                in
                state.text <- E.s;
-               let te =
-                 name ^ ": ", E.s, None, intentry_with_suffix, ondone, true
-               in
+               let te = (name ^ ": ", E.s, None, intentry_with_suffix,
+                         ondone, true) in
                state.mode <- Textentry (te, leave m_prev_mode);
                u
           )) :: m_l
@@ -2089,7 +2088,7 @@ let enterinfomode =
                  if c <> invalid
                  then set c;
                in
-               let te = name ^ ": ", E.s, None, textentry, ondone, true in
+               let te = (name ^ ": ", E.s, None, textentry, ondone, true) in
                state.text <- color_to_string (get ());
                state.mode <- Textentry (te, leave m_prev_mode);
                u
@@ -2100,8 +2099,8 @@ let enterinfomode =
           (name, `string get, 1,
            Action (fun u ->
                let ondone s = set s in
-               let te =
-                 String.trim name ^ ": ", E.s, None, textentry, ondone, true in
+               let te = (String.trim name ^ ": ", E.s, None,
+                         textentry, ondone, true) in
                state.mode <- Textentry (te, leave m_prev_mode);
                u
           )) :: m_l
@@ -2816,11 +2815,8 @@ let enterannotmode opaque slinkindex =
            if inline
            then
              let mode = state.mode in
-             state.mode <-
-               Textentry (
-                   ("annotation: ", m_text, None, textentry, update, true),
-                   fun _ -> state.mode <- mode
-                 );
+             let te = ("annotation: ", m_text, None, textentry, update, true) in
+             state.mode <- Textentry (te, fun _ -> state.mode <- mode);
              state.text <- E.s;
              enttext ();
            else getusertext m_text |> update
@@ -3456,13 +3452,9 @@ let viewkeyboard key mask =
      then (
        state.glinks <- true;
        let mode = state.mode in
-       state.mode <-
-         Textentry (
-             ("goto: ", E.s, None, linknentry, linknact gotounder, false),
-             (fun _ ->
-               state.glinks <- false;
-               state.mode <- mode)
-           );
+       let te = ("goto: ", E.s, None, linknentry, linknact gotounder, false) in
+       state.mode <- Textentry (te, (fun _ -> state.glinks <- false;
+                                              state.mode <- mode));
        state.text <- E.s;
        postRedisplay "view:linkent(F)"
      )
@@ -3470,15 +3462,11 @@ let viewkeyboard key mask =
   | Ascii 'y' ->
      state.glinks <- true;
      let mode = state.mode in
-     state.mode <-
-       Textentry (
-           ("copy: ", E.s, None, linknentry,
-            linknact (fun under ->
-                selstring conf.selcmd (undertext under)), false),
-           (fun _ ->
-             state.glinks <- false;
-             state.mode <- mode)
-         );
+     let te = ("copy: ", E.s, None, linknentry,
+               linknact (fun under -> selstring conf.selcmd (undertext under)),
+               false) in
+     state.mode <- Textentry (te, (fun _ -> state.glinks <- false;
+                                            state.mode <- mode));
      state.text <- E.s;
      postRedisplay "view:linkent"
   | Ascii 'a' ->
@@ -4126,11 +4114,9 @@ let annot inline x y =
      in
      if inline
      then
-       let ondone s = add s in
        let mode = state.mode in
-       state.mode <- Textentry (
-                         ("annotation: ", E.s, None, textentry, ondone, true),
-                         fun _ -> state.mode <- mode);
+       let te = ("annotation: ", E.s, None, textentry, add, true) in
+       state.mode <- Textentry (te, fun _ -> state.mode <- mode);
        state.text <- E.s;
        enttext ();
        postRedisplay "annot"

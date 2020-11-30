@@ -131,10 +131,8 @@ let textentrykeyboard
     match opthist with
     | None -> ()
     | Some (action, _) ->
-       state.mode <- Textentry (
-                         (c, action cmd, opthist,
-                          onkey, ondone, cancelonempty),
-                         onleave);
+       let te = (c, action cmd, opthist, onkey, ondone, cancelonempty) in
+       state.mode <- Textentry (te, onleave);
        postRedisplay "textentry histaction"
   in
   let open Keys in
