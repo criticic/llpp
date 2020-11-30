@@ -83,7 +83,8 @@ let launchpath () =
     let cmd = Str.global_replace Re.percent state.path conf.pathlauncher in
     match spawn cmd [] with
     | _pid -> ()
-    | exception exn -> dolog "failed to execute `%s': %s" cmd @@ exntos exn
+    | exception exn ->
+       adderrfmt "spawn" "failed to execute `%s': %s" cmd @@ exntos exn
 ;;
 
 let getopaque pageno = Hashtbl.find_opt state.pagemap (pageno, state.gen);;
@@ -1118,12 +1119,12 @@ let pgoto opaque pageno x y =
 ;;
 
 let act cmds =
-  (* dolog "%S" cmds; *)
+  (* dolog1 "%S" cmds; *)
   let spl = splitatchar cmds ' ' in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
-      dolog "error processing '%S': %s" cmds @@ exntos exn;
+      dolog1 "error scanning %S: %s" cmds @@ exntos exn;
       exit 1
   in
   let addoutline outline =
@@ -1131,7 +1132,7 @@ let act cmds =
     | Outlining outlines -> state.currently <- Outlining (outline :: outlines)
     | Idle -> state.currently <- Outlining [outline]
     | Loading _ | Tiling _ ->
-       dolog "invalid outlining state";
+       dolog1 "invalid outlining state";
        logcurrently state.currently
   in
   match spl with
@@ -1276,7 +1277,7 @@ let act cmds =
         )
 
      | Idle | Tiling _ | Outlining _ ->
-        dolog "Inconsistent loading state";
+        dolog1 "Inconsistent loading state";
         logcurrently state.currently;
         exit 1
      end
@@ -1320,7 +1321,7 @@ let act cmds =
         )
 
      | Idle | Loading _ | Outlining _ ->
-        dolog "Inconsistent tiling state";
+        dolog1 "Inconsistent tiling state";
         logcurrently state.currently;
         exit 1
      end
