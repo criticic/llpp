@@ -236,7 +236,7 @@ let changetitle uioh =
   Wsi.settitle @@ if emptystr title then "llpp" else title ^ " - llpp";
 ;;
 
-class listview ~title ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
+class listview ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
 object (self)
   val m_pan = source#getpan
   val m_first = source#getfirst
@@ -244,7 +244,6 @@ object (self)
   val m_qsearch = E.s
   val m_prev_uioh = state.uioh
 
-  initializer ignore (* Wsi.settitle *) title
   method private elemunder y =
     if y < 0
     then None

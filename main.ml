@@ -1771,7 +1771,7 @@ let optentry mode _ key =
   | _ -> TEcont state.text
 ;;
 
-class outlinelistview ~title ~zebra ~source =
+class outlinelistview ~zebra ~source =
   let settext autonarrow s =
     state.text <-
       if autonarrow
@@ -1782,7 +1782,6 @@ class outlinelistview ~title ~zebra ~source =
   in
   object (self)
     inherit listview
-              ~title
               ~zebra
               ~helpmode:false
               ~source:(source :> lvsource)
@@ -2035,221 +2034,217 @@ let enterinfomode =
   let showextended = ref false in
   let showcolors = ref false in
   let leave mode _ =  state.mode <- mode in
-  let src =
-    (object
-       val mutable m_l = []
-       val mutable m_a = E.a
-       val mutable m_prev_uioh = nouioh
-       val mutable m_prev_mode = View
+  let src = object
+      val mutable m_l = []
+      val mutable m_a = E.a
+      val mutable m_prev_uioh = nouioh
+      val mutable m_prev_mode = View
 
-       inherit lvsourcebase
+      inherit lvsourcebase
 
-       method reset prev_mode prev_uioh =
-         m_a <- Array.of_list (List.rev m_l);
-         m_l <- [];
-         m_prev_mode <- prev_mode;
-         m_prev_uioh <- prev_uioh;
+      method reset prev_mode prev_uioh =
+        m_a <- Array.of_list (List.rev m_l);
+        m_l <- [];
+        m_prev_mode <- prev_mode;
+        m_prev_uioh <- prev_uioh;
 
-       method int name get set =
-         m_l <-
-           (name, `int get, 1,
-            Action (fun u ->
-                let ondone s =
-                  try set (int_of_string s)
-                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
-                in
-                state.text <- E.s;
-                let te = name ^ ": ", E.s, None, intentry, ondone, true in
-                state.mode <- Textentry (te, leave m_prev_mode);
-                u
-           )) :: m_l
+      method int name get set =
+        m_l <-
+          (name, `int get, 1,
+           Action (fun u ->
+               let ondone s =
+                 try set (int_of_string s)
+                 with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
+               in
+               state.text <- E.s;
+               let te = name ^ ": ", E.s, None, intentry, ondone, true in
+               state.mode <- Textentry (te, leave m_prev_mode);
+               u
+          )) :: m_l
 
-       method int_with_suffix name get set =
-         m_l <-
-           (name, `intws get, 1,
-            Action (fun u ->
-                let ondone s =
-                  try set (int_of_string_with_suffix s)
-                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
-                in
-                state.text <- E.s;
-                let te =
-                  name ^ ": ", E.s, None, intentry_with_suffix, ondone, true
-                in
-                state.mode <- Textentry (te, leave m_prev_mode);
-                u
-           )) :: m_l
+      method int_with_suffix name get set =
+        m_l <-
+          (name, `intws get, 1,
+           Action (fun u ->
+               let ondone s =
+                 try set (int_of_string_with_suffix s)
+                 with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
+               in
+               state.text <- E.s;
+               let te =
+                 name ^ ": ", E.s, None, intentry_with_suffix, ondone, true
+               in
+               state.mode <- Textentry (te, leave m_prev_mode);
+               u
+          )) :: m_l
 
-       method bool ?(offset=1) ?(btos=btos) name get set =
-         m_l <- (name, `bool (btos, get), offset,
-                 Action (fun u -> set (not (get ())); u)) :: m_l
+      method bool ?(offset=1) ?(btos=btos) name get set =
+        m_l <- (name, `bool (btos, get), offset,
+                Action (fun u -> set (not (get ())); u)) :: m_l
 
-       method color name get set =
-         m_l <-
-           (name, `color get, 1,
-            Action (fun u ->
-                let invalid = (nan, nan, nan) in
-                let ondone s =
-                  let c =
-                    try color_of_string s
-                    with exn -> settextfmt "bad color `%s': %s" s @@ exntos exn;
-                                invalid
-                  in
-                  if c <> invalid
-                  then set c;
-                in
-                let te = name ^ ": ", E.s, None, textentry, ondone, true in
-                state.text <- color_to_string (get ());
-                state.mode <- Textentry (te, leave m_prev_mode);
-                u
-           )) :: m_l
+      method color name get set =
+        m_l <-
+          (name, `color get, 1,
+           Action (fun u ->
+               let invalid = (nan, nan, nan) in
+               let ondone s =
+                 let c =
+                   try color_of_string s
+                   with exn -> settextfmt "bad color `%s': %s" s @@ exntos exn;
+                               invalid
+                 in
+                 if c <> invalid
+                 then set c;
+               in
+               let te = name ^ ": ", E.s, None, textentry, ondone, true in
+               state.text <- color_to_string (get ());
+               state.mode <- Textentry (te, leave m_prev_mode);
+               u
+          )) :: m_l
 
-       method string name get set =
-         m_l <-
-           (name, `string get, 1,
-            Action (fun u ->
-                let ondone s = set s in
-                let te =
-                  String.trim name ^ ": ", E.s, None, textentry, ondone, true in
-                state.mode <- Textentry (te, leave m_prev_mode);
-                u
-           )) :: m_l
+      method string name get set =
+        m_l <-
+          (name, `string get, 1,
+           Action (fun u ->
+               let ondone s = set s in
+               let te =
+                 String.trim name ^ ": ", E.s, None, textentry, ondone, true in
+               state.mode <- Textentry (te, leave m_prev_mode);
+               u
+          )) :: m_l
 
-       method colorspace name get set =
-         m_l <-
-           (name, `string get, 1,
-            Action (fun _ ->
-                let source =
-                  (object
-                     inherit lvsourcebase
+      method colorspace name get set =
+        m_l <-
+          (name, `string get, 1,
+           Action (fun _ ->
+               let source =
+                 (object
+                    inherit lvsourcebase
 
-                     initializer
-                       m_active <- CSTE.to_int conf.colorspace;
-                       m_first <- 0;
+                    initializer
+                      m_active <- CSTE.to_int conf.colorspace;
+                      m_first <- 0;
 
-                     method getitemcount =
-                       Array.length CSTE.names
-                     method getitem n =
-                       (CSTE.names.(n), 0)
-                     method exit ~uioh ~cancel ~active ~first ~pan =
-                       ignore (uioh, first, pan);
-                       if not cancel then set active;
-                       None
-                     method hasaction _ = true
-                   end)
-                in
-                state.text <- E.s;
-                let modehash = findkeyhash conf "info" in
-                coe (new listview ~title:"colorspace"
-                       ~zebra:false ~helpmode:false
-                       ~source ~trusted:true ~modehash)
-           )) :: m_l
+                    method getitemcount =
+                      Array.length CSTE.names
+                    method getitem n =
+                      (CSTE.names.(n), 0)
+                    method exit ~uioh ~cancel ~active ~first ~pan =
+                      ignore (uioh, first, pan);
+                      if not cancel then set active;
+                      None
+                    method hasaction _ = true
+                  end)
+               in
+               state.text <- E.s;
+               let modehash = findkeyhash conf "info" in
+               coe (new listview ~zebra:false ~helpmode:false
+                      ~source ~trusted:true ~modehash)
+          )) :: m_l
 
-       method paxmark name get set =
-         m_l <-
-           (name, `string get, 1,
-            Action (fun _ ->
-                let source =
-                  (object
-                     inherit lvsourcebase
+      method paxmark name get set =
+        m_l <-
+          (name, `string get, 1,
+           Action (fun _ ->
+               let source =
+                 (object
+                    inherit lvsourcebase
 
-                     initializer
-                       m_active <- MTE.to_int conf.paxmark;
-                       m_first <- 0;
+                    initializer
+                      m_active <- MTE.to_int conf.paxmark;
+                      m_first <- 0;
 
-                     method getitemcount = Array.length MTE.names
-                     method getitem n = (MTE.names.(n), 0)
-                     method exit ~uioh ~cancel ~active ~first ~pan =
-                       ignore (uioh, first, pan);
-                       if not cancel then set active;
-                       None
-                     method hasaction _ = true
-                   end)
-                in
-                state.text <- E.s;
-                let modehash = findkeyhash conf "info" in
-                coe (new listview ~title:"PAX"
-                       ~zebra:false ~helpmode:false
-                       ~source ~trusted:true ~modehash)
-           )) :: m_l
+                    method getitemcount = Array.length MTE.names
+                    method getitem n = (MTE.names.(n), 0)
+                    method exit ~uioh ~cancel ~active ~first ~pan =
+                      ignore (uioh, first, pan);
+                      if not cancel then set active;
+                      None
+                    method hasaction _ = true
+                  end)
+               in
+               state.text <- E.s;
+               let modehash = findkeyhash conf "info" in
+               coe (new listview ~zebra:false ~helpmode:false
+                      ~source ~trusted:true ~modehash)
+          )) :: m_l
 
-       method fitmodel name get set =
-         m_l <-
-           (name, `string get, 1,
-            Action (fun _ ->
-                let source =
-                  (object
-                     inherit lvsourcebase
+      method fitmodel name get set =
+        m_l <-
+          (name, `string get, 1,
+           Action (fun _ ->
+               let source =
+                 (object
+                    inherit lvsourcebase
 
-                     initializer
-                       m_active <- FMTE.to_int conf.fitmodel;
-                       m_first <- 0;
+                    initializer
+                      m_active <- FMTE.to_int conf.fitmodel;
+                      m_first <- 0;
 
-                     method getitemcount = Array.length FMTE.names
-                     method getitem n = (FMTE.names.(n), 0)
-                     method exit ~uioh ~cancel ~active ~first ~pan =
-                       ignore (uioh, first, pan);
-                       if not cancel then set active;
-                       None
-                     method hasaction _ = true
-                   end)
-                in
-                state.text <- E.s;
-                let modehash = findkeyhash conf "info" in
-                coe (new listview ~title:"fit model"
-                       ~zebra:false ~helpmode:false
-                       ~source ~trusted:true ~modehash)
-           )) :: m_l
+                    method getitemcount = Array.length FMTE.names
+                    method getitem n = (FMTE.names.(n), 0)
+                    method exit ~uioh ~cancel ~active ~first ~pan =
+                      ignore (uioh, first, pan);
+                      if not cancel then set active;
+                      None
+                    method hasaction _ = true
+                  end)
+               in
+               state.text <- E.s;
+               let modehash = findkeyhash conf "info" in
+               coe (new listview ~zebra:false ~helpmode:false
+                      ~source ~trusted:true ~modehash)
+          )) :: m_l
 
-       method caption s offset =
-         m_l <- (s, `empty, offset, Noaction) :: m_l
+      method caption s offset =
+        m_l <- (s, `empty, offset, Noaction) :: m_l
 
-       method caption2 s f offset =
-         m_l <- (s, `string f, offset, Noaction) :: m_l
+      method caption2 s f offset =
+        m_l <- (s, `string f, offset, Noaction) :: m_l
 
-       method getitemcount = Array.length m_a
+      method getitemcount = Array.length m_a
 
-       method getitem n =
-         let tostr = function
-           | `int f -> string_of_int (f ())
-           | `intws f -> string_with_suffix_of_int (f ())
-           | `string f -> f ()
-           | `color f -> color_to_string (f ())
-           | `bool (btos, f) -> btos (f ())
-           | `empty -> E.s
-         in
-         let name, t, offset, _ = m_a.(n) in
-         ((let s = tostr t in
-           if nonemptystr s
-           then Printf.sprintf "%s\t%s" name s
-           else name),
-          offset)
+      method getitem n =
+        let tostr = function
+          | `int f -> string_of_int (f ())
+          | `intws f -> string_with_suffix_of_int (f ())
+          | `string f -> f ()
+          | `color f -> color_to_string (f ())
+          | `bool (btos, f) -> btos (f ())
+          | `empty -> E.s
+        in
+        let name, t, offset, _ = m_a.(n) in
+        ((let s = tostr t in
+          if nonemptystr s
+          then Printf.sprintf "%s\t%s" name s
+          else name),
+         offset)
 
-       method exit ~uioh ~cancel ~active ~first ~pan =
-         let uiohopt =
-           if not cancel
-           then (
-             let uioh =
-               match m_a.(active) with
-               | _, _, _, Action f -> f uioh
-               | _, _, _, Noaction -> uioh
-             in
-             Some uioh
-           )
-           else None
-         in
-         m_active <- active;
-         m_first <- first;
-         m_pan <- pan;
-         uiohopt
+      method exit ~uioh ~cancel ~active ~first ~pan =
+        let uiohopt =
+          if not cancel
+          then (
+            let uioh =
+              match m_a.(active) with
+              | _, _, _, Action f -> f uioh
+              | _, _, _, Noaction -> uioh
+            in
+            Some uioh
+          )
+          else None
+        in
+        m_active <- active;
+        m_first <- first;
+        m_pan <- pan;
+        uiohopt
 
-       method hasaction n =
-         match m_a.(n) with
-         | _, _, _, Action _ -> true
-         | _, _, _, Noaction -> false
+      method hasaction n =
+        match m_a.(n) with
+        | _, _, _, Action _ -> true
+        | _, _, _, Noaction -> false
 
-       initializer m_active <- 1
-     end)
+      initializer m_active <- 1
+    end
   in
   let rec fillsrc prevmode prevuioh =
     let sep () = src#caption E.s 0 in
@@ -2614,7 +2609,7 @@ let enterinfomode =
     let source = (src :> lvsource) in
     let modehash = findkeyhash conf "info" in
     object (self)
-      inherit listview ~title:"setup" ~zebra:false ~helpmode:false
+      inherit listview ~zebra:false ~helpmode:false
                 ~source ~trusted:true ~modehash as super
       val mutable m_prevmemused = 0
       method! infochanged = function
@@ -2669,14 +2664,13 @@ let enterhelpmode =
          | _, _, Action _ -> true
          | _, _, Noaction -> false
 
-       initializer
-         m_active <- -1
+       initializer m_active <- -1
      end)
   in
   fun () ->
   let modehash = findkeyhash conf "help" in
   resetmstate ();
-  new listview ~title:"help" ~zebra:false ~helpmode:true
+  new listview ~zebra:false ~helpmode:true
     ~source ~trusted:true ~modehash |> setuioh;
   postRedisplay "help";
 ;;
@@ -2714,8 +2708,7 @@ let entermsgsmode =
          let l = Str.split Re.crlf (Buffer.contents state.errmsgs) in
          m_items <- Array.of_list l
 
-       initializer
-         m_active <- 0
+       initializer m_active <- 0
      end)
   in fun () ->
      state.text <- E.s;
@@ -2724,7 +2717,7 @@ let entermsgsmode =
      let source = (msgsource :> lvsource) in
      let modehash = findkeyhash conf "listview" in
      object
-       inherit listview ~title:"messages" ~zebra:false ~helpmode:false
+       inherit listview ~zebra:false ~helpmode:false
                  ~source ~trusted:false ~modehash as super
        method! display =
          if state.newerrmsgs
@@ -2857,8 +2850,7 @@ let enterannotmode opaque slinkindex =
            :: (E.s, fun () -> ())
            :: split [] 0 0 |> List.rev |> Array.of_list
 
-       initializer
-         m_active <- 0
+       initializer m_active <- 0
      end)
   in
   state.text <- E.s;
@@ -2867,8 +2859,9 @@ let enterannotmode opaque slinkindex =
   msgsource#reset s;
   let source = (msgsource :> lvsource) in
   let modehash = findkeyhash conf "listview" in
-  object inherit listview ~title:"annotations" ~zebra:false
-                   ~helpmode:false ~source ~trusted:false ~modehash
+  object
+    inherit listview ~zebra:false
+              ~helpmode:false ~source ~trusted:false ~modehash
   end |> setuioh;
   postRedisplay "enterannotmode";
 ;;
@@ -3115,27 +3108,26 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
   let so = outlinesource (fetchoutlines `outlines) in
   let sb = outlinesource (fetchoutlines `bookmarks) in
   let sh = outlinesource (fetchoutlines `history) in
-  let mkselector title sourcetype source =
-    (fun errmsg ->
+  let mkselector sourcetype source =
+    (fun emptymsg ->
       let outlines = fetchoutlines sourcetype () in
       if Array.length outlines = 0
-      then showtext ' ' errmsg
+      then showtext ' ' emptymsg
       else (
         resetmstate ();
         Wsi.setcursor Wsi.CURSOR_INHERIT;
         let anchor = getanchor () in
         source#reset anchor outlines;
         state.text <- source#greetmsg;
-        new outlinelistview ~title
-          ~zebra:(sourcetype=`history) ~source |> setuioh;
+        new outlinelistview ~zebra:(sourcetype=`history) ~source |> setuioh;
         postRedisplay "enter selector";
       )
     )
   in
-  let mkenter title src errmsg s = fun () -> mkselector title src s errmsg in
-  ( mkenter "outline" `outlines "document has no outline" so
-  , mkenter "bookmark" `bookmarks "document has no bookmarks (yet)" sb
-  , mkenter "history" `history "history is empty" sh )
+  let mkenter src errmsg s = fun () -> mkselector src s errmsg in
+  ( mkenter `outlines "document has no outline" so
+  , mkenter `bookmarks "document has no bookmarks (yet)" sb
+  , mkenter `history "history is empty" sh )
 ;;
 
 let addbookmark title a =
