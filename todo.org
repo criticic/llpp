@@ -17,5 +17,4 @@
 * TODO err/warn in C code when standard error was redirected
   workaround in place
 * TODO (maybe?) make C replies use byte commands too
-* TODO genconfstruct.sh depends on untracked environment variables
 * TODO title tracking

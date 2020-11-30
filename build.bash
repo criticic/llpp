@@ -250,7 +250,7 @@ ver=$(cd $srcd && git describe --tags --dirty) || ver="'built on $(date)'"
 
 gen=$srcd/genconfstruct.sh
 cmd="(export print paste clip uriop; . $gen >$outd/confstruct.ml)"
-keycmd="digest $gen $outd/confstruct.ml"
+keycmd="{ echo '$print $paste $clip $uriop'; digest $gen $outd/confstruct.ml; }"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"
     eval "$cmd" || die $gen failed
