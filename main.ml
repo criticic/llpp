@@ -3412,7 +3412,7 @@ let viewkeyboard key mask =
      let ondone s =
        let n =
          try int_of_string s with exn ->
-           settextfmt "bad integer `%s': %s" s @@ exntos exn;
+           adderrfmt "int_of_string" "`%s': %s" s @@ exntos exn;
            -1
        in
        if n >= 0
