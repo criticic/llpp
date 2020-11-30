@@ -4787,7 +4787,7 @@ let () =
         ("-layout-height", Arg.Set_int layouth,
          "<height> layout height html/epub/etc (-1, 0, N)");
 
-        ("-flip-redirect-stderr",
+        ("-flip-stderr-redirection",
          Arg.Unit (fun () -> redirstderr := not !redirstderr),
          " <undocumented>");
        ]
