@@ -2409,12 +2409,6 @@ let enterinfomode =
     else src#caption2 "Position" (fun () -> describe_layout state.layout) 1;
 
     sep ();
-    src#bool ~offset:0 ~btos:(fun v -> if v then "(on)" else "(off)")
-      "Save these parameters as global defaults at exit"
-      (fun () -> !Config.bedefault)
-      (fun v -> Config.bedefault := v);
-
-    sep ();
     let btos b = Utf8syms.(if b then lguillemet else rguillemet) in
     src#bool ~offset:0 ~btos "Extended parameters"
       (fun () -> !showextended)
