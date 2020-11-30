@@ -1959,8 +1959,7 @@ class outlinelistview ~title ~zebra ~source =
          coe {< m_active = active; m_first = first >}
       | Delete|Escape|Insert|Enter|Ascii _|Code _|Ctrl _|Backspace|Fn _ ->
          super#key key mask
-  end
-;;
+  end;;
 
 let genhistoutlines () =
   Config.gethist ()
@@ -3100,32 +3099,30 @@ class outlinesoucebase fetchoutlines = object (self)
     let active = self#calcactive anchor in
     m_active <- active;
     m_first <- firstof m_first active
-end
-;;
+end;;
 
-let outlinesource fetchoutlines =
-  (object
-     inherit outlinesoucebase fetchoutlines
-     method! calcactive anchor =
-       let rely = getanchory anchor in
-       let rec loop n best bestd =
-         if n = Array.length m_items
-         then best
-         else
-           let _, _, kind = m_items.(n) in
-           match kind with
-           | Oanchor anchor ->
-              let orely = getanchory anchor in
-              let d = abs (orely - rely) in
-              if d < bestd
-              then loop (n+1) n d
-              else loop (n+1) best bestd
-           | Onone | Oremote _ | Olaunch _
-           | Oremotedest _ | Ouri _ | Ohistory _ ->
-              loop (n+1) best bestd
-       in
-       loop 0 ~-1 max_int
-   end)
+let outlinesource fetchoutlines = object
+    inherit outlinesoucebase fetchoutlines
+    method! calcactive anchor =
+      let rely = getanchory anchor in
+      let rec loop n best bestd =
+        if n = Array.length m_items
+        then best
+        else
+          let _, _, kind = m_items.(n) in
+          match kind with
+          | Oanchor anchor ->
+             let orely = getanchory anchor in
+             let d = abs (orely - rely) in
+             if d < bestd
+             then loop (n+1) n d
+             else loop (n+1) best bestd
+          | Onone | Oremote _ | Olaunch _
+          | Oremotedest _ | Ouri _ | Ohistory _ ->
+             loop (n+1) best bestd
+      in
+      loop 0 ~-1 max_int
+  end
 ;;
 
 let enteroutlinemode, enterbookmarkmode, enterhistmode =

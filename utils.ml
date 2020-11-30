@@ -42,8 +42,7 @@ end = struct
   type t = string
   let of_string s = s
   let to_string t = t
-end
-;;
+end;;
 
 let (~<) = Opaque.of_string;;
 let (~>) = Opaque.to_string;;
