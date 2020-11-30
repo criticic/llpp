@@ -4727,7 +4727,6 @@ let remoteopen path =
 
 let () =
   vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
-  let gcconfig = ref false in
   let redirstderr = Unix.isatty Unix.stderr |> not |> ref in
   let rcmdpath = ref E.s in
   let dcfpath = ref None in
@@ -4765,7 +4764,7 @@ let () =
         ("-remote", Arg.String (fun s -> rcmdpath := s),
          "<path> Set path to the source of remote commands");
 
-        ("-gc", Arg.Set gcconfig, " Collect config garbage");
+        ("-gc", Arg.Unit Config.gc, " Collect config garbage");
 
         ("-v", Arg.Unit (fun () ->
                    Printf.printf
@@ -4812,12 +4811,6 @@ let () =
   end;
 
   fillhelp ();
-  if !gcconfig
-  then (
-    Config.gc ();
-    exit 0
-  );
-
   let mu =
     object (self)
       val mutable m_clicks = 0
