@@ -271,16 +271,8 @@ let layoutN ((columns, coverA, coverB), b) x y sw sh =
             if pagevw > 0 && pagevh > 0
             then
               { pageno = n
-              ; pagedimno = pdimno
-              ; pagew = w
-              ; pageh = h
-              ; pagex = pagex
-              ; pagey = pagey
-              ; pagevw = pagevw
-              ; pagevh = pagevh
-              ; pagedispx = pagedispx
-              ; pagedispy = pagedispy
-              ; pagecol = 0
+              ; pagecol = 0 ; pagedimno = pdimno ; pagew = w ; pageh = h
+              ; pagex ; pagey ; pagevw ; pagevh ; pagedispx ; pagedispy
               } :: accu
             else accu
           else accu
