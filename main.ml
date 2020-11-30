@@ -338,15 +338,9 @@ let layoutS (columns, b) x y sw sh =
             then
               { pageno = n/columns
               ; pagedimno = pdimno
-              ; pagew = pagew
-              ; pageh = pageh
-              ; pagex = pagex
-              ; pagey = pagey
-              ; pagevw = pagevw
-              ; pagevh = pagevh
-              ; pagedispx = pagedispx
-              ; pagedispy = pagedispy
               ; pagecol = n mod columns
+              ; pagew ; pageh ; pagex ; pagey ; pagedispx ; pagedispy
+              ; pagevw ; pagevh
               } :: accu
             else accu
           else accu
