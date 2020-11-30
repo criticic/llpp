@@ -2453,28 +2453,24 @@ let enterinfomode =
             conf.tilew <- max 64 w;
             conf.tileh <- max 64 h;
             flushtiles ();
-          with exn -> settextfmt  "bad tile size `%s': %s" v @@ exntos exn
-        );
+          with exn -> settextfmt  "bad tile size `%s': %s" v @@ exntos exn);
       src#int "texture count"
         (fun () -> conf.texcount)
         (fun v ->
           if Ffi.realloctexts v
           then conf.texcount <- v
-          else impmsg "failed to set texture count please retry later"
-        );
+          else impmsg "failed to set texture count please retry later");
       src#int "slice height"
         (fun () -> conf.sliceheight)
         (fun v ->
           conf.sliceheight <- v;
-          wcmd U.sliceh "%d" conf.sliceheight;
-        );
+          wcmd U.sliceh "%d" conf.sliceheight);
       src#int "anti-aliasing level"
         (fun () -> conf.aalevel)
         (fun v ->
           conf.aalevel <- bound v 0 8;
           state.anchor <- getanchor ();
-          opendoc state.path state.password;
-        );
+          opendoc state.path state.password);
       src#string "page scroll scaling factor"
         (fun () -> string_of_float conf.pgscale)
         (fun v ->
@@ -2482,8 +2478,7 @@ let enterinfomode =
           with exn ->
             state.text <-
               Printf.sprintf "bad page scroll scaling factor `%s': %s" v
-              @@ exntos exn
-        );
+              @@ exntos exn);
       src#int "ui font size"
         (fun () -> fstate.fontsize)
         (fun v -> setfontsize (bound v 5 100));
@@ -2506,8 +2501,7 @@ let enterinfomode =
             conf.trimfuzz <- irect_of_string v;
             if conf.trimmargins
             then settrim true conf.trimfuzz;
-          with exn -> settextfmt "bad irect `%s': %s" v @@ exntos exn
-        );
+          with exn -> settextfmt "bad irect `%s': %s" v @@ exntos exn);
       src#string "selection command"
         (fun () -> conf.selcmd)
         (fun v -> conf.selcmd <- v);
@@ -2528,8 +2522,7 @@ let enterinfomode =
         (fun v ->
           conf.colorspace <- CSTE.of_int v;
           wcmd U.cs "%d" v;
-          load state.layout;
-        );
+          load state.layout);
       src#paxmark "pax mark method"
         (fun () -> MTE.to_string conf.paxmark)
         (fun v -> conf.paxmark <- MTE.of_int v);
@@ -2550,8 +2543,7 @@ let enterinfomode =
         (fun v ->
           conf.usedoccss <- v;
           state.anchor <- getanchor ();
-          opendoc state.path state.password;
-        );
+          opendoc state.path state.password);
       src#bool ~btos "colors"
         (fun () -> !showcolors)
         (fun v -> showcolors := v; fillsrc prevmode prevuioh);
@@ -2560,7 +2552,6 @@ let enterinfomode =
         colorp "   background"
           (fun () -> conf.bgcolor)
           (fun v -> conf.bgcolor <- v);
-
         rgba "   paper"
           (fun () -> conf.papercolor)
           (fun v ->
