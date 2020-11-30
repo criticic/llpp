@@ -2722,33 +2722,25 @@ let getusertext s =
       close_out oc;
     );
     let execstr = editor ^ " " ^ tmppath in
+    let eret r = Format.ksprintf (fun s -> adderrmsg "gtut:eret" s; r) in
     let s =
       match spawn execstr [] with
-      | exception exn ->
-         impmsg "spawn(%S) failed: %s" execstr @@ exntos exn;
-         E.s
+      | exception exn -> eret E.s "spawn(%S) failed: %s" execstr @@ exntos exn
       | pid ->
          match Unix.waitpid [] pid with
-         | exception exn ->
-            impmsg "waitpid(%d) failed: %s" pid @@ exntos exn;
-            E.s
+         | exception exn -> eret E.s "waitpid(%d) failed: %s" pid @@ exntos exn
          | (_pid, status) ->
             match status with
             | Unix.WEXITED 0 -> filecontents tmppath
             | Unix.WEXITED n ->
-               impmsg "editor process(%s) exited abnormally: %d" execstr n;
-               E.s
+               eret E.s "editor process(%s) exited abnormally: %d" execstr n
             | Unix.WSIGNALED n ->
-               impmsg "editor process(%s) was killed by signal %d" execstr n;
-               E.s
+               eret E.s "editor process(%s) was killed by signal %d" execstr n
             | Unix.WSTOPPED n ->
-               impmsg "editor(%s) process was stopped by signal %d" execstr n;
-               E.s
+               eret E.s "editor(%s) process was stopped by signal %d" execstr n
     in
     match Unix.unlink tmppath with
-    | exception exn ->
-       impmsg "failed to ulink %S: %s" tmppath @@ exntos exn;
-       s
+    | exception exn -> eret s "failed to ulink %S: %s" tmppath @@ exntos exn
     | () -> s
 ;;
 
@@ -4246,13 +4238,12 @@ let viewmouse button down x y mask =
        match unproject x y with
        | None -> ()
        | Some (_, pageno, ux, uy) ->
-          let cmd = Printf.sprintf
-                      "%s %s %d %d %d"
-                      conf.stcmd state.path pageno ux uy
+          let cmd = Printf.sprintf "%s %s %d %d %d" conf.stcmd state.path
+                      pageno ux uy
           in
           match spawn cmd [] with
           | exception exn ->
-             impmsg "execution of synctex command(%S) failed: %S"
+             adderrfmt "spawn" "execution of synctex command(%S) failed: %S"
                conf.stcmd @@ exntos exn
           | _pid -> ()
      )
