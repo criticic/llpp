@@ -246,7 +246,7 @@ bobjc() {
     } && vecho "fresh $o"
 }
 
-ver=$(cd $srcd && git describe --tags --dirty) || ver=unknown
+ver=$(cd $srcd && git describe --tags --dirty) || ver="'built on $(date -I)'"
 
 gen=$srcd/genconfstruct.sh
 cmd="(export print paste clip uriop; . $gen >$outd/confstruct.ml)"
