@@ -1107,7 +1107,7 @@ let gotopagexy pageno x y =
 let getpassword () =
   let passcmd = getenvdef "LLPP_ASKPASS" conf.passcmd in
   if emptystr passcmd
-  then E.s
+  then (adderrmsg "askpass" "ask password program not set"; E.s)
   else getcmdoutput (adderrfmt passcmd "failed to obrain password: %s") passcmd;
 ;;
 
