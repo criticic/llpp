@@ -1382,10 +1382,11 @@ let act cmds =
        match splitatchar args '\t' with
        | "Title", "" ->
           settitle @@ Filename.basename state.path;
-          "No Title"
+          E.s
        | "Title", v ->
           settitle v;
           args
+       | _, "" -> E.s
        | c, v ->
           if let len = String.length c in
              len > 6 && ((String.sub c (len-4) 4) = "date")
@@ -1410,11 +1411,9 @@ let act cmds =
               Buffer.contents b
             else args
           )
-          else (
-            if nonemptystr v then args else c
-          )
+          else args
      in
-     state.docinfo <- (1, s) :: state.docinfo
+     if nonemptystr s then state.docinfo <- (1, s) :: state.docinfo
 
   | "infoend", "" ->
      state.docinfo <- List.rev state.docinfo;
