@@ -229,6 +229,12 @@ class virtual lvsourcebase =
         end;;
 
 let coe s = (s :> uioh);;
+let setuioh uioh = state.uioh <- coe uioh;;
+
+let changetitle uioh =
+  let title = uioh#title in
+  Wsi.settitle @@ if emptystr title then "llpp" else title ^ " - llpp";
+;;
 
 class listview ~title ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
 object (self)
@@ -238,8 +244,7 @@ object (self)
   val m_qsearch = E.s
   val m_prev_uioh = state.uioh
 
-  method title = title
-
+  initializer ignore (* Wsi.settitle *) title
   method private elemunder y =
     if y < 0
     then None
@@ -708,7 +713,7 @@ object (self)
          | Some n ->
             postRedisplay "listview click";
             source#exit ~uioh:(coe {< m_active = n >})
-                        ~cancel:false ~active:n ~first:m_first ~pan:m_pan
+              ~cancel:false ~active:n ~first:m_first ~pan:m_pan
          | _ -> Some (coe self)
          end
       | n when (n == 4 || n == 5) && not down ->
