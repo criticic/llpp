@@ -87,18 +87,12 @@ cflags() {
             test "${mbt-}" = "debug" || f+="-O2 "
             $darwin && f+="-DCIDER -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
                     || f+="-D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>'"
-            f+=" -include $srcd/diag.h -DFIXME=0 "
+            f+=" -include $srcd/diag.h -DFIXME=0"
             f+=" -DTEXT_TYPE=GL_TEXTURE_RECTANGLE_ARB"
             #f+=" -DTEXT_TYPE=GL_TEXTURE_2D"
             ;;
 
-        */ml_*.o)
-            f="-g -Wno-pointer-sign -O2"
-            expr &>/dev/null "${LLPP_CC-}" : "clang" && {
-                f+=" -fno-strict-aliasing"
-                f+=" -Wno-incompatible-pointer-types-discards-qualifiers"
-            } || f+=" -Wno-discarded-qualifiers"
-            ;;
+        */ml_*.o) f="-g -Wno-pointer-sign -Werror -O2";;
 
         *) f="-g -O2 -Wall -Werror";;
     esac
@@ -140,9 +134,9 @@ test "$overs" = "4.11.1" || {
     overs=$(ocamlc -vnum 2>/dev/null)
 }
 
-ccomp=${LLPP_CC-`ocamlc -config | grep "^c_compiler: " | \
-                      { read _ c; echo $c; }`}
-cvers="$($ccomp --version | { read a; echo $a; } )"
+ccomp=${LLPP_CC-$(set -- $(ocamlc -config | grep ^bytecomp_c_compiler:);
+                           shift; echo $@)}
+cvers=$($ccomp --version)
 
 bocaml1() {
     grep -q "$3" $outd/ordered || {
@@ -220,7 +214,7 @@ bocaml() {
 bocamlc() {
     local o=$outd/$1
     local s=$srcd/${1%.o}.c
-    local cc=${LLPP_CC:+-cc $LLPP_CC }
+    local cc=${LLPP_CC:+-cc "'$LLPP_CC'" }
     local cmd="ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'

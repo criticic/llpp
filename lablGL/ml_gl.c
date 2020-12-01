@@ -27,11 +27,9 @@
 #define GL_GENERATE_MIPMAP 0x8191
 #endif
 
-/* #include <stdio.h> */
-
 void ml_raise_gl(const char *errmsg)
 {
-  static value * gl_exn = NULL;
+  static value const * gl_exn;
   if (gl_exn == NULL)
       gl_exn = caml_named_value("glerror");
   raise_with_string(*gl_exn, (char*)errmsg);

@@ -163,7 +163,7 @@ CAMLprim value ml_raw_read_string (value raw, value pos, value len)  /* ML */
     if (l<0 || s<0 || s+l > Int_val(Size_raw(raw)))
 	invalid_argument("Raw.read_string");
     ret = alloc_string (l);
-    memcpy (String_val(ret), Bp_val(Addr_raw(raw))+s, l);
+    memcpy (Bp_val(ret), Bp_val(Addr_raw(raw))+s, l);
     CAMLreturn(ret);
 }
 
