@@ -82,6 +82,7 @@ oflags() {
 cflags() {
     case "${1#$outd/}" in
         version.o) f=-DLLPP_VERSION=$ver;;
+        */ml_*.o) f="-g -Wno-pointer-sign -Werror -O2";;
         link.o)
             f="-g -std=c11 $muinc -Wall -Werror -Wextra -pedantic "
             test "${mbt-}" = "debug" || f+="-O2 "
@@ -91,9 +92,6 @@ cflags() {
             f+=" -DTEXT_TYPE=GL_TEXTURE_RECTANGLE_ARB"
             #f+=" -DTEXT_TYPE=GL_TEXTURE_2D"
             ;;
-
-        */ml_*.o) f="-g -Wno-pointer-sign -Werror -O2";;
-
         *) f="-g -O2 -Wall -Werror";;
     esac
     ! $darwin || f+=" -DGL_SILENCE_DEPRECATION"
