@@ -4664,6 +4664,7 @@ let remoteopen path =
 
 let () =
   vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
+  let gc = ref false in
   let redirstderr = Unix.isatty Unix.stderr |> not |> ref in
   let rcmdpath = ref E.s in
   let dcfpath = ref None in
@@ -4701,7 +4702,7 @@ let () =
         ("-remote", Arg.String (fun s -> rcmdpath := s),
          "<path> Set path to the source of remote commands");
 
-        ("-gc", Arg.Unit Config.gc, " Collect config garbage");
+        ("-gc", Arg.Set gc, " Collect garbage");
 
         ("-v", Arg.Unit (fun () ->
                    Printf.printf
@@ -4733,6 +4734,12 @@ let () =
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:");
 
   let histmode = emptystr state.path && not !openlast in
+
+  if !gc
+  then (
+    Config.gc ();
+    if histmode then exit 0;
+  );
 
   if not (Config.load !openlast)
   then dolog "failed to load configuration";
