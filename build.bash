@@ -25,8 +25,7 @@ case "$(uname)" in
         mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
         clip="LC_CTYPE=UTF-8 pbcopy"
         paste="LC_CTYPE=UTF-8 pbaste"
-        uriop='open "%s"'
-        print="Print '%s' >&2";;
+        uriop='open "%s"';;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     *) die $(uname) is not supported;;
 esac
