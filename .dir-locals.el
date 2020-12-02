@@ -1,1 +1,1 @@
-((nil . ((compile-command . "./ahbs"))))
+((nil . ((compile-command . "ccd=\"ccache gcc\" ./ahbs"))))

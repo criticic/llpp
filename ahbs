@@ -1,4 +1,2 @@
 #!/bin/sh
-ccd=${ccd-gcc}
-CC="ccache $ccd" CXX="ccache $ccd" LLPP_CC="ccache $ccd" \
-  exec bash build.bash build $*
+ccd=${ccd-gcc} CC="$ccd" CXX="$ccd" LLPP_CC="$ccd" exec bash build.bash build $*
