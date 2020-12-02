@@ -1,4 +1,3 @@
-let traw = Raw.create_static `float ~len:8;;
 let vraw = Raw.create_static `float ~len:8;;
 
 let filledrect2 x0 y0 x1 y1 x2 y2 x3 y3 =
