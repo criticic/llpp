@@ -421,11 +421,10 @@ let drawtiles l color =
     | None ->
        Ffi.endtiles ();
        let w = let lw = state.winw - x in min lw w
-       and h = let lh = state.winh - y in min lh h
-       in
+       and h = let lh = state.winh - y in min lh h in
        if conf.invert
        then GlTex.env (`mode `blend);
-       GlDraw.color (1.0, 1.0, 1.0);
+       GlDraw.color (0.8, 0.8, 0.8);
        filledrect (float x) (float y) (float (x+w)) (float (y+h));
        if conf.invert
        then GlTex.env (`mode `modulate);
