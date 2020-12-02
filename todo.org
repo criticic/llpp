@@ -13,3 +13,4 @@
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO (maybe?) make C replies use byte commands too
 * TODO title tracking
+* TODO macOS machine check

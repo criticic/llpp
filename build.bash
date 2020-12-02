@@ -22,6 +22,7 @@ print="echo 'Print \"%s\"' >&2"
 case "$(uname)" in
     Darwin)
         test $(getconf LONG_BIT) = 64 || die "need 64bit macOS"
+        mbt=${mbt:-release}
         darwin=true
         wsid="wsi/cocoa"
         mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
