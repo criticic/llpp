@@ -54,10 +54,10 @@ mulibst="$mudir/build/$mbt/libs"
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
 
 keycmd="make -C $mudir -q build=$mbt libs && digest $mulibs"
-isfresh "$mulibst" "$(eval $keycmd)" || (
+isfresh "$mulibst" "$(eval $keycmd)" || {
     make -C "$mudir" build=$mbt -j $mjobs libs
     eval $keycmd >${mulibst}.past
-) && vecho "fresh mupdf"
+} && vecho "fresh mupdf"
 
 oincs() {
     local i incs1= incs="-I $srcd -I $outd"
