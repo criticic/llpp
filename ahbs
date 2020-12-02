@@ -1,6 +1,4 @@
 #!/bin/sh
 ccd=${ccd-gcc}
-export CC="ccache $ccd"
-export CXX="ccache $ccd"
-export LLPP_CC="ccache $ccd"
-exec bash build.bash build $*
+CC="ccache $ccd" CXX="ccache $ccd" LLPP_CC="ccache $ccd" \
+  exec bash build.bash build $*
