@@ -29,7 +29,6 @@ end;;
 let selfexec = ref E.s;;
 let ignoredoctitlte = ref false;;
 let layouth = ref ~-1;;
-let checkerstexid = ref None;;
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog {|rect {
@@ -426,34 +425,8 @@ let drawtiles l color =
        in
        if conf.invert
        then GlTex.env (`mode `blend);
-       begin match !checkerstexid with
-       | Some id ->
-          Gl.enable `texture_2d;
-          GlTex.bind_texture ~target:`texture_2d id;
-          let x0 = float x
-          and y0 = float y
-          and x1 = float (x+w)
-          and y1 = float (y+h) in
-
-          let tw = float w /. 16.0
-          and th = float h /. 16.0 in
-          let tx0 = float tilex /. 16.0
-          and ty0 = float tiley /. 16.0 in
-          let tx1 = tx0 +. tw
-          and ty1 = ty0 +. th in
-          Raw.sets_float Glutils.vraw ~pos:0
-            [| x0; y0; x0; y1; x1; y0; x1; y1 |];
-          Raw.sets_float Glutils.traw ~pos:0
-            [| tx0; ty0; tx0; ty1; tx1; ty0; tx1; ty1 |];
-          GlArray.vertex `two Glutils.vraw;
-          GlArray.tex_coord `two Glutils.traw;
-          GlArray.draw_arrays `triangle_strip ~first:0 ~count:4;
-          Gl.disable `texture_2d;
-
-       | None ->
-          GlDraw.color (1.0, 1.0, 1.0);
-          filledrect (float x) (float y) (float (x+w)) (float (y+h));
-       end;
+       GlDraw.color (1.0, 1.0, 1.0);
+       filledrect (float x) (float y) (float (x+w)) (float (y+h));
        if conf.invert
        then GlTex.env (`mode `modulate);
        if w > 128 && h > fstate.fontsize + 10
@@ -1968,17 +1941,6 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   setzoom c.zoom;
 ;;
 
-let setcheckers enabled =
-  match !checkerstexid with
-  | None -> if enabled then checkerstexid := Some (makecheckers ())
-  | Some id ->
-     if not enabled
-     then (
-       GlTex.delete_texture id;
-       checkerstexid := None;
-     );
-;;
-
 let describe_layout layout =
   let d =
     match layout with
@@ -2394,9 +2356,6 @@ let enterinfomode =
       (fun v -> showextended := v; fillsrc prevmode prevuioh);
     if !showextended
     then (
-      src#bool "checkers"
-        (fun () -> conf.checkers)
-        (fun v -> conf.checkers <- v; setcheckers v);
       src#bool "update cursor"
         (fun () -> conf.updatecurs)
         (fun v -> conf.updatecurs <- v);
@@ -4879,7 +4838,6 @@ let () =
        r, w
   in
 
-  setcheckers conf.checkers;
   begin match !csspath with
   | None -> ()
   | Some "" -> conf.css <- E.s

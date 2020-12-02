@@ -750,7 +750,6 @@ let config_of c attrs =
       | "tile-height" -> { c with tileh = maxv 2 v }
       | "mupdf-store-size" ->
          { c with mustoresize = maxv ~f:int_of_string_with_suffix 1024 v }
-      | "checkers" -> { c with checkers = bool_of_string v }
       | "aalevel" -> { c with aalevel = maxv 0 v }
       | "trim-margins" -> { c with trimmargins = bool_of_string v }
       | "trim-fuzz" -> { c with trimfuzz = irect_of_string v }
@@ -1237,7 +1236,6 @@ let add_attrs bb always dc c time =
   oi "tile-width" c.tilew dc.tilew;
   oi "tile-height" c.tileh dc.tileh;
   oI "mupdf-store-size" c.mustoresize dc.mustoresize;
-  ob "checkers" c.checkers dc.checkers;
   oi "aalevel" c.aalevel dc.aalevel;
   ob "trim-margins" c.trimmargins dc.trimmargins;
   oR "trim-fuzz" c.trimfuzz dc.trimfuzz;

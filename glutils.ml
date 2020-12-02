@@ -33,22 +33,6 @@ let drawstring size x y s =
 ;;
 
 let drawstringf size x y = Printf.kprintf (drawstring size (x+1) (y+size+1));;
-
-let makecheckers () =
-  (* Based on lablGL-1.04/LablGlut/examples/lablGL/checker.ml which had
-     following to say:
-     converted by Issac Trotts.  July 25, 2002 *)
-  let image = GlPix.create `ubyte ~format:`luminance ~width:2 ~height:2 in
-  Raw.sets_string (GlPix.to_raw image) ~pos:0 "\255\200\200\255";
-  let id = GlTex.gen_texture () in
-  GlTex.bind_texture ~target:`texture_2d id;
-  GlPix.store (`unpack_alignment 1);
-  GlTex.image2d image;
-  List.iter (GlTex.parameter ~target:`texture_2d)
-            [ `mag_filter `nearest; `min_filter `nearest ];
-  id;
-;;
-
 let redisplay = ref false;;
 let postRedisplay who =
   Utils.vlog "redisplay for [%S]" who;

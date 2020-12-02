@@ -94,7 +94,6 @@ g texturecolor rgba "(0.0, 0.0, 0.0, 0.0)"
 i tilew 2048
 i tileh 2048
 g mustoresize memsize "256 lsl 20"
-b checkers true
 i aalevel 8
 s urilauncher "{|$uriop|}"
 s pathlauncher "{|$print|}"
