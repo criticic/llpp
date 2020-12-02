@@ -269,10 +269,7 @@ for target; do
                 } && vecho "fresh $out"
             done;
             exit;;
-
-        completions) die "not yet";;
-
-        *) die "no clue - '$target'";;
+        *) die "no such target - '$target'";;
     esac
 done
 
