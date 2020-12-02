@@ -135,7 +135,7 @@ test "$overs" = "4.11.1" || {
 
 ccomp=${LLPP_CC-$(set -- $(ocamlc -config | grep ^bytecomp_c_compiler:);
                            shift; echo $@)}
-cvers=$($ccomp --version)
+cvers=$($ccomp --version | { read v; echo $v; })
 
 bocaml1() {
     grep -q "$3" $outd/ordered || {
