@@ -9,9 +9,7 @@ dgst='cksum $* | while read d _; do printf $d; done'
 ! executable_p b3sum || dgst='b3sum --no-names $*'
 eval "digest() { $dgst; } 2>/dev/null"
 die() { echo "$*" >&2; exit 111; }
-partmsg() { echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"; }
-
-trap 'partmsg' EXIT
+trap 'echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"' EXIT
 
 darwin=false
 wsid="wsi/x11"
