@@ -256,15 +256,15 @@ for target; do
             mkdir -p $md
             for m in llpp llppac llpphtml; do
                 src=$srcd/adoc/$m.adoc
-                out=$md/$m.1
+                o=$md/$m.1
                 conf="$srcd/man/asciidoc.conf"
-                keycmd="digest $out $src $conf"
-                cmd="asciidoctor -b manpage -o $out $src"
-                isfresh "$out" "$cmd$(eval $keycmd)" || {
-                    echo "$out"
+                keycmd="digest $o $src $conf"
+                cmd="asciidoctor -b manpage -o $o $src"
+                isfresh "$o" "$cmd$(eval $keycmd)" || {
+                    echo "${o#$outd/}"
                     eval "$cmd" || die "$cmd failed"
-                    echo "$cmd$(eval $keycmd)" >"$out.past"
-                } && vecho "fresh $out"
+                    echo "$cmd$(eval $keycmd)" >"$o.past"
+                } && vecho "fresh $o"
             done;
             exit;;
         *) die "no such target - '$target'";;
