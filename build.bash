@@ -267,7 +267,8 @@ for target; do
                     eval "$cmd" || die "$cmd failed"
                     echo "$cmd$(eval $keycmd)" >"$out.past"
                 } && vecho "fresh $out"
-            done;;
+            done;
+            exit;;
 
         completions) die "not yet";;
 
