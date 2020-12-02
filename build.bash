@@ -26,8 +26,7 @@ case "$(uname)" in
         clip="LC_CTYPE=UTF-8 pbcopy"
         paste="LC_CTYPE=UTF-8 pbaste"
         uriop='open "%s"'
-        print="Print '%s' >&2"
-        mbt=${mbt:-release};;
+        print="Print '%s' >&2";;
     Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
     *) die $(uname) is not supported;;
 esac
@@ -46,7 +45,7 @@ mkdir -p $outd/{$wsid,lablGL}
 
 isfresh() { test -r $1.past && test "$(<$1.past)" = "$2"; }
 
-mbt=${mbt:-native}
+mbt=${mbt:-release}
 mulibst="$mudir/build/$mbt/libs"
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
 
