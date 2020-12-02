@@ -17,16 +17,16 @@ clip="LC_CTYPE=UTF-8 xclip -i"
 paste="LC_CTYPE=UTF-8 xclip -o"
 uriop="echo 'Open "%s"' >&2"
 print="echo 'Print "%s"' >&2"
+mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
 case "$(uname)" in
     Darwin)
         test $(getconf LONG_BIT) = 64 || die "need 64bit macOS"
         darwin=true
         wsid="wsi/cocoa"
-        mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
         clip="LC_CTYPE=UTF-8 pbcopy"
         paste="LC_CTYPE=UTF-8 pbaste"
         uriop='open "%s"';;
-    Linux) mjobs=$(getconf _NPROCESSORS_ONLN || echo 1);;
+    Linux) ;;
     *) die $(uname) is not supported;;
 esac
 
