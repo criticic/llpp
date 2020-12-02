@@ -21,6 +21,7 @@ uriop="echo 'Open \"%s\"' >&2"
 print="echo 'Print \"%s\"' >&2"
 case "$(uname)" in
     Darwin)
+        test $(getconf LONG_BIT) = 64 || die "need 64bit macOS"
         darwin=true
         wsid="wsi/cocoa"
         mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
@@ -289,12 +290,7 @@ done
 libs="str.cma unix.cma"
 clibs="-L$mudir/build/$mbt -lmupdf -lmupdf-third -lpthread"
 if $darwin; then
-    mcomp=$(ocamlc -config | while read k v; do
-                case "$k" in
-                    bytecomp_c_co*) echo "$v";;
-                    word_size:) test $v -lt 64 && die not enough bits;;
-                esac
-            done)
+    mcomp=$ccomp
     clibs+=" -framework Cocoa -framework OpenGL"
     cobjs+=" $outd/wsi/cocoa/cocoa.o"
     bobjc wsi/cocoa/cocoa.o
