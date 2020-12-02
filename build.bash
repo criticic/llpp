@@ -175,7 +175,7 @@ bocaml2() {
     cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="digest $o $s $(< $o.depl)"
     isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
-        printf "%*.s%s -> %s\n" $n '' "${s#$srcd/}" "${o#$outd/}"
+        printf "%*.s%s\n" $n '' "${o#$outd/}"
         eval "$cmd" || die "$cmd failed"
         echo "$overs$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh '$o'"
@@ -216,7 +216,7 @@ bocamlc() {
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
     isfresh "$o" "$cvers$cmd$(eval $keycmd)" || {
-        printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
+        echo "${o#$outd/}"
         eval "$cmd" || die "$cmd failed"
         read _ d <$o.dep
         echo "$cvers$cmd$(eval $keycmd)" >"$o.past"
@@ -230,7 +230,7 @@ bobjc() {
     test -r $o.dep && read _ d <$o.dep || d=
     local keycmd='digest $o $d'
     isfresh "$o" "$cmd$(eval $keycmd)" || {
-        printf "%s -> %s\n" "${s#$srcd/}" "${o#$outd/}"
+        echo "${o#$outd/}"
         eval "$cmd" || die "$cmd failed"
         read _ d <$o.dep
         echo "$cmd$(eval $keycmd)" >"$o.past"
@@ -261,7 +261,7 @@ for target; do
                 keycmd="digest $out $src $conf"
                 cmd="asciidoctor -b manpage -o $out $src"
                 isfresh "$out" "$cmd$(eval $keycmd)" || {
-                    echo "$src -> $out"
+                    echo "$out"
                     eval "$cmd" || die "$cmd failed"
                     echo "$cmd$(eval $keycmd)" >"$out.past"
                 } && vecho "fresh $out"
