@@ -14,3 +14,5 @@
 * TODO (maybe?) make C replies use byte commands too
 * TODO title tracking
 * TODO macOS machine check
+* TODO close github issues
+* TODO state
