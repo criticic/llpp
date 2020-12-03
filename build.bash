@@ -129,7 +129,7 @@ test "$overs" = "4.11.1" || {
     overs=$(ocamlc -vnum 2>/dev/null)
 }
 
-ccomp=${LLPP_CC-$(set -- $(ocamlc -config | grep ^bytecomp_c_compiler:);
+ccomp=${CAML_CC-$(set -- $(ocamlc -config | grep ^bytecomp_c_compiler:);
                            shift; echo $@)}
 cvers=$($ccomp --version | { read v; echo $v; })
 
