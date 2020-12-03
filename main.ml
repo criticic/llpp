@@ -709,9 +709,9 @@ let fillhelp () =
     let sl = keystostrlist conf in
     let rec loop accu =
       function | [] -> accu
-               | s :: rest -> loop ((s, 0, Noaction) :: accu) rest
+               | s :: rest -> loop ((s, 0, None) :: accu) rest
     in Help.makehelp conf.urilauncher
-       @ (("", 0, Noaction) :: loop [] sl) |> Array.of_list
+       @ (("", 0, None) :: loop [] sl) |> Array.of_list
 
 let titlify path =
   if emptystr path
@@ -1918,7 +1918,7 @@ let enterinfomode =
       method int name get set =
         m_l <-
           (name, `int get, 1,
-           Action (fun u ->
+           Some (fun u ->
                let ondone s =
                  try set (int_of_string s)
                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
@@ -1932,7 +1932,7 @@ let enterinfomode =
       method int_with_suffix name get set =
         m_l <-
           (name, `intws get, 1,
-           Action (fun u ->
+           Some (fun u ->
                let ondone s =
                  try set (int_of_string_with_suffix s)
                  with exn -> settextfmt "bad integer `%s': %s" s @@ exntos exn
@@ -1946,12 +1946,12 @@ let enterinfomode =
 
       method bool ?(offset=1) ?(btos=btos) name get set =
         m_l <- (name, `bool (btos, get), offset,
-                Action (fun u -> set (not (get ())); u)) :: m_l
+                Some (fun u -> set (not (get ())); u)) :: m_l
 
       method color name get set =
         m_l <-
           (name, `color get, 1,
-           Action (fun u ->
+           Some (fun u ->
                let invalid = (nan, nan, nan) in
                let ondone s =
                  let c =
@@ -1971,7 +1971,7 @@ let enterinfomode =
       method string name get set =
         m_l <-
           (name, `string get, 1,
-           Action (fun u ->
+           Some (fun u ->
                let ondone s = set s in
                let te = (String.trim name ^ ": ", E.s, None,
                          textentry, ondone, true) in
@@ -1982,7 +1982,7 @@ let enterinfomode =
       method colorspace name get set =
         m_l <-
           (name, `string get, 1,
-           Action (fun _ ->
+           Some (fun _ ->
                let source =
                  (object
                     inherit lvsourcebase
@@ -2008,7 +2008,7 @@ let enterinfomode =
       method paxmark name get set =
         m_l <-
           (name, `string get, 1,
-           Action (fun _ ->
+           Some (fun _ ->
                let source =
                  (object
                     inherit lvsourcebase
@@ -2032,7 +2032,7 @@ let enterinfomode =
       method fitmodel name get set =
         m_l <-
           (name, `string get, 1,
-           Action (fun _ ->
+           Some (fun _ ->
                let source =
                  (object
                     inherit lvsourcebase
@@ -2054,10 +2054,10 @@ let enterinfomode =
           )) :: m_l
 
       method caption s offset =
-        m_l <- (s, `empty, offset, Noaction) :: m_l
+        m_l <- (s, `empty, offset, None) :: m_l
 
       method caption2 s f offset =
-        m_l <- (s, `string f, offset, Noaction) :: m_l
+        m_l <- (s, `string f, offset, None) :: m_l
 
       method getitemcount = Array.length m_a
 
@@ -2083,8 +2083,8 @@ let enterinfomode =
           then (
             let uioh =
               match m_a.(active) with
-              | _, _, _, Action f -> f uioh
-              | _, _, _, Noaction -> uioh
+              | _, _, _, Some f -> f uioh
+              | _, _, _, None -> uioh
             in
             Some uioh
           )
@@ -2097,8 +2097,8 @@ let enterinfomode =
 
       method hasaction n =
         match m_a.(n) with
-        | _, _, _, Action _ -> true
-        | _, _, _, Noaction -> false
+        | _, _, _, Some _ -> true
+        | _, _, _, None -> false
 
       initializer m_active <- 1
     end
@@ -2501,8 +2501,8 @@ let enterhelpmode =
            if not cancel
            then (
              match state.help.(active) with
-             | _, _, Action f -> Some (f uioh)
-             | _, _, Noaction -> Some uioh
+             | _, _, Some f -> Some (f uioh)
+             | _, _, None -> Some uioh
            )
            else None
          in
@@ -2513,8 +2513,8 @@ let enterhelpmode =
 
        method hasaction n =
          match state.help.(n) with
-         | _, _, Action _ -> true
-         | _, _, Noaction -> false
+         | _, _, Some _ -> true
+         | _, _, None -> false
 
        initializer m_active <- -1
      end)

@@ -195,9 +195,7 @@ and mode =
 and onleave = leavetextentrystatus -> unit
 and leavetextentrystatus = | Cancel | Confirm
 and helpitem = string * int * action
-and action =
-  | Noaction
-  | Action of (uioh -> uioh)
+and action = (uioh -> uioh) option
 and linktarget =
   | Ltexact of (pageno * direction)
   | Ltgendir of direction

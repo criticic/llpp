@@ -202,6 +202,6 @@ let makehelp launcher =
     List.map (fun s ->
         let s = fixup s in
         match geturl s with
-        | "" -> (s, 0, Config.Noaction)
-        | url ->  (s, 0, Config.Action (fun uioh -> gotourl launcher url; uioh))
+        | "" -> (s, 0, None)
+        | url ->  (s, 0, Some (fun uioh -> gotourl launcher url; uioh))
       )
