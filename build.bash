@@ -20,7 +20,6 @@ print="echo 'Print "%s"' >&2"
 mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
 case "$(uname)" in
     Darwin)
-        test $(getconf LONG_BIT) = 64 || die "need 64bit macOS"
         darwin=true
         wsid="wsi/cocoa"
         clip="LC_CTYPE=UTF-8 pbcopy"
@@ -129,8 +128,13 @@ test "$overs" = "4.11.1" || {
     overs=$(ocamlc -vnum 2>/dev/null)
 }
 
-ccomp=${CAML_CC-$(set -- $(ocamlc -config | grep ^bytecomp_c_compiler:);
-                           shift; echo $@)}
+while read k v; do
+    case "$k" in
+        "bytecomp_c_compiler:") ccomp=${CAML_CC-$v};;
+        "word_size:") ! test "$darwin$v" = "true32" || die "need 64bit ocaml";;
+    esac
+done < <(ocamlc -config)
+
 cvers=$($ccomp --version | { read v; echo $v; })
 
 bocaml1() {
