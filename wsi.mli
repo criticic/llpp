@@ -4,19 +4,16 @@ type cursor =
   | CURSOR_CYCLE
   | CURSOR_FLEUR
   | CURSOR_TEXT
-;;
 
 type winstate =
   | MaxVert
   | MaxHorz
   | Fullscreen
-;;
 
 type visiblestate =
   | Unobscured
   | PartiallyObscured
   | FullyObscured
-;;
 
 class type t =
   object
@@ -36,29 +33,29 @@ class type t =
     method scroll   : int -> int -> unit
     method zoom     : float -> int -> int -> unit
     method opendoc  : string -> unit
-  end;;
+  end
 
-type keycode = int;;
-val setcursor : cursor -> unit;;
-val settitle : string -> unit;;
-val setmapc : (keycode -> keycode) -> unit;;
-val swapb : unit -> unit;;
-val readresp : Unix.file_descr -> unit;;
-val init : t -> int -> int -> Unix.file_descr * int * int;;
-val fullscreen : unit -> unit;;
-val reshape : int -> int -> unit;;
-val activatewin : unit -> unit;;
-val mapwin : unit -> unit;;
-val withalt : int -> bool;;
-val withctrl : int -> bool;;
-val withshift : int -> bool;;
-val withmeta : int -> bool;;
-val withnone : int -> bool;;
-val metamask : int;;
-val altmask : int;;
-val shiftmask : int;;
-val ctrlmask : int;;
-val keyname : int -> string;;
-val namekey : string -> int;;
-val fontsizescale : int -> int;;
-val ks2kt : int -> Keys.t;;
+type keycode = int
+val setcursor : cursor -> unit
+val settitle : string -> unit
+val setmapc : (keycode -> keycode) -> unit
+val swapb : unit -> unit
+val readresp : Unix.file_descr -> unit
+val init : t -> int -> int -> Unix.file_descr * int * int
+val fullscreen : unit -> unit
+val reshape : int -> int -> unit
+val activatewin : unit -> unit
+val mapwin : unit -> unit
+val withalt : int -> bool
+val withctrl : int -> bool
+val withshift : int -> bool
+val withmeta : int -> bool
+val withnone : int -> bool
+val metamask : int
+val altmask : int
+val shiftmask : int
+val ctrlmask : int
+val keyname : int -> string
+val namekey : string -> int
+val fontsizescale : int -> int
+val ks2kt : int -> Keys.t

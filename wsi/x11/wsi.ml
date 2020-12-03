@@ -1,6 +1,6 @@
-open Utils;;
+open Utils
 
-let (~>) = Bytes.unsafe_of_string;;
+let (~>) = Bytes.unsafe_of_string
 
 type cursor =
   | CURSOR_INHERIT
@@ -8,26 +8,23 @@ type cursor =
   | CURSOR_CYCLE
   | CURSOR_FLEUR
   | CURSOR_TEXT
-;;
 
 type winstate =
   | MaxVert
   | MaxHorz
   | Fullscreen
-;;
 
 type visiblestate =
   | Unobscured
   | PartiallyObscured
   | FullyObscured
-;;
 
-type wid = int and screenno = int and vid = int and atom = int;;
+type wid = int and screenno = int and vid = int and atom = int
 
-external glxinit : string -> wid -> screenno -> vid = "ml_glxinit";;
-external glxcompleteinit : unit -> unit = "ml_glxcompleteinit";;
-external swapb : unit -> unit = "ml_swapb";;
-external setcursor : cursor -> unit = "ml_setcursor";;
+external glxinit : string -> wid -> screenno -> vid = "ml_glxinit"
+external glxcompleteinit : unit -> unit = "ml_glxcompleteinit"
+external swapb : unit -> unit = "ml_swapb"
+external setcursor : cursor -> unit = "ml_setcursor"
 
 let onot = object
     method display         = ()
@@ -46,7 +43,7 @@ let onot = object
     method scroll _ _      = ()
     method zoom _ _ _      = ()
     method opendoc _       = ()
-  end;;
+  end
 
 class type t =
   object
@@ -66,7 +63,7 @@ class type t =
     method scroll   : int -> int -> unit
     method zoom     : float -> int -> int -> unit
     method opendoc  : string -> unit
-  end;;
+  end
 
 type state =
   { mutable mink       : int
@@ -106,7 +103,7 @@ type state =
 and fs =
   | NoFs
   | Fs of (int * int * int * int)
-and keycode = int;;
+and keycode = int
 
 let state =
   { mink       = max_int
@@ -143,31 +140,29 @@ let state =
   ; fscale     = 1.0
   ; mapc       = Fun.id
   }
-;;
 
-let settitle s = state.setwmname (~> s);;
-let fullscreen () = state.fullscreen state.wid;;
-let fontsizescale n = float n *. state.fscale |> truncate;;
-let setmapc f  = state.mapc <- f;;
+let settitle s = state.setwmname (~> s)
+let fullscreen () = state.fullscreen state.wid
+let fontsizescale n = float n *. state.fscale |> truncate
+let setmapc f  = state.mapc <- f
 
-let ordermagic = 'l';;
-let metamask = 0x40;;
-let altmask = 8;;
-let shiftmask = 1;;
-let ctrlmask = 4;;
+let ordermagic = 'l'
+let metamask = 0x40
+let altmask = 8
+let shiftmask = 1
+let ctrlmask = 4
 
-let withalt mask = mask land altmask != 0;;
-let withctrl mask = mask land ctrlmask != 0;;
-let withshift mask = mask land shiftmask != 0;;
-let withmeta mask = mask land metamask != 0;;
-let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0;;
+let withalt mask = mask land altmask != 0
+let withctrl mask = mask land ctrlmask != 0
+let withshift mask = mask land shiftmask != 0
+let withmeta mask = mask land metamask != 0
+let withnone mask = mask land (altmask + ctrlmask + shiftmask + metamask) = 0
 
 let makereq opcode len reqlen =
   let s = Bytes.create len in
   w8 s 0 opcode;
   w16 s 2 reqlen;
-  s;
-;;
+  s
 
 let readstr sock n =
   let s = Bytes.create n in
@@ -182,8 +177,7 @@ let readstr sock n =
     )
   in
   loop 0 n;
-  s;
-;;
+  s
 
 let sendstr1 s pos len sock =
   let s = Bytes.unsafe_to_string s in
@@ -191,8 +185,7 @@ let sendstr1 s pos len sock =
   state.seq <- state.seq + 1;
   let n = tempfailureretry (Unix.write_substring sock s pos) len in
   if n != len
-  then error "send %d returned %d" len n;
-;;
+  then error "send %d returned %d" len n
 
 let updkmap sock resp =
   let syms = r8 resp 1 in
@@ -218,8 +211,7 @@ let updkmap sock resp =
       loop2 k 0;
       loop (i+1);
   in
-  loop 0;
-;;
+  loop 0
 
 let updmodmap sock resp =
   let n = r8 resp 1 in
@@ -282,13 +274,11 @@ let updmodmap sock resp =
         loop1 0;
         loop (l+1)
     in
-    loop 0;
-;;
+    loop 0
 
 let sendwithrep sock s f =
   Queue.push f state.fifo;
-  sendstr1 s 0 (Bytes.length s) sock;
-;;
+  sendstr1 s 0 (Bytes.length s) sock
 
 let padcat b1 b2 =
   let l1 = Bytes.length b1 and l2 = Bytes.length b2 in
@@ -297,8 +287,7 @@ let padcat b1 b2 =
   let b = Bytes.create (l1 + l2 + pl) in
   Bytes.blit b1 0 b 0 l1;
   Bytes.blit b2 0 b l1 l2;
-  b;
-;;
+  b
 
 let internreq name onlyifexists =
   let s = makereq 16 8 8 in
@@ -306,13 +295,11 @@ let internreq name onlyifexists =
   w8 s 1 (if onlyifexists then 1 else 0);
   w16 s 2 (Bytes.length s / 4);
   w16 s 4 (Bytes.length name);
-  s;
-;;
+  s
 
 let sendintern sock s onlyifexists f =
   let s = internreq s onlyifexists in
-  sendwithrep sock s f;
-;;
+  sendwithrep sock s f
 
 let createwindowreq wid parent x y w h bw eventmask vid depth mid =
   let s = makereq 1 44 11 in
@@ -333,8 +320,7 @@ let createwindowreq wid parent x y w h bw eventmask vid depth mid =
   w32 s 32 0;                           (* border pixel*)
   w32 s 36 eventmask;
   w32 s 40 mid;
-  s;
-;;
+  s
 
 let createcolormapreq mid wid vid =
   let s = makereq 78 16 4 in
@@ -342,27 +328,23 @@ let createcolormapreq mid wid vid =
   w32 s 4 mid;
   w32 s 8 wid;
   w32 s 12 vid;
-  s;
-;;
+  s
 
 let getgeometryreq wid =
   let s = makereq 14 8 2 in
   w32 s 4 wid;
-  s;
-;;
+  s
 
 let mapreq wid =
   let s = makereq 8 8 2 in
   w32 s 4 wid;
-  s;
-;;
+  s
 
 let getkeymapreq first count =
   let s = makereq 101 8 2 in
   w8 s 4 first;
   w8 s 5 count;
-  s;
-;;
+  s
 
 let changepropreq wid prop typ format props =
   let s = makereq 18 24 0 in
@@ -380,8 +362,7 @@ let changepropreq wid prop typ format props =
                                   | n -> error "no idea what %d means" n)
   in
   w32 s 20 ful;
-  s;
-;;
+  s
 
 let getpropreq delete wid prop typ =
   let s = makereq 20 24 6 in
@@ -391,8 +372,7 @@ let getpropreq delete wid prop typ =
   w32 s 12 typ;
   w32 s 16 0;
   w32 s 20 2;
-  s;
-;;
+  s
 
 let configurewindowreq wid mask values =
   let s = makereq 12 12 0 in
@@ -400,14 +380,12 @@ let configurewindowreq wid mask values =
   w16 s 2 (Bytes.length s / 4);
   w32 s 4 wid;
   w16 s 8 mask;
-  s;
-;;
+  s
 
 let s32 n =
   let s = Bytes.create 4 in
   w32 s 0 n;
-  s;
-;;
+  s
 
 let clientmessage format seq wid typ data =
   let s = makereq 33 12 0 in
@@ -416,8 +394,7 @@ let clientmessage format seq wid typ data =
   w16 s 2 seq;
   w32 s 4 wid;
   w32 s 8 typ;
-  s;
-;;
+  s
 
 let sendeventreq propagate destwid mask data =
   let s = makereq 25 12 11 in
@@ -426,20 +403,17 @@ let sendeventreq propagate destwid mask data =
   w16 s 2 11;
   w32 s 4 destwid;
   w32 s 8 mask;
-  s;
-;;
+  s
 
 let getmodifiermappingreq () =
-  makereq 119 4 1;
-;;
+  makereq 119 4 1
 
 let queryextensionreq name =
   let s = makereq 98 8 0 in
   let s = padcat s name in
   w16 s 2 (Bytes.length s / 4);
   w16 s 4 (Bytes.length name);
-  s;
-;;
+  s
 
 let getkeysym pkpk code mask =
   if (pkpk >= 0xff80 && pkpk <= 0xffbd)
@@ -470,15 +444,13 @@ let getkeysym pkpk code mask =
     if index land 1 = 1 && keysym = 0
     then state.keymap.(code-state.mink).(index - 1)
     else keysym
-  );
-;;
+  )
 
 let getkeysym code mask =
   let pkpk = state.keymap.(code-state.mink).(0) in
   if state.xkb && pkpk lsr 8 = 0xfe (* XKB *)
   then 0
-  else getkeysym pkpk code mask;
-;;
+  else getkeysym pkpk code mask
 
 let readresp sock =
   let resp = readstr sock 32 in
@@ -661,21 +633,18 @@ let readresp sock =
            state.t#winstate (List.sort compare wsl)
          );
 
-  | n -> dolog "event %d %S" n (Bytes.unsafe_to_string resp);
-;;
+  | n -> dolog "event %d %S" n (Bytes.unsafe_to_string resp)
 
 let readresp sock =
   let rec loop () =
     readresp sock;
     if hasdata sock then loop ();
   in
-  loop ();
-;;
+  loop ()
 
 let sendstr s ?(pos=0) ?(len=Bytes.length s) sock =
   sendstr1 s pos len sock;
-  if hasdata sock then readresp sock;
-;;
+  if hasdata sock then readresp sock
 
 let reshape w h =
   if state.fs = NoFs
@@ -685,12 +654,10 @@ let reshape w h =
     w32 s 4 h;
     let s = configurewindowreq state.wid 0x000c s in
     sendstr s state.sock;
-  else state.fullscreen state.wid;
-;;
+  else state.fullscreen state.wid
 
 let activatewin () =
-  state.actwin ();
-;;
+  state.actwin ()
 
 let syncsendwithrep sock secstowait s f =
   let completed = ref false in
@@ -712,18 +679,15 @@ let syncsendwithrep sock secstowait s f =
        if not !completed
        then readtillcompletion ();
   in
-  readtillcompletion ();
-;;
+  readtillcompletion ()
 
 let mapwin () =
   let s = mapreq state.wid in
-  sendstr s state.sock;
-;;
+  sendstr s state.sock
 
 let syncsendintern sock secstowait s onlyifexists f =
   let s = internreq s onlyifexists in
-  syncsendwithrep sock secstowait s f;
-;;
+  syncsendwithrep sock secstowait s f
 
 let setup disp sock rootwid screennum w h =
   let s = readstr sock 2 in
@@ -1024,8 +988,7 @@ let setup disp sock rootwid screennum w h =
          state.h <- h;
        );
 
-  | c -> error "unknown connection setup response %d" (Char.code c);
-;;
+  | c -> error "unknown connection setup response %d" (Char.code c)
 
 let getauth haddr dnum =
   let haddr =
@@ -1101,7 +1064,6 @@ let getauth haddr dnum =
          dolog "failed to open X authority file `%S' : %s" path @@ exntos exn
        ;
        E.s, E.s
-;;
 
 let init t w h =
   let d =
@@ -1182,8 +1144,7 @@ let init t w h =
   state.sock <- fd;
   setup d fd 0 screennum w h;
   state.t <- t;
-  fd, state.w, state.h;
-;;
+  fd, state.w, state.h
 
 let setcursor cursor =
   if cursor != state.curcurs
@@ -1191,7 +1152,6 @@ let setcursor cursor =
     setcursor cursor;
     state.curcurs <- cursor;
   )
-;;
 
 let xlatt, xlatf =
   let t = Hashtbl.create 20
@@ -1229,21 +1189,18 @@ let xlatt, xlatf =
   add "up" [] 0xff52;
   add "down" [] 0xff54;
   add "menu" [] 0xff67;
-  t, f;
-;;
+  t, f
 
 let keyname k =
   try Hashtbl.find xlatf k
-  with Not_found -> Printf.sprintf "%#x" k;
-;;
+  with Not_found -> Printf.sprintf "%#x" k
 
 let namekey name =
   try Hashtbl.find xlatt name
   with Not_found ->
     if String.length name = 1
     then Char.code name.[0]
-    else int_of_string name;
-;;
+    else int_of_string name
 
 let ks2kt =
   let open Keys in
@@ -1279,4 +1236,3 @@ let ks2kt =
   | code when code >= 0xffbe && code <= 0xffc8 -> Fn (code - 0xffbe + 1)
   | code when code land 0xff00 = 0xff00 -> Ctrl code
   | code -> Code code
-;;

@@ -33,8 +33,8 @@ and x = int and y = int and leftx = int
 and covercount = int
 and width = int and height = int
 and memsize = int and texcount = int
-and sliceheight = int;;
-let scrollbvv = 1 and scrollbhv = 2;;
+and sliceheight = int
+let scrollbvv = 1 and scrollbhv = 2
 EOF
 
 init=
@@ -133,8 +133,8 @@ s hcs "{|aoeuidhtns|}"
 b remaphtns false
 
 cat <<EOF
-};;
-let copykeyhashes c = List.map (fun (k, v) -> k, Hashtbl.copy v) c.keyhashes;;
-let defconf = {$init};;
+}
+let copykeyhashes c = List.map (fun (k, v) -> k, Hashtbl.copy v) c.keyhashes
+let defconf = {$init}
 let setconf dst src = $assi;
 EOF

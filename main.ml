@@ -1,34 +1,34 @@
-open Utils;;
-open Config;;
-open Glutils;;
-open Uiutils;;
+open Utils
+open Config
+open Glutils
+open Uiutils
 
 module U = struct
-  let dopen         = '\023';;
-  let cs            = '\024';;
-  let freepage      = '\025';;
-  let freetile      = '\026';;
-  let search        = '\027';;
-  let geometry      = '\028';;
-  let reqlayout     = '\029';;
-  let page          = '\030';;
-  let tile          = '\031';;
-  let trimset       = '\032';;
-  let settrim       = '\033';;
-  let sliceh        = '\034';;
-  let interrupt     = '\035';;
-  let pgscale h     = truncate (float h *. conf.pgscale);;
-  let nogeomcmds    = function | s, [] -> emptystr s | _ -> false;;
-  let maxy ()       = state.maxy - if conf.maxhfit then state.winh else 0;;
-  let clamp incr    = bound (state.y + incr) 0 @@ maxy ();;
-  let scalecolor c  = let c = c *. conf.colorscale in (c, c, c);;
-  let panbound x    = bound x (-state.w) state.winw;;
-  let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout;;
-end;;
+  let dopen         = '\023'
+  let cs            = '\024'
+  let freepage      = '\025'
+  let freetile      = '\026'
+  let search        = '\027'
+  let geometry      = '\028'
+  let reqlayout     = '\029'
+  let page          = '\030'
+  let tile          = '\031'
+  let trimset       = '\032'
+  let settrim       = '\033'
+  let sliceh        = '\034'
+  let interrupt     = '\035'
+  let pgscale h     = truncate (float h *. conf.pgscale)
+  let nogeomcmds    = function | s, [] -> emptystr s | _ -> false
+  let maxy ()       = state.maxy - if conf.maxhfit then state.winh else 0
+  let clamp incr    = bound (state.y + incr) 0 @@ maxy ()
+  let scalecolor c  = let c = c *. conf.colorscale in (c, c, c)
+  let panbound x    = bound x (-state.w) state.winw
+  let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout
+end
 
-let selfexec = ref E.s;;
-let ignoredoctitlte = ref false;;
-let layouth = ref ~-1;;
+let selfexec = ref E.s
+let ignoredoctitlte = ref false
+let layouth = ref ~-1
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
   dolog {|rect {
@@ -36,44 +36,36 @@ let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
          x1,y1=(% f, % f)
          x2,y2=(% f, % f)
          x3,y3=(% f, % f)
-         }|} x0 y0 x1 y1 x2 y2 x3 y3;
-;;
+         }|} x0 y0 x1 y1 x2 y2 x3 y3
 
 let hscrollh () =
   if ((conf.scrollb land scrollbhv != 0) && (state.w > state.winw))
      || state.uioh#alwaysscrolly
   then conf.scrollbw
   else 0
-;;
 
 let setfontsize n =
   fstate.fontsize <- n;
   fstate.wwidth <- Ffi.measurestr fstate.fontsize "w";
-  fstate.maxrows <- (state.winh - fstate.fontsize - 1) / (fstate.fontsize + 1);
-;;
+  fstate.maxrows <- (state.winh - fstate.fontsize - 1) / (fstate.fontsize + 1)
 
 let showtext c s =
   state.text <- Printf.sprintf "%c%s" c s;
-  postRedisplay "showtext";
-;;
+  postRedisplay "showtext"
 
 let settextfmt fmt =
-  Printf.kprintf (fun s -> state.text <- s) fmt;
-;;
+  Printf.kprintf (fun s -> state.text <- s) fmt
 
 let impmsg fmt =
   Format.ksprintf (fun s -> showtext '!' s) fmt
-;;
 
 let adderrmsg src msg =
   Buffer.add_string state.errmsgs msg;
   state.newerrmsgs <- true;
   postRedisplay src
-;;
 
 let adderrfmt src fmt =
   Format.ksprintf (fun s -> adderrmsg src s) fmt
-;;
 
 let launchpath () =
   if emptystr conf.pathlauncher
@@ -84,17 +76,15 @@ let launchpath () =
     | exception exn ->
        adderrfmt "spawn" "failed to execute `%s': %s" cmd @@ exntos exn
     | _pid -> ()
-;;
 
-let getopaque pageno = Hashtbl.find state.pagemap (pageno, state.gen);;
+let getopaque pageno = Hashtbl.find state.pagemap (pageno, state.gen)
 
 let pagetranslatepoint l x y =
   let dy = y - l.pagedispy in
   let y = dy + l.pagey in
   let dx = x - l.pagedispx in
   let x = dx + l.pagex in
-  (x, y);
-;;
+  (x, y)
 
 let onppundermouse g x y d =
   let rec f = function
@@ -116,7 +106,6 @@ let onppundermouse g x y d =
           else f rest
   in
   f state.layout
-;;
 
 let getunder x y =
   let g opaque l px py =
@@ -134,7 +123,6 @@ let getunder x y =
     if under = Unone then None else Some under
   in
   onppundermouse g x y Unone
-;;
 
 let unproject x y =
   let g opaque l x y =
@@ -142,8 +130,7 @@ let unproject x y =
     | Some (x, y) -> Some (Some (opaque, l.pageno, x, y))
     | None -> None
   in
-  onppundermouse g x y None;
-;;
+  onppundermouse g x y None
 
 let pipesel opaque cmd =
   if Ffi.hassel opaque
@@ -152,7 +139,6 @@ let pipesel opaque cmd =
            Ffi.copysel w opaque;
            postRedisplay "pipesel"
          ) cmd
-;;
 
 let paxunder x y =
   let g opaque l px py =
@@ -172,8 +158,7 @@ let paxunder x y =
         match getopaque l.pageno with
         | exception Not_found -> ()
         | opaque -> Ffi.clearmark opaque) state.layout;
-  state.roam <- onppundermouse g x y (fun () -> impmsg "whoopsie daisy");
-;;
+  state.roam <- onppundermouse g x y (fun () -> impmsg "whoopsie daisy")
 
 let undertext = function
   | Unone -> "none"
@@ -181,7 +166,6 @@ let undertext = function
   | Utext s -> "font: " ^ s
   | Uannotation (opaque, slinkindex) ->
      "annotation: " ^ Ffi.getannotcontents opaque slinkindex
-;;
 
 let updateunder x y =
   match getunder x y with
@@ -195,12 +179,10 @@ let updateunder x y =
   | Uannotation _ ->
      if conf.underinfo then showtext 'a' "nnotation";
      Wsi.setcursor Wsi.CURSOR_INFO
-;;
 
 let showlinktype under =
   if conf.underinfo && under != Unone
   then showtext ' ' @@ undertext under
-;;
 
 let intentry_with_suffix text key =
   let text =
@@ -213,7 +195,6 @@ let intentry_with_suffix text key =
        text
   in
   TEcont text
-;;
 
 let wcmd cmd fmt =
   let b = Buffer.create 16 in
@@ -223,7 +204,6 @@ let wcmd cmd fmt =
       let b = Buffer.to_bytes b in
       Ffi.wcmd state.ss b @@ Bytes.length b
     ) b fmt
-;;
 
 let wcmd1 cmd opaque =
   let s = ~> opaque in
@@ -231,8 +211,7 @@ let wcmd1 cmd opaque =
   let b = Bytes.create (l+1) in
   Bytes.set b l cmd;
   Bytes.blit_string s 0 b 0 l;
-  Ffi.wcmd state.ss b @@ l + 1;
-;;
+  Ffi.wcmd state.ss b @@ l + 1
 
 let layoutN ((columns, coverA, coverB), b) x y sw sh =
   let rec fold accu n =
@@ -281,7 +260,6 @@ let layoutN ((columns, coverA, coverB), b) x y sw sh =
   if Array.length b = 0
   then []
   else List.rev (fold [] (page_of_y y))
-;;
 
 let layoutS (columns, b) x y sw sh =
   let rec fold accu n =
@@ -339,7 +317,6 @@ let layoutS (columns, b) x y sw sh =
         fold accu (n+1)
   in
   List.rev (fold [] 0)
-;;
 
 let layout x y sw sh =
   if U.nogeomcmds state.geomcmds
@@ -349,7 +326,6 @@ let layout x y sw sh =
     | Cmulti c -> layoutN c x y sw sh
     | Csplit s -> layoutS s x y sw sh
   else []
-;;
 
 let itertiles l f =
   let tilex = l.pagex mod conf.tilew in
@@ -375,19 +351,16 @@ let itertiles l f =
       rowloop (row+1) 0 (dispy+dh) (h-dh)
   in
   if l.pagevw > 0 && l.pagevh > 0
-  then rowloop row tiley l.pagedispy l.pagevh;
-;;
+  then rowloop row tiley l.pagedispy l.pagevh
 
 let gettileopaque l col row =
   let key = l.pageno, state.gen, conf.colorspace,
             conf.angle, l.pagew, l.pageh, col, row in
   Hashtbl.find_opt state.tilemap key
-;;
 
 let puttileopaque l col row gen colorspace angle opaque size elapsed =
   let key = l.pageno, gen, colorspace, angle, l.pagew, l.pageh, col, row in
   Hashtbl.add state.tilemap key (opaque, size, elapsed)
-;;
 
 let drawtiles l color =
   GlDraw.color color;
@@ -442,8 +415,7 @@ let drawtiles l color =
        Ffi.begintiles ();
   in
   itertiles l f;
-  Ffi.endtiles ();
-;;
+  Ffi.endtiles ()
 
 let tilevisible1 l x y =
   let ax0 = l.pagex
@@ -463,7 +435,6 @@ let tilevisible1 l x y =
 
   let nonemptyintersection = rx1 > rx0 && ry1 > ry0 in
   nonemptyintersection
-;;
 
 let tilevisible layout n x y =
   let rec findpageinlayout m = function
@@ -476,13 +447,11 @@ let tilevisible layout n x y =
     | _ :: rest -> findpageinlayout 0 rest
     | [] -> false
   in
-  findpageinlayout 0 layout;
-;;
+  findpageinlayout 0 layout
 
 let tileready l x y =
   tilevisible1 l x y &&
     gettileopaque l (x/conf.tilew) (y/conf.tileh) != None
-;;
 
 let tilepage n p layout =
   let rec loop = function
@@ -518,16 +487,14 @@ let tilepage n p layout =
     | [] -> ()
   in
   if U.nogeomcmds state.geomcmds
-  then loop layout;
-;;
+  then loop layout
 
 let preloadlayout x y sw sh =
   let y = if y < sh then 0 else y - sh in
   let x = min 0 (x + sw) in
   let h = sh*3 in
   let w = sw*3 in
-  layout x y w h;
-;;
+  layout x y w h
 
 let load pages =
   let rec loop pages =
@@ -547,13 +514,11 @@ let load pages =
   in
   if U.nogeomcmds state.geomcmds
   then loop pages
-;;
 
 let preload pages =
   load pages;
   if conf.preload && state.currently = Idle
-  then load (preloadlayout state.x state.y state.winw state.winh);
-;;
+  then load (preloadlayout state.x state.y state.winw state.winh)
 
 let layoutready layout =
   let rec fold all ls =
@@ -574,8 +539,7 @@ let layoutready layout =
            | [] -> true
   in
   let alltilesvisible = fold true layout in
-  alltilesvisible;
-;;
+  alltilesvisible
 
 let mapc code =
   let viewmapcode = function
@@ -589,7 +553,6 @@ let mapc code =
   match state.mode with
   | View -> if conf.remaphtns then viewmapcode code else code
   | LinkNav _ | Textentry _ | Birdseye _ -> code
-;;
 
 let gotoxy x y =
   let y = bound y 0 state.maxy in
@@ -672,20 +635,17 @@ let gotoxy x y =
   then (
     let mx, my = state.mpos in
     updateunder mx my;
-  );
-;;
+  )
 
 let conttiling pageno opaque =
   tilepage pageno opaque
     (if conf.preload
      then preloadlayout state.x state.y state.winw state.winh
      else state.layout)
-;;
 
 let gotoxy x y =
   if not conf.verbose then state.text <- E.s;
-  gotoxy x y;
-;;
+  gotoxy x y
 
 let getanchory (n, top, dtop) =
   let y, h = getpageyh n in
@@ -694,23 +654,19 @@ let getanchory (n, top, dtop) =
     let ips = calcips h in
     y + truncate (top*.float h -. dtop*.float ips) + ips;
   else y + truncate (top*.float h -. dtop*.float conf.interpagespace)
-;;
 
 let addnav () =
   state.nav <- { past = getanchor () :: state.nav.past; future = []; }
-;;
 
 let gotopage n top =
   let y, h = getpageyh n in
   let y = y + (truncate (top *. float h)) in
   gotoxy state.x y
-;;
 
 let gotopage1 n top =
   let y = getpagey n in
   let y = y + top in
   gotoxy state.x y
-;;
 
 let invalidate s f =
   Glutils.redisplay := false;
@@ -724,13 +680,11 @@ let invalidate s f =
      state.geomcmds <- s, [];
   | ps, [] -> state.geomcmds <- ps, [s, f];
   | ps, (s', _) :: rest when s' = s -> state.geomcmds <- ps, ((s, f) :: rest);
-  | ps, cmds -> state.geomcmds <- ps, ((s, f) :: cmds);
-;;
+  | ps, cmds -> state.geomcmds <- ps, ((s, f) :: cmds)
 
 let flushpages () =
   Hashtbl.iter (fun _ opaque -> wcmd1 U.freepage opaque) state.pagemap;
-  Hashtbl.clear state.pagemap;
-;;
+  Hashtbl.clear state.pagemap
 
 let flushtiles () =
   if not (Queue.is_empty state.tilelru)
@@ -743,14 +697,12 @@ let flushtiles () =
     state.uioh#infochanged Memused;
     Queue.clear state.tilelru;
   );
-  load state.layout;
-;;
+  load state.layout
 
 let stateh h =
   let h = truncate (float h*.conf.zoom) in
   let d = conf.interpagespace lsl (if conf.presentation then 1 else 0) in
   h - d
-;;
 
 let fillhelp () =
   state.help <-
@@ -760,21 +712,18 @@ let fillhelp () =
                | s :: rest -> loop ((s, 0, Noaction) :: accu) rest
     in Help.makehelp conf.urilauncher
        @ (("", 0, Noaction) :: loop [] sl) |> Array.of_list
-;;
 
 let titlify path =
   if emptystr path
   then path
   else
     (if emptystr state.origin then path else state.origin)
-    |> Filename.basename |> Ffi.mbtoutf8;
-;;
+    |> Filename.basename |> Ffi.mbtoutf8
 
 let settitle title =
   conf.title <- title;
   if not !ignoredoctitlte
-  then Wsi.settitle @@ title ^ " - llpp";
-;;
+  then Wsi.settitle @@ title ^ " - llpp"
 
 let opendoc path password =
   state.path <- path;
@@ -798,14 +747,12 @@ let opendoc path password =
         conf.angle (FMTE.to_int conf.fitmodel)
         (stateh state.winh) state.nameddest
     );
-  fillhelp ();
-;;
+  fillhelp ()
 
 let reload () =
   state.anchor <- getanchor ();
   state.reload <- Some (state.x, state.y, now ());
-  opendoc state.path state.password;
-;;
+  opendoc state.path state.password
 
 let docolumns columns =
   match columns with
@@ -927,8 +874,7 @@ let docolumns columns =
          loop (pageno+1) pdimno pdim y pdims
      in
      loop 0 ~-1 (-1,-1,-1,-1) 0 state.pdims;
-     conf.columns <- Csplit (c, a);
-;;
+     conf.columns <- Csplit (c, a)
 
 let represent () =
   docolumns conf.columns;
@@ -948,8 +894,7 @@ let represent () =
   else (
     state.reprf ();
     state.reprf <- noreprf;
-  );
-;;
+  )
 
 let reshape ?(firsttime=false) w h =
   GlDraw.viewport ~x:0 ~y:0 ~w ~h;
@@ -987,8 +932,7 @@ let reshape ?(firsttime=false) w h =
         | Csplit (c, _) -> w * c
       in
       wcmd U.geometry "%d %d %d" w (stateh h) (FMTE.to_int conf.fitmodel)
-    );
-;;
+    )
 
 let gctiles () =
   let len = Queue.length state.tilelru in
@@ -1023,7 +967,6 @@ let gctiles () =
     )
   in
   loop 0
-;;
 
 let onpagerect pageno f =
   let b =
@@ -1036,7 +979,6 @@ let onpagerect pageno f =
   then
     let (_, _, _, (_, w, h, _)) = b.(pageno) in
     f w h
-;;
 
 let gotopagexy1 pageno x y =
   let _,w1,h1,leftx = getpagedim pageno in
@@ -1068,27 +1010,23 @@ let gotopagexy1 pageno x y =
   in
   if state.x != sx || state.y != sy
   then gotoxy sx sy
-  else gotoxy state.x state.y;
-;;
+  else gotoxy state.x state.y
 
 let gotopagexy pageno x y =
   match state.mode with
   | Birdseye _ -> gotopage pageno 0.0
   | Textentry _ | View | LinkNav _ -> gotopagexy1 pageno x y
-;;
 
 let getpassword () =
   let passcmd = getenvdef "LLPP_ASKPASS" conf.passcmd in
   if emptystr passcmd
   then (adderrmsg "askpass" "ask password program not set"; E.s)
-  else getcmdoutput (adderrfmt passcmd "failed to obrain password: %s") passcmd;
-;;
+  else getcmdoutput (adderrfmt passcmd "failed to obrain password: %s") passcmd
 
 let pgoto opaque pageno x y =
   let pdimno = getpdimno pageno in
   let x, y = Ffi.project opaque pageno pdimno x y in
-  gotopagexy pageno x y;
-;;
+  gotopagexy pageno x y
 
 let act cmds =
   (* dolog1 "%S" cmds; *)
@@ -1387,7 +1325,6 @@ let act cmds =
      else opendoc state.path password
 
   | _ -> error "unknown cmd `%S'" cmds
-;;
 
 let onhist cb =
   let rc = cb.rc in
@@ -1398,7 +1335,6 @@ let onhist cb =
     | HClast  -> cbget cb (cb.len - 1 - cb.rc)
   and cancel () = cb.rc <- rc
   in (action, cancel)
-;;
 
 let search pattern forward =
   match conf.columns with
@@ -1412,8 +1348,7 @@ let search pattern forward =
          | l :: _ -> l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
        in
        wcmd U.search "%d %d %d %d,%s\000"
-         (btod conf.icase) pn py (btod forward) pattern;
-;;
+         (btod conf.icase) pn py (btod forward) pattern
 
 let intentry text key =
   let text =
@@ -1427,7 +1362,6 @@ let intentry text key =
          text
   in
   TEcont text
-;;
 
 let linknact f s =
   if nonemptystr s
@@ -1443,8 +1377,7 @@ let linknact f s =
             then loop n rest
             else Ffi.getlink opaque n |> f
     in
-    loop 0 state.layout;
-;;
+    loop 0 state.layout
 
 let linknentry text = function [@warning "-fragile-match"]
   | Keys.Ascii c  ->
@@ -1454,13 +1387,11 @@ let linknentry text = function [@warning "-fragile-match"]
   | key ->
      settextfmt "invalid key %s" @@ Keys.to_string key;
      TEcont text
-;;
 
 let textentry text key = match [@warning "-fragile-match"] key with
   | Keys.Ascii c -> TEcont (addchar text c)
   | Keys.Code c -> TEcont (text ^ Ffi.toutf8 c)
   | _ -> TEcont text
-;;
 
 let reqlayout angle fitmodel =
   if U.nogeomcmds state.geomcmds
@@ -1475,8 +1406,7 @@ let reqlayout angle fitmodel =
   conf.fitmodel <- fitmodel;
   invalidate "reqlayout"
     (fun () -> wcmd U.reqlayout "%d %d %d"
-                 conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh));
-;;
+                 conf.angle (FMTE.to_int conf.fitmodel) (stateh state.winh))
 
 let settrim trimmargins trimfuzz =
   if U.nogeomcmds state.geomcmds
@@ -1487,8 +1417,7 @@ let settrim trimmargins trimfuzz =
   invalidate "settrim"
     (fun () -> wcmd U.settrim "%d %d %d %d %d"
                  (btod conf.trimmargins) x0 y0 x1 y1);
-  flushpages ();
-;;
+  flushpages ()
 
 let setzoom zoom =
   let zoom = max 0.0001 zoom in
@@ -1499,7 +1428,6 @@ let setzoom zoom =
     reshape state.winw state.winh;
     settextfmt "zoom is now %-5.2f" (zoom *. 100.0);
   )
-;;
 
 let pivotzoom ?(vw=min state.w state.winw)
       ?(vh=min (state.maxy-state.y) state.winh)
@@ -1511,8 +1439,7 @@ let pivotzoom ?(vw=min state.w state.winw)
   let x0 = float x -. hw
   and y0 = float y -. hh in
   gotoxy (state.x - truncate x0) (state.y + truncate y0);
-  setzoom zoom;
-;;
+  setzoom zoom
 
 let pivotzoom ?vw ?vh ?x ?y zoom =
   if U.nogeomcmds state.geomcmds
@@ -1520,7 +1447,6 @@ let pivotzoom ?vw ?vh ?x ?y zoom =
     if zoom > 1.0
     then pivotzoom ?vw ?vh ?x ?y zoom
     else setzoom zoom
-;;
 
 let setcolumns mode columns coverA coverB =
   state.prevcolumns <- Some (conf.columns, conf.zoom);
@@ -1546,13 +1472,11 @@ let setcolumns mode columns coverA coverB =
       conf.zoom <- 1.0;
     );
   );
-  reshape state.winw state.winh;
-;;
+  reshape state.winw state.winh
 
 let resetmstate () =
   state.mstate <- Mnone;
-  Wsi.setcursor Wsi.CURSOR_INHERIT;
-;;
+  Wsi.setcursor Wsi.CURSOR_INHERIT
 
 let enterbirdseye () =
   let zoom = float conf.thumbw /. float state.winw in
@@ -1594,8 +1518,7 @@ let enterbirdseye () =
   );
   if conf.verbose
   then settextfmt "birds eye on (zoom %3.1f%%)" (100.0*.zoom);
-  reshape state.winw state.winh;
-;;
+  reshape state.winw state.winh
 
 let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   state.mode <- View;
@@ -1620,15 +1543,13 @@ let leavebirdseye (c, leftx, pageno, _, anchor) goback =
   then settextfmt "bird's eye off (zoom %3.1f%%)" (100.0*.conf.zoom);
   reshape state.winw state.winh;
   state.anchor <- if goback then anchor else (pageno, 0.0, 1.0);
-  state.x <- leftx;
-;;
+  state.x <- leftx
 
 let togglebirdseye () =
   match state.mode with
   | Birdseye vals -> leavebirdseye vals true
   | View -> enterbirdseye ()
   | Textentry _ | LinkNav _ -> ()
-;;
 
 let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   let pageno = max 0 (pageno - incr) in
@@ -1643,7 +1564,6 @@ let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   loop state.layout;
   state.text <- E.s;
   state.mode <- Birdseye (conf, leftx, pageno, hooverpageno, anchor)
-;;
 
 let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   let pageno = min (state.pagecount - 1) (pageno + incr) in
@@ -1660,8 +1580,7 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
     | _ :: rest -> loop rest
   in
   loop state.layout;
-  state.text <- E.s;
-;;
+  state.text <- E.s
 
 let optentry mode _ key =
   let btos b = if b then "on" else "off" in
@@ -1727,7 +1646,6 @@ let optentry mode _ key =
      TEstop
 
   | _ -> TEcont state.text
-;;
 
 class outlinelistview ~zebra ~source =
   let settext autonarrow s =
@@ -1911,7 +1829,7 @@ class outlinelistview ~zebra ~source =
          coe {< m_active = active; m_first = first >}
       | Delete|Escape|Insert|Enter|Ascii _|Code _|Ctrl _|Backspace|Fn _ ->
          super#key key mask
-  end;;
+  end
 
 let genhistoutlines () =
   Config.gethist ()
@@ -1922,7 +1840,6 @@ let genhistoutlines () =
          let base = Ffi.mbtoutf8 @@ Filename.basename path in
          (base ^ "\000" ^ c.title, 1, Ohistory hist)
        )
-;;
 
 let gotohist (path, c, bookmarks, x, anchor, origin) =
   Config.save leavebirdseye;
@@ -1936,8 +1853,7 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   wcmd U.trimset "%d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Wsi.reshape c.cwinw c.cwinh;
   opendoc path origin;
-  setzoom c.zoom;
-;;
+  setzoom c.zoom
 
 let describe_layout layout =
   let d =
@@ -1965,7 +1881,6 @@ let describe_layout layout =
     else 100. *. (float state.y /. float maxy)
   in
   Printf.sprintf "%s of %d [%.2f%%]" d state.pagecount percent
-;;
 
 let setpresentationmode v =
   let n = page_of_y state.y in
@@ -1973,15 +1888,13 @@ let setpresentationmode v =
   conf.presentation <- v;
   if conf.fitmodel = FitPage
   then reqlayout conf.angle conf.fitmodel;
-  represent ();
-;;
+  represent ()
 
 let infomenu =
   let modehash = lazy (findkeyhash conf "info") in (fun source ->
       state.text <- E.s;
       new listview ~zebra:false ~helpmode:false ~source
         ~trusted:true ~modehash:(Lazy.force_val modehash) |> coe)
-;;
 
 let enterinfomode =
   let btos b = if b then Utf8syms.radical else E.s in
@@ -2572,8 +2485,7 @@ let enterinfomode =
         else super#key key mask
     end |> setuioh;
     postRedisplay "info";
-  );
-;;
+  )
 
 let enterhelpmode =
   let source =
@@ -2612,8 +2524,7 @@ let enterhelpmode =
   resetmstate ();
   new listview ~zebra:false ~helpmode:true
     ~source ~trusted:true ~modehash |> setuioh;
-  postRedisplay "help";
-;;
+  postRedisplay "help"
 
 let entermsgsmode =
   let msgsource =
@@ -2664,8 +2575,7 @@ let entermsgsmode =
          then msgsource#reset;
          super#display
      end |> setuioh;
-     postRedisplay "msgs";
-;;
+     postRedisplay "msgs"
 
 let getusertext s =
   let editor = getenvdef "EDITOR" E.s in
@@ -2700,7 +2610,6 @@ let getusertext s =
     match Unix.unlink tmppath with
     | exception exn -> eret s "failed to ulink %S: %s" tmppath @@ exntos exn
     | () -> s
-;;
 
 let enterannotmode opaque slinkindex =
   let msgsource =
@@ -2792,8 +2701,7 @@ let enterannotmode opaque slinkindex =
     inherit listview ~zebra:false
               ~helpmode:false ~source ~trusted:false ~modehash
   end |> setuioh;
-  postRedisplay "enterannotmode";
-;;
+  postRedisplay "enterannotmode"
 
 let gotoremote spec =
   let filename, dest = splitatchar spec '#' in
@@ -2848,7 +2756,6 @@ let gotoremote spec =
       state.nameddest <- dest;
       dospawn @@ lazy (!selfexec ^ " " ^ path ^ " -dest " ^ dest)
     )
-;;
 
 let gotounder = function
   | Ulinkuri s when Ffi.isexternallink s ->
@@ -2861,7 +2768,6 @@ let gotounder = function
      gotopagexy pageno x y
   | Utext _ | Unone -> ()
   | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
-;;
 
 let gotooutline (_, _, kind) =
   match kind with
@@ -2877,7 +2783,6 @@ let gotooutline (_, _, kind) =
   | Ohistory hist -> gotohist hist
   | Oremotedest (path, dest) ->
      error "gotounder (Uremotedest (%S, %S))" path dest
-;;
 
 class outlinesoucebase fetchoutlines = object (self)
   inherit lvsourcebase
@@ -3001,7 +2906,7 @@ class outlinesoucebase fetchoutlines = object (self)
     let active = self#calcactive anchor in
     m_active <- active;
     m_first <- firstof m_first active
-end;;
+end
 
 let outlinesource fetchoutlines = object
     inherit outlinesoucebase fetchoutlines
@@ -3025,7 +2930,6 @@ let outlinesource fetchoutlines = object
       in
       loop 0 ~-1 max_int
   end
-;;
 
 let enteroutlinemode, enterbookmarkmode, enterhistmode =
   let fetchoutlines sourcetype () =
@@ -3057,12 +2961,10 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
   ( mkenter `outlines "document has no outline" so
   , mkenter `bookmarks "document has no bookmarks (yet)" sb
   , mkenter `history "history is empty" sh )
-;;
 
 let addbookmark title a =
   let b = List.filter (fun (title', _, _) -> title <> title') state.bookmarks in
   state.bookmarks <- (title, 0, Oanchor a) :: b
-;;
 
 let quickbookmark ?title () =
   match state.layout with
@@ -3081,20 +2983,17 @@ let quickbookmark ?title () =
        | Some title -> title
      in
      addbookmark title (getanchor1 l)
-;;
 
 let setautoscrollspeed step goingdown =
   let incr = max 1 ((abs step) / 2) in
   let incr = if goingdown then incr else -incr in
   let astep = boundastep state.winh (step + incr) in
-  state.autoscroll <- Some astep;
-;;
+  state.autoscroll <- Some astep
 
 let canpan () =
   match conf.columns with
   | Csplit _ -> true
   | Csingle _ | Cmulti _ -> state.x != 0 || conf.zoom > 1.0
-;;
 
 let existsinrow pageno (columns, coverA, coverB) p =
   let last = ((pageno - coverA) mod columns) + columns in
@@ -3110,7 +3009,6 @@ let existsinrow pageno (columns, coverA, coverB) p =
        )
   in
   any state.layout
-;;
 
 let nextpage () =
   match state.layout with
@@ -3144,7 +3042,6 @@ let nextpage () =
           let pagey = pagey + pageh * l.pagecol in
           let ips = if l.pagecol = 0 then 0 else conf.interpagespace in
           gotoxy state.x (pagey + pageh + ips)
-;;
 
 let prevpage () =
   match state.layout with
@@ -3186,7 +3083,6 @@ let prevpage () =
             pagey + pageh * (l.pagecol-1) - conf.interpagespace
         in
         gotoxy state.x y
-;;
 
 let save () =
   if emptystr conf.savecmd
@@ -3203,8 +3099,7 @@ let save () =
     then
       let tmp = path ^ ".tmp" in
       Ffi.savedoc tmp;
-      Unix.rename tmp path;
-;;
+      Unix.rename tmp path
 
 let viewkeyboard key mask =
   let enttext te =
@@ -3629,7 +3524,6 @@ let viewkeyboard key mask =
      state.mode <- Textentry (te, onleave);
   | (Ascii _|Fn _|Enter|Left|Right|Code _|Ctrl _) ->
      vlog "huh? %s" (Wsi.keyname key)
-;;
 
 let linknavkeyboard key mask linknav =
   let pv = Wsi.ks2kt key in
@@ -3729,13 +3623,11 @@ let linknavkeyboard key mask linknav =
     match linknav with
     | Ltgendir _ | Ltnotready _ -> viewkeyboard key mask
     | Ltexact exact -> doexact exact
-;;
 
 let keyboard key mask =
   if (key = Char.code 'g' && Wsi.withctrl mask) && not (istextentry state.mode)
   then wcmd U.interrupt ""
-  else state.uioh#key key mask |> setuioh;
-;;
+  else state.uioh#key key mask |> setuioh
 
 let birdseyekeyboard key mask
       ((oconf, leftx, pageno, hooverpageno, anchor) as beye) =
@@ -3832,7 +3724,6 @@ let birdseyekeyboard key mask
      else postRedisplay "birdseye end";
 
   | Delete|Insert|Ascii _|Code _|Ctrl _|Fn _|Backspace -> viewkeyboard key mask
-;;
 
 let drawpage l =
   let color =
@@ -3859,8 +3750,7 @@ let drawpage l =
          else U.scalecolor 0.8
        )
   in
-  drawtiles l color;
-;;
+  drawtiles l color
 
 let postdrawpage l linkindexbase =
   match getopaque l.pageno with
@@ -3893,7 +3783,6 @@ let postdrawpage l linkindexbase =
        then (Glutils.redisplay := true; 0)
        else n
      else 0
-;;
 
 let scrollindicator () =
   let sbw, ph, sh = state.uioh#scrollph in
@@ -3919,8 +3808,7 @@ let scrollindicator () =
   filledrect (float x0) ph (float x1) (ph +. sh);
   let pw = pw +. float hx0 in
   filledrect pw (float (state.winh - sbh)) (pw +. sw) (float state.winh);
-  Gl.disable `blend;
-;;
+  Gl.disable `blend
 
 let showsel () =
   match state.mstate with
@@ -3929,8 +3817,7 @@ let showsel () =
      let identify opaque l px py = Some (opaque, l.pageno, px, py) in
      let o0,n0,px0,py0 = onppundermouse identify x0 y0 (~< E.s, -1, 0, 0) in
      let _o1,n1,px1,py1 = onppundermouse identify x1 y1 (~< E.s, -1, 0, 0) in
-     if n0 != -1 && n0 = n1 then Ffi.seltext o0 (px0, py0, px1, py1);
-;;
+     if n0 != -1 && n0 = n1 then Ffi.seltext o0 (px0, py0, px1, py1)
 
 let showrects = function
   | [] -> ()
@@ -3954,8 +3841,7 @@ let showrects = function
                  (x2+.dx) (y2+.dy);
            ) state.layout
        ) rects;
-     Gl.disable `blend;
-;;
+     Gl.disable `blend
 
 let display () =
   let sc (r, g, b) = let s = conf.colorscale in (r *. s, g *. s, b *. s) in
@@ -4011,8 +3897,7 @@ let display () =
   end;
   enttext ();
   scrollindicator ();
-  Wsi.swapb ();
-;;
+  Wsi.swapb ()
 
 let display () =
   match state.reload with
@@ -4024,7 +3909,6 @@ let display () =
        display ()
      )
   | None -> display ()
-;;
 
 let zoomrect x y x1 y1 =
   let x0 = min x x1
@@ -4048,8 +3932,7 @@ let zoomrect x y x1 y1 =
   gotoxy ((state.x + margin) - x0) (state.y + y0);
   state.anchor <- getanchor ();
   setzoom zoom;
-  resetmstate ();
-;;
+  resetmstate ()
 
 let annot inline x y =
   match unproject x y with
@@ -4071,7 +3954,6 @@ let annot inline x y =
        postRedisplay "annot"
      else add @@ getusertext E.s
   | _ -> ()
-;;
 
 let zoomblock x y =
   let g opaque l px py =
@@ -4094,22 +3976,19 @@ let zoomblock x y =
   | Csplit _ ->
      impmsg "block zooming does not work properly in split columns mode"
   | Cmulti _ | Csingle _ -> onppundermouse g x y ()
-;;
 
 let scrollx x =
   let winw = state.winw - 1 in
   let s = float x /. float winw in
   let destx = truncate (float (state.w + winw) *. s) in
   gotoxy (winw - destx) state.y;
-  state.mstate <- Mscrollx;
-;;
+  state.mstate <- Mscrollx
 
 let scrolly y =
   let s = float y /. float state.winh in
   let desty = truncate (s *. float (U.maxy ())) in
   gotoxy state.x desty;
-  state.mstate <- Mscrolly;
-;;
+  state.mstate <- Mscrolly
 
 let viewmulticlick clicks x y mask =
   let g opaque l px py =
@@ -4135,14 +4014,12 @@ let viewmulticlick clicks x y mask =
     else None
   in
   postRedisplay "viewmulticlick";
-  onppundermouse g x y (fun () -> impmsg "nothing to select") ();
-;;
+  onppundermouse g x y (fun () -> impmsg "nothing to select") ()
 
 let canselect () =
   match conf.columns with
   | Csplit _ -> false
   | Csingle _ | Cmulti _ -> conf.angle mod 360 = 0
-;;
 
 let viewmouse button down x y mask =
   match button with
@@ -4319,7 +4196,6 @@ let viewmouse button down x y mask =
         )
      end
   | _ -> ()
-;;
 
 let birdseyemouse button down x y mask
       (conf, leftx, _, hooverpageno, anchor) =
@@ -4337,7 +4213,6 @@ let birdseyemouse button down x y mask
      loop state.layout
   | 3 -> ()
   | _ -> viewmouse button down x y mask
-;;
 
 let uioh = object
     method display = ()
@@ -4482,7 +4357,7 @@ let uioh = object
       state.uioh
     method zoom z x y =
       pivotzoom ~x ~y (conf.zoom *. exp z);
-  end;;
+  end
 
 let ract cmds =
   let cl = splitatchar cmds ' ' in
@@ -4571,8 +4446,7 @@ let ract cmds =
      end
   | _ ->
      adderrfmt "remote command"
-       "error processing remote command: %S\n" cmds;
-;;
+       "error processing remote command: %S\n" cmds
 
 let remote =
   let scratch = Bytes.create 80 in
@@ -4609,14 +4483,12 @@ let remote =
          Some fd
        )
      in eat 0
-;;
 
 let remoteopen path =
   try Some (Unix.openfile path [Unix.O_NONBLOCK; Unix.O_RDONLY] 0o0)
   with exn ->
     adderrfmt "remoteopen" "error opening %S: %s" path @@ exntos exn;
     None
-;;
 
 let () =
   vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
@@ -5005,4 +4877,3 @@ let () =
      if Ffi.hasunsavedchanges ()
      then save ()
   | _ -> error "umpossible - infinity reached"
-;;

@@ -2,7 +2,6 @@ type t =
   | Ascii of char | Code of int | Ctrl of int | Fn of int
   | Backspace | Delete | Escape | Insert | Enter
   | Up | Down | Left | Right | Next | Prior | Home | End
-;;
 
 let to_string = function
   | Ascii c -> Printf.sprintf "'%c'" c
@@ -22,4 +21,3 @@ let to_string = function
   | Prior -> "prior"
   | Home -> "home"
   | End -> "end"
-;;

@@ -1,16 +1,14 @@
-open Utils;;
+open Utils
 
 let irect_of_string s =
   Scanf.sscanf s "%d/%d/%d/%d" (fun x0 y0 x1 y1 -> (x0,y0,x1,y1))
-;;
 
-let irect_to_string (x0,y0,x1,y1) = Printf.sprintf "%d/%d/%d/%d" x0 y0 x1 y1;;
+let irect_to_string (x0,y0,x1,y1) = Printf.sprintf "%d/%d/%d/%d" x0 y0 x1 y1
 
 let multicolumns_to_string (n, a, b) =
   if a = 0 && b = 0
   then Printf.sprintf "%d" n
-  else Printf.sprintf "%d,%d,%d" n a b;
-;;
+  else Printf.sprintf "%d,%d,%d" n a b
 
 let multicolumns_of_string s =
   try
@@ -20,10 +18,9 @@ let multicolumns_of_string s =
         if a > 1 || b > 1
         then error "subtly broken";
         (n, a, b)
-      );
-;;
+      )
 
-include Confstruct;;
+include Confstruct
 
 type angle         = int
 and opaque         = Opaque.t
@@ -77,14 +74,12 @@ and fontstate =
   ; mutable wwidth : float
   ; mutable maxrows : int
   }
-;;
 
 let fstate =
   { fontsize = Wsi.fontsizescale 20
   ; wwidth = nan
   ; maxrows = -1
   }
-;;
 
 class type uioh =
   object
@@ -102,19 +97,19 @@ class type uioh =
     method alwaysscrolly : bool
     method scroll : int -> int -> uioh
     method zoom : float -> int -> int -> unit
-  end;;
+  end
 
 module type TextEnumType = sig
   type t
   val name : string
   val names : string array
-end;;
+end
 
 module TextEnumMake (Ten : TextEnumType) = struct
-  let names = Ten.names;;
-  let to_int (t : Ten.t)  = Obj.magic t;;
-  let to_string t = names.(to_int t);;
-  let of_int n : Ten.t = Obj.magic n;;
+  let names = Ten.names
+  let to_int (t : Ten.t)  = Obj.magic t
+  let to_string t = names.(to_int t)
+  let of_int n : Ten.t = Obj.magic n
   let of_string s =
     let rec find i =
       if i = Array.length names
@@ -124,26 +119,26 @@ module TextEnumMake (Ten : TextEnumType) = struct
         then of_int i
         else find (i+1)
       )
-    in find 0;;
-end;;
+    in find 0
+end
 
 module CSTE = TextEnumMake (struct
-                  type t = colorspace;;
-                  let name = "colorspace";;
-                  let names = [|"rgb"; "gray"|];;
-                end);;
+                  type t = colorspace
+                  let name = "colorspace"
+                  let names = [|"rgb"; "gray"|]
+                end)
 
 module MTE = TextEnumMake (struct
-                 type t = mark;;
-                 let name = "mark";;
-                 let names = [|"page"; "block"; "line"; "word"|];;
-               end);;
+                 type t = mark
+                 let name = "mark"
+                 let names = [|"page"; "block"; "line"; "word"|]
+               end)
 
 module FMTE = TextEnumMake (struct
-                  type t = fitmodel;;
-                  let name = "fitmodel";;
-                  let names = [|"width"; "proportional"; "page"|];;
-                end);;
+                  type t = fitmodel
+                  let name = "fitmodel"
+                  let names = [|"width"; "proportional"; "page"|]
+                end)
 
 type outlinekind =
   | Onone
@@ -155,7 +150,6 @@ type outlinekind =
   | Ohistory of (filename * conf * outline list * x * anchor * filename)
 and outline = (caption * outlinelevel * outlinekind)
 and outlinelevel = int
-;;
 
 type page =
   { pageno    : int
@@ -170,7 +164,6 @@ type page =
   ; pagedispy : int
   ; pagecol   : int
   }
-;;
 
 type tile = opaque * pixmapsize * elapsed
 and elapsed = float
@@ -232,7 +225,6 @@ and 'a nav =
   { past   : 'a list
   ; future : 'a list
   }
-;;
 
 type state =
   { mutable ss            : Unix.file_descr
@@ -295,12 +287,11 @@ and hists =
   ; pag : string circbuf
   ; sel : string circbuf
   }
-;;
 
-let emptyanchor = (0, 0.0, 0.0);;
-let emptykeyhash = Hashtbl.create 0;;
-let noreprf () = ();;
-let noroam () = ();;
+let emptyanchor = (0, 0.0, 0.0)
+let emptykeyhash = Hashtbl.create 0
+let noreprf () = ()
+let noroam () = ()
 
 let nouioh : uioh =
   object (self)
@@ -318,9 +309,9 @@ let nouioh : uioh =
     method alwaysscrolly = false
     method scroll _ _ = self
     method zoom _ _ _ = ()
-  end;;
+  end
 
-let conf = { defconf with keyhashes = copykeyhashes defconf };;
+let conf = { defconf with keyhashes = copykeyhashes defconf }
 
 let cbnew n v =
   { store = Array.make n v
@@ -328,9 +319,8 @@ let cbnew n v =
   ; wc = 0
   ; len = 0
   }
-;;
 
-let cbcap b = Array.length b.store;;
+let cbcap b = Array.length b.store
 
 let cbput ?(update_rc=true) b v  =
   let cap = cbcap b in
@@ -338,12 +328,11 @@ let cbput ?(update_rc=true) b v  =
   b.wc <- (b.wc + 1) mod cap;
   if update_rc
   then b.rc <- b.wc;
-  b.len <- min (b.len + 1) cap;
-;;
+  b.len <- min (b.len + 1) cap
 
-let cbput_dont_update_rc b v = cbput ~update_rc:false b v;;
+let cbput_dont_update_rc b v = cbput ~update_rc:false b v
 
-let cbempty b = b.len = 0;;
+let cbempty b = b.len = 0
 
 let cbgetg b circular dir =
   if cbempty b
@@ -364,11 +353,10 @@ let cbgetg b circular dir =
       else bound rc 0 (b.len-1)
     in
     b.rc <- rc;
-    b.store.(rc);
-;;
+    b.store.(rc)
 
-let cbget b = cbgetg b false;;
-let cbgetc b = cbgetg b true;;
+let cbget b = cbgetg b false
+let cbgetc b = cbgetg b true
 
 let state =
   { ss            = Unix.stdin
@@ -427,12 +415,10 @@ let state =
   ; reload        = None
   ; nav           = { past = []; future  = []; }
   }
-;;
 
 let calcips h =
   let d = state.winh - h in
   max conf.interpagespace ((d + 1) / 2)
-;;
 
 let rowyh (c, coverA, coverB) b n =
   if c = 1 || (n < coverA || n >= state.pagecount - coverB)
@@ -454,7 +440,6 @@ let rowyh (c, coverA, coverB) b n =
         findminmax (m+1) miny maxh
     in
     findminmax s max_int 0
-;;
 
 let page_of_y y =
   let ((c, coverA, coverB) as cl), b =
@@ -505,8 +490,7 @@ let page_of_y y =
           else bsearch nmin (n-1)
         )
     in
-    bsearch 0 (state.pagecount-1);
-;;
+    bsearch 0 (state.pagecount-1)
 
 let calcheight () =
   match conf.columns with
@@ -528,7 +512,6 @@ let calcheight () =
        let (_, _, y, (_, _, h, _)) = b.(Array.length b - 1) in
        y + h
      else 0
-;;
 
 let getpageywh pageno =
   let pageno = bound pageno 0 (state.pagecount-1) in
@@ -563,12 +546,10 @@ let getpageywh pageno =
        let n = pageno*c in
        let (_, _, y, (_, w, h, _)) = b.(n) in
        y, w / c, h
-;;
 
 let getpageyh pageno =
   let y,_,h = getpageywh pageno in
-  y, h;
-;;
+  y, h
 
 let getpagedim pageno =
   let rec f ppdim l =
@@ -580,7 +561,6 @@ let getpagedim pageno =
     | [] -> ppdim
   in
   f (-1, -1, -1, -1) state.pdims
-;;
 
 let getpdimno pageno =
   let rec f p l =
@@ -593,9 +573,8 @@ let getpdimno pageno =
     | [] -> p
   in
   f ~-1 state.pdims
-;;
 
-let getpagey pageno = fst (getpageyh pageno);;
+let getpagey pageno = fst (getpageyh pageno)
 
 let getanchor1 l =
   let top =
@@ -612,7 +591,6 @@ let getanchor1 l =
     )
   in
   (l.pageno, top, dtop)
-;;
 
 let getanchor () =
   match state.layout with
@@ -632,28 +610,25 @@ let getanchor () =
          else float dy /. float conf.interpagespace
        in
        (n, 0.0, dtop)
-;;
 
-let fontpath = ref E.s;;
+let fontpath = ref E.s
 
-type historder = [ `lastvisit | `title | `path | `file ];;
+type historder = [ `lastvisit | `title | `path | `file ]
 
 module KeyMap =
-  Map.Make (struct type t = (int * int) let compare = compare end);;
+  Map.Make (struct type t = (int * int) let compare = compare end)
 
 let unentS s =
   let l = String.length s in
   let b = Buffer.create l in
   Parser.unent b s 0 l;
-  Buffer.contents b;
-;;
+  Buffer.contents b
 
 let home =
   try Sys.getenv "HOME"
   with exn ->
     dolog "cannot determine home directory location: %s" @@ exntos exn;
     E.s
-;;
 
 let modifier_of_string = function
   | "alt" -> Wsi.altmask
@@ -661,7 +636,6 @@ let modifier_of_string = function
   | "ctrl" | "control" -> Wsi.ctrlmask
   | "meta" -> Wsi.metamask
   | _ -> 0
-;;
 
 let keys_of_string s =
   let key_of_string r s =
@@ -687,7 +661,6 @@ let keys_of_string s =
   in
   let elems = Str.split Utils.Re.whitespace s in
   List.map (key_of_string (Str.regexp "-")) elems
-;;
 
 let validatehcs v =
   let l = String.length v in
@@ -703,7 +676,6 @@ let validatehcs v =
       else check (S.add e s) (i+1)
   in
   check (S.singleton (String.get v 0)) 1
-;;
 
 let config_of c attrs =
   let maxv ?(f=int_of_string) u s = max u @@ f s in
@@ -808,15 +780,13 @@ let config_of c attrs =
        let c = apply c k v in
        fold c rest
   in
-  fold { c with keyhashes = copykeyhashes c } attrs;
-;;
+  fold { c with keyhashes = copykeyhashes c } attrs
 
 let fromstring f pos n v d =
   try f v
   with exn ->
     dolog "error processing attribute (%S=%S) at %d\n%s" n v pos @@ exntos exn;
     d
-;;
 
 let bookmark_of attrs =
   let rec fold title page rely visy = function
@@ -828,7 +798,6 @@ let bookmark_of attrs =
     | [] -> title, page, rely, visy
   in
   fold "invalid" "0" "0" "0" attrs
-;;
 
 let doc_of attrs =
   let rec fold path key page rely pan visy origin dcf = function
@@ -844,7 +813,6 @@ let doc_of attrs =
     | [] -> path, key, page, rely, pan, visy, origin, dcf
   in
   fold E.s E.s "0" "0" "0" "0" E.s E.s attrs
-;;
 
 let map_of attrs =
   let rec fold rs ls = function
@@ -854,12 +822,10 @@ let map_of attrs =
     | [] -> ls, rs
   in
   fold E.s E.s attrs
-;;
 
 let findkeyhash c name =
   try List.assoc name c.keyhashes
   with Not_found -> error "invalid mode name `%s'" name
-;;
 
 let get s =
   let open Parser in
@@ -1072,8 +1038,7 @@ let get s =
        else parse_error ("unexpected close in skipped " ^ tag) s spos
   in
   parse { f = toplevel; accu = () } s;
-  h, dc;
-;;
+  h, dc
 
 let do_load f contents =
   try f contents
@@ -1083,7 +1048,6 @@ let do_load f contents =
      Utils.error "parse error: %s: at %d [..%S..]" msg pos subs
 
   | exn -> Utils.error "parse error: %s" @@ exntos exn
-;;
 
 let defconfpath =
   let dir =
@@ -1091,9 +1055,8 @@ let defconfpath =
     if Sys.is_directory dir then dir else home
   in
   Filename.concat dir "llpp.conf"
-;;
 
-let confpath = ref defconfpath;;
+let confpath = ref defconfpath
 
 let load2 f default =
   match filecontents !confpath with
@@ -1103,9 +1066,8 @@ let load2 f default =
   | exception exn ->
      dolog "error loading configuration from `%S': %s" !confpath @@ exntos exn;
      default
-;;
 
-let load1 f = load2 f false;;
+let load1 f = load2 f false
 
 let load openlast =
   let f (h, dc) =
@@ -1157,7 +1119,6 @@ let load openlast =
     true
   in
   load1 f
-;;
 
 let gethist () =
   let f (h, _) =
@@ -1166,7 +1127,6 @@ let gethist () =
       h [];
   in
   load2 f []
-;;
 
 let add_attrs bb always dc c time =
   let o' fmt s =
@@ -1270,8 +1230,7 @@ let add_attrs bb always dc c time =
   ob "use-document-css" c.usedoccss dc.usedoccss;
   os "dcf" c.dcf dc.dcf;
   os "hint-charset" c.hcs dc.hcs;
-  ob "remap-htns" c.remaphtns dc.remaphtns;
-;;
+  ob "remap-htns" c.remaphtns dc.remaphtns
 
 let keymapsbuf always dc c =
   let open Buffer in
@@ -1324,8 +1283,7 @@ let keymapsbuf always dc c =
        loop rest
   in
   loop c.keyhashes;
-  bb;
-;;
+  bb
 
 let keystostrlist c =
   let rec loop accu = function
@@ -1373,18 +1331,19 @@ let keystostrlist c =
        loop accu rest
   in
   loop [] c.keyhashes
-;;
 
 let save1 bb leavebirdseye x h dc =
   let uifontsize = fstate.fontsize in
   Buffer.add_string bb "<llppconfig>\n";
   if nonemptystr !fontpath
-  then Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
-         uifontsize !fontpath
-  else
+  then (
+    Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
+      uifontsize !fontpath
+  )
+  else (
     if uifontsize <> 14
     then Printf.bprintf bb "<ui-font size='%d'/>\n" uifontsize
-  ;
+  );
 
   Buffer.add_string bb "<defaults";
   add_attrs bb true dc dc nan;
@@ -1404,11 +1363,15 @@ let save1 bb leavebirdseye x h dc =
         (Parser.enent path 0 (String.length path));
 
       if nonemptystr c.key
-      then Printf.bprintf bb "\n    key='%s'" c.key;
+      then (
+        Printf.bprintf bb "\n    key='%s'" c.key;
+      );
 
       if nonemptystr origin
-      then Printf.bprintf bb "\n    origin='%s'"
-             (Parser.enent origin 0 (String.length origin));
+      then (
+        Printf.bprintf bb "\n    origin='%s'"
+          (Parser.enent origin 0 (String.length origin));
+      );
 
       if anchor <> emptyanchor
       then (
@@ -1468,8 +1431,8 @@ let save1 bb leavebirdseye x h dc =
            Buffer.add_string bb "\n";
            Buffer.add_buffer bb kb;
          );
-         Buffer.add_string bb "\n</doc>\n";
-      end;
+         Buffer.add_string bb "\n</doc>\n"
+      end
     )
   in
 
@@ -1523,8 +1486,7 @@ let save1 bb leavebirdseye x h dc =
       then adddoc path x anchor c bookmarks c.lastvisit origin
     ) h;
   Buffer.add_string bb "</llppconfig>\n";
-  true;
-;;
+  true
 
 let save leavebirdseye =
   let relx = float state.x /. float state.winw in
@@ -1552,7 +1514,6 @@ let save leavebirdseye =
       close_out oc;
       Unix.rename tmp !confpath;
     with exn -> dolog "error saving configuration: %s" @@ exntos exn
-;;
 
 let gc () =
   let href = ref @@ Hashtbl.create 0 in
@@ -1579,8 +1540,7 @@ let gc () =
       close_out oc;
       Unix.rename tmp !confpath;
     with exn -> dolog "error saving configuration: %s" @@ exntos exn
-  );
-;;
+  )
 
 let logcurrently = function
   | Idle -> dolog "Idle"
@@ -1595,4 +1555,3 @@ let logcurrently = function
        tilew tileh
        conf.tilew conf.tileh
   | Outlining _ -> dolog "outlining"
-;;

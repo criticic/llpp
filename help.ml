@@ -169,15 +169,14 @@ selection command otherwise
 
 -----Caveat emptor-----
 o Text selection is limited to a single page
-o Text searching is very naive|};;
+o Text searching is very naive|}
 
-open Utils;;
+open Utils
 
 let gotourl launcher url =
   let command = Str.global_replace Utils.Re.percent url launcher in
   try ignore @@ spawn command []
   with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
-;;
 
 let gotouri launcher uri =
   if emptystr launcher
@@ -186,18 +185,15 @@ let gotouri launcher uri =
     if nonemptystr @@ geturl uri
     then gotourl launcher uri
     else dolog "obtained empty url from uri %S" uri
-;;
 
 let version () =
   Printf.sprintf "llpp %s, ocaml %s (%d bit), fitz %s"
     (Ffi.llpp_version ()) Sys.ocaml_version Sys.word_size (Ffi.fz_version ())
-;;
 
 let fixup s = Str.(let gr = global_replace in
                    let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
                    and head = regexp {|-----\(.*\)-----|} in
                    gr dash "\\1\t\\2" @@ gr head "\xc2\xb7\\1" s)
-;;
 
 let makehelp launcher =
   version ()
@@ -209,4 +205,3 @@ let makehelp launcher =
         | "" -> (s, 0, Config.Noaction)
         | url ->  (s, 0, Config.Action (fun uioh -> gotourl launcher url; uioh))
       )
-;;

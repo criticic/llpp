@@ -1,38 +1,36 @@
-exception Quit;;
+exception Quit
 
 module E = struct
-  let s = "";;
-  let b = Bytes.empty;;
-  let a = [||];;
-end;;
+  let s = ""
+  let b = Bytes.empty
+  let a = [||]
+end
 
 let tempfailureretry f a =
   let rec g () =
     try f a with Unix.Unix_error (Unix.EINTR, _, _) -> g ()
   in g ()
-;;
 
-external spawn : string -> (Unix.file_descr * int) list -> int = "ml_spawn";;
-external hasdata : Unix.file_descr -> bool = "ml_hasdata";;
+external spawn : string -> (Unix.file_descr * int) list -> int = "ml_spawn"
+external hasdata : Unix.file_descr -> bool = "ml_hasdata"
 
-let now = Unix.gettimeofday;;
-let dologf = ref prerr_endline;;
-let dolog fmt = Format.ksprintf !dologf fmt;;
-let dolog1 fmt = Format.ksprintf (fun s -> print_endline s; flush stdout) fmt;;
+let now = Unix.gettimeofday
+let dologf = ref prerr_endline
+let dolog fmt = Format.ksprintf !dologf fmt
+let dolog1 fmt = Format.ksprintf (fun s -> print_endline s; flush stdout) fmt
 
 let exntos = function
   | Unix.Unix_error (e, s, a) ->
      Printf.sprintf "%s(%s) : %s (%d)" s a (Unix.error_message e) (Obj.magic e)
   | exn -> Printexc.to_string exn
-;;
 
-let error fmt = Printf.kprintf failwith fmt;;
+let error fmt = Printf.kprintf failwith fmt
 
-module IntSet = Set.Make (struct type t = int let compare = (-) end);;
+module IntSet = Set.Make (struct type t = int let compare = (-) end)
 
-let emptystr s = String.length s = 0;;
-let nonemptystr s = String.length s > 0;;
-let bound v minv maxv = max minv (min maxv v);;
+let emptystr s = String.length s = 0
+let nonemptystr s = String.length s > 0
+let bound v minv maxv = max minv (min maxv v)
 
 module Opaque : sig
   type t = private string
@@ -42,10 +40,10 @@ end = struct
   type t = string
   let of_string s = s
   let to_string t = t
-end;;
+end
 
-let (~<) = Opaque.of_string;;
-let (~>) = Opaque.to_string;;
+let (~<) = Opaque.of_string
+let (~>) = Opaque.to_string
 
 let int_of_string_with_suffix s =
   let l = String.length s in
@@ -65,7 +63,6 @@ let int_of_string_with_suffix s =
   if m < 0 || m < n
   then error "value too large"
   else m
-;;
 
 let string_with_suffix_of_int n =
   let rec find = function
@@ -76,27 +73,23 @@ let string_with_suffix_of_int n =
        else find rest
   in
   if n = 0 then "0" else find [(30, 'G'); (20, 'M'); (10, 'K')]
-;;
 
 let color_of_string s =
   Scanf.sscanf s "%d/%d/%d" (fun r g b ->
       (float r /. 255.0, float g /. 255.0, float b /. 255.0)
     )
-;;
 
 let rgba_of_string s =
   Scanf.sscanf
     s "%d/%d/%d/%d" (fun r g b a ->
       (float r /. 255.0, float g /. 255.0, float b /. 255.0, float a /. 255.0)
     )
-;;
 
 let color_to_string (r, g, b) =
   let r = truncate (r *. 255.0)
   and g = truncate (g *. 255.0)
   and b = truncate (b *. 255.0) in
   Printf.sprintf "%d/%d/%d" r g b
-;;
 
 let rgba_to_string (r, g, b, a) =
   let r = truncate (r *. 255.0)
@@ -104,7 +97,6 @@ let rgba_to_string (r, g, b, a) =
   and b = truncate (b *. 255.0)
   and a = truncate (a *. 255.0) in
   Printf.sprintf "%d/%d/%d/%d" r g b a
-;;
 
 let abspath path =
   if Filename.is_relative path
@@ -114,53 +106,46 @@ let abspath path =
     then Filename.concat cwd path
     else Filename.concat cwd (Filename.basename path)
   else path
-;;
 
 module Ne = struct
-  let index s c = try String.index s c with Not_found -> -1;;
+  let index s c = try String.index s c with Not_found -> -1
   let clo fd f =
     try tempfailureretry Unix.close fd
     with exn -> f @@ exntos exn
-  ;;
-end;;
+end
 
 let getoptdef def = function
   | Some a -> a
   | None -> def
-;;
 
 let getenvdef name def =
   match Sys.getenv name with
   | env -> env
   | exception Not_found -> def
-;;
 
 module Re = struct
-  let crlf = Str.regexp "[\r\n]";;
-  let percent = Str.regexp "%s";;
-  let whitespace = Str.regexp "[ \t]";;
-end;;
+  let crlf = Str.regexp "[\r\n]"
+  let percent = Str.regexp "%s"
+  let whitespace = Str.regexp "[ \t]"
+end
 
 let addchar s c =
   let b = Buffer.create (String.length s + 1) in
   Buffer.add_string b s;
   Buffer.add_char b c;
-  Buffer.contents b;
-;;
+  Buffer.contents b
 
-let btod b = if b then 1 else 0;;
+let btod b = if b then 1 else 0
 
 let splitatchar s c = let open String in
                       match index s c with
                       | pos -> sub s 0 pos, sub s (pos+1) (length s - pos - 1)
                       | exception Not_found -> s, E.s
-;;
 
 let boundastep h step =
   if step < 0
   then bound step ~-h 0
   else bound step 0 h
-;;
 
 let withoutlastutf8 s =
   let len = String.length s in
@@ -181,8 +166,7 @@ let withoutlastutf8 s =
       then len-1
       else find (len-1)
     in
-    String.sub s 0 first;
-;;
+    String.sub s 0 first
 
 let fdcontents fd =
   let l = 4096 in
@@ -198,7 +182,6 @@ let fdcontents fd =
     )
   in
   loop ()
-;;
 
 let filecontents path =
   let fd = Unix.openfile path [Unix.O_RDONLY] 0o0 in
@@ -208,7 +191,6 @@ let filecontents path =
   | s ->
      Ne.clo fd @@ error "failed to close descriptor for %s: %s" path;
      s
-;;
 
 let getcmdoutput errfun cmd =
   let reperror fmt = Printf.kprintf errfun fmt in
@@ -253,14 +235,12 @@ let getcmdoutput errfun cmd =
         in
         Ne.clo r @@ clofail "read end of the pipe";
         s
-;;
 
 let geturl =
   let re = Str.regexp {|.*\(\(https?\|ftp\|mailto\|file\)://[^ ]+\).*|} in
   fun s -> if Str.string_match re s 0
            then Str.matched_group 1 s
            else E.s
-;;
 
 let substratis s pos subs =
   let subslen = String.length subs in
@@ -269,19 +249,18 @@ let substratis s pos subs =
     let rec cmp i = i = subslen || (s.[pos+i] = subs.[i]) && cmp (i+1)
     in cmp 0
   else false
-;;
 
-let w8 = Bytes.set_uint8;;
-let r8 = Bytes.get_uint8;;1
-let w16 = Bytes.set_uint16_le;;
-let r16 = Bytes.get_uint16_le;;
-let r16s = Bytes.get_int16_le;;
-let w32 s pos i = w16 s pos i; w16 s (pos+2) (i lsr 16);;
-let r32 s pos = ((r16 s (pos+2)) lsl 16) lor (r16 s pos);;
-let r32s s pos = Bytes.get_int32_le s pos |> Int32.to_int;;
+let w8 = Bytes.set_uint8
+let r8 = Bytes.get_uint8
+let w16 = Bytes.set_uint16_le
+let r16 = Bytes.get_uint16_le
+let r16s = Bytes.get_int16_le
+let w32 s pos i = w16 s pos i; w16 s (pos+2) (i lsr 16)
+let r32 s pos = ((r16 s (pos+2)) lsl 16) lor (r16 s pos)
+let r32s s pos = Bytes.get_int32_le s pos |> Int32.to_int
 
-let vlogf = ref ignore;;
-let vlog fmt = Printf.kprintf !vlogf fmt;;
+let vlogf = ref ignore
+let vlog fmt = Printf.kprintf !vlogf fmt
 
 let pipef ?(closew=true) cap f cmd =
   match Unix.pipe () with
@@ -292,8 +271,7 @@ let pipef ?(closew=true) cap f cmd =
      | _pid -> f w
      end;
      Ne.clo r (dolog "%s failed to close r: %s" cap);
-     if closew then Ne.clo w (dolog "%s failed to close w: %s" cap);
-;;
+     if closew then Ne.clo w (dolog "%s failed to close w: %s" cap)
 
 let selstring selcmd s =
   pipef "selstring" (fun w ->
@@ -305,6 +283,5 @@ let selstring selcmd s =
         then dolog "failed to write %d characters to sel pipe, wrote %d" l n;
       with exn -> dolog "failed to write to sel pipe: %s" @@ exntos exn
     ) selcmd
-;;
 
-let cloexec = Unix.set_close_on_exec;;
+let cloexec = Unix.set_close_on_exec

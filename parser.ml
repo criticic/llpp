@@ -3,18 +3,16 @@
 let iswhite = function
   | '\r' | '\n' | '\t' | ' ' -> true
   | _ -> false
-;;
 
 let isname = function
   | '.' | '-' | '_' | ':' -> true
   | c -> (c >= '0' && c <= '9')
          || (c >= 'a' && c <= 'z')
          || (c >= 'A' && c <= 'Z')
-;;
 
-exception Parse_error of string * string * int;;
+exception Parse_error of string * string * int
 
-let parse_error msg s pos = raise (Parse_error (msg, s, pos));;
+let parse_error msg s pos = raise (Parse_error (msg, s, pos))
 
 let enent s pos len =
   let b = Buffer.create len in
@@ -42,7 +40,6 @@ let enent s pos len =
     )
   in
   loop pos
-;;
 
 let unent b s pos len =
   let rec loop i =
@@ -98,7 +95,6 @@ let unent b s pos len =
       )
   in
   loop pos
-;;
 
 let subs s pos =
   let len = String.length s in
@@ -108,7 +104,6 @@ let subs s pos =
   else
     let len = min left 10 in
     String.sub s pos len
-;;
 
 let ts = function
   | `text -> "text"
@@ -119,7 +114,6 @@ let ts = function
   | `doctype -> "doctype"
   | `comment -> "comment"
   | `tag -> "tag"
-;;
 
 type attr = string * string
  and attrs = attr list
@@ -130,7 +124,6 @@ type attr = string * string
    | Vclose of string
    | Vend
  and 'a v = { f : 'a v -> vp -> int -> int -> 'a v; accu : 'a }
-;;
 
 let parse v s =
   let r_comment_terminator = Str.regexp "-->"
@@ -330,5 +323,4 @@ let parse v s =
     f [] pos
   in
   let _, _ = collect v 0 `text in
-  v.accu;
-;;
+  v.accu

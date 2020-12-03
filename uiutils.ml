@@ -1,6 +1,6 @@
-open Utils;;
-open Glutils;;
-open Config;;
+open Utils
+open Glutils
+open Config
 
 let scrollph y maxy =
   let sh = float (maxy + state.winh) /. float state.winh in
@@ -15,37 +15,31 @@ let scrollph y maxy =
     then float state.winh -. sh
     else position
   in
-  position, sh;
-;;
+  position, sh
 
 let isbirdseye = function
   | Birdseye _ -> true
   | Textentry _ | View | LinkNav _ -> false
-;;
 
 let istextentry = function
   | Textentry _ -> true
   | Birdseye _ | View | LinkNav _ -> false
-;;
 
 let vscrollw () =
   if state.uioh#alwaysscrolly || ((conf.scrollb land scrollbvv != 0)
                                   && (state.maxy > state.winh))
   then conf.scrollbw
   else 0
-;;
 
 let vscrollhit x =
   if conf.leftscroll
   then x < vscrollw ()
   else x > state.winw - vscrollw ()
-;;
 
 let firstof first active =
   if first > active || abs (first - active) > fstate.maxrows - 1
   then max 0 (active - (fstate.maxrows/2))
   else first
-;;
 
 let calcfirst first active =
   if active > first
@@ -53,7 +47,6 @@ let calcfirst first active =
     let rows = active - first in
     if rows > fstate.maxrows then active - fstate.maxrows else first
   else active
-;;
 
 let enttext () =
   let len = String.length state.text in
@@ -117,7 +110,6 @@ let enttext () =
   in
   if nonemptystr s
   then drawstring s
-;;
 
 let textentrykeyboard
       key mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
@@ -196,7 +188,6 @@ let textentrykeyboard
         postRedisplay "textentrykeyboard switch";
      end
   | _ -> vlog "unhandled key"
-;;
 
 class type lvsource =
   object
@@ -213,7 +204,7 @@ class type lvsource =
     method getfirst : int
     method getpan : int
     method getminfo : (int * int) array
-  end;;
+  end
 
 class virtual lvsourcebase =
         object
@@ -224,15 +215,14 @@ class virtual lvsourcebase =
           method getfirst = m_first
           method getpan = m_pan
           method getminfo : (int * int) array = E.a
-        end;;
+        end
 
-let coe s = (s :> uioh);;
-let setuioh uioh = state.uioh <- coe uioh;;
+let coe s = (s :> uioh)
+let setuioh uioh = state.uioh <- coe uioh
 
 let changetitle uioh =
   let title = uioh#title in
   Wsi.settitle @@ if emptystr title then "llpp" else title ^ " - llpp";
-;;
 
 class listview ~zebra ~helpmode ~(source:lvsource) ~trusted ~modehash =
 object (self)
@@ -803,4 +793,4 @@ object (self)
     coe self
 
   method zoom _ _ _ = ()
-end;;
+end
