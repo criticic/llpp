@@ -81,12 +81,12 @@ let launchpath () =
   else
     let cmd = Str.global_replace Re.percent state.path conf.pathlauncher in
     match spawn cmd [] with
-    | _pid -> ()
     | exception exn ->
        adderrfmt "spawn" "failed to execute `%s': %s" cmd @@ exntos exn
+    | _pid -> ()
 ;;
 
-let getopaque pageno = Hashtbl.find_opt state.pagemap (pageno, state.gen);;
+let getopaque pageno = Hashtbl.find state.pagemap (pageno, state.gen);;
 
 let pagetranslatepoint l x y =
   let dy = y - l.pagedispy in
@@ -98,9 +98,11 @@ let pagetranslatepoint l x y =
 
 let onppundermouse g x y d =
   let rec f = function
+    | [] -> d
     | l :: rest ->
-       begin match getopaque l.pageno with
-       | Some opaque ->
+       match getopaque l.pageno with
+       | exception Not_found -> f rest
+       | opaque ->
           let x0 = l.pagedispx in
           let x1 = x0 + l.pagevw in
           let y0 = l.pagedispy in
@@ -112,9 +114,6 @@ let onppundermouse g x y d =
             | Some res -> res
             | None -> f rest
           else f rest
-       | _ -> f rest
-       end
-    | [] -> d
   in
   f state.layout
 ;;
@@ -161,8 +160,8 @@ let paxunder x y =
     then
       Some (fun () ->
           match getopaque l.pageno with
-          | None -> ()
-          | Some opaque -> pipesel opaque conf.paxcmd
+          | exception Not_found -> ()
+          | opaque -> pipesel opaque conf.paxcmd
         )
     else None
   in
@@ -171,8 +170,8 @@ let paxunder x y =
   then
     List.iter (fun l ->
         match getopaque l.pageno with
-        | None -> ()
-        | Some opaque -> Ffi.clearmark opaque) state.layout;
+        | exception Not_found -> ()
+        | opaque -> Ffi.clearmark opaque) state.layout;
   state.roam <- onppundermouse g x y (fun () -> impmsg "whoopsie daisy");
 ;;
 
@@ -537,13 +536,13 @@ let load pages =
       match pages with
       | l :: rest ->
          begin match getopaque l.pageno with
-         | None ->
+         | exception Not_found ->
             wcmd U.page "%d %d" l.pageno l.pagedimno;
             state.currently <- Loading (l, state.gen);
-         | Some opaque ->
+         | opaque ->
             tilepage l.pageno opaque pages;
             loop rest
-         end;
+         end
       | _ -> ()
   in
   if U.nogeomcmds state.geomcmds
@@ -612,8 +611,9 @@ let gotoxy x y =
              state.mode <- LinkNav (Ltgendir 0)
           | l :: _ when l.pageno = pageno ->
              begin match getopaque pageno with
-             | None -> state.mode <- LinkNav (Ltnotready (pageno, 0))
-             | Some opaque ->
+             | exception Not_found ->
+                state.mode <- LinkNav (Ltnotready (pageno, 0))
+             | opaque ->
                 let x0, y0, x1, y1 = Ffi.getlinkrect opaque linkno in
                 if not (x0 >= l.pagex && x1 <= l.pagex + l.pagevw
                         && y0 >= l.pagey && y1 <= l.pagey + l.pagevh)
@@ -644,8 +644,8 @@ let gotoxy x y =
             | [] -> lt
             | l :: rest ->
                match getopaque l.pageno with
-               | None -> Ltnotready (l.pageno, dir)
-               | Some opaque ->
+               | exception Not_found -> Ltnotready (l.pageno, dir)
+               | opaque ->
                   let link =
                     let ld =
                       if dir = 0
@@ -1435,14 +1435,13 @@ let linknact f s =
     let rec loop off = function
       | [] -> ()
       | l :: rest ->
-         begin match getopaque l.pageno with
-         | None -> loop off rest
-         | Some opaque ->
+         match getopaque l.pageno with
+         | exception Not_found -> loop off rest
+         | opaque ->
             let n = Ffi.getlinkn opaque conf.hcs s off in
             if n < 0
             then loop n rest
             else Ffi.getlink opaque n |> f
-         end
     in
     loop 0 state.layout;
 ;;
@@ -2827,8 +2826,8 @@ let gotoremote spec =
       then
         let cmd = Lazy.force_val lcmd in
         match spawn cmd with
-        | _pid -> ()
         | exception exn -> dolog "failed to execute `%s': %s" cmd @@ exntos exn
+        | _pid -> ()
       else
         let anchor = getanchor () in
         let ranchor = state.path, state.password, anchor, state.origin in
@@ -2839,12 +2838,12 @@ let gotoremote spec =
     if substratis spec 0 "page="
     then
       match Scanf.sscanf spec "page=%d" (fun n -> n) with
+      | exception exn ->
+         adderrfmt "error parsing remote destination" "%s %s" spec @@ exntos exn
       | pageno ->
          state.anchor <- (pageno, 0.0, 0.0);
          dospawn @@ lazy (Printf.sprintf "%s -page %d %S"
                             !selfexec pageno path);
-      | exception exn ->
-         adderrfmt "error parsing remote destination" "page: %s" @@ exntos exn
     else (
       state.nameddest <- dest;
       dospawn @@ lazy (!selfexec ^ " " ^ path ^ " -dest " ^ dest)
@@ -3595,8 +3594,8 @@ let viewkeyboard key mask =
      state.rects <- [];
      List.iter (fun l ->
          match getopaque l.pageno with
-         | None -> ()
-         | Some opaque ->
+         | exception Not_found -> ()
+         | opaque ->
             let x0, y0, x1, y1 = Ffi.pagebbox opaque in
             let rect = (float x0, float y0,
                         float x1, float y0,
@@ -3615,8 +3614,8 @@ let viewkeyboard key mask =
        | Confirm ->
           List.iter (fun l ->
               match getopaque l.pageno with
-              | Some opaque -> pipesel opaque !cmd
-              | None -> ()) state.layout;
+              | exception Not_found -> ()
+              | opaque -> pipesel opaque !cmd) state.layout;
           state.mode <- mode
      in
      let ondone s =
@@ -3643,7 +3642,7 @@ let linknavkeyboard key mask linknav =
   in
   let doexact (pageno, n) =
     match getopaque pageno, getpage pageno with
-    | Some opaque, Some l ->
+    | opaque, Some l ->
        if pv = Keys.Enter
        then
          let under = Ffi.getlink opaque n in
@@ -3678,7 +3677,7 @@ let linknavkeyboard key mask linknav =
                 gotoxy state.x y
               in
               begin match getopaque pageno, getpage pageno with
-              | Some opaque, Some _ ->
+              | opaque, Some _ ->
                  let link =
                    let ld = if dir > 0 then LDfirst else LDlast in
                    Ffi.findlink opaque ld
@@ -3690,7 +3689,7 @@ let linknavkeyboard key mask linknav =
                     postRedisplay "linknav jpage";
                  | Lnotfound -> notfound dir
                  end;
-              | _ -> notfound dir
+              | _ | exception Not_found -> notfound dir
               end;
            end;
          in
@@ -3715,7 +3714,7 @@ let linknavkeyboard key mask linknav =
 
          | None -> viewkeyboard key mask
          end;
-    | _ -> viewkeyboard key mask
+    | _ | exception Not_found -> viewkeyboard key mask
   in
   if pv = Keys.Insert
   then (
@@ -3865,7 +3864,8 @@ let drawpage l =
 
 let postdrawpage l linkindexbase =
   match getopaque l.pageno with
-  | Some opaque ->
+  | exception Not_found -> 0
+  | opaque ->
      if tileready l l.pagex l.pagey
      then
        let x = l.pagedispx - l.pagex
@@ -3893,7 +3893,6 @@ let postdrawpage l linkindexbase =
        then (Glutils.redisplay := true; 0)
        else n
      else 0
-  | _ -> 0
 ;;
 
 let scrollindicator () =
@@ -3966,9 +3965,14 @@ let display () =
   List.iter drawpage state.layout;
   let rects =
     match state.mode with
+    | LinkNav (Ltgendir _) | LinkNav (Ltnotready _)
+    | Birdseye _
+    | Textentry _
+    | View -> state.rects
     | LinkNav (Ltexact (pageno, linkno)) ->
-       begin match getopaque pageno with
-       | Some opaque ->
+       match getopaque pageno with
+       | exception Not_found -> state.rects
+       | opaque ->
           let x0, y0, x1, y1 = Ffi.getlinkrect opaque linkno in
           let color =
             if conf.invert
@@ -3981,12 +3985,6 @@ let display () =
             float x1, float y1,
             float x0, float y1)
           ) :: state.rects
-       | None -> state.rects
-       end
-    | LinkNav (Ltgendir _) | LinkNav (Ltnotready _)
-    | Birdseye _
-    | Textentry _
-    | View -> state.rects
   in
   showrects rects;
   let rec postloop linkindexbase = function
@@ -4127,8 +4125,8 @@ let viewmulticlick clicks x y mask =
       Some (fun () ->
           let dopipe cmd =
             match getopaque l.pageno with
-            | None -> ()
-            | Some opaque -> pipesel opaque cmd
+            | exception Not_found -> ()
+            | opaque -> pipesel opaque cmd
           in
           state.roam <- (fun () -> dopipe conf.paxcmd);
           if not (Wsi.withctrl mask) then dopipe conf.selcmd;
@@ -4304,7 +4302,8 @@ let viewmouse button down x y mask =
                   if inside
                   then
                     match getopaque l.pageno with
-                    | Some opaque ->
+                    | exception Not_found -> ()
+                    | opaque ->
                        let dosel cmd () =
                          pipef ~closew:false "Msel"
                            (fun w ->
@@ -4313,7 +4312,6 @@ let viewmouse button down x y mask =
                        in
                        dosel conf.selcmd ();
                        state.roam <- dosel conf.paxcmd;
-                    | None -> ()
                   else loop rest
              in
              loop state.layout;
@@ -4541,8 +4539,8 @@ let ract cmds =
        (fun pageno x y ->
          let optopaque =
            match getopaque pageno with
-           | Some opaque -> opaque
-           | None -> ~< E.s
+           | exception Not_found -> ~< E.s
+           | opaque -> opaque
          in
          pgoto optopaque pageno x y;
          let rec fixx = function
@@ -4595,8 +4593,8 @@ let remote =
      let rec eat ppos =
        let nlpos =
          match Bytes.index_from scratch ppos '\n' with
-         | pos -> if pos >= n then -1 else pos
          | exception Not_found -> -1
+         | pos -> if pos >= n then -1 else pos
        in
        if nlpos >= 0
        then (
@@ -4960,10 +4958,10 @@ let () =
          | fd :: rest when fd = state.stderr ->
             let b = Bytes.create 80 in
             begin match Unix.read fd b 0 80 with
-            | 0 -> ()
-            | n -> adderrmsg "stderr" @@ Bytes.sub_string b 0 n
             | exception Unix.Unix_error (Unix.EINTR, _, _) -> ()
             | exception exn -> adderrmsg "Unix.read exn" @@ exntos exn
+            | 0 -> ()
+            | n -> adderrmsg "stderr" @@ Bytes.sub_string b 0 n
             end;
             checkfds rest
 
