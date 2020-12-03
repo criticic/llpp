@@ -286,7 +286,6 @@ and hists =
   ; sel : string circbuf
   }
 
-let emptyanchor = (0, 0.0, 0.0)
 let emptykeyhash = Hashtbl.create 0
 let noreprf () = ()
 let noroam () = ()
@@ -365,7 +364,7 @@ let state =
   ; x             = 0
   ; y             = 0
   ; w             = 0
-  ; anchor        = emptyanchor
+  ; anchor        = E.j
   ; ranchors      = []
   ; layout        = []
   ; maxy          = max_int
@@ -1083,7 +1082,7 @@ let load openlast =
       state.path <- path;
     );
     let pc, pb, px, pa, po =
-      let def = dc, [], 0, emptyanchor, state.origin in
+      let def = dc, [], 0, E.j, state.origin in
       if emptystr state.path
       then def
       else
@@ -1355,7 +1354,7 @@ let save1 bb leavebirdseye x h dc =
   else Buffer.add_string bb "/>\n";
 
   let adddoc path pan anchor c bookmarks time origin =
-    if not (bookmarks == [] && c = dc && anchor = emptyanchor)
+    if not (bookmarks == [] && c = dc && anchor = E.j)
     then (
       Printf.bprintf bb "<doc path='%s'"
         (Parser.enent path 0 (String.length path));
@@ -1371,7 +1370,7 @@ let save1 bb leavebirdseye x h dc =
           (Parser.enent origin 0 (String.length origin));
       );
 
-      if anchor <> emptyanchor
+      if anchor <> E.j
       then (
         let n, rely, visy = anchor in
         Printf.bprintf bb "\n    page='%d'" n;

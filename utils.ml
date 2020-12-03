@@ -4,6 +4,7 @@ module E = struct
   let s = ""
   let b = Bytes.empty
   let a = [||]
+  let j = (0, 0.0, 0.0)
 end
 
 let tempfailureretry f a =
