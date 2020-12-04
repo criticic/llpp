@@ -1574,7 +1574,6 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
   S.text := E.s
 
 let optentry mode _ key =
-  let btos b = if b then "on" else "off" in
   match [@warning "-fragile-match"] key with
   | Keys.Ascii 'C' ->
      let ondone s =
@@ -1596,27 +1595,27 @@ let optentry mode _ key =
 
   | Keys.Ascii 'i' ->
      conf.icase <- not conf.icase;
-     TEdone ("case insensitive search " ^ (btos conf.icase))
+     TEdone ("case insensitive search " ^ (onoffs conf.icase))
 
   | Keys.Ascii 'v' ->
      conf.verbose <- not conf.verbose;
-     TEdone ("verbose " ^ (btos conf.verbose))
+     TEdone ("verbose " ^ (onoffs conf.verbose))
 
   | Keys.Ascii 'd' ->
      conf.debug <- not conf.debug;
-     TEdone ("debug " ^ (btos conf.debug))
+     TEdone ("debug " ^ (onoffs conf.debug))
 
   | Keys.Ascii 'f' ->
      conf.underinfo <- not conf.underinfo;
-     TEdone ("underinfo " ^ btos conf.underinfo)
+     TEdone ("underinfo " ^ onoffs conf.underinfo)
 
   | Keys.Ascii 'T' ->
      settrim (not conf.trimmargins) conf.trimfuzz;
-     TEdone ("trim margins " ^ btos conf.trimmargins)
+     TEdone ("trim margins " ^ onoffs conf.trimmargins)
 
   | Keys.Ascii 'I' ->
      conf.invert <- not conf.invert;
-     TEdone ("invert colors " ^ btos conf.invert)
+     TEdone ("invert colors " ^ onoffs conf.invert)
 
   | Keys.Ascii 'x' ->
      let ondone s =
@@ -1630,7 +1629,7 @@ let optentry mode _ key =
      if conf.pax == None
      then conf.pax <- Some 0.0
      else conf.pax <- None;
-     TEdone ("PAX " ^ btos (conf.pax != None))
+     TEdone ("PAX " ^ onoffs (conf.pax != None))
 
   | (Keys.Ascii c) ->
      settextfmt "bad option %d `%c'" (Char.code c) c;
@@ -3276,11 +3275,11 @@ let viewkeyboard key mask =
   | Ascii 'B' ->
      S.bzoom := not !S.bzoom;
      S.rects := [];
-     showtext ' ' ("block zoom " ^ if !S.bzoom then "on" else "off")
+     showtext ' ' ("block zoom " ^ onoffs !S.bzoom)
   | Ascii 'l' ->
      conf.hlinks <- not conf.hlinks;
-     S.text := "highlightlinks " ^ if conf.hlinks then "on" else "off";
-     postRedisplay "toggle highlightlinks";
+     S.text := "highlightlinks " ^ onoffs conf.hlinks;
+     postRedisplay "toggle highlightlinks"
   | Ascii 'F' ->
      if conf.angle mod 360 = 0
      then (
@@ -3313,8 +3312,7 @@ let viewkeyboard key mask =
   | Ascii 'p' when ctrl -> launchpath ()
   | Ascii 'P' ->
      setpresentationmode (not conf.presentation);
-     showtext ' ' ("presentation mode " ^
-                     if conf.presentation then "on" else "off");
+     showtext ' ' ("presentation mode " ^ onoffs conf.presentation)
   | Ascii 'f' ->
      if List.mem Wsi.Fullscreen !S.winstate
      then Wsi.reshape conf.cwinw conf.cwinh

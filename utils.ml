@@ -25,6 +25,8 @@ let exntos = function
      Printf.sprintf "%s(%s) : %s (%d)" s a (Unix.error_message e) (Obj.magic e)
   | exn -> Printexc.to_string exn
 
+let onoffs = function | true -> "on" | false -> "off"
+
 let error fmt = Printf.kprintf failwith fmt
 
 module IntSet = Set.Make (struct type t = int let compare = (-) end)
