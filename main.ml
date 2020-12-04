@@ -3108,7 +3108,6 @@ let viewkeyboard key mask =
   let ctrl = Wsi.withctrl mask in
   let open Keys in
   match Wsi.ks2kt key with
-  | Ascii 'S' -> S.slideshow := !S.slideshow lxor 1
   | Ascii 'Q' -> exit 0
   | Ascii 'z' ->
      let yloc f =
@@ -3305,9 +3304,7 @@ let viewkeyboard key mask =
      | Some step ->
         conf.autoscrollstep <- step;
         S.autoscroll := None
-     | None ->
-        S.autoscroll := Some conf.autoscrollstep;
-        S.slideshow := !S.slideshow land lnot 2
+     | None -> S.autoscroll := Some conf.autoscrollstep
      end
   | Ascii 'p' when ctrl -> launchpath ()
   | Ascii 'P' ->
@@ -4770,29 +4767,18 @@ let () =
        let newdeadline =
          match !S.autoscroll with
          | Some step when step != 0 ->
-            if !S.slideshow land 1 = 1
-            then (
-              if !S.slideshow land 2 = 0
-              then S.slideshow := !S.slideshow lor 2
+            let y = !S.y + step in
+            let fy = if conf.maxhfit then !S.winh else 0 in
+            let y =
+              if y < 0
+              then !S.maxy - fy
               else
-                if step < 0
-                then prevpage ()
-                else nextpage ();
-              deadline +. (float (abs step))
-            )
-            else
-              let y = !S.y + step in
-              let fy = if conf.maxhfit then !S.winh else 0 in
-              let y =
-                if y < 0
-                then !S.maxy - fy
-                else
-                  if y >= !S.maxy - fy
-                  then 0
-                  else y
-              in
-              gotoxy !S.x y;
-              deadline +. 0.01
+                if y >= !S.maxy - fy
+                then 0
+                else y
+            in
+            gotoxy !S.x y;
+            deadline +. 0.01
          | _ -> infinity
        in
        loop newdeadline
