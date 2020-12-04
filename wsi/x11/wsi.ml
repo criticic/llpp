@@ -144,7 +144,7 @@ let state =
 let settitle s = state.setwmname (~> s)
 let fullscreen () = state.fullscreen state.wid
 let fontsizescale n = float n *. state.fscale |> truncate
-let setmapc f  = state.mapc <- f
+let setmapc f = state.mapc <- f
 
 let ordermagic = 'l'
 let metamask = 0x40
