@@ -55,8 +55,8 @@ let adderrmsg src msg =
   postRedisplay src
 
 let settextfmt fmt = Printf.kprintf (fun s -> S.text := s) fmt
-let impmsg fmt = Format.ksprintf (fun s -> showtext '!' s) fmt
-let adderrfmt src fmt = Format.ksprintf (fun s -> adderrmsg src s) fmt
+let impmsg fmt = Printf.ksprintf (fun s -> showtext '!' s) fmt
+let adderrfmt src fmt = Printf.ksprintf (fun s -> adderrmsg src s) fmt
 
 let launchpath () =
   if emptystr conf.pathlauncher
@@ -2582,7 +2582,7 @@ let getusertext s =
       close_out oc;
     );
     let execstr = editor ^ " " ^ tmppath in
-    let eret r = Format.ksprintf (fun s -> adderrmsg "gtut:eret" s; r) in
+    let eret r = Printf.ksprintf (fun s -> adderrmsg "gtut:eret" s; r) in
     let s =
       match spawn execstr [] with
       | exception exn -> eret E.s "spawn(%S) failed: %s" execstr @@ exntos exn
