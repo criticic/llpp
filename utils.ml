@@ -83,23 +83,16 @@ let color_of_string s =
     )
 
 let rgba_of_string s =
-  Scanf.sscanf
-    s "%d/%d/%d/%d" (fun r g b a ->
-      (float r /. 255.0, float g /. 255.0, float b /. 255.0, float a /. 255.0)
-    )
+  let c c = float c /. 255.0 in
+  Scanf.sscanf s "%d/%d/%d/%d" (fun r g b a -> c r, c g, c b, c a)
 
 let color_to_string (r, g, b) =
-  let r = truncate (r *. 255.0)
-  and g = truncate (g *. 255.0)
-  and b = truncate (b *. 255.0) in
-  Printf.sprintf "%d/%d/%d" r g b
+  let c c = c *. 255.0 |> truncate in
+  Printf.sprintf "%d/%d/%d" (c r) (c g) (c b)
 
 let rgba_to_string (r, g, b, a) =
-  let r = truncate (r *. 255.0)
-  and g = truncate (g *. 255.0)
-  and b = truncate (b *. 255.0)
-  and a = truncate (a *. 255.0) in
-  Printf.sprintf "%d/%d/%d/%d" r g b a
+  let c c = c *. 255.0 |> truncate in
+  Printf.sprintf "%d/%d/%d/%d" (c r) (c g) (c b) (c a)
 
 let abspath path =
   if Filename.is_relative path
