@@ -4475,70 +4475,46 @@ let () =
   let gc = ref false in
   let redirstderr = Unix.isatty Unix.stderr |> not |> ref in
   let rcmdpath = ref E.s in
-  let dcfpath = ref None in
+  let dcfpath = ref E.s in
   let pageno = ref None in
   let openlast = ref false in
   let doreap = ref false in
   let csspath = ref None in
   S.selfexec := Sys.executable_name;
-  Arg.parse
-    (Arg.align
-       [("-p", Arg.String (fun s -> S.password := s),
-         "<password> Set password");
-
-        ("-f", Arg.String
-                 (fun s ->
-                   S.fontpath := s;
-                   S.selfexec := !S.selfexec ^ " -f " ^ Filename.quote s;
-                 ),
-         "<path> Set path to the user interface font");
-
-        ("-c", Arg.String
-                 (fun s ->
-                   S.selfexec := !S.selfexec ^ " -c " ^ Filename.quote s;
-                   S.confpath := s),
-         "<path> Set path to the configuration file");
-
-        ("-last", Arg.Set openlast, " Open last document");
-
-        ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
-         "<page-number> Jump to page");
-
-        ("-dest", Arg.String (fun s -> S.nameddest := s),
-         "<named-destination> Set named destination");
-
-        ("-remote", Arg.String (fun s -> rcmdpath := s),
-         "<path> Set path to the source of remote commands");
-
-        ("-gc", Arg.Set gc, " Collect garbage");
-
-        ("-v", Arg.Unit (fun () ->
-                   Printf.printf
-                     "%s\nconfiguration file: %s\n"
-                     (Help.version ())
-                     Config.defconfpath;
-                   exit 0), " Print version and exit");
-
-        ("-css", Arg.String (fun s -> csspath := Some s),
-         "<path> Set path to the style sheet to use with EPUB/HTML");
-
-        ("-origin", Arg.String (fun s -> S.origin := s),
-         "<origin> <undocumented>");
-
-        ("-no-title", Arg.Set S.ignoredoctitlte, " ignore document title");
-
-        ("-dcf", Arg.String (fun s -> dcfpath := Some s),
-         "<path> <undocumented>");
-
-        ("-layout-height", Arg.Set_int S.layouth,
-         "<height> layout height html/epub/etc (-1, 0, N)");
-
-        ("-flip-stderr-redirection",
-         Arg.Unit (fun () -> redirstderr := not !redirstderr),
-         " <undocumented>");
-       ]
-    )
-    (fun s -> S.path := s)
+  let spec =
+    [("-p", Arg.Set_string S.password, "<password> Set password");
+     ("-f", Arg.String
+              (fun s ->
+                S.fontpath := s;
+                S.selfexec := !S.selfexec ^ " -f " ^ Filename.quote s;
+              ), "<path> Set path to the user interface font");
+     ("-c", Arg.String
+              (fun s ->
+                S.selfexec := !S.selfexec ^ " -c " ^ Filename.quote s;
+                S.confpath := s), "<path> Set path to the configuration file");
+     ("-last", Arg.Set openlast, " Open last document");
+     ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
+      "<page-number> Jump to page");
+     ("-dest", Arg.Set_string S.nameddest, "<dest-name> Set named destination");
+     ("-remote", Arg.Set_string rcmdpath, "<path> Set path to the remote fifo");
+     ("-gc", Arg.Set gc, " Collect garbage");
+     ("-v",
+      Arg.Unit (fun () ->
+          Printf.printf "%s\nconfiguration file: %s\n" (Help.version ())
+            Config.defconfpath;
+          exit 0), " Print version and exit");
+     ("-css", Arg.String (fun s -> csspath := Some s),
+      "<path> Set path to the style sheet to use with EPUB/HTML");
+     ("-origin", Arg.Set_string S.origin, "<origin> <undocumented>");
+     ("-no-title", Arg.Set S.ignoredoctitlte, " Ignore document title");
+     ("-dcf", Arg.Set_string dcfpath, "<path> <undocumented>");
+     ("-layout-height", Arg.Set_int S.layouth,
+      "<height> layout height html/epub/etc (-1, 0, N)");
+     ("-flip-stderr-redirection",
+      Arg.Unit (fun () -> redirstderr := not !redirstderr), " <undocumented>");
+    ]
+  in
+  Arg.parse (Arg.align spec) (fun s -> S.path := s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:");
 
   let histmode = emptystr !S.path && not !openlast in
@@ -4552,10 +4528,8 @@ let () =
   if not (Config.load !openlast)
   then dolog "failed to load configuration";
 
-  begin match !dcfpath with
-  | Some path -> conf.dcf <- path
-  | None -> ()
-  end;
+  if nonemptystr !dcfpath
+  then conf.dcf <- !dcfpath;
 
   begin match !pageno with
   | Some pageno -> S.anchor := (pageno, 0.0, 0.0)
@@ -4588,38 +4562,37 @@ let () =
         self#cleanup;
         reshape w h
       method mouse b d x y m =
-        setuioh @@ if d && canselect ()
-        then (
-          (*
-           * http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx
-           *)
-          m_click_x <- x;
-          m_click_y <- y;
-          if b = 1
+        (* http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
+        m_click_x <- x;
+        setuioh @@
+          if d && canselect ()
           then (
-            let t = now () in
-            if abs x - m_click_x > 10
-               || abs y - m_click_y > 10
-               || abs_float (t -. m_lastclicktime) > 0.3
-            then m_clicks <- 0;
-            m_clicks <- m_clicks + 1;
-            m_lastclicktime <- t;
-            if m_clicks = 1
-            then (
-              self#cleanup;
-              postRedisplay "cleanup";
-              !S.uioh#button b d x y m
-            )
-            else !S.uioh#multiclick m_clicks x y m
-          )
-          else (
-            self#cleanup;
-            m_clicks <- 0;
-            m_lastclicktime <- infinity;
-            !S.uioh#button b d x y m
-          );
-        )
-        else !S.uioh#button b d x y m
+            m_click_y <- y;
+                     if b = 1
+                     then (
+                       let t = now () in
+                       if abs x - m_click_x > 10
+                          || abs y - m_click_y > 10
+                          || abs_float (t -. m_lastclicktime) > 0.3
+                       then m_clicks <- 0;
+                       m_clicks <- m_clicks + 1;
+                       m_lastclicktime <- t;
+                       if m_clicks = 1
+                       then (
+                         self#cleanup;
+                         postRedisplay "cleanup";
+                         !S.uioh#button b d x y m
+                       )
+                       else !S.uioh#multiclick m_clicks x y m
+                     )
+                     else (
+                       self#cleanup;
+                       m_clicks <- 0;
+                       m_lastclicktime <- infinity;
+                       !S.uioh#button b d x y m
+                     );
+                   )
+                   else !S.uioh#button b d x y m
       method motion x y =
         S.mpos := (x, y);
         !S.uioh#motion x y |> setuioh
