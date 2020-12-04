@@ -224,71 +224,9 @@ and 'a nav =
   ; future : 'a list
   }
 
-type state =
-  { mutable ss            : Unix.file_descr
-  ; mutable wsfd          : Unix.file_descr
-  ; mutable stderr        : Unix.file_descr
-  ; mutable errmsgs       : Buffer.t
-  ; mutable newerrmsgs    : bool
-  ; mutable w             : int
-  ; mutable x             : x
-  ; mutable y             : y
-  ; mutable anchor        : anchor
-  ; mutable ranchors      : (string * string * anchor * string) list
-  ; mutable maxy          : int
-  ; mutable layout        : page list
-  ; pagemap               : (pagemapkey, opaque) Hashtbl.t
-  ; tilemap               : (tilemapkey, tile) Hashtbl.t
-  ; tilelru               : (tilemapkey * opaque * pixmapsize) Queue.t
-  ; mutable pdims         : (pageno * width * height * leftx) list
-  ; mutable pagecount     : int
-  ; mutable currently     : currently
-  ; mutable mstate        : mstate
-  ; mutable searchpattern : string
-  ; mutable rects         : (pageno * rectcolor * rect) list
-  ; mutable rects1        : (pageno * rectcolor * rect) list
-  ; mutable text          : string
-  ; mutable winstate      : Wsi.winstate list
-  ; mutable mode          : mode
-  ; mutable uioh          : uioh
-  ; mutable outlines      : outline array
-  ; mutable bookmarks     : outline list
-  ; mutable path          : string
-  ; mutable password      : string
-  ; mutable nameddest     : string
-  ; mutable geomcmds      : (string * ((string * (unit -> unit)) list))
-  ; mutable memused       : memsize
-  ; mutable gen           : gen
-  ; mutable autoscroll    : int option
-  ; mutable help          : helpitem array
-  ; mutable docinfo       : (int * string) list
-  ; hists                 : hists
-  ; mutable prevzoom      : (float * int)
-  ; mutable progress      : float
-  ; mutable mpos          : mpos
-  ; mutable keystate      : keystate
-  ; mutable glinks        : bool
-  ; mutable prevcolumns   : (columns * float) option
-  ; mutable winw          : int
-  ; mutable winh          : int
-  ; mutable reprf         : (unit -> unit)
-  ; mutable origin        : string
-  ; mutable roam          : (unit -> unit)
-  ; mutable bzoom         : bool
-  ; mutable lnava         : (pageno * linkno) option
-  ; mutable slideshow     : int
-  ; mutable reload        : (x * y * float) option
-  ; mutable nav           : anchor nav
-  }
-and hists =
-  { pat : string circbuf
-  ; pag : string circbuf
-  ; sel : string circbuf
-  }
-
 let emptykeyhash = Hashtbl.create 0
 let noreprf () = ()
-let noroam () = ()
+let noroamf () = ()
 
 let nouioh : uioh =
   object (self)
@@ -307,8 +245,6 @@ let nouioh : uioh =
     method scroll _ _ = self
     method zoom _ _ _ = ()
   end
-
-let conf = { defconf with keyhashes = copykeyhashes defconf }
 
 let cbnew n v =
   { store = Array.make n v
@@ -355,70 +291,96 @@ let cbgetg b circular dir =
 let cbget b = cbgetg b false
 let cbgetc b = cbgetg b true
 
-let state =
-  { ss            = Unix.stdin
-  ; wsfd          = Unix.stdin
-  ; stderr        = Unix.stderr
-  ; errmsgs       = Buffer.create 0
-  ; newerrmsgs    = false
-  ; x             = 0
-  ; y             = 0
-  ; w             = 0
-  ; anchor        = E.j
-  ; ranchors      = []
-  ; layout        = []
-  ; maxy          = max_int
-  ; tilelru       = Queue.create ()
-  ; pagemap       = Hashtbl.create 10
-  ; tilemap       = Hashtbl.create 10
-  ; pdims         = []
-  ; pagecount     = 0
-  ; currently     = Idle
-  ; mstate        = Mnone
-  ; rects         = []
-  ; rects1        = []
-  ; text          = E.s
-  ; mode          = View
-  ; winstate      = []
-  ; searchpattern = E.s
-  ; outlines      = E.a
-  ; bookmarks     = []
-  ; path          = E.s
-  ; password      = E.s
-  ; nameddest     = E.s
-  ; geomcmds      = E.s, []
-  ; hists         =
-      { pat = cbnew 10 E.s; pag = cbnew 10 E.s; sel = cbnew 10 E.s; }
-  ; memused       = 0
-  ; gen           = 0
-  ; autoscroll    = None
-  ; help          = E.a
-  ; docinfo       = []
-  ; prevzoom      = (1.0, 0)
-  ; progress      = -1.0
-  ; uioh          = nouioh
-  ; mpos          = (-1, -1)
-  ; keystate      = KSnone
-  ; glinks        = false
-  ; prevcolumns   = None
-  ; winw          = -1
-  ; winh          = -1
-  ; reprf         = noreprf
-  ; origin        = E.s
-  ; roam          = noroam
-  ; bzoom         = false
-  ; lnava         = None
-  ; slideshow     = 0
-  ; reload        = None
-  ; nav           = { past = []; future  = []; }
+type hists =
+  { pat : string circbuf
+  ; pag : string circbuf
+  ; sel : string circbuf
   }
 
+let home =
+  try Sys.getenv "HOME"
+  with exn ->
+    dolog "cannot determine home directory location: %s" @@ exntos exn;
+    E.s
+
+let defconfpath =
+  let dir =
+    let dir = Filename.concat home ".config" in
+    if Sys.is_directory dir then dir else home
+  in
+  Filename.concat dir "llpp.conf"
+
+module S = struct
+  let confpath = ref defconfpath
+  let ss = ref Unix.stdin
+  let wsfd = ref Unix.stdin
+  let stderr = ref Unix.stdin
+  let selfexec = ref E.s
+  let ignoredoctitlte = ref false
+  let layouth = ref ~-1
+  let errmsgs = Buffer.create 0
+  let newerrmsgs = ref false
+  let w = ref max_int
+  let x = ref max_int
+  let y = ref max_int
+  let anchor = ref E.j
+  let ranchors : (string * string * anchor * string) list ref = ref []
+  let maxy = ref max_int
+  let layout : page list ref = ref []
+  let pagemap : (pagemapkey, opaque) Hashtbl.t = Hashtbl.create 0
+  let tilemap : (tilemapkey, tile) Hashtbl.t = Hashtbl.create 0
+  let pdims : (pageno * width * height * leftx) list ref = ref []
+  let pagecount = ref max_int
+  let currently = ref Idle
+  let mstate = ref Mnone
+  let searchpattern = ref E.s
+  let rects : (pageno * rectcolor * rect) list ref = ref []
+  let rects1 : (pageno * rectcolor * rect) list ref = ref []
+  let text = ref E.s
+  let path = ref E.s
+  let password = ref E.s
+  let nameddest = ref E.s
+  let origin = ref E.s
+  let winstate : Wsi.winstate list ref = ref []
+  let mode : mode ref = ref View
+  let uioh : uioh ref = ref nouioh
+  let outlines : outline array ref = ref [||]
+  let bookmarks : outline list ref = ref []
+  let geomcmds : (string * ((string * (unit -> unit)) list)) ref = ref (E.s, [])
+  let memused : memsize ref = ref max_int
+  let gen : gen ref = ref 0
+  let autoscroll : int option ref = ref None
+  let help : helpitem array ref = ref E.a
+  let docinfo : (int * string) list ref = ref []
+  let hists : hists ref =
+    ref { pat = cbnew 10 E.s; pag = cbnew 10 E.s; sel = cbnew 10 E.s; }
+  let prevzoom = ref (1.0, 0)
+  let progress = ref ~-.1.0
+  let mpos = ref (-1, -1)
+  let keystate = ref KSnone
+  let glinks = ref false
+  let prevcolumns : (columns * zoom) option ref = ref None
+  let winw = ref ~-1
+  let winh = ref ~-1
+  let reprf = ref noreprf
+  let roamf = ref noroamf
+  let bzoom = ref false
+  let lnava : (pageno * linkno) option ref = ref None
+  let slideshow = ref 0
+  let reload : (x * y * float) option ref = ref None
+  let nav : anchor nav ref = ref { past = []; future  = []; }
+  let tilelru : (tilemapkey * opaque * pixmapsize) Queue.t = Queue.create ()
+  let fontpath = ref E.s
+end
+
+let conf = { defconf with keyhashes = copykeyhashes defconf }
+
 let calcips h =
-  let d = state.winh - h in
+  let d = !S.winh - h in
   max conf.interpagespace ((d + 1) / 2)
 
 let rowyh (c, coverA, coverB) b n =
-  if c = 1 || (n < coverA || n >= state.pagecount - coverB)
+  if c = 1 || (n < coverA || n >= !S.pagecount - coverB)
   then
     let _, _, vy, (_, _, h, _) = b.(n) in
     (vy, h)
@@ -426,7 +388,7 @@ let rowyh (c, coverA, coverB) b n =
     let n' = n - coverA in
     let d = n' mod c in
     let s = n - d in
-    let e = min state.pagecount (s + c) in
+    let e = min !S.pagecount (s + c) in
     let rec findminmax m miny maxh =
       if m = e
       then miny, maxh
@@ -449,7 +411,7 @@ let page_of_y y =
   else
     let rec bsearch nmin nmax =
       if nmin > nmax
-      then bound nmin 0 (state.pagecount-1)
+      then bound nmin 0 (!S.pagecount-1)
       else
         let n = (nmax + nmin) / 2 in
         let vy, h = rowyh cl b n in
@@ -475,7 +437,7 @@ let page_of_y y =
           else (
             if n > coverA
             then
-              if n < state.pagecount - coverB
+              if n < !S.pagecount - coverB
               then ((n-coverA)/c)*c + coverA
               else n
             else n
@@ -487,7 +449,7 @@ let page_of_y y =
           else bsearch nmin (n-1)
         )
     in
-    bsearch 0 (state.pagecount-1)
+    bsearch 0 (!S.pagecount-1)
 
 let calcheight () =
   match conf.columns with
@@ -511,7 +473,7 @@ let calcheight () =
      else 0
 
 let getpageywh pageno =
-  let pageno = bound pageno 0 (state.pagecount-1) in
+  let pageno = bound pageno 0 (!S.pagecount-1) in
   match conf.columns with
   | Csingle b ->
      if Array.length b = 0
@@ -557,7 +519,7 @@ let getpagedim pageno =
        else f pdim rest
     | [] -> ppdim
   in
-  f (-1, -1, -1, -1) state.pdims
+  f (-1, -1, -1, -1) !S.pdims
 
 let getpdimno pageno =
   let rec f p l =
@@ -569,7 +531,7 @@ let getpdimno pageno =
        else f np rest
     | [] -> p
   in
-  f ~-1 state.pdims
+  f ~-1 !S.pdims
 
 let getpagey pageno = fst (getpageyh pageno)
 
@@ -590,15 +552,15 @@ let getanchor1 l =
   (l.pageno, top, dtop)
 
 let getanchor () =
-  match state.layout with
+  match !S.layout with
   | l :: _ -> getanchor1 l
   | []     ->
-     let n = page_of_y state.y in
+     let n = page_of_y !S.y in
      if n = -1
-     then state.anchor
+     then !S.anchor
      else
        let y, h = getpageyh n in
-       let dy = y - state.y in
+       let dy = y - !S.y in
        let dtop =
          if conf.presentation
          then
@@ -607,8 +569,6 @@ let getanchor () =
          else float dy /. float conf.interpagespace
        in
        (n, 0.0, dtop)
-
-let fontpath = ref E.s
 
 type historder = [ `lastvisit | `title | `path | `file ]
 
@@ -620,12 +580,6 @@ let unentS s =
   let b = Buffer.create l in
   Parser.unent b s 0 l;
   Buffer.contents b
-
-let home =
-  try Sys.getenv "HOME"
-  with exn ->
-    dolog "cannot determine home directory location: %s" @@ exntos exn;
-    E.s
 
 let modifier_of_string = function
   | "alt" -> Wsi.altmask
@@ -916,8 +870,8 @@ let get s =
        v
     | Vopen (_, _, _) -> parse_error "unexpected subelement in ui-font" s spos
     | Vclose "ui-font" ->
-       if emptystr !fontpath
-       then fontpath := Buffer.contents b;
+       if emptystr !S.fontpath
+       then S.fontpath := Buffer.contents b;
        { v with f = llppconfig }
     | Vclose _ -> parse_error "unexpected close in ui-font" s spos
     | Vend -> parse_error "unexpected end of input in ui-font" s spos
@@ -1046,22 +1000,14 @@ let do_load f contents =
 
   | exn -> Utils.error "parse error: %s" @@ exntos exn
 
-let defconfpath =
-  let dir =
-    let dir = Filename.concat home ".config" in
-    if Sys.is_directory dir then dir else home
-  in
-  Filename.concat dir "llpp.conf"
-
-let confpath = ref defconfpath
-
 let load2 f default =
-  match filecontents !confpath with
+  match filecontents !S.confpath with
   | contents -> f @@ do_load get contents
   | exception Unix.Unix_error (Unix.ENOENT, "open", _) ->
      f (Hashtbl.create 0, defconf)
   | exception exn ->
-     dolog "error loading configuration from `%S': %s" !confpath @@ exntos exn;
+     dolog "error loading configuration from `%S': %s"
+       !S.confpath @@ exntos exn;
      default
 
 let load1 f = load2 f false
@@ -1077,18 +1023,18 @@ let load openlast =
             then (path, conf.lastvisit)
             else best)
           h
-          (state.path, -.infinity)
+          (!S.path, -.infinity)
       in
-      state.path <- path;
+      S.path := path;
     );
     let pc, pb, px, pa, po =
-      let def = dc, [], 0, E.j, state.origin in
-      if emptystr state.path
+      let def = dc, [], 0, E.j, !S.origin in
+      if emptystr !S.path
       then def
       else
-        let absname = abspath state.path in
+        let absname = abspath !S.path in
         match Hashtbl.find h absname with
-        | (c,b,x,a,_) -> (c,b,x,a,state.origin)
+        | (c,b,x,a,_) -> (c,b,x,a,!S.origin)
         | exception Not_found ->
            let exception E of (conf * outline list * int * anchor * string) in
            let key = try Digest.file absname |> Digest.to_hex with _ -> E.s in
@@ -1109,10 +1055,10 @@ let load openlast =
     in
     setconf defconf dc;
     setconf conf pc;
-    state.bookmarks <- pb;
-    state.x <- px;
-    state.origin <- po;
-    state.anchor <- pa;
+    S.bookmarks := pb;
+    S.x := px;
+    S.origin := po;
+    S.anchor := pa;
     true
   in
   load1 f
@@ -1332,10 +1278,10 @@ let keystostrlist c =
 let save1 bb leavebirdseye x h dc =
   let uifontsize = fstate.fontsize in
   Buffer.add_string bb "<llppconfig>\n";
-  if nonemptystr !fontpath
+  if nonemptystr !S.fontpath
   then (
     Printf.bprintf bb "<ui-font size='%d'><![CDATA[%s]]></ui-font>\n"
-      uifontsize !fontpath
+      uifontsize !S.fontpath
   )
   else (
     if uifontsize <> 14
@@ -1434,7 +1380,7 @@ let save1 bb leavebirdseye x h dc =
   in
 
   let pan, conf =
-    match state.mode with
+    match !S.mode with
     | Birdseye (c, pan, _, _, _) ->
        let beyecolumns =
          match conf.columns with
@@ -1452,17 +1398,17 @@ let save1 bb leavebirdseye x h dc =
     | View
     | LinkNav _ -> x, conf
   in
-  let docpath = if nonemptystr state.path then abspath state.path else E.s in
+  let docpath = if nonemptystr !S.path then abspath !S.path else E.s in
   if nonemptystr docpath
   then (
     adddoc docpath pan (getanchor ())
       (
         let autoscrollstep =
-          match state.autoscroll with
+          match !S.autoscroll with
           | Some step -> step
           | None -> conf.autoscrollstep
         in
-        begin match state.mode with
+        begin match !S.mode with
         | Birdseye beye -> leavebirdseye beye true
         | Textentry _
         | View
@@ -1474,9 +1420,9 @@ let save1 bb leavebirdseye x h dc =
           else conf.key
         in { conf with autoscrollstep; key }
       )
-      state.bookmarks
+      !S.bookmarks
       (now ())
-      state.origin
+      !S.origin
   );
   Hashtbl.iter (fun path (c, bookmarks, x, anchor, origin) ->
       if docpath <> abspath path
@@ -1486,7 +1432,7 @@ let save1 bb leavebirdseye x h dc =
   true
 
 let save leavebirdseye =
-  let relx = float state.x /. float state.winw in
+  let relx = float !S.x /. float !S.winw in
   let w, h, x =
     let cx w = truncate (relx *. float w) in
     List.fold_left
@@ -1496,7 +1442,7 @@ let save leavebirdseye =
         | Wsi.MaxVert -> (w, conf.cwinh, x)
         | Wsi.MaxHorz -> (conf.cwinw, h, cx conf.cwinw)
       )
-      (state.winw, state.winh, state.x) state.winstate
+      (!S.winw, !S.winh, !S.x) !S.winstate
   in
   conf.cwinw <- w;
   conf.cwinh <- h;
@@ -1505,11 +1451,11 @@ let save leavebirdseye =
   if load1 save2 && Buffer.length bb > 0
   then
     try
-      let tmp = !confpath ^ ".tmp" in
+      let tmp = !S.confpath ^ ".tmp" in
       let oc = open_out_bin tmp in
       Buffer.output_buffer oc bb;
       close_out oc;
-      Unix.rename tmp !confpath;
+      Unix.rename tmp !S.confpath;
     with exn -> dolog "error saving configuration: %s" @@ exntos exn
 
 let gc () =
@@ -1531,24 +1477,23 @@ let gc () =
   if load1 save2 && Buffer.length bb > 0
   then (
     try
-      let tmp = !confpath ^ ".tmp" in
+      let tmp = !S.confpath ^ ".tmp" in
       let oc = open_out_bin tmp in
       Buffer.output_buffer oc bb;
       close_out oc;
-      Unix.rename tmp !confpath;
+      Unix.rename tmp !S.confpath;
     with exn -> dolog "error saving configuration: %s" @@ exntos exn
   )
 
 let logcurrently = function
   | Idle -> dolog "Idle"
-  | Loading (l, gen) ->
-     dolog "Loading %d gen=%d curgen=%d" l.pageno gen state.gen
+  | Loading (l, gen) -> dolog "Loading %d gen=%d curgen=%d" l.pageno gen !S.gen
   | Tiling (l, pageopaque, colorspace, angle, gen, col, row, tilew, tileh) ->
      dolog "Tiling %d[%d,%d] page=%s cs=%s angle=%d"
        l.pageno col row (~> pageopaque)
        (CSTE.to_string colorspace) angle;
      dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
-       angle gen conf.angle state.gen
+       angle gen conf.angle !S.gen
        tilew tileh
        conf.tilew conf.tileh
   | Outlining _ -> dolog "outlining"

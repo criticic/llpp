@@ -34,6 +34,7 @@ and covercount = int
 and width = int and height = int
 and memsize = int and texcount = int
 and sliceheight = int
+and zoom = float
 let scrollbvv = 1 and scrollbhv = 2
 EOF
 

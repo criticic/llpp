@@ -3,16 +3,16 @@ open Glutils
 open Config
 
 let scrollph y maxy =
-  let sh = float (maxy + state.winh) /. float state.winh in
-  let sh = float state.winh /. sh in
+  let sh = float (maxy + !S.winh) /. float !S.winh in
+  let sh = float !S.winh /. sh in
   let sh = max sh (float conf.scrollh) in
 
   let percent = float y /. float maxy in
-  let position = (float state.winh -. sh) *. percent in
+  let position = (float !S.winh -. sh) *. percent in
 
   let position =
-    if position +. sh > float state.winh
-    then float state.winh -. sh
+    if position +. sh > float !S.winh
+    then float !S.winh -. sh
     else position
   in
   position, sh
@@ -26,15 +26,15 @@ let istextentry = function
   | Birdseye _ | View | LinkNav _ -> false
 
 let vscrollw () =
-  if state.uioh#alwaysscrolly || ((conf.scrollb land scrollbvv != 0)
-                                  && (state.maxy > state.winh))
+  if !S.uioh#alwaysscrolly || ((conf.scrollb land scrollbvv != 0)
+                                  && (!S.maxy > !S.winh))
   then conf.scrollbw
   else 0
 
 let vscrollhit x =
   if conf.leftscroll
   then x < vscrollw ()
-  else x > state.winw - vscrollw ()
+  else x > !S.winw - vscrollw ()
 
 let firstof first active =
   if first > active || abs (first - active) > fstate.maxrows - 1
@@ -49,27 +49,27 @@ let calcfirst first active =
   else active
 
 let enttext () =
-  let len = String.length state.text in
+  let len = String.length !S.text in
   let x0 = if conf.leftscroll then vscrollw () else 0 in
   let drawstring s =
     let hscrollh =
-      match state.mode with
+      match !S.mode with
       | Textentry _ | View | LinkNav _ ->
-         let h, _, _ = state.uioh#scrollpw in
+         let h, _, _ = !S.uioh#scrollpw in
          h
       | Birdseye _ -> 0
     in
     let rect x w =
       filledrect
-        x      (float (state.winh - (fstate.fontsize + 4) - hscrollh))
-        (x+.w) (float (state.winh - hscrollh))
+        x      (float (!S.winh - (fstate.fontsize + 4) - hscrollh))
+        (x+.w) (float (!S.winh - hscrollh))
     in
 
-    let w = float (state.winw - 1 - vscrollw ()) in
-    if state.progress >= 0.0 && state.progress < 1.0
+    let w = float (!S.winw - 1 - vscrollw ()) in
+    if !S.progress >= 0.0 && !S.progress < 1.0
     then (
       GlDraw.color (0.3, 0.3, 0.3);
-      let w1 = w *. state.progress in
+      let w1 = w *. !S.progress in
       rect (float x0) w1;
       GlDraw.color (0.0, 0.0, 0.0);
       rect (float x0+.w1) (float x0+.w-.w1)
@@ -83,24 +83,24 @@ let enttext () =
     drawstring
       fstate.fontsize
       (if conf.leftscroll then x0 + 2 else x0 + if len > 0 then 8 else 2)
-      (state.winh - hscrollh - 5) s;
+      (!S.winh - hscrollh - 5) s;
   in
   let s =
-    match state.mode with
+    match !S.mode with
     | Textentry ((prefix, text, _, _, _, _), _) ->
        let s =
          if len > 0
-         then Printf.sprintf "%s%s_ [%s]" prefix text state.text
+         then Printf.sprintf "%s%s_ [%s]" prefix text !S.text
          else Printf.sprintf "%s%s_"  prefix text
        in
        s
 
-    | Birdseye _ | View | LinkNav _ -> state.text
+    | Birdseye _ | View | LinkNav _ -> !S.text
   in
   let s =
-    if state.newerrmsgs
+    if !S.newerrmsgs
     then (
-      if not (istextentry state.mode) && state.uioh#eformsgs
+      if not (istextentry !S.mode) && !S.uioh#eformsgs
       then
         let s1 = "(press 'e' to review error messages)" in
         if nonemptystr s then s ^ " " ^ s1 else s1
@@ -113,9 +113,9 @@ let enttext () =
 
 let textentrykeyboard
       key mask ((c, text, opthist, onkey, ondone, cancelonempty), onleave) =
-  state.text <- E.s;
+  S.text := E.s;
   let enttext te =
-    state.mode <- Textentry (te, onleave);
+    S.mode := Textentry (te, onleave);
     enttext ();
     postRedisplay "textentrykeyboard enttext";
   in
@@ -124,7 +124,7 @@ let textentrykeyboard
     | None -> ()
     | Some (action, _) ->
        let te = (c, action cmd, opthist, onkey, ondone, cancelonempty) in
-       state.mode <- Textentry (te, onleave);
+       S.mode := Textentry (te, onleave);
        postRedisplay "textentry histaction"
   in
   let open Keys in
@@ -158,7 +158,7 @@ let textentrykeyboard
        | Some (_, onhistcancel) -> onhistcancel ()
        end;
        onleave Cancel;
-       state.text <- E.s;
+       S.text := E.s;
        postRedisplay "textentrykeyboard after cancel2"
      )
      else enttext (c, E.s, opthist, onkey, ondone, cancelonempty)
@@ -184,7 +184,7 @@ let textentrykeyboard
         postRedisplay "textentrykeyboard after cancel3";
 
      | TEswitch te ->
-        state.mode <- Textentry (te, onleave);
+        S.mode := Textentry (te, onleave);
         postRedisplay "textentrykeyboard switch";
      end
   | _ -> vlog "unhandled key"
@@ -218,7 +218,7 @@ class virtual lvsourcebase =
         end
 
 let coe s = (s :> uioh)
-let setuioh uioh = state.uioh <- coe uioh
+let setuioh uioh = S.uioh := coe uioh
 
 let changetitle uioh =
   let title = uioh#title in
@@ -230,7 +230,7 @@ object (self)
   val m_first = source#getfirst
   val m_active = source#getactive
   val m_qsearch = E.s
-  val m_prev_uioh = state.uioh
+  val m_prev_uioh = !S.uioh
 
   method private elemunder y =
     if y < 0
@@ -249,12 +249,12 @@ object (self)
     Gl.enable `blend;
     GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
     GlDraw.color (0., 0., 0.) ~alpha:0.85;
-    filledrect 0. 0. (float state.winw) (float state.winh);
+    filledrect 0. 0. (float !S.winw) (float !S.winh);
     GlDraw.color (1., 1., 1.);
     Gl.enable `texture_2d;
     let fs = fstate.fontsize in
     let nfs = fs + 1 in
-    let hw = state.winw/3 in
+    let hw = !S.winw/3 in
     let ww = fstate.wwidth in
     let tabw = 17.0*.ww in
     let itemcount = source#getitemcount in
@@ -264,7 +264,7 @@ object (self)
       GlMat.push ();
       GlMat.translate ~x:(float conf.scrollbw) ();
     );
-    let x0 = 0.0 and x1 = float (state.winw - conf.scrollbw - 1) in
+    let x0 = 0.0 and x1 = float (!S.winw - conf.scrollbw - 1) in
     let rec loop row =
       if not ((row - m_first) > fstate.maxrows)
       then (
@@ -468,7 +468,7 @@ object (self)
     in
     let set active first =
       let first = bound first 0 (itemcount - fstate.maxrows) in
-      state.text <- E.s;
+      S.text := E.s;
       coe {< m_active = active; m_first = first; m_qsearch = E.s >}
     in
     let navigate incr =
@@ -547,10 +547,10 @@ object (self)
        let active, first =
          match search (m_active + incr) m_qsearch incr with
          | None ->
-            state.text <- m_qsearch ^ " [not found]";
+            S.text := m_qsearch ^ " [not found]";
             m_active, m_first
          | Some active ->
-            state.text <- m_qsearch;
+            S.text := m_qsearch;
             active, firstof m_first active
        in
        postRedisplay "listview ctrl-r/s";
@@ -571,7 +571,7 @@ object (self)
          let qsearch = withoutlastutf8 m_qsearch in
          if emptystr qsearch
          then (
-           state.text <- E.s;
+           S.text := E.s;
            postRedisplay "listview empty qsearch";
            set1 m_active m_first E.s;
          )
@@ -579,10 +579,10 @@ object (self)
            let active, first =
              match search m_active qsearch ~-1 with
              | None ->
-                state.text <- qsearch ^ " [not found]";
+                S.text := qsearch ^ " [not found]";
                 m_active, m_first
              | Some active ->
-                state.text <- qsearch;
+                S.text := qsearch;
                 active, firstof m_first active
            in
            postRedisplay "listview backspace qsearch";
@@ -599,17 +599,17 @@ object (self)
        let active, first =
          match search m_active pattern 1 with
          | None ->
-            state.text <- pattern ^ " [not found]";
+            S.text := pattern ^ " [not found]";
             m_active, m_first
          | Some active ->
-            state.text <- pattern;
+            S.text := pattern;
             active, firstof m_first active
        in
        postRedisplay "listview qsearch add";
        set1 active first pattern;
 
     | Escape ->
-       state.text <- E.s;
+       S.text := E.s;
        if emptystr m_qsearch
        then (
          postRedisplay "list view escape";
@@ -627,7 +627,7 @@ object (self)
        )
 
     | Enter ->
-       state.text <- E.s;
+       S.text := E.s;
        let self = {< m_qsearch = E.s >} in
        let opt =
          postRedisplay "listview enter";
@@ -644,12 +644,12 @@ object (self)
     | Next  -> navigate fstate.maxrows
 
     | Right ->
-       state.text <- E.s;
+       S.text := E.s;
        postRedisplay "listview right";
        coe {< m_pan = m_pan - 1 >}
 
     | Left ->
-       state.text <- E.s;
+       S.text := E.s;
        postRedisplay "listview left";
        coe {< m_pan = m_pan + 1 >}
 
@@ -667,7 +667,7 @@ object (self)
     | _ -> coe self
 
   method key key mask =
-    match state.mode with
+    match !S.mode with
     | Textentry te ->
        textentrykeyboard key mask te;
        coe self
@@ -683,16 +683,16 @@ object (self)
            let _, position, sh = self#scrollph in
            if y > truncate position && y < truncate (position +. sh)
            then (
-             state.mstate <- Mscrolly;
+             S.mstate := Mscrolly;
              Some (coe self)
            )
            else
-             let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
+             let s = float (max 0 (y - conf.scrollh)) /. float !S.winh in
              let first = truncate (s *. float source#getitemcount) in
              let first = min source#getitemcount first in
              Some (coe {< m_first = first; m_active = first >})
          else (
-           state.mstate <- Mnone;
+           S.mstate := Mnone;
            Some (coe self);
          );
       | 1 when down ->
@@ -725,9 +725,9 @@ object (self)
   method multiclick _ x y = self#button 1 true x y
 
   method motion _ y =
-    match state.mstate with
+    match !S.mstate with
     | Mscrolly ->
-       let s = float (max 0 (y - conf.scrollh)) /. float state.winh in
+       let s = float (max 0 (y - conf.scrollh)) /. float !S.winh in
        let first = truncate (s *. float source#getitemcount) in
        let first = min source#getitemcount first in
        postRedisplay "listview motion";
@@ -740,7 +740,7 @@ object (self)
     | Mnone -> coe self
 
   method pmotion x y =
-    if x < state.winw - conf.scrollbw
+    if x < !S.winw - conf.scrollbw
     then
       let n =
         match self#elemunder y with
