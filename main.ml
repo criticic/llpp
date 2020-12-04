@@ -4682,8 +4682,8 @@ let () =
        dolog "socketpair failed: %s" @@ exntos exn;
        exit 1
     | (r, w) ->
-       cloexec r;
-       cloexec w;
+       Unix.set_close_on_exec r;
+       Unix.set_close_on_exec w;
        r, w
   in
 

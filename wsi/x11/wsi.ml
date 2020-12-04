@@ -1131,7 +1131,7 @@ let init t w h =
     try Unix.connect fd addr; fd
     with exn -> error "failed to connect to X: %s" @@ exntos exn
   in
-  cloexec fd;
+  Unix.set_close_on_exec fd;
   let s = Bytes.create 12 in
   let s = padcat s (~> aname) in
   let s = padcat s (~> adata) in

@@ -279,5 +279,3 @@ let selstring selcmd s =
         then dolog "failed to write %d characters to sel pipe, wrote %d" l n;
       with exn -> dolog "failed to write to sel pipe: %s" @@ exntos exn
     ) selcmd
-
-let cloexec = Unix.set_close_on_exec
