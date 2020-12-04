@@ -721,6 +721,7 @@ let opendoc path password =
   S.gen := !S.gen + 1;
   S.docinfo := [];
   S.outlines := [||];
+  S.memused := 0;
 
   flushpages ();
   Ffi.setaalevel conf.aalevel;
