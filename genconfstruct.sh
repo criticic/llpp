@@ -78,8 +78,8 @@ i interpagespace 2
 f zoom 1.0
 b presentation false
 i angle 0
-i cwinw 1200
-i cwinh 1000
+i cwinw 1800
+i cwinh 1500
 g fitmodel fitmodel FitProportional
 b trimmargins false
 g trimfuzz irect "(0,0,0,0)"
