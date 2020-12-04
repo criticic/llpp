@@ -4791,13 +4791,11 @@ let () =
        in
        checkfds l;
        let newdeadline =
-         let deadline1 =
-           if deadline = infinity
-           then now () +. 0.01
-           else deadline
-         in
          match !S.autoscroll with
-         | Some step when step != 0 -> deadline1
+         | Some step when step != 0 ->
+            if deadline = infinity
+            then now () +. 0.01
+            else deadline
          | _ -> infinity
        in
        loop newdeadline
