@@ -17,8 +17,8 @@ external hasdata : Unix.file_descr -> bool = "ml_hasdata"
 
 let now = Unix.gettimeofday
 let dologf = ref prerr_endline
-let dolog fmt = Format.ksprintf !dologf fmt
-let dolog1 fmt = Format.ksprintf (fun s -> print_endline s; flush stdout) fmt
+let dolog fmt = Printf.ksprintf !dologf fmt
+let dolog1 fmt = Printf.ksprintf (fun s -> print_endline s; flush stdout) fmt
 
 let exntos = function
   | Unix.Unix_error (e, s, a) ->
