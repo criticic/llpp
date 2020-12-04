@@ -1975,11 +1975,10 @@ let enterinfomode =
         m_l <-
           (name, `string get, 1,
            Some (fun _ ->
-               let source =
-                 (object
-                    inherit lvsourcebase
+               let source = object
+                   inherit lvsourcebase
 
-                    initializer
+                   initializer
                       m_active <- CSTE.to_int conf.colorspace;
                       m_first <- 0;
 
@@ -1992,7 +1991,7 @@ let enterinfomode =
                       if not cancel then set active;
                       None
                     method hasaction _ = true
-                  end)
+                  end
                in
                infomenu source
           )) :: m_l
@@ -2001,9 +2000,8 @@ let enterinfomode =
         m_l <-
           (name, `string get, 1,
            Some (fun _ ->
-               let source =
-                 (object
-                    inherit lvsourcebase
+               let source = object
+                   inherit lvsourcebase
 
                     initializer
                       m_active <- MTE.to_int conf.paxmark;
@@ -2016,7 +2014,7 @@ let enterinfomode =
                       if not cancel then set active;
                       None
                     method hasaction _ = true
-                  end)
+                 end
                in
                infomenu source
           )) :: m_l
@@ -2025,11 +2023,10 @@ let enterinfomode =
         m_l <-
           (name, `string get, 1,
            Some (fun _ ->
-               let source =
-                 (object
-                    inherit lvsourcebase
+               let source = object
+                   inherit lvsourcebase
 
-                    initializer
+                   initializer
                       m_active <- FMTE.to_int conf.fitmodel;
                       m_first <- 0;
 
@@ -2040,7 +2037,7 @@ let enterinfomode =
                       if not cancel then set active;
                       None
                     method hasaction _ = true
-                  end)
+                  end
                in
                infomenu source
           )) :: m_l
@@ -2480,94 +2477,92 @@ let enterinfomode =
   )
 
 let enterhelpmode =
-  let source =
-    (object
-       inherit lvsourcebase
-       method getitemcount = Array.length !S.help
-       method getitem n =
-         let s, l, _ = !S.help.(n) in
-         (s, l)
+  let source = object
+      inherit lvsourcebase
+      method getitemcount = Array.length !S.help
+      method getitem n =
+        let s, l, _ = !S.help.(n) in
+        (s, l)
 
-       method exit ~uioh ~cancel ~active ~first ~pan =
-         let optuioh =
-           if not cancel
-           then (
-             match !S.help.(active) with
-             | _, _, Some f -> Some (f uioh)
-             | _, _, None -> Some uioh
-           )
-           else None
-         in
-         m_active <- active;
-         m_first <- first;
-         m_pan <- pan;
-         optuioh
+      method exit ~uioh ~cancel ~active ~first ~pan =
+        let optuioh =
+          if not cancel
+          then (
+            match !S.help.(active) with
+            | _, _, Some f -> Some (f uioh)
+            | _, _, None -> Some uioh
+          )
+          else None
+        in
+        m_active <- active;
+        m_first <- first;
+        m_pan <- pan;
+        optuioh
 
-       method hasaction n =
-         match !S.help.(n) with
-         | _, _, Some _ -> true
-         | _, _, None -> false
+      method hasaction n =
+        match !S.help.(n) with
+        | _, _, Some _ -> true
+        | _, _, None -> false
 
-       initializer m_active <- -1
-     end)
-  in
-  fun () ->
-  let modehash = findkeyhash conf "help" in
-  resetmstate ();
-  new listview ~zebra:false ~helpmode:true
-    ~source ~trusted:true ~modehash |> setuioh;
-  postRedisplay "help"
+      initializer m_active <- -1
+    end
+  in fun () ->
+     let modehash = findkeyhash conf "help" in
+     resetmstate ();
+     new listview ~zebra:false ~helpmode:true
+       ~source ~trusted:true ~modehash |> setuioh;
+     postRedisplay "help"
 
 let entermsgsmode =
-  let msgsource =
-    (object
-       inherit lvsourcebase
-       val mutable m_items = E.a
+  let msgsource = object
+      inherit lvsourcebase
+      val mutable m_items = E.a
 
-       method getitemcount = 1 + Array.length m_items
+      method getitemcount = 1 + Array.length m_items
 
-       method getitem n =
-         if n = 0
-         then "[Clear]", 0
-         else m_items.(n-1), 0
+      method getitem n =
+        if n = 0
+        then "[Clear]", 0
+        else m_items.(n-1), 0
 
-       method exit ~uioh ~cancel ~active ~first ~pan =
-         ignore uioh;
-         if not cancel
-         then (
-           if active = 0
-           then Buffer.clear S.errmsgs;
-         );
-         m_active <- active;
-         m_first <- first;
-         m_pan <- pan;
-         None
+      method exit ~uioh ~cancel ~active ~first ~pan =
+        ignore uioh;
+        if not cancel
+        then (
+          if active = 0
+          then Buffer.clear S.errmsgs;
+        );
+        m_active <- active;
+        m_first <- first;
+        m_pan <- pan;
+        None
 
-       method hasaction n =
-         n = 0
+      method hasaction n =
+        n = 0
 
-       method reset =
-         S.newerrmsgs := false;
-         let l = Str.split Re.crlf (Buffer.contents S.errmsgs) in
-         m_items <- Array.of_list l
+      method reset =
+        S.newerrmsgs := false;
+        let l = Str.split Re.crlf (Buffer.contents S.errmsgs) in
+        m_items <- Array.of_list l
 
-       initializer m_active <- 0
-     end)
-  in fun () ->
-     S.text := E.s;
-     resetmstate ();
-     msgsource#reset;
-     let source = (msgsource :> lvsource) in
-     let modehash = findkeyhash conf "listview" in
-     object
-       inherit listview ~zebra:false ~helpmode:false
-                 ~source ~trusted:false ~modehash as super
-       method! display =
-         if !S.newerrmsgs
-         then msgsource#reset;
-         super#display
-     end |> setuioh;
-     postRedisplay "msgs"
+      initializer m_active <- 0
+    end
+  in
+  fun () ->
+  S.text := E.s;
+  resetmstate ();
+  msgsource#reset;
+  let source = (msgsource :> lvsource) in
+  let modehash = findkeyhash conf "listview" in
+  object
+    inherit listview ~zebra:false ~helpmode:false
+              ~source ~trusted:false ~modehash as super
+    method! display =
+      if !S.newerrmsgs
+      then msgsource#reset;
+      super#display
+  end |> setuioh;
+  postRedisplay "msgs"
 
 let getusertext s =
   let editor = getenvdef "EDITOR" E.s in
@@ -2604,84 +2599,83 @@ let getusertext s =
     | () -> s
 
 let enterannotmode opaque slinkindex =
-  let msgsource =
-    (object
-       inherit lvsourcebase
-       val mutable m_text = E.s
-       val mutable m_items = E.a
+  let msgsource = object
+      inherit lvsourcebase
+      val mutable m_text = E.s
+      val mutable m_items = E.a
 
-       method getitemcount = Array.length m_items
+      method getitemcount = Array.length m_items
 
-       method getitem n =
-         let label, _func = m_items.(n) in
-         label, 0
+      method getitem n =
+        let label, _func = m_items.(n) in
+        label, 0
 
-       method exit ~uioh ~cancel ~active ~first ~pan =
-         ignore (uioh, first, pan);
-         if not cancel
-         then (
-           let _label, func = m_items.(active) in
-           func ()
-         );
-         None
+      method exit ~uioh ~cancel ~active ~first ~pan =
+        ignore (uioh, first, pan);
+        if not cancel
+        then (
+          let _label, func = m_items.(active) in
+          func ()
+        );
+        None
 
-       method hasaction n = nonemptystr @@ fst m_items.(n)
+      method hasaction n = nonemptystr @@ fst m_items.(n)
 
-       method reset s =
-         let rec split accu b i =
-           let p = b+i in
-           if p = String.length s
-           then (String.sub s b (p-b), fun () -> ()) :: accu
-           else
-             if (i > 70 && s.[p] = ' ') || s.[p] = '\r' || s.[p] = '\n'
-             then
-               let ss = if i = 0 then E.s else String.sub s b i in
-               split ((ss, fun () -> ())::accu) (p+1) 0
-             else split accu b (i+1)
-         in
-         let cleanup () =
-           wcmd1 U.freepage opaque;
-           let keys =
-             Hashtbl.fold (fun key opaque' accu ->
-                 if opaque' = opaque'
-                 then key :: accu else accu) S.pagemap []
-           in
-           List.iter (Hashtbl.remove S.pagemap) keys;
-           flushtiles ();
-           gotoxy !S.x !S.y
-         in
-         let dele () =
-           Ffi.delannot opaque slinkindex;
-           cleanup ();
-         in
-         let edit inline () =
-           let update s =
-             if emptystr s
-             then dele ()
-             else (
-               Ffi.modannot opaque slinkindex s;
-               cleanup ();
-             )
-           in
-           if inline
-           then
-             let mode = !S.mode in
-             let te = ("annotation: ", m_text, None, textentry, update, true) in
-             S.mode := Textentry (te, fun _ -> S.mode := mode);
-             S.text := E.s;
-             enttext ();
-           else getusertext m_text |> update
-         in
-         m_text <- s;
-         m_items <-
-           (   "[Copy]", fun () -> selstring conf.selcmd m_text)
-           :: ("[Delete]", dele)
-           :: ("[Edit]", edit conf.annotinline)
-           :: (E.s, fun () -> ())
-           :: split [] 0 0 |> List.rev |> Array.of_list
+      method reset s =
+        let rec split accu b i =
+          let p = b+i in
+          if p = String.length s
+          then (String.sub s b (p-b), fun () -> ()) :: accu
+          else
+            if (i > 70 && s.[p] = ' ') || s.[p] = '\r' || s.[p] = '\n'
+            then
+              let ss = if i = 0 then E.s else String.sub s b i in
+              split ((ss, fun () -> ())::accu) (p+1) 0
+            else split accu b (i+1)
+        in
+        let cleanup () =
+          wcmd1 U.freepage opaque;
+          let keys =
+            Hashtbl.fold (fun key opaque' accu ->
+                if opaque' = opaque'
+                then key :: accu else accu) S.pagemap []
+          in
+          List.iter (Hashtbl.remove S.pagemap) keys;
+          flushtiles ();
+          gotoxy !S.x !S.y
+        in
+        let dele () =
+          Ffi.delannot opaque slinkindex;
+          cleanup ();
+        in
+        let edit inline () =
+          let update s =
+            if emptystr s
+            then dele ()
+            else (
+              Ffi.modannot opaque slinkindex s;
+              cleanup ();
+            )
+          in
+          if inline
+          then
+            let mode = !S.mode in
+            let te = ("annotation: ", m_text, None, textentry, update, true) in
+            S.mode := Textentry (te, fun _ -> S.mode := mode);
+            S.text := E.s;
+            enttext ();
+          else getusertext m_text |> update
+        in
+        m_text <- s;
+        m_items <-
+          (   "[Copy]", fun () -> selstring conf.selcmd m_text)
+          :: ("[Delete]", dele)
+          :: ("[Edit]", edit conf.annotinline)
+          :: (E.s, fun () -> ())
+          :: split [] 0 0 |> List.rev |> Array.of_list
 
-       initializer m_active <- 0
-     end)
+      initializer m_active <- 0
+    end
   in
   S.text := E.s;
   let s = Ffi.getannotcontents opaque slinkindex in
@@ -2689,9 +2683,8 @@ let enterannotmode opaque slinkindex =
   msgsource#reset s;
   let source = (msgsource :> lvsource) in
   let modehash = findkeyhash conf "listview" in
-  object
-    inherit listview ~zebra:false
-              ~helpmode:false ~source ~trusted:false ~modehash
+  object inherit listview ~zebra:false
+                   ~helpmode:false ~source ~trusted:false ~modehash
   end |> setuioh;
   postRedisplay "enterannotmode"
 
