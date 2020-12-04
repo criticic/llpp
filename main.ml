@@ -4808,11 +4808,7 @@ let () =
      (match Buffer.length S.errmsgs with
       | 0 -> ()
       | n ->
-         let fdref = ref Unix.stdout in
-         (match conf.femcmd with
-          | "" -> ()
-          | cmd -> pipef ~closew:false "errmsgs" (fun w -> fdref := w) cmd);
-         match Unix.write !fdref (Buffer.to_bytes S.errmsgs) 0 n with
+         match Unix.write Unix.stdout (Buffer.to_bytes S.errmsgs) 0 n with
          | exception _ | _ -> ());
      Config.save leavebirdseye;
      if Ffi.hasunsavedchanges ()

@@ -106,7 +106,6 @@ g beyecolumns "columncount option" None
 s selcmd "{|$clip|}"
 s pastecmd "{|$paste|}"
 s paxcmd '{|echo PAX "%s">&2|}'
-s femcmd Utils.E.s
 s passcmd Utils.E.s
 s savecmd Utils.E.s
 b updatecurs true
