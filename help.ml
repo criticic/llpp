@@ -95,6 +95,7 @@ i                   - switch to info mode
 P                   - switch to "presentation" mode
 c                   - switch to previous column layout
 a                   - auto scroll mode
+S                   - slide show mode
   (auto scroll step is interepreted as a delay (in seconds) between transitions)
 
 -----Tunables-----

@@ -366,6 +366,7 @@ module S = struct
   let roamf = ref noroamf
   let bzoom = ref false
   let lnava : (pageno * linkno) option ref = ref None
+  let slideshow = ref 0
   let reload : (x * y * float) option ref = ref None
   let nav : anchor nav ref = ref { past = []; future  = []; }
   let tilelru : (tilemapkey * opaque * pixmapsize) Queue.t = Queue.create ()
