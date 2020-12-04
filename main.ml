@@ -3109,7 +3109,6 @@ let viewkeyboard key mask =
   let ctrl = Wsi.withctrl mask in
   let open Keys in
   match Wsi.ks2kt key with
-  | Ascii 'S' -> S.slideshow := !S.slideshow lxor 1
   | Ascii 'Q' -> exit 0
   | Ascii 'z' ->
      let yloc f =
@@ -3308,7 +3307,6 @@ let viewkeyboard key mask =
         S.autoscroll := None
      | None ->
         S.autoscroll := Some conf.autoscrollstep;
-        S.slideshow := !S.slideshow land lnot 2
      end
   | Ascii 'p' when ctrl ->
      launchpath ()              (* XXX where do error messages go? *)
@@ -4773,17 +4771,6 @@ let () =
        let newdeadline =
          match !S.autoscroll with
          | Some step when step != 0 ->
-            if !S.slideshow land 1 = 1
-            then (
-              if !S.slideshow land 2 = 0
-              then S.slideshow := !S.slideshow lor 2
-              else
-                if step < 0
-                then prevpage ()
-                else nextpage ();
-              deadline +. (float (abs step))
-            )
-            else
               let y = !S.y + step in
               let fy = if conf.maxhfit then !S.winh else 0 in
               let y =
