@@ -4786,7 +4786,7 @@ let () =
             checkfds rest
 
          | _ :: rest ->
-            dolog "select returned unknown descriptor";
+            adderrmsg "mainloop" "select returned unknown descriptor";
             checkfds rest
        in
        checkfds l;
