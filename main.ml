@@ -1427,9 +1427,11 @@ let pivotzoom ?(vw=min !S.w !S.winw)
   let hw = w /. 2.0 in
   let ratio = float vh /. float vw in
   let hh = hw *. ratio in
-  let x0 = float x -. hw
-  and y0 = float y -. hh in
-  gotoxy (!S.x - truncate x0) (!S.y + truncate y0);
+  let x0 = float x -. hw +. !S.xf and y0 = float y -. hh +. !S.yf in
+  let xf, xr = modf x0 and yf, yr = modf y0 in
+  S.xf := xf;
+  S.yf := yf;
+  gotoxy (!S.x - truncate xr) (!S.y + truncate yr);
   setzoom zoom
 
 let pivotzoom ?vw ?vh ?x ?y zoom =
