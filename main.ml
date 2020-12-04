@@ -3310,8 +3310,7 @@ let viewkeyboard key mask =
         S.autoscroll := Some conf.autoscrollstep;
         S.slideshow := !S.slideshow land lnot 2
      end
-  | Ascii 'p' when ctrl ->
-     launchpath ()              (* XXX where do error messages go? *)
+  | Ascii 'p' when ctrl -> launchpath ()
   | Ascii 'P' ->
      setpresentationmode (not conf.presentation);
      showtext ' ' ("presentation mode " ^
