@@ -314,3 +314,4 @@ let ks2kt =
 
 let setmapc = ignore
 type keycode = int
+let cAp = "pbcopy and pbpaste"

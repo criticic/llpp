@@ -1236,3 +1236,5 @@ let ks2kt =
   | code when code >= 0xffbe && code <= 0xffc8 -> Fn (code - 0xffbe + 1)
   | code when code land 0xff00 = 0xff00 -> Ctrl code
   | code -> Code code
+
+let cAp = "https://github.com/astrand/xclip"

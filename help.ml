@@ -154,8 +154,7 @@ selection command otherwise
 [1] if the document was previously visited initial backspace will
     jump to the last visited place
 
-[2] by default X11 version uses xclip to handle text copy/paste
-    https://github.com/astrand/xclip
+[2] C&P
 
 [3] arguments to the command are:
     1 = path to the document
@@ -188,10 +187,12 @@ let version () =
   Printf.sprintf "llpp %s, ocaml %s (%d bit), fitz %s"
     (Ffi.llpp_version ()) Sys.ocaml_version Sys.word_size (Ffi.fz_version ())
 
-let fixup s = Str.(let gr = global_replace in
-                   let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
-                   and head = regexp {|-----\(.*\)-----|} in
-                   gr dash "\\1\t\\2" @@ gr head "\xc2\xb7\\1" s)
+let fixup s =
+  Str.(let gr = global_replace in
+       let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
+       and head = regexp {|-----\(.*\)-----|}
+       and wcAp = regexp "C&P" in
+       gr dash "\\1\t\\2" @@ gr head "\xc2\xb7\\1" @@ gr wcAp Wsi.cAp s)
 
 let makehelp launcher =
   version ()

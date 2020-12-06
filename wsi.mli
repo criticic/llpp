@@ -59,3 +59,4 @@ val keyname : int -> string
 val namekey : string -> int
 val fontsizescale : int -> int
 val ks2kt : int -> Keys.t
+val cAp : string
