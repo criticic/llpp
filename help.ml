@@ -187,12 +187,12 @@ let version () =
   Printf.sprintf "llpp %s, ocaml %s (%d bit), fitz %s"
     (Ffi.llpp_version ()) Sys.ocaml_version Sys.word_size (Ffi.fz_version ())
 
-let fixup s =
-  Str.(let gr = global_replace in
-       let dash = regexp {|\([^ ]*\) +- +\(.*\)|}
-       and head = regexp {|-----\(.*\)-----|}
-       and wcAp = regexp "C&P" in
-       gr dash "\\1\t\\2" @@ gr head "\xc2\xb7\\1" @@ gr wcAp Wsi.cAp s)
+let fixup =
+  let gr = Str.global_replace in
+  let dash = Str.regexp {|\([^ ]*\) +- +\(.*\)|}
+  and head = Str.regexp {|-----\(.*\)-----|}
+  and wcAp = Str.regexp "C&P" in
+  fun s -> gr dash "\\1\t\\2" @@ gr head "\xc2\xb7\\1" @@ gr wcAp Wsi.cAp s
 
 let makehelp launcher =
   version ()
