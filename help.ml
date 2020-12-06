@@ -11,7 +11,7 @@ Ctrl-arrows       - half a screen width/height scoll/pan
 space             - go to the next page
 delete            - go to the previous page
 pageup/pagedown   - go forward/backward one screen-full
-g, G              - go to first/last page
+g/G               - go to first/last page
 home/end          - go to first/last page
 
 -----Advanced Movement / History-----
@@ -80,7 +80,7 @@ z[zbt]              - "zoom in" on the first search result
 Ctrl-g              - interrupt search
 
 -----Settings / Modes-----
-[,]                 - decrease/increase page brightness
+[/]                 - decrease/increase page brightness
 +                   - set page bias
 -                   - toggle/set tunable
 b                   - toggle scroll bar
@@ -89,7 +89,7 @@ f                   - toggle fullscreen
 insert              - toggle link navigation mode
 o                   - switch to outline/table of contents mode
 '                   - switch to bookmark mode
-F1, Alt-h           - switch to help mode
+F1/Alt-h            - switch to help mode
 Shift-h             - switch to history mode
 i                   - switch to info mode
 P                   - switch to "presentation" mode
@@ -111,7 +111,7 @@ a                   - auto scroll mode
             -     (font name of the text under cursor or link target)
 
 -----Bird's eye mode-----
-Ctrl-9,F9,esc         - leave bird's eye view
+Ctrl-9/F9/esc         - leave bird's eye view
 Ctrl-l                - center the view on the currently selected page
 (page)up/(page)down   - navigate
 home/end              - go to first/last page
@@ -145,7 +145,7 @@ enter - toggle/enter new value for selected parameter
 -----When entering search pattern/page number-----
 up/down arrow  - previous/next entered text
 enter          - confirm
-Ctrl-g,esc     - cancel
+Ctrl-g/esc     - cancel
 
 double/triple/quadruple/quintuple clicks in view mode will pipe the
 word/line/block/page through pax command when Ctrl is held and
