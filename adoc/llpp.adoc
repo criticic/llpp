@@ -103,7 +103,7 @@ You can specify a custom path using the -c option.
 -------------------------------------------------------------
 <llppconfig>
   <ui-font size='32'>
-    <![CDATA[/path/to/fonts/Code2003-egdm.ttf]]>
+    <![CDATA[/path/to/fonts/Code2003-W8nn.ttf]]>
   </ui-font>
   <defaults ... />
 </llppconfig>
