@@ -354,17 +354,16 @@ let puttileopaque l col row gen colorspace angle opaque size elapsed =
   Hashtbl.add S.tilemap key (opaque, size, elapsed)
 
 let drawtiles l color =
+  let texe e = if conf.invert then GlTex.env (`mode e) in
   GlDraw.color color;
   Ffi.begintiles ();
   let f col row x y tilex tiley w h =
     match gettileopaque l col row with
     | Some (opaque, _, t) ->
        let params = x, y, w, h, tilex, tiley in
-       if conf.invert
-       then GlTex.env (`mode `blend);
+       texe `blend;
        Ffi.drawtile params opaque;
-       if conf.invert
-       then GlTex.env (`mode `modulate);
+       texe `modulate;
        if conf.debug
        then (
          Ffi.endtiles ();
@@ -385,12 +384,10 @@ let drawtiles l color =
        Ffi.endtiles ();
        let w = let lw = !S.winw - x in min lw w
        and h = let lh = !S.winh - y in min lh h in
-       if conf.invert
-       then GlTex.env (`mode `blend);
+       texe `blend;
        GlDraw.color (0.8, 0.8, 0.8);
        filledrect (float x) (float y) (float (x+w)) (float (y+h));
-       if conf.invert
-       then GlTex.env (`mode `modulate);
+       texe `modulate;
        if w > 128 && h > fstate.fontsize + 10
        then (
          let c = if conf.invert then 1.0 else 0.0 in
