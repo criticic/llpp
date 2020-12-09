@@ -3503,7 +3503,7 @@ ML (init (value csock_v, value params_v))
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
 
-    if (Int_val (Field (params_v, 8))) {
+    if (Bool_val (Field (params_v, 8))) {
         if (pipe (state.pfds)) {
             err (1, "pipe");
         }
