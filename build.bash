@@ -7,6 +7,7 @@ vecho() { ${vecho-:} "$*"; }
 executable_p() { command -v "$1" >/dev/null 2>&1; }
 dgst='cksum $* | while read d _; do printf $d; done'
 ! executable_p b3sum || dgst='b3sum --no-names $*'
+executable_p realpath || realpath() (cd "$1" &>/dev/null; pwd -P)
 eval "digest() { $dgst; } 2>/dev/null"
 die() { echo "$*" >&2; exit 111; }
 trap 'echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"' EXIT
@@ -111,7 +112,7 @@ test "$overs" = "4.11.1" || {
         dl $url $txz
         eval $keycmd >$txz.past
     } && vecho "fresh $txz"
-    absprefix=$(cd $outd &>/dev/null; pwd -P)
+    absprefix=$(realpath $outd)
     export PATH=$absprefix/bin:$PATH
     ocamlc=$absprefix/bin/ocamlc
     keycmd="printf $url; digest $ocamlc;"
