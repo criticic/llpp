@@ -1403,22 +1403,20 @@ let save1 bb leavebirdseye x h dc =
   then (
     adddoc docpath pan (getanchor ())
       (
-        let autoscrollstep =
-          match !S.autoscroll with
-          | Some step -> step
-          | None -> conf.autoscrollstep
-        in
         begin match !S.mode with
         | Birdseye beye -> leavebirdseye beye true
         | Textentry _
         | View
         | LinkNav _ -> ()
         end;
-        let key =
-          if emptystr conf.key
-          then (try Digest.file docpath |> Digest.to_hex with _ -> E.s)
-          else conf.key
-        in { conf with autoscrollstep; key }
+        { conf with
+          autoscrollstep = (match !S.autoscroll with
+                            | Some step -> step
+                            | None -> conf.autoscrollstep)
+        ; key = (if emptystr conf.key
+                 then (try Digest.file docpath |> Digest.to_hex with _ -> E.s)
+                 else conf.key)
+        }
       )
       !S.bookmarks
       (now ())
