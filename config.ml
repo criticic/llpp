@@ -1385,7 +1385,7 @@ let save1 bb leavebirdseye x h dc =
        let beyecolumns =
          match conf.columns with
          | Cmulti ((c, _, _), _) -> Some c
-         | Csingle _ -> None
+         | Csingle _
          | Csplit _ -> None
        and columns =
          match c.columns with
