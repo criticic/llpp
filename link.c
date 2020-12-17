@@ -23,11 +23,6 @@
 
 #include GL_H
 
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Wreserved-id-macro"
-#endif
-#pragma GCC diagnostic ignored "-Wpedantic"
 #define CAML_NAME_SPACE
 #include <caml/fail.h>
 #include <caml/alloc.h>
@@ -40,6 +35,8 @@
 #include <mupdf/pdf.h>
 #pragma GCC diagnostic pop
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreserved-id-macro"
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #pragma GCC diagnostic pop
