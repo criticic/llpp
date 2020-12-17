@@ -744,7 +744,7 @@ static void initpdims1 (void)
                     show = !state.trimmargins && pageno % 20 == 0;
                     if (show) {
                         printd ("progress %f Gathering dimensions %d",
-                                (double) (pageno) / state.pagecount, pageno);
+                                (double) pageno / state.pagecount, pageno);
                     }
                 }
                 fz_catch (ctx) {
