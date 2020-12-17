@@ -36,7 +36,9 @@
 #pragma GCC diagnostic pop
 
 #pragma GCC diagnostic push
+#ifdef __clang__
 #pragma GCC diagnostic ignored "-Wreserved-id-macro"
+#endif
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #pragma GCC diagnostic pop
