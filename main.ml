@@ -4696,17 +4696,19 @@ let () =
   in
   dologf := (adderrfmt "stderr" "%s\n");
 
+  let fdl =
+    let l = [!S.ss; !S.wsfd] in if !redirstderr then !S.stderr :: l else l
+  in
   let rec loop deadline =
     if !doreap
     then (
       doreap := false;
       reap ()
     );
-    let r = [!S.ss; !S.wsfd; !S.stderr] in
     let r =
       match !optrfd with
-      | None -> r
-      | Some fd -> fd :: r
+      | None -> fdl
+      | Some fd -> fd :: fdl
     in
     if !redisplay
     then (
