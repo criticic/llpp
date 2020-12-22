@@ -1,7 +1,7 @@
 open Config
 
 type initparams = (angle * fitmodel * trimparams * texcount * sliceheight *
-                     memsize * colorspace * fontpath * dupstderr)
+                     memsize * colorspace * fontpath * redirstderr)
 and xoff = int and yoff = int and noff = int
 and li = (noff * string * hintfontsize * hintchars)
 and hlmask = int and hintchars = string and hintfontsize = int

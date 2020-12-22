@@ -68,7 +68,7 @@ and scrollb = int
 and anchor = pageno * top * dtop
 and rect = float * float * float * float * float * float * float * float
 and infochange = | Memused | Docinfo | Pdim
-and dupstderr = bool
+and redirstderr = bool
 and fontstate =
   { mutable fontsize : int
   ; mutable wwidth : float
