@@ -160,7 +160,7 @@ static void lock (const char *cap)
 {
     int ret = pthread_mutex_lock (&state.mutex);
     if (ret) {
-        errx (1, "%s: pthread_mutex_lock: %s", cap, strerror (ret));
+        errx (1, "%s: pthread_mutex_lock: %d(%s)", cap, ret, strerror (ret));
     }
 }
 
@@ -168,7 +168,7 @@ static void unlock (const char *cap)
 {
     int ret = pthread_mutex_unlock (&state.mutex);
     if (ret) {
-        errx (1, "%s: pthread_mutex_unlock: %s", cap, strerror (ret));
+        errx (1, "%s: pthread_mutex_unlock: %d(%s)", cap, ret, strerror (ret));
     }
 }
 
@@ -176,7 +176,7 @@ static int trylock (const char *cap)
 {
     int ret = pthread_mutex_trylock (&state.mutex);
     if (ret && ret != EBUSY) {
-        errx (1, "%s: pthread_mutex_trylock: %s", cap, strerror (ret));
+        errx (1, "%s: pthread_mutex_trylock: %d(%s)", cap, ret, strerror (ret));
     }
     return ret == EBUSY;
 }
@@ -1221,21 +1221,21 @@ static char *mbtoutf8 (char *s)
     len = mbstowcs (NULL, s, strlen (s));
     if (len == 0 || len == (size_t) -1) {
         if (len) {
-            printd ("emsg mbtoutf8: mbstowcs: %d:%s", errno, strerror (errno));
+            printd ("emsg mbtoutf8: mbstowcs: %d(%s)", errno, strerror (errno));
         }
         return s;
     }
 
     tmp = calloc (len, sizeof (wchar_t));
     if (!tmp) {
-        printd ("emsg mbtoutf8: calloc(%zu, %zu): %d:%s",
+        printd ("emsg mbtoutf8: calloc(%zu, %zu): %d(%s)",
                 len, sizeof (wchar_t), errno, strerror (errno));
         return s;
     }
 
     ret = mbstowcs (tmp, s, len);
     if (ret == (size_t) -1) {
-        printd ("emsg mbtoutf8: mbswcs %zu characters failed: %d:%s",
+        printd ("emsg mbtoutf8: mbswcs %zu characters failed: %d(%s)",
                 len, errno, strerror (errno));
         free (tmp);
         return s;
@@ -2883,7 +2883,7 @@ static int pipechar (FILE *f, fz_stext_char *ch)
     len = fz_runetochar (buf, ch->c);
     ret = fwrite (buf, len, 1, f);
     if (ret != 1) {
-        printd ("emsg failed to fwrite %d bytes ret=%zu: %d:%s",
+        printd ("emsg failed to fwrite %d bytes ret=%zu: %d(%s)",
                 len, ret, errno, strerror (errno));
         return -1;
     }
@@ -2949,12 +2949,12 @@ ML (spawn (value command_v, value fds_v))
 
  fail:
     if ((ret1 = posix_spawnattr_destroy (&attr)) != 0) {
-        printd ("emsg posix_spawnattr_destroy: %d:%s", ret1, strerror (ret1));
+        printd ("emsg posix_spawnattr_destroy: %d(%s)", ret1, strerror (ret1));
     }
 
  fail1:
     if ((ret1 = posix_spawn_file_actions_destroy (&fa)) != 0) {
-        printd ("emsg posix_spawn_file_actions_destroy: %d:%s",
+        printd ("emsg posix_spawn_file_actions_destroy: %d(%s)",
                 ret1, strerror (ret1));
     }
 
@@ -3006,7 +3006,7 @@ ML0 (copysel (value fd_v, value ptr_v))
 
     f = fdopen (fd, "w");
     if (!f) {
-        printd ("emsg failed to fdopen sel pipe (from fd %d): %d:%s",
+        printd ("emsg failed to fdopen sel pipe (from fd %d): %d(%s)",
                 fd, errno, strerror (errno));
         f = stdout;
     }
@@ -3041,7 +3041,7 @@ close:
         fd = -1;
         if (ret == -1) {
             if (errno != ECHILD) {
-                printd ("emsg failed to close sel pipe: %d:%s",
+                printd ("emsg failed to close sel pipe: %d(%s)",
                         errno, strerror (errno));
             }
         }
@@ -3052,7 +3052,7 @@ unlock:
 done:
     if (fd >= 0) {
         if (close (fd)) {
-            printd ("emsg failed to close sel pipe: %d:%s",
+            printd ("emsg failed to close sel pipe: %d(%s)",
                     errno, strerror (errno));
         }
     }
@@ -3529,7 +3529,7 @@ ML (init (value csock_v, value params_v))
         state.utf8cs = !strcmp (cset, "UTF-8");
     }
     else {
-        printd ("emsg setlocale: %d:%s", errno, strerror (errno));
+        printd ("emsg setlocale: %d(%s)", errno, strerror (errno));
     }
 #endif
 
@@ -3567,7 +3567,7 @@ ML (init (value csock_v, value params_v))
 
     ret = pthread_create (&state.thread, NULL, mainloop, NULL);
     if (ret) {
-        errx (1, "pthread_create: %s", strerror (ret));
+        errx (1, "pthread_create: %d(%s)", ret, strerror (ret));
     }
 
     CAMLreturn (Val_int (state.pfds[0]));
