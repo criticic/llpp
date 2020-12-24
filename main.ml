@@ -1837,7 +1837,6 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   S.origin := origin;
   S.x := x;
   setconf conf c;
-  Ffi.setdcf conf.dcf;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd U.trimset "%d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Wsi.reshape c.cwinw c.cwinh;
