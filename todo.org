@@ -17,5 +17,4 @@
 * TODO Reduce/eliminate(?) conflation of state and conf
   Also move all those ref-s to state
 * TODO add E.geomcmds
-* TODO dcf histopens
 * TODO reset fractional coordinates when needed
