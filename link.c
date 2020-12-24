@@ -1332,7 +1332,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             }
             fz_catch (state.ctx) {
                 utf8filename = mbtoutf8 (filename);
-                printd ("emsg Error loading %s: %s",
+                printd ("emsg failed loading %s: %s",
                         utf8filename, fz_caught_message (state.ctx));
                 if (utf8filename != filename) {
                     free (utf8filename);
