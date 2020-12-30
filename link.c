@@ -1080,8 +1080,7 @@ static void search (regex_t *re, int pageno, int y, int forward)
             }
             else {
                 printd ("progress %f searching in page %d",
-                        (double) (pageno + 1) / state.pagecount,
-                        pageno);
+                        (double) (pageno + 1) / state.pagecount, pageno);
             }
         }
         pdim = pdimofpageno (pageno);
@@ -1185,8 +1184,7 @@ static void realloctexts (int texcount)
     }
 
     if (texcount < state.tex.count) {
-        glDeleteTextures (state.tex.count - texcount,
-                          state.tex.ids + texcount);
+        glDeleteTextures (state.tex.count - texcount, state.tex.ids + texcount);
     }
 
     size = texcount * (sizeof (*state.tex.ids) + sizeof (*state.tex.owners));
@@ -1398,8 +1396,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             }
 
             pattern = p + len2;
-            ret = regcomp (&re, pattern,
-                           REG_EXTENDED | (icase ? REG_ICASE : 0));
+            ret = regcomp (&re, pattern, REG_EXTENDED | icase ? REG_ICASE : 0);
             if (ret) {
                 char errbuf[80];
                 size_t size;
@@ -1518,8 +1515,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
 
             printd ("tile %d %d %" PRIxPTR " %u %f",
                     x, y, (uintptr_t) tile,
-                    tile->w * tile->h * tile->pixmap->n,
-                    b - a);
+                    tile->w * tile->h * tile->pixmap->n, b - a);
             break;
         }
         case Ctrimset: {
