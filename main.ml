@@ -2425,13 +2425,13 @@ let enterinfomode =
 
     sep ();
     src#caption "OpenGL" 0;
-    src#caption (Printf.sprintf "Vendor\t%s" (GlMisc.get_string `vendor)) 1;
-    src#caption (Printf.sprintf "Renderer\t%s" (GlMisc.get_string `renderer)) 1;
+    src#caption ("Vendor\t" ^ GlMisc.get_string `vendor) 1;
+    src#caption ("Renderer\t" ^ GlMisc.get_string `renderer) 1;
 
     sep ();
     src#caption "Location" 0;
     if nonemptystr !S.origin
-    then src#caption ("Orign\t" ^ Ffi.mbtoutf8 !S.origin) 1;
+    then src#caption ("Origin\t" ^ Ffi.mbtoutf8 !S.origin) 1;
     src#caption ("Path\t" ^ Ffi.mbtoutf8 !S.path) 1;
     if nonemptystr conf.dcf
     then src#caption ("DCF\t" ^ Ffi.mbtoutf8 conf.dcf) 1;
