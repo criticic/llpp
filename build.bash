@@ -16,7 +16,7 @@ darwin=false
 wsid="wsi/x11"
 clip="LC_CTYPE=UTF-8 xclip -i"
 paste="LC_CTYPE=UTF-8 xclip -o"
-uriop="echo 'Open "%s"' >&2"
+uopen="echo 'Open "%s"' >&2"
 print="echo 'Print "%s"' >&2"
 mjobs=$(getconf _NPROCESSORS_ONLN || echo 1)
 case "$(uname)" in
@@ -25,7 +25,7 @@ case "$(uname)" in
         wsid="wsi/cocoa"
         clip="LC_CTYPE=UTF-8 pbcopy"
         paste="LC_CTYPE=UTF-8 pbaste"
-        uriop='open "%s"';;
+        uopen='open "%s"';;
     Linux) ;;
     *) die $(uname) is not supported;;
 esac
@@ -243,8 +243,8 @@ bobjc() {
 ver=$(cd $srcd && git describe --tags --dirty) || ver="'built on $(date)'"
 
 gen=$srcd/genconfstruct.sh
-cmd="(export print paste clip uriop; . $gen >$outd/confstruct.ml)"
-keycmd="{ echo '$print $paste $clip $uriop'; digest $gen $outd/confstruct.ml; }"
+cmd="(export print paste clip uopen; . $gen >$outd/confstruct.ml)"
+keycmd="{ echo '$print $paste $clip $uopen'; digest $gen $outd/confstruct.ml; }"
 isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
     echo "generating $outd/confstruct.ml"
     eval "$cmd" || die $gen failed

@@ -96,7 +96,7 @@ i tilew 2048
 i tileh 2048
 g mustoresize memsize "256 lsl 20"
 i aalevel 8
-s urilauncher "{|$uriop|}"
+s urilauncher "{|$uopen|}"
 s pathlauncher "{|$print|}"
 g colorspace colorspace Rgb
 b invert false
