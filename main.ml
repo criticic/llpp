@@ -4664,16 +4664,17 @@ let () =
   display ();
   Wsi.mapwin ();
   Wsi.setcursor Wsi.CURSOR_INHERIT;
-  Wsi.setmapc (
-      let viewmapcode = function
+  Wsi.setmapc (fun code ->
+      if !S.uioh == uioh
+      then
+        match code with
         (* remap some key codes to arrows in view mode *)
         | 44 -> 113
         | 45 -> 116
         | 46 -> 111
         | 47 -> 114
-        | n -> n
-      in
-      fun code -> if !S.uioh == uioh then viewmapcode code else code);
+        | _ -> code
+      else code);
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
 
   let rec reap () =
