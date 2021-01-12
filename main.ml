@@ -4665,7 +4665,7 @@ let () =
   Wsi.mapwin ();
   Wsi.setcursor Wsi.CURSOR_INHERIT;
   Wsi.setmapc (fun code ->
-      if !S.uioh == uioh
+      if conf.remaphtns && !S.uioh == uioh
       then
         match code with
         (* remap some key codes to arrows in view mode *)
