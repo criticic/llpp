@@ -529,19 +529,6 @@ let layoutready layout =
   let alltilesvisible = fold true layout in
   alltilesvisible
 
-let mapc code =
-  let viewmapcode = function
-    (* remap some key codes to arrows in view mode *)
-    | 44 -> 113
-    | 45 -> 116
-    | 46 -> 111
-    | 47 -> 114
-    | n -> n
-  in
-  match !S.mode with
-  | View -> if conf.remaphtns then viewmapcode code else code
-  | LinkNav _ | Textentry _ | Birdseye _ -> code
-
 let gotoxy x y =
   let y = bound y 0 !S.maxy in
   let y, layout =
@@ -4677,7 +4664,16 @@ let () =
   display ();
   Wsi.mapwin ();
   Wsi.setcursor Wsi.CURSOR_INHERIT;
-  Wsi.setmapc mapc;
+  Wsi.setmapc (
+      let viewmapcode = function
+        (* remap some key codes to arrows in view mode *)
+        | 44 -> 113
+        | 45 -> 116
+        | 46 -> 111
+        | 47 -> 114
+        | n -> n
+      in
+      fun code -> if !S.uioh == uioh then viewmapcode code else code);
   Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> reload ()));
 
   let rec reap () =
