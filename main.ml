@@ -1874,6 +1874,7 @@ let enterinfomode =
   let btos b = if b then Utf8syms.radical else E.s in
   let showextended = ref false in
   let showcolors = ref false in
+  let showcommands = ref false in
   let leave mode _ =  S.mode := mode in
   let src = object
       val mutable m_l = []
@@ -2322,21 +2323,27 @@ let enterinfomode =
             if conf.trimmargins
             then settrim true conf.trimfuzz;
           with exn -> settextfmt "bad irect `%s': %s" v @@ exntos exn);
-      src#string "selection command"
-        (fun () -> conf.selcmd)
-        (fun v -> conf.selcmd <- v);
-      src#string "synctex command"
-        (fun () -> conf.stcmd)
-        (fun v -> conf.stcmd <- v);
-      src#string "pax command"
-        (fun () -> conf.paxcmd)
-        (fun v -> conf.paxcmd <- v);
-      src#string "ask password command"
-        (fun () -> conf.passcmd)
-        (fun v -> conf.passcmd <- v);
-      src#string "save path command"
-        (fun () -> conf.savecmd)
-        (fun v -> conf.savecmd <- v);
+      src#bool ~btos "external commands"
+        (fun () -> !showcommands)
+        (fun v -> showcommands := v; fillsrc prevmode prevuioh);
+      if !showcommands
+      then (
+        src#string "  selection"
+          (fun () -> conf.selcmd)
+          (fun v -> conf.selcmd <- v);
+        src#string "  synctex"
+          (fun () -> conf.stcmd)
+          (fun v -> conf.stcmd <- v);
+        src#string "  pax"
+          (fun () -> conf.paxcmd)
+          (fun v -> conf.paxcmd <- v);
+        src#string "  ask password"
+          (fun () -> conf.passcmd)
+          (fun v -> conf.passcmd <- v);
+        src#string "  save path"
+          (fun () -> conf.savecmd)
+          (fun v -> conf.savecmd <- v);
+      );
       src#colorspace "color space"
         (fun () -> CSTE.to_string conf.colorspace)
         (fun v ->
