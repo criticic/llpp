@@ -1,20 +1,15 @@
 * TODO progressive zoom
 * TODO Fixme
 ** linknav + presentation (link might not fit the visible area)
-   fullscreening while loading complex documents has visual quirks
 * TODO outline for cbz
   file names? exif?
 * TODO build.bash
 ** Parallel builds
-** Removing .mlis leads to build errors
-   Nuking everything (or just deleting .deps?) solves it though
 * TODO [maybe] inside rect/quad (_Generic)
 * TODO threaded rendering
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO (maybe?) make C replies use byte commands too
 * TODO title tracking
 * TODO macOS machine check
-* TODO Reduce/eliminate(?) conflation of state and conf
-  Also move all those ref-s to state
 * TODO add E.geomcmds
 * TODO reset fractional coordinates when needed
