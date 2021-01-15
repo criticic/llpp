@@ -2390,7 +2390,10 @@ let enterinfomode =
           (fun v ->
             GlTex.env (`color v);
             conf.texturecolor <- v;
-          )
+          );
+        src#string "   scale"
+          (fun () -> string_of_float conf.colorscale)
+          (fun v -> conf.colorscale <- bound (float_of_string v) 0.0 1.0);
       );
     );
 
