@@ -89,8 +89,8 @@ f                   - toggle fullscreen
 insert              - toggle link navigation mode
 o                   - switch to outline/table of contents mode
 '                   - switch to bookmark mode
-F1/Alt-h            - switch to help mode
-Shift-h             - switch to history mode
+F1                  - switch to help mode
+Alt-F1              - switch to history mode
 i                   - switch to info mode
 P                   - switch to "presentation" mode
 c                   - switch to previous column layout
