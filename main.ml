@@ -3399,7 +3399,7 @@ let viewkeyboard key mask =
      end
   | Ascii 'H' -> enterhistmode () (* NB:
                                      when home row is remapped this
-                                     is inaccessible (sH becomes left-arrow) *)
+                                     is inaccessible (H becomes left-arrow) *)
   | Fn 1 when Wsi.withalt mask -> enterhistmode ()
   | Fn 1 -> enterhelpmode ()
   | Left | Right when not (Wsi.withalt mask) ->
