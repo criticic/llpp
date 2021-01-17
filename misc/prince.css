@@ -1,7 +1,7 @@
 body { margin-left: 10%; margin-right: 10%; }
 @font-face {
     font-family: monospace;
-    src: prince-lookup("Iosevka Clam"), local("monospace");
+    src: prince-lookup("JetBrains Mono"), local("monospace");
 }
 @font-face {
     font-family: serif;
