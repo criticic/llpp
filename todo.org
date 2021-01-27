@@ -13,3 +13,5 @@
 * TODO macOS machine check
 * TODO add E.geomcmds
 * TODO reset fractional coordinates when needed
+* TODO kymap mapcode
+  add a way to bind keycodes (not keysyms) to actions
