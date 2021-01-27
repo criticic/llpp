@@ -262,7 +262,7 @@ for target; do
                 o=$md/$m.1
                 conf="$srcd/man/asciidoc.conf"
                 keycmd="digest $o $src $conf"
-                cmd="asciidoctor -b manpage -o $o $src"
+                cmd="a2x -f manpage -D $md $src"
                 isfresh "$o" "$cmd$(eval $keycmd)" || {
                     echo "${o#$outd/}"
                     eval "$cmd" || die "$cmd failed"
