@@ -2409,6 +2409,7 @@ ML (getlink (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
     CAMLlocal4 (ret_v, tup_v, str_v, gr_v);
+    int n = Int_val (n_v);
     fz_link *link;
     struct page *page;
     struct slink *slink;
@@ -2418,7 +2419,8 @@ ML (getlink (value ptr_v, value n_v))
 
     lock (__func__);
     ensureslinks (page);
-    slink = &page->slinks[Int_val (n_v)];
+    if (!page->slinkcount || n > page->slinkcount ) goto unlock;
+    slink = &page->slinks[n];
     if (slink->tag == SLINK) {
         link = slink->u.link;
         str_v = caml_copy_string (link->uri);
@@ -2432,8 +2434,8 @@ ML (getlink (value ptr_v, value n_v))
         Field (tup_v, 0) = ptr_v;
         Field (tup_v, 1) = n_v;
     }
+unlock:
     unlock (__func__);
-
     CAMLreturn (ret_v);
 }
 
