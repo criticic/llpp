@@ -117,6 +117,11 @@ test "$overs" = "4.11.1" || {
     ocamlc=$absprefix/bin/ocamlc
     keycmd="printf $url; digest $ocamlc;"
     isfresh $ocamlc "$(eval $keycmd)" || (
+        # This will needlessly re{configure,make} since "past" of
+        # configure/make is hard to ascertain. Better safe than sorry
+        # approach is taken here. The check will work for a single
+        # ocaml url/version but _will_ redo everything otherwise (even
+        # if fully built artifacts are available)
         tar xf $txz -C $outd
         bn=$(basename $url)
         cd $outd/${bn%.tar.xz}
