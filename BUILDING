@@ -10,7 +10,7 @@ Prerequisites for building from sources:
             wget    [https://www.gnu.org/software/wget]
             or curl [https://curl.haxx.se]
 
-    asciidoctor   [https://asciidoctor.org]
+    asciidoc      [https://asciidoc.org/]
                   Is needed to build man pages (which is optional)
 
 To download mupdf+prerequisites that llpp is known to work with:
