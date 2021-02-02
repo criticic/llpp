@@ -1,3 +1,4 @@
 #!/bin/sh
-alias bash="exec ${bash-bash}"
-ccd=${ccd-gcc} CC="$ccd" CXX="$ccd" CAML_CC="$ccd" bash build.bash build $*
+alias build="exec ${bash-bash} build.bash build"
+export ccd=${ccd-gcc} CC="$ccd" CXX="$ccd" CAML_CC="$ccd"
+if test $# != 0; then build "$*"; else build; fi
