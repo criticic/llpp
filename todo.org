@@ -15,3 +15,5 @@
 * TODO reset fractional coordinates when needed
 * TODO kymap mapcode
   add a way to bind keycodes (not keysyms) to actions
+* TODO multiple targets in build.bash
+  exit inside 'doc' target is not, in general, correct
