@@ -1,3 +1,3 @@
-#!/bin/sh
-c=${ccd-gcc}; export CC=$c CXX=$c CAML_CC=$c
-exec ${bash-bash} build.bash build ${1+"$*"}
+#!/bin/bash
+ccd=${ccd-ccache gcc}; export CC=$ccd CXX=$ccd CAML_CC=$ccd
+exec ${bash-bash} build.bash build "$@"
