@@ -17,3 +17,4 @@
   add a way to bind keycodes (not keysyms) to actions
 * TODO multiple targets in build.bash
   exit inside 'doc' target is not, in general, correct
+* TODO scroll by paragraph/block
