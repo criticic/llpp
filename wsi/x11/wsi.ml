@@ -98,7 +98,6 @@ type state =
   ; mutable levl5mask  : int
   ; mutable xkb        : bool
   ; mutable fscale     : float
-  ; mutable mapc       : keycode -> keycode
   }
 and fs =
   | NoFs
@@ -138,13 +137,11 @@ let state =
   ; levl5mask  = 0
   ; xkb        = false
   ; fscale     = 1.0
-  ; mapc       = Fun.id
   }
 
 let settitle s = state.setwmname (~> s)
 let fullscreen () = state.fullscreen state.wid
 let fontsizescale n = float n *. state.fscale |> truncate
-let setmapc f = state.mapc <- f
 
 let ordermagic = 'l'
 let metamask = 0x40
@@ -473,7 +470,7 @@ let readresp sock =
   | 2 ->                                (* key press *)
      if Array.length state.keymap > 0
      then
-       let code = state.mapc @@ r8 resp 1 in
+       let code = r8 resp 1 in
        let mask = r16 resp 28 in
        let keysym = getkeysym code mask in
        vlog "keysym = %x %c mask %#x code %d"
