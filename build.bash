@@ -45,14 +45,8 @@ mkdir -p $outd/{$wsid,lablGL}
 isfresh() { test -r $1.past && test "$(<$1.past)" = "$2"; }
 
 mbt=${mbt:-release}
-mulibst="$mudir/build/$mbt/libs"
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
-
-keycmd="make -C $mudir -q build=$mbt libs && digest $mulibs"
-isfresh "$mulibst" "$(eval $keycmd)" || {
-    make -C "$mudir" build=$mbt -j $mjobs libs
-    eval $keycmd >${mulibst}.past
-} && vecho "fresh mupdf"
+make -C "$mudir" build=$mbt -j $mjobs libs
 
 oincs() {
     local i incs1= incs="-I $srcd -I $outd"
