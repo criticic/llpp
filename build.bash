@@ -46,7 +46,8 @@ isfresh() { test -r $1.past && test "$(<$1.past)" = "$2"; }
 
 mbt=${mbt:-release}
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
-make -C "$mudir" build=$mbt -j $mjobs libs
+make="make -C "$mudir" build=$mbt -j $mjobs libs"
+$make -q -s || $make
 
 oincs() {
     local i incs1= incs="-I $srcd -I $outd"
