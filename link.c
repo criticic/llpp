@@ -3530,7 +3530,7 @@ ML (init (value csock_v, value params_v))
         state.utf8cs = !strcmp (cset, "UTF-8");
     }
     else {
-        printd ("emsg setlocale: %d(%s)", errno, strerror (errno));
+        err (1, "setlocale");
     }
 #endif
 
