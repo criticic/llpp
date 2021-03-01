@@ -24,4 +24,4 @@ Force downloading the document, even though it might be cached
 llpp(1)
 
 == REPORTING BUGS
-https://github.com/moosotc/llpp/issues or mailto:moosotc@gmail.com
+https://github.com/moosotc/llpp/issues
