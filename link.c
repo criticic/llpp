@@ -45,7 +45,6 @@
 
 #include "cutils.h"
 
-#define FIXED_DIAG_DEADLOCK 0
 #define ARSERT(c) !(c) ? errx (1, "%s:%d " #c, __FILE__, __LINE__) : (void) 0
 #define ML(d) extern value ml_##d; value ml_##d
 #define ML0(d) extern void ml_##d; void ml_##d
@@ -3437,12 +3436,13 @@ ML (llpp_version (void))
     return caml_copy_string (llpp_version);
 }
 
-#if FIXED_DIAG_DEADLOCK
 static void diag_callback (void *user, const char *message)
 {
-    printd ("emsg %s %s", (char *) user, message);
+    if (pthread_equal (pthread_self (), state.thread))
+        printd ("emsg %s %s", (char *) user, message);
+    else
+        puts (message);
 }
-#endif
 
 static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
                       int UNUSED_ATTR language, int UNUSED_ATTR serif,
@@ -3536,10 +3536,8 @@ ML (init (value csock_v, value params_v))
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);
-#if FIXED_DIAG_DEADLOCK
     fz_set_error_callback (state.ctx, diag_callback, "[e]");
     fz_set_warning_callback (state.ctx, diag_callback, "[w]");
-#endif
     fz_install_load_system_font_funcs (state.ctx, NULL, NULL, lsff);
 
     state.trimmargins = Bool_val (Field (trim_v, 0));
