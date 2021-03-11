@@ -203,10 +203,13 @@ static void readdata (int fd, void *p, int size)
 
 again:
     n = read (fd, p, size);
-    if (n - size) {
-        if (n < 0 && errno == EINTR) {
+    if (n < 0) {
+        if (errno == EINTR) {
             goto again;
         }
+        err (1, "writev (fd %d, req %d, ret %zd)", fd, size, n);
+    }
+    if (n - size) {
         errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
 }
@@ -222,11 +225,14 @@ static void writedata (int fd, char *p, int size)
 
 again:
     n = writev (fd, iov, 2);
-    if (n - size - 4) {
-        if (n < 0 && errno == EINTR) {
+    if (n < 0) {
+        if (errno == EINTR) {
             goto again;
         }
         err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
+    }
+    if (n - size - 4) {
+        errx (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
 
