@@ -222,10 +222,10 @@ static void writedata (int fd, char *p, int size)
 
 again:
     n = writev (fd, iov, 2);
-    if (n < 0 && errno == EINTR) {
-        goto again;
-    }
     if (n - size - 4) {
+        if (n < 0 && errno == EINTR) {
+            goto again;
+        }
         err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
