@@ -207,9 +207,6 @@ again:
         if (n < 0 && errno == EINTR) {
             goto again;
         }
-        if (!n) {
-            errx (1, "EOF while reading");
-        }
         errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
     }
 }
@@ -229,9 +226,6 @@ again:
         goto again;
     }
     if (n - size - 4) {
-        if (!n) {
-            errx (1, "EOF while writing data");
-        }
         err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
 }
