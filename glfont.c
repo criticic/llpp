@@ -85,7 +85,7 @@ static void clear_font_cache(void)
 #if PADDING > 0
         unsigned char *zero = calloc(g_cache_w, g_cache_h);
         if (!zero)
-                err(1, "malloc zero (%u bytes failed)", g_cache_w * g_cache_h);
+                err(1, errno, "malloc zero (%u bytes failed)", g_cache_w * g_cache_h);
         glBindTexture(GL_TEXTURE_2D, g_cache_tex);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g_cache_w, g_cache_h, GL_ALPHA, GL_UNSIGNED_BYTE, zero);
         free(zero);
@@ -107,19 +107,20 @@ static void *filecontents (const char *path, int *len)
         ssize_t nread;
 
         ret = stat(path, &st);
-        if (ret) err(1, "failed to stat `%s'", path);
+        if (ret) err(1, errno, "failed to stat `%s'", path);
         if (st.st_size > INT_MAX) errx(1, "font `%s' is too big", path);
         res = malloc(st.st_size);
         if (!res)
-                err(1, "failed to allocate %llu bytes for `%s'",
+                err(1, errno, "failed to allocate %llu bytes for `%s'",
                     st.st_size+0ull, path);
 
         fd = open(path, O_RDONLY);
-        if (fd < 0) err(1, "failed to open `%s'", path);
+        if (fd < 0) err(1, errno, "failed to open `%s'", path);
 
         nread = read(fd, res, st.st_size);
         if (nread - st.st_size)
-                err(1, "read %llu failed, ret=%zd", st.st_size+0llu, nread);
+                err(1, errno, "read %llu failed, ret=%zd",
+                    st.st_size+0llu, nread);
 
         *len = (int) st.st_size;
         return res;

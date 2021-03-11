@@ -13,8 +13,8 @@
 #error Stringent C compiler requirements not satisfied
 #endif
 
-extern _Noreturn void GCC_FMT_ATTR (2, 3)
-    err (int exitcode, const char *fmt, ...);
+extern _Noreturn void GCC_FMT_ATTR (3, 4)
+    err (int errno_val, int exitcode, const char *fmt, ...);
 extern _Noreturn void GCC_FMT_ATTR (2, 3)
     errx (int exitcode, const char *fmt, ...);
 extern void *parse_pointer (const char *cap, const char *s);

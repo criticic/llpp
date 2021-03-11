@@ -9,15 +9,15 @@
 
 #include "cutils.h"
 
-_Noreturn void GCC_FMT_ATTR (2, 3) err (int exitcode, const char *fmt, ...)
+_Noreturn void GCC_FMT_ATTR (3, 4) err (int exitcode, int errno_val,
+                                        const char *fmt, ...)
 {
     va_list ap;
-    int savederrno = errno;
 
     va_start (ap, fmt);
     vfprintf (stdout, fmt, ap);
     va_end (ap);
-    fprintf (stdout, ": %s\n", strerror (savederrno));
+    fprintf (stdout, ": %s\n", strerror (errno_val));
     fflush (stdout);
     _exit (exitcode);
 }

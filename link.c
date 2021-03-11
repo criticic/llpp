@@ -186,7 +186,7 @@ static int hasdata (int fd)
     int ret, avail;
     ret = ioctl (fd, FIONREAD, &avail);
     if (ret) {
-        err (1, "hasdata: FIONREAD error ret=%d", ret);
+        err (1, errno, "hasdata: FIONREAD error ret=%d", ret);
     }
     return avail > 0;
 }
@@ -207,7 +207,7 @@ again:
         if (errno == EINTR) {
             goto again;
         }
-        err (1, "writev (fd %d, req %d, ret %zd)", fd, size, n);
+        err (1, errno, "writev (fd %d, req %d, ret %zd)", fd, size, n);
     }
     if (n - size) {
         errx (1, "read (fd %d, req %d, ret %zd)", fd, size, n);
@@ -229,7 +229,7 @@ again:
         if (errno == EINTR) {
             goto again;
         }
-        err (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
+        err (1, errno, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
     }
     if (n - size - 4) {
         errx (1, "writev (fd %d, req %d, ret %zd)", fd, size + 4, n);
@@ -283,11 +283,11 @@ static void GCC_FMT_ATTR (1, 2) printd (const char *fmt, ...)
             }
         }
         else {
-            err (1, "vsnprintf for `%s' failed", fmt);
+            err (1, errno, "vsnprintf for `%s' failed", fmt);
         }
         buf = realloc (buf == fbuf ? NULL : buf, size);
         if (!buf) {
-            err (1, "realloc for temp buf (%d bytes) failed", size);
+            err (1, errno, "realloc for temp buf (%d bytes) failed", size);
         }
     }
     if (buf != fbuf) {
@@ -365,7 +365,7 @@ static void docinfo (void)
             else {
                 buf = realloc (buf, need);
                 if (!buf) {
-                    err (1, "docinfo realloc %d", need);
+                    err (1, errno, "docinfo realloc %d", need);
                 }
                 len = need;
                 goto again;
@@ -459,7 +459,7 @@ static void *loadpage (int pageno, int pindex)
 
     page = calloc (sizeof (struct page), 1);
     if (!page) {
-        err (1, "calloc page %d", pageno);
+        err (1, errno, "calloc page %d", pageno);
     }
 
     page->dlist = fz_new_display_list (state.ctx, fz_infinite_rect);
@@ -492,7 +492,7 @@ static struct tile *alloctile (int h)
     tilesize = sizeof (*tile) + ((slicecount - 1) * sizeof (struct slice));
     tile = calloc (tilesize, 1);
     if (!tile) {
-        err (1, "cannot allocate tile (%zu bytes)", tilesize);
+        err (1, errno, "cannot allocate tile (%zu bytes)", tilesize);
     }
     for (int i = 0; i < slicecount; ++i) {
         int sh = fz_mini (h, state.sliceheight);
@@ -761,7 +761,7 @@ static void initpdims1 (void)
             size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
             state.pagedims = realloc (state.pagedims, size);
             if (!state.pagedims) {
-                err (1, "realloc pagedims to %zu (%d elems)",
+                err (1, errno, "realloc pagedims to %zu (%d elems)",
                      size, state.pagedimcount + 1);
             }
 
@@ -782,19 +782,19 @@ static void initpdims (void)
 
         nread = fread (&state.pagedimcount, sizeof (state.pagedimcount), 1, f);
         if (nread - 1) {
-            err (1, "fread pagedim %zu", sizeof (state.pagedimcount));
+            err (1, errno, "fread pagedim %zu", sizeof (state.pagedimcount));
         }
         size_t size = (state.pagedimcount + 1) * sizeof (*state.pagedims);
         state.pagedims = realloc (state.pagedims, size);
         if (!state.pagedims) {
-            err (1, "realloc pagedims to %zu (%d elems)",
+            err (1, errno, "realloc pagedims to %zu (%d elems)",
                  size, state.pagedimcount + 1);
         }
         if (fread (state.pagedims,
                    sizeof (*state.pagedims),
                    state.pagedimcount+1,
                    f) - (state.pagedimcount+1)) {
-            err (1, "fread pagedim data %zu %d",
+            err (1, errno, "fread pagedim data %zu %d",
                  sizeof (*state.pagedims), state.pagedimcount+1);
         }
         fclose (f);
@@ -805,16 +805,17 @@ static void initpdims (void)
         if (state.dcf) {
             f = fopen (state.dcf, "wb");
             if (!f) {
-                err (1, "fopen %s for writing", state.dcf);
+                err (1, errno, "fopen %s for writing", state.dcf);
             }
             if (fwrite (&state.pagedimcount,
                         sizeof (state.pagedimcount), 1, f) - 1) {
-                err (1, "fwrite pagedimcunt %zu", sizeof (state.pagedimcount));
+                err (1, errno, "fwrite pagedimcunt %zu",
+                     sizeof (state.pagedimcount));
             }
             if (fwrite (state.pagedims, sizeof (*state.pagedims),
                         state.pagedimcount + 1, f)
                 - (state.pagedimcount + 1)) {
-                err (1, "fwrite pagedim data %zu %u",
+                err (1, errno, "fwrite pagedim data %zu %u",
                      sizeof (*state.pagedims), state.pagedimcount+1);
             }
             fclose (f);
@@ -1190,7 +1191,7 @@ static void realloctexts (int texcount)
     size = texcount * (sizeof (*state.tex.ids) + sizeof (*state.tex.owners));
     state.tex.ids = realloc (state.tex.ids, size);
     if (!state.tex.ids) {
-        err (1, "realloc texs %zu", size);
+        err (1, errno, "realloc texs %zu", size);
     }
 
     state.tex.owners = (void *) (state.tex.ids + texcount);
@@ -1293,7 +1294,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
         if (oldlen < len) {
             p = realloc (p, len);
             if (!p) {
-                err (1, "realloc %d failed", len);
+                err (1, errno, "realloc %d failed", len);
             }
             oldlen = len;
         }
@@ -1882,7 +1883,7 @@ static void ensureannots (struct page *page)
         page->annotcount = count;
         page->annots = calloc (count, sizeof (*page->annots));
         if (!page->annots) {
-            err (1, "calloc annots %d", count);
+            err (1, errno, "calloc annots %d", count);
         }
 
         for (annot = pdf_first_annot (state.ctx, pdfpage), i = 0;
@@ -1939,7 +1940,7 @@ static void ensureslinks (struct page *page)
         page->slinkcount = count;
         page->slinks = calloc (count, slinksize);
         if (!page->slinks) {
-            err (1, "calloc slinks %d", count);
+            err (1, errno, "calloc slinks %d", count);
         }
 
         for (i = 0, link = page->links; link; ++i, link = link->next) {
@@ -3470,7 +3471,7 @@ ML0 (setdcf (value path_v))
         size_t len = caml_string_length (path_v);
         state.dcf = malloc (len + 1);
         if (!state.dcf) {
-            err (1, "malloc dimpath %zu", len + 1);
+            err (1, errno, "malloc dimpath %zu", len + 1);
         }
         memcpy (state.dcf, p, len);
         state.dcf[len] = 0;
@@ -3505,14 +3506,14 @@ ML (init (value csock_v, value params_v))
 
     if (Bool_val (Field (params_v, 8))) {
         if (pipe (state.pfds)) {
-            err (1, "pipe");
+            err (1, errno, "pipe");
         }
         for (int ntries = 0; ntries < 1737; ++ntries) {
             if (-1 == dup2 (state.pfds[1], 2)) {
                 if (EINTR == errno) {
                     continue;
                 }
-                err (1, "dup2");
+                err (1, errno, "dup2");
             }
             break;
         }
@@ -3530,7 +3531,7 @@ ML (init (value csock_v, value params_v))
         state.utf8cs = !strcmp (cset, "UTF-8");
     }
     else {
-        err (1, "setlocale");
+        err (1, errno, "setlocale");
     }
 #endif
 
