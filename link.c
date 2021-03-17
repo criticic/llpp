@@ -144,7 +144,7 @@ static struct {
     fz_irect trimfuzz;
     GLuint stid, boid;
     int trimmargins, needoutline, gen, rotate, aalevel,
-        fitmodel, trimanew, csock, dirty, bo_usable, utf8cs;
+        fitmodel, trimanew, csock, dirty, utf8cs;
 
     void (*glBindBufferARB) (GLenum, GLuint);
     GLboolean (*glUnmapBufferARB) (GLenum);
