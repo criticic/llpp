@@ -30,8 +30,8 @@
 # [6] https://ninja-build.org/
 #
 # Command line tracking is a core feature of Ninja but had to be
-# manually taken care of in Shakefile.hs. (Worth noting that Linux
-# kernel's GNU Makefile based build system also tracks command lines)
+# manually taken care of in Shakefile.hs. (Linux kernel's GNU Make
+# based build system also tracks command lines)
 #
 # While build.bash lacks parallel features of Shakefile.hs it has
 # some advantages. No claim is made that those advantages are
