@@ -33,8 +33,8 @@
 # manually taken care of in Shakefile.hs. (Linux kernel's GNU Make
 # based build system also tracks command lines)
 #
-# While build.bash lacks parallel features of Shakefile.hs it has
-# some advantages. No claim is made that those advantages are
+# While build.bash lacks parallel features of Shakefile.hs it has some
+# advantages. No claim is made that those advantageous actions are
 # impossible in Shake, just that it wasn't done.
 #
 # What is claimed:
