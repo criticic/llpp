@@ -78,7 +78,7 @@ cflags() {
         link.o)
             f="-g -std=c11 $muinc -Wall -Werror -Wextra -pedantic "
             test "${mbt-}" = "debug" || f+="-O2 "
-            $darwin && f+="-DCIDER -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
+            $darwin && f+="-DMACOS -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
                     || f+="-D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>'"
             f+=" -include $srcd/diag.h -DFIXME=0"
             f+=" -DTEXT_TYPE=GL_TEXTURE_RECTANGLE_ARB"

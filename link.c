@@ -3211,7 +3211,7 @@ ML0 (setpapercolor (value rgba_v))
 }
 
 value ml_keysymtoutf8 (value keysym_v);
-#ifndef CIDER
+#ifndef MACOS
 value ml_keysymtoutf8 (value keysym_v)
 {
     CAMLparam1 (keysym_v);
@@ -3522,7 +3522,7 @@ ML (init (value csock_v, value params_v))
         state.pfds[1] = 0;
     }
 
-#ifdef CIDER
+#ifdef MACOS
     state.utf8cs = 1;
 #else
     /* http://www.cl.cam.ac.uk/~mgk25/unicode.html */
