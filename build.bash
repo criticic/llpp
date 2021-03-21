@@ -151,7 +151,7 @@ bocaml2() {
     local n=$1 s="$2" o="$3" O=${4-}
     local d dd
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
-    local keycmd="digest $o $s $o.depl"
+    local keycmd="digest $s $o.depl"
 
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         { eval "$cmd" || die "$cmd failed"; } | {
