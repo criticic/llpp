@@ -54,7 +54,9 @@ oincs() {
     case "${1#$outd/}" in
         lablGL/*) incs1="lablGL";;
         main.cmo) incs1="$wsid lablGL";;
-        glutils.cmo|uiutils.cmo) incs1="lablGL";;
+        confstruct.cmo|config.cmo|help.cmo|$wsid/wsi.cmo) incs1="$wsid";;
+        glutils.cmo) incs1="lablGL";;
+        uiutils.cmo) incs1="lablGL $wsid";;
         *) ;;
     esac
     for i in $incs1; do
@@ -199,7 +201,7 @@ bocaml() {
     expr >/dev/null "$cycle" : ".*$o" && die cycle $o || cycle="$cycle$o"
     bocaml1 $n "$s" "$o"
     case $wocmi in
-        wsi) s="$srcd/$wsid/wsi.ml";;
+        */wsi) s="$srcd/$wsid/wsi.ml";;
         help) s="$srcd/help.ml";;
         */glMisc) s="$srcd/lablGL/glMisc.ml";;
         */glTex) s="$srcd/lablGL/glTex.ml";;

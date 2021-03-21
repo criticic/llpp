@@ -1,1 +1,1 @@
-../../wsi.mli
+/home/malc/xsrc/llpp/wsi/wsi.mli
