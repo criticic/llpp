@@ -3,13 +3,13 @@ set -eu
 
 now() { date +%s; }
 S=$(now)
-vecho() { ${vecho-:} "$*"; }
+vecho() { ${vecho-:} "$@"; }
 executable_p() { command -v "$1" >/dev/null 2>&1; }
-dgst='cksum $* | while read d _; do printf $d; done'
-! executable_p b3sum || dgst='b3sum --no-names $*'
+dgst='cksum "$@" | while read d _; do printf $d; done'
+! executable_p b3sum || dgst='b3sum --no-names "$@"'
 executable_p realpath || realpath() (cd "$1" &>/dev/null; pwd -P)
 eval "digest() { $dgst; } 2>/dev/null"
-die() { echo "$*" >&2; exit 111; }
+die() { echo "$@" >&2; exit 111; }
 trap 'echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"' EXIT
 
 darwin=false
@@ -142,7 +142,7 @@ cvers=$($ccomp --version | { read v; echo $v; })
 
 bocaml1() {
     grep -q "$3" $outd/ordered || {
-        bocaml2 $*
+        bocaml2 "$@"
         echo "$3" >>"$outd/ordered"
     }
 }
