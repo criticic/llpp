@@ -53,10 +53,9 @@ oincs() {
     local i incs1= incs="-I $srcd -I $outd"
     case "${1#$outd/}" in
         lablGL/*) incs1="lablGL";;
-        main.cmo) incs1="$wsid lablGL";;
         confstruct.cmo|config.cmo|help.cmo|$wsid/wsi.cmo) incs1="$wsid";;
         glutils.cmo) incs1="lablGL";;
-        uiutils.cmo) incs1="lablGL $wsid";;
+        main.cmo|uiutils.cmo) incs1="lablGL $wsid";;
         *) ;;
     esac
     for i in $incs1; do
@@ -148,30 +147,28 @@ bocaml1() {
 }
 
 bocaml2() {
-    local n=$1 s="$2" o="$3" O=${4-} d
+    local n=$1 s="$2" o="$3" O=${4-} d deps=
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
     local keycmd="digest $s $o.depl"
 
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         { eval "$cmd" || die "$cmd failed"; } | {
             read _ _ depl
-            :>"$o.depl"
             for d in $depl; do
                 local D=${d#$srcd/}
                 test "$O" = "$D" || {
-                    bocaml "$D" $((n+1))
                     test "$d" = "$outd/confstruct.cmo" || d=$outd/${d#$srcd/}
-                    printf "$d " >>"$o.depl"
+                    deps+="$d\n"
                 }
             done
-        } || die "escaped $?"
+            printf "$deps"
+        } >$o.depl || die "escaped $?"
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
-    } && {
-        vecho "fresh $o.depl"
-        for d in $(< $o.depl); do
-            bocaml ${d#$outd/} $((n+1))
-        done
-    }
+    } && vecho "fresh $o.depl"
+
+    for d in $(< $o.depl); do
+        bocaml ${d#$outd/} $((n+1))
+    done
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="digest $o $s $(< $o.depl)"
