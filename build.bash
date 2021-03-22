@@ -76,7 +76,7 @@ oflags() {
 cflags() {
     case "${1#$outd/}" in
         version.o) f=-DLLPP_VERSION=$ver;;
-        */ml_*.o) f="-g -Wno-pointer-sign -Werror -O2";;
+        lablGL/*.o) f="-g -Wno-pointer-sign -Werror -O2";;
         link.o)
             f="-g -std=c11 $muinc -Wall -Werror -Wextra -pedantic "
             test "${mbt-}" = "debug" || f+="-O2 "
@@ -201,10 +201,8 @@ bocaml() {
     expr >/dev/null "$cycle" : ".*$o" && die cycle $o || cycle="$cycle$o"
     bocaml1 $n "$s" "$o"
     case $wocmi in
-        */wsi) s="$srcd/$wsid/wsi.ml";;
+        $wsid/wsi) s="$srcd/$wsid/wsi.ml";;
         help) s="$srcd/help.ml";;
-        */glMisc) s="$srcd/lablGL/glMisc.ml";;
-        */glTex) s="$srcd/lablGL/glTex.ml";;
         *) false;;
     esac && {
         local s1=${s#$srcd/}
