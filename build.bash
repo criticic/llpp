@@ -148,8 +148,7 @@ bocaml1() {
 }
 
 bocaml2() {
-    local n=$1 s="$2" o="$3" O=${4-}
-    local d dd
+    local n=$1 s="$2" o="$3" O=${4-} d
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
     local keycmd="digest $s $o.depl"
 
@@ -161,11 +160,8 @@ bocaml2() {
                 local D=${d#$srcd/}
                 test "$O" = "$D" || {
                     bocaml "$D" $((n+1))
-                    case $d in
-                        $outd/*) dd=$d;;
-                        *) dd=$outd/${d#$srcd/};;
-                    esac
-                    printf "$dd " >>"$o.depl"
+                    test "$d" = "$outd/confstruct.cmo" || d=$outd/${d#$srcd/}
+                    printf "$d " >>"$o.depl"
                 }
             done
         } || die "escaped $?"
