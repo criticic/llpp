@@ -54,13 +54,13 @@
 #  rebuild only what is necessary tracking most inputs (+)
 #                          (tool versions, command lines, etc)
 #  exploit parallelism (-)
-#  out-of-tree builds
+#  out-of-tree builds (+)
 #
 # The last one is difficult, the solution used in build.bash is ugly
 # and hard to maintain.
 #
 
-def build (target):
+(def build (target):
     if not is_fresh (target):
         dobuild (target)
         remember (target)
