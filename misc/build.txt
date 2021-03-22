@@ -55,6 +55,7 @@
 #                          (tool versions, command lines, etc)
 #  exploit parallelism (-)
 #  out-of-tree builds (+)
+#                               (without copying source files)
 #
 # The last one is difficult, the solution used in build.bash is ugly
 # and hard to maintain.
