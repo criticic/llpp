@@ -30,8 +30,10 @@
 # [6] https://ninja-build.org/
 #
 # Command line tracking is a core feature of Ninja but had to be
-# manually taken care of in Shakefile.hs. (Linux kernel's GNU Make
-# based build system also tracks command lines)
+# manually taken care of in Shakefile.hs. (kbuild[7] also tracks
+# command lines)
+#
+# [7] https://www.kernel.org/doc/Documentation/kbuild/
 #
 # While build.bash lacks parallel features of Shakefile.hs it has some
 # advantages. No claim is made that those advantageous actions are
@@ -40,10 +42,10 @@
 # What is claimed:
 #  a) transitive dependency chain of Shake is big (GHC, Cabal, etc)
 #  b) I cannot handle it
-#  c) given arbitrary linux/macos system it's _much_ easier[7] to
+#  c) given arbitrary linux/macos system it's _much_ easier[8] to
 #     build llpp with build.bash
 #
-# [7] Judging by the effort it took to build llpp with build.bash on:
+# [8] Judging by the effort it took to build llpp with build.bash on:
 #      1) 2008 PPC(G4) mac mini (llpp's place of birth)
 #      2) rapspberry pi
 #      3) M1 mac book air
