@@ -52,15 +52,17 @@
 #  (cf. https://repo.or.cz/llpp.git/blob/HEAD:/BUILDING)
 #
 # Requirements for build automation:
-#  discover ocaml dependencies automatically (+)
-#  rebuild only what is necessary tracking most inputs (+)
+#  discover ocaml dependencies automatically                        [+]
+#  rebuild only what is necessary tracking most inputs              [+]
 #                          (tool versions, command lines, etc)
-#  exploit parallelism (-)
-#  out-of-tree builds (+)
-#                               (without copying source files)
+#  exploit parallelism                                              [-]
+#  out-of-tree builds                                               [+] (*)
+#  have single way to build                                         [+]
+#   (previously separate script was needed for people without Shake)
 #
-# The last one is difficult, the solution used in build.bash is ugly
-# and hard to maintain.
+# (*) ocaml makes out-of-tree builds, without copying source files,
+#     suprisingly difficult, solution used in build.bash is fragile,
+#     ugly and hard to maintain
 #
 
 (def build (target):
