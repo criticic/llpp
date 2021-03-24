@@ -95,7 +95,7 @@ mflags() {
 }
 
 overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
-test "$overs" = "4.12.0" || {
+if test "$overs" != "4.12.0"; then
     url=https://caml.inria.fr/pub/distrib/ocaml-4.12/ocaml-4.12.0.tar.xz
     txz=$outd/$(basename $url)
     keycmd="printf $url; digest $txz;"
@@ -127,7 +127,7 @@ test "$overs" = "4.12.0" || {
         eval $keycmd >$absprefix/bin/ocamlc.past
     ) && vecho "fresh ocamlc"
     overs=$(ocamlc -vnum 2>/dev/null)
-}
+fi
 
 while read k v; do
     case "$k" in
@@ -139,10 +139,10 @@ done < <(ocamlc -config)
 cvers=$($ccomp --version | { read v; echo $v; })
 
 bocaml1() {
-    grep -q "$3" $outd/ordered || {
+    if ! grep -q "$3" $outd/ordered; then
         bocaml2 "$@"
         echo "$3" >>"$outd/ordered"
-    }
+    fi
 }
 
 bocaml2() {
@@ -156,10 +156,10 @@ bocaml2() {
             local O=${o#$outd/}
             for d in $depl; do
                 local D=${d##$srcd/}
-                test "${O%%.cmo}" = "${D%%.cmi}" || {
+                if test "${O%%.cmo}" != "${D%%.cmi}"; then
                     test "$d" = "$outd/confstruct.cmo" || d=$outd/${d#$srcd/}
                     deps+="$d\n"
-                }
+                fi
             done
             printf "$deps"
         } >$o.depl || die "escaped $?"
@@ -189,10 +189,10 @@ bocaml() {
             s=$outd/confstruct.ml
             o=$outd/confstruct.cmo;;
         *)
-            test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || {
-                    cmi=true
-                    s=$srcd/$wocmi.mli
-                }
+            if test "$o" = "$wocmi"; then s=$srcd/${o%.cmo}.ml; else
+                cmi=true
+                s=$srcd/$wocmi.mli
+            fi
             o=$outd/$o;;
     esac
     expr >/dev/null "$cycle" : ".*$o" && die cycle $o || cycle="$cycle$o"
