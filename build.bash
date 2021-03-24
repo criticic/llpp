@@ -154,15 +154,15 @@ bocaml2() {
         { eval "$cmd" || die "$cmd failed"; } | {
             read _ _ depl
             for d in $depl; do
-                test "$d" = "$outd/confstruct.cmo" || d=$outd/${d#$srcd/}
-                test "${o%%.cmo}.cmi" = "$d" || deps+="$d\n"
+                test "$d" = "$outd/confstruct.cmo" || d=${d#$srcd/}
+                test "${o%%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
             done
             printf "$deps"
         } >$o.depl || die "escaped $?"
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && vecho "fresh $o.depl"
 
-    while read d; do bocaml ${d#$outd/} $((n+1)); done <$o.depl
+    while read d; do bocaml $d $((n+1)); done <$o.depl
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
     keycmd="digest $o $s $(< $o.depl)"
