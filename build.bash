@@ -136,7 +136,7 @@ while read k v; do
     esac
 done < <(ocamlc -config)
 
-cvers=$($ccomp --version | { read v; echo $v; })
+read cvers < <($ccomp --version)
 
 bocaml1() {
     if ! grep -q "$3" $outd/ordered; then
