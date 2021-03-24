@@ -146,16 +146,17 @@ bocaml1() {
 }
 
 bocaml2() {
-    local n=$1 s="$2" o="$3" O=${4-} d deps=
+    local n=$1 s="$2" o="$3" d deps=
     local cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
     local keycmd="digest $s $o.depl"
 
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         { eval "$cmd" || die "$cmd failed"; } | {
             read _ _ depl
+            local O=${o#$outd/}
             for d in $depl; do
-                local D=${d#$srcd/}
-                test "$O" = "$D" || {
+                local D=${d##$srcd/}
+                test "${O%%.cmo}" = "${D%%.cmi}" || {
                     test "$d" = "$outd/confstruct.cmo" || d=$outd/${d#$srcd/}
                     deps+="$d\n"
                 }
@@ -180,26 +181,23 @@ bocaml2() {
 
 cycle=
 bocaml() {
-    local s o="$1" n="$2" cycle1="$cycle"
+    local s o="$1" n="$2" cycle1="$cycle" cmi=false
     local wocmi="${o%.cmi}"
-    case ${wocmi#$outd/} in
+    wocmi=${wocmi#$outd/}
+    case $wocmi in
         confstruct.cmo)
             s=$outd/confstruct.ml
             o=$outd/confstruct.cmo;;
         *)
-            test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || s=$srcd/$wocmi.mli
+            test "$o" = "$wocmi" && s=$srcd/${o%.cmo}.ml || {
+                    cmi=true
+                    s=$srcd/$wocmi.mli
+                }
             o=$outd/$o;;
     esac
     expr >/dev/null "$cycle" : ".*$o" && die cycle $o || cycle="$cycle$o"
-    bocaml1 $n "$s" "$o"
-    case $wocmi in
-        $wsid/wsi) s="$srcd/$wsid/wsi.ml";;
-        help) s="$srcd/help.ml";;
-        *) false;;
-    esac && {
-        local s1=${s#$srcd/}
-        bocaml1 $n "$s" "$outd/${s1%.ml}.cmo" "${o#$outd/}"
-    } || true
+    bocaml1 $n $s $o
+    ! $cmi || bocaml1 $n "${s%.mli}.ml" "$outd/${wocmi}.cmo"
     cycle=$cycle1
 }
 
@@ -266,7 +264,7 @@ for target; do
     esac
 done
 
-bocaml main.cmo 0
+bocaml main.cmi 0
 
 cobjs=
 for m in link cutils version; do
