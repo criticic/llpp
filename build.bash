@@ -50,15 +50,17 @@ make="make -C "$mudir" build=$mbt -j $mjobs libs"
 $make -q -s || $make
 
 oincs() {
-    local base=$1 incs="-I $1"
+    local b=$1 incs
     case "${2#$outd/}" in
-        confstruct.cmo|help.cmo|$wsid/wsi.cmo) incs+=" -I $base/$wsid";;
-        config.cmo) incs+=" -I $base/$wsid -I $outd";;
-        lablGL/*|glutils.cmo) incs+=" -I $base/lablGL";;
-        main.cmo|uiutils.cmo) incs+=" -I $base/lablGL -I $base/$wsid";;
-        *) ;;
+        $wsid/wsi.cm[io]|confstruct.cmo|help.cmo) incs="-I $b -I $b/$wsid";;
+        glutils.cmo) incs="-I $b -I $b/lablGL";;
+        uiutils.cmo|main.cmo) incs="-I $b -I $b/$wsid -I $b/lablGL";;
+        ffi.cmo|help.cmi|parser.cmo) incs="-I $b";;
+        config.cmo) incs="-I $b -I $b/$wsid -I $outd";;
+        lablGL/*) incs="-I $b/lablGL";;
+        *);;
     esac
-    echo $incs
+    test -z "${incs-}" || echo $incs
 }
 
 oflags() {
