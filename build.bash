@@ -154,7 +154,8 @@ bocaml2() {
         { eval "$cmd" || die "$cmd failed"; } | {
             read _ _ depl
             for d in $depl; do
-                test "$d" = "$outd/confstruct.cmo" || d=${d#$srcd/}
+                if test "$d" = "$outd/confstruct.cmo";
+                then d=confstruct.cmo; else d=${d#$srcd/}; fi
                 test "${o%%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
             done
             printf "$deps"
@@ -162,10 +163,14 @@ bocaml2() {
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && vecho "fresh $o.depl"
 
-    while read d; do bocaml $d $((n+1)); done <$o.depl
+    deps=
+    while read d; do
+        bocaml $d $((n+1));
+        deps+=" $outd/$d"
+    done <$o.depl
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
-    keycmd="digest $o $s $(< $o.depl)"
+    keycmd="digest $o $s $deps"
     isfresh "$o" "$overs$cmd$(eval $keycmd)" || {
         printf "%*.s%s\n" $n '' "${o#$outd/}"
         eval "$cmd" || die "$cmd failed"
@@ -177,8 +182,7 @@ cycle=
 bocaml() {
     local s o="$1" n="$2" cycle1="$cycle" cmi=false
     local wocmi="${o%.cmi}"
-    wocmi=${wocmi#$outd/}
-    case $wocmi in
+    case $o in
         confstruct.cmo)
             s=$outd/confstruct.ml
             o=$outd/confstruct.cmo;;
