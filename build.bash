@@ -50,17 +50,14 @@ make="make -C "$mudir" build=$mbt -j $mjobs libs"
 $make -q -s || $make
 
 oincs() {
-    local i incs1= incs="-I $srcd -I $outd"
-    case "${1#$outd/}" in
-        lablGL/*) incs1="lablGL";;
-        confstruct.cmo|config.cmo|help.cmo|$wsid/wsi.cmo) incs1="$wsid";;
-        glutils.cmo) incs1="lablGL";;
-        main.cmo|uiutils.cmo) incs1="lablGL $wsid";;
+    local base=$1 incs="-I $1"
+    case "${2#$outd/}" in
+        confstruct.cmo|help.cmo|$wsid/wsi.cmo) incs+=" -I $base/$wsid";;
+        config.cmo) incs+=" -I $base/$wsid -I $outd";;
+        lablGL/*|glutils.cmo) incs+=" -I $base/lablGL";;
+        main.cmo|uiutils.cmo) incs+=" -I $base/lablGL -I $base/$wsid";;
         *) ;;
     esac
-    for i in $incs1; do
-        incs+=" -I $srcd/$i -I $outd/$i"
-    done
     echo $incs
 }
 
@@ -69,7 +66,7 @@ oflags() {
         lablGL/*) f="-g";;
         *) f="-g -strict-sequence -strict-formats -alert @all -warn-error @A";;
     esac
-    echo "$(oincs $1) $f"
+    echo "$(oincs $outd $1) $f"
 }
 
 cflags() {
@@ -148,7 +145,7 @@ bocaml1() {
 
 bocaml2() {
     local n=$1 s="$2" o="$3" O=${4-} d deps=
-    local cmd="ocamlc -depend -bytecode -one-line $(oincs $o) $s"
+    local cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
     local keycmd="digest $s $o.depl"
 
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
