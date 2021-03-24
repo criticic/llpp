@@ -170,7 +170,7 @@ bocaml2() {
         printf "%*.s%s\n" $n '' "${o#$outd/}"
         eval "$cmd" || die "$cmd failed"
         echo "$overs$cmd$(eval $keycmd)" >"$o.past"
-    } && vecho "fresh '$o'"
+    } && vecho "fresh $o"
 }
 
 cycle=
