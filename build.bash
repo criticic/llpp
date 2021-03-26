@@ -40,7 +40,6 @@ muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
 
 mkdir -p $outd/{$wsid,lablGL}
-:>$outd/ordered
 
 isfresh() { test -r $1.past && test "$(<$1.past)" = "$2"; }
 
@@ -138,11 +137,12 @@ done < <(ocamlc -config)
 
 read cvers < <($ccomp --version)
 
+ord=""
 bocaml1() {
-    if ! grep -q "$3" $outd/ordered; then
+    expr >/dev/null "$ord" : ".*$3" || {
         bocaml2 "$@"
-        echo "$3" >>"$outd/ordered"
-    fi
+        test "${3%%.cmi}" != "$3" || ord+="$3 "
+    }
 }
 
 bocaml2() {
@@ -288,8 +288,7 @@ else
     bocamlc wsi/x11/xlib.o
 fi
 
-ord=$(grep -v \.cmi $outd/ordered)
-cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $(echo $ord) -cclib \"$clibs\""
+cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord -cclib \"$clibs\""
 keycmd="digest $outd/llpp $cobjs $ord $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
