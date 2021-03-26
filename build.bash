@@ -151,15 +151,13 @@ bocaml2() {
     local keycmd="digest $s $o.depl"
 
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
-        { eval "$cmd" || die "$cmd failed"; } | {
-            read _ _ depl
-            for d in $depl; do
-                if test "$d" = "$outd/confstruct.cmo";
-                then d=confstruct.cmo; else d=${d#$srcd/}; fi
-                test "${o%%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
-            done
-            printf "$deps"
-        } >$o.depl || die "escaped $?"
+        read _ _ depl < <(eval $cmd) || die "$cmd failed"
+        for d in $depl; do
+            if test "$d" = "$outd/confstruct.cmo";
+            then d=confstruct.cmo; else d=${d#$srcd/}; fi
+            test "${o%%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
+        done
+        printf "$deps" >$o.depl
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && vecho "fresh $o.depl"
 
