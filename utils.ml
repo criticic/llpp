@@ -110,10 +110,6 @@ module Ne = struct
     with exn -> f @@ exntos exn
 end
 
-let getoptdef def = function
-  | Some a -> a
-  | None -> def
-
 let getenvdef name def =
   match Sys.getenv name with
   | env -> env
