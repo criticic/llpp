@@ -141,7 +141,7 @@ read cvers < <($ccomp --version)
 seen=
 ord=
 bocaml1() {
-    expr >/dev/null "$seen" : ".*$3" || {
+    [[ "$seen" =~ "$3" ]] || {
         bocaml2 "$@"
         test "${3%.cmi}" != "$3" || ord+="$3 "
         seen+="$3"
@@ -194,7 +194,7 @@ bocaml() {
             fi
             o=$outd/$o;;
     esac
-    expr >/dev/null "$cycle" : ".*$o" && die cycle $o || cycle="$cycle$o"
+    [[ "$cycle" =~ "$o" ]] && die cycle $o || cycle="$cycle$o"
     bocaml1 $n $s $o
     ! $cmi || bocaml1 $n "${s%.mli}.ml" "$outd/${wocmi}.cmo"
     cycle=$cycle1
