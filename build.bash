@@ -160,10 +160,10 @@ bocaml2() {
             test "${o%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
         done
         printf "$deps" >$o.depl
+        deps=
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && vecho "fresh $o.depl"
 
-    deps=
     while read d; do
         bocaml $d $((n+1));
         deps+=" $outd/$d"
