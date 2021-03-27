@@ -137,11 +137,13 @@ done < <(ocamlc -config)
 
 read cvers < <($ccomp --version)
 
-ord=""
+seen=
+ord=
 bocaml1() {
-    expr >/dev/null "$ord" : ".*$3" || {
+    expr >/dev/null "$seen" : ".*$3" || {
         bocaml2 "$@"
         test "${3%%.cmi}" != "$3" || ord+="$3 "
+        seen+="$3"
     }
 }
 
