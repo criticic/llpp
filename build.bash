@@ -142,7 +142,7 @@ ord=
 bocaml1() {
     expr >/dev/null "$seen" : ".*$3" || {
         bocaml2 "$@"
-        test "${3%%.cmi}" != "$3" || ord+="$3 "
+        test "${3%.cmi}" != "$3" || ord+="$3 "
         seen+="$3"
     }
 }
@@ -157,7 +157,7 @@ bocaml2() {
         for d in $depl; do
             if test "$d" = "$outd/confstruct.cmo";
             then d=confstruct.cmo; else d=${d#$srcd/}; fi
-            test "${o%%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
+            test "${o%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
         done
         printf "$deps" >$o.depl
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
