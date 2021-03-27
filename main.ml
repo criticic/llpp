@@ -1321,6 +1321,7 @@ let search pattern forward =
          | [] -> 0, 0
          | l :: _ -> l.pageno, (l.pagey + if forward then 0 else 0*l.pagevh)
        in
+       S.rects1 := [];
        wcmd U.search "%d %d %d %d,%s\000"
          (btod conf.icase) pn py (btod forward) pattern
 
