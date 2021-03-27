@@ -57,7 +57,8 @@ oincs() {
         ffi.cmo|help.cmi|parser.cmo) incs="-I $b";;
         config.cmo) incs="-I $b -I $b/$wsid -I $outd";;
         lablGL/*) incs="-I $b/lablGL";;
-        *);;
+        main.cmi|keys.cmo|utils.cmo|utf8syms.cmo) ;;
+        *) die "ocaml include paths for '$2' aren't set";;
     esac
     test -z "${incs-}" || echo $incs
 }
@@ -148,9 +149,9 @@ bocaml1() {
 }
 
 bocaml2() {
-    local n=$1 s="$2" o="$3" d deps=
-    local cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
+    local n=$1 s="$2" o="$3" deps= cmd d
     local keycmd="digest $s $o.depl"
+    cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
 
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         read _ _ depl < <(eval $cmd) || die "$cmd failed"
