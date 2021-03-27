@@ -1347,9 +1347,9 @@ let linknact f s =
          | exception Not_found -> loop off rest
          | opaque ->
             let n = Ffi.getlinkn opaque conf.hcs s off in
-            if n < 0
+            if n <= 0
             then loop n rest
-            else Ffi.getlink opaque n |> f
+            else Ffi.getlink opaque (n-1) |> f
     in
     loop 0 !S.layout
 
