@@ -200,13 +200,9 @@ bocaml() {
     cycle=$cycle1
 }
 
-bocamlc() {
-    local o=$outd/$1
-    local s=$srcd/${1%.o}.c
-    local cc=${CAML_CC:+-cc "'$CAML_CC'" }
-    local cmd
-    cmd="ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
-    { read _ d <$o.dep; } 2>/dev/null || d=
+baux() {
+    local o=$1 cmd=$2
+    read 2>/dev/null _ d <$o.dep || d=
     local keycmd='digest $o $d'
     isfresh "$o" "$cvers$cmd$(eval $keycmd)" || {
         echo "${o#$outd/}"
@@ -216,19 +212,14 @@ bocamlc() {
     } && vecho "fresh $o"
 }
 
+bocamlc() {
+    local o=$outd/$1 s=$srcd/${1%.o}.c cc=${CAML_CC:+-cc "'$CAML_CC'" }
+    baux $o "ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
+}
+
 bobjc() {
     local o=$outd/$1
-    local s=$srcd/${1%.o}.m
-    local cmd
-    cmd="$mcomp $(mflags $o) -MD -MF $o.dep -MT_ -c -o $o $s"
-    test -r $o.dep && read _ d <$o.dep || d=
-    local keycmd='digest $o $d'
-    isfresh "$o" "$cmd$(eval $keycmd)" || {
-        echo "${o#$outd/}"
-        eval "$cmd" || die "$cmd failed"
-        read _ d <$o.dep
-        echo "$cmd$(eval $keycmd)" >"$o.past"
-    } && vecho "fresh $o"
+    baux $o "$mcomp $(mflags $o) -MD -MF $o.dep -MT_ -c -o $o $srcd/${1%.o}.m"
 }
 
 ver=$(cd $srcd && git describe --tags --dirty) || ver="'built on $(date)'"
