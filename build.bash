@@ -10,7 +10,7 @@ dgst='cksum "$@" | while read d _; do printf $d; done'
 executable_p realpath || realpath() (cd "$1" &>/dev/null; pwd -P)
 eval "digest() { $dgst; } 2>/dev/null"
 die() { echo "$@" >&2; exit 111; }
-trap 'echo "$(test $? -eq 0 || echo "fail ")$(($(now) - $S)) sec"' EXIT
+trap 'echo "$(test $? -eq 0 || echo "fail($?) ")$(($(now) - $S)) sec"' EXIT
 
 darwin=false
 wsid="wsi/x11"
