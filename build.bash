@@ -166,7 +166,7 @@ bocaml2() {
     } && vecho "fresh $o.depl"
 
     while read d; do
-        bocaml $d $((n+1));
+        bocaml $d $((n+1))
         deps+=" $outd/$d"
     done <$o.depl
 
