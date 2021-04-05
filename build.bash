@@ -41,7 +41,7 @@ test -d "$mudir" || die muPDF not found, consult $(dirname $0)/BUILDING
 
 mkdir -p $outd/{$wsid,lablGL}
 
-isfresh() { test -r $1.past && test "$(<$1.past)" = "$2"; }
+isfresh() { test "$(<$1.past)" = "$2"; } 2>/dev/null
 
 mbt=${mbt:-release}
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
