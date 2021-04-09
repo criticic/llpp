@@ -55,7 +55,10 @@ oincs() {
         glutils.cmo) incs="-I $b -I $b/lablGL";;
         uiutils.cmo|main.cmo) incs="-I $b -I $b/$wsid -I $b/lablGL";;
         ffi.cmo|help.cmi|parser.cmo) incs="-I $b";;
-        config.cmo) incs="-I $b -I $b/$wsid -I $outd";;
+        config.cmo)
+            incs="-I $b -I $b/$wsid"
+            test "$b" = $outd || incs="$incs -I $outd"
+            ;;
         lablGL/*) incs="-I $b/lablGL";;
         main.cmi|keys.cmo|utils.cmo|utf8syms.cmo) ;;
         *) die "ocaml include paths for '$2' aren't set";;
