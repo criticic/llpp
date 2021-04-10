@@ -146,13 +146,6 @@ static struct {
     int trimmargins, needoutline, gen, rotate, aalevel,
         fitmodel, trimanew, csock, dirty, utf8cs;
 
-    void (*glBindBufferARB) (GLenum, GLuint);
-    GLboolean (*glUnmapBufferARB) (GLenum);
-    void *(*glMapBufferARB) (GLenum, GLenum);
-    void (*glBufferDataARB) (GLenum, GLsizei, void *, GLenum);
-    void (*glGenBuffersARB) (GLsizei, GLuint *);
-    void (*glDeleteBuffersARB) (GLsizei, GLuint *);
-
     GLfloat texcoords[8], vertices[16];
 } state = { .mutex = PTHREAD_MUTEX_INITIALIZER };
 
