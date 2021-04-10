@@ -32,12 +32,12 @@ esac
 
 test -n "${1-}" || die "usage: $0 build-directory"
 
-outd="$1"
-srcd="$(dirname $0)"
+outd=$1
+srcd=$(dirname $0)
 mudir=$outd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
-test -d "$mudir" || die muPDF not found, consult $srcd/BUILDING
+test -d $mudir || die muPDF not found, consult $srcd/BUILDING
 
 mkdir -p $outd/{$wsid,lablGL}
 
@@ -97,7 +97,7 @@ mflags() {
     echo "-I $(ocamlc -where) -g -Wall -Werror -O2 -DGL_SILENCE_DEPRECATION"
 }
 
-overs="$(ocamlc -vnum 2>/dev/null)" || overs=""
+overs=$(ocamlc -vnum 2>/dev/null) || overs=""
 if test "$overs" != "4.12.0"; then
     url=https://caml.inria.fr/pub/distrib/ocaml-4.12/ocaml-4.12.0.tar.xz
     txz=$outd/$(basename $url)
@@ -144,8 +144,8 @@ read cvers < <($ccomp --version)
 seen=
 ord=
 bocaml1() {
-    [[ ! "$seen" =~ "$3" ]] || return 0
-    local n=$1 s="$2" o="$3" deps= cmd d wocmi
+    [[ ! $seen =~ $3 ]] || return 0
+    local n=$1 s=$2 o=$3 deps= cmd d wocmi
     local keycmd="digest $s $o.depl"
     cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
 
@@ -186,14 +186,14 @@ bocaml1() {
 
 cycle=
 bocaml() {
-    local s o="$1" n="$2" cycle1="$cycle"
+    local s o=$1 n=$2 cycle1=$cycle
     case $o in
         confstruct.cmo) s=$outd/confstruct.ml;;
         *.cmo) s=$srcd/${o%.cmo}.ml;;
         *.cmi) s=$srcd/${o%.cmi}.mli;;
     esac
     o=$outd/$o
-    [[ "$cycle" =~ "$o" ]] && die cycle $o || cycle="$cycle$o"
+    [[ "$cycle" =~ "$o" ]] && die cycle $o || cycle=$cycle$o
     bocaml1 $n $s $o
     cycle=$cycle1
 }
@@ -240,7 +240,7 @@ for target; do
             for m in llpp llppac llpphtml; do
                 src=$srcd/adoc/$m.adoc
                 o=$md/$m.1
-                conf="$srcd/man/asciidoc.conf"
+                conf=$srcd/man/asciidoc.conf
                 keycmd="digest $o $src $conf"
                 cmd="a2x -f manpage -D $md $src"
                 isfresh "$o" "$cmd$(eval $keycmd)" || {
