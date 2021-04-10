@@ -223,13 +223,14 @@ bobjc() {
 ver=$(cd $srcd && git describe --tags --dirty) || ver="'built on $(date)'"
 
 gen=$srcd/genconfstruct.sh
-cmd="(export print paste clip uopen; . $gen >$outd/confstruct.ml)"
-keycmd="{ echo '$print $paste $clip $uopen'; digest $gen $outd/confstruct.ml; }"
-isfresh "$outd/confstruct.ml" "$cmd$(eval $keycmd)" || {
-    echo "generating $outd/confstruct.ml"
+out=$outd/confstruct.ml
+cmd="(export print paste clip uopen; . $gen >$out)"
+keycmd="{ echo '$print $paste $clip $uopen'; digest $gen $out; }"
+isfresh "$out" "$cmd$(eval $keycmd)" || {
+    echo "generating $out"
     eval "$cmd" || die $gen failed
-    echo "$cmd$(eval $keycmd)" > "$outd/confstruct.ml.past"
-} && vecho "fresh $outd/confstruct.ml"
+    echo "$cmd$(eval $keycmd)" > "${out}.past"
+} && vecho "fresh $out"
 
 shift 1
 for target; do
