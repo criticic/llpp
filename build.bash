@@ -144,14 +144,7 @@ read cvers < <($ccomp --version)
 seen=
 ord=
 bocaml1() {
-    [[ "$seen" =~ "$3" ]] || {
-        bocaml2 "$@"
-        test "${3%.cmi}" != "$3" || ord+="$3 "
-        seen+="$3"
-    }
-}
-
-bocaml2() {
+    [[ ! "$seen" =~ "$3" ]] || return 0
     local n=$1 s="$2" o="$3" deps= cmd d wocmi
     local keycmd="digest $s $o.depl"
     cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
@@ -182,10 +175,13 @@ bocaml2() {
     } && vecho "fresh $o"
 
     wocmi=${o%.cmi}
-    test $wocmi = $o || {
-        cmo=${wocmi}.cmo
+    if test $wocmi != $o; then
+        local cmo=${wocmi}.cmo
         bocaml ${cmo#$outd/} $((n+1))
-    }
+    else
+        ord+="$o "
+    fi
+    seen+=$o
 }
 
 cycle=
