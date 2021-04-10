@@ -152,7 +152,7 @@ bocaml1() {
 }
 
 bocaml2() {
-    local n=$1 s="$2" o="$3" deps= cmd d
+    local n=$1 s="$2" o="$3" deps= cmd d wocmi
     local keycmd="digest $s $o.depl"
     cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
 
@@ -180,26 +180,25 @@ bocaml2() {
         eval "$cmd" || die "$cmd failed"
         echo "$overs$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
+
+    wocmi=${o%.cmi}
+    test $wocmi = $o || {
+        cmo=${wocmi}.cmo
+        bocaml ${cmo#$outd/} $((n+1))
+    }
 }
 
 cycle=
 bocaml() {
-    local s o="$1" n="$2" cycle1="$cycle" cmi=false
-    local wocmi="${o%.cmi}"
+    local s o="$1" n="$2" cycle1="$cycle"
     case $o in
-        confstruct.cmo)
-            s=$outd/confstruct.ml
-            o=$outd/confstruct.cmo;;
-        *)
-            if test "$o" = "$wocmi"; then s=$srcd/${o%.cmo}.ml; else
-                cmi=true
-                s=$srcd/$wocmi.mli
-            fi
-            o=$outd/$o;;
+        confstruct.cmo) s=$outd/confstruct.ml;;
+        *.cmo) s=$srcd/${o%.cmo}.ml;;
+        *.cmi) s=$srcd/${o%.cmi}.mli;;
     esac
+    o=$outd/$o
     [[ "$cycle" =~ "$o" ]] && die cycle $o || cycle="$cycle$o"
     bocaml1 $n $s $o
-    ! $cmi || bocaml1 $n "${s%.mli}.ml" "$outd/${wocmi}.cmo"
     cycle=$cycle1
 }
 
