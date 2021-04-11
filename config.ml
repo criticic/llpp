@@ -30,10 +30,8 @@ and gen            = int
 and top            = float
 and dtop           = float
 and fontpath       = string
-and aalevel        = int
 and trimmargins    = bool
 and trimparams     = (trimmargins * irect)
-and usedoccss      = bool
 and uri            = string
 and caption        = string
 and tilex          = int
@@ -64,7 +62,6 @@ and linkdir =
 and pagewithlinks =
   | Pwlnotfound
   | Pwl of int
-and scrollb = int
 and anchor = pageno * top * dtop
 and rect = float * float * float * float * float * float * float * float
 and infochange = | Memused | Docinfo | Pdim
