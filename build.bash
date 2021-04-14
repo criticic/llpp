@@ -44,6 +44,8 @@ mkdir -p $outd/{$wsid,lablGL}
 isfresh() { test "$(<$1.past)" = "$2"; } 2>/dev/null
 
 mbt=${mbt:-release}
+test -n "${gmk:-}" && gmk=false || gmk=true
+
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
 make="make -C "$mudir" build=$mbt -j $mjobs libs"
 $make -q -s || $make
@@ -60,7 +62,11 @@ oincs() {
             test "$b" = $outd || incs="$incs -I $outd"
             ;;
         lablGL/*) incs="-I $b/lablGL";;
-        main.cmi|keys.cmo|utils.cmo|utf8syms.cmo) ;;
+        main.cmo|keys.cmo|utils.cmo|utf8syms.cmo) incs="-I $b";;
+        config.cmi) incs="-I $outd -I $b -I $b/$wsid";;
+        uiutils.cmi|ffi.cmi) incs="-I $b";;
+        glutils.cmi) incs="-I $b/lablGL";;
+        main.cmi|keys.cmi|utils.cmi|utf8syms.cmi|parser.cmi) ;;
         *) die "ocaml include paths for '$2' aren't set";;
     esac
     test -z "${incs-}" || echo $incs
@@ -143,6 +149,8 @@ read cvers < <($ccomp --version)
 
 seen=
 ord=
+link=
+$gmk || :>$outd/Makefile
 bocaml1() {
     [[ ! $seen =~ $3 ]] || return 0
     local n=$1 s=$2 o=$3 deps= cmd d wocmi
@@ -154,7 +162,7 @@ bocaml1() {
         for d in $depl; do
             if test "$d" = "$outd/confstruct.cmo";
             then d=confstruct.cmo; else d=${d#$srcd/}; fi
-            test "${o%.cmo}.cmi" = "$outd/$d" || deps+="$d\n"
+            deps+="$d\n"
         done
         printf "$deps" >$o.depl
         deps=
@@ -162,8 +170,9 @@ bocaml1() {
     } && vecho "fresh $o.depl"
 
     while read d; do
+        ord=
         bocaml $d $((n+1))
-        deps+=" $outd/$d"
+        deps+=" $ord $outd/$d"
     done <$o.depl
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
@@ -173,14 +182,9 @@ bocaml1() {
         eval "$cmd" || die "$cmd failed"
         echo "$overs$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
+    $gmk || printf "$o:$deps\n\t$cmd\n" >>$outd/Makefile
 
-    wocmi=${o%.cmi}
-    if test $wocmi != $o; then
-        local cmo=${wocmi}.cmo
-        bocaml ${cmo#$outd/} $((n+1))
-    else
-        ord+="$o "
-    fi
+    ord=$deps
     seen+=$o
 }
 
@@ -208,6 +212,7 @@ baux() {
         read _ d <$o.dep
         echo "$cvers$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
+    $gmk || printf "$o: $d\n\t$cmd\n" >>$outd/Makefile
 }
 
 bocamlc() {
@@ -255,7 +260,31 @@ for target; do
     esac
 done
 
-bocaml main.cmi 0
+seen1=
+f() {
+    local o
+    [[ ! "$seen1" =~ "$1" ]] || return 0
+    seen1+="$1"
+    local mord ord=
+    bocaml $1 0
+    mord=$ord
+    for o in $mord; do
+        case $o in
+            *.cmi)
+                nocmi=${o%.cmi}
+                noout=${nocmi#$outd/}
+                cmo=$noout.cmo
+                f $cmo
+                ;;
+            *.cmo)
+                f ${o#$outd/}
+                ;;
+        esac
+    done
+    [[ "link" =~ "$1" ]] || link+=" $outd/$1"
+}
+
+f main.cmo
 
 cobjs=
 for m in link cutils version; do
@@ -281,13 +310,14 @@ else
     bocamlc wsi/x11/xlib.o
 fi
 
-cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $ord -cclib \"$clibs\""
-keycmd="digest $outd/llpp $cobjs $ord $mulibs"
+cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $link -cclib \"$clibs\""
+keycmd="digest $outd/llpp $cobjs $link $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
     eval "$cmd" || die "$cmd failed"
     echo "$cmd$(eval $keycmd)" >"$outd/llpp.past"
 } && vecho "fresh llpp"
+$gmk || printf "$outd/llpp: $cobjs $link $mulibs\n\t$cmd\n" >>$outd/Makefile
 
 if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"
