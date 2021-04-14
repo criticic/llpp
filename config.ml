@@ -104,7 +104,7 @@ end
 
 module TextEnumMake (Ten : TextEnumType) = struct
   let names = Ten.names
-  let to_int (t : Ten.t)  = Obj.magic t
+  let to_int (t : Ten.t) = Obj.magic t
   let to_string t = names.(to_int t)
   let of_int n : Ten.t = Obj.magic n
   let of_string s =
