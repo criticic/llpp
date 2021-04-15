@@ -1,8 +1,6 @@
 #!/bin/bash
 set -eu
 
-now() { date +%s; }
-S=$(now)
 vecho() { ${vecho-:} "$@"; }
 executable_p() { command -v "$1" >/dev/null 2>&1; }
 dgst='cksum "$@" | while read d _; do printf $d; done'
@@ -10,7 +8,7 @@ dgst='cksum "$@" | while read d _; do printf $d; done'
 executable_p realpath || realpath() (cd "$1" &>/dev/null; pwd -P)
 eval "digest() { $dgst; } 2>/dev/null"
 die() { echo "$@" >&2; exit 111; }
-trap 'test $? -eq 0 || printf "fail "; echo "$(($(now) - $S)) sec"' EXIT
+trap 'test $? -eq 0 || echo "build failed"' EXIT
 
 darwin=false
 wsid="wsi/x11"
