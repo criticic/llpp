@@ -263,10 +263,8 @@ f() {
     local o
     [[ ! "$seen1" =~ "$1" ]] || return 0
     seen1+="$1"
-    local mord ord=
     bocaml $1 0
-    mord=$ord
-    for o in $mord; do
+    for o in $ord; do
         case $o in
             *.cmi)
                 nocmi=${o%.cmi}
