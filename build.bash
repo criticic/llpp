@@ -267,14 +267,9 @@ f() {
     for o in $ord; do
         case $o in
             *.cmi)
-                nocmi=${o%.cmi}
-                noout=${nocmi#$outd/}
-                cmo=$noout.cmo
-                f $cmo
-                ;;
-            *.cmo)
-                f ${o#$outd/}
-                ;;
+                wocmi=${o%.cmi}
+                f ${wocmi#$outd/}.cmo;;
+            *.cmo) f ${o#$outd/};;
         esac
     done
     [[ "link" =~ "$1" ]] || link+=" $outd/$1"
