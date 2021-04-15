@@ -260,7 +260,7 @@ done
 
 seen1=
 f() {
-    local o
+    local o wocmi
     [[ ! "$seen1" =~ "$1" ]] || return 0
     seen1+="$1"
     bocaml $1 0
