@@ -165,6 +165,9 @@ bocaml1() {
         echo "$overs$cmd$(eval $keycmd)" >"$o.depl.past"
     } && vecho "fresh $o.depl"
 
+    # this saves time but is overly optimistic as interface (dis)
+    # appearance will result in an invalid (stale) .depl (cache). not
+    # using a cache is correct but slow(er (much)) way to handle this.
     while read d; do
         bocaml $d $((n+1))
         deps+=" $d"
@@ -277,6 +280,9 @@ flatten main.cmo
 
 modules=
 collectmodules() {
+    # it might appear that following can be done inside bocaml* but
+    # alas due to the early cmi->cmo descent this ought to be done
+    # here (at least the solution inside bocaml* eludes me)
     local dep cmo this=$1
     while read dep; do
         case $dep in
