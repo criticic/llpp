@@ -149,7 +149,7 @@ seen=
 ord=
 $gmk || :>$outd/Makefile
 bocaml1() {
-    local n=$1 s=$2 o=$3 deps= cmd d wocmi
+    local n=$1 s=$2 o=$3 deps= cmd d
     local keycmd="digest $s $o.depl"
     cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
 
