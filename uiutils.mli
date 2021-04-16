@@ -6,12 +6,9 @@ val vscrollhit : int -> bool
 val firstof : int -> int -> int
 val calcfirst : int -> int -> int
 val enttext : unit -> unit
-val textentrykeyboard :
-  int ->
-  int ->
+val textentrykeyboard : int -> int ->
   (string * string * Config.onhist option * Config.onkey * Config.ondone *
-   Config.cancelonempty) *
-  Config.onleave -> unit
+   Config.cancelonempty) * Config.onleave -> unit
 class type lvsource =
   object
     method exit :
@@ -67,5 +64,25 @@ class listview :
     method updownlevel : int -> 'a
     method zoom : float -> int -> int -> unit
   end
-val coe : listview -> Config.uioh
-val setuioh : Config.uioh -> unit
+val coe : < alwaysscrolly : bool;
+    button : int -> bool -> int -> int -> int -> #Config.uioh;
+    display : unit; eformsgs : bool;
+    infochanged : Config.infochange -> unit;
+    key : int -> int -> #Config.uioh; modehash : Config.keyhash;
+    motion : int -> int -> #Config.uioh;
+    multiclick : int -> int -> int -> int -> #Config.uioh;
+    pmotion : int -> int -> #Config.uioh;
+    scroll : int -> int -> #Config.uioh;
+    scrollph : int * float * float; scrollpw : int * float * float;
+    zoom : float -> int -> int -> unit; .. > -> Config.uioh
+val setuioh : < alwaysscrolly : bool;
+    button : int -> bool -> int -> int -> int -> #Config.uioh;
+    display : unit; eformsgs : bool;
+    infochanged : Config.infochange -> unit;
+    key : int -> int -> #Config.uioh; modehash : Config.keyhash;
+    motion : int -> int -> #Config.uioh;
+    multiclick : int -> int -> int -> int -> #Config.uioh;
+    pmotion : int -> int -> #Config.uioh;
+    scroll : int -> int -> #Config.uioh;
+    scrollph : int * float * float; scrollpw : int * float * float;
+    zoom : float -> int -> int -> unit; .. > -> unit
