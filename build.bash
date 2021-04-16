@@ -262,15 +262,14 @@ for target; do
 done
 
 flatten() {
-    local o wocmi ord=
+    local o
     [[ ! "$seen" =~ "$1" ]] || return 0
     bocaml $1 0
     for o in $ord; do
+        local wooutd=${o#$outd/}
         case $o in
-            *.cmi)
-                wocmi=${o%.cmi}
-                flatten ${wocmi#$outd/}.cmo;;
-            *.cmo) flatten ${o#$outd/};;
+            *.cmi) flatten ${wooutd%.cmi}.cmo;;
+            *.cmo) flatten $wooutd
         esac
     done
 }
