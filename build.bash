@@ -272,7 +272,7 @@ flatten() {
         local wooutd=${o#$outd/}
         case $o in
             *.cmi) flatten ${wooutd%.cmi}.cmo;;
-            *.cmo) flatten $wooutd
+            *.cmo) flatten $wooutd;;
         esac
     done
 }
