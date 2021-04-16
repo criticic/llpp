@@ -35,28 +35,6 @@ class virtual lvsourcebase :
     method getminfo : (int * int) array
     method getpan : int
   end
-val coe :
-  < alwaysscrolly : bool;
-    button : int -> bool -> int -> int -> int -> #Config.uioh;
-    display : unit; eformsgs : bool; infochanged : Config.infochange -> unit;
-    key : int -> int -> #Config.uioh; modehash : Config.keyhash;
-    motion : int -> int -> #Config.uioh;
-    multiclick : int -> int -> int -> int -> #Config.uioh;
-    pmotion : int -> int -> #Config.uioh;
-    scroll : int -> int -> #Config.uioh; scrollph : int * float * float;
-    scrollpw : int * float * float; zoom : float -> int -> int -> unit; .. > ->
-  Config.uioh
-val setuioh :
-  < alwaysscrolly : bool;
-    button : int -> bool -> int -> int -> int -> #Config.uioh;
-    display : unit; eformsgs : bool; infochanged : Config.infochange -> unit;
-    key : int -> int -> #Config.uioh; modehash : Config.keyhash;
-    motion : int -> int -> #Config.uioh;
-    multiclick : int -> int -> int -> int -> #Config.uioh;
-    pmotion : int -> int -> #Config.uioh;
-    scroll : int -> int -> #Config.uioh; scrollph : int * float * float;
-    scrollpw : int * float * float; zoom : float -> int -> int -> unit; .. > ->
-  unit
 val changetitle : < title : string; .. > -> unit
 class listview :
   zebra:bool ->
@@ -89,3 +67,5 @@ class listview :
     method updownlevel : int -> 'a
     method zoom : float -> int -> int -> unit
   end
+val coe : listview -> Config.uioh
+val setuioh : Config.uioh -> unit
