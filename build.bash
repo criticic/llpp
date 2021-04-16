@@ -147,7 +147,6 @@ read cvers < <($ccomp --version)
 
 seen=
 ord=
-link=
 $gmk || :>$outd/Makefile
 bocaml1() {
     [[ ! $seen =~ $3 ]] || return 0
@@ -168,9 +167,8 @@ bocaml1() {
     } && vecho "fresh $o.depl"
 
     while read d; do
-        ord=
         bocaml $d $((n+1))
-        deps+=" $ord $outd/$d"
+        deps+=" $d"
     done <$o.depl
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
@@ -180,10 +178,15 @@ bocaml1() {
         eval "$cmd" || die "$cmd failed"
         echo "$overs$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
-    $gmk || printf "$o:$deps\n\t$cmd\n" >>$outd/Makefile
-
-    ord=$deps
+    $gmk || {
+        printf "$o:"
+        for dep in $deps; do
+            printf " $outd/$dep"
+        done
+        printf "\n\t%s\n" "$cmd"
+    } >>$outd/Makefile
     seen+=$o
+    ord+=" $o"
 }
 
 cycle=
@@ -258,24 +261,39 @@ for target; do
     esac
 done
 
-seen1=
-f() {
-    local o wocmi
-    [[ ! "$seen1" =~ "$1" ]] || return 0
-    seen1+="$1"
+flatten() {
+    local o wocmi ord=
+    [[ ! "$seen" =~ "$1" ]] || return 0
     bocaml $1 0
     for o in $ord; do
         case $o in
             *.cmi)
                 wocmi=${o%.cmi}
-                f ${wocmi#$outd/}.cmo;;
-            *.cmo) f ${o#$outd/};;
+                flatten ${wocmi#$outd/}.cmo;;
+            *.cmo) flatten ${o#$outd/};;
         esac
     done
-    [[ "link" =~ "$1" ]] || link+=" $outd/$1"
 }
+flatten main.cmo
 
-f main.cmo
+modules=
+collectmodules() {
+    local dep cmo this=$1
+    while read dep; do
+        case $dep in
+            *.cmi)
+                cmo=${dep%.cmi}.cmo
+                test $cmo = $this || collectmodules $cmo
+                ;;
+            *.cmo)
+                collectmodules $dep
+                cmo=$dep
+                ;;
+        esac
+        [[ $modules =~ $cmo ]] || modules+=" $outd/$cmo"
+    done <$outd/$1.depl
+}
+collectmodules main.cmo
 
 cobjs=
 for m in link cutils version; do
@@ -301,14 +319,14 @@ else
     bocamlc wsi/x11/xlib.o
 fi
 
-cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $link -cclib \"$clibs\""
-keycmd="digest $outd/llpp $cobjs $link $mulibs"
+cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $modules -cclib \"$clibs\""
+keycmd="digest $outd/llpp $cobjs $modules $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
     eval "$cmd" || die "$cmd failed"
     echo "$cmd$(eval $keycmd)" >"$outd/llpp.past"
 } && vecho "fresh llpp"
-$gmk || printf "$outd/llpp: $cobjs $link $mulibs\n\t$cmd\n" >>$outd/Makefile
+$gmk || printf "$outd/llpp: $cobjs $modules $mulibs\n\t$cmd\n" >>$outd/Makefile
 
 if $darwin; then
     out="$outd/llpp.app/Contents/Info.plist"

@@ -1,5 +1,7 @@
 build/
 test/
 patches/
+mli1/
+mli/
 .gdb_history
 .tramp_history
