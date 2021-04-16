@@ -170,7 +170,7 @@ bocaml1() {
     # using a cache is correct but slow(er (much)) way to handle this.
     while read d; do
         bocaml $d $((n+1))
-        deps+=" $d"
+        deps+=" $outd/$d"
     done <$o.depl
 
     cmd="ocamlc $(oflags $o) -c -o $o $s"
