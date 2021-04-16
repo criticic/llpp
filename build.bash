@@ -149,7 +149,6 @@ seen=
 ord=
 $gmk || :>$outd/Makefile
 bocaml1() {
-    [[ ! $seen =~ $3 ]] || return 0
     local n=$1 s=$2 o=$3 deps= cmd d wocmi
     local keycmd="digest $s $o.depl"
     cmd="ocamlc -depend -bytecode -one-line $(oincs $srcd $o) $s"
@@ -191,6 +190,7 @@ bocaml1() {
 
 cycle=
 bocaml() {
+    [[ ! $seen =~ $1 ]] || return 0
     local s o=$1 n=$2 cycle1=$cycle
     case $o in
         confstruct.cmo) s=$outd/confstruct.ml;;
