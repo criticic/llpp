@@ -183,7 +183,7 @@ bocaml1() {
     $gmk || {
         printf "$o:"
         for dep in $deps; do
-            printf " $outd/$dep"
+            printf " $dep"
         done
         printf "\n\t%s\n" "$cmd"
     } >>$outd/Makefile
