@@ -5,6 +5,11 @@
   file names? exif?
 * TODO build.bash
 ** Parallel builds
+   gmk=1 bash build bash build
+   creates Makefile which when fet to make -jN scales
+
+   maybe it's possible/easy to utilize GNU parallel(1) inside
+   build.bash to achieve the same end without GNU make
 * TODO [maybe] inside rect/quad (_Generic)
 * TODO threaded rendering
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
