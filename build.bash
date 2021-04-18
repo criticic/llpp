@@ -180,13 +180,7 @@ bocaml1() {
         eval "$cmd" || die "$cmd failed"
         echo "$overs$cmd$(eval $keycmd)" >"$o.past"
     } && vecho "fresh $o"
-    $gmk || {
-        printf "$o:"
-        for dep in $deps; do
-            printf " $dep"
-        done
-        printf "\n\t%s\n" "$cmd"
-    } >>$outd/Makefile
+    $gmk || printf "$o: $deps\n\t%s\n" "$cmd" >>$outd/Makefile
     seen+=$o
     ord+=" $o"
 }
