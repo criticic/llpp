@@ -75,7 +75,7 @@ oflags() {
         lablGL/*) f="-g";;
         *) f="-g -strict-sequence -strict-formats -alert @all -warn-error @A";;
     esac
-    echo "$(oincs $outd $1) $f"
+    echo $(oincs $outd $1) $f
 }
 
 cflags() {
