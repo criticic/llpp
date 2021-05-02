@@ -197,7 +197,7 @@ let wcmd cmd fmt =
     ) b fmt
 
 let wcmd1 cmd opaque =
-  let s = ~> opaque in
+  let s = Opaque.to_string opaque in
   let l = String.length s in
   let b = Bytes.create (l+1) in
   Bytes.set b l cmd;
@@ -462,7 +462,7 @@ let tilepage n p layout =
                   let h = l.pageh - y in
                   min h conf.tileh
                 in
-                wcmd U.tile "%s %d %d %d %d" (~> p) x y w h;
+                wcmd U.tile "%s %d %d %d %d" (Opaque.to_string p) x y w h;
                 S.currently :=
                   Tiling (
                       l, p, conf.colorspace, conf.angle,
@@ -1095,7 +1095,7 @@ let act cmds =
 
   | "page", args ->
      let pageopaques, t = scan args "%s %f" (fun p t -> p, t) in
-     let pageopaque = ~< pageopaques in
+     let pageopaque = Opaque.of_string pageopaques in
      begin match !S.currently with
      | Loading (l, gen) ->
         vlog "page %d took %f sec" l.pageno t;
@@ -1170,7 +1170,7 @@ let act cmds =
      let (x, y, opaques, size, t) =
        scan args "%u %u %s %u %f" (fun x y p size t -> (x, y, p, size, t))
      in
-     let opaque = ~< opaques in
+     let opaque = Opaque.of_string opaques in
      begin match !S.currently with
      | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
         vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
@@ -3783,8 +3783,10 @@ let showsel () =
   | Mnone | Mscrolly | Mscrollx | Mpan _ | Mzoom _ | Mzoomrect _ -> ()
   | Msel ((x0, y0), (x1, y1)) ->
      let identify opaque l px py = Some (opaque, l.pageno, px, py) in
-     let o0,n0,px0,py0 = onppundermouse identify x0 y0 (~< E.s, -1, 0, 0) in
-     let _o1,n1,px1,py1 = onppundermouse identify x1 y1 (~< E.s, -1, 0, 0) in
+     let o0,n0,px0,py0 =
+       onppundermouse identify x0 y0 (Opaque.of_string E.s, -1, 0, 0) in
+     let _o1,n1,px1,py1 =
+       onppundermouse identify x1 y1 (Opaque.of_string E.s, -1, 0, 0) in
      if n0 != -1 && n0 = n1 then Ffi.seltext o0 (px0, py0, px1, py1)
 
 let showrects = function
@@ -4382,7 +4384,7 @@ let ract cmds =
        (fun pageno x y ->
          let optopaque =
            match getopaque pageno with
-           | exception Not_found -> ~< E.s
+           | exception Not_found -> Opaque.of_string E.s
            | opaque -> opaque
          in
          pgoto optopaque pageno x y;

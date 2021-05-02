@@ -45,9 +45,6 @@ end = struct
   let to_string t = t
 end
 
-let (~<) = Opaque.of_string
-let (~>) = Opaque.to_string
-
 let int_of_string_with_suffix s =
   let l = String.length s in
   let s1, shift =

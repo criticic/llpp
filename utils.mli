@@ -26,8 +26,6 @@ module Opaque :
     val of_string : string -> t
     val to_string : t -> string
   end
-val ( ~< ) : string -> Opaque.t
-val ( ~> ) : Opaque.t -> string
 val int_of_string_with_suffix : string -> int
 val string_with_suffix_of_int : int -> string
 val color_of_string : string -> float * float * float

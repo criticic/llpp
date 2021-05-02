@@ -1483,7 +1483,7 @@ let logcurrently = function
   | Loading (l, gen) -> dolog "Loading %d gen=%d curgen=%d" l.pageno gen !S.gen
   | Tiling (l, pageopaque, colorspace, angle, gen, col, row, tilew, tileh) ->
      dolog "Tiling %d[%d,%d] page=%s cs=%s angle=%d"
-       l.pageno col row (~> pageopaque)
+       l.pageno col row (Opaque.to_string pageopaque)
        (CSTE.to_string colorspace) angle;
      dolog "gen=(%d,%d) (%d,%d) tile=(%d,%d) (%d,%d)"
        angle gen conf.angle !S.gen
