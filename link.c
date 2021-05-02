@@ -923,13 +923,19 @@ static struct pagedim *pdimofpageno (int pageno)
 static void recurse_outline (fz_outline *outline, int level)
 {
     while (outline) {
-        if (outline->page >= 0) {
-            fz_point p = {.x = outline->x, .y = outline->y};
+        int pageno;
+        fz_point p;
+        fz_location loc;
+
+        loc = fz_resolve_link (state.ctx, state.doc, String_val (outline->uri),
+                               &p.x, &p.y);
+        pageno = fz_page_number_from_location (state.ctx, state.doc, loc);
+        if (pageno >= 0) {
             struct pagedim *pdim = pdimofpageno (outline->page);
             int h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
             p = fz_transform_point (p, pdim->ctm);
             printd ("o %d %d %d %d %s",
-                    level, outline->page, (int) p.y, h, outline->title);
+                    level, pageno, (int) p.y, h, outline->title);
         }
         else {
             printd ("on %d %s", level, outline->title);
@@ -1595,12 +1601,14 @@ ML (uritolocation (value uri_v))
 {
     CAMLparam1 (uri_v);
     CAMLlocal1 (ret_v);
+    fz_location loc;
     int pageno;
     fz_point xy;
     struct pagedim *pdim;
 
-    pageno = fz_resolve_link (state.ctx, state.doc, String_val (uri_v),
-                              &xy.x, &xy.y).page;
+    loc = fz_resolve_link (state.ctx, state.doc, String_val (uri_v),
+                           &xy.x, &xy.y);
+    pageno = fz_page_number_from_location (state.ctx, state.doc, loc);
     pdim = pdimofpageno (pageno);
     xy = fz_transform_point (xy, pdim->ctm);
     ret_v = caml_alloc_tuple (3);
