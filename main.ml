@@ -712,9 +712,9 @@ let opendoc path password =
   Ffi.setdcf conf.dcf;
 
   settitle @@ titlify path;
-  wcmd U.dopen "%d %d %s\000%s\000%s\000"
-    (btod conf.usedoccss) !S.layouth
-    path password conf.css;
+  let rlw, rlh, rlem = !S.refl in
+  wcmd U.dopen "%d %d %d %d %s\000%s\000%s\000"
+    (btod conf.usedoccss) rlw rlh rlem path password conf.css;
   invalidate "reqlayout"
     (fun () ->
       wcmd U.reqlayout " %d %d %d %s\000"
@@ -4498,8 +4498,15 @@ let () =
      ("-origin", Arg.Set_string S.origin, "<origin> <undocumented>");
      ("-no-title", Arg.Set S.ignoredoctitlte, " Ignore document title");
      ("-dcf", Arg.Set_string dcfpath, "<path> <undocumented>");
-     ("-layout-height", Arg.Set_int S.layouth,
-      "<height> layout height html/epub/etc (-1, 0, N)");
+     ("-refl",
+      Arg.String (fun s ->
+          try
+            Scanf.sscanf s "%d,%d,%d" (fun w h em -> S.refl := (w, h, em))
+          with exn ->
+            Format.eprintf "exception while parsing reflowable layout(%s): %s@."
+              s @@ exntos exn;
+            exit 1),
+      "(width,height,fontem) html/epub/etc");
      ("-flip-stderr-redirection",
       Arg.Unit (fun () -> redirstderr := not !redirstderr), " <undocumented>");
     ]

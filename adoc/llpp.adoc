@@ -8,7 +8,7 @@ less
 == SYNOPSIS
 llpp [-c path] [-css path] [-dest named-dest] [-f path] [-gc]
  [-help|--help] [-last] [-no-title] [-origin origin] [-p password]
- [-page page-number] [-remote path] [-layout-height height]
+ [-page page-number] [-remote path] [-refl w,h,em]
  [-flip-stderr-redirection] [-v] path-to-the-document
 
 == DESCRIPTION
@@ -53,8 +53,8 @@ Jump to page
 -remote path::
 Set path to the source of remote commands
 
--layout-height height::
-Set page height for reflowable documents (-1 == default, 0 == unlimited)
+-refl (width,height,fontsize)::
+Specify the layout for reflowable documents
 
 -dcf path::
 <undocumented>

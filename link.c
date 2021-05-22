@@ -296,7 +296,7 @@ static void closedoc (void)
     }
 }
 
-static int openxref (char *filename, char *password, int layouth)
+static int openxref (char *filename, char *password, int w, int h, int em)
 {
     for (int i = 0; i < state.tex.count; ++i) {
         state.tex.owners[i].w = -1;
@@ -327,8 +327,8 @@ static int openxref (char *filename, char *password, int layouth)
             }
         }
     }
-    if (layouth >= 0) {
-        fz_layout_document (state.ctx, state.doc, 460, layouth, 12);
+    if (w >= 0 || h >= 0 || em >=0) {
+        fz_layout_document (state.ctx, state.doc, w, h, em);
     }
     state.pagecount = fz_count_pages (state.ctx, state.doc);
     return 1;
@@ -1303,15 +1303,16 @@ static void *mainloop (void UNUSED_ATTR *unused)
 
         switch (c) {
         case Copen: {
-            int off, usedoccss, ok = 0, layouth;
+            int off, usedoccss, ok = 0;
+            int w, h, em;
             char *password;
             char *filename;
             char *utf8filename;
             size_t filenamelen;
 
             fz_var (ok);
-            ret = sscanf (p, "%d %d %n", &usedoccss, &layouth, &off);
-            if (ret != 2) {
+            ret = sscanf (p, "%d %d %d %d %n", &usedoccss, &w, &h, &em, &off);
+            if (ret != 4) {
                 errx (1, "malformed open `%.*s' ret=%d", len, p, ret);
             }
 
@@ -1326,7 +1327,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
             lock ("open");
             fz_set_use_document_css (state.ctx, usedoccss);
             fz_try (state.ctx) {
-                ok = openxref (filename, password, layouth);
+                ok = openxref (filename, password, w, h, em);
             }
             fz_catch (state.ctx) {
                 utf8filename = mbtoutf8 (filename);
