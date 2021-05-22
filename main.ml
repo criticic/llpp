@@ -4506,7 +4506,7 @@ let () =
             Format.eprintf "exception while parsing reflowable layout(%s): %s@."
               s @@ exntos exn;
             exit 1),
-      "(width,height,fontem) html/epub/etc");
+      "(width,height,fontem) Set reflowable layout (epub/html/etc)");
      ("-flip-stderr-redirection",
       Arg.Unit (fun () -> redirstderr := not !redirstderr), " <undocumented>");
     ]
