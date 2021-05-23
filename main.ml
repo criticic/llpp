@@ -712,9 +712,8 @@ let opendoc path password =
   Ffi.setdcf conf.dcf;
 
   settitle @@ titlify path;
-  let rlw, rlh, rlem = !S.refl in
   wcmd U.dopen "%d %d %d %d %s\000%s\000%s\000"
-    (btod conf.usedoccss) rlw rlh rlem path password conf.css;
+    (btod conf.usedoccss) conf.rlw conf.rlh conf.rlem path password conf.css;
   invalidate "reqlayout"
     (fun () ->
       wcmd U.reqlayout " %d %d %d %s\000"
@@ -1876,6 +1875,7 @@ let enterinfomode =
   let showextended = ref false in
   let showcolors = ref false in
   let showcommands = ref false in
+  let showrefl = ref false in
   let leave mode _ =  S.mode := mode in
   let src = object
       val mutable m_l = []
@@ -2402,6 +2402,21 @@ let enterinfomode =
         src#string "   scale"
           (fun () -> string_of_float conf.colorscale)
           (fun v -> conf.colorscale <- bound (float_of_string v) 0.0 1.0);
+      );
+      src#bool ~btos "reflowable layout"
+        (fun () -> !showrefl)
+        (fun v -> showrefl := v; fillsrc prevmode prevuioh);
+      if !showrefl
+      then (
+        src#int "    width"
+          (fun () -> conf.rlw)
+          (fun v -> conf.rlw <- v; reload ());
+        src#int "    height"
+          (fun () -> conf.rlh)
+          (fun v -> conf.rlh <- v; reload ());
+        src#int "    em"
+          (fun () -> conf.rlem)
+          (fun v -> conf.rlem <- v; reload ());
       );
     );
 
@@ -4496,15 +4511,6 @@ let () =
      ("-origin", Arg.Set_string S.origin, "<origin> <undocumented>");
      ("-no-title", Arg.Set S.ignoredoctitlte, " Ignore document title");
      ("-dcf", Arg.Set_string dcfpath, "<path> <undocumented>");
-     ("-refl",
-      Arg.String (fun s ->
-          try
-            Scanf.sscanf s "%d,%d,%d" (fun w h em -> S.refl := (w, h, em))
-          with exn ->
-            Format.eprintf "exception while parsing reflowable layout(%s): %s@."
-              s @@ exntos exn;
-            exit 1),
-      "(width,height,fontem) Set reflowable layout (epub/html/etc)");
      ("-flip-stderr-redirection",
       Arg.Unit (fun () -> redirstderr := not !redirstderr), " <undocumented>");
     ]

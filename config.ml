@@ -314,7 +314,6 @@ module S = struct
   let stderr = ref Unix.stdin
   let selfexec = ref E.s
   let ignoredoctitlte = ref false
-  let refl = ref (-1, -1, -1)
   let errmsgs = Buffer.create 0
   let newerrmsgs = ref false
   let w = ref max_int
@@ -717,6 +716,9 @@ let config_of c attrs =
          { c with coarseprespos = bool_of_string v }
       | "use-document-css" -> { c with usedoccss = bool_of_string v }
       | "hint-charset" -> validatehcs v; { c with hcs = v }
+      | "rlw" -> { c with rlw = int_of_string v }
+      | "rlh" -> { c with rlh = int_of_string v }
+      | "rlem" -> { c with rlem = int_of_string v }
       | _ -> c
     with exn ->
       dolog "error processing attribute (`%S' = `%S'): %s" k v @@ exntos exn;
@@ -1168,7 +1170,10 @@ let add_attrs bb always dc c time =
   ob "coarse-presentation-positioning" c.coarseprespos dc.coarseprespos;
   ob "use-document-css" c.usedoccss dc.usedoccss;
   os "dcf" c.dcf dc.dcf;
-  os "hint-charset" c.hcs dc.hcs
+  os "hint-charset" c.hcs dc.hcs;
+  oi "rlw" c.rlw dc.rlw;
+  oi "rlh" c.rlh dc.rlh;
+  oi "rlem" c.rlem dc.rlem
 
 let keymapsbuf always dc c =
   let open Buffer in
