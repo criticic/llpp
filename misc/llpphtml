@@ -27,4 +27,4 @@ set -- $(echo "$url" | cksum)
 pdf="$cachedir/$1.pdf"
 
 ${force-$(test ! -e "$pdf")} && prince ${css:+--style $css} -o "$pdf" "$url"
-exec llpp -layout-height 0 -origin "$url" "$pdf"
+exec llpp -origin "$url" "$pdf"
