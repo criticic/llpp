@@ -553,6 +553,7 @@ static struct tile *rendertile (struct page *page, int x, int y, int w, int h)
 
 static void initpdims1 (void)
 {
+    int shown = 0;
     struct pagedim *p;
     pdf_document *pdf;
     fz_context *ctx = state.ctx;
@@ -561,6 +562,7 @@ static void initpdims1 (void)
 
     fz_var (p);
     fz_var (pdf);
+    fz_var (shown);
     fz_var (cxcount);
 
     cxcount = state.pagecount;
@@ -736,6 +738,7 @@ static void initpdims1 (void)
 
                     show = !state.trimmargins && pageno % 20 == 0;
                     if (show) {
+                        shown = 1;
                         printd ("progress %f Gathering dimensions %d",
                                 (double) pageno / state.pagecount, pageno);
                     }
@@ -765,6 +768,9 @@ static void initpdims1 (void)
         }
     }
     state.trimanew = 0;
+    if (shown) {
+        printd ("progress 1");
+    }
 }
 
 static void initpdims (void)
