@@ -130,9 +130,9 @@ s key Utils.E.s
 P pax
 g dcf dcf Utils.E.s
 s hcs "{|aoeuidhtns|}"
-i rlw 0
-i rlh 0
-i rlem 0
+i rlw 420
+i rlh 595
+i rlem 11
 
 cat <<EOF
 }
