@@ -26,122 +26,66 @@ external glxcompleteinit : unit -> unit = "ml_glxcompleteinit"
 external swapb : unit -> unit = "ml_swapb"
 external setcursor : cursor -> unit = "ml_setcursor"
 
-let onot = object
-    method display         = ()
-    method map _           = ()
-    method expose          = ()
-    method visible _       = ()
-    method reshape _ _     = ()
-    method mouse _ _ _ _ _ = ()
-    method motion _ _      = ()
-    method pmotion _ _     = ()
-    method key _ _         = ()
-    method enter _ _       = ()
-    method leave           = ()
-    method winstate _      = ()
-    method quit : 'a. 'a   = exit 0
-    method scroll _ _      = ()
-    method zoom _ _ _      = ()
-    method opendoc _       = ()
-  end
+module S = struct
+  type fs =
+    | NoFs
+    | Fs of (int * int * int * int)
+  and keycode = int
 
-class type t =
-  object
-    method display  : unit
-    method map      : bool -> unit
-    method expose   : unit
-    method visible  : visiblestate -> unit
-    method reshape  : int -> int -> unit
-    method mouse    : int -> bool -> int -> int -> int -> unit
-    method motion   : int -> int -> unit
-    method pmotion  : int -> int -> unit
-    method key      : int -> int -> unit
-    method enter    : int -> int -> unit
-    method leave    : unit
-    method winstate : winstate list -> unit
-    method quit     : 'a. 'a
-    method scroll   : int -> int -> unit
-    method zoom     : float -> int -> int -> unit
-    method opendoc  : string -> unit
-  end
+  let mink       = ref max_int
+  let maxk       = ref min_int
+  let keymap     = ref E.a
+  let fifo       = ref (Queue.create ())
+  let seq        = ref 0
+  let protoatom  = ref ~-1
+  let deleatom   = ref ~-1
+  let nwmsatom   = ref ~-1
+  let maxvatom   = ref ~-1
+  let maxhatom   = ref ~-1
+  let fulsatom   = ref ~-1
+  let idbase     = ref ~-1
+  let wid        = ref ~-1
+  let fid        = ref ~-1
+  let fullscreen = ref (fun _ -> ())
+  let setwmname  = ref (fun _ -> ())
+  let actwin     = ref (fun _ -> ())
+  let sock       = ref Unix.stdin
+  let x          = ref ~-1
+  let y          = ref ~-1
+  let w          = ref ~-1
+  let h          = ref ~-1
+  let fs         = ref NoFs
+  let stringatom = ref 31
+  let curcurs    = ref CURSOR_TEXT
+  let capslmask  = ref 0
+  let numlmask   = ref 0
+  let levl3mask  = ref 0
+  let levl5mask  = ref 0
+  let xkb        = ref false
+  let fscale     = ref 1.0
+  let t = ref (object
+                method display = ()
+                method map (_:bool) = ()
+                method expose = ()
+                method visible (_:visiblestate) = ()
+                method reshape (_:int) (_:int) = ()
+                method mouse (_:int) (_:bool) (_:int) (_:int) (_:int) = ()
+                method motion (_:int) (_:int) = ()
+                method pmotion (_:int) (_:int) = ()
+                method key (_:int) (_:int) = ()
+                method enter (_:int) (_:int) = ()
+                method leave = ()
+                method winstate (_:winstate list) = ()
+                method quit : 'a. 'a   = exit 0
+                method scroll (_:int) (_:int) = ()
+                method zoom (_:float) (_:int) (_:int) = ()
+                method opendoc (_:string) = ()
+              end)
+end
 
-type state =
-  { mutable mink       : int
-  ; mutable maxk       : int
-  ; mutable keymap     : int array array
-  ; fifo               : (bytes -> unit) Queue.t
-  ; mutable seq        : int
-  ; mutable protoatom  : atom
-  ; mutable deleatom   : atom
-  ; mutable nwmsatom   : atom
-  ; mutable maxvatom   : atom
-  ; mutable maxhatom   : atom
-  ; mutable fulsatom   : atom
-  ; mutable idbase     : int
-  ; mutable wid        : int
-  ; mutable fid        : int
-  ; mutable fullscreen : (int -> unit)
-  ; mutable setwmname  : (bytes -> unit)
-  ; mutable actwin     : (unit -> unit)
-  ; mutable stringatom : int
-  ; mutable t          : t
-  ; mutable sock       : Unix.file_descr
-  ; mutable x          : int
-  ; mutable y          : int
-  ; mutable w          : int
-  ; mutable h          : int
-  ; mutable fs         : fs
-  ; mutable curcurs    : cursor
-  ; mutable capslmask  : int
-  ; mutable numlmask   : int
-  ; mutable levl3mask  : int
-  ; mutable levl5mask  : int
-  ; mutable xkb        : bool
-  ; mutable fscale     : float
-  }
-and fs =
-  | NoFs
-  | Fs of (int * int * int * int)
-and keycode = int
-
-let state =
-  { mink       = max_int
-  ; maxk       = min_int
-  ; keymap     = E.a
-  ; fifo       = Queue.create ()
-  ; seq        = 0
-  ; protoatom  = -1
-  ; deleatom   = -1
-  ; nwmsatom   = -1
-  ; maxvatom   = -1
-  ; maxhatom   = -1
-  ; fulsatom   = -1
-  ; idbase     = -1
-  ; wid        = -1
-  ; fid        = -1
-  ; fullscreen = (fun _ -> ())
-  ; setwmname  = (fun _ -> ())
-  ; actwin     = (fun _ -> ())
-  ; sock       = Unix.stdin
-  ; t          = onot
-  ; x          = -1
-  ; y          = -1
-  ; w          = -1
-  ; h          = -1
-  ; fs         = NoFs
-  ; stringatom = 31
-  ; curcurs    = CURSOR_TEXT
-  ; capslmask  = 0
-  ; numlmask   = 0
-  ; levl3mask  = 0
-  ; levl5mask  = 0
-  ; xkb        = false
-  ; fscale     = 1.0
-  }
-
-let settitle s = state.setwmname (~> s)
-let fullscreen () = state.fullscreen state.wid
-let fontsizescale n = float n *. state.fscale |> truncate
+let settitle s = !S.setwmname (~> s)
+let fullscreen () = !S.fullscreen !S.wid
+let fontsizescale n = float n *. !S.fscale |> truncate
 
 let ordermagic = 'l'
 let metamask = 0x40
@@ -166,7 +110,7 @@ let readstr sock n =
   let rec loop pos n =
     let m = tempfailureretry (Unix.read sock s pos) n in
     if m = 0
-    then state.t#quit;
+    then !S.t#quit;
     if n != m
     then (
       ignore (tempfailureretry (Unix.select [sock] [] []) 0.01);
@@ -178,8 +122,8 @@ let readstr sock n =
 
 let sendstr1 s pos len sock =
   let s = Bytes.unsafe_to_string s in
-  vlog "%d <= %S" state.seq s;
-  state.seq <- state.seq + 1;
+  vlog "%d <= %S" !S.seq s;
+  S.seq := !S.seq + 1;
   let n = tempfailureretry (Unix.write_substring sock s pos) len in
   if n != len
   then error "send %d returned %d" len n
@@ -193,7 +137,7 @@ let updkmap sock resp =
     else E.b
   in
   let m = len / syms in
-  state.keymap <- Array.make_matrix state.maxk syms 0xffffff;
+  S.keymap := Array.make_matrix !S.maxk syms 0xffffff;
   let rec loop i =
     if i != m
     then
@@ -202,7 +146,7 @@ let updkmap sock resp =
         if l != syms
         then
           let v = r32 data k in
-          state.keymap.(i).(l) <- v;
+          !S.keymap.(i).(l) <- v;
           loop2 (k+4) (l+1)
       in
       loop2 k 0;
@@ -233,16 +177,16 @@ let updmodmap sock resp =
             modmap.(l).(m) <- code;
             if l = 1
             then (
-              let ki = code - state.mink in
+              let ki = code - !S.mink in
               if ki >= 0
               then
-                let a = state.keymap.(ki) in
+                let a = !S.keymap.(ki) in
                 let rec capsloop i =
                   if not (i = Array.length a || i > 3)
                   then
                     let s = a.(i) in
                     if s = 0xffe5
-                    then state.capslmask <- 2
+                    then S.capslmask := 2
                     else capsloop (i+1)
                 in
                 capsloop 0;
@@ -250,18 +194,18 @@ let updmodmap sock resp =
             else (
               if l > 3
               then
-                let ki = code - state.mink in
+                let ki = code - !S.mink in
                 if ki >= 0
                 then
-                  let a = state.keymap.(ki) in
+                  let a = !S.keymap.(ki) in
                   let rec lloop i =
                     if not (i = Array.length a || i > 3)
                     then
                       let s = a.(i) in
                       match s with
-                      | 0xfe03 -> state.levl3mask <- 1 lsl l
-                      | 0xfe11 -> state.levl5mask <- 1 lsl l
-                      | 0xff7f -> state.numlmask  <- 1 lsl l
+                      | 0xfe03 -> S.levl3mask := 1 lsl l
+                      | 0xfe11 -> S.levl5mask := 1 lsl l
+                      | 0xff7f -> S.numlmask  := 1 lsl l
                       | _ -> lloop (i+1)
                   in
                   lloop 0;
@@ -274,7 +218,7 @@ let updmodmap sock resp =
     loop 0
 
 let sendwithrep sock s f =
-  Queue.push f state.fifo;
+  Queue.push f !S.fifo;
   sendstr1 s 0 (Bytes.length s) sock
 
 let padcat b1 b2 =
@@ -416,9 +360,9 @@ let getkeysym pkpk code mask =
   if (pkpk >= 0xff80 && pkpk <= 0xffbd)
      || (pkpk >= 0x11000000 && pkpk <= 0x1100ffff)
   then (
-    if mask land state.numlmask != 0
+    if mask land !S.numlmask != 0
     then
-      let keysym = state.keymap.(code-state.mink).(1) in
+      let keysym = !S.keymap.(code - !S.mink).(1) in
       if keysym = 0 then pkpk else keysym
     else pkpk
   )
@@ -426,26 +370,26 @@ let getkeysym pkpk code mask =
     let shift =
       if pkpk land 0xf000 = 0xf000
       then 0
-      else (mask land 1) lxor ((mask land state.capslmask) lsr 1)
+      else (mask land 1) lxor ((mask land !S.capslmask) lsr 1)
     in
     let index =
-      if state.xkb && mask land 0x2000 != 0
+      if !S.xkb && mask land 0x2000 != 0
       then shift + 2
       else
-        let l3 = (mask land state.levl3mask) != 0 in
-        let l4 = (mask land state.levl5mask) != 0 in
+        let l3 = (mask land !S.levl3mask) != 0 in
+        let l4 = (mask land !S.levl5mask) != 0 in
         shift +
           if l3 then (if l4 then 8 else 4) else (if l4 then 6 else 0)
     in
-    let keysym = state.keymap.(code-state.mink).(index) in
+    let keysym = !S.keymap.(code - !S.mink).(index) in
     if index land 1 = 1 && keysym = 0
-    then state.keymap.(code-state.mink).(index - 1)
+    then !S.keymap.(code - !S.mink).(index - 1)
     else keysym
   )
 
 let getkeysym code mask =
-  let pkpk = state.keymap.(code-state.mink).(0) in
-  if state.xkb && pkpk lsr 8 = 0xfe (* XKB *)
+  let pkpk = !S.keymap.(code - !S.mink).(0) in
+  if !S.xkb && pkpk lsr 8 = 0xfe (* XKB *)
   then 0
   else getkeysym pkpk code mask
 
@@ -464,11 +408,11 @@ let readresp sock =
        code serial resid min maj (Bytes.unsafe_to_string resp);
 
   | 1 ->                                (* response *)
-     let rep = Queue.pop state.fifo in
+     let rep = Queue.pop !S.fifo in
      rep resp;
 
   | 2 ->                                (* key press *)
-     if Array.length state.keymap > 0
+     if Array.length !S.keymap > 0
      then
        let code = r8 resp 1 in
        let mask = r16 resp 28 in
@@ -476,10 +420,10 @@ let readresp sock =
        vlog "keysym = %x %c mask %#x code %d"
          keysym (Char.unsafe_chr keysym) mask code;
        if keysym != 0
-       then state.t#key keysym mask;
+       then !S.t#key keysym mask;
 
   | 3 ->                                (* key release *)
-     if Array.length state.keymap > 0
+     if Array.length !S.keymap > 0
      then
        let code = r8 resp 1 in
        let mask = r16 resp 28 in
@@ -492,7 +436,7 @@ let readresp sock =
      and x = r16s resp 24
      and y = r16s resp 26
      and m = r16 resp 28 in
-     state.t#mouse n true x y m;
+     !S.t#mouse n true x y m;
      vlog "press %d" n;
 
   | 5 ->                                (* buttonrelease *)
@@ -500,7 +444,7 @@ let readresp sock =
      and x = r16s resp 24
      and y = r16s resp 26
      and m = r16 resp 28 in
-     state.t#mouse n false x y m;
+     !S.t#mouse n false x y m;
      vlog "release %d %d %d" n x y;
 
   | 6 ->                                (* motion *)
@@ -508,30 +452,30 @@ let readresp sock =
      let y = r16s resp 26 in
      let m = r16 resp 28 in
      if m land 0x1f00 = 0
-     then state.t#pmotion x y
-     else state.t#motion x y;
+     then !S.t#pmotion x y
+     else !S.t#motion x y;
      vlog "move %dx%d => %d" x y m;
 
   | 7 ->                                (* enter *)
      let x = r16s resp 24
      and y = r16s resp 26 in
-     state.t#enter x y;
+     !S.t#enter x y;
      vlog "enter %d %d" x y;
 
   | 8 ->                                (* leave *)
-     state.t#leave;
+     !S.t#leave;
 
   | 18 ->                               (* unmap *)
-     state.t#map false;
+     !S.t#map false;
      vlog "unmap";
 
   | 19 ->                               (* map *)
-     state.t#map true;
+     !S.t#map true;
      vlog "map";
 
   | 12 ->                               (* exposure *)
      vlog "exposure";
-     state.t#expose;
+     !S.t#expose;
 
   | 15 ->                               (* visibility *)
      let v = r8 resp 8 in
@@ -544,27 +488,27 @@ let readresp sock =
           dolog "unknown visibility %d" v;
           Unobscured
      in
-     state.t#visible vis;
+     !S.t#visible vis;
      vlog "visibility %d" v;
 
   | 11 ->                               (* keymapnotify *)
-     state.keymap <- E.a;
-     let s = getkeymapreq state.mink (state.maxk-state.mink-1) in
+     S.keymap := E.a;
+     let s = getkeymapreq !S.mink (!S.maxk - !S.mink-1) in
      sendwithrep sock s (updkmap sock);
-     state.capslmask <- 0;
-     state.levl3mask <- 0;
-     state.levl5mask <- 0;
-     state.numlmask  <- 0;
+     S.capslmask := 0;
+     S.levl3mask := 0;
+     S.levl5mask := 0;
+     S.numlmask  := 0;
      let s = getmodifiermappingreq () in
      sendwithrep sock s (updmodmap sock);
 
   | 33 ->                               (* clientmessage *)
      let atom = r32 resp 8 in
-     if atom = state.protoatom
+     if atom = !S.protoatom
      then
        let atom = r32 resp 12 in
-       if atom = state.deleatom
-       then state.t#quit;
+       if atom = !S.deleatom
+       then !S.t#quit;
      vlog "atom %#x" atom;
 
   | 21 ->                               (* reparent *)
@@ -576,25 +520,25 @@ let readresp sock =
      and w = r16 resp 20
      and h = r16 resp 22 in
      vlog "configure cur [%d %d %d %d] conf [%d %d %d %d]"
-       state.x state.y state.w state.h
+       !S.x !S.y !S.w !S.h
        x y w h;
-     if w != state.w || h != state.h
-     then state.t#reshape w h;
-     state.w <- w;
-     state.h <- h;
-     state.x <- x;
-     state.y <- y;
+     if w != !S.w || h != !S.h
+     then !S.t#reshape w h;
+     S.w := w;
+     S.h := h;
+     S.x := x;
+     S.y := y;
 
   | 24 ->                       (* Gravity notify *)
      ();
 
   | 28 ->                       (* Property notify *)
      let atom = r32 resp 8 in
-     if atom = state.nwmsatom
+     if atom = !S.nwmsatom
      then
-       let s = getpropreq false state.wid atom 4 in
+       let s = getpropreq false !S.wid atom 4 in
        sendwithrep sock s (fun resp ->
-           state.fs <- NoFs;
+           S.fs := S.NoFs;
            let len = r32 resp 4 in
            let nitems = r32 resp 16 in
            let wsl =
@@ -608,16 +552,15 @@ let readresp sock =
                  else
                    let atom = r32 s (i*4) in
                    let wsl =
-                     if atom = state.maxhatom
+                     if atom = !S.maxhatom
                      then MaxHorz::wsl
                      else (
-                       if atom = state.maxvatom
+                       if atom = !S.maxvatom
                        then MaxVert::wsl
                        else (
-                         if atom = state.fulsatom
+                         if atom = !S.fulsatom
                          then (
-                           state.fs <- Fs (state.x, state.y,
-                                           state.w, state.h);
+                           S.fs := S.Fs (!S.x, !S.y, !S.w, !S.h);
                            Fullscreen::wsl
                          )
                          else wsl
@@ -627,7 +570,7 @@ let readresp sock =
                in
                loop [] 0
            in
-           state.t#winstate (List.sort compare wsl)
+           !S.t#winstate (List.sort compare wsl)
          );
 
   | n -> dolog "event %d %S" n (Bytes.unsafe_to_string resp)
@@ -644,17 +587,17 @@ let sendstr s ?(pos=0) ?(len=Bytes.length s) sock =
   if hasdata sock then readresp sock
 
 let reshape w h =
-  if state.fs = NoFs
+  if !S.fs = S.NoFs
   then
     let s = Bytes.create 8 in
     w32 s 0 w;
     w32 s 4 h;
-    let s = configurewindowreq state.wid 0x000c s in
-    sendstr s state.sock;
-  else state.fullscreen state.wid
+    let s = configurewindowreq !S.wid 0x000c s in
+    sendstr s !S.sock;
+  else !S.fullscreen !S.wid
 
 let activatewin () =
-  state.actwin ()
+  !S.actwin ()
 
 let syncsendwithrep sock secstowait s f =
   let completed = ref false in
@@ -679,8 +622,8 @@ let syncsendwithrep sock secstowait s f =
   readtillcompletion ()
 
 let mapwin () =
-  let s = mapreq state.wid in
-  sendstr s state.sock
+  let s = mapreq !S.wid in
+  sendstr s !S.sock
 
 let syncsendintern sock secstowait s onlyifexists f =
   let s = internreq s onlyifexists in
@@ -753,10 +696,10 @@ let setup disp sock rootwid screennum w h =
      and rooth = r16 data (pos+22)
      and rootdepth = r8 data (pos+38)in
 
-     state.fscale <- float rooth /. 1440.0;
-     state.mink <- minkk;
-     state.maxk <- maxkk;
-     state.idbase <- idbase;
+     S.fscale := float rooth /. 1440.0;
+     S.mink := minkk;
+     S.maxk := maxkk;
+     S.idbase := idbase;
      vlog "vendor = %S, maj=%d min=%d" (Bytes.unsafe_to_string vendor) maj min;
      vlog "screens = %d formats = %d" screens formats;
      vlog "minkk = %d maxkk = %d" minkk maxkk;
@@ -766,12 +709,12 @@ let setup disp sock rootwid screennum w h =
      vlog "visualid = %#x" (r32 data (pos+32));
      vlog "root depth = %d" rootdepth;
 
-     let wid = state.idbase in
+     let wid = !S.idbase in
      let mid = wid+1 in
      let fid = mid+1 in
 
-     state.wid <- wid;
-     state.fid <- fid;
+     S.wid := wid;
+     S.fid := fid;
 
      let vid = glxinit disp wid screennum in
      let ndepths = r8 data (pos+39) in
@@ -829,12 +772,12 @@ let setup disp sock rootwid screennum w h =
 
      sendintern
        sock (~> "WM_PROTOCOLS") false (fun resp ->
-         state.protoatom <- r32 resp 8;
+         S.protoatom := r32 resp 8;
          sendintern
            sock (~> "WM_DELETE_WINDOW") false (fun resp ->
-             state.deleatom <- r32 resp 8;
-             let s = s32 state.deleatom in
-             let s = changepropreq wid state.protoatom 4 32 s in
+             S.deleatom := r32 resp 8;
+             let s = s32 !S.deleatom in
+             let s = changepropreq wid !S.protoatom 4 32 s in
              sendstr s sock;
            );
        );
@@ -851,7 +794,7 @@ let setup disp sock rootwid screennum w h =
          in
          if hostname != empty
          then
-           let s = changepropreq wid atom state.stringatom 8
+           let s = changepropreq wid atom !S.stringatom 8
                      (~> hostname) in
            sendstr s sock;
            sendintern
@@ -864,22 +807,22 @@ let setup disp sock rootwid screennum w h =
              )
        );
 
-     state.actwin <- (fun () ->
+     S.actwin := (fun () ->
        let s = Bytes.create 4 in
        let s = configurewindowreq wid 0x40 s in
-       sendstr s state.sock;
+       sendstr s !S.sock;
        let s = mapreq wid in
-       sendstr s state.sock;
+       sendstr s !S.sock;
      );
 
      sendintern
        sock (~> "_NET_ACTIVE_WINDOW") true (fun resp ->
          let atom = r32 resp 8 in
-         state.actwin <- (fun () ->
+         S.actwin := (fun () ->
            let data = Bytes.make 20 '\000' in
            let cm = clientmessage 32 0 wid atom data in
            let s = sendeventreq 0 root 0x180000 cm in
-           sendstr s state.sock;
+           sendstr s !S.sock;
          );
        );
 
@@ -891,7 +834,7 @@ let setup disp sock rootwid screennum w h =
          sendstr s sock;
        );
 
-     let s = getkeymapreq state.mink (state.maxk-state.mink) in
+     let s = getkeymapreq !S.mink (!S.maxk - !S.mink) in
      sendwithrep sock s (updkmap sock);
 
      let s = getmodifiermappingreq () in
@@ -901,56 +844,56 @@ let setup disp sock rootwid screennum w h =
        sock (~> "UTF8_STRING") true (fun resp ->
          let atom = r32 resp 8 in
          if atom != 0
-         then state.stringatom <- atom;
+         then S.stringatom := atom;
        );
 
      let setwmname s =
-       let s = changepropreq wid 39 state.stringatom 8 s in
-       sendstr s state.sock;
+       let s = changepropreq wid 39 !S.stringatom 8 s in
+       sendstr s !S.sock;
      in
-     state.setwmname <- setwmname;
+     S.setwmname := setwmname;
      sendintern
        sock (~> "_NET_WM_NAME") true (fun resp ->
          let atom = r32 resp 8 in
          if atom != 0
-         then state.setwmname <- (fun s ->
+         then S.setwmname := (fun s ->
            setwmname s;
-           let s = changepropreq wid atom state.stringatom 8 s in
-           sendstr s state.sock;
+           let s = changepropreq wid atom !S.stringatom 8 s in
+           sendstr s !S.sock;
          );
        );
 
      sendintern
        sock (~> "_NET_WM_STATE") true (fun resp ->
-         state.nwmsatom <- r32 resp 8;
-         if state.nwmsatom != 0
+         S.nwmsatom := r32 resp 8;
+         if !S.nwmsatom != 0
          then (
            sendintern sock (~> "_NET_WM_STATE_MAXIMIZED_VERT") true (fun resp ->
-               state.maxvatom <- r32 resp 8;
+               S.maxvatom := r32 resp 8;
              );
            sendintern sock (~> "_NET_WM_STATE_MAXIMIZED_HORZ") true (fun resp ->
-               state.maxhatom <- r32 resp 8;
+               S.maxhatom := r32 resp 8;
              );
            sendintern
              sock (~> "_NET_WM_STATE_FULLSCREEN") false (fun resp ->
-               state.fulsatom <- r32 resp 8;
-               if state.fulsatom != 0
+               S.fulsatom := r32 resp 8;
+               if !S.fulsatom != 0
                then
-                 state.fullscreen <-
+                 S.fullscreen :=
                    (fun wid ->
                      let data = Bytes.make 20 '\000' in
                      let fs, f =
-                       match state.fs with
-                       | NoFs -> Fs (-1, -1, -1, -1), 1
-                       | Fs _ -> NoFs, 0
+                       match !S.fs with
+                       | S.NoFs -> S.Fs (-1, -1, -1, -1), 1
+                       | S.Fs _ -> S.NoFs, 0
                      in
                      w32 data 0 f;
-                     w32 data 4 state.fulsatom;
+                     w32 data 4 !S.fulsatom;
 
-                     let cm = clientmessage 32 0 wid state.nwmsatom data in
+                     let cm = clientmessage 32 0 wid !S.nwmsatom data in
                      let s = sendeventreq 0 root 0x180000 cm in
                      sendstr s sock;
-                     state.fs <- fs;
+                     S.fs := fs;
                    );
              );
          );
@@ -972,7 +915,7 @@ let setup disp sock rootwid screennum w h =
              sock s
              (fun resp ->
                let supported = r8 resp 1 in
-               state.xkb <- supported != 0
+               S.xkb := supported != 0
              )
          );
        );
@@ -981,8 +924,8 @@ let setup disp sock rootwid screennum w h =
          glxcompleteinit ();
          let w = r16 resp 16
          and h = r16 resp 18 in
-         state.w <- w;
-         state.h <- h;
+         S.w := w;
+         S.h := h;
        );
 
   | c -> error "unknown connection setup response %d" (Char.code c)
@@ -1138,16 +1081,16 @@ let init t w h =
   w16 s 6 (String.length aname);
   w16 s 8 (String.length adata);
   sendstr1 s 0 (Bytes.length s) fd;
-  state.sock <- fd;
+  S.sock := fd;
   setup d fd 0 screennum w h;
-  state.t <- t;
-  fd, state.w, state.h
+  S.t := t;
+  fd, !S.w, !S.h
 
 let setcursor cursor =
-  if cursor != state.curcurs
+  if cursor != !S.curcurs
   then (
     setcursor cursor;
-    state.curcurs <- cursor;
+    S.curcurs := cursor;
   )
 
 let xlatt, xlatf =
