@@ -3398,9 +3398,7 @@ let viewkeyboard key mask =
         end
      | Some n -> setautoscrollspeed n true
      end
-  | Ascii 'H' -> enterhistmode () (* NB:
-                                     when home row is remapped this
-                                     is inaccessible (H becomes left-arrow) *)
+  | Ascii 'H' -> enterhistmode ()
   | Fn 1 when Wsi.withalt mask -> enterhistmode ()
   | Fn 1 -> enterhelpmode ()
   | Left | Right when not (Wsi.withalt mask) ->

@@ -130,7 +130,6 @@ s key Utils.E.s
 P pax
 g dcf dcf Utils.E.s
 s hcs "{|aoeuidhtns|}"
-b remaphtns false
 
 cat <<EOF
 }
