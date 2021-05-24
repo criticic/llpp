@@ -51,7 +51,7 @@ $make -q -s || $make
 oincs() {
     local b=$1 incs
     case "${2#$outd/}" in
-        $wsid/wsi.cmo|confstruct.cmo|help.cmo) incs="-I $b -I $b/$wsid";;
+        $wsid/wsi.cm[oi]|confstruct.cmo|help.cmo) incs="-I $b -I $b/$wsid";;
         glutils.cmo) incs="-I $b -I $b/lablGL";;
         uiutils.cmo|main.cmo) incs="-I $b -I $b/$wsid -I $b/lablGL";;
         ffi.cmo|help.cmi|parser.cmo) incs="-I $b";;
