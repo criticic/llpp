@@ -526,8 +526,7 @@ let layoutready layout =
               fold (!seen && !allvisible) rest
            | [] -> true
   in
-  let alltilesvisible = fold true layout in
-  alltilesvisible
+  fold true layout
 
 let gotoxy x y =
   let y = bound y 0 !S.maxy in
