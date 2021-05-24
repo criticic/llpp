@@ -19,18 +19,37 @@ type visiblestate =
   | PartiallyObscured
   | FullyObscured
 
-type wid = int and screenno = int and vid = int and atom = int
+type wid = int and screenno = int and vid = int
 
 external glxinit : string -> wid -> screenno -> vid = "ml_glxinit"
 external glxcompleteinit : unit -> unit = "ml_glxcompleteinit"
 external swapb : unit -> unit = "ml_swapb"
 external setcursor : cursor -> unit = "ml_setcursor"
 
+class type t =
+  object
+    method display  : unit
+    method map      : bool -> unit
+    method expose   : unit
+    method visible  : visiblestate -> unit
+    method reshape  : int -> int -> unit
+    method mouse    : int -> bool -> int -> int -> int -> unit
+    method motion   : int -> int -> unit
+    method pmotion  : int -> int -> unit
+    method key      : int -> int -> unit
+    method enter    : int -> int -> unit
+    method leave    : unit
+    method winstate : winstate list -> unit
+    method quit     : 'a. 'a
+    method scroll   : int -> int -> unit
+    method zoom     : float -> int -> int -> unit
+    method opendoc  : string -> unit
+  end
+
 module S = struct
   type fs =
     | NoFs
     | Fs of (int * int * int * int)
-  and keycode = int
 
   let mink       = ref max_int
   let maxk       = ref min_int
