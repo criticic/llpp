@@ -309,8 +309,9 @@ typeofmime() {
         image/png | image/jpeg) test -n "$dc" && type="image" || type="image2";;
         image/*) type=image;;
         application/x-dvi) type=dvi;;
-        application/x-font-ttf                  \
-            | application/vnd.ms-opentype       \
+        application/x-font-ttf                                  \
+            | application/vnd.ms-opentype                       \
+            | font/sfnt
             | application/font-sfnt) type=font;;
         *) return 1;;
     esac
