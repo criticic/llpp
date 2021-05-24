@@ -509,24 +509,20 @@ let preload pages =
   then load (preloadlayout !S.x !S.y !S.winw !S.winh)
 
 let layoutready layout =
-  let rec fold all ls =
-    all && match ls with
-           | l :: rest ->
-              let seen = ref false in
-              let allvisible = ref true in
-              let foo col row _ _ _ _ _ _ =
-                seen := true;
-                allvisible := !allvisible &&
-                                begin match gettileopaque l col row with
-                                | Some _ -> true
-                                | None -> false
-                                end
-              in
-              itertiles l foo;
-              fold (!seen && !allvisible) rest
-           | [] -> true
+  let rec fold ls =
+    match ls with
+    | [] -> true
+    | l :: rest ->
+       let foo col row _ _ _ _ _ _ =
+         match gettileopaque l col row with
+         | Some _ -> ()
+         | None -> raise Exit
+       in
+       match itertiles l foo with
+       | () -> fold rest
+       | exception Exit -> false
   in
-  fold true layout
+  fold layout
 
 let gotoxy x y =
   let y = bound y 0 !S.maxy in
