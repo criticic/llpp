@@ -378,7 +378,7 @@ case $type in
     };;
     font) {
         maketext "$1" "$textfilename"
-        exec llpp -origin $1 -layout-height 0 "$cachedir/fonts/text.html"
+        exec llpp -origin $1 "$cachedir/fonts/text.html"
     };;
     image) {
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
