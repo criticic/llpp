@@ -509,6 +509,7 @@ let preload pages =
   then load (preloadlayout !S.x !S.y !S.winw !S.winh)
 
 let layoutready layout =
+  let exception E in
   let rec fold ls =
     match ls with
     | [] -> true
@@ -516,11 +517,11 @@ let layoutready layout =
        let foo col row _ _ _ _ _ _ =
          match gettileopaque l col row with
          | Some _ -> ()
-         | None -> raise Exit
+         | None -> raise E
        in
        match itertiles l foo with
        | () -> fold rest
-       | exception Exit -> false
+       | exception E -> false
   in
   fold layout
 
