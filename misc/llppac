@@ -22,6 +22,8 @@ missing() {
         eval "$1() { die \"$2 is needed for \$type conversion\"; }"
 }
 
+# https://unix.stackexchange.com/questions/32569/removing-all-spaces-tabs-newlines-etc-from-a-variable
+executable_p shuf || shuf() { cat; }
 text() {
     cat <<EOF
 <pre style="font-size: ${1}pt;">
@@ -45,8 +47,7 @@ Waltz, bad nymph, for quick jigs vex
 ',.ფyfგcრლაოეუიდჰთნსყჯქxბმwვზ
 Σομε πσθδο γρεεκ
 བསྐུར་ཡིག་མགོ་
-Il1| Il|1 I1l| I1|l I|1l I|l1 lI1| lI|1 l1I| l1|I l|1I l|I1
-1lI| 1l|I 1Il| 1I|l 1|Il 1|lI |l1I |lI1 |1lI |1Il |I1l |Il1
+$(printf '1\nI\n0\n3\nl\nO\n|\nЗ' | shuf | tr -d '[[:space:]]') ||:
 \`1234567890-=\\
 ~!@#\$$%&permil;^&amp;*()_+|
 ₹₽£$€
