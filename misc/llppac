@@ -47,7 +47,7 @@ Waltz, bad nymph, for quick jigs vex
 ',.ფyfგcრლაოეუიდჰთნსყჯქxბმwვზ
 Σομε πσθδο γρεεκ
 བསྐུར་ཡིག་མགོ་
-$(printf '1\nI\n0\n3\nl\nO\n|\nЗ' | shuf | tr -d '[[:space:]]') ||:
+$(printf '1\nI\n0\n3\nl\nO\n|\nЗ' | shuf | tr -d '[[:space:]]' ||:)
 \`1234567890-=\\
 ~!@#\$$%&permil;^&amp;*()_+|
 ₹₽£$€
