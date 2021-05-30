@@ -2404,13 +2404,13 @@ let enterinfomode =
         (fun v -> showrefl := v; fillsrc prevmode prevuioh);
       if !showrefl
       then (
-        src#int "    width"
+        src#int "  width"
           (fun () -> conf.rlw)
           (fun v -> conf.rlw <- v; reload ());
-        src#int "    height"
+        src#int "  height"
           (fun () -> conf.rlh)
           (fun v -> conf.rlh <- v; reload ());
-        src#int "    em"
+        src#int "  em"
           (fun () -> conf.rlem)
           (fun v -> conf.rlem <- v; reload ());
       );
