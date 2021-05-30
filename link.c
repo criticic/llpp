@@ -1036,6 +1036,10 @@ static enum a_searchresult matchline (regex_t *re, fz_stext_line *line,
         fz_quad s, e;
         fz_stext_char *ch;
 
+        if (rm.rm_so == rm.rm_eo) {
+            return Found;
+        }
+
         for (ch = line->first_char; ch; ch = ch->next) {
             o += fz_runelen (ch->c);
             if (o > rm.rm_so) {
