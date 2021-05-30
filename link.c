@@ -2490,11 +2490,20 @@ ML (getannotcontents (value ptr_v, value n_v))
     pdf = pdf_specifics (state.ctx, state.doc);
     if (pdf) {
         struct page *page;
+        pdf_annot *annot;
         struct slink *slink;
 
         page = parse_pointer (__func__, String_val (ptr_v));
         slink = &page->slinks[Int_val (n_v)];
+        annot = slink->u.annot;
         contents = pdf_annot_contents (state.ctx, (pdf_annot *) slink->u.annot);
+
+        if ((!contents || !*contents)
+            && pdf_annot_type (state.ctx, annot) == PDF_ANNOT_FILE_ATTACHMENT) {
+            pdf_obj *fs = pdf_dict_get (state.ctx, annot->obj, PDF_NAME (FS));
+            fprintf (stderr, "file attachment annotation: %s\n",
+                     pdf_embedded_file_name (state.ctx, fs));
+        }
     }
     unlock (__func__);
     ret_v = caml_copy_string (contents);
