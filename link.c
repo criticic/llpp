@@ -2063,7 +2063,7 @@ static void uploadslice (struct tile *tile, struct slice *slice)
         texdata = tile->pixmap->samples;
         if (subimage) {
             glTexSubImage2D (TEXT_TYPE, 0, 0, 0, tile->w, slice->h,
-                             state.tex.form, state.tex.ty, texdata+offset );
+                             state.tex.form, state.tex.ty, texdata+offset);
         }
         else {
             glTexImage2D (TEXT_TYPE, 0, state.tex.iform, tile->w, slice->h,
@@ -2432,7 +2432,7 @@ ML (getlink (value ptr_v, value n_v))
 
     lock (__func__);
     ensureslinks (page);
-    if (!page->slinkcount || n > page->slinkcount ) goto unlock;
+    if (!page->slinkcount || n > page->slinkcount) goto unlock;
     slink = &page->slinks[n];
     if (slink->tag == SLINK) {
         link = slink->u.link;
