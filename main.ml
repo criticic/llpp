@@ -1,6 +1,5 @@
 open Utils
 open Config
-open Glutils
 open Uiutils
 
 module U = struct
@@ -47,12 +46,12 @@ let setfontsize n =
 
 let showtext c s =
   S.text := Printf.sprintf "%c%s" c s;
-  postRedisplay "showtext"
+  Glutils.postRedisplay "showtext"
 
 let adderrmsg src msg =
   Buffer.add_string S.errmsgs msg;
   S.newerrmsgs := true;
-  postRedisplay src
+  Glutils.postRedisplay src
 
 let settextfmt fmt = Printf.kprintf (fun s -> S.text := s) fmt
 let impmsg fmt = Printf.ksprintf (fun s -> showtext '!' s) fmt
@@ -107,7 +106,7 @@ let getunder x y =
          let rect = (x0, y0, x1, y0, x1, y1, x0, y1) in
          let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
          S.rects := [l.pageno, color, rect];
-         postRedisplay "getunder";
+         Glutils.postRedisplay "getunder";
       | _ -> ()
     );
     let under = Ffi.whatsunder opaque px py in
@@ -128,7 +127,7 @@ let pipesel opaque cmd =
   then pipef ~closew:false "pipesel"
          (fun w ->
            Ffi.copysel w opaque;
-           postRedisplay "pipesel"
+           Glutils.postRedisplay "pipesel"
          ) cmd
 
 let paxunder x y =
@@ -142,7 +141,7 @@ let paxunder x y =
         )
     else None
   in
-  postRedisplay "paxunder";
+  Glutils.postRedisplay "paxunder";
   if conf.paxmark = Mark_page
   then
     List.iter (fun l ->
@@ -370,13 +369,13 @@ let drawtiles l color =
          let s = Printf.sprintf "%d[%d,%d] %f sec" l.pageno col row t in
          let w = Ffi.measurestr fstate.fontsize s in
          GlDraw.color (0.0, 0.0, 0.0);
-         filledrect
+         Glutils.filledrect
            (float (x-2))
            (float (y-2))
            (float (x+2) +. w)
            (float (y + fstate.fontsize + 2));
          GlDraw.color color;
-         drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
+         Glutils.drawstring fstate.fontsize x (y + fstate.fontsize - 1) s;
          Ffi.begintiles ();
        );
 
@@ -386,7 +385,7 @@ let drawtiles l color =
        and h = let lh = !S.winh - y in min lh h in
        texe `blend;
        GlDraw.color (0.8, 0.8, 0.8);
-       filledrect (float x) (float y) (float (x+w)) (float (y+h));
+       Glutils.filledrect (float x) (float y) (float (x+w)) (float (y+h));
        texe `modulate;
        if w > 128 && h > fstate.fontsize + 10
        then (
@@ -397,7 +396,8 @@ let drawtiles l color =
            then (col*conf.tilew, row*conf.tileh)
            else col, row
          in
-         drawstringf fstate.fontsize x y "Loading %d [%d,%d]" l.pageno c r;
+         Glutils.drawstringf fstate.fontsize x y
+           "Loading %d [%d,%d]" l.pageno c r;
        );
        GlDraw.color color;
        Ffi.begintiles ();
@@ -529,7 +529,7 @@ let gotoxy x y =
   let y = bound y 0 !S.maxy in
   let y, layout =
     let layout = layout x y !S.winw !S.winh in
-    postRedisplay "gotoxy ready";
+    Glutils.postRedisplay "gotoxy ready";
     y, layout
   in
   S.x := x;
@@ -1021,7 +1021,7 @@ let act cmds =
 
   | "clearrects", "" ->
      S.rects := !S.rects1;
-     postRedisplay "clearrects";
+     Glutils.postRedisplay "clearrects";
 
   | "continue", args ->
      let n = scan args "%u" (fun n -> n) in
@@ -1044,7 +1044,7 @@ let act cmds =
         f ();
         S.geomcmds := s, List.rev rest;
      end;
-     postRedisplay "continue";
+     Glutils.postRedisplay "continue";
 
   | "vmsg", args ->
      if conf.verbose then showtext ' ' args
@@ -1055,7 +1055,7 @@ let act cmds =
      if not !S.newerrmsgs
      then (
        S.newerrmsgs := true;
-       postRedisplay "error message";
+       Glutils.postRedisplay "error message";
      )
 
   | "progress", args ->
@@ -1065,7 +1065,7 @@ let act cmds =
      in
      S.text := text;
      S.progress := progress;
-     postRedisplay "progress"
+     Glutils.postRedisplay "progress"
 
   | "match", args ->
      let pageno, n, x0, y0, x1, y1, x2, y2, x3, y3 =
@@ -1152,7 +1152,7 @@ let act cmds =
           );
 
           if visible && layoutready !S.layout
-          then postRedisplay "page";
+          then Glutils.postRedisplay "page";
         )
 
      | Idle | Tiling _ | Outlining _ ->
@@ -1196,7 +1196,7 @@ let act cmds =
                && conf.angle = angle
                && tilevisible !S.layout l.pageno x y
                && layoutready !S.layout
-          then postRedisplay "tile nothrottle";
+          then Glutils.postRedisplay "tile nothrottle";
         )
 
      | Idle | Loading _ | Outlining _ ->
@@ -1529,7 +1529,7 @@ let upbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
     | [] -> gotopage1 pageno 0
     | l :: _ when l.pageno = pageno ->
        if l.pagedispy >= 0 && l.pagey = 0
-       then postRedisplay "upbirdseye"
+       then Glutils.postRedisplay "upbirdseye"
        else gotopage1 pageno 0
     | _ :: rest -> loop rest
   in
@@ -1548,7 +1548,7 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
     | l :: _ when l.pageno = pageno ->
        if l.pagevh != l.pageh
        then gotoxy !S.x (U.clamp (l.pageh - l.pagevh + conf.interpagespace))
-       else postRedisplay "downbirdseye"
+       else Glutils.postRedisplay "downbirdseye"
     | _ :: rest -> loop rest
   in
   loop !S.layout;
@@ -1655,7 +1655,7 @@ class outlinelistview ~zebra ~source =
         let active = m_active + incr in
         let active = bound active 0 (source#getitemcount - 1) in
         let first = calcfirst m_first active in
-        postRedisplay "outline navigate";
+        Glutils.postRedisplay "outline navigate";
         coe {< m_active = active; m_first = first >}
       in
       let navscroll first =
@@ -1669,7 +1669,7 @@ class outlinelistview ~zebra ~source =
             else first + maxrows
           )
         in
-        postRedisplay "outline navscroll";
+        Glutils.postRedisplay "outline navscroll";
         coe {< m_first = first; m_active = active >}
       in
       let ctrl = Wsi.withctrl mask in
@@ -1690,25 +1690,25 @@ class outlinelistview ~zebra ~source =
            )
          in
          settext (not m_autonarrow) text;
-         postRedisplay "toggle auto narrowing";
+         Glutils.postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = not m_autonarrow >}
       | Ascii '/' when emptystr m_qsearch && not m_autonarrow ->
          settext true E.s;
-         postRedisplay "toggle auto narrowing";
+         Glutils.postRedisplay "toggle auto narrowing";
          coe {< m_first = 0; m_active = 0; m_autonarrow = true >}
       | Ascii 'n' when ctrl ->
          source#narrow m_qsearch;
          if not m_autonarrow
          then source#add_narrow_pattern m_qsearch;
-         postRedisplay "outline ctrl-n";
+         Glutils.postRedisplay "outline ctrl-n";
          coe {< m_first = 0; m_active = 0 >}
       | Ascii 'S' when ctrl ->
          let active = source#calcactive (getanchor ()) in
          let first = firstof m_first active in
-         postRedisplay "outline ctrl-s";
+         Glutils.postRedisplay "outline ctrl-s";
          coe {< m_first = first; m_active = active >}
       | Ascii 'u' when ctrl ->
-         postRedisplay "outline ctrl-u";
+         Glutils.postRedisplay "outline ctrl-u";
          if m_autonarrow && nonemptystr m_qsearch
          then (
            ignore (source#renarrow);
@@ -1726,13 +1726,13 @@ class outlinelistview ~zebra ~source =
          )
       | Ascii 'l' when ctrl ->
          let first = max 0 (m_active - (fstate.maxrows / 2)) in
-         postRedisplay "outline ctrl-l";
+         Glutils.postRedisplay "outline ctrl-l";
          coe {< m_first = first >}
 
       | Ascii '\t' when m_autonarrow ->
          if nonemptystr m_qsearch
          then (
-           postRedisplay "outline list view tab";
+           Glutils.postRedisplay "outline list view tab";
            source#add_narrow_pattern m_qsearch;
            settext true E.s;
            coe {< m_qsearch = E.s >}
@@ -1748,7 +1748,7 @@ class outlinelistview ~zebra ~source =
          super#key key mask
       | (Ascii _ | Code _) when m_autonarrow ->
          let pattern = m_qsearch ^ Ffi.toutf8 key in
-         postRedisplay "outlinelistview autonarrow add";
+         Glutils.postRedisplay "outlinelistview autonarrow add";
          source#narrow pattern;
          settext true pattern;
          coe {< m_first = 0; m_active = 0; m_qsearch = pattern >}
@@ -1757,7 +1757,7 @@ class outlinelistview ~zebra ~source =
          then coe self
          else
            let pattern = withoutlastutf8 m_qsearch in
-           postRedisplay "outlinelistview autonarrow backspace";
+           Glutils.postRedisplay "outlinelistview autonarrow backspace";
            ignore (source#renarrow);
            source#narrow pattern;
            settext true pattern;
@@ -1771,7 +1771,7 @@ class outlinelistview ~zebra ~source =
       | Right ->
          (if ctrl
           then (
-            postRedisplay "outline ctrl right";
+            Glutils.postRedisplay "outline ctrl right";
             {< m_pan = m_pan + 1 >}
           )
           else (
@@ -1782,7 +1782,7 @@ class outlinelistview ~zebra ~source =
       | Left ->
          (if ctrl
           then (
-            postRedisplay "outline ctrl left";
+            Glutils.postRedisplay "outline ctrl left";
             {< m_pan = m_pan - 1 >}
           )
           else (
@@ -1791,12 +1791,12 @@ class outlinelistview ~zebra ~source =
             else self#updownlevel ~-1
          )) |> coe
       | Home ->
-         postRedisplay "outline home";
+         Glutils.postRedisplay "outline home";
          coe {< m_first = 0; m_active = 0 >}
       | End ->
          let active = source#getitemcount - 1 in
          let first = max 0 (active - fstate.maxrows) in
-         postRedisplay "outline end";
+         Glutils.postRedisplay "outline end";
          coe {< m_active = active; m_first = first >}
       | Delete|Escape|Insert|Enter|Ascii _|Code _|Ctrl _|Backspace|Fn _ ->
          super#key key mask
@@ -2464,9 +2464,9 @@ let enterinfomode =
            if m_prevmemused != !S.memused
            then (
              m_prevmemused <- !S.memused;
-             postRedisplay "memusedchanged";
+             Glutils.postRedisplay "memusedchanged";
            )
-        | Pdim -> postRedisplay "pdimchanged"
+        | Pdim -> Glutils.postRedisplay "pdimchanged"
         | Docinfo -> fillsrc prevmode prevuioh
       method! key key mask =
         if not (Wsi.withctrl mask)
@@ -2477,7 +2477,7 @@ let enterinfomode =
           | _ -> super#key key mask
         else super#key key mask
     end |> setuioh;
-    postRedisplay "info";
+    Glutils.postRedisplay "info";
   )
 
 let enterhelpmode =
@@ -2515,7 +2515,7 @@ let enterhelpmode =
      resetmstate ();
      new listview ~zebra:false ~helpmode:true
        ~source ~trusted:true ~modehash |> setuioh;
-     postRedisplay "help"
+     Glutils.postRedisplay "help"
 
 let entermsgsmode =
   let msgsource = object
@@ -2566,7 +2566,7 @@ let entermsgsmode =
       then msgsource#reset;
       super#display
   end |> setuioh;
-  postRedisplay "msgs"
+  Glutils.postRedisplay "msgs"
 
 let getusertext s =
   let editor = getenvdef "EDITOR" E.s in
@@ -2690,7 +2690,7 @@ let enterannotmode opaque slinkindex =
   object inherit listview ~zebra:false
                    ~helpmode:false ~source ~trusted:false ~modehash
   end |> setuioh;
-  postRedisplay "enterannotmode"
+  Glutils.postRedisplay "enterannotmode"
 
 let gotoremote spec =
   let filename, dest = splitatchar spec '#' in
@@ -2942,7 +2942,7 @@ let enteroutlinemode, enterbookmarkmode, enterhistmode =
         source#reset anchor outlines;
         S.text := source#greetmsg;
         new outlinelistview ~zebra:(sourcetype=`history) ~source |> setuioh;
-        postRedisplay "enter selector";
+        Glutils.postRedisplay "enter selector";
       )
     )
   in
@@ -3096,7 +3096,7 @@ let viewkeyboard key mask =
     S.mode := Textentry (te, fun _ -> S.mode := mode);
     S.text := E.s;
     enttext ();
-    postRedisplay "view:enttext"
+    Glutils.postRedisplay "view:enttext"
   and histback () =
     match !S.nav.past with
     | [] -> ()
@@ -3155,7 +3155,7 @@ let viewkeyboard key mask =
      begin match !S.mstate with
      | Mzoomrect _ ->
         resetmstate ();
-        postRedisplay "kill rect";
+        Glutils.postRedisplay "kill rect";
      | Msel _
      | Mpan _
      | Mscrolly | Mscrollx
@@ -3168,7 +3168,7 @@ let viewkeyboard key mask =
            | Ltgendir _ | Ltnotready _ -> S.lnava := None
            end;
            S.mode := View;
-           postRedisplay "esc leave linknav"
+           Glutils.postRedisplay "esc leave linknav"
         | Birdseye _ | Textentry _ | View ->
            match !S.ranchors with
            | [] -> raise Quit
@@ -3185,7 +3185,7 @@ let viewkeyboard key mask =
      S.rects := [];
      S.text := E.s;
      Hashtbl.iter (fun _ opaque -> Ffi.clearmark opaque) S.pagemap;
-     postRedisplay "dehighlight";
+     Glutils.postRedisplay "dehighlight";
   | Ascii (('/' | '?') as c) ->
      let ondone isforw s =
        cbput !S.hists.pat s;
@@ -3269,7 +3269,7 @@ let viewkeyboard key mask =
               pageentry, ondone, true)
   | Ascii 'b' ->
      conf.scrollb <- if conf.scrollb = 0 then (scrollbvv lor scrollbhv) else 0;
-     postRedisplay "toggle scrollbar";
+     Glutils.postRedisplay "toggle scrollbar";
   | Ascii 'B' ->
      S.bzoom := not !S.bzoom;
      S.rects := [];
@@ -3277,7 +3277,7 @@ let viewkeyboard key mask =
   | Ascii 'l' ->
      conf.hlinks <- not conf.hlinks;
      S.text := "highlightlinks " ^ onoffs conf.hlinks;
-     postRedisplay "toggle highlightlinks"
+     Glutils.postRedisplay "toggle highlightlinks"
   | Ascii 'F' ->
      if conf.angle mod 360 = 0
      then (
@@ -3286,7 +3286,7 @@ let viewkeyboard key mask =
        let te = ("goto: ", E.s, None, linknentry, linknact gotounder, false) in
        S.mode := Textentry (te, (fun _ -> S.glinks := false; S.mode := mode));
        S.text := E.s;
-       postRedisplay "view:linkent(F)"
+       Glutils.postRedisplay "view:linkent(F)"
      )
      else impmsg "hint mode does not work under rotation"
   | Ascii 'y' ->
@@ -3297,7 +3297,7 @@ let viewkeyboard key mask =
                false) in
      S.mode := Textentry (te, (fun _ -> S.glinks := false; S.mode := mode));
      S.text := E.s;
-     postRedisplay "view:linkent"
+     Glutils.postRedisplay "view:linkent"
   | Ascii 'a' ->
      begin match !S.autoscroll with
      | Some step ->
@@ -3328,7 +3328,7 @@ let viewkeyboard key mask =
      | [] -> ()
      | l :: _ ->
         Wsi.reshape l.pagew l.pageh;
-        postRedisplay "w"
+        Glutils.postRedisplay "w"
      end
   | Ascii '\'' -> enterbookmarkmode ()
   | Ascii 'i' -> enterinfomode ()
@@ -3349,7 +3349,7 @@ let viewkeyboard key mask =
   | Ascii ('['|']' as c) ->
      conf.colorscale <-
        bound (conf.colorscale +. (if c = ']' then 0.1 else -0.1)) 0.0 1.0;
-     postRedisplay "brightness";
+     Glutils.postRedisplay "brightness";
   | Ascii 'c' when !S.mode = View ->
      if Wsi.withalt mask
      then (
@@ -3427,7 +3427,7 @@ let viewkeyboard key mask =
        gotoxy (U.panbound (!S.x + dx)) !S.y
      else (
        S.text := E.s;
-       postRedisplay "left/right"
+       Glutils.postRedisplay "left/right"
      )
   | Prior ->
      let y =
@@ -3480,7 +3480,7 @@ let viewkeyboard key mask =
             let color = (0.0, 0.0, 1.0 /. (l.pageno mod 3 |> float), 0.5) in
             S.rects := (l.pageno, color, rect) :: !S.rects;
        ) !S.layout;
-     postRedisplay "v";
+     Glutils.postRedisplay "v";
   | Ascii '|' ->
      let mode = !S.mode in
      let cmd = ref E.s in
@@ -3500,7 +3500,7 @@ let viewkeyboard key mask =
      let te =
        "| ", !cmd, Some (onhist !S.hists.sel), textentry, ondone, true
      in
-     postRedisplay "|";
+     Glutils.postRedisplay "|";
      S.mode := Textentry (te, onleave);
   | (Ascii _|Fn _|Enter|Left|Right|Code _|Ctrl _) ->
      vlog "huh? %s" (Wsi.keyname key)
@@ -3520,7 +3520,7 @@ let linknavkeyboard key mask linknav =
        if pv = Keys.Enter
        then
          let under = Ffi.getlink opaque n in
-         postRedisplay "link gotounder";
+         Glutils.postRedisplay "link gotounder";
          gotounder under;
          S.mode := View;
        else
@@ -3560,7 +3560,7 @@ let linknavkeyboard key mask linknav =
                  | Lfound m ->
                     showlinktype (Ffi.getlink opaque m);
                     S.mode := LinkNav (Ltexact (pageno, m));
-                    postRedisplay "linknav jpage";
+                    Glutils.postRedisplay "linknav jpage";
                  | Lnotfound -> notfound dir
                  end;
               | _ | exception Not_found -> notfound dir
@@ -3580,7 +3580,7 @@ let linknavkeyboard key mask linknav =
                 let d = fstate.fontsize + 1 in
                 if y1 - l.pagey > l.pagevh - d
                 then gotopage1 l.pageno (y1 - !S.winh + d)
-                else postRedisplay "linknav";
+                else Glutils.postRedisplay "linknav";
               );
               showlinktype (Ffi.getlink opaque m);
               S.mode := LinkNav (Ltexact (l.pageno, m));
@@ -3597,7 +3597,7 @@ let linknavkeyboard key mask linknav =
     | Ltgendir _ | Ltnotready _ -> ()
     end;
     S.mode := View;
-    postRedisplay "leave linknav"
+    Glutils.postRedisplay "leave linknav"
   )
   else
     match linknav with
@@ -3669,7 +3669,7 @@ let birdseyekeyboard key mask
                Birdseye (
                    oconf, leftx, !S.pagecount - 1, hooverpageno, anchor
                  );
-             postRedisplay "birdseye pagedown";
+             Glutils.postRedisplay "birdseye pagedown";
            )
            else gotoxy !S.x (U.clamp (incr + conf.interpagespace*2));
 
@@ -3698,7 +3698,7 @@ let birdseyekeyboard key mask
        gotoxy
          !S.x
          (max 0 (getpagey pageno - (!S.winh - h - conf.interpagespace)))
-     else postRedisplay "birdseye end";
+     else Glutils.postRedisplay "birdseye end";
 
   | Delete|Insert|Ascii _|Code _|Ctrl _|Fn _|Backspace -> viewkeyboard key mask
 
@@ -3717,7 +3717,7 @@ let drawpage l =
            GlDraw.color c;
            GlDraw.line_width 3.0;
            let dispx = l.pagedispx in
-           linerect
+           Glutils.linerect
              (float (dispx-1)) (float (l.pagedispy-1))
              (float (dispx+l.pagevw+1))
              (float (l.pagedispy+l.pagevh+1));
@@ -3775,16 +3775,16 @@ let scrollindicator () =
   GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
   let (r, g, b, alpha) = conf.sbarcolor in
   GlDraw.color (r, g, b) ~alpha;
-  filledrect (float x0) 0. (float x1) (float !S.winh);
-  filledrect
+  Glutils.filledrect (float x0) 0. (float x1) (float !S.winh);
+  Glutils.filledrect
     (float hx0) (float (!S.winh - sbh))
     (float (hx0 + !S.winw)) (float !S.winh);
   let (r, g, b, alpha) = conf.sbarhndlcolor in
   GlDraw.color (r, g, b) ~alpha;
 
-  filledrect (float x0) ph (float x1) (ph +. sh);
+  Glutils.filledrect (float x0) ph (float x1) (ph +. sh);
   let pw = pw +. float hx0 in
-  filledrect pw (float (!S.winh - sbh)) (pw +. sw) (float !S.winh);
+  Glutils.filledrect pw (float (!S.winh - sbh)) (pw +. sw) (float !S.winh);
   Gl.disable `blend
 
 let showsel () =
@@ -3813,7 +3813,7 @@ let showrects = function
                let dy = float (l.pagedispy - l.pagey) in
                let r, g, b, alpha = c in
                GlDraw.color (r, g, b) ~alpha;
-               filledrect2
+               Glutils.filledrect2
                  (x0+.dx) (y0+.dy)
                  (x1+.dx) (y1+.dy)
                  (x3+.dx) (y3+.dy)
@@ -3866,7 +3866,7 @@ let display () =
      Gl.enable `blend;
      GlDraw.color (0.3, 0.3, 0.3) ~alpha:0.5;
      GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
-     filledrect (float x0) (float y0) (float x1) (float y1);
+     Glutils.filledrect (float x0) (float y0) (float x1) (float y1);
      Gl.disable `blend;
   | Msel _
   | Mpan _
@@ -3930,7 +3930,7 @@ let annot inline x y =
        S.mode := Textentry (te, fun _ -> S.mode := mode);
        S.text := E.s;
        enttext ();
-       postRedisplay "annot"
+       Glutils.postRedisplay "annot"
      else add @@ getusertext E.s
   | _ -> ()
 
@@ -3992,7 +3992,7 @@ let viewmulticlick clicks x y mask =
     )
     else None
   in
-  postRedisplay "viewmulticlick";
+  Glutils.postRedisplay "viewmulticlick";
   onppundermouse g x y (fun () -> impmsg "nothing to select") ()
 
 let canselect () =
@@ -4075,7 +4075,7 @@ let viewmouse button down x y mask =
        if Wsi.withshift mask
        then (
          annot conf.annotinline x y;
-         postRedisplay "addannot"
+         Glutils.postRedisplay "addannot"
        )
        else
          let p = (x, y) in
@@ -4089,7 +4089,7 @@ let viewmouse button down x y mask =
           then zoomrect x0 y0 x y
           else (
             resetmstate ();
-            postRedisplay "kill accidental zoom rect";
+            Glutils.postRedisplay "kill accidental zoom rect";
           )
        | Msel _
        | Mpan _
@@ -4132,7 +4132,7 @@ let viewmouse button down x y mask =
           if canselect ()
           then (
             S.mstate := Msel ((x, y), (x, y));
-            postRedisplay "mouse select";
+            Glutils.postRedisplay "mouse select";
           )
         )
         else (
@@ -4164,7 +4164,7 @@ let viewmouse button down x y mask =
                          pipef ~closew:false "Msel"
                            (fun w ->
                              Ffi.copysel w opaque;
-                             postRedisplay "Msel") cmd
+                             Glutils.postRedisplay "Msel") cmd
                        in
                        dosel conf.selcmd ();
                        S.roamf := dosel conf.paxcmd;
@@ -4237,7 +4237,7 @@ let uioh = object
 
          | Msel (a, _) ->
             S.mstate := Msel (a, (x, y));
-            postRedisplay "motion select";
+            Glutils.postRedisplay "motion select";
 
          | Mscrolly ->
             let y = min !S.winh (max 0 y) in
@@ -4249,7 +4249,7 @@ let uioh = object
 
          | Mzoomrect (p0, _) ->
             S.mstate := Mzoomrect (p0, (x, y));
-            postRedisplay "motion zoomrect";
+            Glutils.postRedisplay "motion zoomrect";
       end;
       !S.uioh
 
@@ -4261,14 +4261,14 @@ let uioh = object
               if hooverpageno != -1
               then (
                 S.mode := Birdseye (conf, leftx, pageno, -1, anchor);
-                postRedisplay "pmotion birdseye no hoover";
+                Glutils.postRedisplay "pmotion birdseye no hoover";
               )
            | l :: rest ->
               if y > l.pagedispy && y < l.pagedispy + l.pagevh
                  && x > l.pagedispx && x < l.pagedispx + l.pagevw
               then (
                 S.mode := Birdseye (conf, leftx, pageno, l.pageno, anchor);
-                postRedisplay "pmotion birdseye hoover";
+                Glutils.postRedisplay "pmotion birdseye hoover";
               )
               else loop rest
          in
@@ -4362,7 +4362,7 @@ let ract cmds =
         let color = (r, g, b, a) in
         if conf.verbose then debugrect rect;
         S.rects := (pageno, color, rect) :: !S.rects;
-        postRedisplay s;
+        Glutils.postRedisplay s;
       )
   in
   match cl with
@@ -4544,7 +4544,7 @@ let () =
       method private cleanup =
         S.roamf := noroamf;
         Hashtbl.iter (fun _ opaque -> Ffi.clearmark opaque) S.pagemap
-      method expose = postRedisplay "expose"
+      method expose = Glutils.postRedisplay "expose"
       method visible v =
         let name =
           match v with
@@ -4577,7 +4577,7 @@ let () =
                        if m_clicks = 1
                        then (
                          self#cleanup;
-                         postRedisplay "cleanup";
+                         Glutils.postRedisplay "cleanup";
                          !S.uioh#button b d x y m
                        )
                        else !S.uioh#multiclick m_clicks x y m
@@ -4639,7 +4639,7 @@ let () =
       method opendoc path =
         S.mode := View;
         setuioh uioh;
-        postRedisplay "opendoc";
+        Glutils.postRedisplay "opendoc";
         opendoc path !S.password
     end
   in
@@ -4714,7 +4714,7 @@ let () =
       | None -> fdl
       | Some fd -> fd :: fdl
     in
-    if !redisplay
+    if !Glutils.redisplay
     then (
       Glutils.redisplay := false;
       display ();
