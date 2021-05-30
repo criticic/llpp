@@ -1009,8 +1009,9 @@ static enum a_searchresult matchline (regex_t *re, fz_stext_line *line,
     }
 
     ret = regexec (re, p, 1, &rm, 0);
+    free (p);
+
     if (ret) {
-        free (p);
         if (ret != REG_NOMATCH) {
             int isize;
             size_t size;
@@ -1056,7 +1057,6 @@ static enum a_searchresult matchline (regex_t *re, fz_stext_line *line,
                 e.ur.x, s.ul.y,
                 e.lr.x, e.lr.y,
                 s.ul.x, e.lr.y);
-        free (p);
         return Found;
     }
 }
