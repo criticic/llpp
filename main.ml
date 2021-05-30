@@ -3757,7 +3757,7 @@ let postdrawpage l linkindexbase =
          Ffi.postprocess opaque hlmask x y
            (linkindexbase, s, conf.hfsize, conf.hcs) in
        if n < 0
-       then (Glutils.redisplay := true; 0)
+       then (Glutils.redisplay := not @@ hasdata !S.ss; 0)
        else n
      else 0
 
