@@ -55,7 +55,7 @@ enum { Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
 enum { FitWidth, FitProportional, FitPage };
 enum { dir_first, dir_last };
 enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
-enum { uuri, utext, uannot, unone };
+enum { uuri, utext, utextannot, ufileannot, unone };
 enum { mark_page, mark_block, mark_line, mark_word };
 
 struct slice {
@@ -2441,7 +2441,10 @@ ML (getlink (value ptr_v, value n_v))
         Field (ret_v, 0) = str_v;
     }
     else {
-        ret_v = caml_alloc_small (1, uannot);
+        int ty = pdf_annot_type (state.ctx, slink->u.annot)
+            == PDF_ANNOT_FILE_ATTACHMENT ? ufileannot : utextannot;
+
+        ret_v = caml_alloc_small (1, ty);
         tup_v = caml_alloc_tuple (2);
         Field (ret_v, 0) = tup_v;
         Field (tup_v, 0) = ptr_v;
@@ -2479,7 +2482,7 @@ ML (getlinkn (value ptr_v, value c_v, value n_v, value noff_v))
     CAMLreturn (ret_v);
 }
 
-ML (getannotcontents (value ptr_v, value n_v))
+ML (gettextannot (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
     CAMLlocal1 (ret_v);
@@ -2497,16 +2500,25 @@ ML (getannotcontents (value ptr_v, value n_v))
         slink = &page->slinks[Int_val (n_v)];
         annot = slink->u.annot;
         contents = pdf_annot_contents (state.ctx, annot);
-
-        if ((!contents || !*contents)
-            && pdf_annot_type (state.ctx, annot) == PDF_ANNOT_FILE_ATTACHMENT) {
-            pdf_obj *fs = pdf_dict_get (state.ctx, annot->obj, PDF_NAME (FS));
-            fprintf (stderr, "file attachment annotation: %s\n",
-                     pdf_embedded_file_name (state.ctx, fs));
-        }
     }
     unlock (__func__);
     ret_v = caml_copy_string (contents);
+    CAMLreturn (ret_v);
+}
+
+ML (getfileannot (value ptr_v, value n_v))
+{
+    CAMLparam2 (ptr_v, n_v);
+    CAMLlocal1 (ret_v);
+
+    lock (__func__);
+
+    struct page *page = parse_pointer (__func__, String_val (ptr_v));
+    struct slink *slink = &page->slinks[Int_val (n_v)];
+    pdf_obj *fs = pdf_dict_get (state.ctx, slink->u.annot->obj, PDF_NAME (FS));
+    ret_v = caml_copy_string (pdf_embedded_file_name (state.ctx, fs));
+
+    unlock (__func__);
     CAMLreturn (ret_v);
 }
 
@@ -2554,7 +2566,7 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
 
     annot = getannot (page, x, y);
     if (annot) {
-        int i, n = -1;
+        int i, n = -1, ty;
 
         ensureslinks (page);
         for (i = 0; i < page->slinkcount; ++i) {
@@ -2564,11 +2576,14 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
                 break;
             }
         }
-        ret_v = caml_alloc_small (1, uannot);
+        ty = pdf_annot_type (state.ctx, annot->annot)
+            == PDF_ANNOT_FILE_ATTACHMENT ? ufileannot : utextannot;
+
+        ret_v = caml_alloc_small (1, ty);
         tup_v = caml_alloc_tuple (2);
         Field (ret_v, 0) = tup_v;
         Field (tup_v, 0) = ptr_v;
-        Field (tup_v, 1) = Val_int (n);
+        Field (tup_v, 1) = Int_val (n);
         goto unlock;
     }
 

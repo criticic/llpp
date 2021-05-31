@@ -154,8 +154,10 @@ let undertext = function
   | Unone -> "none"
   | Ulinkuri s -> s
   | Utext s -> "font: " ^ s
-  | Uannotation (opaque, slinkindex) ->
-     "annotation: " ^ Ffi.getannotcontents opaque slinkindex
+  | Utextannot (opaque, slinkindex) ->
+     "text annotation: " ^ Ffi.gettextannot opaque slinkindex
+  | Ufileannot (opaque, slinkindex) ->
+     "file annotation: " ^ Ffi.getfileannot opaque slinkindex
 
 let updateunder x y =
   match getunder x y with
@@ -166,8 +168,11 @@ let updateunder x y =
   | Utext s ->
      if conf.underinfo then showtext 'f' ("ont: " ^ s);
      Wsi.setcursor Wsi.CURSOR_TEXT
-  | Uannotation _ ->
-     if conf.underinfo then showtext 'a' "nnotation";
+  | Utextannot _ ->
+     if conf.underinfo then showtext 't' "ext annotation";
+     Wsi.setcursor Wsi.CURSOR_INFO
+  | Ufileannot _ ->
+     if conf.underinfo then showtext 'f' "ile annotation";
      Wsi.setcursor Wsi.CURSOR_INFO
 
 let showlinktype under =
@@ -2682,7 +2687,7 @@ let enterannotmode opaque slinkindex =
     end
   in
   S.text := E.s;
-  let s = Ffi.getannotcontents opaque slinkindex in
+  let s = Ffi.gettextannot opaque slinkindex in
   resetmstate ();
   msgsource#reset s;
   let source = (msgsource :> lvsource) in
@@ -2755,8 +2760,8 @@ let gotounder = function
      let pageno, x, y = Ffi.uritolocation s in
      addnav ();
      gotopagexy pageno x y
-  | Utext _ | Unone -> ()
-  | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
+  | Utext _ | Unone  | Ufileannot _ -> ()
+  | Utextannot (opaque, slinkindex) -> enterannotmode opaque slinkindex
 
 let gotooutline (_, _, kind) =
   match kind with
@@ -4125,8 +4130,8 @@ let viewmouse button down x y mask =
      | Unone when down ->
         Wsi.setcursor Wsi.CURSOR_FLEUR;
         S.mstate := Mpan (x, y);
-     | Uannotation (opaque, slinkindex) -> enterannotmode opaque slinkindex
-     | Unone | Utext _ ->
+     | Utextannot (opaque, slinkindex) -> enterannotmode opaque slinkindex
+     | Unone | Utext _ | Ufileannot _ ->
         if down
         then (
           if canselect ()

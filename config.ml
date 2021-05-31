@@ -41,7 +41,8 @@ and under =
   | Unone
   | Ulinkuri of string
   | Utext of facename
-  | Uannotation of (opaque * slinkindex)
+  | Utextannot of (opaque * slinkindex)
+  | Ufileannot of (opaque * slinkindex)
 and slinkindex = int
 and facename = string
 and launchcommand = string
