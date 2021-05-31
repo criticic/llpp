@@ -45,8 +45,7 @@ external gettextannot : opaque -> slinkindex -> string = "ml_gettextannot"
 external getfileannot : opaque -> slinkindex -> string = "ml_getfileannot"
 external wcmd : Unix.file_descr -> bytes -> int -> unit = "ml_wcmd"
 external rcmd : Unix.file_descr -> string = "ml_rcmd"
-external uritolocation : string -> (pageno * float * float)
-  = "ml_uritolocation"
+external uritolocation : string -> (pageno * float * float) = "ml_uritolocation"
 external isexternallink : string -> bool = "ml_isexternallink"
 
 (* copysel _will_ close the supplied descriptor *)
