@@ -2526,13 +2526,21 @@ ML0 (savefileannot (value ptr_v, value n_v, value path_v))
 {
     CAMLparam3 (ptr_v, n_v, path_v);
     struct page *page = parse_pointer (__func__, String_val (ptr_v));
+    const char *path = String_val (path_v);
 
     lock (__func__);
     struct slink *slink = &page->slinks[Int_val (n_v)];
-    pdf_obj *fs = pdf_dict_get (state.ctx, slink->u.annot->obj, PDF_NAME (FS));
-    fz_buffer *buf = pdf_load_embedded_file (state.ctx, fs);
-    fz_save_buffer (state.ctx, buf, String_val (path_v));
-    fz_drop_buffer (state.ctx, buf);
+    fz_try (state.ctx) {
+        pdf_obj *fs =
+            pdf_dict_get (state.ctx, slink->u.annot->obj, PDF_NAME (FS));
+        fz_buffer *buf = pdf_load_embedded_file (state.ctx, fs);
+        fz_save_buffer (state.ctx, buf, path);
+        fz_drop_buffer (state.ctx, buf);
+        printd ("progress 1 saved '%s'", path);
+    }
+    fz_catch (state.ctx) {
+        printd ("emsg saving '%s': %s", path, fz_caught_message (state.ctx));
+    }
     unlock (__func__);
 }
 
