@@ -2760,8 +2760,21 @@ let gotounder = function
      let pageno, x, y = Ffi.uritolocation s in
      addnav ();
      gotopagexy pageno x y
-  | Utext _ | Unone  | Ufileannot _ -> ()
+  | Utext _ | Unone -> ()
   | Utextannot (opaque, slinkindex) -> enterannotmode opaque slinkindex
+  | Ufileannot (opaque, slinkindex) ->
+     if emptystr conf.savecmd
+     then adderrmsg "savepath-command is empty"
+            "don't know where to save attachment"
+     else
+       let filename = Ffi.getfileannot opaque slinkindex in
+       let savecmd = Str.global_replace Re.percent filename conf.savecmd in
+       let path =
+         getcmdoutput
+           (adderrfmt savecmd
+              "failed to obtain path to the saved attachment: %s") savecmd
+       in
+       Ffi.savefileannot opaque slinkindex path
 
 let gotooutline (_, _, kind) =
   match kind with

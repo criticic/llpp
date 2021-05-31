@@ -2522,6 +2522,20 @@ ML (getfileannot (value ptr_v, value n_v))
     CAMLreturn (ret_v);
 }
 
+ML0 (savefileannot (value ptr_v, value n_v, value path_v))
+{
+    CAMLparam3 (ptr_v, n_v, path_v);
+    struct page *page = parse_pointer (__func__, String_val (ptr_v));
+
+    lock (__func__);
+    struct slink *slink = &page->slinks[Int_val (n_v)];
+    pdf_obj *fs = pdf_dict_get (state.ctx, slink->u.annot->obj, PDF_NAME (FS));
+    fz_buffer *buf = pdf_load_embedded_file (state.ctx, fs);
+    fz_save_buffer (state.ctx, buf, String_val (path_v));
+    fz_drop_buffer (state.ctx, buf);
+    unlock (__func__);
+}
+
 ML (getlinkrect (value ptr_v, value n_v))
 {
     CAMLparam2 (ptr_v, n_v);
