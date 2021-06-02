@@ -24,6 +24,9 @@ missing() {
 
 # https://unix.stackexchange.com/questions/32569/removing-all-spaces-tabs-newlines-etc-from-a-variable
 executable_p shuf || shuf() { cat; }
+shufstr='1\nI\n0\n3\nl\nO\n|\nЗ'
+shufstr="$shufstr З\n5\n3\nӠ\nʒ\nO\nI\nl\n1\n|\nrn\nS\n0\n"
+
 text() {
     cat <<EOF
 <pre style="font-size: ${1}pt;">
@@ -47,7 +50,8 @@ Waltz, bad nymph, for quick jigs vex
 ',.ფyfგcრლაოეუიდჰთნსყჯქxბმwვზ
 Σομε πσθδο γρεεκ
 བསྐུར་ཡིག་མགོ་
-$(printf '1\nI\n0\n3\nl\nO\n|\nЗ' | shuf | tr -d '[[:space:]]' ||:)
+$(printf "$shufstr" | shuf | tr -d '[[:space:]]' ||:)
+З53ӠʒOIlL1|rnS0o
 \`1234567890-=\\
 ~!@#\$$%&permil;^&amp;*()_+|
 ₹₽£$€
