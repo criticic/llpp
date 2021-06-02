@@ -2515,7 +2515,9 @@ ML (getfileannot (value ptr_v, value n_v))
 
     struct page *page = parse_pointer (__func__, String_val (ptr_v));
     struct slink *slink = &page->slinks[Int_val (n_v)];
-    pdf_obj *fs = pdf_dict_get (state.ctx, slink->u.annot->obj, PDF_NAME (FS));
+    pdf_obj *fs = pdf_dict_get (state.ctx,
+                                pdf_annot_obj (state.ctx, slink->u.annot),
+                                PDF_NAME (FS));
     ret_v = caml_copy_string (pdf_embedded_file_name (state.ctx, fs));
 
     unlock (__func__);
@@ -2531,8 +2533,9 @@ ML0 (savefileannot (value ptr_v, value n_v, value path_v))
     lock (__func__);
     struct slink *slink = &page->slinks[Int_val (n_v)];
     fz_try (state.ctx) {
-        pdf_obj *fs =
-            pdf_dict_get (state.ctx, slink->u.annot->obj, PDF_NAME (FS));
+        pdf_obj *fs = pdf_dict_get (state.ctx,
+                                    pdf_annot_obj (state.ctx, slink->u.annot),
+                                    PDF_NAME (FS));
         fz_buffer *buf = pdf_load_embedded_file (state.ctx, fs);
         fz_save_buffer (state.ctx, buf, path);
         fz_drop_buffer (state.ctx, buf);
