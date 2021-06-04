@@ -28,13 +28,47 @@ shufstr='1\nI\n0\n3\nl\nO\n|\nЗ'
 shufstr="$shufstr \nЗ\n5\n3\nӠ\nʒ\nO\nI\nl\n1\n|\nrn\nS\n0"
 shufstr="$shufstr \n5\nS\n3\nЗ\nI\n|\nl"
 
+sep='&nbsp;'
+oh="
+o0$sep
+0o$sep
+0ϴ$sep
+ϴ0$sep
+0Ø$sep
+Ø0$sep
+1l$sep
+l1$sep
+1I$sep
+I1$sep
+LI$sep
+IL$sep
+3З$sep
+З3$sep
+Ӡ3$sep
+3Ӡ$sep
+I|$sep
+|I$sep
+l|$sep
+|l$sep
+S5 S9$sep
+5S 95$sep
+2Z$sep
+Z2$sep
+B8$sep
+8B$sep
+o0$sep
+0o$sep
+rnm$sep
+mrn$sep
+"
+
 text() {
     cat <<EOF
 <pre style="font-size: ${1}pt;">
 $1 <hr>
 EOF
     test -n "$2" && cat $2 || cat <<EOF
-S9 З3Ӡʒ I|l1 O0 0O o0 0o ØO OD DO Oo Do m rn m -~ ~-  8B B8 BB 88B8 88B8
+S9 З3Ӡʒ I|l1 O0 0O o0 0o ØO OD DO Oo Do m rn m -~ ~-  8B B8 BB 88B8 88B8 ://r
 
 abcdefghijklmnopqrstuvwxyz
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -51,11 +85,13 @@ Waltz, bad nymph, for quick jigs vex
 ',.ფyfგcრლაოეუიდჰთნსყჯქxბმwვზ
 Σομε πσθδο γρεεκ
 བསྐུར་ཡིག་མགོ་
-$(printf "$shufstr" | shuf | tr -d '[[:space:]]' ||:)
+SH-3ze $(printf "$shufstr" | shuf | tr -d '[[:space:]]' ||:)
+SH-0oh $(printf "$oh" | shuf | tr -d '[[:space:]]' ||:)
 \`1234567890-=\\
 ~!@#\$$%&permil;^&amp;*()_+|
 ₹₽£$€
-$(printf "$shufstr" | tr -d '[[:space:]]' ||:)
+3ze $(printf "$shufstr" | tr -d '[[:space:]]' ||:)
+0oh $(printf "$oh" | tr -d '[[:space:]]' ||:)
 [];',.//|/\ &gt;- -&gt; ~~&lt; &lt;-- --&gt; == === ==&gt; &lt;==
 {}:"&lt;&gt;?" Januardo90 repo2obj
 S in S9 59 S9 is like 5 also
