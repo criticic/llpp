@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 die() {
     echo "$1" >&2
@@ -18,7 +18,7 @@ missing() {
     executable_p $1 || \
         eval "$1() { die \"$2 is needed for \$type conversion\"; }"
 }
-trap 'test -n "$casp" && rm -f "$casp"' 0
+trap 'test -n "${casp-}" && rm -f "$casp"' 0
 
 while getopts s:c:m:t:fu opt; do
     case $opt in
@@ -74,7 +74,8 @@ typeofmime() {
             | application/vnd.ms-excel                   \
             | application/vnd.oasis.opendocument.*) type=uno;;
         image/svg+xml) type=svg;;
-        image/png | image/jpeg) test -n "$dc" && type="image" || type="image2";;
+        image/png | image/jpeg)
+            test -n "${dc-}" && type="image" || type="image2";;
         image/*) type=image;;
         application/x-dvi) type=dvi;;
         *) return 1;;
@@ -83,7 +84,7 @@ typeofmime() {
 }
 
 if test -z "$type"; then
-    test -z "$mime" &&                                          \
+    test -z "${mime-}" &&                                          \
         mime=$(file -L --mime-type -b "$1" || die "$mime") ||   \
             $(file -L --mime-type -bz "$1" || die "$mime")
     typeofmime "$mime" || die "unhandled file type: '$mime'"
@@ -91,27 +92,30 @@ fi
 
 caspsuf=".pdf"
 case $type in
-    ps) conv='ps2pdf - "$casp"';;
-    image2|pdf) test -z "$dc" && exec llpp "$@" || conv='cat >"$casp"';;
-    texi) {
+    ps)
+        missing ps2pdf "ps2df(https://ghostscript.com/)"
+        conv='ps2pdf - "$casp"'
+        ;;
+    image2|pdf) test -z "${dc-}" && exec llpp "$@" || conv='cat >"$casp"';;
+    texi)
         missing texi2html "texi2html(http://www.nongnu.org/texi2html/)"
         missing prince "PrinceXML(http://www.princexml.com/)"
         conv='texi2html - -o - | prince $css - -o "$casp"'
-    };;
-    djvu) {
+        ;;
+    djvu)
         missing ddjvu "ddjvu(http://djvu.sourceforge.net/doc/man/ddjvu.html)"
         conv='ddjvu -format=pdf - "$casp"'
-    };;
-    html) {
+        ;;
+    html)
         missing prince "Prince(http://www.princexml.com/)"
         conv='prince $css - -o "$casp"'
-    };;
-    html2epub) {
+        ;;
+    html2epub)
         missing pandoc "pandoc(http://pandoc.org)"
         caspsuf=".epub"
         conv='pandoc -r html - -w epub2 -o "$casp"'
-    };;
-    word) {
+        ;;
+    word)
         if executable_p unoconv && test -z "$dc"; then
             unset filt
             conv='unoconv -o "$casp" "$1"'
@@ -119,14 +123,14 @@ case $type in
             missing antiword "antiword or unoconv"
             conv='antiword -m 8859-1.txt -a a4 - >"$casp"'
         fi
-    };;
-    uno) {
+        ;;
+    uno)
         test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
         missing unoconv "unoconv(http://dag.wiee.rs/home-made/unoconv/)"
         conv='unoconv -o "$casp" "$1"'
-    };;
-    svg) {
+        ;;
+    svg)
         if executable_p inkscape && test -z "$dc"; then
             unset filt
             conv='inkscape -z -A "$casp" "$1"'
@@ -140,29 +144,29 @@ case $type in
                 conv='unoconv -o "$casp" "$1"'
             fi
         fi
-    };;
-    image) {
+        ;;
+    image)
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
         conv='convert - pdf:"$casp"'
-    };;
-    dvi) {
+    ;;
+    dvi)
         test -n "$dc" && die "cannot convert compressed '$mime'"
         unset filt
         missing dvipdf "dvipdf(http://ghostscript.com/)"
         conv='dvipdf "$1" "$casp"'
-    };;
-    text) {
+    ;;
+    text)
         missing pandoc "pandoc(http://pandoc.org/)"
         conv='pandoc -t epub2 - -o "$casp"'
         caspsuf=.epub
-    };;
+    ;;
     *) die "unhandled filter type: '$type'";;
 esac
 
 hash=$(cksum "$hashof") || die "$hash"
 casp=$cachedir/${hash%% *}$caspsuf
 
-{ test -n "$force" || test ! -e "$casp"; } && eval "$filt" "$conv"
+{ test -n "${force-}" || test ! -e "$casp"; } && eval "$filt" "$conv"
 shift
 
 exec llpp -origin $origin "$@" "$casp"
