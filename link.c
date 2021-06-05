@@ -1413,7 +1413,7 @@ static void *mainloop (void UNUSED_ATTR *unused)
                 size_t size;
 
                 size = regerror (ret, &re, errbuf, sizeof (errbuf));
-                printd ("msg regcomp failed `%.*s'", (int) size, errbuf);
+                printd ("emsg regcomp failed `%.*s'", (int) size, errbuf);
             }
             else {
                 lock ("search");
