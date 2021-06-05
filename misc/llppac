@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e
 
-font=$HOME/x/fnt/LastResort.ttf
-! test -r $font || export LLPP_FALLBACK_FONT=$font
-
 die() {
     echo "$1" >&2
     exit 1
@@ -21,293 +18,6 @@ missing() {
     executable_p $1 || \
         eval "$1() { die \"$2 is needed for \$type conversion\"; }"
 }
-
-# https://unix.stackexchange.com/questions/32569/removing-all-spaces-tabs-newlines-etc-from-a-variable
-executable_p shuf || shuf() { cat; }
-shufstr='1\nI\n0\n3\nl\nO\n|\nЗ'
-shufstr="$shufstr \nЗ\n5\n3\nӠ\nʒ\nO\nI\nl\n1\n|\nrn\nS\n0"
-shufstr="$shufstr \n5\nS\n3\nЗ\nI\n|\nl"
-
-sep='&nbsp;'
-oh="
-o0$sep
-0o$sep
-0ϴ$sep
-ϴ0$sep
-0Ø$sep
-Ø0$sep
-1l$sep
-l1$sep
-1I$sep
-I1$sep
-LI$sep
-IL$sep
-3З$sep
-З3$sep
-Ӡ3$sep
-3Ӡ$sep
-I|$sep
-|I$sep
-l|$sep
-|l$sep
-S5 S9$sep
-5S 95$sep
-2Z$sep
-Z2$sep
-B8$sep
-8B$sep
-o0$sep
-0o$sep
-rnm$sep
-mrn$sep
-"
-
-text() {
-    cat <<EOF
-<pre style="font-size: ${1}pt;">
-$1 <hr>
-EOF
-    test -n "$2" && cat $2 || cat <<EOF
-S9 З3Ӡʒ I|l1 O0 0O o0 0o ØO OD DO Oo Do m rn m -~ ~-  8B B8 BB 88B8 88B8 ://r
-
-abcdefghijklmnopqrstuvwxyz
-ABCDEFGHIJKLMNOPQRSTUVWXYZ
-абвгдеёжзийклмнопрстуфхцчшщэюя
-АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
-инпипнишпнипшнипнпншпнпинпипнпипщнпипипин
-иннициатива шиорокошарикоподшипниковый взбзднуть гидроаэроионизация
-телегаммааппарат фельдъегерь четырёхсотпятидесятисемимиллиметровое
-превысокомногорассмотрительствующий вскользь забулдыжничество
-цецецница
-https://ru.wikipedia.org/wiki/Панграмма https://en.wikipedia.org/wiki/Pangram
-Экс-граф? Плюш изъят. Бьём чуждый цен хвощ!
-Waltz, bad nymph, for quick jigs vex
-',.ფyfგcრლაოეუიდჰთნსყჯქxბმwვზ
-Σομε πσθδο γρεεκ
-བསྐུར་ཡིག་མགོ་
-SH-3ze $(printf "$shufstr" | shuf | tr -d '[[:space:]]' ||:)
-SH-0oh $(printf "$oh" | shuf | tr -d '[[:space:]]' ||:)
-\`1234567890-=\\
-~!@#\$$%&permil;^&amp;*()_+|
-₹₽£$€
-3ze $(printf "$shufstr" | tr -d '[[:space:]]' ||:)
-0oh $(printf "$oh" | tr -d '[[:space:]]' ||:)
-[];',.//|/\ &gt;- -&gt; ~~&lt; &lt;-- --&gt; == === ==&gt; &lt;==
-{}:"&lt;&gt;?" Januardo90 repo2obj
-S in S9 59 S9 is like 5 also
-final fjord flair ft fff
-3ЗЭэзээз3ЗqgO0o ijklI1| bgqpykvwlliliiijil1 lLLl
-01234567890 3ДС ЗДС ӠДС ʒДС NYX - ПУХ
-rnrmnnmrrrnmmr <i>Nürnberg</i> (rn -> m)
-Apay Арау
-örök für A̋ a̋ ő ű https://en.wikipedia.org/wiki/Diacritic
-https://en.wikipedia.org/wiki/Double_acute_accent
-Latin Lavender
-A̋ a̋
-E̋ e̋
-I̋ i̋
-M̋ m̋
-Ő ő
-Ű ű
-Cyrillic
-Ӳ ӳ
-молодо́й
-- - (~-) ~ ~ (-~) -- ~~ ~&mdash; &mdash;~ ''"''""., 1.65Mb
-curly vs plain braces {} () {} ({ {( }) )} →
-Bjarne Stroustrup (/ˈbjɑːrnə ˈstraʊstrʊp/; Danish: [ˈbjɑːnə ˈsdʁʌwˀsdʁɔb]
-○●🅼🐫🐧﷽🙋✨🌸
-😁 😂 😃 😅 😆 😇 😈 😉 😊 😋 😌 😍 😎 😏 😐 😑
-😒 😓 😕 😗 😘 😙 😚 😛 😜 😞 😠 😡 😢 😥 😧 😨
-😩 😪 😫 😬 😭 😮 😯 😰 😱 😲 😳 😵 😶 😸 😹 😻
-😼 😽 😾 😿 🙀 🙁 🙂 🙃 🙄 🙆 🙇 🙉 🙊 🙌 🙍 🙎
-🙏 😀 😀 😡 😤 😦 😖 😄 😔 🙅 🙈 🙋 😠 😧 😟 😴
-😷 😺 😉 😌 😝 😣 🤭 ✉ 📧
-
-Legibility matrix:
- https://github.com/be5invis/Iosevka/blob/master/sample-text/legibility-test-matrix.txt
-
-!ilI17 AHH-eye-ell-Eye-one-seven
-co0ODQ see-oh-zero-Oh-Dee-Cue
-b6&B80 bee-six-et-Bee-eight-zero
-sS5$S  ess-Ess-five-dollar-Ess
-abcdefghijklmnopqrstuvwxyz .?!\'\"
-ABCDEFGHIJKLMNOPQRSTUVWXYZ ,;:-_
-1234567890 ,._-+=>< --__ ~-+=><
-!@#$%^&*() <> \'\"\`~_-=+*\/|!?,.:;
-{}[]()<>$*-+=/#_%^@\&|~?'" !,.;:
-a@ B8 dbqp E3 i! 96 G6& g9qCGQ
-coO08BbODQ |!iIlL17 $5SZ2zsz
-TtijJlFPRK vvw VVW \/V
-
-kerning
-    echo \${@:5}
-    life           [l i fe]
-    lambdabot      [l a mb]
-    Commutative    [Co mm utative]
-    weird          [we i rd]
-    Before         [Bef ore, Be for e]
-    higher         [gh, h i gher, hi gher]
-    multi          [mu lti]
-    till           [ti ll]
-    language       [an]
-    plan           [la]
-    when           [wh]
-    kerning        [rn | ng]
-    мне            [мн е]
-    oiled          [oi led]
-    mkfifo         [mk f i fo, mk f i fo]
-    didn't         [di dn't]
-    argumnet (sic) []
-    more           [mo re]
-    CmmCall        [CmmC a l l]
-    -Wvla          [-Wv la]
-    align          [a l i gn]
-    Compiling      [Co mp iling]
-    print          [pr int]
-    fcmono         [f cmono]
-    Mail           [M ail]
-    xsrc           [x src]
-    Pokorna
-    buildglyphs.js [buil dg lyphs]
-    Dollar         [Do ll ar]
-    signed         [s i gned]
-    Pine           [Pi ne]
-    right          [r i ght, ri ght]
-    ugliness
-    Nigeria        [Ni g eria]
-    Nothing        [Nothi ng]
-    modify         [mo dify]
-    mplus          [mp lus]
-    Apostolic      [A postolic]
-    коде           [к о де]
-    Прокофьевну    [Про ко фьевну]
-    Хэлп           [X элп]
-    коснулся       [ко снулся]
-    обьявляным     [об ья вленым]
-    Queen          [Qu een]
-    etymological   [et ymological]
-    sigh           [s i gh]
-    git            [gi t]
-    некочевого     [не ко чевого]
-    Розовое        [Ро зо вое]
-    Trump          [Tru mp]
-    покрытие       [по кр ытие]
-    Singapore      [Si ng apore]
-    Georgy         [Ge orgy]
-    with           [wi th]
-    Yokozuna       [Y okozuna]
-    подтверждение  [под тверждение]
-    Xwayland       [X wayland]
-    callable       [ca l l ab le]
-    Noah           [N oa h]
-    Los            [L os]
-    refused        [ref used]
-    Julia          [J ulia | Jul i a]
-    Joe Armstrong  [J oe (rip :()]
-    James          [J ames]
-    CAPTCHA        [CA PTCHA]
-    KIZER          [KI ZER]
-    Kavanugh       [K avaunaugh]
-    DejaVu         [D e ja V u]
-    Never          [N ever]
-    Филантропия    [Фи лантропия]
-    Смертная       [См е р т н а я]
-    1530           [1 53 0]
-    Japanese       [J apanese]
-    циников        [ци ни ков]
-    Viljandi       [Vil ja ndi]
-    rejected       [re je cted]
-    появлением     [по яв лением]
-    Коронавируса   [Ко ронавируса]
-    efficacy       [e f fi cacy]
-    Поезд          [П ое зд]
-    Арсения        [А рсения]
-    rmnp           []
-    advance        [ad vance]
-
-almost kerning
-    hope doesn't
-    Illegal
-    automatically effective
-    Ilium is the Latin for Ilion.
-    jtanx
-    Pizza Tteokbokki
-    Lorry
-
-(from UTF8-demo.txt)
-Box drawing alignment tests:                                          █
-                                                                      ▉
-  ╔══╦══╗  ┌──┬──┐  ╭──┬──╮  ╭──┬──╮  ┏━━┳━━┓  ┎┒┏┑   ╷  ╻ ┏┯┓ ┌┰┐    ▊ ╱╲╱╲╳╳╳
-  ║┌─╨─┐║  │╔═╧═╗│  │╒═╪═╕│  │╓─╁─╖│  ┃┌─╂─┐┃  ┗╃╄┙  ╶┼╴╺╋╸┠┼┨ ┝╋┥    ▋ ╲╱╲╱╳╳╳
-  ║│╲ ╱│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╿ │┃  ┍╅╆┓   ╵  ╹ ┗┷┛ └┸┘    ▌ ╱╲╱╲╳╳╳
-  ╠╡ ╳ ╞╣  ├╢   ╟┤  ├┼─┼─┼┤  ├╫─╂─╫┤  ┣┿╾┼╼┿┫  ┕┛┖┚     ┌┄┄┐ ╎ ┏┅┅┓ ┋ ▍ ╲╱╲╱╳╳╳
-  ║│╱ ╲│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╽ │┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▎
-  ║└─╥─┘║  │╚═╤═╝│  │╘═╪═╛│  │╙─╀─╜│  ┃└─╂─┘┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▏
-  ╚══╩══╝  └──┴──┘  ╰──┴──╯  ╰──┴──╯  ┗━━┻━━┛  ▗▄▖▛▀▜   └╌╌┘ ╎ ┗╍╍┛ ┋  ▁▂▃▄▅▆▇█
-                                               ▝▀▘▙▄▟
-
-https://mirrors.zju.edu.cn/CTAN/fonts/gofonts/doc/gofonts.pdf (page 2)
-"""
-DIN Legibility Standard
-
-The recent German DIN 1450 legibility standard
-recommends several features for font legibility, including
-differentiation of letter shapes to reduce confusion. The Go fonts
-conform to the 1450 standard by carefully differentiating zero from
-capital O; numeral 1 from capital I (eye) and lowercase l (ell);
-numeral 5 from capital S; and numeral 8 from capital B. The shapes of
-bowls of b d p q follow the natural asymmetries of legible Renaissance
-handwriting, aiding differentiation to reduce confusion. [5]
-"""
-
-(https://en.wikipedia.org/wiki/Jabberwocky
- Idea from the aforementioned gofonts paper)
-
-    Бе сгладне и честлинните комбурси  Það leið að stekju, og slýgir greðlar
-    търляха се и сврецваха във плите;  sig snældu og böluðu um slöffruna,
-    съвсем окласни бяха тук щурпите    og angurvært sungu sópfiðrungar
-    и отма равапсатваха прасурси.      við sífgelt týðmana svíræna.
-
-(https://en.wikipedia.org/wiki/Typeface)
-For the rational mind, type design can be a maddening game
-of drawing things differently in order to make them appear the
-same.
-Jonathan Hoefler & Tobias Frere-
-</pre>
-EOF
-}
-
-maketext() {
-    # https://github.com/react-boilerplate/react-boilerplate/issues/1340
-    test -d "$cachedir/fonts" || mkdir "$cachedir/fonts"
-    filename="$(basename "$1")"
-    textfilename="$2"
-    cat >"$cachedir/fonts/text.html" <<EOF
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
- "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>$filename</title>
-    <style type="text/css">
-      @font-face { font-family: moo; src: url('$1'); }
-      pre { font-family: moo; }
-    </style>
-  </head>
-  $filename
-  <body>
-EOF
-    for size in 6 8 10 12 4 2; do
-        text $size $textfilename >>"$cachedir/fonts/text.html"
-    done
-    cat >>"$cachedir/fonts/text.html" <<EOF
-    <br/>
-    $(fc-scan -f '%{fullname} %{style} %{slant} %{file} %{fontversion} %{capability} %{lang}' "$1" || file "$1")
-  </body>
-</html>
-EOF
-}
-
 trap 'test -n "$casp" && rm -f "$casp"' 0
 
 while getopts s:c:m:t:fu opt; do
@@ -316,8 +26,7 @@ while getopts s:c:m:t:fu opt; do
         t) type=$OPTARG;;
         f) force=true;;
         c) css="-s $OPTARG";;
-        s) textfilename="$OPTARG";;
-        ?) die "usage: $0 [-c css] [-m mime/type] [-t filter] [-f] [-s textfile] [path|url]";;
+        ?) die "usage: $0 [-c css] [-m mime/type] [-t filter] [-f] [path|url]";;
     esac
 done
 shift $(($OPTIND - 1))
@@ -368,10 +77,6 @@ typeofmime() {
         image/png | image/jpeg) test -n "$dc" && type="image" || type="image2";;
         image/*) type=image;;
         application/x-dvi) type=dvi;;
-        application/x-font-ttf                          \
-            | application/vnd.ms-opentype               \
-            | font/sfnt                                 \
-            | application/font-sfnt) type=font;;
         *) return 1;;
     esac
     return 0
@@ -435,10 +140,6 @@ case $type in
                 conv='unoconv -o "$casp" "$1"'
             fi
         fi
-    };;
-    font) {
-        maketext "$1" "$textfilename"
-        exec llpp -origin $1 "$cachedir/fonts/text.html"
     };;
     image) {
         missing convert "convert(http://www.imagemagick.org/script/convert.php)"
