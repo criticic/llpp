@@ -1,5 +1,0 @@
-#!/bin/sh
-set -e
-eval 2>/dev/null $(! expr >/dev/null "$(xdriinfo)" : ".*\(iris\|intel\)$" \
-                       || echo vblank_mode=0)
-exec llpp.bin "$@"
