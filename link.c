@@ -3500,10 +3500,12 @@ ML (llpp_version (void))
 
 static void diag_callback (void *user, const char *message)
 {
-    if (pthread_equal (pthread_self (), state.thread))
+    if (pthread_equal (pthread_self (), state.thread)) {
         printd ("emsg %s %s", (char *) user, message);
-    else
+    }
+    else {
         puts (message);
+    }
 }
 
 static fz_font *lsff (fz_context *ctx,int UNUSED_ATTR script,
