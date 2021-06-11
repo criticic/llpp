@@ -4682,9 +4682,9 @@ let () =
      let css = filecontents path in
      let l = String.length css in
      conf.css <-
-       if substratis css (l-2) "\r\n"
+       if l > 1 && substratis css (l-2) "\r\n"
        then String.sub css 0 (l-2)
-       else (if css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
+       else (if l > 0 && css.[l-1] = '\n' then String.sub css 0 (l-1) else css)
   end;
   S.stderr := Ffi.init cs (
                   conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
