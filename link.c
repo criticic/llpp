@@ -3545,7 +3545,7 @@ ML (init (value csock_v, value params_v))
 {
     CAMLparam2 (csock_v, params_v);
     CAMLlocal2 (trim_v, fuzz_v);
-    int ret, texcount, colorspace, mustoresize;
+    int ret, texcount, colorspace, mustoresize, redirstderr;
     const char *fontpath;
 
     if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
@@ -3566,8 +3566,9 @@ ML (init (value csock_v, value params_v))
     mustoresize         = Int_val (Field (params_v, 5));
     colorspace          = Int_val (Field (params_v, 6));
     fontpath            = String_val (Field (params_v, 7));
+    redirstderr         = Bool_val (Field (params_v, 8));
 
-    if (Bool_val (Field (params_v, 8))) {
+    if (redirstderr) {
         if (pipe (state.pfds)) {
             err (1, errno, "pipe");
         }
@@ -3600,8 +3601,10 @@ ML (init (value csock_v, value params_v))
 
     state.ctx = fz_new_context (NULL, NULL, mustoresize);
     fz_register_document_handlers (state.ctx);
-    fz_set_error_callback (state.ctx, diag_callback, "[e]");
-    fz_set_warning_callback (state.ctx, diag_callback, "[w]");
+    if (redirstderr) {
+        fz_set_error_callback (state.ctx, diag_callback, "[e]");
+        fz_set_warning_callback (state.ctx, diag_callback, "[w]");
+    }
     fz_install_load_system_font_funcs (state.ctx, NULL, NULL, lsff);
 
     state.trimmargins = Bool_val (Field (trim_v, 0));
