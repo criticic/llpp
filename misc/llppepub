@@ -1,0 +1,12 @@
+#!/bin/bash
+# this script uses <(cmd) and quoted $@, hence preceding shebang
+set -eu
+
+: ${fontpath="$HOME/.fonts/fantasque/fantasquesansmono-regular-3ze.otf"}
+fontface() { echo "@font-face { font-family: $1; src: \"$2\"; }"; }
+all() {
+    fontface serif $fontpath
+    fontface sans-serif $fontpath
+    fontface monospace $fontpath
+}
+llpp -css <(all) "$@"
