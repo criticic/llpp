@@ -3548,15 +3548,17 @@ ML (init (value csock_v, value params_v))
     int ret, texcount, colorspace, mustoresize, redirstderr;
     const char *fontpath;
 
-    if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
 #if TEXT_TYPE == GL_TEXTURE_2D
+    if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
                  "texture_non_power_of_two")) {
         errx (1, "OpenGL does not support NPOT textures");
+    }
 #else
+    if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
                  "texture_rectangle")) {
         errx (1, "OpenGL does not support rectangular textures");
-#endif
     }
+#endif
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
     state.fitmodel      = Int_val (Field (params_v, 1));
