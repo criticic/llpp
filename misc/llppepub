@@ -3,10 +3,10 @@
 set -eu
 
 : ${fontpath="$HOME/.fonts/fantasque/fantasquesansmono-regular-3ze.otf"}
-fontface() { printf '@font-face { font-family: %s; src: "%s"; } ' $1 $2; }
+fontface() { printf '@font-face { font-family: %s; src: "%s"; } ' $1 "$2"; }
 all() {
-    fontface serif $fontpath
-    fontface sans-serif $fontpath
-    fontface monospace $fontpath
+    fontface serif "$fontpath"
+    fontface sans-serif "$fontpath"
+    fontface monospace "$fontpath"
 }
 llpp -css <(all) "$@"
