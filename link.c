@@ -3081,7 +3081,9 @@ ML0 (copysel (value fd_v, value ptr_v))
             for (ch = line->first_char; ch; ch = ch->next) {
                 if (seen || ch == page->fmark) {
                     do {
-                        pipechar (f, ch);
+                        if (pipechar (f, ch)) {
+                            goto close;
+                        }
                         if (ch == page->lmark) {
                             goto close;
                         }
