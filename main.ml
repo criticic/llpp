@@ -124,11 +124,12 @@ let unproject x y =
 
 let pipesel opaque cmd =
   if Ffi.hassel opaque
-  then pipef ~closew:false "pipesel"
-         (fun w ->
-           Ffi.copysel w opaque;
-           Glutils.postRedisplay "pipesel"
-         ) cmd
+  then
+    pipef ~closew:false "pipesel"
+      (fun w ->
+        Ffi.copysel w opaque;
+        Glutils.postRedisplay "pipesel"
+      ) cmd
 
 let paxunder x y =
   let g opaque l px py =
