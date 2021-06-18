@@ -33,7 +33,8 @@ shift $(($OPTIND - 1))
 test -z "$1" && die "usage $0: path"
 
 origin="$1"
-if ${force-test ! -e "$1"} && expr >/dev/null "$1" : "\(ftp\|https\?\)://"; then
+if ${force-test ! -e "$1"} && expr >/dev/null "$1" : "\(ftp\|https\?\)://";
+then
     if executable_p wget; then
         dl() { wget -q $1 -O $2; }
     elif executable_p curl; then
@@ -50,14 +51,16 @@ else
     hashof="$1"
 fi
 
-test -z "$type" && { ft=$(file -L --mime-type -b "$1") || die "$ft"; }
+test -z "$type" && {
+    ft=$(file -L --mime-type -b "$1") || die "$ft";
 
-case $ft in
-    application/x-gzip | application/x-compress) dc=zcat;;
-    application/x-xz) dc=xzcat;;
-    application/x-bzip2) dc=bzcat;;
-    *) unset dc || true;;
-esac
+    case $ft in
+        application/x-gzip | application/x-compress) dc=zcat;;
+        application/x-xz) dc=xzcat;;
+        application/x-bzip2) dc=bzcat;;
+        *) unset dc || true;;
+    esac
+}
 
 filt='"${dc-cat}" "$1" |'
 
@@ -99,8 +102,8 @@ case $type in
     image2|pdf) test -z "${dc-}" && exec llpp "$@" || conv='cat >"$casp"';;
     texi)
         missing texi2html "texi2html(http://www.nongnu.org/texi2html/)"
-        missing prince "PrinceXML(http://www.princexml.com/)"
-        conv='texi2html - -o - | prince $css - -o "$casp"'
+        conv='texi2html - -o $casp'
+        caspsuf=.html
         ;;
     djvu)
         missing ddjvu "ddjvu(http://djvu.sourceforge.net/doc/man/ddjvu.html)"
