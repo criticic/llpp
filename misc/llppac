@@ -119,14 +119,9 @@ case $type in
         conv='pandoc -r html - -w epub2 -o "$casp"'
         ;;
     word)
-        if executable_p unoconv && test -z "${dc-}"; then
-            filt=
-            conv='unoconv -o "$casp" "$1"'
-        else
-            missing antiword "antiword or unoconv"
-            caspsuf=".html"
-            conv='{ echo "<pre>"; antiword -m UTF-8.txt -f -; }  >"$casp"'
-        fi
+        missing unoconv "unoconv"
+        filt=
+        conv='unoconv -o "$casp" "$1"'
         ;;
     uno)
         test -n "$dc" && die "cannot convert compressed '$mime'"
