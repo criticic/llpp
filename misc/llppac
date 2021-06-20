@@ -125,7 +125,7 @@ case $type in
         else
             missing antiword "antiword or unoconv"
             caspsuf=".html"
-            conv='antiword -m UTF-8.txt -f - >"$casp"'
+            conv='{ echo "<pre>"; antiword -m UTF-8.txt -f -; }  >"$casp"'
         fi
         ;;
     uno)
