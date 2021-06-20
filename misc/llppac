@@ -119,12 +119,13 @@ case $type in
         conv='pandoc -r html - -w epub2 -o "$casp"'
         ;;
     word)
-        if executable_p unoconv && test -z "$dc"; then
-            unset filt
+        if executable_p unoconv && test -z "${dc-}"; then
+            filt=
             conv='unoconv -o "$casp" "$1"'
         else
             missing antiword "antiword or unoconv"
-            conv='antiword -m 8859-1.txt -a a4 - >"$casp"'
+            caspsuf=".html"
+            conv='antiword -m UTF-8.txt -f - >"$casp"'
         fi
         ;;
     uno)
