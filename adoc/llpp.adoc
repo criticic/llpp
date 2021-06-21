@@ -72,8 +72,6 @@ This is the user specific configuration file. If $HOME/.config
 directory does not exist $HOME/llpp.conf is used instead. It has an
 XML structure.
 
-You can specify a custom path using the -c option.
-
 .Configuration structure
 -------------------------------------------------------------
 <llppconfig>
