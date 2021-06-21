@@ -241,7 +241,7 @@ for target; do
         doc)
             md=$outd/doc
             mkdir -p $md
-            for m in llpp llppac llpphtml; do
+            for m in llpp llppac; do
                 src=$srcd/adoc/$m.adoc
                 o=$md/$m.1
                 conf=$srcd/man/asciidoc.conf
