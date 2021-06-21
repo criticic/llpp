@@ -1,3 +1,4 @@
+// -*- mode: flyspell -*-
 llpp(1)
 =======
 
@@ -129,8 +130,9 @@ llppac(1), llpphtml(1)
 Command to inquire user about the password (dmenu/rofi like)
 
 === LLPP_FALLBACK_FONT
-Path to the font with substitution glyps (for instance
-https://github.com/unicode-org/last-resort-font/)
+
+Path to the substitution font
+(such as https://github.com/unicode-org/last-resort-font/ for instance)
 
 == REPORTING BUGS
 https://github.com/moosotc/llpp/issues
