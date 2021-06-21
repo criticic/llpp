@@ -24,9 +24,6 @@ Set path to the configuration file
 -css path::
 Set path to the style sheet to use with EPUB/HTML
 
--dest named-dest::
-Set named destination
-
 -f path::
 Set path to the user interface font
 
@@ -53,6 +50,9 @@ Jump to page
 
 -remote path::
 Set path to the source of remote commands
+
+-dest name::
+<undocumented>>
 
 -dcf path::
 <undocumented>
