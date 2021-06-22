@@ -2263,12 +2263,6 @@ let enterinfomode =
           if v
           then conf.pax <- Some (now ())
           else conf.pax <- None);
-      src#string "uri launcher"
-        (fun () -> conf.urilauncher)
-        (fun v -> conf.urilauncher <- v);
-      src#string "path launcher"
-        (fun () -> conf.pathlauncher)
-        (fun v -> conf.pathlauncher <- v);
       src#string "tile size"
         (fun () -> Printf.sprintf "%dx%d" conf.tilew conf.tileh)
         (fun v ->
@@ -2331,6 +2325,12 @@ let enterinfomode =
         (fun v -> showcommands := v; fillsrc prevmode prevuioh);
       if !showcommands
       then (
+        src#string "  uri launcher"
+          (fun () -> conf.urilauncher)
+          (fun v -> conf.urilauncher <- v);
+        src#string "  path launcher"
+          (fun () -> conf.pathlauncher)
+          (fun v -> conf.pathlauncher <- v);
         src#string "  selection"
           (fun () -> conf.selcmd)
           (fun v -> conf.selcmd <- v);
