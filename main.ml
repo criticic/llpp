@@ -19,10 +19,10 @@ module U = struct
   let pgscale h     = truncate (float h *. conf.pgscale)
   let nogeomcmds    = function | s, [] -> emptystr s | _ -> false
   let maxy ()       = !S.maxy - if conf.maxhfit then !S.winh else 0
-  let clamp incr    = bound (!S.y + incr) 0 @@ maxy ()
   let scalecolor c  = let c = c *. conf.colorscale in (c, c, c)
   let panbound x    = bound x (- !S.w) !S.winw
   let pagevisible layout n = List.exists (fun l -> l.pageno = n) layout
+  let add_to_y_and_clamp inc = bound (!S.y + inc) 0 @@ maxy ()
 end
 
 let debugrect (x0, y0, x1, y1, x2, y2, x3, y3) =
@@ -1550,10 +1550,12 @@ let downbirdseye incr (conf, leftx, pageno, hooverpageno, anchor) =
     | [] ->
        let y, h = getpageyh pageno in
        let dy = (y - !S.y) - (!S.winh - h - conf.interpagespace) in
-       gotoxy !S.x (U.clamp dy)
+       gotoxy !S.x (U.add_to_y_and_clamp dy)
     | l :: _ when l.pageno = pageno ->
        if l.pagevh != l.pageh
-       then gotoxy !S.x (U.clamp (l.pageh - l.pagevh + conf.interpagespace))
+       then
+         let inc = l.pageh - l.pagevh + conf.interpagespace in
+         gotoxy !S.x (U.add_to_y_and_clamp inc)
        else Glutils.postRedisplay "downbirdseye"
     | _ :: rest -> loop rest
   in
@@ -3028,7 +3030,7 @@ let nextpage () =
      | Csingle _ ->
         if conf.presentation && rest == [] && l.pageh > l.pagey + l.pagevh
         then
-          let y = U.clamp (U.pgscale !S.winh) in
+          let y = U.add_to_y_and_clamp (U.pgscale !S.winh) in
           gotoxy !S.x y
         else
           let pageno = min (l.pageno+1) (!S.pagecount-1) in
@@ -3038,7 +3040,7 @@ let nextpage () =
            && (existsinrow l.pageno cl
                  (fun l -> l.pageh > l.pagey + l.pagevh))
         then
-          let y = U.clamp (U.pgscale !S.winh) in
+          let y = U.add_to_y_and_clamp (U.pgscale !S.winh) in
           gotoxy !S.x y
         else
           let pageno = min (l.pageno+c) (!S.pagecount-1) in
@@ -3060,14 +3062,14 @@ let prevpage () =
      match conf.columns with
      | Csingle _ ->
         if conf.presentation && l.pagey != 0
-        then gotoxy !S.x (U.clamp (U.pgscale ~-(!S.winh)))
+        then gotoxy !S.x (U.add_to_y_and_clamp (U.pgscale ~-(!S.winh)))
         else
           let pageno = max 0 (l.pageno-1) in
           gotoxy !S.x (getpagey pageno)
      | Cmulti ((c, _, coverB) as cl, _) ->
         if conf.presentation &&
              (existsinrow l.pageno cl (fun l -> l.pagey != 0))
-        then gotoxy !S.x (U.clamp (U.pgscale ~-(!S.winh)))
+        then gotoxy !S.x (U.add_to_y_and_clamp (U.pgscale ~-(!S.winh)))
         else
           let decr =
             if l.pageno = !S.pagecount - coverB
@@ -3403,11 +3405,11 @@ let viewkeyboard key mask =
         | Birdseye beye -> upbirdseye 1 beye
         | Textentry _ | View | LinkNav _ ->
            if ctrl
-           then gotoxy !S.x (U.clamp ~-(!S.winh/2))
+           then gotoxy !S.x (U.add_to_y_and_clamp ~-(!S.winh/2))
            else (
              if not (Wsi.withshift mask) && conf.presentation
              then prevpage ()
-             else gotoxy !S.x (U.clamp (-conf.scrollstep))
+             else gotoxy !S.x (U.add_to_y_and_clamp (-conf.scrollstep))
            )
         end
      | Some n -> setautoscrollspeed n false
@@ -3419,11 +3421,11 @@ let viewkeyboard key mask =
         | Birdseye beye -> downbirdseye 1 beye
         | Textentry _ | View | LinkNav _ ->
            if ctrl
-           then gotoxy !S.x (U.clamp (!S.winh/2))
+           then gotoxy !S.x (U.add_to_y_and_clamp (!S.winh/2))
            else (
              if not (Wsi.withshift mask) && conf.presentation
              then nextpage ()
-             else gotoxy !S.x (U.clamp (conf.scrollstep))
+             else gotoxy !S.x (U.add_to_y_and_clamp (conf.scrollstep))
            )
         end
      | Some n -> setautoscrollspeed n true
@@ -3455,7 +3457,7 @@ let viewkeyboard key mask =
          match !S.layout with
          | [] -> !S.y
          | l :: _ -> !S.y - l.pagey
-       else U.clamp (U.pgscale ~- !S.winh)
+       else U.add_to_y_and_clamp (U.pgscale ~- !S.winh)
      in
      gotoxy !S.x y
   | Next ->
@@ -3465,7 +3467,7 @@ let viewkeyboard key mask =
          match List.rev !S.layout with
          | [] -> !S.y
          | l :: _ -> getpagey l.pageno
-       else U.clamp (U.pgscale !S.winh)
+       else U.add_to_y_and_clamp (U.pgscale !S.winh)
      in
      gotoxy !S.x y
   | Ascii 'g' | Home ->
@@ -3473,7 +3475,7 @@ let viewkeyboard key mask =
      gotoxy 0 0
   | Ascii 'G' | End ->
      addnav ();
-     gotoxy 0 (U.clamp !S.maxy)
+     gotoxy 0 (U.add_to_y_and_clamp !S.maxy)
   | Right when Wsi.withalt mask ->
      (match !S.nav.future with
       | [] -> ()
@@ -3664,13 +3666,13 @@ let birdseyekeyboard key mask
                          !S.winw
                          (pgh !S.layout) in
           match layout with
-          | [] -> gotoxy !S.x (U.clamp ~- !S.winh)
+          | [] -> gotoxy !S.x (U.add_to_y_and_clamp ~- !S.winh)
           | l :: _ ->
              S.mode := Birdseye (oconf, leftx, l.pageno, hooverpageno, anchor);
              gotopage1 l.pageno 0
         );
 
-     | [] -> gotoxy !S.x (U.clamp ~- !S.winh)
+     | [] -> gotoxy !S.x (U.add_to_y_and_clamp ~- !S.winh)
      end;
 
   | Next ->
@@ -3690,14 +3692,14 @@ let birdseyekeyboard key mask
                  );
              Glutils.postRedisplay "birdseye pagedown";
            )
-           else gotoxy !S.x (U.clamp (incr + conf.interpagespace*2));
+           else gotoxy !S.x (U.add_to_y_and_clamp (incr + conf.interpagespace*2));
 
         | l :: _ ->
            S.mode := Birdseye (oconf, leftx, l.pageno, hooverpageno, anchor);
            gotopage1 l.pageno 0;
         end
 
-     | [] -> gotoxy !S.x (U.clamp !S.winh)
+     | [] -> gotoxy !S.x (U.add_to_y_and_clamp !S.winh)
      end;
 
   | Home ->
@@ -4054,7 +4056,7 @@ let viewmouse button down x y mask =
           else
             let incr = if n = 4 then -conf.scrollstep else conf.scrollstep in
             let incr = incr * 2 in
-            let y = U.clamp incr in
+            let y = U.add_to_y_and_clamp incr in
             gotoxy !S.x y
      )
 
@@ -4251,7 +4253,7 @@ let uioh = object
             and dy = y0 - y in
             S.mstate := Mpan (x, y);
             let x = if canpan () then U.panbound (!S.x + dx) else !S.x in
-            let y = U.clamp dy in
+            let y = U.add_to_y_and_clamp dy in
             gotoxy x y
 
          | Msel (a, _) ->
@@ -4351,7 +4353,7 @@ let uioh = object
     method alwaysscrolly = false
     method scroll dx dy =
       let x = if canpan () then U.panbound (!S.x + dx) else !S.x in
-      gotoxy x (U.clamp (2 * dy));
+      gotoxy x (U.add_to_y_and_clamp (2 * dy));
       !S.uioh
     method zoom z x y =
       pivotzoom ~x ~y (conf.zoom *. exp z);
