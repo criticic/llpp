@@ -3898,6 +3898,23 @@ let display () =
   end;
   enttext ();
   scrollindicator ();
+
+  if conf.pgscale > 0.0
+  then (
+    let yh = conf.pgscale *. float !S.winh in
+    match !S.layout with
+    | _ :: [] ->
+       Gl.enable `blend;
+       GlDraw.color (0.1, 0.1, 0.1) ~alpha:0.5;
+       GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
+       let x0 = 0.0
+       and y0 = yh -. 3.0 in
+       let x1 = float !S.winw
+       and y1 = yh +. 3.0 in
+       Glutils.filledrect x0 y0 x1 y1;
+       Gl.disable `blend;
+    | _ -> ()
+  );
   Wsi.swapb ()
 
 let display () =
