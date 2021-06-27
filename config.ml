@@ -345,14 +345,15 @@ module S = struct
   let uioh : uioh ref = ref nouioh
   let outlines : outline array ref = ref [||]
   let bookmarks : outline list ref = ref []
-  let geomcmds : (string * ((string * (unit -> unit)) list)) ref = ref (E.s, [])
+  let geomcmds : (string * ((string * (unit -> unit)) list)) ref
+    = ref (E.s, [])
   let memused : memsize ref = ref 0
   let gen : gen ref = ref 0
   let autoscroll : int option ref = ref None
   let help : helpitem array ref = ref E.a
   let docinfo : (int * string) list ref = ref []
-  let hists : hists ref =
-    ref { pat = cbnew 10 E.s; pag = cbnew 10 E.s; sel = cbnew 10 E.s; }
+  let hists : hists ref
+    = ref { pat = cbnew 10 E.s; pag = cbnew 10 E.s; sel = cbnew 10 E.s; }
   let prevzoom = ref (1.0, 0)
   let progress = ref ~-.1.0
   let mpos = ref (-1, -1)
