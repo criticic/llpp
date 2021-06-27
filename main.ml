@@ -3692,7 +3692,8 @@ let birdseyekeyboard key mask
                  );
              Glutils.postRedisplay "birdseye pagedown";
            )
-           else gotoxy !S.x (U.add_to_y_and_clamp (incr + conf.interpagespace*2));
+           else
+             gotoxy !S.x (U.add_to_y_and_clamp (incr + conf.interpagespace*2));
 
         | l :: _ ->
            S.mode := Birdseye (oconf, leftx, l.pageno, hooverpageno, anchor);
