@@ -1407,7 +1407,8 @@ static void *mainloop (void UNUSED_ATTR *unused)
             }
 
             pattern = p + len2;
-            ret = regcomp (&re, pattern, REG_EXTENDED | icase ? REG_ICASE : 0);
+            ret = regcomp (&re, pattern,
+                           REG_EXTENDED | (icase ? REG_ICASE : 0));
             if (ret) {
                 char errbuf[80];
                 size_t size;
