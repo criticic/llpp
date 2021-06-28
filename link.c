@@ -1397,7 +1397,6 @@ static void *mainloop (void UNUSED_ATTR *unused)
         }
         case Csearch: {
             int icase, pageno, y, len2, forward;
-            char *pattern;
             regex_t re;
 
             ret = sscanf (p, "%d %d %d %d,%n",
@@ -1406,9 +1405,8 @@ static void *mainloop (void UNUSED_ATTR *unused)
                 errx (1, "malformed search `%s' ret=%d", p, ret);
             }
 
-            pattern = p + len2;
-            ret = regcomp (&re, pattern,
-                           REG_EXTENDED | (icase ? REG_ICASE : 0));
+            char *pat = p + len2;
+            ret = regcomp (&re, pat, REG_EXTENDED | (icase ? REG_ICASE : 0));
             if (ret) {
                 char errbuf[80];
                 size_t size;
