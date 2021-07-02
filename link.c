@@ -3548,18 +3548,13 @@ ML (init (value csock_v, value params_v))
     CAMLlocal2 (trim_v, fuzz_v);
     int ret, texcount, colorspace, mustoresize, redirstderr;
     const char *fontpath;
+    const char *ext = TEXT_TYPE == GL_TEXTURE_2D
+        ? "texture_non_power_of_two"
+        : "texture_rectangle";
 
-#if TEXT_TYPE == GL_TEXTURE_2D
-    if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
-                 "texture_non_power_of_two")) {
-        errx (1, "OpenGL does not support NPOT textures");
+    if (!strstr ((const char *) glGetString (GL_EXTENSIONS), ext)) {
+        errx (1, "OpenGL does not support '%s' extension", ext);
     }
-#else
-    if (!strstr ((const char *) glGetString (GL_EXTENSIONS),
-                 "texture_rectangle")) {
-        errx (1, "OpenGL does not support rectangular textures");
-    }
-#endif
     state.csock         = Int_val (csock_v);
     state.rotate        = Int_val (Field (params_v, 0));
     state.fitmodel      = Int_val (Field (params_v, 1));
