@@ -73,7 +73,9 @@ oincs() {
 oflags() {
     case "${1#$outd/}" in
         lablGL/*) f="-g";;
-        *) f="-g -strict-sequence -strict-formats -alert @all -warn-error @A";;
+        utf8syms.cm*|confstruct.cm*|config.cm*|ffi.cm*)
+            f="-g -strict-sequence -strict-formats -alert @all-missing-mli";;
+        *) f="-g -strict-sequence -strict-formats -alert @all";;
     esac
     echo $(oincs $outd $1) $f
 }
@@ -102,8 +104,8 @@ mflags() {
 }
 
 overs=$(ocamlc -vnum 2>/dev/null) || overs=""
-if test "$overs" != "4.12.0"; then
-    url=https://caml.inria.fr/pub/distrib/ocaml-4.12/ocaml-4.12.0.tar.xz
+if test "$overs" != "4.13.0~alpha1"; then
+    url=https://caml.inria.fr/pub/distrib/ocaml-4.13/ocaml-4.13.0~alpha1.tar.xz
     txz=$outd/$(basename $url)
     keycmd="printf $url; digest $txz;"
     isfresh $txz "$(eval $keycmd)" || {
