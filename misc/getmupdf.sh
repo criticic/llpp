@@ -3,7 +3,7 @@ set -eu
 
 MUPDF_OUTPUT_DIR="$1"
 MUPDF_URL="git://git.ghostscript.com/mupdf"
-MUPDF_DESIRED_VERSION="8c89c5f463a2b6f0bf93939f255dfb350a415a56"
+MUPDF_DESIRED_VERSION="983e8ab14c752bf11aa243faeb03da9dc64eed54"
 
 if [ ! -d ${MUPDF_OUTPUT_DIR} ]; then
     echo "mupdf does not exist, fetching it from ${MUPDF_URL}"
