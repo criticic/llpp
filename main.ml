@@ -4079,8 +4079,9 @@ let viewmouse button down x y mask =
      )
 
   | n when (n = 4 || n = 5 || n = 6 || n = 7) && not down && canpan () ->
-     let x =
-       U.panbound (!S.x + (if n = 5 || n = 7 then -2 else 2) * conf.hscrollstep) in
+     let x = U.panbound
+               (!S.x + (if n = 5 || n = 7 then -2 else 2) * conf.hscrollstep)
+     in
      gotoxy x !S.y
 
   | 1 when Wsi.withshift mask ->
