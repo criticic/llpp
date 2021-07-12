@@ -35,7 +35,7 @@ srcd=$(dirname $0)
 mudir=$outd/mupdf
 muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
 
-test -d $mudir || die muPDF not found, consult $srcd/BUILDING
+test -d $mudir || die muPDF wasn\'t found in $outd/, consult $srcd/BUILDING
 
 mkdir -p $outd/{$wsid,lablGL}
 
