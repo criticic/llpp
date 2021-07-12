@@ -24,5 +24,3 @@ jobs:
     - name: build
       if: matrix.os == 'ubuntu-latest'
       run: bash ahbs
-      if: matrix.os == 'macos-latest'
-      run: ccd=clang bash ahbs
