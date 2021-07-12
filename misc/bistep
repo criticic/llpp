@@ -1,18 +1,18 @@
 #!/bin/sh
 set -eu
 ulimit -s 7032
-rm -fr build.bisect
-mkdir build.bisect
-ln -s ~/x/rcs/git/mupdf ~/xsrc/llpp/build.bisect/
+rm -fr build/bisect
+mkdir build/bisect
+ln -s $PWD/build/mupdf $PWD/build/bisect/
 
 {
     pushd ~/x/rcs/git/ocaml
     git clean -dfx
     CC='ccache gcc' ./configure --disable-ocamldoc --disable-ocamltest \
-     --enable-debugger=no --prefix=/home/malc/xsrc/llpp/build.bisect
+     --enable-debugger=no --prefix=$PWD/build/bisect
     make -j4
     make -s install
     popd
 }
 
-bash build.bash build.bisect
+bash build.bash build/bisect
