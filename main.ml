@@ -1056,13 +1056,17 @@ let act cmds =
      if conf.verbose then showtext ' ' args
 
   | "emsg", args ->
-     Buffer.add_string S.errmsgs args;
-     Buffer.add_char S.errmsgs '\n';
-     if not !S.newerrmsgs
-     then (
-       S.newerrmsgs := true;
-       Glutils.postRedisplay "error message";
-     )
+     if not !S.redirstderr
+     then Format.eprintf "%s@." args
+     else (
+       Buffer.add_string S.errmsgs args;
+       Buffer.add_char S.errmsgs '\n';
+       if not !S.newerrmsgs
+       then (
+         S.newerrmsgs := true;
+         Glutils.postRedisplay "error message";
+       )
+     );
 
   | "progress", args ->
      let progress, text =
@@ -4511,8 +4515,8 @@ let remoteopen path =
 
 let () =
   vlogf := (fun s -> if conf.verbose then print_endline s else ignore s);
+  S.redirstderr := not @@ Unix.isatty Unix.stderr;
   let gc = ref false in
-  let redirstderr = Unix.isatty Unix.stderr |> not |> ref in
   let rcmdpath = ref E.s in
   let dcfpath = ref E.s in
   let pageno = ref None in
@@ -4548,7 +4552,8 @@ let () =
      ("-no-title", Arg.Set S.ignoredoctitlte, " Ignore document title");
      ("-dcf", Arg.Set_string dcfpath, "<path> <undocumented>");
      ("-flip-stderr-redirection",
-      Arg.Unit (fun () -> redirstderr := not !redirstderr), " <undocumented>");
+      Arg.Unit (fun () -> S.redirstderr := not !S.redirstderr),
+      " <undocumented>");
     ]
   in
   Arg.parse (Arg.align spec) (fun s -> S.path := s)
@@ -4711,7 +4716,7 @@ let () =
   S.stderr := Ffi.init cs (
                   conf.angle, conf.fitmodel, (conf.trimmargins, conf.trimfuzz),
                   conf.texcount, conf.sliceheight, conf.mustoresize,
-                  conf.colorspace, !S.fontpath, !redirstderr
+                  conf.colorspace, !S.fontpath, !S.redirstderr
                 );
   List.iter GlArray.enable [`texture_coord; `vertex];
   GlTex.env (`color conf.texturecolor);
@@ -4741,7 +4746,7 @@ let () =
   dologf := (adderrfmt "stderr" "%s\n");
 
   let fdl =
-    let l = [!S.ss; !S.wsfd] in if !redirstderr then !S.stderr :: l else l
+    let l = [!S.ss; !S.wsfd] in if !S.redirstderr then !S.stderr :: l else l
   in
   let rec loop deadline =
     if !doreap

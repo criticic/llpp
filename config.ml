@@ -370,6 +370,7 @@ module S = struct
   let nav : anchor nav ref = ref { past = []; future  = []; }
   let tilelru : (tilemapkey * opaque * pixmapsize) Queue.t = Queue.create ()
   let fontpath = ref E.s
+  let redirstderr = ref false
 end
 
 let conf = { defconf with keyhashes = copykeyhashes defconf }
