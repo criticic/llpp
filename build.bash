@@ -121,7 +121,6 @@ if test "$overs" != "4.13.0~alpha1"; then
     ocamlc=$absprefix/bin/ocamlc
     keycmd="printf $url; digest $ocamlc;"
     isfresh $ocamlc "$(eval $keycmd)" || (
-        rm -fr $outd/{bin,lib}
         # This will needlessly re{configure,make} ocaml since "past"
         # of configure/make is hard to ascertain. "Better safe than
         # sorry" approach is taken here. The check will work for a
