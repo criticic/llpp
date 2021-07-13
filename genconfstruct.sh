@@ -25,13 +25,12 @@ and mark =
 and multicolumns = (multicol * pagegeom)
 and singlecolumn = pagegeom
 and splitcolumns = (columncount * pagegeom)
-and pagegeom = (pdimno * x * y * (pageno * width * height * leftx)) array
+and pagegeom = (pdimno * x * y * (pageno * w * h * leftx)) array
 and multicol = (columncount * covercount * covercount)
 and columncount = int
 and pdimno = int and pageno = int
-and x = int and y = int and leftx = int
+and x = int and y = int and leftx = int and w = int and  h = int
 and covercount = int
-and width = int and height = int
 and memsize = int and texcount = int
 and sliceheight = int
 and zoom = float
@@ -86,7 +85,7 @@ g trimfuzz irect "(0,0,0,0)"
 g memlimit memsize "128 lsl 20"
 g texcount texcount 256
 g sliceheight sliceheight 24
-g thumbw width 76
+g thumbw w 76
 g bgcolor rgb "(0.5, 0.5, 0.5)"
 g papercolor rgba "(1.0, 1.0, 1.0, 0.0)"
 g sbarcolor rgba "(0.64, 0.64, 0.64, 0.7)"

@@ -36,7 +36,7 @@ and uri            = string
 and caption        = string
 and tilex          = int
 and tiley          = int
-and tileparams     = (x * y * width * height * tilex * tiley)
+and tileparams     = (x * y * w * h * tilex * tiley)
 and under =
   | Unone
   | Ulinkuri of string
@@ -166,14 +166,14 @@ type page =
 type tile = opaque * pixmapsize * elapsed
 and elapsed = float
 and pagemapkey = pageno * gen
-and tilemapkey = pageno * gen * colorspace * angle * width * height * col * row
+and tilemapkey = pageno * gen * colorspace * angle * w * h * col * row
 and row = int
 and col = int
 and currently =
   | Idle
   | Loading of (page * gen)
   | Tiling
-    of (page * opaque * colorspace * angle * gen * col * row * width * height)
+    of (page * opaque * colorspace * angle * gen * col * row * w * h)
   | Outlining of outline list
 and mpos = int * int
 and mstate =
@@ -328,7 +328,7 @@ module S = struct
   let layout : page list ref = ref []
   let pagemap : (pagemapkey, opaque) Hashtbl.t = Hashtbl.create 0
   let tilemap : (tilemapkey, tile) Hashtbl.t = Hashtbl.create 0
-  let pdims : (pageno * width * height * leftx) list ref = ref []
+  let pdims : (pageno * w * h * leftx) list ref = ref []
   let pagecount = ref max_int
   let currently = ref Idle
   let mstate = ref Mnone
