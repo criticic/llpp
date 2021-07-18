@@ -97,9 +97,7 @@ XML structure.
 - To change the user interface font:
 -------------------------------------------------------------
 <llppconfig>
-  <ui-font size='32'>
-    <![CDATA[/path/to/fonts/Code2003-W8nn.ttf]]>
-  </ui-font>
+  <ui-font size='32'> <![CDATA[/path/to/fonts/font.otf]]> </ui-font>
   <defaults ... />
 </llppconfig>
 -------------------------------------------------------------
