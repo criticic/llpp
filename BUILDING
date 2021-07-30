@@ -21,3 +21,15 @@ To build llpp (binary will be in build/llpp):
 
 To build man pages (will be in build/doc/[name].1)
    - bash build.bash build doc
+
+===============================================================================
+There is an issue (investigatin ongoing)
+
+  link.o
+  cc1: error: too many filenames given; type ‘cc1 --help’ for usage
+  cc1: fatal error: build/bisect/link.d: No such file or directory
+  compilation terminated.
+  ocamlc -cc 'gcc' -ccopt "-g -std=c11 -I build/bisect/mupdf/include -I build/bisect/mupdf/thirdparty/freetype/include -Wall -Werror -Wextra -pedantic -O2 -D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>' -include ./diag.h -DFIXME=0 -DTEXT_TYPE=GL_TEXTURE_RECTANGLE_ARB -MMD -MF build/bisect/link.o.dep -MT_ -o build/bisect/link.o" ./link.c failed
+  build failed
+
+CAML_CC='ccache gcc' or CAML_CC=clang "fixes" it
