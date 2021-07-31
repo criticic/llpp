@@ -168,7 +168,8 @@ static int trylock (const char *cap)
 {
     int ret = pthread_mutex_trylock (&state.mutex);
     if (ret && ret != EBUSY) {
-        errx (1, "%s: pthread_mutex_trylock: %d(%s)", cap, ret, strerror (ret));
+        errx (1, "%s: pthread_mutex_trylock: %d(%s)", cap,
+              ret, strerror (ret));
     }
     return ret == EBUSY;
 }
