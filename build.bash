@@ -217,7 +217,7 @@ baux() {
 
 bocamlc() {
     local o=$outd/$1 s=$srcd/${1%.o}.c cc=${CAML_CC:+-cc "'$CAML_CC'" }
-    baux $o "ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_ -o $o\" $s"
+    baux $o "ocamlc $cc-ccopt \"$(cflags $o) -MMD -MF $o.dep -MT_\" -o $o -c $s"
 }
 
 bobjc() {
