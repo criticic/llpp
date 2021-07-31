@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <langinfo.h>
 #include <locale.h>
 #include <math.h>
