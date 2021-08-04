@@ -46,7 +46,7 @@ test -n "${gmk:-}" && gmk=false || gmk=true
 
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
 make="make -C "$mudir" build=$mbt -j $mjobs libs"
-$make -q -s || $make
+$make
 
 oincs() {
     local b=$1 incs
