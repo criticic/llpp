@@ -19,5 +19,9 @@ To download mupdf+prerequisites that llpp is known to work with:
 To build llpp (binary will be in build/llpp):
    - bash build.bash build
 
+   # by default llpp looks for .config/llpp.conf file
+   # hence .config directory should be present otherwise
+   # llpp will fail to start
+
 To build man pages (will be in build/doc/[name].1)
    - bash build.bash build doc
