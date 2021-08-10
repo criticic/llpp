@@ -73,7 +73,7 @@ oincs() {
 oflags() {
     case "${1#$outd/}" in
         lablGL/*) f="-g";;
-        utf8syms.cmo|confstruct.cmo|config.cmo|ffi.cmo|wsi/cocoa/msi.cmo)
+        utf8syms.cmo|confstruct.cmo|config.cmo|ffi.cmo|wsi/cocoa/wsi.cmo)
             f="-g -strict-sequence -strict-formats -alert @all-missing-mli";;
         *) f="-g -strict-sequence -strict-formats -alert @all -warn-error @A";;
     esac
