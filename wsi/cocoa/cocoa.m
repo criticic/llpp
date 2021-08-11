@@ -427,7 +427,7 @@ NSCursor *GetCursor (int idx)
 - (void)flagsChanged:(NSEvent *)event
 {
   NSEventModifierFlags mask = [event deviceIndependentModifierFlags];
-  NSLog (@"flagsChanged: 0x%lx", mask);
+  //NSLog (@"flagsChanged: 0x%lx", mask);
   if (mask != 0) {
     [connector keyDown:0 modifierFlags:mask];
   }
