@@ -45,7 +45,7 @@
 #define ARSERT(c) !(c) ? errx (1, "%s:%d " #c, __FILE__, __LINE__) : (void) 0
 #define ML(d) extern value ml_##d; value ml_##d
 #define ML0(d) extern void ml_##d; void ml_##d
-#define STTI(st) ((unsigned int) st)
+#define STTI(st) ((unsigned int) (st))
 
 enum {
     Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
