@@ -3905,7 +3905,6 @@ let display () =
 
   if conf.pgscale > 0.0
   then (
-    let yh = conf.pgscale *. float !S.winh in
     let drawsep y =
        let x0 = 0.0 and y0 = y -. 3.0 in
        let x1 = float !S.winw and y1 = y +. 3.0 in
@@ -3914,11 +3913,10 @@ let display () =
     Gl.enable `blend;
     GlDraw.color (0.1, 0.1, 0.1) ~alpha:0.5;
     GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
-    begin match !S.layout with
-    | _ :: [] -> drawsep yh
-    | l ->
-       List.iter (fun {pagedispy=y; pagevh=h; _} -> drawsep (float (y+h))) l
-    end;
+    (match !S.layout with
+     | _ :: [] -> drawsep (conf.pgscale *. float !S.winh)
+     | l -> List.iter (fun p -> drawsep (float (p.pagedispy+p.pagevh))) l
+    );
     Gl.disable `blend;
   );
   Wsi.swapb ()
