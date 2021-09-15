@@ -701,8 +701,9 @@ let settitle title =
   if not !S.ignoredoctitlte
   then Wsi.settitle @@ title ^ " - llpp"
 
-let opendoc path password =
+let opendoc path mimetype password =
   S.path := path;
+  S.mimetype := mimetype;
   S.password := password;
   S.gen := !S.gen + 1;
   S.docinfo := [];
@@ -714,8 +715,9 @@ let opendoc path password =
   Ffi.setdcf conf.dcf;
 
   settitle @@ titlify path;
-  wcmd U.dopen "%d %d %d %d %s\000%s\000%s\000"
-    (btod conf.usedoccss) conf.rlw conf.rlh conf.rlem path password conf.css;
+  wcmd U.dopen "%d %d %d %d %s\000%s\000%s\000%s\000"
+    (btod conf.usedoccss) conf.rlw conf.rlh conf.rlem
+    path mimetype password conf.css;
   invalidate "reqlayout"
     (fun () ->
       wcmd U.reqlayout " %d %d %d %s\000"
@@ -727,7 +729,7 @@ let opendoc path password =
 let reload () =
   S.anchor := getanchor ();
   S.reload := Some (!S.x, !S.y, now ());
-  opendoc !S.path !S.password
+  opendoc !S.path !S.mimetype !S.password
 
 let docolumns columns =
   match columns with
@@ -1301,7 +1303,7 @@ let act cmds =
      let password = getpassword () in
      if emptystr password
      then error "document is password protected"
-     else opendoc !S.path password
+     else opendoc !S.path !S.mimetype password
 
   | _ -> error "unknown cmd `%S'" cmds
 
@@ -1834,7 +1836,7 @@ let gotohist (path, c, bookmarks, x, anchor, origin) =
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd U.trimset "%d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Wsi.reshape c.cwinw c.cwinh;
-  opendoc path origin;
+  opendoc path !S.mimetype origin;
   setzoom c.zoom
 
 let describe_layout layout =
@@ -2294,7 +2296,7 @@ let enterinfomode =
         (fun v ->
           conf.aalevel <- bound v 0 8;
           S.anchor := getanchor ();
-          opendoc !S.path !S.password);
+          opendoc !S.path !S.mimetype !S.password);
       src#string "page scroll scaling factor"
         (fun () -> string_of_float conf.pgscale)
         (fun v ->
@@ -2379,7 +2381,7 @@ let enterinfomode =
         (fun v ->
           conf.usedoccss <- v;
           S.anchor := getanchor ();
-          opendoc !S.path !S.password);
+          opendoc !S.path !S.mimetype !S.password);
       src#bool ~btos "colors"
         (fun () -> !showcolors)
         (fun v -> showcolors := v; fillsrc prevmode prevuioh);
@@ -2739,10 +2741,10 @@ let gotoremote spec =
         | _pid -> ()
       else
         let anchor = getanchor () in
-        let ranchor = !S.path, !S.password, anchor, !S.origin in
+        let ranchor = !S.path, !S.mimetype, !S.password, anchor, !S.origin in
         S.origin := E.s;
         S.ranchors := ranchor :: !S.ranchors;
-        opendoc path E.s;
+        opendoc path E.s E.s;
     in
     if substratis spec 0 "page="
     then
@@ -3197,12 +3199,12 @@ let viewkeyboard key mask =
         | Birdseye _ | Textentry _ | View ->
            match !S.ranchors with
            | [] -> raise Quit
-           | (path, password, anchor, origin) :: rest ->
+           | (path, mimetype, password, anchor, origin) :: rest ->
               S.ranchors := rest;
               S.anchor := anchor;
               S.origin := origin;
               S.nameddest := E.s;
-              opendoc path password
+              opendoc path mimetype password
         end;
      end;
   | Ascii 'o' -> enteroutlinemode ()
@@ -4554,6 +4556,7 @@ let () =
      ("-flip-stderr-redirection",
       Arg.Unit (fun () -> S.redirstderr := not !S.redirstderr),
       " <undocumented>");
+     ("-mime", Arg.Set_string S.mimetype, "<mime type> <undocumented>")
     ]
   in
   Arg.parse (Arg.align spec) (fun s -> S.path := s)
@@ -4685,7 +4688,7 @@ let () =
         S.mode := View;
         setuioh uioh;
         Glutils.postRedisplay "opendoc";
-        opendoc path !S.password
+        opendoc path !S.mimetype !S.password
     end
   in
   let wsfd, winw, winh = Wsi.init mu conf.cwinw conf.cwinh in
@@ -4725,7 +4728,7 @@ let () =
   setuioh uioh;
   if histmode
   then (Wsi.settitle "previously visited - llpp"; enterhistmode ())
-  else opendoc !S.path !S.password;
+  else opendoc !S.path !S.mimetype !S.password;
   display ();
   Wsi.mapwin ();
   Wsi.setcursor Wsi.CURSOR_INHERIT;

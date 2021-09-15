@@ -296,7 +296,8 @@ static void closedoc (void)
     }
 }
 
-static int openxref (char *filename, char *password, int w, int h, int em)
+static int openxref (char *filename, char *mimetype, char *password,
+                     int w, int h, int em)
 {
     for (int i = 0; i < state.tex.count; ++i) {
         state.tex.owners[i].w = -1;
@@ -313,7 +314,13 @@ static int openxref (char *filename, char *password, int w, int h, int em)
     state.pagedimcount = 0;
 
     fz_set_aa_level (state.ctx, state.aalevel);
-    state.doc = fz_open_document (state.ctx, filename);
+    if (mimetype) {
+        fz_stream *st = fz_open_file (state.ctx, filename);
+        state.doc = fz_open_document_with_stream (state.ctx, mimetype, st);
+    }
+    else {
+        state.doc = fz_open_document (state.ctx, filename);
+    }
     if (fz_needs_password (state.ctx, state.doc)) {
         if (password && !*password) {
             printd ("pass");
@@ -1315,10 +1322,8 @@ static void *mainloop (void UNUSED_ATTR *unused)
         case Copen: {
             int off, usedoccss, ok = 0;
             int w, h, em;
-            char *password;
-            char *filename;
-            char *utf8filename;
-            size_t filenamelen;
+            char *password, *mimetype, *filename, *utf8filename;
+            size_t filenamelen, mimetypelen;
 
             fz_var (ok);
             ret = sscanf (p, "%d %d %d %d %n", &usedoccss, &w, &h, &em, &off);
@@ -1328,7 +1333,11 @@ static void *mainloop (void UNUSED_ATTR *unused)
 
             filename = p + off;
             filenamelen = strlen (filename);
-            password = filename + filenamelen + 1;
+
+            mimetype = filename + filenamelen + 1;
+            mimetypelen = strlen (mimetype);
+
+            password = mimetype + mimetypelen + 1;
 
             if (password[strlen (password) + 1]) {
                 fz_set_user_css (state.ctx, password + strlen (password) + 1);
@@ -1337,7 +1346,8 @@ static void *mainloop (void UNUSED_ATTR *unused)
             lock ("open");
             fz_set_use_document_css (state.ctx, usedoccss);
             fz_try (state.ctx) {
-                ok = openxref (filename, password, w, h, em);
+                ok = openxref (filename, mimetypelen ? mimetype : NULL,
+                               password, w, h, em);
             }
             fz_catch (state.ctx) {
                 utf8filename = mbtoutf8 (filename);
