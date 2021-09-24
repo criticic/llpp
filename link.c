@@ -338,6 +338,10 @@ static int openxref (char *filename, char *mimetype, char *password,
         fz_layout_document (state.ctx, state.doc, w, h, em);
     }
     state.pagecount = fz_count_pages (state.ctx, state.doc);
+    if (state.pagecount < 0) {
+        state.pagecount = 0;
+        return 0;
+    }
     return 1;
 }
 
@@ -1351,8 +1355,8 @@ static void *mainloop (void UNUSED_ATTR *unused)
             }
             fz_catch (state.ctx) {
                 utf8filename = mbtoutf8 (filename);
-                printd ("emsg failed loading %s: %s",
-                        utf8filename, fz_caught_message (state.ctx));
+                printd ("emsg failed to load %s: %s", utf8filename,
+                        fz_caught_message (state.ctx));
                 if (utf8filename != filename) {
                     free (utf8filename);
                 }
