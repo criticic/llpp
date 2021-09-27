@@ -52,10 +52,10 @@ enum {
     Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt
 };
 enum { FitWidth, FitProportional, FitPage };
-enum { dir_first, dir_last };
-enum { dir_first_visible, dir_left, dir_right, dir_down, dir_up };
-enum { uuri, utext, utextannot, ufileannot, unone };
-enum { mark_page, mark_block, mark_line, mark_word };
+enum { LDfirst, LDlast };
+enum { LDfirstvisible, LDleft, LDright, LDdown, LDup };
+enum { Uuri, Utext, Utextannot, Ufileannot, Unone };
+enum { Mark_page, Mark_block, Mark_line, Mark_word };
 
 struct slice {
     int h;
@@ -2330,7 +2330,7 @@ ML (findlink (value ptr_v, value dir_v))
     if (Is_block (dir_v)) {
         dirtag = Tag_val (dir_v);
         switch (dirtag) {
-        case dir_first_visible:
+        case LDfirstvisible:
             {
                 int x0, y0, dir, first_index, last_index;
 
@@ -2359,7 +2359,7 @@ ML (findlink (value ptr_v, value dir_v))
             }
             break;
 
-        case dir_left:
+        case LDleft:
             slinkindex = Int_val (Field (dir_v, 0));
             found = &page->slinks[slinkindex];
             for (i = slinkindex - 1; i >= 0; --i) {
@@ -2371,7 +2371,7 @@ ML (findlink (value ptr_v, value dir_v))
             }
             break;
 
-        case dir_right:
+        case LDright:
             slinkindex = Int_val (Field (dir_v, 0));
             found = &page->slinks[slinkindex];
             for (i = slinkindex + 1; i < page->slinkcount; ++i) {
@@ -2383,7 +2383,7 @@ ML (findlink (value ptr_v, value dir_v))
             }
             break;
 
-        case dir_down:
+        case LDdown:
             slinkindex = Int_val (Field (dir_v, 0));
             found = &page->slinks[slinkindex];
             for (i = slinkindex + 1; i < page->slinkcount; ++i) {
@@ -2395,7 +2395,7 @@ ML (findlink (value ptr_v, value dir_v))
             }
             break;
 
-        case dir_up:
+        case LDup:
             slinkindex = Int_val (Field (dir_v, 0));
             found = &page->slinks[slinkindex];
             for (i = slinkindex - 1; i >= 0; --i) {
@@ -2411,11 +2411,11 @@ ML (findlink (value ptr_v, value dir_v))
     else {
         dirtag = Int_val (dir_v);
         switch (dirtag) {
-        case dir_first:
+        case LDfirst:
             found = page->slinks;
             break;
 
-        case dir_last:
+        case LDlast:
             if (page->slinks) {
                 found = page->slinks + (page->slinkcount - 1);
             }
@@ -2450,12 +2450,12 @@ ML (getlink (value ptr_v, value n_v))
     if (slink->tag == SLINK) {
         link = slink->u.link;
         str_v = caml_copy_string (link->uri);
-        ret_v = caml_alloc_small (1, uuri);
+        ret_v = caml_alloc_small (1, Uuri);
         Field (ret_v, 0) = str_v;
     }
     else {
         int ty = pdf_annot_type (state.ctx, slink->u.annot)
-            == PDF_ANNOT_FILE_ATTACHMENT ? ufileannot : utextannot;
+            == PDF_ANNOT_FILE_ATTACHMENT ? Ufileannot : Utextannot;
 
         ret_v = caml_alloc_small (1, ty);
         tup_v = caml_alloc_tuple (2);
@@ -2615,7 +2615,7 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
             }
         }
         ty = pdf_annot_type (state.ctx, annot->annot)
-            == PDF_ANNOT_FILE_ATTACHMENT ? ufileannot : utextannot;
+            == PDF_ANNOT_FILE_ATTACHMENT ? Ufileannot : Utextannot;
 
         ret_v = caml_alloc_small (1, ty);
         tup_v = caml_alloc_tuple (2);
@@ -2628,7 +2628,7 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
     link = getlink (page, x, y);
     if (link) {
         str_v = caml_copy_string (link->uri);
-        ret_v = caml_alloc_small (1, uuri);
+        ret_v = caml_alloc_small (1, Uuri);
         Field (ret_v, 0) = str_v;
     }
     else {
@@ -2684,7 +2684,7 @@ ML (whatsunder (value ptr_v, value x_v, value y_v))
                         if (str_v == Val_unit) {
                             str_v = caml_copy_string (n2);
                         }
-                        ret_v = caml_alloc_small (1, utext);
+                        ret_v = caml_alloc_small (1, Utext);
                         Field (ret_v, 0) = str_v;
                         goto unlock;
                     }
@@ -2743,7 +2743,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
 
     ensuretext (page);
 
-    if (mark == mark_page) {
+    if (mark == Mark_page) {
         page->fmark = page->text->first_block->u.t.first_line->first_char;
         page->lmark = page->text->last_block->u.t.last_line->last_char;
         ret_v = Val_bool (1);
@@ -2761,7 +2761,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
             continue;
         }
 
-        if (mark == mark_block) {
+        if (mark == Mark_block) {
             page->fmark = block->u.t.first_line->first_char;
             page->lmark = block->u.t.last_line->last_char;
             ret_v = Val_bool (1);
@@ -2775,7 +2775,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
                 continue;
             }
 
-            if (mark == mark_line) {
+            if (mark == Mark_line) {
                 page->fmark = line->first_char;
                 page->lmark = line->last_char;
                 ret_v = Val_bool (1);
