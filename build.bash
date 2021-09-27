@@ -72,7 +72,7 @@ oincs() {
 
 oflags() {
     case "${1#$outd/}" in
-        lablGL/glTex.cmo) f="-w -labels-omitted";;
+        lablGL/glTex.cmo) f="-g -w -labels-omitted";;
         lablGL/*) f="-g";;
         utf8syms.cmo|confstruct.cmo|config.cmo|ffi.cmo|wsi/cocoa/wsi.cmo)
             f="-g -strict-sequence -strict-formats -alert @all-missing-mli";;
