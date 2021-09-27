@@ -113,7 +113,7 @@ let gen_textures ~len =
     arr.(i) <- Raw.get_long raw ~pos:i
   done;
   arr
-let gen_texture () =  (gen_textures 1).(0)
+let gen_texture () =  (gen_textures ~len:1).(0)
 
 external bind_texture : target:[`texture_1d|`texture_2d] -> texture_id -> unit
     = "ml_glBindTexture"
