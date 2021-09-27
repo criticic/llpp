@@ -104,8 +104,8 @@ mflags() {
 }
 
 overs=$(ocamlc -vnum 2>/dev/null) || overs=""
-if test "$overs" != "4.13.0~rc2"; then
-    url=https://caml.inria.fr/pub/distrib/ocaml-4.13/ocaml-4.13.0~rc2.tar.xz
+if test "$overs" != "4.13.0"; then
+    url=https://caml.inria.fr/pub/distrib/ocaml-4.13/ocaml-4.13.0.tar.xz
     txz=$outd/$(basename $url)
     keycmd="printf $url; digest $txz;"
     isfresh $txz "$(eval $keycmd)" || {
