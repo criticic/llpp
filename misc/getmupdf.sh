@@ -2,7 +2,9 @@
 set -eu
 
 MUPDF_OUTPUT_DIR="$1"
-MUPDF_URL="git://git.ghostscript.com/mupdf"
+#u="git://git.ghostscript.com/mupdf"
+u="https://github.com/ArtifexSoftware/mupdf"
+MUPDF_URL="${2-$u}"
 MUPDF_DESIRED_VERSION="3ba8a4cd71e9ca527c5cb67bd23b95f04c6a2584"
 
 if [ ! -d ${MUPDF_OUTPUT_DIR} ]; then
