@@ -109,7 +109,7 @@ if test "$overs" != "4.13.0"; then
     txz=$outd/$(basename $url)
     keycmd="printf $url; digest $txz;"
     isfresh $txz "$(eval $keycmd)" || {
-        if executable_p wget; then dl() { wget -q "$1" -O "$2"; }
+        if executable_p wget; then dl() { wget "$1" -O "$2"; }
         elif executable_p curl; then dl() { curl -L "$1" -o "$2"; }
         else die "no program to fetch remote urls found"
         fi
