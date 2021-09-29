@@ -5,27 +5,13 @@
   file names? exif?
 * TODO build.bash
 ** Parallel builds
-   gmk=1 bash build bash build
-   creates Makefile which when fet to make -jN scales
-
-   maybe it's possible/easy to utilize GNU parallel(1) inside
-   build.bash to achieve the same end without GNU make
-** stale cmi after two years lapse
-   File "build/confstruct.ml", line 1:
-*** File "build/confstruct.ml", line 1:
-Error: build/wsi.cmi is not a compiled interface for this version of OCaml.
-It seems to be for an older version of OCaml.
-ocamlc -I build -I build/wsi/x11 -g -strict-sequence -strict-formats -alert @all -warn-error @A -c -o build/confstruct.cmo build/confstruct.ml failed
-build failed
-*** - cat wsi.cmi.past
-k='4.08.0ocamlc -I . -I build  -g -strict-sequence -strict-formats -w @A -c -o build/wsi.cmi ./wsi.mli1991714897 75061'
+   gmk=1 bash build bash build - generates Makefile for "gmake -jN"
+     it maybe possible to utilize GNU parallel(1) inside build.bash to
+     achieve the same without GNU make
 * TODO [maybe] inside rect/quad (_Generic)
 * TODO threaded rendering
 * TODO wikit - https://github.com/moosotc/llpp/issues/128
 * TODO (maybe?) make C replies use byte commands too
-* TODO title tracking
-* TODO macOS machine check
-* TODO add E.geomcmds
 * TODO reset fractional coordinates when needed
 * TODO kymap mapcode
   add a way to bind keycodes (not keysyms) to actions
