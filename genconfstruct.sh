@@ -18,10 +18,10 @@ and columns =
   | Cmulti of multicolumns
   | Csplit of splitcolumns
 and mark =
-  | Mark_page
-  | Mark_block
-  | Mark_line
-  | Mark_word
+  | MarkPage
+  | MarkBlock
+  | MarkLine
+  | MarkWord
 and multicolumns = (multicol * pagegeom)
 and singlecolumn = pagegeom
 and splitcolumns = (columncount * pagegeom)
@@ -117,7 +117,7 @@ f pgscale 1.
 b wheelbypage false
 s stcmd "{|echo SyncTex|}"
 b riani false
-g paxmark mark Mark_word
+g paxmark mark MarkWord
 b leftscroll false
 s title Utils.E.s
 f lastvisit 0.0

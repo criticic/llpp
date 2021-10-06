@@ -55,7 +55,7 @@ enum { FitWidth, FitProportional, FitPage };
 enum { LDfirst, LDlast };
 enum { LDfirstvisible, LDleft, LDright, LDdown, LDup };
 enum { Uuri, Utext, Utextannot, Ufileannot, Unone };
-enum { Mark_page, Mark_block, Mark_line, Mark_word };
+enum { MarkPage, MarkBlock, MarkLine, MarkWord };
 
 struct slice {
     int h;
@@ -2744,7 +2744,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
 
     ensuretext (page);
 
-    if (mark == Mark_page) {
+    if (mark == MarkPage) {
         page->fmark = page->text->first_block->u.t.first_line->first_char;
         page->lmark = page->text->last_block->u.t.last_line->last_char;
         ret_v = Val_bool (1);
@@ -2762,7 +2762,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
             continue;
         }
 
-        if (mark == Mark_block) {
+        if (mark == MarkBlock) {
             page->fmark = block->u.t.first_line->first_char;
             page->lmark = block->u.t.last_line->last_char;
             ret_v = Val_bool (1);
@@ -2776,7 +2776,7 @@ ML (markunder (value ptr_v, value x_v, value y_v, value mark_v))
                 continue;
             }
 
-            if (mark == Mark_line) {
+            if (mark == MarkLine) {
                 page->fmark = line->first_char;
                 page->lmark = line->last_char;
                 ret_v = Val_bool (1);

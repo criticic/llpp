@@ -143,7 +143,7 @@ let paxunder x y =
     else None
   in
   Glutils.postRedisplay "paxunder";
-  if conf.paxmark = Mark_page
+  if conf.paxmark = MarkPage
   then
     List.iter (fun l ->
         match getopaque l.pageno with
@@ -4018,10 +4018,10 @@ let viewmulticlick clicks x y mask =
   let g opaque l px py =
     let mark =
       match clicks with
-      | 2 -> Mark_word
-      | 3 -> Mark_line
-      | 4 -> Mark_block
-      | _ -> Mark_page
+      | 2 -> MarkWord
+      | 3 -> MarkLine
+      | 4 -> MarkBlock
+      | _ -> MarkPage
     in
     if Ffi.markunder opaque px py mark
     then (
