@@ -1465,9 +1465,8 @@ let gc () =
   let cref = ref defconf in
   let push (h, dc) =
     let f path v =
-      if Sys.file_exists path
-      then Some v
-      else (dolog1 "removing entry for %S" path; None) in
+      if Sys.file_exists path then Some v else (dolog1 "-%S" path; None)
+    in
     Hashtbl.filter_map_inplace f h;
     href := h;
     cref := dc;
