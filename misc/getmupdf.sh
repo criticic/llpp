@@ -2,8 +2,8 @@
 set -eu
 
 MUPDF_OUTPUT_DIR="$1"
-#u="git://git.ghostscript.com/mupdf"
-u="https://github.com/ArtifexSoftware/mupdf"
+u="git://git.ghostscript.com/mupdf"
+#u="https://github.com/ArtifexSoftware/mupdf"
 MUPDF_URL="${2-$u}"
 MUPDF_DESIRED_VERSION="8c1db15b61e6228cc636a6391ac99304102ae0c8"
 
