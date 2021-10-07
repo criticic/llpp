@@ -949,7 +949,11 @@ static void recurse_outline (fz_outline *outline, int level)
                                &p.x, &p.y);
         pageno = fz_page_number_from_location (state.ctx, state.doc, loc);
         if (pageno >= 0) {
-            struct pagedim *pdim = pdimofpageno (outline->page);
+            struct pagedim *pdim =
+                pdimofpageno (
+                    fz_page_number_from_location (state.ctx, state.doc,
+                                                  outline->page)
+                    );
             int h = fz_maxi (fz_absi (pdim->bounds.y1 - pdim->bounds.y0), 0);
             p = fz_transform_point (p, pdim->ctm);
             printd ("o %d %d %d %d %s",
