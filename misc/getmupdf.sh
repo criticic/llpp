@@ -5,7 +5,7 @@ MUPDF_OUTPUT_DIR="$1"
 u="git://git.ghostscript.com/mupdf"
 #u="https://github.com/ArtifexSoftware/mupdf"
 MUPDF_URL="${2-$u}"
-MUPDF_DESIRED_VERSION="8c1db15b61e6228cc636a6391ac99304102ae0c8"
+MUPDF_DESIRED_VERSION="3f050bc65f0a9ba841b57bbf483c7fe378df7c0e"
 
 if [ ! -d ${MUPDF_OUTPUT_DIR} ]; then
     echo "mupdf does not exist, fetching it from ${MUPDF_URL}"
