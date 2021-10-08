@@ -1049,7 +1049,7 @@ static enum a_searchresult matchline (regex_t *re, fz_stext_line *line,
     }
     else {
         int o = 0;
-        fz_quad s, e;
+        fz_quad s = line->first_char->quad, e;
         fz_stext_char *ch;
 
         if (rm.rm_so == rm.rm_eo) {
@@ -2279,6 +2279,7 @@ ML (find_page_with_links (value start_page_v, value dir_v))
     int end_page = dir > 0 ? state.pagecount : -1;
     pdf_document *pdf;
 
+    fz_var (i);
     fz_var (end_page);
     ret_v = Val_int (0);
     lock (__func__);
