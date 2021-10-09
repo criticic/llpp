@@ -574,6 +574,7 @@ static void initpdims1 (void)
     fz_var (p);
     fz_var (pdf);
     fz_var (shown);
+    fz_var (pageno);
     fz_var (cxcount);
 
     cxcount = state.pagecount;
