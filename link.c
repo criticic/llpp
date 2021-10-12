@@ -973,11 +973,23 @@ static void recurse_outline (fz_outline *outline, int level)
 static void process_outline (void)
 {
     if (state.needoutline && state.pagedimcount) {
-        fz_outline *outline = fz_load_outline (state.ctx, state.doc);
-        state.needoutline = 0;
-        if (outline) {
-            recurse_outline (outline, 0);
-            fz_drop_outline (state.ctx, outline);
+        fz_outline *outline = NULL;
+
+        fz_var (outline);
+        fz_try (state.ctx) {
+            outline = fz_load_outline (state.ctx, state.doc);
+            state.needoutline = 0;
+            if (outline) {
+                recurse_outline (outline, 0);
+            }
+        }
+        fz_always (state.ctx) {
+            if (outline) {
+                fz_drop_outline (state.ctx, outline);
+            }
+        }
+        fz_catch (state.ctx) {
+            printd ("emsg %s", fz_caught_message (state.ctx));
         }
     }
 }
