@@ -18,3 +18,4 @@
 * TODO multiple targets in build.bash
   exit inside 'doc' target is not, in general, correct
 * TODO scroll by paragraph/block
+  - State "TODO"       from              [2021-10-07 Thu 15:34]
