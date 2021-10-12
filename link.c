@@ -1583,8 +1583,8 @@ static void *mainloop (void UNUSED_ATTR *unused)
             fz_irect fuzz;
             int trimmargins;
 
-            ret = sscanf (p, "%d %d %d %d %d",
-                          &trimmargins, &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
+            ret = sscanf (p, "%d %d %d %d %d", &trimmargins,
+                          &fuzz.x0, &fuzz.y0, &fuzz.x1, &fuzz.y1);
             if (ret != 5) {
                 errx (1, "malformed settrim `%.*s' ret=%d", len, p, ret);
             }
