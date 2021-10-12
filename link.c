@@ -47,10 +47,8 @@
 #define ML0(d) extern void ml_##d; void ml_##d
 #define STTI(st) ((unsigned int) (st))
 
-enum {
-    Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
-    Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt
-};
+enum { Copen=23, Ccs, Cfreepage, Cfreetile, Csearch, Cgeometry, Creqlayout,
+       Cpage, Ctile, Ctrimset, Csettrim, Csliceh, Cinterrupt };
 enum { FitWidth, FitProportional, FitPage };
 enum { LDfirst, LDlast };
 enum { LDfirstvisible, LDleft, LDright, LDdown, LDup };
