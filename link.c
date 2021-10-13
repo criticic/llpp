@@ -1188,7 +1188,12 @@ static void search (regex_t *re, int pageno, int y, int forward)
     case Error: cap = "error "; break;
     case Interrupted: cap = "interrupt "; break;
     }
-    printd ("progress 1 %sfound %d in %f sec", cap, num_matches, dur);
+    if (num_matches) {
+        printd ("progress 1 %sfound %d in %f sec", cap, num_matches, dur);
+    }
+    else {
+        printd ("progress 1 %sfound nothing in %f sec", cap, dur);
+    }
     printd ("clearrects");
 }
 
