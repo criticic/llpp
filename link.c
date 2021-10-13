@@ -1753,41 +1753,34 @@ done:
 #include "glfont.c"
 #pragma GCC diagnostic pop
 
-static void stipplerect (fz_matrix m,
-                         fz_point p1,
-                         fz_point p2,
-                         fz_point p3,
-                         fz_point p4,
-                         GLfloat *texcoords,
-                         GLfloat *vertices)
+static void stipplerect (fz_matrix m, fz_point p[4],
+                         GLfloat *texcoords, GLfloat *vertices)
 {
-    p1 = fz_transform_point (p1, m);
-    p2 = fz_transform_point (p2, m);
-    p3 = fz_transform_point (p3, m);
-    p4 = fz_transform_point (p4, m);
-    {
-        float w, h, s, t;
+    fz_point p1 = fz_transform_point (p[0], m);
+    fz_point p2 = fz_transform_point (p[1], m);
+    fz_point p3 = fz_transform_point (p[2], m);
+    fz_point p4 = fz_transform_point (p[3], m);
 
-        w = p2.x - p1.x;
-        h = p2.y - p1.y;
-        t = hypotf (w, h) * .25f;
+    float w = p2.x - p1.x;
+    float h = p2.y - p1.y;
+    float t = hypotf (w, h) * .25f;
 
-        w = p3.x - p2.x;
-        h = p3.y - p2.y;
-        s = hypotf (w, h) * .25f;
+    w = p3.x - p2.x;
+    h = p3.y - p2.y;
+    float s = hypotf (w, h) * .25f;
 
-        texcoords[0] = 0; vertices[0] = p1.x; vertices[1] = p1.y;
-        texcoords[1] = t; vertices[2] = p2.x; vertices[3] = p2.y;
+    texcoords[0] = 0; vertices[0] = p1.x; vertices[1] = p1.y;
+    texcoords[1] = t; vertices[2] = p2.x; vertices[3] = p2.y;
 
-        texcoords[2] = 0; vertices[4] = p2.x; vertices[5] = p2.y;
-        texcoords[3] = s; vertices[6] = p3.x; vertices[7] = p3.y;
+    texcoords[2] = 0; vertices[4] = p2.x; vertices[5] = p2.y;
+    texcoords[3] = s; vertices[6] = p3.x; vertices[7] = p3.y;
 
-        texcoords[4] = 0; vertices[8] = p3.x; vertices[9] = p3.y;
-        texcoords[5] = t; vertices[10] = p4.x; vertices[11] = p4.y;
+    texcoords[4] = 0; vertices[8] = p3.x; vertices[9] = p3.y;
+    texcoords[5] = t; vertices[10] = p4.x; vertices[11] = p4.y;
 
-        texcoords[6] = 0; vertices[12] = p4.x; vertices[13] = p4.y;
-        texcoords[7] = s; vertices[14] = p1.x; vertices[15] = p1.y;
-    }
+    texcoords[6] = 0; vertices[12] = p4.x; vertices[13] = p4.y;
+    texcoords[7] = s; vertices[14] = p1.x; vertices[15] = p1.y;
+
     glDrawArrays (GL_LINES, 0, 8);
 }
 
@@ -1800,6 +1793,7 @@ static void ensurelinks (struct page *page)
 
 static void highlightlinks (struct page *page, int xoff, int yoff)
 {
+    fz_point p[4];
     fz_matrix ctm;
     fz_link *link;
     GLfloat *texcoords = state.texcoords;
@@ -1820,19 +1814,18 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
     glVertexPointer (2, GL_FLOAT, 0, vertices);
 
     for (link = page->links; link; link = link->next) {
-        fz_point p1, p2, p3, p4;
 
-        p1.x = link->rect.x0;
-        p1.y = link->rect.y0;
+        p[0].x = link->rect.x0;
+        p[0].y = link->rect.y0;
 
-        p2.x = link->rect.x1;
-        p2.y = link->rect.y0;
+        p[1].x = link->rect.x1;
+        p[1].y = link->rect.y0;
 
-        p3.x = link->rect.x1;
-        p3.y = link->rect.y1;
+        p[2].x = link->rect.x1;
+        p[2].y = link->rect.y1;
 
-        p4.x = link->rect.x0;
-        p4.y = link->rect.y1;
+        p[3].x = link->rect.x0;
+        p[3].y = link->rect.y1;
 
         /* TODO: different colours for different schemes */
         if (fz_is_external_link (state.ctx, link->uri)) {
@@ -1842,27 +1835,26 @@ static void highlightlinks (struct page *page, int xoff, int yoff)
             glColor3ub (255, 0, 0);
         }
 
-        stipplerect (ctm, p1, p2, p3, p4, texcoords, vertices);
+        stipplerect (ctm, p, texcoords, vertices);
     }
 
     for (int i = 0; i < page->annotcount; ++i) {
-        fz_point p1, p2, p3, p4;
         struct annot *annot = &page->annots[i];
 
-        p1.x = annot->bbox.x0;
-        p1.y = annot->bbox.y0;
+        p[0].x = annot->bbox.x0;
+        p[0].y = annot->bbox.y0;
 
-        p2.x = annot->bbox.x1;
-        p2.y = annot->bbox.y0;
+        p[1].x = annot->bbox.x1;
+        p[1].y = annot->bbox.y0;
 
-        p3.x = annot->bbox.x1;
-        p3.y = annot->bbox.y1;
+        p[2].x = annot->bbox.x1;
+        p[2].y = annot->bbox.y1;
 
-        p4.x = annot->bbox.x0;
-        p4.y = annot->bbox.y1;
+        p[3].x = annot->bbox.x0;
+        p[3].y = annot->bbox.y1;
 
         glColor3ub (0, 0, 128);
-        stipplerect (ctm, p1, p2, p3, p4, texcoords, vertices);
+        stipplerect (ctm, p, texcoords, vertices);
     }
 
     glDisable (GL_BLEND);
