@@ -1319,7 +1319,8 @@ let onhist cb =
 
 let search pattern forward =
   match conf.columns with
-  | Csplit _ -> impmsg "searching does not work properly in split columns mode"
+  | Csplit _ ->
+     impmsg "searching while in split columns mode is not implemented"
   | Csingle _ | Cmulti _ ->
      if nonemptystr pattern
      then
@@ -3998,7 +3999,7 @@ let zoomblock x y =
   in
   match conf.columns with
   | Csplit _ ->
-     impmsg "block zooming does not work properly in split columns mode"
+     impmsg "block zooming while in split columns mode is not implemented"
   | Cmulti _ | Csingle _ -> onppundermouse g x y ()
 
 let scrollx x =
