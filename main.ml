@@ -4041,10 +4041,7 @@ let viewmulticlick clicks x y mask =
   Glutils.postRedisplay "viewmulticlick";
   onppundermouse g x y (fun () -> impmsg "nothing to select") ()
 
-let canselect () =
-  match conf.columns with
-  | Csplit _ -> false
-  | Csingle _ | Cmulti _ -> conf.angle mod 360 = 0
+let canselect () = conf.angle mod 360 = 0
 
 let viewmouse button down x y mask =
   match button with
