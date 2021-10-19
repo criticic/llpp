@@ -3274,7 +3274,8 @@ let viewkeyboard key mask =
   | Ascii '4' when ctrl ->
      let zoom = Ffi.getmaxw () /. float !S.winw in
      if zoom > 0.0 then setzoom zoom
-  | Fn 9 | Ascii '9' when ctrl -> togglebirdseye ()
+  | Fn 9 -> togglebirdseye ()
+  | Ascii '9' when ctrl -> togglebirdseye ()
   | Ascii ('0'..'9' as c) when not ctrl ->
      let ondone s =
        let n =
