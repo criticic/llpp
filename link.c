@@ -353,6 +353,7 @@ static void docinfo (void)
         { FZ_META_INFO_CREATOR, "Creator" },
         { FZ_META_INFO_PRODUCER, "Producer" },
         { FZ_META_INFO_CREATIONDATE, "Creation date" },
+        { FZ_META_INFO_MODIFICATIONDATE, "Modification date"},
     };
     int len = 0, need;
     char *buf = NULL;
