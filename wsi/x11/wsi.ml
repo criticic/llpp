@@ -1143,7 +1143,7 @@ let xlatt, xlatf =
   add "del" ["delete"] 0xffff;
   add "esc" ["escape"] 0xff1b;
   add "pgup" ["pageup"] 0xff55;
-  add "pgdown" ["pagedown"] 0xff56;
+  add "pgdown" ["pagedown"; "pgdn"] 0xff56;
   add "backspace" [] 0xff08;
   add "up" [] 0xff52;
   add "down" [] 0xff54;

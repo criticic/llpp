@@ -268,7 +268,7 @@ let xlatt, xlatf =
   add "del" ["delete"] 0x7f;
   add "esc" ["escape"] 27;
   add "pgup" ["pageup"] 0xf72c;
-  add "pgdown" ["pagedown"] 0xf72d;
+  add "pgdown" ["pagedown"; "pgdn"] 0xf72d;
   add "backspace" [] 8;
   add "up" [] 0xf700;
   add "down" [] 0xf701;
