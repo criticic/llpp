@@ -4555,7 +4555,7 @@ let () =
      ("-flip-stderr-redirection",
       Arg.Unit (fun () -> S.redirstderr := not !S.redirstderr),
       " <undocumented>");
-     ("-mime", Arg.Set_string S.mimetype, "<mime type> <undocumented>")
+     ("-mime", Arg.Set_string S.mimetype, "<mime-type> <undocumented>")
     ]
   in
   Arg.parse (Arg.align spec) (fun s -> S.path := s)
