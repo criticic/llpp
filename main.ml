@@ -4539,8 +4539,10 @@ let () =
      ("-last", Arg.Set openlast, " Open last document");
      ("-page", Arg.Int (fun pageno1 -> pageno := Some (pageno1-1)),
       "<page-number> Jump to page");
-     ("-dest", Arg.Set_string S.nameddest, "<dest-name> Set named destination");
-     ("-remote", Arg.Set_string rcmdpath, "<path> Set path to the remote fifo");
+     ("-dest", Arg.Set_string S.nameddest,
+      "<dest-name> Set named destination");
+     ("-remote", Arg.Set_string rcmdpath,
+      "<path> Set path to the remote fifo");
      ("-gc", Arg.Set gc, " Collect garbage");
      ("-v",
       Arg.Unit (fun () ->
@@ -4606,7 +4608,7 @@ let () =
         self#cleanup;
         reshape w h
       method mouse b d x y m =
-        (* http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx *)
+        (*http://blogs.msdn.com/b/oldnewthing/archive/2004/10/18/243925.aspx*)
         m_click_x <- x;
         setuioh @@
           if d && canselect ()
