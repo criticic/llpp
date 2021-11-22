@@ -18,4 +18,9 @@
 * TODO multiple targets in build.bash
   exit inside 'doc' target is not, in general, correct
 * TODO scroll by paragraph/block
-  - State "TODO"       from              [2021-10-07 Thu 15:34]
+* TODO preloading does not alwasy stabilize in split coulmns mode
+  i.e. same tiles are constantly evicted from the cache and immediately
+  redndered again. noticeable side effect is flicker.
+
+  to reproduce set pixmap cache to 1 and column count to -6 on a one
+  page pdf
