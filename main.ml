@@ -911,11 +911,8 @@ let reshape ?(firsttime=false) w h =
       wcmd U.geometry "%d %d %d" w (stateh h) (FMTE.to_int conf.fitmodel)
     )
 
-let gctiles () =
+let gctiles layout =
   let len = Queue.length S.tilelru in
-  let layout = lazy (if conf.preload
-                     then preloadlayout !S.x !S.y !S.winw !S.winh
-                     else !S.layout) in
   let rec loop qpos =
     if !S.memused > conf.memlimit
     then (
@@ -931,7 +928,7 @@ let gctiles () =
              && pageh = ph
              && (
                let x = col*conf.tilew and y = row*conf.tileh in
-               tilevisible (Lazy.force_val layout) n x y
+               tilevisible layout n x y
              )
         then Queue.push lruitem S.tilelru
         else (
@@ -1181,33 +1178,35 @@ let act cmds =
      begin match !S.currently with
      | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
         vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
+        let layout =
+          if conf.preload
+          then preloadlayout !S.x !S.y !S.winw !S.winh
+          else !S.layout
+        in
         if tilew != conf.tilew || tileh != conf.tileh
         then (
           wcmd1 U.freetile opaque;
           S.currently := Idle;
-          load !S.layout;
+          load layout;
         )
         else (
           puttileopaque l col row gen cs angle opaque size t;
           S.memused := !S.memused + size;
           !S.uioh#infochanged Memused;
-          gctiles ();
+          gctiles layout;
           Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                       opaque, size) S.tilelru;
 
           S.currently := Idle;
-          if    gen = !S.gen
-                && conf.colorspace = cs
-                && conf.angle = angle
-                && tilevisible !S.layout l.pageno x y
-          then conttiling l.pageno pageopaque;
+          let visible = tilevisible layout l.pageno x y in
+          let cont = gen = !S.gen && conf.colorspace = cs
+                     && conf.angle = angle && visible
+          in
 
-          preload !S.layout;
-          if   gen = !S.gen
-               && conf.colorspace = cs
-               && conf.angle = angle
-               && tilevisible !S.layout l.pageno x y
-               && layoutready !S.layout
+          if cont
+          then conttiling l.pageno pageopaque;
+          preload layout;
+          if cont && layoutready layout
           then Glutils.postRedisplay "tile nothrottle";
         )
 
