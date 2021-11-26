@@ -20,8 +20,22 @@
 * TODO scroll by paragraph/block
 * TODO preloading does not alwasy converge in split coulmns mode
   i.e. same tiles are constantly evicted from the cache and immediately
-  redndered again. noticeable side effect is flicker.
+  rendered again.
 
-  to reproduce set pixmap cache to 1 and column count to -6 on a one
-  page pdf
-* logcurrently writes to queue even thoigh it was run from terminal
+  reproducer config follows, worked with semi-random document.
+<llppconfig>
+<ui-font size='32'/>
+<defaults
+    width='1800'
+    height='1500'
+    preload='true'/>
+<doc path='/home/malc/sched_act.pdf'
+    key='c7f7e3f040a55bebb3c66387a653585e'
+    page='0' rely='0.027496' pan='-504'
+    height='1900'
+    zoom='90'
+    pixmap-cache-size='2'
+    columns='-3'
+    title='Scheduler activations'
+    last-visit='1637934960'/>
+</llppconfig>
