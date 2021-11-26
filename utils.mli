@@ -12,7 +12,6 @@ external hasdata : Unix.file_descr -> bool = "ml_hasdata"
 val now : unit -> float
 val dologf : (string -> unit) ref
 val dolog : ('a, unit, string, unit) format4 -> 'a
-val dolog1 : ('a, unit, string, unit) format4 -> 'a
 val exntos : exn -> string
 val onoffs : bool -> string
 val error : ('a, unit, string, 'b) format4 -> 'a

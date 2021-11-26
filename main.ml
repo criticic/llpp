@@ -1006,12 +1006,12 @@ let pgoto opaque pageno x y =
   gotopagexy pageno x y
 
 let act cmds =
-  (* dolog1 "%S" cmds; *)
+  (* dolog "%S" cmds; *)
   let spl = splitatchar cmds ' ' in
   let scan s fmt f =
     try Scanf.sscanf s fmt f
     with exn ->
-      dolog1 "error scanning %S: %s" cmds @@ exntos exn;
+      dolog "error scanning %S: %s" cmds @@ exntos exn;
       exit 1
   in
   let addoutline outline =
@@ -1019,7 +1019,7 @@ let act cmds =
     | Outlining outlines -> S.currently := Outlining (outline :: outlines)
     | Idle -> S.currently := Outlining [outline]
     | Loading _ | Tiling _ ->
-       dolog1 "invalid outlining state";
+       dolog "Invalid outlining state";
        logcurrently !S.currently
   in
   match spl with
@@ -1168,7 +1168,7 @@ let act cmds =
         )
 
      | Idle | Tiling _ | Outlining _ ->
-        dolog1 "Inconsistent loading state";
+        dolog "Inconsistent loading state";
         logcurrently !S.currently;
         exit 1
      end
@@ -1212,7 +1212,7 @@ let act cmds =
         )
 
      | Idle | Loading _ | Outlining _ ->
-        dolog1 "Inconsistent tiling state";
+        dolog "Inconsistent tiling state";
         logcurrently !S.currently;
         exit 1
      end
@@ -4747,7 +4747,8 @@ let () =
   let optrfd =
     ref (if nonemptystr !rcmdpath then remoteopen !rcmdpath else None)
   in
-  dologf := (adderrfmt "stderr" "%s\n");
+  if !S.redirstderr
+  then dologf := (adderrfmt "stderr" "%s\n");
 
   let fdl =
     let l = [!S.ss; !S.wsfd] in if !S.redirstderr then !S.stderr :: l else l
