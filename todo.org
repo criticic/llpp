@@ -18,24 +18,3 @@
 * TODO multiple targets in build.bash
   exit inside 'doc' target is not, in general, correct
 * TODO scroll by paragraph/block
-* TODO preloading does not alwasy converge in split coulmns mode
-  i.e. same tiles are constantly evicted from the cache and immediately
-  rendered again.
-
-  reproducer config follows, worked with semi-random document.
-<llppconfig>
-<ui-font size='32'/>
-<defaults
-    width='1800'
-    height='1500'
-    preload='true'/>
-<doc path='/home/malc/sched_act.pdf'
-    key='c7f7e3f040a55bebb3c66387a653585e'
-    page='0' rely='0.027496' pan='-504'
-    height='1900'
-    zoom='90'
-    pixmap-cache-size='2'
-    columns='-3'
-    title='Scheduler activations'
-    last-visit='1637934960'/>
-</llppconfig>

@@ -1179,7 +1179,7 @@ let act cmds =
      | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
         vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
         let layout =
-          if conf.preload
+          if conf.preload && layoutready !S.layout
           then preloadlayout !S.x !S.y !S.winw !S.winh
           else !S.layout
         in
