@@ -1206,7 +1206,7 @@ let act cmds =
           if cont
           then conttiling l.pageno pageopaque;
           preload layout;
-          if cont && layoutready layout
+          if cont
           then Glutils.postRedisplay "tile nothrottle";
         )
 
