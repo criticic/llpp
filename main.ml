@@ -1193,7 +1193,7 @@ let act cmds =
           puttileopaque l col row gen cs angle opaque size t;
           S.memused := !S.memused + size;
           !S.uioh#infochanged Memused;
-          gctiles layout;
+          gctiles !S.layout;
           Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                       opaque, size) S.tilelru;
 
@@ -1828,16 +1828,17 @@ let genhistoutlines () =
 
 let gotohist (path, c, bookmarks, x, anchor, origin) =
   Config.save leavebirdseye;
-  S.anchor := anchor;
-  S.bookmarks := bookmarks;
-  S.origin := origin;
-  S.x := x;
   setconf conf c;
   let x0, y0, x1, y1 = conf.trimfuzz in
   wcmd U.trimset "%d %d %d %d %d" (btod conf.trimmargins) x0 y0 x1 y1;
   Wsi.reshape c.cwinw c.cwinh;
   opendoc path !S.mimetype origin;
-  setzoom c.zoom
+  conf.zoom <- nan;
+  setzoom c.zoom;
+  S.anchor := anchor;
+  S.bookmarks := bookmarks;
+  S.origin := origin;
+  S.x := x
 
 let describe_layout layout =
   let d =
