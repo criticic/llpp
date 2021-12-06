@@ -911,7 +911,7 @@ let reshape ?(firsttime=false) w h =
       wcmd U.geometry "%d %d %d" w (stateh h) (FMTE.to_int conf.fitmodel)
     )
 
-let gctiles layout =
+let gctilesnotinlayout layout =
   let len = Queue.length S.tilelru in
   let rec loop qpos =
     if !S.memused > conf.memlimit
@@ -1193,7 +1193,7 @@ let act cmds =
           puttileopaque l col row gen cs angle opaque size t;
           S.memused := !S.memused + size;
           !S.uioh#infochanged Memused;
-          gctiles !S.layout;
+          gctilesnotinlayout !S.layout;
           Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                       opaque, size) S.tilelru;
 
