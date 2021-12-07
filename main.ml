@@ -514,7 +514,7 @@ let preload pages =
   if conf.preload && !S.currently = Idle
   then load (preloadlayout !S.x !S.y !S.winw !S.winh)
 
-let layoutready layout =
+let alltilesrendered layout =
   let exception E in
   let rec fold ls =
     match ls with
@@ -1160,8 +1160,8 @@ let act cmds =
             | Textentry _ -> ()
           );
 
-          if visible && layoutready !S.layout
-          then Glutils.postRedisplay "page";
+          if visible && alltilesrendered !S.layout
+          then assert false (* Glutils.postRedisplay "page"; *)
         )
 
      | Idle | Tiling _ | Outlining _ ->
@@ -1171,6 +1171,18 @@ let act cmds =
      end
 
   | "tile" , args ->
+     (*
+       C part is notifying us that it has finished redering a tile
+       valid = the tile fits current config (i.e. the settings with which
+       the tile has been rendered match current ones)
+
+       if the tile is not valid free it and issue loading/rendering commands
+       for the current layout
+
+       evict all the tiles that aren't part of preloadlayout
+       if tile is visible post redisplay
+       continue tiling
+      *)
      let (x, y, opaques, size, t) =
        scan args "%u %u %s %u %f" (fun x y p size t -> (x, y, p, size, t))
      in
@@ -1179,7 +1191,7 @@ let act cmds =
      | Tiling (l, pageopaque, cs, angle, gen, col, row, tilew, tileh) ->
         vlog "tile %d [%d,%d] took %f sec" l.pageno col row t;
         let layout =
-          if conf.preload && layoutready !S.layout
+          if conf.preload && alltilesrendered !S.layout
           then preloadlayout !S.x !S.y !S.winw !S.winh
           else !S.layout
         in
@@ -3929,7 +3941,7 @@ let display () =
   match !S.reload with
   | Some (x, y, t) ->
      if x != !S.x || y != !S.y || abs_float @@ now () -. t > 0.5
-        || (!S.layout != [] && layoutready !S.layout)
+        || (!S.layout != [] && alltilesrendered !S.layout)
      then (
        S.reload := None;
        display ()
