@@ -1172,7 +1172,7 @@ let act cmds =
 
   | "tile" , args ->
      (*
-       C part is notifying us that it has finished redering a tile
+       C part is notifying us that it has finished rendering a tile
        valid = the tile fits current config (i.e. the settings with which
        the tile has been rendered match current ones)
 
@@ -4536,6 +4536,7 @@ let () =
   let openlast = ref false in
   let doreap = ref false in
   let csspath = ref None in
+  let justversion = ref false in
   S.selfexec := Sys.executable_name;
   let spec =
     [("-p", Arg.Set_string S.password, "<password> Set password");
@@ -4556,11 +4557,7 @@ let () =
      ("-remote", Arg.Set_string rcmdpath,
       "<path> Set path to the remote fifo");
      ("-gc", Arg.Set gc, " Collect garbage");
-     ("-v",
-      Arg.Unit (fun () ->
-          Printf.printf "%s\nconfiguration file: %s\n" (Help.version ())
-            Config.defconfpath;
-          exit 0), " Print version and exit");
+     ("-v", Arg.Set justversion, " Print version and exit");
      ("-css", Arg.String (fun s -> csspath := Some s),
       "<path> Set path to the style sheet to use with EPUB/HTML");
      ("-origin", Arg.Set_string S.origin, "<origin> <undocumented>");
@@ -4574,6 +4571,22 @@ let () =
   in
   Arg.parse (Arg.align spec) (fun s -> S.path := s)
     ("Usage: " ^ Sys.argv.(0) ^ " [options] some.pdf\nOptions:");
+
+  if !S.confpath == E.s
+  then (
+    let dir =
+      let dir = Filename.concat home ".config" in
+      if try Sys.is_directory dir with _ -> false then dir else home
+    in
+    S.confpath := Filename.concat dir "llpp.conf"
+  );
+
+  if !justversion
+  then (
+    Printf.printf "%s\nconfiguration file: %s\n" (Help.version ())
+      !S.confpath;
+    exit 0
+  );
 
   let histmode = emptystr !S.path && not !openlast in
 

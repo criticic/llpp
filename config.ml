@@ -301,15 +301,8 @@ let home =
     dolog "cannot determine home directory location: %s" @@ exntos exn;
     E.s
 
-let defconfpath =
-  let dir =
-    let dir = Filename.concat home ".config" in
-    if Sys.is_directory dir then dir else home
-  in
-  Filename.concat dir "llpp.conf"
-
 module S = struct
-  let confpath = ref defconfpath
+  let confpath = ref E.s
   let ss = ref Unix.stdin
   let wsfd = ref Unix.stdin
   let stderr = ref Unix.stdin
