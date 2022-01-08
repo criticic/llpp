@@ -4582,9 +4582,8 @@ let () =
   );
 
   if !justversion
-  then (
-    Printf.printf "%s\nconfiguration file: %s\n" (Help.version ())
-      !S.confpath;
+  then Printf.(
+    printf "%s\nconfiguration file: %s\n" (Help.version ()) !S.confpath;
     exit 0
   );
 
