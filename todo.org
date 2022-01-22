@@ -18,3 +18,30 @@
 * TODO multiple targets in build.bash
   exit inside 'doc' target is not, in general, correct
 * TODO scroll by paragraph/block
+  - State "TODO"       from              [2021-12-06 Mon 23:35]
+* TODO judicious use of memchanged
+* TODO fix multicolumn visible eviction K330w-manual.pdf
+  - State "TODO"       from              [2021-12-07 Tue 00:49]
+  -7 columns
+  <doc path='/home/malc/K330w-manual.pdf'
+    key='45fb0ee0baecb257f41fa92e8128660f' pan='-480'
+    pixmap-cache-size='1M'
+    trim-margins='true'
+    columns='-7'
+    title='20210910 K330w&#232;&#175;&#180;&#230;&#152;&#142;&#230;&#138;&#152;&#233;&#161;&#181;  1.cdr'
+    last-visit='1638743044'/>
+<doc path='/home/malc/x/org/kbd/orn/noi-IMG_20181003_142031.jpg'
+    key='39d1226776dc827727ef3e24c42e66be'
+    title='noi-IMG_20181003_142031.jpg'
+    last-visit='1633097087'/>
+
+    zoom pan quit, load - position is not the same
+<doc path='/home/malc/x/inc/harmons.jpeg'
+    key='f38a98484584d216680176d330aa92b5'
+    page='0' rely='0.699800' pan='-8795'
+    zoom='1161.16'
+    title='harmons.jpeg'
+    last-visit='1638744240'/>
+* TODO llpp -last and llpp select first entry in history behave differently
+  586cb865549a22765a91ee0983e02a56429b1577
+* TODO llpp recode and comment "tile" handling
