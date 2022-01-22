@@ -16,8 +16,7 @@
 #define SIZE_FLOAT	sizeof(float)
 #define SIZE_DOUBLE	sizeof(double)
 
-extern void invalid_argument (char *) Noreturn;
-extern void raise_out_of_memory (void) Noreturn;
+extern void caml_invalid_argument (char *) Noreturn;
 
 static int raw_sizeof (value kind)
 {
@@ -52,7 +51,7 @@ static void check_size (value raw, long pos, char *msg)
 {
     if (pos < 0 ||
 	(pos+1) * raw_sizeof(Kind_raw(raw)) > Int_val(Size_raw(raw)))
-	invalid_argument (msg);
+	caml_invalid_argument (msg);
 }
 
 CAMLprim value ml_raw_get (value raw, value pos)  /* ML */
@@ -89,8 +88,8 @@ CAMLprim value ml_raw_read (value raw, value pos, value len)  /* ML */
     value ret;
 
     check_size (raw,s+l-1,"Raw.read");
-    if (l<0 || s<0) invalid_argument("Raw.read");
-    ret = alloc_shr (l, 0);
+    if (l<0 || s<0) caml_invalid_argument("Raw.read");
+    ret = caml_alloc_shr (l, 0);
     switch (Kind_raw(raw)) {
     case MLTAG_bitmap:
     case MLTAG_ubyte:
@@ -161,8 +160,8 @@ CAMLprim value ml_raw_read_string (value raw, value pos, value len)  /* ML */
     value ret;
 
     if (l<0 || s<0 || s+l > Int_val(Size_raw(raw)))
-	invalid_argument("Raw.read_string");
-    ret = alloc_string (l);
+	caml_invalid_argument("Raw.read_string");
+    ret = caml_alloc_string (l);
     memcpy (Bp_val(ret), Bp_val(Addr_raw(raw))+s, l);
     CAMLreturn(ret);
 }
@@ -170,10 +169,10 @@ CAMLprim value ml_raw_read_string (value raw, value pos, value len)  /* ML */
 CAMLprim value ml_raw_write_string (value raw, value pos, value data)  /* ML */
 {
     int s = Int_val(pos);
-    int l = string_length(data);
+    int l = caml_string_length(data);
 
     if (s<0 || s+l > Int_val(Size_raw(raw)))
-	invalid_argument("Raw.write_string");
+	caml_invalid_argument("Raw.write_string");
     memcpy (Bp_val(Addr_raw(raw))+s, String_val(data), l);
     return Val_unit;
 }
@@ -215,7 +214,7 @@ CAMLprim value ml_raw_write (value raw, value pos, value data)  /* ML */
     int i, l = Wosize_val(data);
 
     check_size (raw,s+l-1,"Raw.write");
-    if (s<0) invalid_argument("Raw.write");
+    if (s<0) caml_invalid_argument("Raw.write");
 
     switch (Kind_raw(raw)) {
     case MLTAG_bitmap:
@@ -273,9 +272,9 @@ CAMLprim value ml_raw_get_float (value raw, value pos)  /* ML */
 
     check_size (raw,i,"Raw.get_float");
     if (Kind_raw(raw) == MLTAG_float)
-	return copy_double ((double) Float_raw(raw)[i]);
+	return caml_copy_double ((double) Float_raw(raw)[i]);
     else
-	return copy_double (Double_raw(raw)[i]);
+	return caml_copy_double (Double_raw(raw)[i]);
 }
 
 CAMLprim value ml_raw_read_float (value raw, value pos, value len)  /* ML */
@@ -285,8 +284,8 @@ CAMLprim value ml_raw_read_float (value raw, value pos, value len)  /* ML */
     value ret = Val_unit;
 
     check_size (raw,s+l-1,"Raw.read_float");
-    if (l<0 || s<0) invalid_argument("Raw.read_float");
-    ret = alloc_shr (l*sizeof(double)/sizeof(value), Double_array_tag);
+    if (l<0 || s<0) caml_invalid_argument("Raw.read_float");
+    ret = caml_alloc_shr (l*sizeof(double)/sizeof(value), Double_array_tag);
     if (Kind_raw(raw) == MLTAG_float) {
 	float *float_raw = Float_raw(raw)+s;
 	for (i = 0; i < l; i++)
@@ -317,7 +316,7 @@ CAMLprim value ml_raw_write_float (value raw, value pos, value data)  /* ML */
     int i, l = Wosize_val(data)*sizeof(value)/sizeof(double);
 
     check_size (raw,s+l-1,"Raw.write_float");
-    if (s<0) invalid_argument("Raw.write_float");
+    if (s<0) caml_invalid_argument("Raw.write_float");
     if (Kind_raw(raw) == MLTAG_float) {
 	float *float_raw = Float_raw(raw)+s;
 	for (i = 0; i < l; i++)
@@ -428,10 +427,10 @@ CAMLprim value ml_raw_get_long (value raw, value pos)  /* ML */
     switch (Kind_raw(raw)) {
     case MLTAG_int:
     case MLTAG_uint:
-        return copy_nativeint (Int_raw(raw)[i]);
+        return caml_copy_nativeint (Int_raw(raw)[i]);
     case MLTAG_long:
     case MLTAG_ulong:
-        return copy_nativeint (Long_raw(raw)[i]);
+        return caml_copy_nativeint (Long_raw(raw)[i]);
     }
     return Val_unit;
 }
@@ -463,10 +462,10 @@ CAMLprim value ml_raw_alloc (value kind, value len)  /* ML */
     int offset = 0;
 
     if (kind == MLTAG_double && sizeof(double) > sizeof(value)) {
-	data = alloc_shr ((size-1)/sizeof(value)+2, Abstract_tag);
+	data = caml_alloc_shr ((size-1)/sizeof(value)+2, Abstract_tag);
 	offset = (data % sizeof(double) ? sizeof(value) : 0);
-    } else data = alloc_shr ((size-1)/sizeof(value)+1, Abstract_tag);
-    raw = alloc_small (SIZE_RAW,0);
+    } else data = caml_alloc_shr ((size-1)/sizeof(value)+1, Abstract_tag);
+    raw = caml_alloc_small (SIZE_RAW,0);
     Kind_raw(raw) = kind;
     Size_raw(raw) = Val_int(size);
     Base_raw(raw) = data;
@@ -483,10 +482,10 @@ CAMLprim value ml_raw_alloc_static (value kind, value len)  /* ML */
     int offset = 0;
 
     if (kind == MLTAG_double && sizeof(double) > sizeof(long)) {
-	data = stat_alloc (size+sizeof(long));
+	data = caml_stat_alloc (size+sizeof(long));
 	offset = ((long)data % sizeof(double) ? sizeof(value) : 0);
-    } else data = stat_alloc (size);
-    raw = alloc_small (SIZE_RAW, 0);
+    } else data = caml_stat_alloc (size);
+    raw = caml_alloc_small (SIZE_RAW, 0);
     Kind_raw(raw) = kind;
     Size_raw(raw) = Val_int(size);
     Base_raw(raw) = (value) data;
@@ -497,8 +496,8 @@ CAMLprim value ml_raw_alloc_static (value kind, value len)  /* ML */
 
 CAMLprim value ml_raw_free_static (value raw)  /* ML */
 {
-    if (Static_raw(raw) != Val_int(1)) invalid_argument ("Raw.free_static");
-    stat_free (Void_raw(raw));
+    if (Static_raw(raw) != Val_int(1)) caml_invalid_argument ("Raw.free_static");
+    caml_stat_free (Void_raw(raw));
     Base_raw(raw) = Val_unit;
     Size_raw(raw) = Val_unit;
     Offset_raw(raw) = Val_unit;
