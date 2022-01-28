@@ -1161,7 +1161,7 @@ let act cmds =
           );
 
           if visible && alltilesrendered !S.layout
-          then assert false (* Glutils.postRedisplay "page"; *)
+          then Glutils.postRedisplay "page";
         )
 
      | Idle | Tiling _ | Outlining _ ->
