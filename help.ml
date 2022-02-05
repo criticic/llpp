@@ -172,7 +172,7 @@ o Text searching is very naive|}
 open Utils
 
 let gotourl launcher url =
-  let command = Str.global_replace Utils.Re.percent url launcher in
+  let command = Str.global_replace Utils.Re.percents url launcher in
   try ignore @@ spawn command []
   with exn -> dolog "failed to execute `%s': %s" command @@ exntos exn
 

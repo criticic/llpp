@@ -113,7 +113,8 @@ let getenvdef name def =
 
 module Re = struct
   let crlf = Str.regexp "[\r\n]"
-  let percent = Str.regexp "%s"
+  let percents = Str.regexp "%s"
+  let percentp = Str.regexp "%p"
   let whitespace = Str.regexp "[ \t]"
 end
 

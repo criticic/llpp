@@ -61,7 +61,17 @@ let launchpath () =
   if emptystr conf.pathlauncher
   then adderrmsg "path launcher" "command set"
   else
-    let cmd = Str.global_replace Re.percent !S.path conf.pathlauncher in
+    let n =
+      match !S.layout with
+      | l :: _ -> string_of_int l.pageno
+      | _ -> E.s
+    in
+    let cmd = Str.global_replace Re.percents !S.path conf.pathlauncher in
+    let cmd =
+      if nonemptystr n
+      then Str.global_replace Re.percentp n cmd
+      else cmd
+    in
     match spawn cmd [] with
     | exception exn ->
        adderrfmt "spawn" "failed to execute `%s': %s" cmd @@ exntos exn
@@ -2790,7 +2800,7 @@ let gotounder = function
             "don't know where to save attachment"
      else
        let filename = Ffi.getfileannot opaque slinkindex in
-       let savecmd = Str.global_replace Re.percent filename conf.savecmd in
+       let savecmd = Str.global_replace Re.percents filename conf.savecmd in
        let path =
          getcmdoutput
            (adderrfmt savecmd
@@ -3118,7 +3128,7 @@ let save () =
   then adderrmsg "savepath-command is empty"
          "don't know where to save modified document"
   else
-    let savecmd = Str.global_replace Re.percent !S.path conf.savecmd in
+    let savecmd = Str.global_replace Re.percents !S.path conf.savecmd in
     let path =
       getcmdoutput
         (adderrfmt savecmd "failed to obtain path to the saved copy: %s")

@@ -41,7 +41,8 @@ val getenvdef : string -> string -> string
 module Re :
   sig
     val crlf : Str.regexp
-    val percent : Str.regexp
+    val percents : Str.regexp
+    val percentp : Str.regexp
     val whitespace : Str.regexp
   end
 val addchar : string -> char -> string
