@@ -400,7 +400,8 @@ let drawtiles l color =
        let w = let lw = !S.winw - x in min lw w
        and h = let lh = !S.winh - y in min lh h in
        texe `blend;
-       GlDraw.color (0.8, 0.8, 0.8);
+       let c = if conf.invert then 0.2 else 0.8 in
+       GlDraw.color (c, c, c);
        Glutils.filledrect (float x) (float y) (float (x+w)) (float (y+h));
        texe `modulate;
        if w > 128 && h > fstate.fontsize + 10
