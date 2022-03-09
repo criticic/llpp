@@ -3669,5 +3669,5 @@ ML (init (value csock_v, value params_v))
 }
 
 #if FIXME || !FIXME
-extern void UNUSED_ATTR NO_OPTIMIZE_ATTR refmacs (void);
+static void UNUSED_ATTR NO_OPTIMIZE_ATTR refmacs (void) {}
 #endif
