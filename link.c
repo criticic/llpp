@@ -18,6 +18,18 @@
 #include <unistd.h>
 #include <wchar.h>
 
+#ifdef LLPARANOIDP
+#pragma GCC diagnostic error "-Weverything"
+#pragma GCC diagnostic ignored "-Wpadded"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
+#pragma GCC diagnostic ignored "-Wdocumentation"
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
+#else
+#pragma GCC diagnostic error "-Wcast-qual"
+#endif
+
 #include GL_H
 
 #define CAML_NAME_SPACE
@@ -3667,7 +3679,3 @@ ML (init (value csock_v, value params_v))
 
     CAMLreturn (Val_int (state.pfds[0]));
 }
-
-#if FIXME || !FIXME
-static void UNUSED_ATTR NO_OPTIMIZE_ATTR refmacs (void) {}
-#endif

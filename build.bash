@@ -89,8 +89,8 @@ cflags() {
             test "${mbt-}" = "debug" || f+="-O2 "
             $darwin && f+="-DMACOS -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
                     || f+="-D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>'"
-            f+=" -include $srcd/diag.h -DFIXME=0"
             f+=" -DTEXT_TYPE=GL_TEXTURE_RECTANGLE_ARB"
+            #f+=" -DLLPARANOIDP"
             #f+=" -DTEXT_TYPE=GL_TEXTURE_2D"
             ;;
         *) f="-g -O2 -Wall -Werror";;
