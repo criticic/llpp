@@ -20,7 +20,9 @@ jobs:
       run: mkdir build && sh misc/getmupdf.sh build/mupdf
     - name: Install prerquisites
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get install libgl1-mesa-dev ccache
+      run: |
+       sudo apt-get update
+       sudo apt-get install libgl1-mesa-dev ccache
     - name: build
       if: matrix.os == 'ubuntu-latest'
       run: bash ahbs
