@@ -2558,7 +2558,8 @@ ML (getfileannot (value ptr_v, value n_v))
     pdf_obj *fs = pdf_dict_get (state.ctx,
                                 pdf_annot_obj (state.ctx, slink->u.annot),
                                 PDF_NAME (FS));
-    ret_v = caml_copy_string (pdf_embedded_file_name (state.ctx, fs));
+    pdf_embedded_file_params *file_params = pdf_get_embedded_file_params (state.ctx, fs);
+    ret_v = caml_copy_string (file_params->filename);
 
     unlock (__func__);
     CAMLreturn (ret_v);
@@ -2576,7 +2577,7 @@ ML0 (savefileannot (value ptr_v, value n_v, value path_v))
         pdf_obj *fs = pdf_dict_get (state.ctx,
                                     pdf_annot_obj (state.ctx, slink->u.annot),
                                     PDF_NAME (FS));
-        fz_buffer *buf = pdf_load_embedded_file (state.ctx, fs);
+        fz_buffer *buf = pdf_load_embedded_file_contents (state.ctx, fs);
         fz_save_buffer (state.ctx, buf, path);
         fz_drop_buffer (state.ctx, buf);
         printd ("progress 1 saved '%s'", path);
