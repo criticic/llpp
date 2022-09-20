@@ -2558,7 +2558,8 @@ ML (getfileannot (value ptr_v, value n_v))
     pdf_obj *fs = pdf_dict_get (state.ctx,
                                 pdf_annot_obj (state.ctx, slink->u.annot),
                                 PDF_NAME (FS));
-    pdf_embedded_file_params *file_params = pdf_get_embedded_file_params (state.ctx, fs);
+    pdf_embedded_file_params *file_params;
+    pdf_get_embedded_file_params (state.ctx, fs, file_params);
     ret_v = caml_copy_string (file_params->filename);
 
     unlock (__func__);
