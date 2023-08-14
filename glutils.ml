@@ -27,7 +27,7 @@ let drawstring size x y s =
   Gl.disable `blend;
   Gl.disable `texture_2d
 
-let drawstringf size x y = Printf.kprintf (drawstring size (x+1) (y+size+1))
+let drawstringf size x y = Printf.ksprintf (drawstring size (x+1) (y+size+1))
 let redisplay = ref false
 let postRedisplay who =
   Utils.vlog "redisplay for [%S]" who;

@@ -53,7 +53,7 @@ let adderrmsg src msg =
   S.newerrmsgs := true;
   Glutils.postRedisplay src
 
-let settextfmt fmt = Printf.kprintf (fun s -> S.text := s) fmt
+let settextfmt fmt = Printf.ksprintf (fun s -> S.text := s) fmt
 let impmsg fmt = Printf.ksprintf (fun s -> showtext '!' s) fmt
 let adderrfmt src fmt = Printf.ksprintf (fun s -> adderrmsg src s) fmt
 

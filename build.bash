@@ -67,6 +67,12 @@ oincs() {
         main.cmi|keys.cmi|utils.cmi|utf8syms.cmi|parser.cmi) ;;
         *) die "ocaml include paths for '$2' aren't set";;
     esac
+    if $ocaml5; then
+        incs="${incs-} -I +str"
+        if ! $darwin; then
+            incs="$incs -I +unix"
+        fi
+    fi
     test -z "${incs-}" || echo $incs
 }
 
@@ -138,6 +144,11 @@ if test "$overs" != "4.14.0~rc1"; then
     overs=$(ocamlc -vnum 2>/dev/null)
 fi
 
+ocaml5=false
+if [ "`echo "$overs" | cut -d. -f1`" -ge 5 ]; then
+    ocaml5=true
+fi
+
 while read k v; do
     case "$k" in
         "bytecomp_c_compiler:") ccomp=${CAML_CC-$v};;
@@ -158,9 +169,11 @@ bocaml1() {
     isfresh "$o.depl" "$overs$cmd$(eval $keycmd)" || {
         read _ _ depl < <(eval $cmd) || die "$cmd failed"
         for d in $depl; do
-            if test "$d" = "$outd/confstruct.cmo";
-            then d=confstruct.cmo; else d=${d#$srcd/}; fi
-            deps+="$d\n"
+            if [ "${d:0:1}" != "/" ]; then
+                if test "$d" = "$outd/confstruct.cmo";
+                then d=confstruct.cmo; else d=${d#$srcd/}; fi
+                deps+="$d\n"
+            fi
         done
         printf "$deps" >$o.depl
         deps=
