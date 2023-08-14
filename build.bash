@@ -89,9 +89,9 @@ oflags() {
 cflags() {
     case "${1#$outd/}" in
         version.o) f=-DLLPP_VERSION=$ver;;
-        lablGL/*.o) f="-g -Wno-pointer-sign -Werror -O2";;
+        lablGL/*.o) f="-g -Wno-pointer-sign -O2";;
         link.o)
-            f="-g -std=c11 $muinc -Wall -Werror -Wextra -pedantic "
+            f="-g -std=c11 $muinc -Wall -Wextra -pedantic "
             test "${mbt-}" = "debug" || f+="-O2 "
             $darwin && f+="-DMACOS -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
                     || f+="-D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>'"
@@ -99,14 +99,14 @@ cflags() {
             #f+=" -DLLPARANOIDP"
             #f+=" -DTEXT_TYPE=GL_TEXTURE_2D"
             ;;
-        *) f="-g -O2 -Wall -Werror";;
+        *) f="-g -O2 -Wall";;
     esac
     ! $darwin || f+=" -DGL_SILENCE_DEPRECATION"
     echo $f
 }
 
 mflags() {
-    echo "-I $(ocamlc -where) -g -Wall -Werror -O2 -DGL_SILENCE_DEPRECATION"
+    echo "-I $(ocamlc -where) -g -Wall -O2 -DGL_SILENCE_DEPRECATION"
 }
 
 overs=$(ocamlc -vnum 2>/dev/null) || overs=""
