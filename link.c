@@ -1522,11 +1522,12 @@ static void *mainloop (void UNUSED_ATTR *unused)
             if (pdf && nameddest && *nameddest) {
                 fz_point xy;
                 struct pagedim *pdim;
-                int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest,
-                                                &xy.x, &xy.y);
-                pdim = pdimofpageno (pageno);
+                fz_location loc = fz_resolve_link (state.ctx, (fz_document*)pdf, nameddest,
+						   &xy.x, &xy.y);
+
+                pdim = pdimofpageno (loc.page);
                 xy = fz_transform_point (xy, pdim->ctm);
-                printd ("a %d %d %d", pageno, (int) xy.x, (int) xy.y);
+                printd ("a %d %d %d", loc.page, (int) xy.x, (int) xy.y);
             }
 
             state.gen++;
