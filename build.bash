@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 
 vecho() { ${vecho-:} "$@"; }
 executable_p() { command -v "$1" >/dev/null 2>&1; }
@@ -33,9 +33,7 @@ test -n "${1-}" || die "usage: $0 build-directory"
 outd=$1
 srcd=$(dirname $0)
 mudir=$outd/mupdf
-muinc="-I $mudir/include -I $mudir/thirdparty/freetype/include"
-
-test -d $mudir || die muPDF wasn\'t found in $outd/, consult $srcd/BUILDING
+mudeps=('freetype2' 'gumbo' 'harfbuzz' 'libjpeg' 'libopenjp2' 'x11' 'zlib')
 
 mkdir -p $outd/{$wsid,lablGL}
 
@@ -45,8 +43,7 @@ mbt=${mbt:-release}
 test -n "${gmk:-}" && gmk=false || gmk=true
 
 mulibs="$mudir/build/$mbt/libmupdf.a $mudir/build/$mbt/libmupdf-third.a"
-make="make -C "$mudir" build=$mbt -j $mjobs libs"
-$make -q -s || $make
+
 
 oincs() {
     local b=$1 incs
@@ -77,7 +74,7 @@ oflags() {
             f="-g -strict-sequence -strict-formats -alert @all-missing-mli";;
         *) f="-g -strict-sequence -strict-formats -alert @all -warn-error @A";;
     esac
-    echo $(oincs $outd $1) $f
+    echo $(oincs $outd $1) -I +unix -I +str $f
 }
 
 cflags() {
@@ -85,7 +82,7 @@ cflags() {
         version.o) f=-DLLPP_VERSION=$ver;;
         lablGL/*.o) f="-g -Wno-pointer-sign -Werror -O2";;
         link.o)
-            f="-g -std=c11 $muinc -Wall -Werror -Wextra -pedantic "
+            f="$CFLAGS -g -std=c11 $(pkg-config --cflags "${mudeps[@]}") -Wall -Wextra -pedantic "
             test "${mbt-}" = "debug" || f+="-O2 "
             $darwin && f+="-DMACOS -D_GNU_SOURCE -DGL_H='<OpenGL/gl.h>'" \
                     || f+="-D_POSIX_C_SOURCE -DGL_H='<GL/gl.h>'"
@@ -104,39 +101,6 @@ mflags() {
 }
 
 overs=$(ocamlc -vnum 2>/dev/null) || overs=""
-if test "$overs" != "4.14.0~rc1"; then
-    url=https://caml.inria.fr/pub/distrib/ocaml-4.14/ocaml-4.14.0~rc1.tar.xz
-    txz=$outd/$(basename $url)
-    keycmd="printf $url; digest $txz;"
-    isfresh $txz "$(eval $keycmd)" || {
-        if executable_p wget; then dl() { wget "$1" -O "$2"; }
-        elif executable_p curl; then dl() { curl -L "$1" -o "$2"; }
-        else die "no program to fetch remote urls found"
-        fi
-        dl $url $txz
-        eval $keycmd >$txz.past
-    } && vecho "fresh $txz"
-    absprefix=$(realpath $outd)
-    export PATH=$absprefix/bin:$PATH
-    ocamlc=$absprefix/bin/ocamlc
-    keycmd="printf $url; digest $ocamlc;"
-    isfresh $ocamlc "$(eval $keycmd)" || (
-        # This will needlessly re{configure,make} ocaml since "past"
-        # of configure/make is hard to ascertain. "Better safe than
-        # sorry" approach is taken here. The check will work for a
-        # single ocaml url/version, but _will_ redo _everything_
-        # otherwise (even if fully built artifacts are available)
-        tar xf $txz -C $outd
-        bn=$(basename $url)
-        cd $outd/${bn%.tar.xz}
-        ./configure --disable-ocamldoc --disable-ocamltest      \
-                    --enable-debugger=no --prefix=$absprefix
-        make -j $mjobs world
-        make install
-        eval $keycmd >$absprefix/bin/ocamlc.past
-    ) && vecho "fresh ocamlc"
-    overs=$(ocamlc -vnum 2>/dev/null)
-fi
 
 while read k v; do
     case "$k" in
@@ -307,7 +271,7 @@ for m in ml_gl ml_glarray ml_raw; do
 done
 
 libs="str.cma unix.cma"
-clibs="-L$mudir/build/$mbt -lmupdf -lmupdf-third -lpthread"
+clibs="-ljbig2dec $(pkg-config --libs "${mudeps[@]}") -lmupdf -lpthread"
 if $darwin; then
     mcomp=$ccomp
     clibs+=" -framework Cocoa -framework OpenGL"
@@ -320,7 +284,7 @@ else
     bocamlc wsi/x11/xlib.o
 fi
 
-cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $modules -cclib \"$clibs\""
+cmd="ocamlc -custom $libs -o $outd/llpp $cobjs $modules -cclib \"$clibs\" -I +unix -I +str"
 keycmd="digest $outd/llpp $cobjs $modules $mulibs"
 isfresh "$outd/llpp" "$cmd$(eval $keycmd)" || {
     echo linking $outd/llpp
