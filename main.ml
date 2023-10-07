@@ -1216,7 +1216,7 @@ let act cmds =
           puttileopaque l col row gen cs angle opaque size t;
           S.memused := !S.memused + size;
           !S.uioh#infochanged Memused;
-          gctilesnotinlayout !S.layout;
+          gctilesnotinlayout layout;
           Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                       opaque, size) S.tilelru;
 
