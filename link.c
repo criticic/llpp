@@ -606,7 +606,7 @@ static void initpdims1 (void)
 
             fz_var (pageobj);
             if (pdf->rev_page_map) {
-                for (int i = 0; i < pdf->rev_page_count; ++i) {
+                for (int i = 0; i < pdf->map_page_count; ++i) {
                     if (pdf->rev_page_map[i].page == pageno) {
                         pageobj = pdf_get_xref_entry (
                             ctx, pdf, pdf->rev_page_map[i].object
@@ -1522,11 +1522,12 @@ static void *mainloop (void UNUSED_ATTR *unused)
             if (pdf && nameddest && *nameddest) {
                 fz_point xy;
                 struct pagedim *pdim;
-                int pageno = pdf_lookup_anchor (state.ctx, pdf, nameddest,
-                                                &xy.x, &xy.y);
-                pdim = pdimofpageno (pageno);
+                fz_location loc = fz_resolve_link (state.ctx, (fz_document*)pdf, nameddest,
+						   &xy.x, &xy.y);
+
+                pdim = pdimofpageno (loc.page);
                 xy = fz_transform_point (xy, pdim->ctm);
-                printd ("a %d %d %d", pageno, (int) xy.x, (int) xy.y);
+                printd ("a %d %d %d", loc.page, (int) xy.x, (int) xy.y);
             }
 
             state.gen++;
@@ -2558,7 +2559,9 @@ ML (getfileannot (value ptr_v, value n_v))
     pdf_obj *fs = pdf_dict_get (state.ctx,
                                 pdf_annot_obj (state.ctx, slink->u.annot),
                                 PDF_NAME (FS));
-    ret_v = caml_copy_string (pdf_embedded_file_name (state.ctx, fs));
+    pdf_embedded_file_params file_params;
+    pdf_get_embedded_file_params (state.ctx, fs, &file_params);
+    ret_v = caml_copy_string (file_params.filename);
 
     unlock (__func__);
     CAMLreturn (ret_v);
@@ -2576,7 +2579,7 @@ ML0 (savefileannot (value ptr_v, value n_v, value path_v))
         pdf_obj *fs = pdf_dict_get (state.ctx,
                                     pdf_annot_obj (state.ctx, slink->u.annot),
                                     PDF_NAME (FS));
-        fz_buffer *buf = pdf_load_embedded_file (state.ctx, fs);
+        fz_buffer *buf = pdf_load_embedded_file_contents (state.ctx, fs);
         fz_save_buffer (state.ctx, buf, path);
         fz_drop_buffer (state.ctx, buf);
         printd ("progress 1 saved '%s'", path);

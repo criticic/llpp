@@ -26,7 +26,7 @@ let exntos = function
 
 let onoffs = function | true -> "on" | false -> "off"
 
-let error fmt = Printf.kprintf failwith fmt
+let error fmt = Printf.ksprintf failwith fmt
 
 module IntSet = Set.Make (struct type t = int let compare = (-) end)
 
@@ -182,7 +182,7 @@ let filecontents path =
      s
 
 let getcmdoutput errfun cmd =
-  let reperror fmt = Printf.kprintf errfun fmt in
+  let reperror fmt = Printf.ksprintf errfun fmt in
   let clofail s e = error "failed to close %s: %s" s e in
   match Unix.pipe () with
   | exception exn ->
@@ -249,7 +249,7 @@ let r32 s pos = ((r16 s (pos+2)) lsl 16) lor (r16 s pos)
 let r32s s pos = Bytes.get_int32_le s pos |> Int32.to_int
 
 let vlogf = ref ignore
-let vlog fmt = Printf.kprintf !vlogf fmt
+let vlog fmt = Printf.ksprintf !vlogf fmt
 
 let pipef ?(closew=true) cap f cmd =
   match Unix.pipe () with

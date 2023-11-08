@@ -53,7 +53,7 @@ let adderrmsg src msg =
   S.newerrmsgs := true;
   Glutils.postRedisplay src
 
-let settextfmt fmt = Printf.kprintf (fun s -> S.text := s) fmt
+let settextfmt fmt = Printf.ksprintf (fun s -> S.text := s) fmt
 let impmsg fmt = Printf.ksprintf (fun s -> showtext '!' s) fmt
 let adderrfmt src fmt = Printf.ksprintf (fun s -> adderrmsg src s) fmt
 
@@ -1216,7 +1216,7 @@ let act cmds =
           puttileopaque l col row gen cs angle opaque size t;
           S.memused := !S.memused + size;
           !S.uioh#infochanged Memused;
-          gctilesnotinlayout !S.layout;
+          gctilesnotinlayout layout;
           Queue.push ((l.pageno, gen, cs, angle, l.pagew, l.pageh, col, row),
                       opaque, size) S.tilelru;
 
