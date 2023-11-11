@@ -37,7 +37,11 @@ mudeps=('freetype2' 'gumbo' 'harfbuzz' 'libjpeg' 'libopenjp2' 'x11' 'zlib')
 
 mkdir -p $outd/{$wsid,lablGL}
 
-isfresh() { test "$(<$1.past)" = "$2"; } 2>/dev/null
+isfresh() {
+    test -f "$1.past" || return 1
+    test "$(<$1.past)" = "$2"
+} 2>/dev/null
+
 
 mbt=${mbt:-release}
 test -n "${gmk:-}" && gmk=false || gmk=true
